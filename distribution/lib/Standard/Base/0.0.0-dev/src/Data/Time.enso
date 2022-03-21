@@ -56,7 +56,7 @@ now = Time ZonedDateTime.now
          example_new = Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
-    Panic.recover (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch e-> case e of
+    Panic.recover Any (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
 
@@ -141,7 +141,7 @@ new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond 
             Date.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse : Text -> Text | Nothing -> Locale -> Time ! Time_Error
 parse text pattern=Nothing locale=Locale.default =
-    result = Panic.recover <| case pattern of
+    result = Panic.recover Any <| case pattern of
         Nothing -> Time_Utils.parse_time text
         Text -> Time_Utils.parse_time_format text pattern locale.java_locale
         _ -> Panic.throw (Time_Error "An invalid pattern was provided.")

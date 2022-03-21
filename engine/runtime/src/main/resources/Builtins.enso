@@ -234,13 +234,6 @@ type Error
     get_stack_trace_text : Text
     get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
 
-    ## PRIVATE
-
-       Returns a raw representation of the current execution stack trace.
-       You probably want `Error.get_stack_trace` instead.
-    primitive_get_stack_trace : Array
-    primitive_get_stack_trace = @Builtin_Method "Error.primitive_get_stack_trace"
-
     ## Converts an error to a corresponding textual representation.
 
        > Example
@@ -395,7 +388,7 @@ type Panic
        program control flow.
 
        Panics "bubble up" through the program until they reach either an
-       invocation of Panic.recover or the program's main method. An unhandled
+       invocation of Panic.recover Any or the program's main method. An unhandled
        panic in main will terminate the program.
 
        ? Dataflow Errors or Panics
@@ -407,31 +400,64 @@ type Panic
     ## Throws a new panic with the provided payload.
 
        Arguments:
-       - payload: The contents of the panic to be thrown.
+       - payload: The contents of the panic to be thrown. If the payload is a
+         `Caught_Panic` or a raw Java exception, instead of throwing a new panic
+         with it as a payload, the original exception is rethrown, preserving
+         its stacktrace.
 
        > Example
          Throwing a panic containing the text "Oh no!".
 
              Panic.throw "Oh no!"
+
+       > Example
+         Use together with `Panic.catch` to catch only specific types of errors
+         and rethrow any others, without affecting their stacktraces.
+
+             Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
 
-    ## Executes the provided action and converts any panic thrown by it into
-       an Error.
+    ## PRIVATE
+       Executes the provided action and if any panic was thrown, calls the
+       provided callback.
 
-       If action executes successfully, the result of Panic.recover is the
-       result of that action. Otherwise, it is the panic that was thrown after
-       conversion to a dataflow error.
+       If action executes successfully, the result of `Panic.catch Any` is the
+       result of that action. Otherwise, it is the result of the provided
+       handler callback, executed with the caught panic as its first argument.
 
        Arguments:
        - action: The code to execute that potentially panics.
+       - handler: The callback to handle any panics.
+    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
-       > Example
-         Handling a panic for a panicking action.
+    ## PRIVATE
 
-             Panic.recover (Panic.throw "Oh no!")
-    recover : Any -> Any
-    recover ~action = @Builtin_Method "Panic.recover"
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
+       You probably want `Panic.get_attached_stack_trace` instead.
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+
+type Caught_Panic
+    ## A wrapper for a caught panic.
+
+       Arguments:
+       - payload: the payload carried by the error.
+       - internal_original_exception (private): the original Java exception that is
+         the source of this panic. Only for internal use. To get the Java exception
+         from polyglot exceptions, match the `payload` on `Polyglot_Error` and
+         extract the Java object from there.
+    @Builtin_Type
+    type Caught_Panic payload internal_original_exception
+
+    ## Converts this caught panic into a dataflow error containing the same
+       payload and stack trace.
+    convert_to_dataflow_error : Error
+    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
 # Function types.
 type Function

@@ -233,7 +233,7 @@ type Vector
              [0, 1, 2].sum
     sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
-        result = Panic.recover <| this.reduce (+)
+        result = Panic.recover Any <| this.reduce (+)
         result.map_error x->case x of
             No_Such_Method_Error _ _ -> x
             Empty_Error -> x
@@ -938,7 +938,7 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        recovered = Panic.recover
+        recovered = Panic.recover Any
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->
