@@ -44,7 +44,7 @@ public class InstantiateNode extends ExpressionNode {
    * Creates an instance of this node.
    *
    * @param constructor the {@link AtomConstructor} this node will be instantiating
-   * @param arguments the expressions for field values
+   * @param arguments the expressions that produce field values
    * @return a node that instantiates {@code constructor}
    */
   public static InstantiateNode build(AtomConstructor constructor, ExpressionNode[] arguments) {
