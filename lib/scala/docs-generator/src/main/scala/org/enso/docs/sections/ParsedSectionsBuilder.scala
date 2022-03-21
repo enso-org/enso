@@ -4,7 +4,7 @@ import cats.kernel.Monoid
 import cats.syntax.compose._
 import org.enso.syntax.text.ast.Doc
 
-/** Combine the documentation into a list of [[ParsedSection]]s. */
+/** Combine the documentation into a list of [[Section]]s. */
 final class ParsedSectionsBuilder {
 
   import ParsedSectionsBuilder._
@@ -14,7 +14,7 @@ final class ParsedSectionsBuilder {
     * @param doc the parsed documentation comment.
     * @return the list of parsed sections.
     */
-  def build(doc: Doc): List[ParsedSection] = {
+  def build(doc: Doc): List[Section] = {
     val tagSections      = doc.tags.map(buildTags)
     val synopsisSections = doc.synopsis.map(buildSynopsis)
     val bodySections     = doc.body.map(buildBody)
@@ -26,9 +26,9 @@ final class ParsedSectionsBuilder {
     * @param tags the tags section
     * @return the list of parsed sections
     */
-  private def buildTags(tags: Doc.Tags): List[ParsedSection] =
+  private def buildTags(tags: Doc.Tags): List[Section] =
     tags.elems.toList.map { tag =>
-      Section.Tag(tag.name, tag.details.map(_.trim).map(Doc.Elem.Text))
+      Section.Tag(tag.name, tag.details.map(_.trim).map(Doc.Elem.Text).toList)
     }
 
   /** Process the synopsis section of the documentation comment.
@@ -36,7 +36,7 @@ final class ParsedSectionsBuilder {
     * @param synopsis the synopsis section
     * @return the list of parsed sections
     */
-  private def buildSynopsis(synopsis: Doc.Synopsis): List[ParsedSection] =
+  private def buildSynopsis(synopsis: Doc.Synopsis): List[Section] =
     (joinSections _ >>> buildSections)(synopsis.elems.toList)
 
   /** Process the body section of the documentation comment.
@@ -44,7 +44,7 @@ final class ParsedSectionsBuilder {
     * @param body the body section
     * @return the list of parsed sections
     */
-  private def buildBody(body: Doc.Body): List[ParsedSection] =
+  private def buildBody(body: Doc.Body): List[Section] =
     (joinSections _ >>> buildSections)(body.elems.toList)
 
   /** Process the list of [[Doc.Section]] documentation sections.
@@ -52,9 +52,7 @@ final class ParsedSectionsBuilder {
     * @param sections the list of parsed documentation sections
     * @return the list of parsed sections
     */
-  private def buildSections(
-    sections: List[Doc.Section]
-  ): List[ParsedSection] =
+  private def buildSections(sections: List[Doc.Section]): List[Section] =
     sections.map {
       case Doc.Section.Raw(_, elems) =>
         elems match {

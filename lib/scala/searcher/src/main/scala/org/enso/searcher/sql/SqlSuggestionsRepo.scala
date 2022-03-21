@@ -990,7 +990,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Module(module, doc, docHtml, reexport) =>
+      case Suggestion.Module(module, doc, docHtml, _, reexport) =>
         val row = SuggestionRow(
           id                = None,
           externalIdLeast   = None,
@@ -1017,6 +1017,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             doc,
             docHtml,
+            _,
             reexport
           ) =>
         val row = SuggestionRow(
@@ -1046,6 +1047,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             returnType,
             doc,
             docHtml,
+            _,
             reexport
           ) =>
         val row = SuggestionRow(
@@ -1180,35 +1182,38 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.MODULE =>
         Suggestion.Module(
-          module            = suggestion.module,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          documentation         = suggestion.documentation,
+          documentationHtml     = suggestion.documentationHtml,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module            = suggestion.module,
-          name              = suggestion.name,
-          arguments         = arguments.sortBy(_.index).map(toArgument),
-          returnType        = suggestion.returnType,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          arguments             = arguments.sortBy(_.index).map(toArgument),
+          returnType            = suggestion.returnType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = suggestion.documentationHtml,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
           externalId =
             toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
-          module            = suggestion.module,
-          name              = suggestion.name,
-          arguments         = arguments.sortBy(_.index).map(toArgument),
-          selfType          = suggestion.selfType,
-          returnType        = suggestion.returnType,
-          documentation     = suggestion.documentation,
-          documentationHtml = suggestion.documentationHtml,
-          reexport          = suggestion.reexport
+          module                = suggestion.module,
+          name                  = suggestion.name,
+          arguments             = arguments.sortBy(_.index).map(toArgument),
+          selfType              = suggestion.selfType,
+          returnType            = suggestion.returnType,
+          documentation         = suggestion.documentation,
+          documentationHtml     = suggestion.documentationHtml,
+          documentationSections = None,
+          reexport              = suggestion.reexport
         )
       case SuggestionKind.CONVERSION =>
         Suggestion.Conversion(

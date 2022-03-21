@@ -102,6 +102,7 @@ object SearchProtocol {
       conversion.returnType,
       conversion.documentation,
       conversion.documentationHtml,
+      None,
       conversion.reexport
     )
   }

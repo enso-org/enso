@@ -149,6 +149,7 @@ object Suggestion {
     module: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationSections: Option[List[DocSection]],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -188,6 +189,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationSections: Option[List[DocSection]],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -202,8 +204,6 @@ object Suggestion {
       s"returnType=$returnType" +
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -228,6 +228,7 @@ object Suggestion {
     returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String],
+    documentationSections: Option[List[DocSection]],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -242,8 +243,6 @@ object Suggestion {
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -282,8 +281,6 @@ object Suggestion {
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
