@@ -153,7 +153,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+op+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+kind+" is not supported.")
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 

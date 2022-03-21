@@ -2,6 +2,8 @@ from Standard.Base import all
 from Standard.Database import all
 import Standard.Test
 
+from Standard.Table.Data.Aggregate_Column import all
+
 spec prefix connection pending=Nothing =
     make_table name column_names column_typenames = Panic.recover Any <|
         quote x = '"' + x + '"'
@@ -51,7 +53,7 @@ spec prefix connection pending=Nothing =
             empty = t1.select []
             empty.to_dataframe.columns.length . should_equal 0
             empty.to_dataframe.row_count . should_equal empty.row_count
-        Test.specify "should handle bigger result sets" <|
+        Test.specify "should handle bigger result sets" pending="FIXME - disabled for quicker iterations testing other stuff" <|
             table = make_table "Big" ["a", "b", "c"] ["INT", "REAL", "VARCHAR"]
             n = 1000
             0.up_to n . each ix->
@@ -234,7 +236,7 @@ spec prefix connection pending=Nothing =
             empty.columns.length . should_equal 0
             empty.to_dataframe.columns.length . should_equal 0
 
-    Test.group prefix+"Aggregation" pending=pending <|
+    Test.group prefix+"Old Aggregation" pending=pending <|
         t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DOUBLE PRECISION', 'INTEGER']
         t.insert ["foo",  0.4,     10]
         t.insert ["bar",  3.5,     20]
@@ -386,5 +388,63 @@ spec prefix connection pending=Nothing =
             df_col.to_vector . should_equal vec
             df_col.index.to_vector . should_equal [1, 2, 3]
 
-    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes", "M_TA", "M_TB", "M_TC", "Tix"]
+    Test.group prefix+"Aggregation" pending=pending <|
+        t = make_table "T9" ['name', 'price', 'quantity'] ['VARCHAR', 'DOUBLE PRECISION', 'INTEGER']
+        t.insert ["foo",  0.4,     10]
+        t.insert ["foo",  0.2,     10]
+        t.insert ["foo",  0.4,     20]
+        t.insert ["bar",  3.5,     20]
+        t.insert ["foo",  Nothing, 30]
+        t.insert ["baz",  6.7,     40]
+        t.insert ["foo",  Nothing, 50]
+        t.insert ["bar",  97,      60]
+        t.insert ["quux", Nothing, 70]
+
+        ## A helper which makes sure that the groups in a materialized
+           (InMemory) table are ordered according to a specified column or list
+           of columns.
+        determinize_by order_column table =
+            table.sort by=order_column
+
+        Test.specify "should allow counting group sizes and elements" <|
+            aggregates = [Count Nothing, Count_Not_Nothing "price" Nothing, Count_Nothing "price" Nothing]
+
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux"]
+            t1.at  "Count" . to_vector . should_equal [2, 1, 5, 1]
+            t1.at  "Count Not Nothing price" . to_vector . should_equal [2, 1, 3, 0]
+            t1.at  "Count Nothing price" . to_vector . should_equal [0, 0, 2, 1]
+
+            t2 = t.aggregate aggregates . to_dataframe
+            t2.at  "Count" . to_vector . should_equal [9]
+            t2.at  "Count Not Nothing price" . to_vector . should_equal [6]
+            t2.at  "Count Nothing price" . to_vector . should_equal [3]
+
+        Test.specify "should allow to count distinct values" pending="TODO" <|
+            aggregates = [Count_Distinct "quantity" Nothing, Count_Distinct "price" Nothing (ignore_nothing=True), Count_Distinct "price" Nothing (ignore_nothing=False)]
+
+            t1 = determinize_by "name" (t.aggregate [Group_By "name" Nothing]+aggregates . to_dataframe)
+
+            t2 = t.aggregate aggregates . to_dataframe
+
+        Test.specify "should allow arithmetic and statistical aggregations" <|
+            ## TODO more aggs
+            aggregates = [Sum "price" Nothing, Sum "quantity" Nothing, Average "price" Nothing]
+
+            ## TODO can check the datatypes
+
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux"]
+            t1.at  "Sum price" . to_vector . should_equal [2, 1, 5, 1]
+            t1.at  "Sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing]
+            t1.at  "Sum quantity" . to_vector . should_equal [80, 40, 120, 70]
+            t1.at  "Average price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing]
+
+            t2 = t.aggregate aggregates . to_dataframe
+            t2.at  "Sum price" . to_vector . should_equal [108.2]
+            t2.at  "Sum quantity" . to_vector . should_equal [310]
+            t2.at  "Average price" . to_vector . should_equal [(108.2 / 9)]
+
+
+    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "T9", "Big", "clothes", "M_TA", "M_TB", "M_TC", "Tix"]
     tables.each clean_table

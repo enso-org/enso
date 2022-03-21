@@ -44,3 +44,5 @@ spec =
                 False -> "postgresql://" + db_host + "/" + db_name
             connection = Database.connect url user=db_user password=db_password
             go connection
+
+main = Test.Suite.run_main here.spec

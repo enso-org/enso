@@ -656,7 +656,9 @@ type Table
         key_expressions = key_columns.map .expression
         new_ctx = this.context.set_groups key_expressions
         new_columns = resolved_aggregates.map (Aggregate_Helper.make_aggregate_column this)
-        this.updated_context_and_columns new_ctx new_columns
+        r = this.updated_context_and_columns new_ctx new_columns
+        IO.println r
+        r
 
     ## UNSTABLE
 

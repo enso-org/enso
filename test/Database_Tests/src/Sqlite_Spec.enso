@@ -42,3 +42,5 @@ spec =
     here.sqlite_specific_spec connection
     connection.close
     file.delete
+
+main = Test.Suite.run_main here.spec

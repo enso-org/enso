@@ -191,8 +191,4 @@ spec =
             code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
             code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
 
-        Test.specify "should allow various types of aggregations" pending="TODO" <|
-            code = t1.aggregate [Sum "A" "sum_a", Group_By "B" "B grp", Group_By "C" Nothing] . to_sql . prepare
-            IO.println code
-
 main = Test.Suite.run_main here.spec
