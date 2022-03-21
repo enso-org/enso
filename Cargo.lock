@@ -1039,6 +1039,7 @@ dependencies = [
  "enso-prelude",
  "enso-web",
  "ensogl",
+ "ordered-float 2.10.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -1243,9 +1244,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-button"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+]
+
+[[package]]
 name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
+ "ensogl-button",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -1276,6 +1286,7 @@ dependencies = [
  "enso-logger",
  "enso-optics",
  "enso-prelude",
+ "enso-profiler",
  "enso-shapely",
  "enso-shortcuts",
  "enso-types",
@@ -1426,6 +1437,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-render-profile"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-data",
+ "enso-profiler-flame-graph",
+ "enso-web",
+ "ensogl-core",
+ "ensogl-flame-graph",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "futures 0.3.21",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "ensogl-example-scroll-area"
 version = "0.1.0"
 dependencies = [
@@ -1497,6 +1528,7 @@ dependencies = [
  "ensogl-example-list-view",
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
+ "ensogl-example-render-profile",
  "ensogl-example-scroll-area",
  "ensogl-example-shape-system",
  "ensogl-example-slider",

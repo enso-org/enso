@@ -10,10 +10,11 @@
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
+#![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(marker_trait_attr)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(marker_trait_attr)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
@@ -66,6 +67,8 @@ pub mod prelude {
     pub use enso_logger::DefaultWarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
     pub use enso_shapely::newtype_prim;
     pub use enso_shapely::newtype_prim_no_default;
     pub use enso_shapely::newtype_prim_no_default_no_display;

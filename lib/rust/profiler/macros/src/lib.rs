@@ -271,32 +271,24 @@ pub fn profile(
     func.into_token_stream().into()
 }
 
-fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
-    let start_profiler = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
-    for s in &mut func.block.stmts {
-        WrapAwait.visit_stmt_mut(s);
-    }
-    let block = &func.block;
-    let body = quote::quote! {{
-        #start_profiler
-        async move {
-            profiler::internal::Profiler::resume(&__profiler_scope.0);
-            let result = #block;
-            std::mem::drop(__profiler_scope);
-            result
-        }
-    }};
-    let output_ty = match &func.sig.output {
-        syn::ReturnType::Default => quote::quote! { () },
-        syn::ReturnType::Type(_, ty) => ty.to_token_stream(),
-    };
-    let output = quote::quote! {
-        -> impl std::future::Future<Output=#output_ty>
-    };
-    func.sig.asyncness = None;
-    func.sig.output = syn::parse2(output).unwrap();
-    func.block = syn::parse2(body).unwrap();
+#[cfg(not(feature = "lineno"))]
+/// Decorate the input with file:line info determined by the proc_macro's call site.
+fn make_label(ident: &syn::Ident) -> String {
+    format!("{} (?:?)", ident)
 }
+
+#[cfg(feature = "lineno")]
+/// Decorate the input with file:line info determined by the proc_macro's call site.
+fn make_label(ident: &syn::Ident) -> String {
+    let span = proc_macro::Span::call_site();
+    let file = span.source_file().path();
+    let path = file.as_path().to_string_lossy();
+    let line = span.start().line;
+    format!("{} ({}:{})", ident, path, line)
+}
+
+
+// === profile_sync ===
 
 fn profile_sync(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
     let start_profiler = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
@@ -329,47 +321,217 @@ fn start_profiler(
     }
 }
 
-#[cfg(not(feature = "lineno"))]
-/// Decorate the input with file:line info determined by the proc_macro's call site.
-fn make_label(ident: &syn::Ident) -> String {
-    format!("{} (?:?)", ident)
+
+// === profile_async ===
+
+fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
+    for s in &mut func.block.stmts {
+        WrapAwait.visit_stmt_mut(s);
+    }
+    let before_async = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
+    let start_async = quote::quote! {
+        profiler::internal::Profiler::resume(&__profiler_scope.0);
+    };
+    let end_async = quote::quote! {
+        std::mem::drop(__profiler_scope);
+    };
+    wrap_async_fn(func, before_async, start_async, end_async);
 }
 
-#[cfg(feature = "lineno")]
-/// Decorate the input with file:line info determined by the proc_macro's call site.
-fn make_label(ident: &syn::Ident) -> String {
-    let span = proc_macro::Span::call_site();
-    let file = span.source_file().path();
-    let path = file.as_path().to_string_lossy();
-    let line = span.start().line;
-    format!("{} ({}:{})", ident, path, line)
+/// Convert an `async fn` into a `fn` returning a `Future`, implemented with an `async` block.
+///
+/// Supports inserting statements before the `async` block is entered, just after entering it, and
+/// just before leaving it. (The latter two will be in the same scope).
+///
+/// If no statements are inserted, the output will be functionally equivalent to the input
+/// (except the output won't `impl Send` even if the original `async fn` did).
+fn wrap_async_fn(
+    func: &mut syn::ItemFn,
+    before_async: proc_macro2::TokenStream,
+    start_async: proc_macro2::TokenStream,
+    end_async: proc_macro2::TokenStream,
+) {
+    let block = &func.block;
+    let ret_ty = match &func.sig.output {
+        syn::ReturnType::Default => quote::quote! { () },
+        syn::ReturnType::Type(_, ty) => ty.into_token_stream(),
+    };
+    let body = quote::quote! {{
+        #before_async
+        async move {
+            #start_async
+            let result: #ret_ty = #block;
+            #end_async
+            result
+        }
+    }};
+    let output_ty = match &func.sig.output {
+        syn::ReturnType::Default => quote::quote! { () },
+        syn::ReturnType::Type(_, ty) => ty.to_token_stream(),
+    };
+    let output_lifetime = syn::Lifetime::new("'__profiler_out", proc_macro2::Span::call_site());
+    let lifetimes = explicitize_lifetimes(&mut func.sig);
+    let output = if lifetimes.is_empty() {
+        quote::quote! {
+            -> impl std::future::Future<Output=#output_ty>
+        }
+    } else {
+        // Bound all input lifetimes on the output lifetime.
+        for param in &mut func.sig.generics.params {
+            if let syn::GenericParam::Lifetime(def) = param {
+                def.bounds.push(output_lifetime.clone());
+            }
+        }
+        // Add a definition for the output lifetime.
+        let lifetime_def = syn::LifetimeDef::new(output_lifetime.clone());
+        func.sig.generics.params.insert(0, syn::GenericParam::Lifetime(lifetime_def));
+        // Apply the output lifetime to the output.
+        quote::quote! {
+            -> impl std::future::Future<Output=#output_ty> + #output_lifetime
+        }
+    };
+    func.sig.asyncness = None;
+    func.sig.output = syn::parse2(output).unwrap();
+    func.block = syn::parse2(body).unwrap();
+}
+
+/// Make all lifetimes in function signature explicit.
+///
+/// Returns the lifetimes used in the function signature.
+fn explicitize_lifetimes(sig: &mut syn::Signature) -> Vec<syn::Lifetime> {
+    // Go through the args; find:
+    // - anonymous lifetime: '_
+    // - implicit lifetimes: &foo
+    // - explicit lifetimes: &'a
+    // Make all input lifetimes explicit:
+    // - Use new lifetime explicitly in arg list.
+    // - Define new lifetime in generic params.
+    let mut input_transformer = ExplicitizeInputLifetimes::default();
+    for input in &mut sig.inputs {
+        input_transformer.visit_fn_arg_mut(input);
+    }
+    let ExplicitizeInputLifetimes { new_lifetimes, existing_lifetimes } = input_transformer;
+    let mut all_lifetimes = existing_lifetimes;
+    all_lifetimes.extend_from_slice(&new_lifetimes);
+    let new_lifetimes =
+        new_lifetimes.into_iter().map(|lt| syn::GenericParam::Lifetime(syn::LifetimeDef::new(lt)));
+    sig.generics.params.extend(new_lifetimes);
+    // There are two cases where output lifetimes may be elided:
+    // - There's exactly one lifetime in the inputs.
+    // - There's a receiver with a lifetime.
+    // If either case occurs, make any implicit output lifetimes explicit.
+    let default_lifetime = if all_lifetimes.len() == 1 {
+        Some(all_lifetimes[0].clone())
+    } else {
+        get_receiver_lifetime(sig).cloned()
+    };
+    if let Some(lifetime) = default_lifetime {
+        ExplicitizeOutputLifetimes { lifetime }.visit_return_type_mut(&mut sig.output);
+    }
+    all_lifetimes
+}
+
+#[derive(Default)]
+struct ExplicitizeInputLifetimes {
+    new_lifetimes:      Vec<syn::Lifetime>,
+    existing_lifetimes: Vec<syn::Lifetime>,
+}
+
+impl ExplicitizeInputLifetimes {
+    fn gen_lifetime(&mut self) -> syn::Lifetime {
+        let name = format!("'__profiler{}", self.new_lifetimes.len());
+        let new = syn::Lifetime::new(&name, proc_macro2::Span::call_site());
+        self.new_lifetimes.push(new.clone());
+        new
+    }
+
+    fn visit_elidable_lifetime(&mut self, lifetime: &mut Option<syn::Lifetime>) {
+        match lifetime {
+            Some(lifetime) => self.visit_lifetime_mut(lifetime),
+            None => *lifetime = Some(self.gen_lifetime()),
+        }
+    }
+}
+
+impl visit_mut::VisitMut for ExplicitizeInputLifetimes {
+    // Handles 'x in generic parameters in types of non-self arguments.
+    fn visit_lifetime_mut(&mut self, lifetime: &mut syn::Lifetime) {
+        let name = lifetime.ident.to_string();
+        if &name == "_" {
+            *lifetime = self.gen_lifetime();
+        } else {
+            self.existing_lifetimes.push(lifetime.clone());
+        }
+    }
+
+    // Handles &self.
+    fn visit_receiver_mut(&mut self, receiver: &mut syn::Receiver) {
+        if let Some((_, lifetime)) = &mut receiver.reference {
+            self.visit_elidable_lifetime(lifetime);
+        }
+    }
+
+    // Handles & in types of non-self arguments.
+    fn visit_type_reference_mut(&mut self, type_reference: &mut syn::TypeReference) {
+        self.visit_elidable_lifetime(&mut type_reference.lifetime);
+    }
+}
+
+struct ExplicitizeOutputLifetimes {
+    lifetime: syn::Lifetime,
+}
+
+impl visit_mut::VisitMut for ExplicitizeOutputLifetimes {
+    // Handles 'x in generic parameters in types.
+    fn visit_lifetime_mut(&mut self, lifetime: &mut syn::Lifetime) {
+        if &lifetime.ident.to_string() == "_" {
+            *lifetime = self.lifetime.clone();
+        }
+    }
+
+    // Handles & in types.
+    fn visit_type_reference_mut(&mut self, type_reference: &mut syn::TypeReference) {
+        if type_reference.lifetime.is_none() {
+            type_reference.lifetime = Some(self.lifetime.clone());
+        }
+    }
+}
+
+fn get_receiver_lifetime(sig: &syn::Signature) -> Option<&syn::Lifetime> {
+    match sig.inputs.first() {
+        Some(syn::FnArg::Receiver(syn::Receiver {
+            reference: Some((_, Some(lifetime))), ..
+        })) => Some(lifetime),
+        _ => None,
+    }
 }
 
 struct WrapAwait;
 
 impl visit_mut::VisitMut for WrapAwait {
     fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
-        if let syn::Expr::Await(await_) = expr {
-            let new_expr = wrap_await(await_);
-            *expr = new_expr;
+        match expr {
+            syn::Expr::Await(await_) => *expr = wrap_await(await_),
+            _ => syn::visit_mut::visit_expr_mut(self, expr),
         }
     }
 }
 
-fn wrap_await(await_: &syn::ExprAwait) -> syn::Expr {
-    let expr = &await_.base;
+fn wrap_await(await_: &mut syn::ExprAwait) -> syn::Expr {
+    let expr = &mut await_.base;
+    WrapAwait.visit_expr_mut(expr);
     assert!(
         await_.attrs.is_empty(),
         "#[profile] cannot wrap a function that applies attributes to an .await expression"
     );
     let wrapped = quote::quote! {
-        {
+        ({
             let future = #expr;
             profiler::internal::Profiler::pause(&__profiler_scope.0);
             let result = future.await;
             profiler::internal::Profiler::resume(&__profiler_scope.0);
             result
-        }
+        })
     };
     syn::parse2(wrapped).unwrap()
 }

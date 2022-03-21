@@ -4,11 +4,13 @@
    to matching on the `Full` content of the input text.
 
 from Standard.Base import all
+from Standard.Base.Data.Text.Matching_Mode import First
+from Standard.Base.Data.Text.Matching_Mode export First
 
 type Mode
 
     ## The regex will only match the first instance it finds.
-    type First
+    First
 
     ## The regex will match up to some `Integer` number of instances.
     Integer

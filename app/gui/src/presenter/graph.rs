@@ -459,6 +459,7 @@ pub struct Graph {
 impl Graph {
     /// Create graph presenter. The returned structure is working and does not require any
     /// initialization.
+    #[profile(Task)]
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
@@ -470,6 +471,7 @@ impl Graph {
         Self { network, model }.init(project_view)
     }
 
+    #[profile(Detail)]
     fn init(self, project_view: &view::project::View) -> Self {
         let logger = &self.model.logger;
         let network = &self.network;
@@ -505,7 +507,7 @@ impl Graph {
             view.disable_visualization <+ disable_vis;
 
             view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
-            added_node_update <- view.node_added.filter_map(f!((view_id)
+            added_node_update <- view.node_added.filter_map(f!(((view_id, _, _))
                 model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));

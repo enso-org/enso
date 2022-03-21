@@ -1,11 +1,19 @@
 package org.enso.base;
 
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.BreakIterator;
+import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
+import org.enso.base.text.CaseFoldedString;
+import org.enso.base.text.GraphemeSpan;
+import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
@@ -118,6 +126,23 @@ public class Text_Utils {
   }
 
   /**
+   * Checks whether two strings are equal up to Unicode canonicalization and ignoring case.
+   *
+   * @param str1 the first string
+   * @param str2 the second string
+   * @param locale the locale to use for case folding
+   * @return the result of comparison
+   */
+  public static boolean equals_ignore_case(String str1, Object str2, Locale locale) {
+    if (str2 instanceof String) {
+      Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
+      return compare_normalized(fold.apply(str1), fold.apply((String) str2)) == 0;
+    } else {
+      return false;
+    }
+  }
+
+  /**
    * Converts an array of codepoints into a string.
    *
    * @param codepoints the codepoints to convert
@@ -177,6 +202,36 @@ public class Text_Utils {
   }
 
   /**
+   * Checks if {@code substring} is a substring of {@code string}.
+   *
+   * @param string the containing string.
+   * @param substring the contained string.
+   * @return whether {@code substring} is a substring of {@code string}.
+   */
+  public static boolean contains_case_insensitive(String string, String substring, Locale locale) {
+    // {@code StringSearch} does not handle empty strings as we would want, so we need these special
+    // cases.
+    if (substring.isEmpty()) return true;
+    if (string.isEmpty()) return false;
+
+    Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
+    StringSearch searcher = new StringSearch(fold.apply(substring), fold.apply(string));
+    return searcher.first() != StringSearch.DONE;
+  }
+
+  /**
+   * Transforms the provided string into a form which can be used for case insensitive comparisons.
+   *
+   * @param string the string to transform
+   * @param locale the locale to use - needed to distinguish a special case when handling Turkish
+   *     'i' characters
+   * @return a transformed string that can be used for case insensitive comparisons
+   */
+  public static String case_insensitive_key(String string, Locale locale) {
+    return CaseFoldedString.simpleFold(string, locale);
+  }
+
+  /**
    * Replaces all occurrences of {@code oldSequence} within {@code str} with {@code newSequence}.
    *
    * @param str the string to process
@@ -200,37 +255,215 @@ public class Text_Utils {
   }
 
   /**
-   * Find the first index of needle in the haystack
+   * Find the first occurrence of needle in the haystack
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
-   * @return index of the first needle or -1 if not found.
+   * @return a UTF-16 code unit span of the first needle or null if not found.
    */
-  public static long index_of(String haystack, String needle) {
+  public static Utf16Span span_of(String haystack, String needle) {
+    if (needle.isEmpty()) return new Utf16Span(0, 0);
+    if (haystack.isEmpty()) return null;
+
     StringSearch search = new StringSearch(needle, haystack);
     int pos = search.first();
-    return pos == StringSearch.DONE ? -1 : pos;
+    if (pos == StringSearch.DONE) return null;
+    return new Utf16Span(pos, pos + search.getMatchLength());
   }
 
   /**
-   * Find the last index of needle in the haystack
+   * Find the last occurrence of needle in the haystack
    *
    * @param haystack the string to search
    * @param needle the substring that is searched for
-   * @return index of the last needle or -1 if not found.
+   * @return a UTF-16 code unit span of the last needle or null if not found.
    */
-  public static long last_index_of(String haystack, String needle) {
+  public static Utf16Span last_span_of(String haystack, String needle) {
+    if (needle.isEmpty()) {
+      int afterLast = haystack.length();
+      return new Utf16Span(afterLast, afterLast);
+    }
+    if (haystack.isEmpty()) return null;
+
     StringSearch search = new StringSearch(needle, haystack);
-    int pos = search.first();
+    int pos = search.last();
+    if (pos == StringSearch.DONE) return null;
+    return new Utf16Span(pos, pos + search.getMatchLength());
+  }
+
+  /**
+   * Find spans of all occurrences of the needle within the haystack.
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @return a list of UTF-16 code unit spans at which the needle occurs in the haystack
+   */
+  public static List<Utf16Span> span_of_all(String haystack, String needle) {
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `index_of_all` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return List.of();
+
+    StringSearch search = new StringSearch(needle, haystack);
+    ArrayList<Utf16Span> occurrences = new ArrayList<>();
+    long ix;
+    while ((ix = search.next()) != StringSearch.DONE) {
+      occurrences.add(new Utf16Span(ix, ix + search.getMatchLength()));
+    }
+    return occurrences;
+  }
+
+  /**
+   * Converts a UTF-16 code unit index to index of the grapheme that this code unit belongs to.
+   *
+   * @param text the text associated with the index
+   * @param codeunit_index the UTF-16 index
+   * @return an index of an extended grapheme cluster that contains the code unit from the input
+   */
+  public static long utf16_index_to_grapheme_index(String text, long codeunit_index) {
+    BreakIterator breakIterator = BreakIterator.getCharacterInstance();
+    breakIterator.setText(text);
+    if (codeunit_index < 0 || codeunit_index > text.length()) {
+      throw new IndexOutOfBoundsException(
+          "Index " + codeunit_index + " is outside of the provided text.");
+    }
+
+    int grapheme_end = breakIterator.next();
+    long grapheme_index = 0;
+
+    while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
+      grapheme_index++;
+      grapheme_end = breakIterator.next();
+    }
+    return grapheme_index;
+  }
+
+  /**
+   * Converts a series of UTF-16 code unit indices to indices of graphemes that these code units
+   * belong to.
+   *
+   * <p>For performance, it assumes that the provided indices are sorted in a non-decreasing order
+   * (duplicate entries are permitted). Behaviour is unspecified if an unsorted list is provided.
+   *
+   * <p>The behaviour is unspecified if indices provided on the input are outside of the range [0,
+   * text.length()].
+   *
+   * @param text the text associated with the indices
+   * @param codeunit_indices the array of UTF-16 code unit indices, sorted in non-decreasing order
+   * @return an array of grapheme indices corresponding to the UTF-16 units from the input
+   */
+  public static long[] utf16_indices_to_grapheme_indices(String text, List<Long> codeunit_indices) {
+    BreakIterator breakIterator = BreakIterator.getCharacterInstance();
+    breakIterator.setText(text);
+
+    int grapheme_end = breakIterator.next();
+    long grapheme_index = 0;
+
+    long[] result = new long[codeunit_indices.size()];
+    int result_ix = 0;
+
+    for (long codeunit_index : codeunit_indices) {
+      while (grapheme_end <= codeunit_index && grapheme_end != BreakIterator.DONE) {
+        grapheme_index++;
+        grapheme_end = breakIterator.next();
+      }
+      result[result_ix++] = grapheme_index;
+    }
+
+    return result;
+  }
+
+  /**
+   * Find the first or last occurrence of needle in the haystack.
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @param locale the locale used for case-insensitive comparisons
+   * @param searchForLast if set to true, will search for the last occurrence; otherwise searches
+   *     for the first one
+   * @return an extended-grapheme-cluster span of the first or last needle, or null if none found.
+   */
+  public static GraphemeSpan span_of_case_insensitive(
+      String haystack, String needle, Locale locale, boolean searchForLast) {
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `span_of_case_insensitive` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return null;
+
+    CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
+    String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
+    StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
+    int pos;
+    if (searchForLast) {
+      pos = search.last();
+    } else {
+      pos = search.first();
+    }
     if (pos == StringSearch.DONE) {
-      return -1;
+      return null;
+    } else {
+      return findExtendedSpan(foldedHaystack, pos, search.getMatchLength());
+    }
+  }
+
+  /**
+   * Find all occurrences of needle in the haystack
+   *
+   * @param haystack the string to search
+   * @param needle the substring that is searched for
+   * @param locale the locale used for case-insensitive comparisons
+   * @return a list of extended-grapheme-cluster spans at which the needle occurs in the haystack
+   */
+  public static List<GraphemeSpan> span_of_all_case_insensitive(
+      String haystack, String needle, Locale locale) {
+    if (needle.isEmpty())
+      throw new IllegalArgumentException(
+          "The operation `span_of_all_case_insensitive` does not support searching for an empty term.");
+    if (haystack.isEmpty()) return List.of();
+
+    CaseFoldedString foldedHaystack = CaseFoldedString.fold(haystack, locale);
+    String foldedNeedle = CaseFoldedString.simpleFold(needle, locale);
+
+    StringSearch search = new StringSearch(foldedNeedle, foldedHaystack.getFoldedString());
+    ArrayList<GraphemeSpan> result = new ArrayList<>();
+
+    int pos;
+    while ((pos = search.next()) != StringSearch.DONE) {
+      result.add(findExtendedSpan(foldedHaystack, pos, search.getMatchLength()));
     }
 
-    for (int next = search.next(); next != StringSearch.DONE; next = search.next()) {
-      pos = next;
-    }
+    return result;
+  }
 
-    return pos;
+  /**
+   * Finds the grapheme span corresponding to the found match indexed with code units.
+   *
+   * <p>It extends the found span to ensure that graphemes associated with all found code units are
+   * included in the resulting span. Thus, some additional code units which were not present in the
+   * original match may also be present due to the extension.
+   *
+   * <p>The extension to the left is trivial - we just find the grapheme associated with the first
+   * code unit and even if that code unit is not the first one of that grapheme, by returning it we
+   * correctly extend to the left. The extension to the right works by finding the index of the
+   * grapheme associated with the last code unit actually present in the span, then the end of the
+   * returned span is set to the next grapheme after it. This correctly handles the edge case where
+   * only a part of some grapheme was matched.
+   *
+   * @param string the folded string with which the positions are associated, containing a cache of
+   *     position mappings
+   * @param position the position of the match (in code units)
+   * @param length the length of the match (in code units)
+   * @return a minimal {@code GraphemeSpan} which contains all code units from the match
+   */
+  private static GraphemeSpan findExtendedSpan(CaseFoldedString string, int position, int length) {
+    int firstGrapheme = string.codeUnitToGraphemeIndex(position);
+    if (length == 0) {
+      return new GraphemeSpan(firstGrapheme, firstGrapheme);
+    } else {
+      int lastGrapheme = string.codeUnitToGraphemeIndex(position + length - 1);
+      int endGrapheme = lastGrapheme + 1;
+      return new GraphemeSpan(firstGrapheme, endGrapheme);
+    }
   }
 
   /**

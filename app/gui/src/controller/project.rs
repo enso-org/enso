@@ -120,6 +120,7 @@ impl Project {
     /// warning about unsupported engine version).
     ///
     /// Returns the controllers of module and graph which should be displayed in the view.
+    #[profile(Task)]
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
         let project = self.model.clone_ref();
         let parser = self.model.parser();

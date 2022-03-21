@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Error.Warnings
+import Standard.Base.Warning
 import Standard.Base.Data.Text.Matching
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
@@ -38,16 +38,11 @@ polyglot java import java.util.HashSet
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
-select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Vector
-select_columns internal_columns selector reorder on_problems warnings =
-    result = here.select_columns_helper internal_columns selector reorder on_problems warnings
+select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
+select_columns internal_columns selector reorder on_problems =
+    result = here.select_columns_helper internal_columns selector reorder on_problems
     problems = if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result problems warnings
+    on_problems.attach_problems_after result problems
 
 ## PRIVATE
    A helper function encapsulating shared code for `remove_columns`
@@ -65,20 +60,15 @@ select_columns internal_columns selector reorder on_problems warnings =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
-remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Warnings.Warning_System -> Vector
-remove_columns internal_columns selector on_problems warnings =
-    selection = here.select_columns_helper internal_columns selector reorder=False on_problems warnings
+remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Vector
+remove_columns internal_columns selector on_problems =
+    selection = here.select_columns_helper internal_columns selector reorder=False on_problems
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
     result = internal_columns.filter column->
         should_be_removed = selected_names.get_or_else column.name False
         should_be_removed.not
     issues = if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result issues warnings
+    on_problems.attach_problems_after result issues
 
 ## PRIVATE
    A helper function encapsulating shared code for `reorder_columns`
@@ -99,14 +89,9 @@ remove_columns internal_columns selector on_problems warnings =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
-reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Warnings.Warning_System -> Vector
-reorder_columns internal_columns selector position on_problems warnings =
-    selection = here.select_columns_helper internal_columns selector reorder=True on_problems warnings
+reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Vector
+reorder_columns internal_columns selector position on_problems =
+    selection = here.select_columns_helper internal_columns selector reorder=True on_problems
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
     other_columns = internal_columns.filter column->
         is_selected = selected_names.get_or_else column.name False
@@ -134,13 +119,8 @@ reorder_columns internal_columns selector position on_problems warnings =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
-rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Warnings.Warning_System -> Map
-rename_columns internal_columns mapping on_problems warnings =
+rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Map
+rename_columns internal_columns mapping on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
 
@@ -198,7 +178,7 @@ rename_columns internal_columns mapping on_problems warnings =
     duplicate_names = (if unique.renames.length == 0 then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
     problems = mapped.problems + invalid_names + duplicate_names
 
-    on_problems.attach_problems_before problems warnings processed
+    on_problems.attach_problems_before problems processed
 
 
 ## PRIVATE
@@ -244,23 +224,17 @@ sort_columns internal_columns sort_method =
      operation. By default, a warning is issued, but the operation proceeds.
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
-   - warnings: A Warning_System instance specifying how to handle warnings. This
-     is a temporary workaround to allow for testing the warning mechanism. Once
-     the proper warning system is implemented, this argument will become
-     obsolete and will be removed. No user code should use this argument, as it
-     will be removed in the future.
-select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Warnings.Warning_System -> Vector
-select_columns_helper internal_columns selector reorder on_problems warnings = case selector of
+select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
+select_columns_helper internal_columns selector reorder on_problems = case selector of
     By_Name names matcher ->
         validation = here.validate_unique names v->[Duplicate_Column_Selectors v]
-        on_problems.attach_problems_before validation.problems warnings <|
-            Warnings.map_warnings_and_errors here.promote_no_matches_to_missing_columns warnings warnings->
-                matcher.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) on_problems=on_problems warnings=warnings
+        on_problems.attach_problems_before validation.problems <|
+            Warning.map_warnings_and_errors here.promote_no_matches_to_missing_columns <|
+                matcher.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) on_problems=on_problems
     By_Index indices ->
         validation  = here.validate_indices internal_columns.length indices
         good_indices = validation.valid.map p->(p.at 0)
-
-        on_problems.attach_problems_before validation.problems warnings <| case reorder of
+        on_problems.attach_problems_before validation.problems <| case reorder of
             True ->
                 here.select_indices_reordering internal_columns good_indices
             False ->
@@ -268,14 +242,14 @@ select_columns_helper internal_columns selector reorder on_problems warnings = c
     By_Column columns ->
         column_names = columns.map .name
         new_selector = By_Name column_names (Text_Matcher.new case_sensitive=True)
-        here.select_columns internal_columns new_selector reorder=reorder on_problems=on_problems warnings=warnings
+        here.select_columns internal_columns new_selector reorder=reorder on_problems=on_problems
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found criteria -> Missing_Input_Columns criteria
-    _ -> error
+    Matching.No_Matches_Found criteria -> Maybe.Some <| Missing_Input_Columns criteria
+    _ -> Nothing
 
 ## PRIVATE
    Selects element from the vector based on the given indices.
