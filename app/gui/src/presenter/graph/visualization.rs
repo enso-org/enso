@@ -97,6 +97,7 @@ impl Model {
     ///
     /// The `update_endpoint` should be `set_visualization_data` or `set_error_visualization_data`,
     /// of [`ide_view::graph_editor::GraphEditor`].
+    #[profile(Debug)]
     fn handle_value_update(
         &self,
         update_endpoint: &frp::Source<(ViewNodeId, visualization_view::Data)>,
@@ -130,6 +131,7 @@ impl Model {
     /// Load the available visualizations to the view.
     ///
     /// See also [`controller::Visualization`] for information about loaded visualizations.
+    #[profile(Detail)]
     fn load_visualizations(&self) {
         self.graph_view.reset_visualization_registry();
         let logger = self.logger.clone_ref();

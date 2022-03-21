@@ -1457,6 +1457,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-render-profile-flamegraph"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-data",
+ "enso-profiler-flame-graph",
+ "enso-web",
+ "ensogl-core",
+ "ensogl-flame-graph",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-text-msdf-sys",
+ "futures 0.3.21",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "ensogl-example-scroll-area"
 version = "0.1.0"
 dependencies = [
@@ -1529,6 +1549,7 @@ dependencies = [
  "ensogl-example-mouse-events",
  "ensogl-example-profiling-run-graph",
  "ensogl-example-render-profile",
+ "ensogl-example-render-profile-flamegraph",
  "ensogl-example-scroll-area",
  "ensogl-example-shape-system",
  "ensogl-example-slider",
@@ -3000,6 +3021,7 @@ dependencies = [
  "enso-build-utilities",
  "enso-data-structures",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "futures 0.3.21",
@@ -3837,6 +3859,7 @@ dependencies = [
  "ast",
  "enso-data-structures",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "parser",

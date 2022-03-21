@@ -23,6 +23,7 @@
 use inflector::Inflector;
 use quote::ToTokens;
 use std::env;
+use std::fmt;
 use syn::parse::Parser;
 use syn::punctuated;
 use syn::visit_mut;
@@ -74,10 +75,10 @@ fn define_profiler(
                 fn finish(self) {
                     EventLog.end(self.0, Timestamp::now())
                 }
-                fn pause(&self) {
+                fn pause(self) {
                     EventLog.pause(self.0, Timestamp::now());
                 }
-                fn resume(&self) {
+                fn resume(self) {
                     EventLog.resume(self.0, Timestamp::now());
                 }
             }
@@ -134,8 +135,8 @@ fn define_profiler(
                     Self(())
                 }
                 fn finish(self) {}
-                fn pause(&self) {}
-                fn resume(&self) { }
+                fn pause(self) {}
+                fn resume(self) { }
             }
 
 
@@ -261,48 +262,77 @@ pub fn profile(
     ts: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let mut func = syn::parse_macro_input!(ts as syn::ItemFn);
-    let obj_ident: syn::Ident = syn::parse(args)
+    let level: syn::Ident = syn::parse(args)
         .expect("The `profile` macro requires a profiling-level argument, e.g. #[profile(Task)]");
     let label = make_label(&func.sig.ident);
-    match func.sig.asyncness {
-        Some(_) => profile_async(obj_ident, label, &mut func),
-        None => profile_sync(obj_ident, label, &mut func),
+    // Instrument awaits, whether at the top level (if this is an async fn) or in inner async
+    // blocks.
+    WrapAwait.visit_block_mut(&mut func.block);
+    // Different transformations for async or non-async.
+    let async_block_origin = match func.sig.asyncness {
+        // Async: transform it to an non-async fn containing an async block. The outer fn does
+        // not need any top-level profiling; all it does is set up the async block. We'll
+        // instrument the block below.
+        Some(_) => {
+            wrap_async_fn(&mut func);
+            AsyncBlockOrigin::FnBody
+        }
+        // Non-async: instrument the top level of the function.
+        None => {
+            profile_sync(&level, &label, &mut func);
+            AsyncBlockOrigin::Block
+        }
     };
+    // Instrument any async blocks in the body.
+    let name = func.sig.ident.to_string();
+    let mut instrumentor = InstrumentAsync { level, func: name, origin: async_block_origin };
+    instrumentor.visit_block_mut(&mut func.block);
     func.into_token_stream().into()
 }
 
 #[cfg(not(feature = "lineno"))]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
-fn make_label(ident: &syn::Ident) -> String {
-    format!("{} (?:?)", ident)
+fn make_label<L: fmt::Display>(name: L) -> String {
+    format!("{} (?:?)", name)
 }
 
 #[cfg(feature = "lineno")]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
-fn make_label(ident: &syn::Ident) -> String {
+fn make_label<L: fmt::Display>(name: L) -> String {
     let span = proc_macro::Span::call_site();
     let file = span.source_file().path();
     let path = file.as_path().to_string_lossy();
     let line = span.start().line;
-    format!("{} ({}:{})", ident, path, line)
+    format!("{} ({}:{})", name, path, line)
+}
+
+
+// === VisitMut helpers ===
+
+/// Used in a `impl VisitMut` to block descent into inner function items.
+macro_rules! ignore_inner_fn_items {
+    () => {
+        fn visit_item_fn_mut(&mut self, _: &mut syn::ItemFn) {}
+    };
 }
 
 
 // === profile_sync ===
 
-fn profile_sync(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
+fn profile_sync(obj_ident: &syn::Ident, label: &str, func: &mut syn::ItemFn) {
     let start_profiler = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
     let block = &func.block;
     let body = quote::quote! {{
         #start_profiler
+        let __profiler_scope = profiler::internal::Started(__profiler);
         #block
     }};
     func.block = syn::parse2(body).unwrap();
 }
 
 fn start_profiler(
-    obj_ident: syn::Ident,
-    label: String,
+    obj_ident: &syn::Ident,
+    label: &str,
     asyncness: bool,
 ) -> proc_macro2::TokenStream {
     let state = match asyncness {
@@ -310,61 +340,39 @@ fn start_profiler(
         false => quote::quote! { profiler::internal::StartState::Active },
     };
     quote::quote! {
-        let __profiler_scope = {
+        let __profiler = {
             use profiler::internal::Profiler;
             let parent = profiler::internal::EventId::implicit();
             let now = Some(profiler::internal::Timestamp::now());
             let label = profiler::internal::Label(#label);
-            let profiler = profiler::#obj_ident::start(parent, label, now, #state);
-            profiler::internal::Started(profiler)
+            profiler::#obj_ident::start(parent, label, now, #state)
         };
     }
 }
 
 
-// === profile_async ===
-
-fn profile_async(obj_ident: syn::Ident, label: String, func: &mut syn::ItemFn) {
-    for s in &mut func.block.stmts {
-        WrapAwait.visit_stmt_mut(s);
-    }
-    let before_async = start_profiler(obj_ident, label, func.sig.asyncness.is_some());
-    let start_async = quote::quote! {
-        profiler::internal::Profiler::resume(&__profiler_scope.0);
-    };
-    let end_async = quote::quote! {
-        std::mem::drop(__profiler_scope);
-    };
-    wrap_async_fn(func, before_async, start_async, end_async);
-}
+// === wrap_async_fn ===
 
 /// Convert an `async fn` into a `fn` returning a `Future`, implemented with an `async` block.
 ///
-/// Supports inserting statements before the `async` block is entered, just after entering it, and
-/// just before leaving it. (The latter two will be in the same scope).
-///
-/// If no statements are inserted, the output will be functionally equivalent to the input
-/// (except the output won't `impl Send` even if the original `async fn` did).
-fn wrap_async_fn(
-    func: &mut syn::ItemFn,
-    before_async: proc_macro2::TokenStream,
-    start_async: proc_macro2::TokenStream,
-    end_async: proc_macro2::TokenStream,
-) {
+/// The output is functionally equivalent to the input (except the output won't `impl Send` even if
+/// the original `async fn` did); this is useful as a basis for further transformation.
+fn wrap_async_fn(func: &mut syn::ItemFn) {
+    // Wrap the body.
     let block = &func.block;
     let ret_ty = match &func.sig.output {
         syn::ReturnType::Default => quote::quote! { () },
         syn::ReturnType::Type(_, ty) => ty.into_token_stream(),
     };
     let body = quote::quote! {{
-        #before_async
-        async move {
-            #start_async
+        (async move {
             let result: #ret_ty = #block;
-            #end_async
             result
-        }
+        })
     }};
+    func.block = syn::parse2(body).unwrap();
+
+    // Transform the signature.
     let output_ty = match &func.sig.output {
         syn::ReturnType::Default => quote::quote! { () },
         syn::ReturnType::Type(_, ty) => ty.to_token_stream(),
@@ -376,10 +384,20 @@ fn wrap_async_fn(
             -> impl std::future::Future<Output=#output_ty>
         }
     } else {
-        // Bound all input lifetimes on the output lifetime.
+        // Bound all inputs on the output lifetime.
+        let type_bound = syn::TypeParamBound::Lifetime(output_lifetime.clone());
         for param in &mut func.sig.generics.params {
-            if let syn::GenericParam::Lifetime(def) = param {
-                def.bounds.push(output_lifetime.clone());
+            match param {
+                syn::GenericParam::Lifetime(def) => def.bounds.push(output_lifetime.clone()),
+                syn::GenericParam::Type(def) => def.bounds.push(type_bound.clone()),
+                syn::GenericParam::Const(_) => (),
+            }
+        }
+        for arg in &mut func.sig.inputs {
+            if let syn::FnArg::Typed(syn::PatType { ty, .. }) = arg {
+                if let syn::Type::ImplTrait(def) = ty.as_mut() {
+                    def.bounds.push(type_bound.clone());
+                }
             }
         }
         // Add a definition for the output lifetime.
@@ -392,7 +410,6 @@ fn wrap_async_fn(
     };
     func.sig.asyncness = None;
     func.sig.output = syn::parse2(output).unwrap();
-    func.block = syn::parse2(body).unwrap();
 }
 
 /// Make all lifetimes in function signature explicit.
@@ -454,6 +471,8 @@ impl ExplicitizeInputLifetimes {
 }
 
 impl visit_mut::VisitMut for ExplicitizeInputLifetimes {
+    ignore_inner_fn_items!();
+
     // Handles 'x in generic parameters in types of non-self arguments.
     fn visit_lifetime_mut(&mut self, lifetime: &mut syn::Lifetime) {
         let name = lifetime.ident.to_string();
@@ -482,6 +501,8 @@ struct ExplicitizeOutputLifetimes {
 }
 
 impl visit_mut::VisitMut for ExplicitizeOutputLifetimes {
+    ignore_inner_fn_items!();
+
     // Handles 'x in generic parameters in types.
     fn visit_lifetime_mut(&mut self, lifetime: &mut syn::Lifetime) {
         if &lifetime.ident.to_string() == "_" {
@@ -506,9 +527,14 @@ fn get_receiver_lifetime(sig: &syn::Signature) -> Option<&syn::Lifetime> {
     }
 }
 
+
+// === WrapAwait ===
+
 struct WrapAwait;
 
 impl visit_mut::VisitMut for WrapAwait {
+    ignore_inner_fn_items!();
+
     fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
         match expr {
             syn::Expr::Await(await_) => *expr = wrap_await(await_),
@@ -527,11 +553,97 @@ fn wrap_await(await_: &mut syn::ExprAwait) -> syn::Expr {
     let wrapped = quote::quote! {
         ({
             let future = #expr;
-            profiler::internal::Profiler::pause(&__profiler_scope.0);
+            profiler::internal::Profiler::pause(__profiler);
             let result = future.await;
-            profiler::internal::Profiler::resume(&__profiler_scope.0);
+            profiler::internal::Profiler::resume(__profiler);
             result
         })
     };
     syn::parse2(wrapped).unwrap()
+}
+
+
+// === InstrumentAsync ===
+
+/// Inserts instrumentation into all async block in an item (ignoring inner items).
+struct InstrumentAsync {
+    level:  syn::Ident,
+    func:   String,
+    origin: AsyncBlockOrigin,
+}
+
+impl visit_mut::VisitMut for InstrumentAsync {
+    ignore_inner_fn_items!();
+
+    fn visit_expr_mut(&mut self, expr: &mut syn::Expr) {
+        match expr {
+            syn::Expr::Async(async_) => *expr = self.instrument_async(async_),
+            _ => syn::visit_mut::visit_expr_mut(self, expr),
+        }
+    }
+}
+
+impl InstrumentAsync {
+    /// Insert instrumentation into an async block.
+    fn instrument_async(&self, expr: &mut syn::ExprAsync) -> syn::Expr {
+        self.inner_instrumentor().visit_block_mut(&mut expr.block);
+        assert!(
+            expr.attrs.is_empty(),
+            "#[profile] cannot wrap a function that applies attributes to an async block"
+        );
+        let label = match self.origin {
+            AsyncBlockOrigin::FnBody => make_label(&self.func),
+            AsyncBlockOrigin::Block => {
+                let name = format!("<async block in {}>", &self.func);
+                make_label(name)
+            }
+        };
+        let start_profiler = start_profiler(&self.level, &label, true);
+        let move_ = &expr.capture;
+        let block = &expr.block;
+        let wrapped = if move_.is_some() {
+            quote::quote! {{
+                #start_profiler
+                let __profiler_scope = profiler::internal::Started(__profiler);
+                async move {
+                    profiler::internal::Profiler::resume(__profiler);
+                    let result = #block;
+                    std::mem::drop(__profiler_scope);
+                    result
+                }
+            }}
+        } else {
+            // We have to move the profiler into the async block, because borrowing it would
+            // restrict the lifetime of the block. So we use an outer `move` block to
+            // capture `__profiler`, and an inner non-move block to match the behavior
+            // of the original non-move block.
+            quote::quote! {{
+                #start_profiler
+                let __profiler_scope = profiler::internal::Started(__profiler);
+                let inner = async #block;
+                async move {
+                    profiler::internal::Profiler::resume(__profiler);
+                    let result = inner.await;
+                    std::mem::drop(__profiler_scope);
+                    result
+                }
+            }}
+        };
+        syn::parse2(wrapped).unwrap()
+    }
+
+    /// Produce an instrumentor suitable for instrumenting blocks nested inside this block.
+    fn inner_instrumentor(&self) -> Self {
+        let level = self.level.clone();
+        let func = self.func.clone();
+        let origin = AsyncBlockOrigin::Block;
+        Self { level, func, origin }
+    }
+}
+
+/// Distinguishes between an async block that was originally the body of an `async fn`, versus an
+/// async block that was originated as an async block in the source.
+enum AsyncBlockOrigin {
+    FnBody,
+    Block,
 }
