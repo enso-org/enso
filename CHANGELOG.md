@@ -7,6 +7,8 @@
   to make the resulting graph prettier and avoid overlapping. In such cases,
   created nodes will be placed below an existing node or on the bottom-left
   diagonal if there is no space underneath.
+- [Nodes can be added to the graph by double-clicking the output ports of
+  existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
   searcher and edited node is now fixed. It simplifies node editing on
   non-standard zoom levels.
@@ -76,6 +78,8 @@
   also compute mode, percentile, minimum, maximum.][3318]
 - [Implemented `Text.location_of` and `Text.location_of_all` methods.][3324]
 - [Replaced `Table.group_by` with `Table.aggregate`][3339]
+- [Implemented `Panic.catch` and helper functions for handling errors. Added a
+  type parameter to `Panic.recover` to recover specific types of errors.][3344]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -119,16 +123,20 @@
 [3324]: https://github.com/enso-org/enso/pull/3324
 [3327]: https://github.com/enso-org/enso/pull/3327
 [3339]: https://github.com/enso-org/enso/pull/3339
+[3344]: https://github.com/enso-org/enso/pull/3344
+[3346]: https://github.com/enso-org/enso/pull/3346
 
 #### Enso Compiler
 
 - [Added overloaded `from` conversions.][3227]
 - [Upgraded to Graal VM 21.3.0][3258]
 - [Added the ability to decorate values with warnings.][3248]
+- [Fixed issues related to constructors' default arguments][3330]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
+[3330]: https://github.com/enso-org/enso/pull/3330
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

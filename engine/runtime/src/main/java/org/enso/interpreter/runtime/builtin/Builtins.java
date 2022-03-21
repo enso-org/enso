@@ -12,7 +12,9 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
@@ -63,6 +65,7 @@ public class Builtins {
   private final AtomConstructor function;
   private final AtomConstructor nothing;
   private final AtomConstructor panic;
+  private final AtomConstructor caughtPanic;
 
   private final Bool bool;
   private final DataflowError dataflowError;
@@ -108,6 +111,12 @@ public class Builtins {
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
     panic = new AtomConstructor("Panic", scope).initializeFields();
+    caughtPanic =
+        new AtomConstructor("Caught_Panic", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "payload", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(
+                    1, "internal_original_exception", ArgumentDefinition.ExecutionMode.EXECUTE));
     polyglot = new Polyglot(language, scope);
     resource = new Resource(language, scope);
     system = new System(language, scope);
@@ -138,6 +147,7 @@ public class Builtins {
     scope.registerConstructor(io);
     scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
+    scope.registerConstructor(caughtPanic);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
     scope.registerConstructor(projectDescription);
@@ -159,10 +169,16 @@ public class Builtins {
     scope.registerMethod(
         runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
-    scope.registerMethod(runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
+    scope.registerMethod(
+        runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "catch_primitive", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(
+        panic,
+        "primitive_get_attached_stack_trace",
+        GetAttachedStackTraceMethodGen.makeFunction(language));
+    scope.registerMethod(caughtPanic, "convert_to_dataflow_error", CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
@@ -306,6 +322,11 @@ public class Builtins {
   /** @return the container for polyglot-related builtins. */
   public Polyglot polyglot() {
     return polyglot;
+  }
+
+  /** @return the {@code Caught_Panic} atom constructor */
+  public AtomConstructor caughtPanic() {
+    return caughtPanic;
   }
 
   /** @return the container for ordering-related builtins */

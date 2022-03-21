@@ -1,0 +1,43 @@
+from Standard.Base import all
+import Standard.Test
+
+type Box
+    type Foo (v : Bool = True)
+
+type Bar (a : Integer = 1) (b : Box = (Foo False)) (c : Boolean = b.v)
+
+type A a=0 b=1
+type B a=2 b=(Foo True)
+type C a=3 b=Foo
+type D a=4 b=(Bar 1)
+type E a=5 b=a c=(b+1)
+type F a=6 b=(Foo False) c=(b.v)
+#type D a=4 b=Bar // will crash
+
+spec =
+    Test.group "Atom Constructors" <|
+        Test.specify "should be allowed to use primitive default arguments" <|
+            x = A 1
+            x.b.should_equal 1
+            y = A 1
+            y.b.should_equal 1
+
+        Test.specify "should be allowed to use non-primitive default arguments" <|
+            a = B 1 (Foo False)
+            a.b.should_equal (Foo False)
+            b = B 1
+            b.b.should_equal (Foo True)
+            c = C 1
+            c.b.should_equal (Foo)
+            d = D 1
+            d.b.b.should_equal (Foo False)
+            d.b.c.should_equal False
+
+        Test.specify "should be allowed to use default arguments that refer to previous parameters" <|
+            e = E 1
+            e.b.should_equal 1
+            e.c.should_equal 2
+            f = F 1
+            f.c.should_equal False
+
+main = Test.Suite.run_main here.spec

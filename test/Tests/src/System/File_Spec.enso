@@ -25,7 +25,7 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            successfully_failed = Panic.recover file.read . catch e-> case e of
+            successfully_failed = Panic.recover Any file.read . catch e-> case e of
                 File.No_Such_File_Error _ -> True
                 _ -> False
             successfully_failed . should_be_true

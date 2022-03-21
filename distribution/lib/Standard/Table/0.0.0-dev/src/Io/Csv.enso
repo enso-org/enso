@@ -71,9 +71,9 @@ from_csv csv has_header=True prefix='C' =
     case csv of
         Text ->
             input_stream = ByteArrayInputStream.new csv.utf_8.to_array
-            Panic.recover Table.Table (parser_inst.parse input_stream) . catch handle_error
+            Panic.recover Any Table.Table (parser_inst.parse input_stream) . catch handle_error
         File.File _ ->
-            maybe_err = Panic.recover <| csv.with_input_stream [File.Option.Read] stream->
+            maybe_err = Panic.recover Any <| csv.with_input_stream [File.Option.Read] stream->
                 stream.with_java_stream java_stream->
                     Table.Table (parser_inst.parse java_stream)
             maybe_err.catch handle_error

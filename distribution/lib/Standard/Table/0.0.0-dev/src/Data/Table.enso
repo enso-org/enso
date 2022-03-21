@@ -875,7 +875,7 @@ type Table
                  price_rule = Table.Order_Rule "price" comparator=comparator
                  table.sort by=price_rule
     sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
+    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover Any <|
         rules = this.build_java_order_rules by order missing_last
         fallback_cmp = here.comparator_to_java .compare_to
         mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp

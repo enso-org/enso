@@ -43,7 +43,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       assertExpr(input, out)
     }
     def ?==(out: Doc): Unit = testBase in {
-      assertExpr(input, out, false)
+      assertExpr(input, out, assertShow = false)
     }
   }
 
@@ -258,6 +258,151 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         .Marked(1, 4, Section.Marked.Important, Section.Header("Important"))
     )
   )
+  """ ! Important
+    |   This is important.""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important."
+      )
+    )
+  )
+  """! Synopsis
+    |  This _is_ important""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Important,
+        Section.Header("Synopsis"),
+        Doc.Elem.Newline,
+        "This ",
+        Formatter(Formatter.Italic, "is"),
+        " important"
+      )
+    )
+  )
+  """Synopsis
+    |This _is1_ important""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "Synopsis",
+        Doc.Elem.Newline,
+        "This ",
+        Formatter(Formatter.Italic, "is1"),
+        " important"
+      )
+    )
+  )
+  """ Synopsis
+    |
+    | ! Important
+    |   This is important.""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important."
+      )
+    )
+  )
+  """ Synopsis
+    |
+    | ! Important
+    |   This is important.
+    |
+    |   And this""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important.",
+        Doc.Elem.Newline
+      ),
+      Section.Raw(3, "And this")
+    )
+  )
+  """ Synopsis
+    |
+    | !Important
+    |    This is a code
+    |
+    |  And this is not""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        0,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "This is a code")),
+        Doc.Elem.Newline
+      ),
+      Section.Raw(2, "And this is not")
+    )
+  )
+  """Synopsis
+    |
+    |! Important
+    |  This is important
+    |
+    |    And this is a code""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?== Doc(
+    Synopsis(
+      Section.Raw("Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "And this is a code"))
+      )
+    )
+  )
   "?Info" ?= Doc(
     Synopsis(Section.Marked(Section.Marked.Info, Section.Header("Info")))
   )
@@ -291,6 +436,45 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         Newline
       ),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
+    )
+  )
+  """Synopsis
+    |
+    | ! Important
+    |   This is important
+    |     And this is a code
+    |
+    |> Example
+    |  This is example
+    |      More code""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw("Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        "This is important",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(5, "And this is a code")),
+        Doc.Elem.Newline
+      ),
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Doc.Elem.Newline,
+        "This is example",
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(6, "More code"))
+      )
     )
   )
   """Foo *Foo* ~*Bar~ `foo bar baz bo`
@@ -339,7 +523,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       Section.Raw(
         "ul:",
         Newline,
-        List(2, List.Unordered, " Foo", " Bar")
+        List(2, List.Unordered, "Foo", "Bar")
       )
     )
   )
@@ -348,25 +532,25 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       Section.Raw(
         "ol:",
         Newline,
-        List(2, List.Ordered, " Foo", " Bar")
+        List(2, List.Ordered, "Foo", "Bar")
       )
     )
   )
   """List
-    |  - First unordered item
-    |  - Second unordered item
-    |  - Third unordered item""".stripMargin
+    |- First
+    |- Second
+    |- Third""".stripMargin
     .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "List",
         Newline,
         List(
-          2,
+          0,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
-          " Third unordered item"
+          "First",
+          "Second",
+          "Third"
         )
       )
     )
@@ -384,14 +568,234 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
-          " Third unordered item"
+          "First unordered item",
+          "Second unordered item",
+          "Third unordered item"
         ),
         Newline
       )
     )
   )
+  """List
+    |- _First_
+    |- *Second*""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          Formatter(Formatter.Italic, "First"),
+          Formatter(Formatter.Bold, "Second")
+        )
+      )
+    )
+  )
+  """List
+    |- _First_ list `item`
+    |- *Second* list ~item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          ListItem(
+            Formatter(Formatter.Italic, "First"),
+            " list ",
+            CodeBlock.Inline("item")
+          ),
+          ListItem(
+            Formatter(Formatter.Bold, "Second"),
+            " list ",
+            Formatter.Unclosed(Formatter.Strikeout, "item")
+          )
+        )
+      )
+    )
+  )
+  """List
+    |- _First_ list `item`
+    |- *Second* list ~item
+    |""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          0,
+          List.Unordered,
+          ListItem(
+            Formatter(Formatter.Italic, "First"),
+            " list ",
+            CodeBlock.Inline("item")
+          ),
+          ListItem(
+            Formatter(Formatter.Bold, "Second"),
+            " list ",
+            Formatter.Unclosed(Formatter.Strikeout, "item", Newline)
+          )
+        )
+      )
+    )
+  )
+  """ List
+    |   - unclosed_formatter
+    |   - second""".stripMargin.stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?== Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "List",
+        Newline,
+        List(
+          3,
+          List.Unordered,
+          ListItem(
+            "unclosed",
+            Formatter.Unclosed(Formatter.Italic, "formatter")
+          ),
+          "second"
+        )
+      )
+    )
+  )
+
+  """List
+    |  - First
+    |  - Second
+    |    * First1
+    |    * Second1
+    |  - Third""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          "Second",
+          List(
+            4,
+            List.Ordered,
+            "First1",
+            "Second1"
+          ),
+          "Third"
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |    - First1
+    |      - First2
+    |        - First3""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                "First3"
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |    - First1
+    |      - First2
+    |        - First3
+    |""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                ListItem("First3", Newline)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  """List
+    |  - First
+    |    - First1
+    |      - First2
+    |        - First3
+    |  - Second""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
+          List(
+            4,
+            List.Unordered,
+            "First1",
+            List(
+              6,
+              List.Unordered,
+              "First2",
+              List(
+                8,
+                List.Unordered,
+                "First3"
+              )
+            )
+          ),
+          "Second"
+        )
+      )
+    )
+  )
+
   """List
     |  - First unordered item
     |  - Second unordered item
@@ -406,15 +810,15 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
+          "First unordered item",
+          "Second unordered item",
           List(
             4,
             List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item"
+            "First ordered sub item",
+            "Second ordered sub item"
           ),
-          " Third unordered item"
+          "Third unordered item"
         )
       )
     )
@@ -433,15 +837,15 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
+          "First unordered item",
+          "Second unordered item",
           List(
             4,
             List.Ordered,
-            " First ordered sub item",
-            "    Second ordered sub item"
+            "First ordered sub item",
+            "   Second ordered sub item"
           ),
-          " Third unordered item"
+          "Third unordered item"
         )
       )
     )
@@ -466,29 +870,29 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
+          "First unordered item",
+          "Second unordered item",
           List(
             4,
             List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item"
+            "First ordered sub item",
+            "Second ordered sub item"
           ),
-          " Third unordered item",
+          "Third unordered item",
           List(
             4,
             List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item",
+            "First ordered sub item",
+            "Second ordered sub item",
             List(
               6,
               List.Unordered,
-              " First unordered sub item",
-              " Second unordered sub item"
+              "First unordered sub item",
+              "Second unordered sub item"
             ),
-            " Third ordered sub item"
+            "Third ordered sub item"
           ),
-          " Fourth unordered item"
+          "Fourth unordered item"
         )
       )
     )
@@ -499,18 +903,12 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
 
   """List
-    |  - First unordered item
-    |  - Second unordered item
-    |    * First ordered sub item
-    |    * Second ordered sub item
-    |  - Third unordered item
-    |    * First ordered sub item
-    |    * Second ordered sub item
-    |      - First unordered sub item
-    |      - Second unordered sub item
-    |    * Third ordered sub item
-    |   * Wrong Indent Item
-    |  - Fourth unordered item""".stripMargin
+    |  - First
+    |     * Aligned
+    |    * Misaligned
+    |   * Misaligned _styled_
+    |     * Correct
+    |  - Second""".stripMargin
     .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
@@ -519,30 +917,53 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         List(
           2,
           List.Unordered,
-          " First unordered item",
-          " Second unordered item",
+          "First",
           List(
-            4,
+            5,
             List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item"
+            "Aligned",
+            Elem.MisalignedItem(4, List.Ordered, "Misaligned"),
+            Elem.MisalignedItem(
+              3,
+              List.Ordered,
+              "Misaligned ",
+              Formatter(Formatter.Italic, "styled")
+            ),
+            "Correct"
           ),
-          " Third unordered item",
+          "Second"
+        )
+      )
+    )
+  )
+
+  """List
+    |  - First
+    |    - First1
+    |   - Second1
+    |      - First2
+    |  - Second""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          "First",
           List(
             4,
-            List.Ordered,
-            " First ordered sub item",
-            " Second ordered sub item",
+            List.Unordered,
+            "First1",
+            Elem.MisalignedItem(3, List.Unordered, "Second1"),
             List(
               6,
               List.Unordered,
-              " First unordered sub item",
-              " Second unordered sub item"
-            ),
-            " Third ordered sub item",
-            List.Indent.Invalid(3, List.Ordered, " Wrong Indent Item")
+              "First2"
+            )
           ),
-          " Fourth unordered item"
+          "Second"
         )
       )
     )
@@ -770,7 +1191,23 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Newline,
-        List(1, List.Unordered, " bar\n   baz"),
+        List(1, List.Unordered, ListItem("bar", Newline, "   ", "baz")),
+        Newline
+      )
+    )
+  )
+  """
+    | - bar
+    |     baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Newline,
+        List(
+          1,
+          List.Unordered,
+          ListItem("bar", Newline, CodeBlock(CodeBlock.Line(5, "baz")))
+        ),
         Newline
       )
     )
@@ -784,7 +1221,31 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Newline,
-        List(1, List.Unordered, " bar\n   baz", " bar\n   baz"),
+        List(
+          1,
+          List.Unordered,
+          ListItem("bar", Newline, "   ", "baz"),
+          ListItem("bar", Newline, "   ", "baz")
+        ),
+        Newline
+      )
+    )
+  )
+  """
+    | - bar
+    |     baz
+    | - bar
+    |   baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Newline,
+        List(
+          1,
+          List.Unordered,
+          ListItem("bar", Newline, CodeBlock(CodeBlock.Line(5, "baz"))),
+          ListItem("bar", Newline, "   ", "baz")
+        ),
         Newline
       )
     )
@@ -800,8 +1261,41 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         1,
         "This does foo:",
         Newline,
-        List(1, List.Unordered, " bar\n   baz"),
+        List(
+          1,
+          List.Unordered,
+          ListItem(
+            "bar",
+            Newline,
+            "   ",
+            "baz",
+            Newline,
+            " ",
+            "Another raw text."
+          )
+        ),
+        Newline
+      )
+    )
+  )
+  """ This does foo:
+    | - bar
+    |   baz
+    |
+    | Another raw text.
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "This does foo:",
         Newline,
+        List(1, List.Unordered, ListItem("bar", Newline, "   ", "baz")),
+        Newline
+      )
+    ),
+    Body(
+      Section.Raw(
+        1,
         "Another raw text.",
         Newline
       )
@@ -822,7 +1316,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         Newline,
         "This does foo:",
         Newline,
-        List(4, List.Unordered, " bar\n      baz"),
+        List(4, List.Unordered, ListItem("bar", Newline, "      ", "baz")),
         Newline
       )
     )
@@ -928,7 +1422,10 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     |      import Standard.Base.System.File
     |      import Standard.Examples
     |
-    |      example_new = File.new Examples.csv_path
+    |      example_new =
+    |          path =
+    |              Examples.csv_path
+    |          File.new path
     |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?== Doc(
     Tags(Tags.Tag(0, Tags.Tag.Type.Alias, " New File")),
     Synopsis(Section.Raw(0, Newline)),
@@ -951,9 +1448,13 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         CodeBlock(
           CodeBlock.Line(6, "import Standard.Base.System.File"),
           CodeBlock.Line(6, "import Standard.Examples"),
-          CodeBlock.Line(6, "example_new = File.new Examples.csv_path")
+          CodeBlock.Line(6, "example_new ="),
+          CodeBlock.Line(10, "path ="),
+          CodeBlock.Line(14, "Examples.csv_path"),
+          CodeBlock.Line(10, "File.new path")
         )
       )
     )
   )
+
 }

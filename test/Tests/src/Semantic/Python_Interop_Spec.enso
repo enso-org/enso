@@ -142,7 +142,7 @@ spec =
 
         Test.specify "should allow Enso to catch Python exceptions" <|
             value = My_Type 1 2
-            result = Panic.recover <| value.my_throw
+            result = Panic.recover Any <| value.my_throw
             err = result.catch
             err.cause.args.at 0 . should_equal 'Error!'
             err.cause.to_text . should_equal "RuntimeError('Error!')"
@@ -153,7 +153,7 @@ spec =
             result . should_equal 7
 
         Test.specify "should properly handle parse errors" <|
-            err = Panic.recover here.does_not_parse . catch
+            err = Panic.recover Any here.does_not_parse . catch
             err.cause.args.at 0 . should .contain 'invalid syntax'
 
         Test.specify "should perform maths with mixed numbers" <|

@@ -60,7 +60,7 @@ today = here.now
 
 new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
 new year (month = 1) (day = 1) =
-    Panic.recover (Date (LocalDate.of year month day)) . catch e-> case e of
+    Panic.recover Any (Date (LocalDate.of year month day)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -129,7 +129,7 @@ new year (month = 1) (day = 1) =
                  Time.Time_Error _ -> Date.new 2000 1 1
 parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
 parse text pattern=Nothing =
-    result = Panic.recover <| case pattern of
+    result = Panic.recover Any <| case pattern of
         Nothing -> LocalDate.parse text
         Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
         _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")

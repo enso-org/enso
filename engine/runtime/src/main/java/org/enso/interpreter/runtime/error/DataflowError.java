@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -37,7 +38,9 @@ public class DataflowError extends AbstractTruffleException {
    * @return a new dataflow error
    */
   public static DataflowError withoutTrace(Object payload, Node location) {
-    return new DataflowError(payload, location);
+    DataflowError result = new DataflowError(payload, location);
+    TruffleStackTrace.fillIn(result);
+    return result;
   }
 
   /**

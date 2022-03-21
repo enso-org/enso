@@ -261,7 +261,7 @@ type Matcher
     Regex_Matcher
 
 ## PRIVATE
-match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning = Panic.recover <|
+match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning = Panic.recover Any <|
     [matcher, objects, criteria, reorder, name_mapper, on_problems] . each Panic.rethrow
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
