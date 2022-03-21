@@ -1,4 +1,4 @@
-//! Renders profiling data, obtained from a file, as a graph.
+//! Renders profiling data, obtained from a file, as a flame graph.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -30,10 +30,10 @@ use ensogl_flame_graph as flame_graph;
 // === Entry Point ===
 // ===================
 
-/// Render a graph of a profile file.
+/// Render a flamegraph from a profile file.
 #[wasm_bindgen]
 #[allow(dead_code)]
-pub async fn entry_point_render_profile() {
+pub async fn entry_point_render_profile_flamegraph() {
     use ensogl_core::display::object::ObjectOps;
     let app = application::Application::new("root");
     let world = &app.display;
@@ -42,8 +42,9 @@ pub async fn entry_point_render_profile() {
     init_theme(scene);
     let data = get_data().await;
     let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
-    let graph = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
-    let flame_graph = flame_graph::FlameGraph::from_data(graph, &app);
+    let mut builder = profiler_flame_graph::FlamegraphBuilder::default();
+    builder.visit_profile(&profile);
+    let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), &app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);
     world.keep_alive_forever();
@@ -57,6 +58,10 @@ pub async fn entry_point_render_profile() {
         .forget();
 }
 
+// TODO[kw]: Since a flamegraph can be used to aggregate data from multiple runs, we should
+//   implement some way of invoking this scene with paths to multiple profile files, and then
+//   we'd replace this. For now, this is a copy of the file-loading code from the `render-profile`
+//   scene.
 /// Read profile data from a file. The file must be located at `/profile.json` in the root of the
 /// directory that will be made available by the webserver, i.e. `enso/dist/content`.
 async fn get_data() -> String {
@@ -82,7 +87,7 @@ fn init_theme(scene: &display::Scene) {
     let theme_manager = theme::Manager::from(&scene.style_sheet);
     let theme = theme::Theme::new();
     const COLOR_PATH: &str = "flame_graph_color";
-    theme.set(COLOR_PATH, color::Rgb::new(1.0, 180.0 / 255.0, 0.0));
+    theme.set(COLOR_PATH, color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
     theme_manager.register("theme", theme);
     theme_manager.set_enabled(&["theme".to_string()]);
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
