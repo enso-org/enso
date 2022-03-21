@@ -3756,12 +3756,12 @@ mod graph_editor_tests {
             assert_eq!(node_source, case.node_source, "Source node does not match expected.");
         }
 
-        fn nodes(&self) -> &SharedHashMap<NodeId, Node> {
-            &self.model.nodes.all
+        fn nodes(&self) -> &Nodes {
+            &self.model.nodes
         }
 
-        fn edges(&self) -> &SharedHashMap<EdgeId, Edge> {
-            &self.model.edges.all
+        fn edges(&self) -> &Edges {
+            &self.model.edges
         }
     }
 
