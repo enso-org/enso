@@ -159,24 +159,41 @@ class IrToTruffle(
           DataflowAnalysis,
           "No dataflow information associated with an atom."
         )
+        val localScope = new LocalScope(
+          None,
+          scopeInfo.graph,
+          scopeInfo.graph.rootScope,
+          dataflowInfo
+        )
 
         val argFactory =
           new DefinitionArgumentProcessor(
-            scope = new LocalScope(
-              None,
-              scopeInfo.graph,
-              scopeInfo.graph.rootScope,
-              dataflowInfo
-            )
+            scope = localScope
           )
         val argDefs =
           new Array[ArgumentDefinition](atomDefn.arguments.size)
+        val argumentExpressions = new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
 
         for (idx <- atomDefn.arguments.indices) {
-          argDefs(idx) = argFactory.run(atomDefn.arguments(idx), idx)
+          val unprocessedArg = atomDefn.arguments(idx)
+          val arg = argFactory.run(unprocessedArg, idx)
+          val occInfo = unprocessedArg
+                      .unsafeGetMetadata(
+                          AliasAnalysis,
+                          "No occurrence on an argument definition."
+                          )
+                      .unsafeAs[AliasAnalysis.Info.Occurrence]
+          val slot = localScope.createVarSlot(occInfo.id)
+          argDefs(idx) = arg
+          val readArg = ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+          val assignmentArg = AssignmentNode.build(readArg, slot)
+          val argRead = ReadLocalVariableNode.build(new FramePointer(0, slot))
+          argumentExpressions.append((assignmentArg, argRead))
         }
 
-        atomCons.initializeFields(argDefs: _*)
+        val (assignments, reads) = argumentExpressions.unzip
+
+        atomCons.initializeFields(localScope, assignments.toArray, reads.toArray, argDefs: _*)
       }
 
     // Register the method definitions in scope
