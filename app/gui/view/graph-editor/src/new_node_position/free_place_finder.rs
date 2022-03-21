@@ -126,7 +126,8 @@ pub fn find_free_place(
         let mut current_point = starting_point;
         for area in sorted_areas {
             if area.contains(current_point) {
-                current_point = area.boundary_intersection(current_point, direction)
+                current_point = area.boundary_intersection(current_point, direction);
+                DEBUG!("{current_point:?}");
             }
         }
         current_point

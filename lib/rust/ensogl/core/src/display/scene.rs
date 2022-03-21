@@ -1085,9 +1085,13 @@ impl SceneData {
         let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
 
         let shape = camera.screen();
+        DEBUG!("Shape: {shape:?}");
         let clip_space_z = origin_clip_space.z;
+        DEBUG!("clip_space_z: {clip_space_z:?}");
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
+        DEBUG!("clip_space_x: {clip_space_x:?}");
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+        DEBUG!("clip_space_y: {clip_space_y:?}");
         let clip_space = Vector4(clip_space_x, clip_space_y, clip_space_z, origin_clip_space.w);
         let world_space = camera.inversed_view_projection_matrix() * clip_space;
         (inv_object_matrix * world_space).xy()

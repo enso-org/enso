@@ -49,6 +49,8 @@ pub fn new_node_position(
     let scene = graph_editor.scene();
     let origin = Vector2(0.0, 0.0);
     let screen_center = scene.screen_to_object_space(&graph_editor.display_object, origin);
+    assert!(!screen_center.x.is_nan());
+    assert!(!screen_center.y.is_nan());
     match way {
         AddNodeEvent => default(),
         StartCreationEvent | ClickingButton if selection.is_some() =>

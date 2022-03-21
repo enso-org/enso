@@ -5,11 +5,13 @@
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
+use enso_gui::view::graph_editor;
 use enso_gui::view::graph_editor::component::node::Expression;
 use enso_gui::view::graph_editor::GraphEditor;
 use enso_gui::view::graph_editor::Node;
 use enso_gui::view::graph_editor::NodeId;
 use enso_gui::view::graph_editor::NodeSource;
+use enso_gui::view::graph_editor::component::node as node_view;
 use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use ordered_float::OrderedFloat;
@@ -203,4 +205,57 @@ fn add_node_with_add_node_button(
     let add_node_button = &graph_editor.model.add_node_button;
     let method = |_: &GraphEditor| add_node_button.click();
     add_node(graph_editor, expression, method)
+}
+
+#[wasm_bindgen_test]
+async fn mouse_oriented_node_placement() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let scene = &test.ide.ensogl_app.display.default_scene;
+    let graph_editor = test.graph_editor();
+    let gap_x = graph_editor.default_x_gap_between_nodes.value();
+    let gap_y = graph_editor.default_y_gap_between_nodes.value();
+    let min_spacing = graph_editor.min_x_spacing_for_new_nodes.value();
+
+    let InitialNodes {above, below} = InitialNodes::obtain_from_graph_editor(&graph_editor);
+    let check_tab = |mouse_pos:Vector2, expected: Vector2| {
+        scene.mouse.frp.position.emit(mouse_pos);
+        let expect_new_node = graph_editor.node_added.next_event();
+        graph_editor.start_node_creation();
+        let (new_node_id, _, _) = expect_new_node.expect();
+        let new_node_pos = graph_editor.model.get_node_position(new_node_id).map(|v| v.xy());
+        assert_eq!(new_node_pos, Some(expected));
+        graph_editor.stop_editing();
+        assert_eq!(graph_editor.model.nodes.all.len(), 2);
+    };
+
+    let far_away = below.position().xy() + Vector2(500.0, 500.0);
+    let far_away_expect = far_away;
+    check_tab(far_away, far_away_expect);
+
+    let under_below = below.position().xy() + Vector2(30.0, -15.0);
+    let under_below_expect = below.position().xy() + Vector2(0.0, - gap_y - node_view::HEIGHT);
+    check_tab(under_below, under_below_expect);
+
+    let under_above = above.position().xy() + Vector2(30.0, 15.0);
+    let under_above_expect = Vector2(
+        below.position().x - gap_x - min_spacing,
+        above.position().y - gap_y - node_view::HEIGHT,
+    );
+    check_tab(under_above, under_above_expect);
+}
+
+struct InitialNodes {
+    above: graph_editor::Node,
+    below: graph_editor::Node,
+}
+
+impl InitialNodes {
+    fn obtain_from_graph_editor(graph_editor: &GraphEditor) -> Self {
+        let nodes = graph_editor.model.nodes.all.values();
+        let mut sorted = nodes.into_iter().sorted_by_key(|node| OrderedFloat(node.position().y));
+        match (sorted.next(), sorted.next()) {
+            (Some(below), Some(above)) => Self { above, below },
+            _ => panic!("Expected two nodes in initial Graph Editor"),
+        }
+    }
 }
