@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 from Standard.Table.Data.Aggregate_Column import all
+import Standard.Table.Internal.Aggregate_Column_Aggregator
 
 import Standard.Test
 
@@ -18,7 +19,7 @@ spec = Test.group "Aggregate Columns" <|
     test_aggregator table col expected_name expected_result epsilon=False =
         col.column_name table . should_equal expected_name
 
-        acc = col.make_aggregator table
+        acc = Aggregate_Column_Aggregator.new table col
         folded_value = 0.up_to table.row_count . fold acc.initial acc.accumulator
         result = acc.finalizer folded_value
 
