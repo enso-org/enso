@@ -2869,7 +2869,7 @@ class RuntimeServerTest
       """from Standard.Builtins import all
         |
         |main =
-        |    x = Panic.recover @
+        |    x = Panic.catch_primitive @ .convert_to_dataflow_error
         |    IO.println (x.catch .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2910,7 +2910,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Unrecognized token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 23)))
+              Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
           )
         )
@@ -2932,7 +2932,7 @@ class RuntimeServerTest
       """from Standard.Builtins import all
         |
         |main =
-        |    x = Panic.recover ()
+        |    x = Panic.catch_primitive () .convert_to_dataflow_error
         |    IO.println (x.catch .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2974,7 +2974,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 22), model.Position(3, 24)))
+              Some(model.Range(model.Position(3, 30), model.Position(3, 32)))
             )
           )
         )

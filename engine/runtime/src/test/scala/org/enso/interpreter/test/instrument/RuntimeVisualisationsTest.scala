@@ -1712,7 +1712,7 @@ class RuntimeVisualisationsTest
       TestMessages.error(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )
@@ -1813,7 +1813,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             moduleName,
-            "x -> Panic.recover x . catch_primitive _.to_text"
+            "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
           )
         )
       )
@@ -1877,7 +1877,8 @@ class RuntimeVisualisationsTest
 
     // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
     val visualisationModule = "Standard.Base.Main"
-    val visualisationCode   = Source.fromResource("error_preprocessor.enso").mkString
+    val visualisationCode =
+      Source.fromResource("error_preprocessor.enso").mkString
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1907,7 +1908,7 @@ class RuntimeVisualisationsTest
       TestMessages.error(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )

@@ -96,7 +96,7 @@ type Connection
     execute_update : Text | Sql.Statement -> Integer
     execute_update query = here.wrap_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
-            result = Panic.recover stmt.executeLargeUpdate
+            result = Panic.recover Any stmt.executeLargeUpdate
             result.catch err-> case err of
                 Polyglot_Error exc ->
                     case Java.is_instance exc UnsupportedOperationException of
@@ -115,7 +115,7 @@ type Connection
     prepare_statement query =
         go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
             stmt = java_connection.prepareStatement template
-            setup_error = Panic.recover <|
+            setup_error = Panic.recover Any <|
                 holes.map_with_index ix-> obj->
                     position = ix + 1
                     case obj.first of
@@ -345,7 +345,7 @@ type Sql_Timeout_Error
    - action: The computation to execute. This computation may throw SQL errors.
 wrap_sql_errors : Any -> Any ! Error
 wrap_sql_errors ~action =
-    result = Panic.recover action
+    result = Panic.recover Any action
     result.catch err-> case err of
         Polyglot_Error exc ->
             transformed = if Java.is_instance exc SQLTimeoutException then Sql_Timeout_Error exc else

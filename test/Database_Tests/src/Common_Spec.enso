@@ -3,7 +3,7 @@ from Standard.Database import all
 import Standard.Test
 
 spec prefix connection pending=Nothing =
-    make_table name column_names column_typenames = Panic.recover <|
+    make_table name column_names column_typenames = Panic.recover Any <|
         quote x = '"' + x + '"'
         # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
         cols = column_names.zip column_typenames name-> typ->
@@ -11,7 +11,7 @@ spec prefix connection pending=Nothing =
         sql = "CREATE TABLE " + quote name + " (" + (cols.join ", ") + ")"
         Panic.rethrow <| connection.execute_update sql
         Panic.rethrow <| connection.access_table name
-    clean_table name = Panic.recover <|
+    clean_table name = Panic.recover Any <|
         sql = 'DROP TABLE "' + name + '"'
         Panic.rethrow <| connection.execute_update sql
     t1 = make_table "T1" ["a", "b", "c"] ["INT", "INT", "INT"]
