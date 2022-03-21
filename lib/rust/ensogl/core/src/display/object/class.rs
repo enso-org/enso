@@ -580,7 +580,6 @@ impl<Host> Model<Host> {
 
 enso_data_structures::define_id! {
     /// Globally unique identifier of a display object.
-    #[derive(CloneRef)]
     pub struct Id($);
 }
 
@@ -648,7 +647,7 @@ impl<Host> Instance<Host> {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let rc = Rc::new(Model::new(logger));
-        let id = Default::default();
+        let id = Id::new();
         Self { rc, id }
     }
 

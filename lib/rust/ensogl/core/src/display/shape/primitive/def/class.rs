@@ -71,7 +71,7 @@ impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
 impl<T> ShapeRef<T> {
     /// Constructor.
     pub fn new(t: T) -> Self {
-        Self { rc: Rc::new(t), id: Default::default() }
+        Self { rc: Rc::new(t), id: ShapeId::new() }
     }
 
     /// Unwraps the shape and provides the raw reference to its content.

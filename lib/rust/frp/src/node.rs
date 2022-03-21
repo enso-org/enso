@@ -39,7 +39,6 @@ pub type Output<T> = <T as HasOutput>::Output;
 
 enso_data_structures::define_id! {
     /// Identifier of FRP node. Used mainly for debug purposes.
-    #[derive(CloneRef)]
     pub struct Id($);
 }
 

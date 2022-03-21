@@ -406,7 +406,7 @@ impl<Def: HasOutputStatic> Node<Def> {
     /// Constructor.
     pub fn construct(label: Label, definition: Def) -> Self {
         let data = Rc::new(NodeData::new(label));
-        let id = Default::default();
+        let id = Id::new();
         let stream = OwnedStream { data, id };
         let definition = Rc::new(definition);
         Self { stream, definition }
