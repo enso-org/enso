@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Table.Data.Aggregate_Column
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Postgres
@@ -32,3 +33,12 @@ type Redshift_Dialect
     generate_sql : Query -> Sql.Statement
     generate_sql query =
         Base_Generator.generate_query this.internal_generator_dialect query . build
+
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_columns` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type aggregate =
+        Postgres.resolve_target_sql_type aggregate

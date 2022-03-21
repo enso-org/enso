@@ -1,42 +1,43 @@
 from Standard.Base import all
 
-import Standard.Table.Data.Aggregate_Column
+from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
+import Standard.Base.Error.Extensions as Errors
 
-make_aggregate_expression : Table -> Aggregate_Column -> IR.Internal_Column
-make_aggregate_expression table aggregate =
+make_aggregate_column : Table -> Aggregate_Column -> IR.Internal_Column
+make_aggregate_column table aggregate =
     new_name = aggregate.column_name table
-    resolve column = aggregate.resolve_column column
-    sql_type = Error.throw "TODO"
-    expression = Error.throw "TODO"
+    sql_type = table.connection.dialect.resolve_target_sql_type aggregate
+    expression = here.make_expression aggregate
     IR.Internal_Column new_name sql_type expression
 
-## PRIVATE
-#resolve_target_sql_type aggregate table =
-#    resolve column = aggregate.resolve_column table column
-#    ## TODO [RW] This is a prototype.
-#       We will need to be able to inspect which backend the Table is backed by and have backend specific methods for resolving this.
-#    dialect = table.connection.dialect
-#
-#    case aggregate of
-#        Group_By c _ -> (resolve c).sql_type
-#        Count _ -> Sql_Type.integer
-#        Count_Distinct _ _ _ -> Sql_Type.integer
-#        Count_Not_Nothing _ _ -> Sql_Type.integer
-#        Count_Nothing _ _ -> Sql_Type.integer
-#        Count_Not_Empty _ _ -> Sql_Type.integer
-#        Count_Empty _ _ -> Sql_Type.integer
-#        Sum c _ -> (resolve c).sql_type
-#        Average c _ -> (resolve c).sql_type
-#        Median c _ -> (resolve c).sql_type
-#        Percentile p c _ -> (resolve c).sql_type
-#        Mode c _ -> (resolve c).sql_type
-#        Standard_Deviation c _ _ -> (resolve c).sql_type
-#        Concatenate c _ _ _ _ _ -> (resolve c).sql_type
-#        First c _ _ _ -> (resolve c).sql_type
-#        Last c _ _ _ -> (resolve c).sql_type
-#        Maximum c _ -> (resolve c).sql_type
-#        Minimum c _ -> (resolve c).sql_type
-#        Shortest c _ -> (resolve c).sql_type
-#        Longest c _ -> (resolve c).sql_type
+make_expression : Aggregate_Column -> IR.Expression
+make_expression aggregate = case aggregate of
+    Group_By c _ -> c.expression
+    Count _ -> IR.Operation "COUNT_ROWS" []
+    Count_Distinct c _ ignore_nothing ->
+        ## TODO!
+        _ = ignore_nothing
+        IR.Operation "COUNT_DISTINCT" [c.expression]
+    Count_Not_Nothing c _ -> IR.Operation "COUNT" [c.expression]
+    Count_Nothing c _ -> IR.Operation "COUNT_NULL" [c.expression]
+    Count_Not_Empty c _ -> IR.Operation "COUNT_NOT_EMPTY" [c.expression]
+    Count_Empty c _ -> IR.Operation "COUNT_EMPTY" [c.expression]
+    Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant Sql_Type.double p, c.expression]
+    Mode c _ -> IR.Operation "MODE" [c.expression]
+    First _ _ _ _ -> Errors.unimplemented "Not implemented yet."
+    Last _ _ _ _ -> Errors.unimplemented "Not implemented yet."
+    Maximum c _ -> IR.Operation "MAX" [c.expression]
+    Minimum c _ -> IR.Operation "MIN" [c.expression]
+    Shortest c _ -> IR.Operation "MIN" [c.expression]
+    Longest c _ -> IR.Operation "MAX" [c.expression]
+    Standard_Deviation c _ population ->
+        ## TODO!
+        _ = population
+        IR.Operation "STD_DEV" [c.expression]
+    Concatenate c _ _ _ _ _ ->
+        IR.Operation "CONCAT" [c.expression]
+    Sum c _ -> IR.Operation "SUM" [c.expression]
+    Average c _ -> IR.Operation "AVG" [c.expression]
+    Median c _ -> IR.Operation "MEDIAN" [c.expression]

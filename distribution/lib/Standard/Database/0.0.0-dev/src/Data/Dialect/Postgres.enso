@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Sql
+from Standard.Table.Data.Aggregate_Column import all
+from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Internal.Base_Generator
 
@@ -33,6 +34,14 @@ type Postgresql_Dialect
     generate_sql query =
         Base_Generator.generate_query this.internal_generator_dialect query . build
 
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_columns` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+
 ## PRIVATE
 make_internal_generator_dialect =
     starts_with arguments =
@@ -64,3 +73,29 @@ make_internal_generator_dialect =
                 Error.throw ("Invalid amount of arguments for operation contains")
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
     Base_Generator.base_dialect . extend_with my_mappings
+
+## PRIVATE
+   The provided aggregate is assumed to contain only already resolved columns.
+   You may need to transform it with `resolve_columns` first.
+resolve_target_sql_type aggregate = case aggregate of
+    Group_By c _ -> c.sql_type
+    Count _ -> Sql_Type.bigint
+    Count_Distinct _ _ _ -> Sql_Type.bigint
+    Count_Not_Nothing _ _ -> Sql_Type.bigint
+    Count_Nothing _ _ -> Sql_Type.bigint
+    Count_Not_Empty _ _ -> Sql_Type.bigint
+    Count_Empty _ _ -> Sql_Type.bigint
+    Percentile _ _ _ -> Sql_Type.double
+    Mode c _ -> c.sql_type
+    First c _ _ _ -> c.sql_type
+    Last c _ _ _ -> c.sql_type
+    Maximum c _ -> c.sql_type
+    Minimum c _ -> c.sql_type
+    Shortest c _ -> c.sql_type
+    Longest c _ -> c.sql_type
+    Standard_Deviation _ _ _ -> Sql_Type.double
+    Concatenate _ _ _ _ _ _ -> Sql_Type.text
+    ## TODO revise these
+    Sum _ _ -> Sql_Type.numeric # TODO can also be bigint, real, double
+    Average _ _ -> Sql_Type.numeric # TODO can be double sometimes
+    Median _ _ -> Sql_Type.numeric # TODO can be double sometimes

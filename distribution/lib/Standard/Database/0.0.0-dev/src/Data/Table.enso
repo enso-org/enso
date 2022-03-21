@@ -646,7 +646,7 @@ type Table
     aggregate columns (on_problems=Report_Warning) =
         ## TODO handle errors here and turn them into warnings where applicable
         _ = on_problems
-        resolved_aggregates = columns.map _.resolve_columns this
+        resolved_aggregates = columns.map (_.resolve_columns this)
         # TODO handling duplicate names etc. is to be done as part of https://www.pivotaltracker.com/story/show/181420794
         # Grouping Key
         is_a_key c = case c of
@@ -655,7 +655,7 @@ type Table
         key_columns = resolved_aggregates.filter is_a_key . map .column
         key_expressions = key_columns.map .expression
         new_ctx = this.context.set_groups key_expressions
-        new_columns = resolved_aggregates.map (Aggregate_Helper.make_aggregate_expression this)
+        new_columns = resolved_aggregates.map (Aggregate_Helper.make_aggregate_column this)
         this.updated_context_and_columns new_ctx new_columns
 
     ## UNSTABLE
