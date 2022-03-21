@@ -1,6 +1,6 @@
 package org.enso.compiler.context
 
-import org.enso.docs.sections.{ParsedSectionsBuilder, Section}
+import org.enso.docs.sections.{HtmlRepr, ParsedSectionsBuilder, Section}
 import org.enso.polyglot.DocSection
 import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
@@ -52,7 +52,7 @@ object DocSectionsBuilder {
   private def renderElems(elems: Seq[Doc.Elem]): String = {
     val builder =
       elems.foldLeft(Seq.newBuilder[scalatags.Text.all.Modifier]) { (b, a) =>
-        b ++= a.html
+        b ++= HtmlRepr[Doc.Elem].toHtml(a)
       }
     renderHtml(builder.result())
   }
