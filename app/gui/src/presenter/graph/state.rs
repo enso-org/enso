@@ -702,7 +702,7 @@ mod tests {
             let state = State::default();
             let displayed_nodes = nodes
                 .map(|node| {
-                    let view = ensogl::display::object::Id::default().into();
+                    let view = ensogl::display::object::Id::new().into();
                     state.update_from_controller().set_node_expression(&node, node_trees_of(&node));
                     state.assign_node_view(view);
                     TestNode { node, view }
@@ -717,8 +717,8 @@ mod tests {
         let state = State::default();
         let node1 = create_test_node("node1 = 2 + 2");
         let node2 = create_test_node("node2 = node1 + 2");
-        let node_view_1 = ensogl::display::object::Id::default().into();
-        let node_view_2 = ensogl::display::object::Id::default().into();
+        let node_view_1 = ensogl::display::object::Id::new().into();
+        let node_view_2 = ensogl::display::object::Id::new().into();
         let from_controller = state.update_from_controller();
         let from_view = state.update_from_view();
 
@@ -774,8 +774,8 @@ mod tests {
         };
         let ast_con1 = AstConnection { source: src.clone(), destination: dest1.clone() };
         let ast_con2 = AstConnection { source: src.clone(), destination: dest2.clone() };
-        let view_con1 = ensogl::display::object::Id::default().into();
-        let view_con2 = ensogl::display::object::Id::default().into();
+        let view_con1 = ensogl::display::object::Id::new().into();
+        let view_con2 = ensogl::display::object::Id::new().into();
         let view_src = EdgeEndpoint { node_id: nodes[0].view, port: src.port };
         let view_tgt1 = EdgeEndpoint { node_id: nodes[1].view, port: dest1.port };
         let view_tgt2 = EdgeEndpoint { node_id: nodes[1].view, port: dest2.port };
