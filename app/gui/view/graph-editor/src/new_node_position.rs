@@ -41,7 +41,7 @@ use ensogl_hardcoded_theme as theme;
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
-    way: WayOfCreatingNode,
+    way: &WayOfCreatingNode,
     selection: Option<NodeId>,
     mouse_position: Vector2,
 ) -> Vector2 {
@@ -56,7 +56,8 @@ pub fn new_node_position(
         StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { edge_id } =>
-            at_mouse_aligned_to_source_node(graph_editor, edge_id, mouse_position),
+            at_mouse_aligned_to_source_node(graph_editor, *edge_id, mouse_position),
+        StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
 }
 
