@@ -79,7 +79,7 @@ macro_rules! define_id {
         //  to maintain compatibility with the previous implementations of IDs.
         //  See: https://www.pivotaltracker.com/story/show/181626362
         $(#[$attrs])*
-        #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
         pub struct $name(Option<$crate::counter::Counter>);
 
         impl $name {

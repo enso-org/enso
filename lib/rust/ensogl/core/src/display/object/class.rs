@@ -580,6 +580,7 @@ impl<Host> Model<Host> {
 
 enso_data_structures::define_id! {
     /// Globally unique identifier of a display object.
+    #[derive(Default)]
     pub struct Id($);
 }
 
