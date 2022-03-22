@@ -434,8 +434,6 @@ ensogl::define_endpoints! {
         set_type_label_visibility (bool),
         set_size                  (Vector2),
         set_view_mode             (view::Mode),
-        /// Emit `on_press` for unit tests purposes.
-        test_press                (),
     }
 
     Output {
@@ -528,7 +526,6 @@ impl Model {
 
             frp.source.on_hover <+ bool(&events.mouse_out,&events.mouse_over);
             frp.source.on_press <+ events.mouse_down;
-            frp.source.on_press <+ frp.test_press;
 
 
             // === Opacity ===

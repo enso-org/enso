@@ -200,8 +200,6 @@ ensogl::define_endpoints! {
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
-        /// Emit `on_port_press` for unit tests purposes.
-        test_port_press      (),
     }
 
     Output {
@@ -288,6 +286,15 @@ impl Model {
         self
     }
 
+    /// Return a list of Node's input ports.
+    pub fn ports(&self) -> Vec<port::Model> {
+        let expression = self.expression.borrow();
+        let mut ports = Vec::new();
+        expression.span_tree.root_ref().dfs(|n| ports.push(n.payload.clone()));
+        ports
+    }
+
+
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
     }
@@ -336,8 +343,8 @@ fn select_color(styles: &StyleWatch, tp: Option<&Type>) -> color::Lcha {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Area {
     #[allow(missing_docs)]
-    pub frp: Frp,
-    model:   Rc<Model>,
+    pub frp:          Frp,
+    pub(crate) model: Rc<Model>,
 }
 
 impl Deref for Area {
@@ -668,7 +675,6 @@ impl Area {
                     // === Press ===
 
                     eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
-                    eval_ frp.test_port_press ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
 
 
                     // === Hover ===

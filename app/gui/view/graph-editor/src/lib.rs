@@ -3684,11 +3684,15 @@ mod graph_editor_tests {
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        node_1.model.output.test_port_press();
+        let port = node_1.output_port();
+        port.events.mouse_down.emit(());
+        assert_eq!(graph_editor.edges().len(), 1);
+        //node_1.model.output.test_port_press();
         // Dropping edge.
-        let mouse = app.display.default_scene.mouse.test_api();
+        let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
-        let click_on_background = |_: &GraphEditor| mouse.click_on_background(click_pos);
+        mouse.frp.position.emit(click_pos);
+        let click_on_background = |_: &GraphEditor| mouse.click_on_background();
         let (_, node_2) = graph_editor.add_node_by(&click_on_background);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
         let node_pos = node_2.position();
@@ -3707,14 +3711,18 @@ mod graph_editor_tests {
         let (node_id_2, node_2) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        node_1.model.output.test_port_press();
+        let port = node_1.output_port();
+        port.events.mouse_down.emit(());
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), None);
         assert_eq!(edges.len(), 1);
         // Connecting edge.
-        node_2.model.input.test_port_press();
+        // We need to enable ports. Normally it is done by hovering the node.
+        node_2.model.input.frp.set_ports_active(true, None);
+        let port = node_2.input_port();
+        port.hover.events.mouse_down.emit(());
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
@@ -3765,12 +3773,33 @@ mod graph_editor_tests {
         }
     }
 
+    impl Node {
+        fn output_port(&self) -> node::output::port::SinglePortView {
+            let ports = self.model.output.model.ports();
+            let port = ports.first().expect("The node has no ports");
+            let shape = port.shape.as_ref().expect("The port has no PortShapeView");
+            use node::output::port::PortShapeView::Single;
+            match shape {
+                Single(shape) => shape.clone_ref(),
+                _ => panic!("Expected a SinglePortView"),
+            }
+        }
+
+        fn input_port(&self) -> node::input::port::Shape {
+            let ports = self.model.input.model.ports();
+            println!("Ports: {}", ports.len());
+            let port = ports.first().expect("The node has no ports");
+            let shape = port.shape.as_ref().expect("The port has no Shape");
+            shape.clone_ref()
+        }
+    }
+
     fn init() -> (Application, GraphEditor) {
         let app = Application::new("root");
         app.set_screen_size_for_tests();
         let graph_editor = new_graph_editor(&app);
         let mouse = &app.display.default_scene.mouse;
-        mouse.test_api().set_position(Vector2::zeros());
+        mouse.frp.position.emit(Vector2::zeros());
         (app, graph_editor)
     }
 }
