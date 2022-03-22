@@ -5,10 +5,10 @@
 //!
 //! # Usage
 //!
-//! ```
+//! ```ignore
 //! // The prelude will import all structures from this crate and EnsoGL core which are needed
 //! // for defining custom button.
-//! use ensogl_button::prelude::*;
+//! use crate::prelude::*;
 //!
 //! // First, define our custom button shape. The shape should take two colors as a parameters:
 //! // one of the icon, and one of the background. In this example we will create "close" button.
@@ -68,17 +68,21 @@
 //! pub type View = ensogl_button::View<shape::DynamicShape>;
 //! ```
 
+#![recursion_limit = "256"]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "256"]
 
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -87,7 +91,6 @@ use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::component::ShapeView;
 
 

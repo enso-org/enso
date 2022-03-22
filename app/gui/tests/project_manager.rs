@@ -1,5 +1,11 @@
 //! Project Manager tests.
 
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+
+
 #[cfg(test)]
 mod tests {
     use enso_gui::prelude::*;

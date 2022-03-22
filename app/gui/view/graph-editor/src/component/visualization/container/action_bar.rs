@@ -1,6 +1,8 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
 
 use crate::component::node;
 use crate::component::visualization;
@@ -12,8 +14,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::system::DynamicShape;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::gui::component::ShapeView;
 use ensogl_component::drop_down_menu;
 use ensogl_hardcoded_theme as theme;

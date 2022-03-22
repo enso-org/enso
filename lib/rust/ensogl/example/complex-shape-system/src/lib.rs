@@ -1,15 +1,19 @@
 //! Example scene showing simple usage of a shape system.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+use ensogl_core::display::shape::*;
+use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style::theme;
-use ensogl_core::display::world::*;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -113,7 +117,6 @@ pub fn entry_point_complex_shape_system() {
         .before_frame
         .add(move |_time| {
             mask.set_position_x(((frame as f32) / 30.0).sin() * 100.0);
-
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;

@@ -1,26 +1,31 @@
 //! The module with the [`Graph`] presenter. See [`crate::presenter`] documentation to know more
 //! about presenters in general.
 
-pub mod call_stack;
-pub mod state;
-pub mod visualization;
-
-pub use call_stack::CallStack;
-pub use visualization::Visualization;
-
 use crate::prelude::*;
+use enso_web::traits::*;
 
 use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
 use enso_frp as frp;
-use enso_web::traits::*;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod call_stack;
+pub mod state;
+pub mod visualization;
+
+pub use call_stack::CallStack;
+pub use visualization::Visualization;
 
 
 
@@ -376,6 +381,7 @@ impl ViewUpdate {
     /// input for nodes where expression changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Task)]
     fn set_node_expressions(&self) -> Vec<(ViewNodeId, node_view::Expression)> {
         self.nodes
             .iter()
@@ -454,6 +460,7 @@ pub struct Graph {
 impl Graph {
     /// Create graph presenter. The returned structure is working and does not require any
     /// initialization.
+    #[profile(Task)]
     pub fn new(
         project: model::Project,
         controller: controller::ExecutedGraph,
@@ -465,6 +472,7 @@ impl Graph {
         Self { network, model }.init(project_view)
     }
 
+    #[profile(Detail)]
     fn init(self, project_view: &view::project::View) -> Self {
         let logger = &self.model.logger;
         let network = &self.network;
@@ -500,7 +508,7 @@ impl Graph {
             view.disable_visualization <+ disable_vis;
 
             view.add_node <+ update_data.map(|update| update.count_nodes_to_add()).repeat();
-            added_node_update <- view.node_added.filter_map(f!(((view_id,_))
+            added_node_update <- view.node_added.filter_map(f!(((view_id, _, _))
                 model.state.assign_node_view(*view_id)
             ));
             init_node_expression <- added_node_update.filter_map(|update| Some((update.view_id?, update.expression.clone())));

@@ -2,11 +2,44 @@
 
 // WARNING! UNDER HEAVY DEVELOPMENT. EXPECT DRASTIC CHANGES.
 
+use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::display::traits::*;
+
+use crate::component::node::profiling::ProfilingLabel;
+use crate::component::visualization;
+use crate::selection::BoundingBox;
+use crate::tooltip;
+use crate::view;
+use crate::Type;
+
+use super::edge;
+use enso_frp as frp;
+use enso_frp;
+use ensogl::animation::delayed::DelayedAnimation;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::{display, gui};
+use ensogl::display::scene::Layer;
+use ensogl::Animation;
+use ensogl_component::shadow;
+use ensogl_component::text;
+use ensogl_component::text::Text;
+use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme;
+use std::f32::EPSILON;
+
+
+// ==============
+// === Export ===
+// ==============
+
 #[deny(missing_docs)]
 pub mod action_bar;
 #[warn(missing_docs)]
 pub mod error;
 pub mod expression;
+pub mod growth_animation;
 pub mod input;
 pub mod output;
 #[warn(missing_docs)]
@@ -17,51 +50,23 @@ pub mod vcs;
 pub use error::Error;
 pub use expression::Expression;
 
-use crate::prelude::*;
-
-use crate::component::node::profiling::ProfilingLabel;
-use crate::component::visualization;
-use crate::tooltip;
-use crate::view;
-use crate::Type;
-
-use enso_frp as frp;
-use enso_frp;
-use ensogl::animation::delayed::DelayedAnimation;
-use ensogl::application::Application;
-use ensogl::data::color;
-use ensogl::display;
-use ensogl::display::shape::*;
-use ensogl::display::traits::*;
-use ensogl::gui;
-use ensogl::Animation;
-use ensogl_component::shadow;
-use ensogl_component::text;
-use ensogl_component::text::Text;
-use ensogl_hardcoded_theme as theme;
-use ensogl_hardcoded_theme;
-use std::f32::EPSILON;
-
-use super::edge;
-use crate::selection::BoundingBox;
-
 
 
 // =================
 // === Constants ===
 // =================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_WIDTH: f32 = 180.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const ACTION_BAR_HEIGHT: f32 = 15.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const CORNER_RADIUS: f32 = 14.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const HEIGHT: f32 = 28.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const PADDING: f32 = 40.0;
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub const RADIUS: f32 = 14.0;
 
 /// Space between the documentation comment and the node.
@@ -175,7 +180,7 @@ pub mod backdrop {
     }
 }
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod drag_area {
     use super::*;
 
@@ -201,7 +206,7 @@ pub mod drag_area {
 // === Error Indicator ===
 // =======================
 
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub mod error_shape {
     use super::*;
 
@@ -242,27 +247,27 @@ pub mod error_shape {
 // ==============
 
 #[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub enum Endpoint {
     Input,
     Output,
 }
 
 #[derive(Clone, Debug)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Crumbs {
     pub endpoint: Endpoint,
     pub crumbs:   span_tree::Crumbs,
 }
 
 impl Crumbs {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn input(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Input;
         Self { endpoint, crumbs }
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn output(crumbs: span_tree::Crumbs) -> Self {
         let endpoint = Endpoint::Output;
         Self { endpoint, crumbs }
@@ -529,7 +534,7 @@ impl NodeModel {
         .init()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
         input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
@@ -540,12 +545,51 @@ impl NodeModel {
         self
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
+        layer.add_exclusive(&self.display_object);
+        action_bar_layer.add_exclusive(&self.action_bar);
+        self.output.set_label_layer(text_layer);
+        self.input.set_label_layer(text_layer);
+        self.profiling_label.set_label_layer(text_layer);
+        self.comment.add_to_scene_layer(text_layer);
+    }
+
+    /// Move all sub-components to `edited_node` layer.
+    ///
+    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// separate layer management API.
+    ///
+    /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
+    /// separate `above_nodes` layer, unlike every other node component.
+    pub fn move_to_edited_node_layer(&self) {
+        let scene = &self.app.display.default_scene;
+        let layer = &scene.layers.edited_node;
+        let text_layer = &scene.layers.edited_node_text;
+        let action_bar_layer = &scene.layers.edited_node;
+        self.set_layers(layer, text_layer, action_bar_layer);
+    }
+
+    /// Move all sub-components to `main` layer.
+    ///
+    /// A simple [`Layer::add_exclusive`] wouldn't work because text rendering in ensogl uses a
+    /// separate layer management API.
+    ///
+    /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
+    /// node component.
+    pub fn move_to_main_layer(&self) {
+        let scene = &self.app.display.default_scene;
+        let layer = &scene.layers.main;
+        let text_layer = &scene.layers.label;
+        let action_bar_layer = &scene.layers.above_nodes;
+        self.set_layers(layer, text_layer, action_bar_layer);
+    }
+
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn width(&self) -> f32 {
         self.input.width.value()
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn height(&self) -> f32 {
         HEIGHT
     }
@@ -591,7 +635,7 @@ impl NodeModel {
         size
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn visualization(&self) -> &visualization::Container {
         &self.visualization
     }
@@ -619,7 +663,7 @@ impl NodeModel {
 }
 
 impl Node {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = &frp.network;

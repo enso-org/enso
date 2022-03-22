@@ -1,12 +1,12 @@
 //! The core texture data type and related operations.
 
 use crate::prelude::*;
-
-use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::data::gl_enum::traits::*;
 use crate::system::gpu::data::gl_enum::*;
 use crate::system::gpu::data::texture::storage::*;
 use crate::system::gpu::data::texture::types::*;
+
+use crate::system::gpu::data::buffer::item::JsBufferViewArr;
 use crate::system::gpu::Context;
 
 use web_sys::WebGlTexture;

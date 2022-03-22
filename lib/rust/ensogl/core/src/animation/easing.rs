@@ -3,10 +3,15 @@
 
 use crate::prelude::*;
 
-use core::f32::consts::PI;
-
 use crate::animation;
 use crate::data::function::Fn1;
+
+use core::f32::consts::PI;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use crate::animation::physics::inertia::EndStatus;
 
@@ -420,7 +425,6 @@ where
             data.step(time.local)
         } else if let Some(animation_loop) = animation_loop.upgrade() {
             animation_loop.set(None);
-            data.on_end.call(EndStatus::Normal);
         }
     }
 }

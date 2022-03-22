@@ -169,7 +169,7 @@ mod tests {
             let factor = Vector2(x_factor, y_factor);
             Case {
                 starting_point:  self.starting_point.component_mul(&factor),
-                direction:       self.starting_point.component_mul(&factor),
+                direction:       self.direction.component_mul(&factor),
                 occupied:        self
                     .occupied
                     .iter()
@@ -229,7 +229,7 @@ mod tests {
         };
         let non_orthogonal = Case {
             direction: Vector2(18.0, 15.0),
-            expected_result: Vector2(18.0, 15.0),
+            expected_result: Vector2(16.0, 15.0),
             ..orthogonal.clone()
         };
         orthogonal.run_each_flip();

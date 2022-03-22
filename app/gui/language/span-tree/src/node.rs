@@ -1,6 +1,7 @@
 //! A module with SpanTree structure definition.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::iter::LeafIterator;
 use crate::iter::TreeFragment;
@@ -8,9 +9,14 @@ use crate::ArgumentInfo;
 
 use ast::crumbs::IntoCrumbs;
 use enso_text as text;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod kind;
+
 pub use kind::*;
 
 
@@ -586,6 +592,7 @@ impl<'a, T: Payload> Ref<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,
@@ -750,6 +757,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,

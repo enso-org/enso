@@ -1,19 +1,24 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-pub mod upload;
-
 use crate::prelude::*;
-
-use enso_shapely::shared;
-use enum_dispatch::*;
-use upload::UniformUpload;
-use web_sys::WebGlUniformLocation;
-
 use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
+use enum_dispatch::*;
+
 use crate::system::Context;
 
+use enso_shapely::shared;
+use upload::UniformUpload;
 use web_sys::WebGlTexture;
+use web_sys::WebGlUniformLocation;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod upload;
 
 
 

@@ -1,17 +1,21 @@
 //! This module defines several useful string variants, including copy-on-write and immutable
 //! implementations.
-use std::borrow::Cow;
 
 use crate::clone::*;
-use crate::impls;
 use derive_more::*;
 use itertools::*;
+
+use crate::impls;
+
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 #[cfg(feature = "serde")]
 use serde::Serialize;
+use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
+
+
 
 // =================
 // === StringOps ===
@@ -213,12 +217,32 @@ impl PartialEq<ImString> for String {
 // === Macros ===
 
 /// Defines a newtype for `ImString`.
+#[cfg(not(feature = "serde"))]
 #[macro_export]
 macro_rules! im_string_newtype {
+    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
+        im_string_newtype_without_serde!{ $($(#$meta)* $name),* }
+    };
+}
+
+/// Defines a newtype for `ImString`.
+#[cfg(feature = "serde")]
+#[macro_export]
+macro_rules! im_string_newtype {
+    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
+        im_string_newtype_without_serde!{ $(
+            #[derive($crate::serde_reexports::Serialize,$crate::serde_reexports::Deserialize)]
+            $(#$meta)* $name
+        ),* }
+    };
+}
+
+#[macro_export]
+macro_rules! im_string_newtype_without_serde {
     ($($(#$meta:tt)* $name:ident),* $(,)?) => {$(
         $(#$meta)*
         #[derive(Clone,CloneRef,Debug,Default,Eq,Hash,PartialEq)]
-        #[derive($crate::serde_reexports::Serialize,$crate::serde_reexports::Deserialize)]
+
         pub struct $name {
             content : ImString
         }

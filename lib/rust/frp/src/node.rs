@@ -1,7 +1,8 @@
 //! FRP data definition.
 
-use crate::data::watch;
 use crate::prelude::*;
+
+use crate::data::watch;
 
 
 

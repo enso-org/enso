@@ -2,16 +2,15 @@
 //! hierarchical layouts. The implementation is very careful about performance, it tracks the
 //! transformation changes and updates only the needed subset of the display object tree on demand.
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
-use super::transform;
-
 use crate::data::dirty;
-use crate::data::dirty::traits::*;
 use crate::display::scene::layer::Layer;
 use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 
+use super::transform;
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;

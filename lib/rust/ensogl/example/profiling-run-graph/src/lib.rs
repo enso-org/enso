@@ -1,11 +1,14 @@
 //! Demo scene showing a sample flame graph.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
@@ -48,7 +51,7 @@ pub fn entry_point_profiling_run_graph() {
     // Generate Test data
     futures::executor::block_on(start_project());
 
-    let measurements = profiler_flame_graph::FlameGraph::take_from_log();
+    let measurements = profiler_flame_graph::Graph::take_from_log();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
     world.add_child(&flame_graph);

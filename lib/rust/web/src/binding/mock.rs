@@ -1,8 +1,8 @@
 //! Mocked bindings to the web-api allowing its compilation for the native target without throwing
 //! panics.
 
+// === Non-Standard Linter Configuration ===
 #![allow(clippy::boxed_local)]
-
 
 use enso_prelude::*;
 

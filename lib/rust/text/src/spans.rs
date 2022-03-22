@@ -1,10 +1,10 @@
 //! Text spans used to store metadata information.
 
 use crate::prelude::*;
+use crate::unit::*;
 
 use crate::range::Range;
 use crate::rope;
-use crate::unit::*;
 
 
 

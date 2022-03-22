@@ -1,6 +1,7 @@
 //! Provides a button that can be used to toggle the editor's profiling mode.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::view;
 
@@ -8,7 +9,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl_component::toggle_button;
 use ensogl_component::toggle_button::ToggleButton;
 

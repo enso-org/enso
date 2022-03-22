@@ -2,10 +2,9 @@
 //! the documented node.
 
 use crate::prelude::*;
+use ensogl::system::web::traits::*;
 
 use crate::graph_editor::component::visualization;
-
-pub use visualization::container::overlay;
 
 use enso_frp as frp;
 use ensogl::display;
@@ -15,12 +14,18 @@ use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ensogl::system::web::clipboard;
-use ensogl::system::web::traits::*;
 use ensogl_component::shadow;
 use web::Closure;
 use web::HtmlElement;
 use web::JsCast;
 use web::MouseEvent;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use visualization::container::overlay;
 
 
 
@@ -106,8 +111,8 @@ impl Model {
         display_object.add_child(&outer_dom);
         outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.front.manage(&outer_dom);
-        scene.dom.layers.front.manage(&inner_dom);
+        scene.dom.layers.node_searcher.manage(&outer_dom);
+        scene.dom.layers.node_searcher.manage(&inner_dom);
 
         let code_copy_closures = default();
         Model { logger, outer_dom, inner_dom, size, overlay, display_object, code_copy_closures }

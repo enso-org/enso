@@ -1,4 +1,7 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
+
+
 
 // ===============
 // === Closure ===

@@ -1,6 +1,7 @@
-//! FIXME[everyone] Modules should be documented
+//! FIXME[everyone] Modules should be documented.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::component::node;
 use crate::component::type_coloring;
@@ -10,7 +11,6 @@ use crate::view;
 use crate::Type;
 
 use enso_frp as frp;
-use enso_text::unit::*;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
@@ -446,7 +446,7 @@ ensogl::define_endpoints! {
 }
 
 #[derive(Clone, Debug, Default)]
-#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Model {
     pub frp:            Option<Frp>,
     pub shape:          Option<PortShapeView>,
@@ -459,7 +459,7 @@ pub struct Model {
 }
 
 impl Model {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn init_shape(
         &mut self,
         logger: impl AnyLogger,
@@ -624,7 +624,7 @@ impl Model {
         self.frp = Some(frp);
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs, always.
+    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn set_size(&self, size: Vector2) {
         if let Some(frp) = &self.frp {
             frp.set_size(size);

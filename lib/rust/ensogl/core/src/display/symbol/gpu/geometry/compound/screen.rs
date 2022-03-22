@@ -2,15 +2,14 @@
 //! render pass implementation - rendering to framebuffer and then using the result with some
 //! post-processing effect by applying the previous output to a screen covering geometry.
 
-
 use crate::prelude::*;
+use crate::system::gpu::data::types::*;
 
 use crate::display::scene::Scene;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
 use crate::system::gpu::data::texture;
-use crate::system::gpu::data::types::*;
 
 
 

@@ -22,22 +22,22 @@ main =
        This is to compare the performance of handling simple ASCII versus
        performance of handling more complex Unicode characters.
     bench_strcmp suite_prefix character_template common_prefix =
-        gen = Faker.make_generator
+        faker = Faker.new
         ## Warning: this relies on the fact that Faker will treat the accent
            codepoint `\u{301}` as a separate code unit. We rely on this to add
            accents randomly to neighboring characters. If the implementation of
            Faker is changed, this must be modified accordingly.
         make_alpha_template length = Vector.new length _-> character_template
         very_short_template = make_alpha_template 4
-        very_short = Vector.new 100000 _-> '🤩' + Faker.make_string very_short_template gen
+        very_short = Vector.new 100000 _-> '🤩' + faker.string_value very_short_template
         medium_template = make_alpha_template 64
-        medium = Vector.new 10000 _-> Faker.make_string medium_template gen
+        medium = Vector.new 10000 _-> faker.string_value medium_template
 
         big_a_codepoint = 65
         big_template = make_alpha_template 100000
-        big_random = Vector.new 100 _-> Faker.make_string big_template gen
+        big_random = Vector.new 100 _-> faker.string_value big_template
         big_early_difference = Vector.new 100 ix->
-            "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (Faker.make_string big_template gen)
+            "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
         prefix = common_prefix.repeat 100000
         big_late_difference = Vector.new 100 ix-> prefix + (Text.from_codepoints [big_a_codepoint + ix%5])
 

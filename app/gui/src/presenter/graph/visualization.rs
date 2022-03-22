@@ -1,15 +1,12 @@
 //! The module with the [`Visualization`] presenter. See [`crate::presenter`] documentation to know
 //! more about presenters in general.
 
-pub mod manager;
-
 use crate::prelude::*;
-
-use crate::presenter::graph;
-use crate::presenter::graph::visualization::manager::Manager;
 
 use crate::executor::global::spawn_stream_handler;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::presenter::graph;
+use crate::presenter::graph::visualization::manager::Manager;
 use crate::presenter::graph::AstNodeId;
 use crate::presenter::graph::ViewNodeId;
 
@@ -17,6 +14,14 @@ use enso_frp as frp;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod manager;
+
 
 
 // =============
@@ -92,6 +97,7 @@ impl Model {
     ///
     /// The `update_endpoint` should be `set_visualization_data` or `set_error_visualization_data`,
     /// of [`ide_view::graph_editor::GraphEditor`].
+    #[profile(Debug)]
     fn handle_value_update(
         &self,
         update_endpoint: &frp::Source<(ViewNodeId, visualization_view::Data)>,
@@ -125,6 +131,7 @@ impl Model {
     /// Load the available visualizations to the view.
     ///
     /// See also [`controller::Visualization`] for information about loaded visualizations.
+    #[profile(Detail)]
     fn load_visualizations(&self) {
         self.graph_view.reset_visualization_registry();
         let logger = self.logger.clone_ref();

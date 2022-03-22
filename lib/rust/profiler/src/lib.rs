@@ -134,18 +134,29 @@
 //! set of constructors create profilers that inherit their start time from the specified parent,
 //! e.g. [`objective_with_same_start!`] in the example above.
 
+// === Features ===
 #![feature(test)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod internal;
 pub mod log;
+
+
 
 extern crate test;
 
@@ -153,6 +164,17 @@ use std::rc;
 use std::str;
 
 use internal::*;
+
+
+
+// ===============
+// === prelude ===
+// ===============
+
+/// Widely-used exports.
+pub mod prelude {
+    pub use crate::profile;
+}
 
 
 
@@ -212,9 +234,9 @@ pub trait Parent<T: Profiler + Copy> {
 macro_rules! await_ {
     ($evaluates_to_future:expr, $profiler:ident) => {{
         let future = $evaluates_to_future;
-        profiler::internal::Profiler::pause(&$profiler);
+        profiler::internal::Profiler::pause($profiler.0);
         let result = future.await;
-        profiler::internal::Profiler::resume(&$profiler);
+        profiler::internal::Profiler::resume($profiler.0);
         result
     }};
 }
@@ -293,7 +315,7 @@ macro_rules! await_ {
 ///         profiler::internal::Started(profiler)
 ///     };
 ///     async move {
-///         profiler::internal::Profiler::resume(&__profiler_scope.0);
+///         profiler::internal::Profiler::resume(__profiler_scope.0);
 ///         let result = { input };
 ///         std::mem::drop(__profiler_scope);
 ///         result
@@ -412,7 +434,7 @@ mod tests {
         #[profile(Objective)]
         async fn profiled() -> u32 {
             let block = async { 4 };
-            block.await
+            block.await + 1
         }
         let future = profiled();
         futures::executor::block_on(future);
@@ -420,19 +442,60 @@ mod tests {
         #[rustfmt::skip]
         match &log[..] {
             [
-            // async fn starts paused
+            // outer async fn: create, then start profiler
             profiler::Event::StartPaused(_),
-            profiler::Event::Resume { id: resume0, .. },
-            // block.await
-            profiler::Event::Pause { id: pause1, .. },
-            profiler::Event::Resume { id: resume1, .. },
-            profiler::Event::End { id: end_id, .. },
-            ] => {
-                assert_eq!(resume0.0, 0);
-                assert_eq!(pause1.0, 0);
-                assert_eq!(resume1.0, 0);
-                assert_eq!(end_id.0, 0);
+            profiler::Event::Resume { id: profiler::internal::EventId(0), .. },
+            // inner async block: create profiler
+            profiler::Event::StartPaused(_),
+            // block.await: pause the fn, start the block
+            profiler::Event::Pause { id: profiler::internal::EventId(0), .. },
+            profiler::Event::Resume { id: profiler::internal::EventId(2), .. },
+            // block completes, resume fn, fn completes
+            profiler::Event::End { id: profiler::internal::EventId(2), .. },
+            profiler::Event::Resume { id: profiler::internal::EventId(0), .. },
+            profiler::Event::End { id: profiler::internal::EventId(0), .. },
+            ] => (),
+            _ => panic!("log: {:#?}", log),
+        };
+    }
+
+    #[test]
+    fn non_move_async_block() {
+        #[profile(Objective)]
+        async fn profiled() {
+            let mut i = 0;
+            let block = async { i = 1 };
+            block.await;
+            assert_eq!(i, 1);
+        }
+        futures::executor::block_on(profiled());
+        let _ = get_log::<OpaqueMetadata>();
+    }
+
+    #[test]
+    fn inner_items() {
+        // Ensure items inside profiled function are not transformed by the outer profiler.
+        // This prevents profiled items inside profiled items from being doubly-profiled,
+        // and allows deciding whether and how to profile inner items separately from outer.
+        #[profile(Objective)]
+        async fn outer() {
+            async fn inner() {
+                let block = async move {};
+                block.await
             }
+            inner().await
+        }
+        futures::executor::block_on(outer());
+        let log = get_log::<OpaqueMetadata>();
+        #[rustfmt::skip]
+        match &log[..] {
+            [
+            profiler::Event::StartPaused(_),
+            profiler::Event::Resume { id: profiler::internal::EventId( 0, ), .. },
+            profiler::Event::Pause { id: profiler::internal::EventId( 0, ), .. },
+            profiler::Event::Resume { id: profiler::internal::EventId( 0, ), .. },
+            profiler::Event::End { id: profiler::internal::EventId( 0, ), .. },
+            ] => (),
             _ => panic!("log: {:#?}", log),
         };
     }
@@ -588,6 +651,55 @@ mod compile_tests {
 
     #[profile(Objective)]
     async fn profiled_async() {}
+
+    #[profile(Objective)]
+    async fn polymorphic_return() -> Box<dyn PartialEq<u32>> {
+        Box::new(23)
+    }
+
+    #[profile(Objective)]
+    async fn input_impl_trait(foo: impl PartialEq<u32>, bar: &u32) -> bool {
+        foo.eq(bar)
+    }
+
+    #[profile(Objective)]
+    async fn input_t_trait<T: PartialEq<u32>>(foo: T, bar: &u32) -> bool {
+        foo.eq(bar)
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_references_in_output(x: &u32) -> &u32 {
+        x
+    }
+
+    #[profile(Objective)]
+    #[allow(clippy::needless_lifetimes)]
+    async fn borrows_input_references_in_output_explicitly<'a>(x: &'a u32) -> &'a u32 {
+        x
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_doesnt_use(_: &u32) -> u32 {
+        4
+    }
+
+    #[profile(Objective)]
+    async fn borrows_input_uses(x: &u32) -> u32 {
+        *x
+    }
+
+    #[profile(Objective)]
+    async fn borrows_two_args(x: &u32, y: &u32) -> u32 {
+        *x + *y
+    }
+
+    struct Foo(u32);
+    impl Foo {
+        #[profile(Objective)]
+        async fn borrows_self_and_arg(&self, x: &u32) -> u32 {
+            self.0 + *x
+        }
+    }
 
     #[profile(Detail)]
     #[allow(unsafe_code)]

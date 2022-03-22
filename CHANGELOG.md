@@ -2,6 +2,11 @@
 
 #### Visual Environment
 
+- [Nodes can be added to the graph by double-clicking the output ports of
+  existing nodes (or by clicking them with the right mouse button).][3346]
+- [Node Searcher preserves its zoom factor.][3327] The visible size of the node
+  searcher and edited node is now fixed. It simplifies node editing on
+  non-standard zoom levels.
 - [Nodes can be added to the graph by clicking (+) button on the screen][3278].
   The button is in the bottom-left corner. Node is added at the center or pushed
   down if the center is already occupied by nodes.
@@ -63,6 +68,13 @@
 - [General improved Vector performance and new `Vector.each_with_index`,
   `Vector.fold_with_index` and `Vector.take` methods.][3236]
 - [Implemented new `Text.insert` method][3311]
+- [Implemented `Bool.compare_to` method][3317]
+- [Implemented `Map.first`, `Map.last` functions. Expanded `Table.group_by` to
+  also compute mode, percentile, minimum, maximum.][3318]
+- [Implemented `Text.location_of` and `Text.location_of_all` methods.][3324]
+- [Replaced `Table.group_by` with `Table.aggregate`][3339]
+- [Implemented `Panic.catch` and helper functions for handling errors. Added a
+  type parameter to `Panic.recover` to recover specific types of errors.][3344]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -97,16 +109,28 @@
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
 [3310]: https://github.com/enso-org/enso/pull/3310
+[3316]: https://github.com/enso-org/enso/pull/3316
 [3236]: https://github.com/enso-org/enso/pull/3236
 [3311]: https://github.com/enso-org/enso/pull/3311
+[3317]: https://github.com/enso-org/enso/pull/3317
+[3318]: https://github.com/enso-org/enso/pull/3318
+[3324]: https://github.com/enso-org/enso/pull/3324
+[3327]: https://github.com/enso-org/enso/pull/3327
+[3339]: https://github.com/enso-org/enso/pull/3339
+[3344]: https://github.com/enso-org/enso/pull/3344
+[3346]: https://github.com/enso-org/enso/pull/3346
 
 #### Enso Compiler
 
 - [Added overloaded `from` conversions.][3227]
 - [Upgraded to Graal VM 21.3.0][3258]
+- [Added the ability to decorate values with warnings.][3248]
+- [Fixed issues related to constructors' default arguments][3330]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
+[3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
+[3330]: https://github.com/enso-org/enso/pull/3330
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

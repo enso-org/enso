@@ -233,7 +233,7 @@ type Vector
              [0, 1, 2].sum
     sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
-        result = Panic.recover <| this.reduce (+)
+        result = Panic.recover Any <| this.reduce (+)
         result.map_error x->case x of
             No_Such_Method_Error _ _ -> x
             Empty_Error -> x
@@ -910,16 +910,6 @@ type Vector
        Arguments:
        - on: A projection from the element type to the value of that element
              which determines the uniqueness criteria.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         function.
-         By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
-       - warnings: A Warning_System instance specifying how to handle warnings.
-         This is a temporary workaround to allow for testing the warning
-         mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        The returned unique elements are kept in the same order as they appeared
        in the input.
@@ -948,7 +938,7 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        recovered = Panic.recover
+        recovered = Panic.recover Any
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->

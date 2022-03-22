@@ -2,6 +2,7 @@
 //! that status as a color and [`ProfilingLabel`] to display a node's execution status.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::view;
 
@@ -9,7 +10,6 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::gui::text;
 
 
@@ -246,6 +246,11 @@ impl ProfilingLabel {
         }
 
         ProfilingLabel { root, label, frp, styles }
+    }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.label.add_to_scene_layer(layer);
     }
 }
 

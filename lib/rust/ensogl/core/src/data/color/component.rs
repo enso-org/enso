@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use enso_generics::*;
+
 use nalgebra::Scalar;
 use nalgebra::Vector3;
 use nalgebra::Vector4;

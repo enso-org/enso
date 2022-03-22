@@ -1,9 +1,13 @@
+// === Features ===
 #![feature(generators, generator_trait)]
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
+use ast::*;
 use parser::prelude::*;
 
 use ast::test_utils::expect_shape;
-use ast::*;
 use parser::api::Metadata;
 use parser::api::ParsedSourceFile;
 use serde::de::DeserializeOwned;
@@ -12,6 +16,8 @@ use serde::Serialize;
 use std::str::FromStr;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+
 
 wasm_bindgen_test_configure!(run_in_browser);
 

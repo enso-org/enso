@@ -1,9 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -23,8 +21,8 @@ public abstract class GetPolyglotLanguageNode extends Node {
   abstract Text execute(Object _this, Object value);
 
   @Specialization
-  Text doExecute(Object _this, Object value, @CachedContext(Language.class) Context context) {
-    if (context.getEnvironment().isHostObject(value)) {
+  Text doExecute(Object _this, Object value) {
+    if (Context.get(this).getEnvironment().isHostObject(value)) {
       return java;
     } else {
       return unknown;

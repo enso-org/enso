@@ -2,9 +2,9 @@
 //!
 //! This component wraps the plain ListView in some searcher-specific logic, like committing
 //! editing, or picking suggestion with Tab.
-pub mod icons;
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::documentation;
 
@@ -13,10 +13,16 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::list_view;
 use ensogl_component::list_view::ListView;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod icons;
 
 pub use ensogl_component::list_view::entry;
 
@@ -120,7 +126,7 @@ impl Model {
         let list = app.new_view::<ListView<Entry>>();
         let documentation = documentation::View::new(scene);
         let doc_provider = default();
-        scene.layers.above_nodes.add_exclusive(&list);
+        scene.layers.node_searcher.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 
@@ -129,7 +135,7 @@ impl Model {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
-        list.set_label_layer(scene.layers.above_nodes_text.id());
+        list.set_label_layer(scene.layers.node_searcher_text.id());
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);

@@ -1,11 +1,12 @@
 //! JavaScript console consumer implementation.
 
-use web_sys::console;
+use wasm_bindgen::prelude::*;
 
 use crate::entry;
 use crate::entry::Entry;
 use crate::processor::consumer;
-use wasm_bindgen::prelude::*;
+
+use web_sys::console;
 
 
 
