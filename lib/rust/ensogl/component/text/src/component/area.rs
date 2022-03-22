@@ -728,6 +728,7 @@ impl AreaModel {
     }
 
     /// Redraw the text.
+    #[profile(Debug)]
     fn redraw(&self, size_may_change: bool) {
         let lines = self.buffer.view_lines();
         let line_count = lines.len();

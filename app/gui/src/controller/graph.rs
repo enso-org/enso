@@ -499,6 +499,7 @@ impl Handle {
     /// Create a graph controller for the given method.
     ///
     /// Fails if the module is inaccessible or if the module does not contain the given method.
+    #[profile(Task)]
     pub async fn new_method(
         parent: impl AnyLogger,
         project: &model::Project,
