@@ -8,6 +8,22 @@ from Standard.Table.Data.Aggregate_Column import all
 type Aggregate_Column_Aggregator
     type Aggregate_Column_Aggregator initial accumulator finalizer
 
+## PRIVATE
+   Given a map of values and counts, find the value at a specified percentile
+calculate_percentile p:Decimal value:Map =
+    count = value.fold 0 (+)
+    if count == 0 then Nothing else
+        mid_value = (count - 1)*p + 1
+        if mid_value <= 1 then value.first.first else
+            if mid_value >= count then value.last.first else
+                mid = mid_value.floor
+                output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
+                    new_v = c.first + v
+                    new_s = if c.first.up_to new_v . contains (mid-1) then k else c.second
+                    new_t = if c.first.up_to new_v . contains mid then k else (c.at 2)
+                    [new_v, new_s, new_t]
+                (output.second + (output.at 2 - output.second) * (mid_value - mid))
+
 ## Given a Table and a Column create an aggregator
 new : Table->Aggregate_Column->Aggregate_Column_Aggregator
 new table column =
@@ -19,21 +35,6 @@ new table column =
 
     create_aggregator initial:Any=Nothing (accumulator:(Any->Integer->Any)=c->_->c) (finalizer:(Any->Any)=(v->v)) =
         Aggregate_Column_Aggregator initial accumulator finalizer
-
-    ## Given a map of values and counts, find the value at a specified percentile
-    percentile p:Decimal value:Map =
-        count = value.fold 0 (+)
-        if count == 0 then Nothing else
-            mid_value = (count - 1)*p + 1
-            if mid_value <= 1 then value.first.first else
-                if mid_value >= count then value.last.first else
-                    mid = mid_value.floor
-                    output = value.fold_with_key [0, Nothing, Nothing] c->k->v->
-                        new_v = c.first + v
-                        new_s = if c.first.up_to new_v . contains (mid-1) then k else c.second
-                        new_t = if c.first.up_to new_v . contains mid then k else (c.at 2)
-                        [new_v, new_s, new_t]
-                    (output.second + (output.at 2 - output.second) * (mid_value - mid))
 
     case column of
         Group_By c _ ->
@@ -79,13 +80,13 @@ new table column =
             accumulator = create_closure c col->map->i->
                 v = col.at i
                 if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
-            finalizer = percentile 0.5
+            finalizer = here.calculate_percentile 0.5
             create_aggregator initial=Map.empty accumulator=accumulator finalizer=finalizer
         Percentile p c _ ->
             accumulator = create_closure c col->map->i->
                 v = col.at i
                 if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
-            finalizer = percentile p
+            finalizer = here.calculate_percentile p
             create_aggregator initial=Map.empty accumulator=accumulator finalizer=finalizer
         Mode c _ ->
             accumulator = create_closure c col->map->i->

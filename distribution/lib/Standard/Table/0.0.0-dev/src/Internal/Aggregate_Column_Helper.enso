@@ -51,7 +51,8 @@ validate aggregate_columns table =
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
-    key_columns = valid_aggregate_columns.filter is_a_key . map c->(c.resolve_column table c.column) . distinct
+    key_columns_resolved = valid_aggregate_columns.filter is_a_key . map c->(c.resolve_column table c.column)
+    key_columns = key_columns_resolved.fold Map.empty m->c->(m.insert c.name c) . values
 
     # Resolve Names
     unique = Unique_Name_Strategy.new
