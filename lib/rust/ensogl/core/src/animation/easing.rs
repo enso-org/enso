@@ -425,7 +425,6 @@ where
             data.step(time.local)
         } else if let Some(animation_loop) = animation_loop.upgrade() {
             animation_loop.set(None);
-            data.on_end.call(EndStatus::Normal);
         }
     }
 }

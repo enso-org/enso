@@ -26,7 +26,7 @@ type Warning
        A list of locations where the warning was reassigned in the order of
        latest-first.
 
-       Warnings are reassigned whenever they interract with specific language
+       Warnings are reassigned whenever they interact with specific language
        elements:
        - When pattern matching, the warnings of the scrutinee will be reassigned
          to the `case` expression result.
@@ -67,3 +67,69 @@ get_all value =
    in `value` will be lost.
 set warnings value =
     Prim_Warning.set value (warnings.map .prim_warning).to_array
+
+## UNSTABLE
+   Maps warnings attached to a value.
+
+   Arguments:
+   - mapper: the function to apply to all warnings. If it returns `Some` value,
+     the given warning is replaced with the new value. If it returns `Nothing`
+     the original warning remains unaffected.
+   - value: the value whose warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings to more specific messages. Any other
+     attached warnings are unaffected.
+
+         mapper warning = case warning of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_attached_warnings mapper value
+map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
+map_attached_warnings mapper value =
+    here.map_attached_warnings_helper mapper value 1
+
+## UNSTABLE
+   An utility function which applies the mapping function both to any attached
+   warnings and dataflow errors.
+
+   Arguments:
+   - mapper: the function to apply to all warnings or errors. If it returns
+     `Some` value, the given warning or error is replaced with the new value. If
+     it returns `Nothing` the original warning or error remains unaffected.
+   - value: the value whose errors or warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings or errors to more specific messages. Any
+     other attached warnings or errors are unaffected.
+
+         mapper error = case error of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_warnings_and_errors mapper value
+map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
+map_warnings_and_errors mapper value =
+    mapped_warnings_or_error = here.map_attached_warnings_helper mapper value 1
+    mapped_warnings_or_error.catch error->
+        case mapper error of
+            Maybe.Some new_error -> Error.throw new_error
+            ## If the mapper did not want to affect the error, we return the
+               original dataflow error as-is, to preserve its stacktrace.
+            Nothing -> mapped_warnings_or_error
+
+## PRIVATE
+   Maps warnings attached to a value.
+
+   An internal helper function to avoid repeating the implementation.
+map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
+map_attached_warnings_helper mapper value frames_to_drop =
+    warnings = here.get_all value
+    prim_mapped_warnings = warnings.map warning->
+        case mapper warning.value of
+            Maybe.Some new_payload ->
+                new_origin = Runtime.get_stack_trace.drop_start 13+frames_to_drop
+                Prim_Warning.create new_payload new_origin
+            ## If the mapper did not want to affect this warning, we return the
+               original (unwrapped) warning instance.
+            Nothing -> warning.prim_warning
+    Prim_Warning.set value prim_mapped_warnings.to_array

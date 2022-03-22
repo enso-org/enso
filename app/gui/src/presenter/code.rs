@@ -35,6 +35,7 @@ impl Model {
         }
     }
 
+    #[profile(Detail)]
     async fn emit_event_with_controller_code(&self, endpoint: &frp::Source<ImString>) {
         match self.controller.read_content().await {
             Ok(code) => endpoint.emit(ImString::new(code)),
@@ -70,6 +71,7 @@ pub struct Code {
 
 impl Code {
     /// Constructor. The returned structure works right away and does not need any initialization.
+    #[profile(Task)]
     pub fn new(controller: controller::Text, project_view: &view::project::View) -> Self {
         let network = frp::Network::new("presenter::code");
         let view = project_view.code_editor().clone_ref();
@@ -114,6 +116,7 @@ impl Code {
         self
     }
 
+    #[profile(Detail)]
     fn display_initial_code(self, code_in_controller: frp::Source<ImString>) -> Self {
         let model = self.model.clone_ref();
         executor::global::spawn(async move {

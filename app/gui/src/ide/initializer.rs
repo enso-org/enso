@@ -59,6 +59,7 @@ impl Initializer {
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
     /// and forget them to keep them alive.
+    #[profile(Task)]
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
@@ -72,6 +73,7 @@ impl Initializer {
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
+    #[profile(Task)]
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
@@ -134,6 +136,7 @@ impl Initializer {
     ///
     /// This will setup all required connections to backend properly, according to the
     /// configuration.
+    #[profile(Task)]
     pub async fn initialize_ide_controller(&self) -> FallibleResult<controller::Ide> {
         use crate::config::BackendService::*;
         match &self.config.backend {
@@ -166,6 +169,7 @@ impl Initializer {
 
     /// Create and configure a new project manager client and register it within the global
     /// executor.
+    #[profile(Task)]
     pub async fn setup_project_manager(
         &self,
         endpoint: &str,

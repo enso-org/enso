@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -14,11 +13,11 @@ import org.enso.interpreter.runtime.error.WithWarnings;
     type = "Prim_Warning",
     name = "set",
     description = "Attaches the given warning to the value.")
-public abstract class SetNode extends Node {
+public abstract class SetWarningsNode extends Node {
   abstract Object execute(Object _this, @AcceptsWarning Object value, Array warnings);
 
-  static SetNode build() {
-    return SetNodeGen.create();
+  static SetWarningsNode build() {
+    return SetWarningsNodeGen.create();
   }
 
   @Specialization

@@ -119,6 +119,7 @@ impl API for Handle {
 }
 
 impl ManagingProjectAPI for Handle {
+    #[profile(Objective)]
     fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult> {
         async move {
             use model::project::Synchronized as Project;
@@ -138,20 +139,19 @@ impl ManagingProjectAPI for Handle {
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
             self.current_project.set(Some(new_project.await?));
-            executor::global::spawn(self.notifications.publish(Notification::NewProjectCreated));
+            let notify = self.notifications.publish(Notification::NewProjectCreated);
+            executor::global::spawn(notify);
             Ok(())
         }
         .boxed_local()
     }
 
+    #[profile(Objective)]
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>> {
-        async move {
-            let pm_response = self.project_manager.list_projects(&None).await?;
-            Ok(pm_response.projects)
-        }
-        .boxed_local()
+        async move { Ok(self.project_manager.list_projects(&None).await?.projects) }.boxed_local()
     }
 
+    #[profile(Objective)]
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult> {
         async move {
             let logger = &self.logger;
