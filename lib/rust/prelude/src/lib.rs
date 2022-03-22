@@ -76,7 +76,7 @@ pub use ifmt::*;
 pub use itertools::Itertools;
 pub use lazy_static::lazy_static;
 pub use num::Num;
-pub use paste;
+pub use paste::paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use weak_table;
 pub use weak_table::traits::WeakElement;
@@ -190,7 +190,7 @@ where
 #[macro_export]
 macro_rules! clone_boxed {
     ( $name:ident ) => {
-        paste::item! {
+        paste! {
             #[allow(missing_docs)]
             pub trait [<CloneBoxedFor $name>] {
                 fn clone_boxed(&self) -> Box<dyn $name>;

@@ -1300,7 +1300,6 @@ dependencies = [
  "nalgebra 0.26.2",
  "num-traits",
  "num_enum",
- "paste 1.0.6",
  "rustc-hash",
  "shrinkwraprs 0.3.0",
  "smallvec 1.8.0",
