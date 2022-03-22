@@ -1,16 +1,24 @@
 package org.enso.languageserver.search
 
+import org.enso.docs.generator.DocsGenerator
+import org.enso.polyglot.Suggestion
+
 import java.util.UUID
-import org.enso.polyglot.{DocSection, Suggestion}
 
 /** Suggestion instances used in tests. */
 object Suggestions {
 
+  val htmlDocsGenerator: DocsGenerator =
+    DocsGenerator
+  val docSectionsBuilder: DocSectionsBuilder =
+    DocSectionsBuilder()
+
   val module: Suggestion.Module = Suggestion.Module(
-    module                = "Test.Main",
-    documentation         = Some("Module doc"),
-    documentationHtml     = Some("<html></html>"),
-    documentationSections = Some(List(DocSection.Paragraph("Module doc")))
+    module        = "Test.Main",
+    documentation = Some("Module doc"),
+    documentationHtml =
+      Some(htmlDocsGenerator.generate("Module doc", "Test.Main")),
+    documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
@@ -35,8 +43,8 @@ object Suggestions {
     selfType              = "MyType",
     returnType            = "Number",
     documentation         = Some("Lovely"),
-    documentationHtml     = Some("<p>Lovely</p>"),
-    documentationSections = Some(List(DocSection.Paragraph("Lovely")))
+    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "foo")),
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -73,8 +81,8 @@ object Suggestions {
     selfType              = "Any",
     returnType            = "Any",
     documentation         = Some("Lovely"),
-    documentationHtml     = Some("<p>Lovely</p>"),
-    documentationSections = Some(List(DocSection.Paragraph("Lovely")))
+    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "<<")),
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -101,8 +109,8 @@ object Suggestions {
     selfType              = "Integer",
     returnType            = "Number",
     documentation         = Some("Blah, blah"),
-    documentationHtml     = Some("<p>Blah, blah</p>"),
-    documentationSections = Some(List(DocSection.Paragraph("Blah, blah")))
+    documentationHtml     = Some(htmlDocsGenerator.generate("Blah, blah", "+")),
+    documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
   )
 
   val all = Seq(

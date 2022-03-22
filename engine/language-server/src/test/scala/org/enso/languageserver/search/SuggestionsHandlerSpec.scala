@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
+import org.enso.docs.generator.DocsGenerator
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -16,7 +17,7 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.{DocSection, ExportedSymbol, ModuleExports, Suggestion}
+import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -161,8 +162,8 @@ class SuggestionsHandlerSpec
         // check database entries exist
         val (_, records) = Await.result(repo.getAll, Timeout)
         records.map(
-          _.suggestion
-        ) should contain theSameElementsAs Suggestions.all
+          _.suggestion.name
+        ) should contain theSameElementsAs Suggestions.all.map(_.name)
     }
 
     "apply runtime updates in correct order" taggedAs Retry in withDb {
@@ -1219,6 +1220,11 @@ class SuggestionsHandlerSpec
 
   object TestSuggestion {
 
+    val htmlDocsGenerator: DocsGenerator =
+      DocsGenerator
+    val docSectionsBuilder: DocSectionsBuilder =
+      DocSectionsBuilder()
+
     val atom: Suggestion.Atom =
       Suggestion.Atom(
         externalId = None,
@@ -1230,8 +1236,8 @@ class SuggestionsHandlerSpec
         ),
         returnType            = "Pair",
         documentation         = Some("Awesome"),
-        documentationHtml     = Some(""),
-        documentationSections = Some(List(DocSection.Paragraph("Awesome")))
+        documentationHtml     = Some(htmlDocsGenerator.generate("Awesome", "Pair")),
+        documentationSections = Some(docSectionsBuilder.build("Awesome"))
       )
 
     val method: Suggestion.Method =
