@@ -54,6 +54,8 @@ pub mod prelude {
     pub use crate::traits::*;
     pub use ast::traits::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 }
 
 use prelude::*;

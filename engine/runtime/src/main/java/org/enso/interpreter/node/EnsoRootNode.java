@@ -128,4 +128,5 @@ public abstract class EnsoRootNode extends RootNode {
   public boolean isCloningAllowed() {
     return true;
   }
+
 }

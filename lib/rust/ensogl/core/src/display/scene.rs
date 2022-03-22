@@ -1186,6 +1186,7 @@ impl Deref for Scene {
 }
 
 impl Scene {
+    #[profile(Debug)]
     pub fn update(&self, t: animation::TimeInfo) {
         if self.context.borrow().is_some() {
             debug!(self.logger, "Updating.", || {
