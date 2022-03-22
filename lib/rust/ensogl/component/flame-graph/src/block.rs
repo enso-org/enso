@@ -5,10 +5,8 @@ use ensogl_core::prelude::*;
 
 use ensogl::frp;
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
 use ensogl_text as text;
@@ -67,7 +65,6 @@ mod background {
 ensogl_core::define_endpoints! {
     Input {
         set_content(String),
-        set_position(Vector2),
         set_size(Vector2)
     }
     Output {}
@@ -76,28 +73,14 @@ ensogl_core::define_endpoints! {
 impl component::Frp<Model> for Frp {
     fn init(&self, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &self.network;
-
-        let label_opacity = Animation::<f32>::new(network);
-
+        let background = &model.background.events;
         frp::extend! { network
-           eval self.set_content((t) model.set_content(t));
-           eval self.set_size((size) model.set_size(*size));
+            eval self.set_content((t) model.set_content(t));
+            eval self.set_size((size) model.set_size(*size));
 
-            eval_  model.background.events.mouse_over(model.enable_label());
-            label_opacity.target <+ model.background.events.mouse_over.constant(1.0);
-
-            label_opacity.target <+ model.background.events.mouse_out.constant(0.0);
-
-            eval label_opacity.value ((t) model.set_label_opacity(*t));
-            eval label_opacity.value ([model](t){
-                if *t <= 0.0 {
-                    model.disable_label()
-                }
-            });
+            is_hovered <- bool(&background.mouse_out, &background.mouse_over);
+            eval is_hovered((hovered) model.set_label_visible(*hovered));
         }
-
-        label_opacity.target.emit(0.0);
-        model.set_label_opacity(0.0);
     }
 }
 
@@ -148,12 +131,11 @@ impl Model {
         }
     }
 
-    fn set_label_opacity(&self, opacity: f32) {
-        if let Some(label) = self.label.borrow().deref() {
-            let color = label.default_color.value();
-            let color: color::Rgba = color.opaque.with_alpha(opacity);
-            label.set_color_all.emit(color);
-            label.set_default_color.emit(color);
+    fn set_label_visible(&self, visible: bool) {
+        if visible {
+            self.enable_label();
+        } else if let Some(label) = self.label.take() {
+            label.unset_parent()
         }
     }
 
@@ -173,13 +155,6 @@ impl Model {
         label.set_content(self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned()));
 
         self.label.set(label);
-        self.set_label_opacity(0.0);
-    }
-
-    fn disable_label(&self) {
-        if let Some(label) = self.label.take() {
-            label.unset_parent()
-        }
     }
 }
 

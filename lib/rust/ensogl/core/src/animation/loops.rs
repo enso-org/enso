@@ -157,6 +157,7 @@ where
     Callback: LoopCallback,
 {
     move |current_time: f32| {
+        let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let time_info = time_info_ref.get();
         let start = if time_info.start == 0.0 { current_time } else { time_info.start };
         let frame = current_time - start - time_info.local;

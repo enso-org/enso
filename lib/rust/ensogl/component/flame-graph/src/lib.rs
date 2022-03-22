@@ -66,8 +66,8 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
 }
 
 impl FlameGraph {
-    /// Create a `FlameGraph` EnsoGL component from the given flame graph data from the profiler.
-    pub fn from_data(data: profiler_flame_graph::FlameGraph, app: &Application) -> Self {
+    /// Create a `FlameGraph` EnsoGL component from the given graph data from the profiler.
+    pub fn from_data(data: profiler_flame_graph::Graph, app: &Application) -> Self {
         let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new(&logger);
 

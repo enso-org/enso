@@ -1874,6 +1874,7 @@ impl GraphEditorModel {
         edges
     }
 
+    #[profile(Detail)]
     fn set_node_expression(&self, node_id: impl Into<NodeId>, expr: impl Into<node::Expression>) {
         let node_id = node_id.into();
         let expr = expr.into();

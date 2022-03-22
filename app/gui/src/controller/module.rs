@@ -45,6 +45,7 @@ pub struct Handle {
 
 impl Handle {
     /// Create a module controller for given path.
+    #[profile(Task)]
     pub async fn new(
         parent: impl AnyLogger,
         path: Path,
