@@ -343,12 +343,10 @@ type Sql_Timeout_Error
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-wrap_sql_errors : Any -> Any ! Error
+wrap_sql_errors : Any -> Any ! (Sql_Error | Sql_Timeout_Error)
 wrap_sql_errors ~action =
-    result = Panic.recover Any action
-    result.catch err-> case err of
-        Polyglot_Error exc ->
-            transformed = if Java.is_instance exc SQLTimeoutException then Sql_Timeout_Error exc else
-                if Java.is_instance exc SQLException then Sql_Error exc else err
-            Error.throw transformed
-        _ -> Error.throw err
+    Panic.catch SQLException action caught_panic->
+        exc = caught_panic.payload.cause
+        case Java.is_instance exc SQLTimeoutException of
+            True -> Error.throw (Sql_Timeout_Error exc)
+            False -> Error.throw (Sql_Error exc)
