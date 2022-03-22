@@ -654,6 +654,36 @@ impl NodeModel {
             self.display_object.add_child(&self.error_indicator);
         }
     }
+
+    /// Return the `SinglePortView` of the first output port of the node.
+    ///
+    /// ### Panics
+    /// 1. If there are no output ports.
+    /// 2. If the port does not have a `PortShapeView`.
+    /// 3. If the output port is [`MultiPortView`].
+    pub fn output_port_unchecked(&self) -> output::port::SinglePortView {
+        let ports = self.output.model.ports();
+        let port = ports.first().expect("The node has no ports");
+        let shape = port.shape.as_ref().expect("The port has no PortShapeView");
+        use output::port::PortShapeView::Single;
+        match shape {
+            Single(shape) => shape.clone_ref(),
+            _ => panic!("Expected a SinglePortView"),
+        }
+    }
+
+    /// Return the `Shape` of the first input port of the node.
+    ///
+    /// ### Panics
+    /// 1. If there are no input ports.
+    /// 2. If the port does not have a `Shape`.
+    pub fn input_port_unchecked(&self) -> input::port::Shape {
+        let ports = self.input.model.ports();
+        println!("Ports: {}", ports.len());
+        let port = ports.first().expect("The node has no ports");
+        let shape = port.shape.as_ref().expect("The port has no Shape");
+        shape.clone_ref()
+    }
 }
 
 impl Node {
