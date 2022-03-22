@@ -8,7 +8,7 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
-use ensogl_gui_component::component::Component;
+use ensogl_gui_component::component::ComponentView;
 use ensogl_text as text;
 
 
@@ -171,4 +171,4 @@ impl display::Object for Model {
 // =================
 
 #[allow(missing_docs)]
-pub type Block = Component<Model, Frp>;
+pub type Block = ComponentView<Model, Frp>;

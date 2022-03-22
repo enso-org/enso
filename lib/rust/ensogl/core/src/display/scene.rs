@@ -986,7 +986,6 @@ impl SceneData {
         let new_target = PointerTarget::from_internal(self.mouse.hover_ids.get());
         let current_target = self.mouse.target.get();
         if new_target != current_target {
-            DEBUG!("Target changed");
             self.mouse.target.set(new_target);
             self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
             self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));

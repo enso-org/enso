@@ -9,4 +9,4 @@ pub mod component;
 pub mod cursor;
 pub mod style;
 
-pub use component::Component;
+pub use component::Widget;

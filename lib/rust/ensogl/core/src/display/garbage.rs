@@ -1,4 +1,4 @@
-//! A module with garbage [`Collector`].
+//! A module containing the garbage [`Collector`] structure.
 use crate::prelude::*;
 
 
@@ -30,9 +30,11 @@ struct Garbage {
 /// sequence will happen:
 /// 1. We render the scene without the component;
 /// 2. On the new rendered scene, we request the pixel value under the mouse cursor (see
-/// [`crate::display::render::passes::PixelReadPass`]).
-/// 3. The requested pixel value is received
+/// [`crate::display::render::passes::PixelReadPass`]);
+/// 3. The requested pixel value is loaded to CPU memory after creating fences in GPU;
 /// 4. The mouse events are handled (see [`crate::display::scene::SceneData::handle_mouse_events`]).
+/// This process may span across several frames, during which the "shape under cursor" property may
+/// still contain the old value.
 ///
 /// After that the component's FRP network will handle or propagate "object hidden" event, and can
 /// be then freely dropped.
@@ -83,6 +85,10 @@ impl Collector {
 }
 
 
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

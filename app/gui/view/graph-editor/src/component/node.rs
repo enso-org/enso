@@ -19,8 +19,9 @@ use enso_frp;
 use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
-use ensogl::{display, gui};
+use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -385,11 +386,11 @@ ensogl::define_endpoints! {
 ///    complex logically (the events are emitted from node to graph, then processed there and
 ///    emitted back to the right node).
 ///
-/// Currently, the solution "C" (most optimal) is implemented here.
+/// Currently, the solution "C" (nearest to optimal) is implemented here.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    component: Rc<gui::Component<Frp, Rc<NodeModel>>>,
+    widget: Rc<gui::Widget<Rc<NodeModel>, Frp>>,
 }
 
 impl AsRef<Node> for Node {
@@ -398,17 +399,17 @@ impl AsRef<Node> for Node {
     }
 }
 
-impl AsRef<gui::Component<Frp, Rc<NodeModel>>> for Node {
-    fn as_ref(&self) -> &gui::Component<Frp, Rc<NodeModel>> {
-        &self.component
+impl AsRef<gui::Widget<Rc<NodeModel>, Frp>> for Node {
+    fn as_ref(&self) -> &gui::Widget<Rc<NodeModel>, Frp> {
+        &self.widget
     }
 }
 
 
 impl Deref for Node {
-    type Target = gui::Component<Frp, Rc<NodeModel>>;
+    type Target = gui::Widget<Rc<NodeModel>, Frp>;
     fn deref(&self) -> &Self::Target {
-        &self.component
+        &self.widget
     }
 }
 
@@ -952,8 +953,8 @@ impl Node {
         frp.show_quick_action_bar_on_hover.emit(true);
 
         let display_object = model.display_object.clone_ref();
-        let component = Rc::new(gui::Component::new(app, frp, model, display_object));
-        Node { component }
+        let component = Rc::new(gui::Widget::new(app, frp, model, display_object));
+        Node { widget: component }
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {

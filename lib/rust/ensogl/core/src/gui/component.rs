@@ -235,33 +235,36 @@ impl<T: display::Object> display::Object for ShapeView<T> {
 // === Component ===
 // =================
 
-/// The EnsoGL component abstraction.
+/// The EnsoGL widget abstraction.
 ///
-/// The component is a structure being a display object, consisting of a FRP network and a
+/// The widget is a visible element with FRP logic. The structure contains a FRP network and a
 /// model.
 ///
-/// * The `Frp` structure should own `frp::Network` structure handling the component's logic. It's
+/// * The `Frp` structure should own `frp::Network` structure handling the widget's logic. It's
 ///   recommended to create one with [`crate::application::frp::define_endpoints`] macro.
-/// * The `Model` is any structure containing the component properties, subcomponents etc.
-///   manipulated by the FRP network.
+/// * The `Model` is any structure containing shapes, properties, subwidgets etc.  manipulated by
+///   the FRP network.
 ///
-/// # Dropping component
+/// # Dropping Widget
 ///
-/// Upon dropping Component structure, the object will be hidden, but both FRP and Model will
+/// Upon dropping Widget structure, the object will be hidden, but both FRP and Model will
 /// not be dropped at once. Instead, they will be passed to the EnsoGL's garbage collector,
 /// because handling all effects of hiding object and emitting appropriate events  (for example:
 /// the "on_hide" event of [`core::gui::component::ShapeEvents`]) may take a several frames, and
 /// we want to have FRP network alive to handle those effects. Thus, both FRP and model will
 /// be dropped only after all process of object hiding will be handled.
 #[derive(Debug)]
-pub struct Component<Frp: 'static, Model: 'static> {
-    app:            Application,
+pub struct Widget<Model: 'static, Frp: 'static> {
+    /// Reference to the application the Widget belongs to. It's required for handling model and
+    /// FRP garbage collection, but also may be helpful when, for example, implementing
+    /// `application::View`.
+    pub app:        Application,
     display_object: display::object::Instance,
     frp:            std::mem::ManuallyDrop<Frp>,
     model:          std::mem::ManuallyDrop<Model>,
 }
 
-impl<Frp: 'static, Model: 'static> Deref for Component<Frp, Model> {
+impl<Model: 'static, Frp: 'static> Deref for Widget<Model, Frp> {
     type Target = Frp;
 
     fn deref(&self) -> &Self::Target {
@@ -269,8 +272,8 @@ impl<Frp: 'static, Model: 'static> Deref for Component<Frp, Model> {
     }
 }
 
-impl<Frp: 'static, Model: 'static> Component<Frp, Model> {
-    /// Create a new component.
+impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
+    /// Create a new widget.
     pub fn new(
         app: &Application,
         frp: Frp,
@@ -285,7 +288,7 @@ impl<Frp: 'static, Model: 'static> Component<Frp, Model> {
         }
     }
 
-    /// Get the FRP structure. It is also a result of deref-ing the component.
+    /// Get the FRP structure. It is also a result of deref-ing the widget.
     pub fn frp(&self) -> &Frp {
         &self.frp
     }
@@ -296,7 +299,7 @@ impl<Frp: 'static, Model: 'static> Component<Frp, Model> {
     }
 }
 
-impl<Frp: 'static, Model: 'static> Drop for Component<Frp, Model> {
+impl<Model: 'static, Frp: 'static> Drop for Widget<Model, Frp> {
     fn drop(&mut self) {
         self.display_object.unset_parent();
         // Taking the value from `ManuallyDrop` requires us to not use it anymore.
@@ -311,7 +314,7 @@ impl<Frp: 'static, Model: 'static> Drop for Component<Frp, Model> {
     }
 }
 
-impl<Frp: 'static, Model: 'static> display::Object for Component<Frp, Model> {
+impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
     fn display_object(&self) -> &display::object::Instance<Scene> {
         &self.display_object
     }
