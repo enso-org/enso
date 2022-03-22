@@ -148,9 +148,9 @@ object Suggestion {
   case class Module(
     module: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    documentationSections: Option[List[DocSection]],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -188,9 +188,9 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    documentationSections: Option[List[DocSection]],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -227,9 +227,9 @@ object Suggestion {
     selfType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    documentationSections: Option[List[DocSection]],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -264,8 +264,9 @@ object Suggestion {
     sourceType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion {
 
     /** @inheritdoc */

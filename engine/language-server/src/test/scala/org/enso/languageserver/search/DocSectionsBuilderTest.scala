@@ -1,6 +1,5 @@
-package org.enso.compiler.test.context
+package org.enso.languageserver.search
 
-import org.enso.compiler.context.DocSectionsBuilder
 import org.enso.polyglot.DocSection
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

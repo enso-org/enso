@@ -1,4 +1,4 @@
-package org.enso.compiler.context
+package org.enso.languageserver.search
 
 import org.enso.docs.sections.{HtmlRepr, ParsedSectionsBuilder, Section}
 import org.enso.polyglot.DocSection
@@ -59,5 +59,4 @@ object DocSectionsBuilder {
       }
     renderHtml(builder.result())
   }
-
 }

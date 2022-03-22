@@ -8,7 +8,6 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
-import org.enso.docs.generator.DocParserWrapper
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -23,10 +22,7 @@ import scala.collection.mutable
   * @param source the text source
   * @tparam A the type of the text source
   */
-final class SuggestionBuilder[A: IndexedSource](
-  val source: A,
-  sectionsBuilder: DocSectionsBuilder
-) {
+final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   import SuggestionBuilder._
 
@@ -179,16 +175,13 @@ final class SuggestionBuilder[A: IndexedSource](
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId            = externalId,
-      module                = module.toString,
-      name                  = name.name,
-      arguments             = methodArgs,
-      selfType              = selfType.toString,
-      returnType            = buildReturnType(returnTypeDef),
-      documentation         = doc,
-      documentationHtml     = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
-      documentationSections = doc.map(sectionsBuilder.build),
-      reexport              = None
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      selfType      = selfType.toString,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc
     )
   }
 
@@ -211,11 +204,7 @@ final class SuggestionBuilder[A: IndexedSource](
       arguments     = methodArgs,
       sourceType    = sourceTypeName,
       returnType    = buildReturnType(returnTypeDef),
-      documentation = doc,
-      documentationHtml = doc.map(
-        DocParserWrapper.runOnPureDoc(_, Suggestion.Kind.Conversion.From)
-      ),
-      reexport = None
+      documentation = doc
     )
   }
 
@@ -269,11 +258,7 @@ final class SuggestionBuilder[A: IndexedSource](
   ): Suggestion =
     Suggestion.Module(
       module        = module.toString,
-      documentation = doc,
-      documentationHtml =
-        doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
-      documentationSections = doc.map(sectionsBuilder.build),
-      reexport              = None
+      documentation = doc
     )
 
   /** Build suggestions for an atom definition. */
@@ -295,15 +280,12 @@ final class SuggestionBuilder[A: IndexedSource](
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId            = None,
-      module                = module.toString,
-      name                  = name,
-      arguments             = arguments.map(buildArgument),
-      returnType            = module.createChild(name).toString,
-      documentation         = doc,
-      documentationHtml     = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
-      documentationSections = doc.map(sectionsBuilder.build),
-      reexport              = None
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      arguments     = arguments.map(buildArgument),
+      returnType    = module.createChild(name).toString,
+      documentation = doc
     )
 
   /** Build getter methods from atom arguments. */
@@ -632,7 +614,7 @@ object SuggestionBuilder {
     * @tparam A the type of the text source
     */
   def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
-    new SuggestionBuilder[A](source, DocSectionsBuilder())
+    new SuggestionBuilder[A](source)
 
   /** A single level of an `IR`.
     *
