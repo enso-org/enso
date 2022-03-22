@@ -13,8 +13,10 @@ object HtmlRepr {
   def apply[A: HtmlRepr]: HtmlRepr[A] =
     implicitly[HtmlRepr[A]]
 
+  val newlineRepr: String = " "
+
   implicit val newlineHtmlRepr: HtmlRepr[Doc.Elem.Newline.type] = { _ =>
-    Seq(HTML.p)
+    Seq(newlineRepr)
   }
 
   implicit val textHtmlRepr: HtmlRepr[Doc.Elem.Text] = { elem =>

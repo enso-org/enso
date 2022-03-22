@@ -1,26 +1,27 @@
 package org.enso.languageserver.search
 
 import java.util.UUID
-
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{DocSection, Suggestion}
 
 /** Suggestion instances used in tests. */
 object Suggestions {
 
   val module: Suggestion.Module = Suggestion.Module(
-    module            = "Test.Main",
-    documentation     = Some("Module doc"),
-    documentationHtml = Some("<html></html>")
+    module                = "Test.Main",
+    documentation         = Some("Module doc"),
+    documentationHtml     = Some("<html></html>"),
+    documentationSections = Some(List(DocSection.Paragraph("Module doc")))
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId        = None,
-    module            = "Test.Main",
-    name              = "MyType",
-    arguments         = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType        = "MyAtom",
-    documentation     = None,
-    documentationHtml = None
+    externalId            = None,
+    module                = "Test.Main",
+    name                  = "MyType",
+    arguments             = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "MyAtom",
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -31,10 +32,11 @@ object Suggestions {
       Suggestion.Argument("this", "MyType", false, false, None),
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
-    selfType          = "MyType",
-    returnType        = "Number",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "MyType",
+    returnType            = "Number",
+    documentation         = Some("Lovely"),
+    documentationHtml     = Some("<p>Lovely</p>"),
+    documentationSections = Some(List(DocSection.Paragraph("Lovely")))
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -68,10 +70,11 @@ object Suggestions {
       Suggestion.Argument("this", "Any", false, false, None),
       Suggestion.Argument("that", "Any", false, false, None)
     ),
-    selfType          = "Any",
-    returnType        = "Any",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "Any",
+    returnType            = "Any",
+    documentation         = Some("Lovely"),
+    documentationHtml     = Some("<p>Lovely</p>"),
+    documentationSections = Some(List(DocSection.Paragraph("Lovely")))
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -81,10 +84,11 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("this", "Number", false, false, None)
     ),
-    selfType          = "Number",
-    returnType        = "Number",
-    documentation     = None,
-    documentationHtml = None
+    selfType              = "Number",
+    returnType            = "Number",
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -94,10 +98,11 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("that", "Number", false, false, None)
     ),
-    selfType          = "Integer",
-    returnType        = "Number",
-    documentation     = Some("Blah, blah"),
-    documentationHtml = Some("<p>Blah, blah</p>")
+    selfType              = "Integer",
+    returnType            = "Number",
+    documentation         = Some("Blah, blah"),
+    documentationHtml     = Some("<p>Blah, blah</p>"),
+    documentationSections = Some(List(DocSection.Paragraph("Blah, blah")))
   )
 
   val all = Seq(

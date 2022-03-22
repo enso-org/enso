@@ -9,7 +9,6 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.docs.generator.DocParserWrapper
-import org.enso.docs.sections.ParsedSectionsBuilder
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -632,10 +631,8 @@ object SuggestionBuilder {
     * @param source the text source
     * @tparam A the type of the text source
     */
-  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] = {
-    val sectionsBuilder = new DocSectionsBuilder(new ParsedSectionsBuilder)
-    new SuggestionBuilder[A](source, sectionsBuilder)
-  }
+  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source, DocSectionsBuilder())
 
   /** A single level of an `IR`.
     *

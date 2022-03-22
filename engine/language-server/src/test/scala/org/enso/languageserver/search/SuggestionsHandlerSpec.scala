@@ -2,7 +2,6 @@ package org.enso.languageserver.search
 
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -17,7 +16,7 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
+import org.enso.polyglot.{DocSection, ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -415,18 +414,20 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Atom(
-          externalId        = None,
-          module            = moduleName,
-          name              = "Foo",
-          arguments         = Vector(),
-          returnType        = moduleName,
-          documentation     = None,
-          documentationHtml = None
+          externalId            = None,
+          module                = moduleName,
+          name                  = "Foo",
+          arguments             = Vector(),
+          returnType            = moduleName,
+          documentation         = None,
+          documentationHtml     = None,
+          documentationSections = None
         )
         val module = Suggestion.Module(
-          module            = moduleName,
-          documentation     = None,
-          documentationHtml = None
+          module                = moduleName,
+          documentation         = None,
+          documentationHtml     = None,
+          documentationSections = None
         )
 
         val tree = Tree.Root(
@@ -1227,21 +1228,23 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType        = "Pair",
-        documentation     = Some("Awesome"),
-        documentationHtml = Some("")
+        returnType            = "Pair",
+        documentation         = Some("Awesome"),
+        documentationHtml     = Some(""),
+        documentationSections = Some(List(DocSection.Paragraph("Awesome")))
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId        = Some(UUID.randomUUID()),
-        module            = "Test.Main",
-        name              = "main",
-        arguments         = Seq(),
-        selfType          = "Test.Main",
-        returnType        = "IO",
-        documentation     = None,
-        documentationHtml = None
+        externalId            = Some(UUID.randomUUID()),
+        module                = "Test.Main",
+        name                  = "main",
+        arguments             = Seq(),
+        selfType              = "Test.Main",
+        returnType            = "IO",
+        documentation         = None,
+        documentationHtml     = None,
+        documentationSections = None
       )
   }
 

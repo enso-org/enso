@@ -37,7 +37,7 @@ final class ParsedSectionsBuilder {
     * @return the list of parsed sections
     */
   private def buildSynopsis(synopsis: Doc.Synopsis): List[Section] =
-    (joinSections _ >>> buildSections)(synopsis.elems.toList)
+    (preprocess >>> buildSections)(synopsis.elems.toList)
 
   /** Process the body section of the documentation comment.
     *
@@ -45,7 +45,7 @@ final class ParsedSectionsBuilder {
     * @return the list of parsed sections
     */
   private def buildBody(body: Doc.Body): List[Section] =
-    (joinSections _ >>> buildSections)(body.elems.toList)
+    (preprocess >>> buildSections)(body.elems.toList)
 
   /** Process the list of [[Doc.Section]] documentation sections.
     *
@@ -56,11 +56,11 @@ final class ParsedSectionsBuilder {
     sections.map {
       case Doc.Section.Raw(_, elems) =>
         elems match {
-          case Doc.Elem.Text(text) :: t =>
+          case Doc.Elem.Text(text) :: tail =>
             val (key, value) = text.span(_ != const.COLON)
             if (value.nonEmpty) {
               val line = value.drop(1).stripPrefix(const.SPACE)
-              val body = if (line.isEmpty) t else Doc.Elem.Text(line) :: t
+              val body = if (line.isEmpty) tail else Doc.Elem.Text(line) :: tail
               Section.Keyed(key, body)
             } else {
               Section.Paragraph(elems)
@@ -95,6 +95,12 @@ final class ParsedSectionsBuilder {
       case Doc.Section.Marked.Info      => Section.Mark.Info
       case Doc.Section.Marked.Example   => Section.Mark.Example
     }
+
+  /** The preprocessor function that is invoked before building the
+    * resulting list of sections.
+    */
+  private def preprocess: List[Doc.Section] => List[Doc.Section] =
+    joinSections _ >>> filterSections
 
   /** Preprocess the list of documentation sections and join the paragraphs of
     * the same offset with the marked section.
@@ -138,6 +144,22 @@ final class ParsedSectionsBuilder {
 
     (acc.toList ::: result).reverse
   }
+
+  /** Filter the sections before processing them.
+    *
+    * The function filters out:
+    * - empty sections
+    * - newlines in the begin and the end of a section
+    *
+    * @param sections the list of documentation sections
+    * @return the list of filtered sections
+    */
+  private def filterSections(sections: List[Doc.Section]): List[Doc.Section] =
+    sections
+      .filter {
+        case Doc.Section.Raw(_, List(Doc.Elem.Newline)) => false
+        case _                                          => true
+      }
 }
 
 object ParsedSectionsBuilder {

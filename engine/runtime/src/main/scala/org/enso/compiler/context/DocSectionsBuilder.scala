@@ -42,6 +42,9 @@ object DocSectionsBuilder {
   private val DivOpenLength  = 5
   private val DivCloseLength = 6
 
+  def apply(): DocSectionsBuilder =
+    new DocSectionsBuilder(new ParsedSectionsBuilder)
+
   private def renderHtml(elems: Doc.HTML): String =
     scalatags.Text.all
       .div(elems: _*)
