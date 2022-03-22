@@ -509,7 +509,7 @@ type Table
             row_index = map.get_or_else key (add_row Nothing)
 
             # Accumulate
-            0.up_to (columns.length) . each j->
+            0.up_to (validated.valid_columns.length) . each j->
                 accumulator = aggregators.at j . accumulator
                 array = new_table.at j . at 1 . to_array
                 current = array . at row_index
@@ -528,7 +528,7 @@ type Table
                 aggregator = aggregators.at index
                 Vector.new builder.length i->(aggregator.finalizer (builder.to_array.at i))
 
-            here.new (new_table.map_with_index i->c->[c.at 0,finalise (c.at 1) i])
+            here.new (new_table.map_with_index i->c->[c.first, finalise c.second i])
 
 
     ## ALIAS Filter Rows

@@ -40,7 +40,6 @@ validate aggregate_columns table =
             Text -> valid_name column
             Integer -> valid_index column
     is_valid aggregate_column = case aggregate_column of
-        Aggregate_Column.Group_By _ _ -> True
         Aggregate_Column.Count _ -> True
         Aggregate_Column.Count_Distinct columns _ _ -> case columns of
             Vector.Vector _ -> columns.all valid_column
@@ -61,7 +60,7 @@ validate aggregate_columns table =
         Pair (if c.is_nothing then unique.make_unique (valid_aggregate_columns.at i . column_name table) else c) (valid_aggregate_columns.at i)
 
     # Build Problems Output
-    missing_problems = (if missing_names.is_empty then [] else [Column_Indexes_Out_Of_Range missing_names.to_vector])
+    missing_problems = (if missing_names.is_empty then [] else [Missing_Input_Columns missing_names.to_vector])
     oob_problems = (if oob_indices.is_empty then [] else [Column_Indexes_Out_Of_Range oob_indices.to_vector])
     no_output = (if valid_aggregate_columns.is_empty then [No_Output_Columns] else [])
     invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
