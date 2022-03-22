@@ -1,5 +1,5 @@
 //! The core vector rendering engine for EnsoGL, a blazing fast 2D drawing library. This crate
-//! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
+//! contains the core utilities necessary for the rendering engine to run correctly. See the docs
 //! of the `ensogl` crate to learn more.
 
 #![recursion_limit = "512"]

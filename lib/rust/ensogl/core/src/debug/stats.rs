@@ -152,7 +152,7 @@ macro_rules! emit_if_integer {
 /// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
 /// fields.
 macro_rules! gen_stats {
-    ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
+    ($($field:ident : $field_type:ty),* $(,)?) => { paste! {
 
 
         // === StatsData ===
