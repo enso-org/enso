@@ -1,8 +1,6 @@
 //! The text area implementation. It serves the purpose of single and multi-line text labels and
 //! text editors.
 
-#![cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-#![cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 
 use crate::prelude::*;
 use enso_text::unit::*;
@@ -14,9 +12,12 @@ use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::pen;
 
 use enso_frp as frp;
@@ -50,6 +51,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 
 /// Mapping between selection id, `Selection`, and text location.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
     location_map: HashMap<usize, HashMap<Column, usize>>,
@@ -67,6 +69,7 @@ pub struct SelectionMap {
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
 #[derive(Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
     glyphs:         Vec<Glyph>,
@@ -85,6 +88,7 @@ impl Line {
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn set_divs(&mut self, divs: Vec<f32>) {
         let div_iter = divs.iter();
         let div_iter_skipped = divs.iter().skip(1);
@@ -96,11 +100,13 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
@@ -906,6 +912,7 @@ impl AreaModel {
     }
 
     /// Constrain the selection to values fitting inside of the current text buffer.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn snap_selection(
         &self,
         selection: buffer::selection::Selection,
