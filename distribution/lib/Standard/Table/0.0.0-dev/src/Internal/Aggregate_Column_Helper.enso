@@ -1,0 +1,71 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Table as Table_Module import No_Such_Column_Error
+from Standard.Table.Data.Column as Column_Module import Column
+import Standard.Table.Data.Aggregate_Column
+import Standard.Table.Internal.Unique_Name_Strategy
+
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+
+## PRIVATE
+   Output of validation process for aggregate columns
+type Validated_Aggregate_Columns
+    ## Result type for aggregate_columns validation
+       - key_columns: Vector of Columns from the table to group by
+       - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
+       - problems: Set of any problems when validating the input
+    type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+
+## PRIVATE
+   Given a set of Aggregate_Column:
+   - get the set of grouping keys
+   - create
+validate : [Aggregate_Column] -> Table -> Resolved_Columns
+validate aggregate_columns table =
+    # Validate Columns
+    missing_names = Vector.new_builder
+    oob_indices = Vector.new_builder
+    valid_name name =
+        column = table.at name
+        if column.is_error.not then True else
+            missing_names.append name
+            False
+    range = (-table.columns.length).up_to table.columns.length
+    valid_index index = if range.contains index then True else
+        oob_indices.append index
+        False
+    valid_column column =
+        case column of
+            Column _ -> valid_name column.name
+            Text -> valid_name column
+            Integer -> valid_index column
+    is_valid aggregate_column = case aggregate_column of
+        Aggregate_Column.Count _ -> True
+        Aggregate_Column.Count_Distinct columns _ _ -> case columns of
+            Vector.Vector _ -> columns.all valid_column
+            _ -> valid_column columns
+        _ -> valid_column aggregate_column.column
+    valid_aggregate_columns = aggregate_columns.filter is_valid
+
+    # Grouping Key
+    is_a_key c = case c of
+        Aggregate_Column.Group_By _ _ -> True
+        _ -> False
+    key_columns_resolved = valid_aggregate_columns.filter is_a_key . map c->(c.resolve_column table c.column)
+    key_columns = key_columns_resolved.fold Map.empty m->c->(m.insert c.name c) . values
+
+    # Resolve Names
+    unique = Unique_Name_Strategy.new
+    pass_1 = valid_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
+    valid_columns = pass_1.map_with_index i->c->
+        Pair (if c.is_nothing then unique.make_unique (valid_aggregate_columns.at i . column_name table) else c) (valid_aggregate_columns.at i)
+
+    # Build Problems Output
+    missing_problems = (if missing_names.is_empty then [] else [Missing_Input_Columns missing_names.to_vector])
+    oob_problems = (if oob_indices.is_empty then [] else [Column_Indexes_Out_Of_Range oob_indices.to_vector])
+    no_output = (if valid_aggregate_columns.is_empty then [No_Output_Columns] else [])
+    invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
+    duplicate_names = (if unique.renames.is_empty then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
+    problems = missing_problems + oob_problems + no_output + invalid_names + duplicate_names
+
+    Validated_Aggregate_Columns key_columns valid_columns problems
