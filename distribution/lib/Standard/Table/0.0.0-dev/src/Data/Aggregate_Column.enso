@@ -174,19 +174,19 @@ type Aggregate_Column
     column_name : Table->Text
     column_name table =
         if this.new_name.is_nothing.not then this.new_name else
-            get_name c prefix:Text="" = prefix + (this.resolve_column table c).name
+            get_name c = (this.resolve_column table c).name
             case this of
-                Group_By c _ -> get_name c ""
+                Group_By c _ -> get_name c
                 Count _ -> "Count"
                 Count_Distinct columns _ _ ->
-                    resolved = case columns of
-                        Vector.Vector _ -> columns.map c->(this.resolve_column table c)
-                        _ -> [this.resolve_column table columns]
-                    "Count Distinct " + (resolved.map .name . join " ")
-                Percentile p c _ -> get_name c ((p*100).floor.to_text + "%-ile ")
+                    as_vector = case columns of
+                        Vector.Vector _ -> columns
+                        _ -> [columns]
+                    "Count Distinct " + (as_vector.map get_name . join " ")
+                Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + get_name c
                 _ ->
                     prefix = Meta.get_simple_type_name this . replace "_" " "
-                    get_name this.column (prefix + " ")
+                    prefix + " " + get_name this.column
 
     ## PRIVATE
        Given a column reference resolve to the underlying column
