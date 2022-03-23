@@ -8,7 +8,8 @@ import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
-import Standard.Table.Internal.Unique_Name_Strategy
+import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Aggregate_Column_Aggregator
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -489,45 +490,45 @@ type Table
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
-        # Grouping Key
-        is_a_key c = case c of
-            Aggregate_Column.Group_By _ _ -> True
-            _ -> False
-        key_columns = columns.filter is_a_key . map c->(c.resolve_column this c.column)
-        make_key = if (key_columns.length == 0) then _->(Group_By_Key.key [1]) else i->(Group_By_Key.key (key_columns.map v->(v.at i)))
+        validated = Aggregate_Column_Helper.validate columns this
 
-        # New Table Accumulator
-        name_strategy = Unique_Name_Strategy.new
-        new_table = columns.map c->(c.column_name this) . map n->[name_strategy.make_unique n, Vector.new_builder]
+        make_key = if (validated.key_columns.length == 0) then _->(Group_By_Key.key [1]) else
+            i->(Group_By_Key.key (validated.key_columns.map v->(v.at i)))
+
+        new_table = validated.valid_columns.map c->[c.first, Vector.new_builder]
+        aggregators = validated.valid_columns.map c->(Aggregate_Column_Aggregator.new this c.second)
         add_row _ =
             idx = new_table.at 0 . at 1 . length
-            0.up_to (columns.length) . each i->
-                new_table.at i . at 1 . append ((columns.at i).initial_value)
+            0.up_to (aggregators.length) . each i->
+                new_table.at i . at 1 . append ((aggregators.at i).initial)
             idx
 
         # Fold
-        aggregators = columns.map c->(c.make_aggregator this)
         aggregate map i =
             key = make_key i
             row_index = map.get_or_else key (add_row Nothing)
 
             # Accumulate
-            0.up_to (columns.length) . each j->
-                aggregator = aggregators.at j
+            0.up_to (validated.valid_columns.length) . each j->
+                accumulator = aggregators.at j . accumulator
                 array = new_table.at j . at 1 . to_array
                 current = array . at row_index
-                new = aggregator current i
+                new = accumulator current i
                 array . set_at row_index new
 
             map.insert key row_index
-        if ((key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
-            0.up_to this.row_count . fold Map.empty aggregate
 
-        # Now Finalise and make a table
-        finalise builder index =
-            column = columns.at index
-            Vector.new builder.length i->(column.evaluate (builder.to_array.at i))
-        here.new (new_table.map_with_index i->c->[c.at 0,finalise (c.at 1) i])
+        on_problems.attach_problems_before validated.problems <|
+            # Build Table
+            if ((validated.key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
+                0.up_to this.row_count . fold Map.empty aggregate
+
+            # Now Finalise and make a table
+            finalise builder index =
+                aggregator = aggregators.at index
+                Vector.new builder.length i->(aggregator.finalizer (builder.to_array.at i))
+
+            here.new (new_table.map_with_index i->c->[c.first, finalise c.second i])
 
 
     ## ALIAS Filter Rows
@@ -1449,7 +1450,7 @@ print_table header rows indices_count format_term =
 
    Arguments:
    - cmp: The Enso comparator function.
-   - x: The left operand to the compartor.
+   - x: The left operand to the comparator.
    - y: The right operand to the comparator.
 comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
 comparator_to_java cmp x y = cmp x y . to_sign
