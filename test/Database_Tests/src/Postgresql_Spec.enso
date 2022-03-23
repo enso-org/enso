@@ -31,7 +31,7 @@ spec =
     db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
     db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
     go connection pending=Nothing =
-        Common_Spec.spec "[PostgreSQL] " connection pending
+        Common_Spec.spec "[PostgreSQL] " connection Common_Spec.all_tests pending
         here.postgres_specific_spec connection pending
     case db_name.is_nothing of
         True ->

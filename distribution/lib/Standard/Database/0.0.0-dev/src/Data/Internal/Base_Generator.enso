@@ -151,26 +151,14 @@ base_dialect =
     logic = [bin "AND", bin "OR", unary "NOT"]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">="]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], here.count_is_null, here.count_empty, here.count_not_empty, here.count_distinct, here.count_distinct_including_nulls]
+    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], here.count_distinct]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
     Internal_Dialect base_map here.wrap_in_quotes
 
 ## PRIVATE
-count_is_null = here.lift_unary_op "COUNT_IS_NULL" arg->
-    Sql.code "SUM(" ++ arg.paren ++ Sql.code " IS NULL)"
-
-count_empty = here.lift_unary_op "COUNT_EMPTY" arg->
-    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NULL) || (" ++ arg.paren ++ Sql.code " == ''))"
-
-count_not_empty = here.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) && (" ++ arg.paren ++ Sql.code " != ''))"
-
 count_distinct = here.lift_unary_op "COUNT_DISTINCT" arg->
     Sql.code "COUNT(DISTINCT " ++ arg.paren ++ Sql.code ")"
-
-count_distinct_including_nulls = here.lift_unary_op "COUNT_DISTINCT" arg->
-    Sql.code "(COUNT(DISTINCT " ++ arg.paren ++ Sql.code ") + CASE WHEN SUM(" ++ arg.paren ++ Sql.code " IS NULL) > 0 THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 

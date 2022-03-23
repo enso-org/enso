@@ -36,7 +36,7 @@ spec =
             user = creds.get 'db_user'
             props = [access_key, secret_key]
             connection = Database.connect uri user=user custom_properties=props
-            Common_Spec.spec "[Redshift] " connection Nothing
+            Common_Spec.spec "[Redshift] " connection Common_Spec.all_tests Nothing
             here.redshift_specific_spec connection Nothing
         False ->
             msg = """

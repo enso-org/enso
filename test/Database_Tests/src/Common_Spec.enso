@@ -4,7 +4,11 @@ import Standard.Test
 
 from Standard.Table.Data.Aggregate_Column import all
 
-spec prefix connection pending=Nothing =
+type Test_Selection advanced_aggregates=True
+
+all_tests = Test_Selection True
+
+spec prefix connection test_selection pending=Nothing =
     make_table name column_names column_typenames = Panic.recover Any <|
         quote x = '"' + x + '"'
         # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
@@ -53,6 +57,7 @@ spec prefix connection pending=Nothing =
             empty = t1.select []
             empty.to_dataframe.columns.length . should_equal 0
             empty.to_dataframe.row_count . should_equal empty.row_count
+        # TODO: https://stackoverflow.com/questions/3784197/efficient-way-to-do-batch-inserts-with-jdbc
         Test.specify "should handle bigger result sets" pending="FIXME - disabled for quicker iterations testing other stuff" <|
             table = make_table "Big" ["a", "b", "c"] ["INT", "REAL", "VARCHAR"]
             n = 1000
@@ -390,15 +395,22 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Aggregation" pending=pending <|
         t = make_table "T9" ['name', 'price', 'quantity'] ['VARCHAR', 'DOUBLE PRECISION', 'INTEGER']
-        t.insert ["foo",  0.4,     10]
+        t.insert ["foo",  0.4,     50]
         t.insert ["foo",  0.2,     10]
-        t.insert ["foo",  0.4,     20]
+        t.insert ["foo",  0.4,     30]
         t.insert ["bar",  3.5,     20]
-        t.insert ["foo",  Nothing, 30]
+        t.insert ["foo",  Nothing, 20]
         t.insert ["baz",  6.7,     40]
-        t.insert ["foo",  Nothing, 50]
+        t.insert ["foo",  Nothing, 10]
         t.insert ["bar",  97,      60]
         t.insert ["quux", Nothing, 70]
+        t.insert ["zzzz", Nothing, Nothing]
+        t.insert ["zzzz", 1, 1]
+        t.insert ["zzzz", 0, 0]
+        t.insert ["zzzz", 0, 1]
+        t.insert ["zzzz", 1, 0]
+        t.insert ["zzzz", 0, 0]
+        t.insert ["zzzz", Nothing, Nothing]
 
         ## A helper which makes sure that the groups in a materialized
            (InMemory) table are ordered according to a specified column or list
@@ -407,42 +419,76 @@ spec prefix connection pending=Nothing =
             table.sort by=order_column
 
         Test.specify "should allow counting group sizes and elements" <|
-            aggregates = [Count Nothing, Count_Not_Nothing "price" Nothing, Count_Nothing "price" Nothing]
+            aggregates = [Count Nothing, Count_Not_Nothing "price", Count_Nothing "price"]
 
-            t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
-            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux"]
-            t1.at  "Count" . to_vector . should_equal [2, 1, 5, 1]
-            t1.at  "Count Not Nothing price" . to_vector . should_equal [2, 1, 3, 0]
-            t1.at  "Count Nothing price" . to_vector . should_equal [0, 0, 2, 1]
+            t1 = determinize_by "name" (t.aggregate ([Group_By "name"] + aggregates) . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
+            t1.at  "Count" . to_vector . should_equal [2, 1, 5, 1, 7]
+            t1.at  "Count Not Nothing price" . to_vector . should_equal [2, 1, 3, 0, 5]
+            t1.at  "Count Nothing price" . to_vector . should_equal [0, 0, 2, 1, 2]
 
             t2 = t.aggregate aggregates . to_dataframe
-            t2.at  "Count" . to_vector . should_equal [9]
-            t2.at  "Count Not Nothing price" . to_vector . should_equal [6]
-            t2.at  "Count Nothing price" . to_vector . should_equal [3]
+            t2.at  "Count" . to_vector . should_equal [16]
+            t2.at  "Count Not Nothing price" . to_vector . should_equal [11]
+            t2.at  "Count Nothing price" . to_vector . should_equal [5]
 
         Test.specify "should allow to count distinct values" <|
-            aggregates = [Count_Distinct "quantity" Nothing, Count_Distinct "price" Nothing (ignore_nothing=True), Count_Distinct "price" Nothing (ignore_nothing=False)]
+            aggregates = [Count_Distinct "quantity", Count_Distinct "price" (ignore_nothing=True), Count_Distinct "price" (ignore_nothing=False)]
 
-            t1 = determinize_by "name" (t.aggregate [Group_By "name" Nothing]+aggregates . to_dataframe)
+            t1 = determinize_by "name" (t.aggregate [Group_By "name"]+aggregates . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
+            # t1.at  "Count Distinct quantity" . to_vector . should_equal [2, 1, 3, 0]
+            # TODO
 
             t2 = t.aggregate aggregates . to_dataframe
+            t2 . at "Count Distinct quantity" . to_vector . should_equal [10]
+            t2 . at "Count Distinct price" . to_vector . should_equal [7]
+            #t2 . at "Count Distinct price 2" . to_vector . should_equal [8]
 
-        Test.specify "should allow arithmetic and statistical aggregations" <|
-            ## TODO more aggs
+        Test.specify "should allow to count distinct values over multiple fields" pending="TODO" <|
+            aggregates = [Count_Distinct ["price", "quantity"]]
+
+            t1 = determinize_by "name" (t.aggregate [Group_By "name"]+aggregates . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
+            # t1.at  "Count Distinct quantity" . to_vector . should_equal [2, 1, 3, 0]
+            # TODO
+
+            t2 = t.aggregate aggregates . to_dataframe
+            t2 . at "Count Distinct price quantity" . to_vector . should_equal [13]
+
+        Test.specify "should allow simple arithmetic aggregations" <|
             aggregates = [Sum "price" Nothing, Sum "quantity" Nothing, Average "price" Nothing]
 
             ## TODO can check the datatypes
 
             t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
-            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux"]
-            t1.at  "Sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing]
-            t1.at  "Sum quantity" . to_vector . should_equal [80, 40, 120, 70]
-            t1.at  "Average price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing]
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
+            t1.at  "Sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing, 2]
+            t1.at  "Sum quantity" . to_vector . should_equal [80, 40, 120, 70, 2]
+            t1.at  "Average price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing, (2/5)]
 
             t2 = t.aggregate aggregates . to_dataframe
-            t2.at  "Sum price" . to_vector . should_equal [108.2]
-            t2.at  "Sum quantity" . to_vector . should_equal [310]
-            t2.at  "Average price" . to_vector . should_equal [(108.2 / 6)]
+            t2.at  "Sum price" . to_vector . should_equal [110.2]
+            t2.at  "Sum quantity" . to_vector . should_equal [312]
+            t2.at  "Average price" . to_vector . should_equal [(110.2 / 11)]
+
+        Test.specify "should allow statistical aggregations" (pending = if test_selection.advanced_aggregates.not then "Advanced aggregations are currently not supported in "+prefix) <|
+            ## TODO more aggs
+            aggregates = [Median "price" Nothing, Median "quantity" Nothing]
+
+            ## TODO can check the datatypes
+
+            q1 = t.aggregate ([Group_By "name" Nothing] + aggregates)
+            #IO.println q1.to_sql
+            t1 = determinize_by "name" (q1 . to_dataframe)
+            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
+            t1.at  "Median price" . to_vector . should_equal [50.25, 6.7, 0.4, Nothing, 0]
+            t1.at  "Median quantity" . to_vector . should_equal [40, 40, 20, 70, 0]
+
+            t2 = t.aggregate aggregates . to_dataframe
+            t2.at  "Median price" . to_vector . should_equal [0.4]
+            ## TODO ?
+            t2.at  "Median quantity" . to_vector . should_equal [20]
 
 
     tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "T9", "Big", "clothes", "M_TA", "M_TB", "M_TC", "Tix"]

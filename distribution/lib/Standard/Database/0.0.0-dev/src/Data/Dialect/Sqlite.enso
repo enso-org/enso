@@ -70,7 +70,9 @@ make_internal_generator_dialect =
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
-    my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, here.agg_count_distinct_including_nulls]
+    my_mappings = text + counts
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -98,3 +100,19 @@ resolve_target_sql_type aggregate = case aggregate of
     Sum c _ -> c.sql_type
     Average _ _ -> Sql_Type.real
     Median _ _ -> Sql_Type.real
+
+## PRIVATE
+agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
+    Sql.code "SUM(" ++ arg.paren ++ Sql.code " IS NULL)"
+
+## PRIVATE
+agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
+    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " == ''))"
+
+## PRIVATE
+agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
+    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != ''))"
+
+## PRIVATE
+agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINCT_INCLUDE_NULL" arg->
+    Sql.code "(COUNT(DISTINCT " ++ arg.paren ++ Sql.code ") + CASE WHEN SUM(" ++ arg.paren ++ Sql.code " IS NULL) > 0 THEN 1 ELSE 0 END)"

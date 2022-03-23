@@ -16,6 +16,7 @@ make_expression : Aggregate_Column -> IR.Expression
 make_expression aggregate = case aggregate of
     Group_By c _ -> c.expression
     Count _ -> IR.Operation "COUNT_ROWS" []
+    ## TODO! c can be a vector
     Count_Distinct c _ ignore_nothing -> case ignore_nothing of
         True -> IR.Operation "COUNT_DISTINCT" [c.expression]
         False -> IR.Operation "COUNT_DISTINCT_INCLUDE_NULL" [c.expression]
