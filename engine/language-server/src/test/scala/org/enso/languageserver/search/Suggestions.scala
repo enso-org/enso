@@ -8,6 +8,23 @@ import java.util.UUID
 /** Suggestion instances used in tests. */
 object Suggestions {
 
+  object comment {
+
+    val atom =
+      """ PRIVATE
+        |
+        | A key-value store. This type assumes all keys are pairwise comparable,
+        | using the `<`, `>` and `==` operators.
+        |
+        | Arguments:
+        | - one: The first.
+        | - two_three: The *second*.
+        |
+        | ? Info
+        |   Here is a thing.
+        |""".stripMargin.linesIterator.mkString("\n")
+  }
+
   val htmlDocsGenerator: DocsGenerator =
     DocsGenerator
   val docSectionsBuilder: DocSectionsBuilder =
@@ -22,14 +39,15 @@ object Suggestions {
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId            = None,
-    module                = "Test.Main",
-    name                  = "MyType",
-    arguments             = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType            = "MyAtom",
-    documentation         = None,
-    documentationHtml     = None,
-    documentationSections = None
+    externalId    = None,
+    module        = "Test.Main",
+    name          = "MyType",
+    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType    = "MyAtom",
+    documentation = Some(comment.atom),
+    documentationHtml =
+      Some(htmlDocsGenerator.generate(comment.atom, "MyType")),
+    documentationSections = Some(docSectionsBuilder.build(comment.atom))
   )
 
   val method: Suggestion.Method = Suggestion.Method(

@@ -1,7 +1,5 @@
 package org.enso.languageserver.search
 
-import java.nio.file.Files
-import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -17,9 +15,9 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
 import org.enso.testkit.RetrySpec
@@ -28,6 +26,9 @@ import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import java.nio.file.Files
+import java.util.UUID
 
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
