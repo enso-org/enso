@@ -24,11 +24,12 @@ use crate::WayOfCreatingNode;
 ///
 /// The reference position is chosen from among:
 ///  - the position of a source node of the dropped edge (if available),
+///  - the bottom-most selected node (if available),
 ///  - the mouse position,
 ///  - the screen center.
 /// The position is then aligned to either:
 ///  - the source node of the dropped edge (if available),
-///  - the `selection` (if available),
+///  - the selected nodes (if available),
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
 ///
@@ -36,22 +37,38 @@ use crate::WayOfCreatingNode;
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
     way: &WayOfCreatingNode,
-    selection: Option<NodeId>,
     mouse_position: Vector2,
 ) -> Vector2 {
     use WayOfCreatingNode::*;
     let scene = graph_editor.scene();
     let origin = Vector2(0.0, 0.0);
     let screen_center = scene.screen_to_object_space(&graph_editor.display_object, origin);
+    let some_nodes_selected = graph_editor.nodes.selected.len() > 0;
     match way {
         AddNodeEvent => default(),
-        StartCreationEvent | ClickingButton if selection.is_some() =>
-            under(graph_editor, selection.unwrap()),
+        StartCreationEvent | ClickingButton if some_nodes_selected =>
+            under_selection(graph_editor),
         StartCreationEvent => mouse_position,
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { .. } => mouse_position,
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
+}
+
+pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
+    let selected_nodes = graph_editor.nodes.selected.raw.borrow();
+    let mut selected_nodes_iter = selected_nodes.iter();
+    // FIXME: try to avoid unwrap()
+    let first_selected_node = selected_nodes_iter.next().unwrap();
+    let first_selected_node_pos = graph_editor.node_position(first_selected_node);
+    let x = first_selected_node_pos.x;
+    // TODO: .map().min()?
+    let mut min_y = first_selected_node_pos.y;
+    for node_id in selected_nodes_iter {
+        let node_pos = graph_editor.node_position(node_id);
+        min_y = min(min_y, node_pos.y);
+    }
+    under_position(graph_editor, Vector2(x, min_y))
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
@@ -61,6 +78,10 @@ pub fn new_node_position(
 /// Availability of a position is defined in the docs of [`on_ray`].
 pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
     let above_pos = graph_editor.node_position(node_above);
+    under_position(graph_editor, above_pos)
+}
+
+pub fn under_position(graph_editor: &GraphEditorModel, above_pos: Vector2) -> Vector2 {
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT;
     let starting_point = above_pos - Vector2(0.0, y_offset);
