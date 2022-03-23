@@ -1,4 +1,4 @@
-//! Tool that generates human-readable reports from profiling data.
+//! Tool that generates measurement hierarchy reports from profiling data.
 //!
 //! # Usage
 //!

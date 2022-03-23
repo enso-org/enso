@@ -106,6 +106,7 @@ use enso_profiler as profiler;
 use std::error;
 use std::fmt;
 
+pub mod aggregate;
 pub mod parse;
 
 

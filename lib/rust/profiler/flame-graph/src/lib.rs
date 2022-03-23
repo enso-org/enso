@@ -163,7 +163,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 let start = active.interval.start.into_ms();
                 let mut end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
                 // We want to show every wakeup of the task, even if it is momentary.
-                const DURATION_FLOOR_MS: f64 = 0.5;
+                const DURATION_FLOOR_MS: f64 = 2.0;
                 if end < start + DURATION_FLOOR_MS {
                     end = start + DURATION_FLOOR_MS;
                 }
@@ -203,85 +203,46 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
 // === Flamegraphs ===
 // ===================
 
-/// Build a graph that illustrates aggregate time spent in different functions.
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct FlamegraphBuilder {
-    stack: Vec<std::rc::Rc<String>>,
-    root:  AggregateFrame,
+    aggregator: data::aggregate::Aggregator,
 }
 
 impl FlamegraphBuilder {
     /// Add data from a profile to the graph.
     pub fn visit_profile<Metadata>(&mut self, profile: &data::Profile<Metadata>) {
-        for child in &profile.root_interval().children {
-            self.visit_interval(profile, *child);
-        }
+        self.aggregator.visit_profile(profile);
     }
 }
 
 impl From<FlamegraphBuilder> for Graph {
     fn from(builder: FlamegraphBuilder) -> Self {
-        let mut blocks = Default::default();
-        let mut time = 0.0;
-        for (label, frame) in &builder.root.children {
-            frame.visit(&mut blocks, &mut time, 0, label.to_string());
+        let mut grapher = FlamegraphGrapher::default();
+        let root = data::aggregate::Frame::from(builder.aggregator);
+        for (label, frame) in &root.children {
+            grapher.visit(frame, label.to_string(), 0);
         }
+        let FlamegraphGrapher { blocks, .. } = grapher;
         Self { blocks }
     }
 }
 
-
-// === FlamegraphBuilder implementation ===
-
-#[derive(Default, Debug)]
-struct AggregateFrame {
-    duration: f64,
-    children: std::collections::HashMap<std::rc::Rc<String>, AggregateFrame>,
+/// Builds a flamegraph [`Graph`] from [`data::aggregate::Frame`]s.
+#[derive(Default)]
+struct FlamegraphGrapher {
+    blocks: Vec<Block>,
+    time:   f64,
 }
 
-impl AggregateFrame {
-    /// Build a Block from self; recurse into children.
-    fn visit(&self, blocks: &mut Vec<Block>, time: &mut f64, row: u32, label: String) {
-        let start = *time;
-        let end = *time + self.duration;
-        blocks.push(Block { start, end, label, row });
-        for (label, frame) in &self.children {
-            frame.visit(blocks, time, row + 1, label.to_string());
+impl FlamegraphGrapher {
+    fn visit(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
+        let start = self.time;
+        let end = self.time + frame.total_duration();
+        self.blocks.push(Block { start, end, label, row });
+        for (label, frame) in &frame.children {
+            self.visit(frame, label.to_string(), row + 1);
         }
-        *time = end;
-    }
-}
-
-impl FlamegraphBuilder {
-    /// Add the interval to an AggregatedFrame; recurse into children.
-    fn visit_interval<Metadata>(
-        &mut self,
-        profile: &data::Profile<Metadata>,
-        active: data::IntervalId,
-    ) {
-        let active = &profile[active];
-        let label = std::rc::Rc::new(profile[active.measurement].label.to_string());
-        self.stack.push(label);
-        match active.interval.duration_ms() {
-            Some(duration) if duration > 0.0 => {
-                self.log_duration(duration);
-                for child in &active.children {
-                    self.visit_interval(profile, *child);
-                }
-            }
-            _ => (),
-        };
-        self.stack.pop();
-    }
-
-    /// Add the duration to the total for the current stack.
-    fn log_duration(&mut self, duration: f64) {
-        let stack = &self.stack;
-        let mut frame = &mut self.root;
-        for id in stack {
-            frame = frame.children.entry(id.clone()).or_default();
-        }
-        frame.duration += duration;
+        self.time = end;
     }
 }
 
