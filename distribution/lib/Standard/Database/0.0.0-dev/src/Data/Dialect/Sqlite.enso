@@ -95,6 +95,6 @@ resolve_target_sql_type aggregate = case aggregate of
     Standard_Deviation _ _ _ -> Sql_Type.real
     Concatenate _ _ _ _ _ _ -> Sql_Type.text
     ## TODO revise these
-    Sum _ _ -> Sql_Type.integer # TODO maybe? can also be real
-    Average _ _ -> Sql_Type.integer # TODO maybe? can be real sometimes
-    Median _ _ -> Sql_Type.integer # TODO maybe? can be real sometimes
+    Sum c _ -> c.sql_type
+    Average _ _ -> Sql_Type.real
+    Median _ _ -> Sql_Type.real

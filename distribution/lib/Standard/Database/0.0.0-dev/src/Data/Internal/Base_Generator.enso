@@ -153,7 +153,7 @@ base_dialect =
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], here.count_is_null, here.count_empty, here.count_not_empty, here.count_distinct, here.count_distinct_including_nulls]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
-    base_map = Map.from_vector (arith + logic + compare + agg + nulls ++ counts)
+    base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
     Internal_Dialect base_map here.wrap_in_quotes
 
 ## PRIVATE

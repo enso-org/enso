@@ -75,6 +75,10 @@ type Sql_Type
     decimal : Sql_Type
     decimal = Sql_Type Types.DECIMAL "DECIMAL"
 
+    ## The SQL type representing decimal numbers.
+    real : Sql_Type
+    real = Sql_Type Types.REAL "REAL"
+
     ## The SQL type representing double-precision floating-point numbers.
     double : Sql_Type
     double = Sql_Type Types.DOUBLE "DOUBLE"

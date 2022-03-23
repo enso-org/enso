@@ -420,7 +420,7 @@ spec prefix connection pending=Nothing =
             t2.at  "Count Not Nothing price" . to_vector . should_equal [6]
             t2.at  "Count Nothing price" . to_vector . should_equal [3]
 
-        Test.specify "should allow to count distinct values" pending="TODO" <|
+        Test.specify "should allow to count distinct values" <|
             aggregates = [Count_Distinct "quantity" Nothing, Count_Distinct "price" Nothing (ignore_nothing=True), Count_Distinct "price" Nothing (ignore_nothing=False)]
 
             t1 = determinize_by "name" (t.aggregate [Group_By "name" Nothing]+aggregates . to_dataframe)
@@ -435,7 +435,6 @@ spec prefix connection pending=Nothing =
 
             t1 = determinize_by "name" (t.aggregate ([Group_By "name" Nothing] + aggregates) . to_dataframe)
             t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux"]
-            t1.at  "Sum price" . to_vector . should_equal [2, 1, 5, 1]
             t1.at  "Sum price" . to_vector . should_equal [100.5, 6.7, 1, Nothing]
             t1.at  "Sum quantity" . to_vector . should_equal [80, 40, 120, 70]
             t1.at  "Average price" . to_vector . should_equal [50.25, 6.7, (1/3), Nothing]
@@ -443,7 +442,7 @@ spec prefix connection pending=Nothing =
             t2 = t.aggregate aggregates . to_dataframe
             t2.at  "Sum price" . to_vector . should_equal [108.2]
             t2.at  "Sum quantity" . to_vector . should_equal [310]
-            t2.at  "Average price" . to_vector . should_equal [(108.2 / 9)]
+            t2.at  "Average price" . to_vector . should_equal [(108.2 / 6)]
 
 
     tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "T9", "Big", "clothes", "M_TA", "M_TB", "M_TC", "Tix"]
