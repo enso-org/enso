@@ -961,6 +961,7 @@ dependencies = [
  "enso-generics",
  "enso-logger",
  "enso-prelude",
+ "enso-profiler",
  "enso-web",
  "keyboard-types",
  "nalgebra 0.26.2",

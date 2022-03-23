@@ -286,7 +286,7 @@ impl Default for Crumbs {
 // === Node ===
 // ============
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints_2! {
     Input {
         select                (),
         deselect              (),
@@ -660,8 +660,9 @@ impl Node {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
-        let network = &frp.network;
-        let out = &frp.output;
+        let network = &frp.private.network;
+        let out = &frp.private.output;
+        let input = &frp.private.input;
         let model = Rc::new(NodeModel::new(app, registry));
         let selection = Animation::<f32>::new(network);
 
@@ -690,19 +691,19 @@ impl Node {
             drag_area_hover        <- bool(&drag_area.mouse_out,&drag_area.mouse_over);
             model.input.set_hover  <+ drag_area_hover;
             model.output.set_hover <+ model.input.body_hover;
-            out.source.hover       <+ model.output.body_hover;
+            out.hover       <+ model.output.body_hover;
 
 
             // === Background Press ===
 
-            out.source.background_press <+ model.drag_area.events.mouse_down;
-            out.source.background_press <+ model.input.on_background_press;
+            out.background_press <+ model.drag_area.events.mouse_down;
+            out.background_press <+ model.input.on_background_press;
 
 
             // === Selection ===
 
-            deselect_target  <- frp.deselect.constant(0.0);
-            select_target    <- frp.select.constant(1.0);
+            deselect_target  <- input.deselect.constant(0.0);
+            select_target    <- input.select.constant(1.0);
             selection.target <+ any(&deselect_target,&select_target);
             eval selection.value ((t) model.backdrop.selection.set(*t));
 
@@ -710,15 +711,15 @@ impl Node {
             // === Expression ===
 
             let unresolved_symbol_type = Some(Type(ImString::new(UNRESOLVED_SYMBOL_TYPE)));
-            filtered_usage_type <- frp.set_expression_usage_type.filter(
+            filtered_usage_type <- input.set_expression_usage_type.filter(
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-            eval frp.set_expression  ((a)     model.set_expression(a));
-            out.source.expression                  <+ model.input.frp.expression;
-            model.input.set_connected              <+ frp.set_input_connected;
-            model.input.set_disabled               <+ frp.set_disabled;
-            model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
+            eval input.set_expression  ((a)     model.set_expression(a));
+            out.expression                  <+ model.input.frp.expression;
+            model.input.set_connected              <+ input.set_input_connected;
+            model.input.set_disabled               <+ input.set_disabled;
+            model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 
             // === Comment ===
@@ -741,8 +742,8 @@ impl Node {
                 model.comment.set_position_x(-*width - COMMENT_MARGIN));
             eval model.comment.height ([model](height)
                 model.comment.set_position_y(*height / 2.0));
-            model.comment.set_content <+ frp.set_comment;
-            out.source.comment        <+ model.comment.content.map(|text| text.to_string());
+            model.comment.set_content <+ input.set_comment;
+            out.comment        <+ model.comment.content.map(|text| text.to_string());
 
 
             // === Size ===
@@ -753,7 +754,7 @@ impl Node {
 
             // === Bounding Box ===
             bounding_box_input <- all2(&new_size,&position);
-            out.source.bounding_box <+ bounding_box_input.map(|(size,position)| {
+            out.bounding_box <+ bounding_box_input.map(|(size,position)| {
                 let position = position - Vector2::new(0.0,size.y / 2.0);
                 BoundingBox::from_position_and_size(position,*size)
             });
@@ -762,19 +763,19 @@ impl Node {
             // === Action Bar ===
 
             let visualization_enabled = action_bar.action_visibility.clone_ref();
-            out.source.skip   <+ action_bar.action_skip;
-            out.source.freeze <+ action_bar.action_freeze;
-            show_action_bar   <- out.hover  && frp.show_quick_action_bar_on_hover;
+            out.skip   <+ action_bar.action_skip;
+            out.freeze <+ action_bar.action_freeze;
+            show_action_bar   <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
-            eval frp.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
+            eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
 
 
             // === View Mode ===
 
-            model.input.set_view_mode           <+ frp.set_view_mode;
-            model.output.set_view_mode          <+ frp.set_view_mode;
-            model.profiling_label.set_view_mode <+ frp.set_view_mode;
-            model.vcs_indicator.set_visibility  <+ frp.set_view_mode.map(|&mode| {
+            model.input.set_view_mode           <+ input.set_view_mode;
+            model.output.set_view_mode          <+ input.set_view_mode;
+            model.profiling_label.set_view_mode <+ input.set_view_mode;
+            model.vcs_indicator.set_visibility  <+ input.set_view_mode.map(|&mode| {
                 !matches!(mode,view::Mode::Profiling {..})
             });
         }
@@ -788,10 +789,10 @@ impl Node {
 
         frp::extend! { network
 
-            frp.source.error <+ frp.set_error;
-            is_error_set <- frp.error.map(|err| err.is_some());
+            out.error <+ input.set_error;
+            is_error_set <- input.set_error.map(|err| err.is_some());
             no_error_set <- not(&is_error_set);
-            error_color_anim.target <+ all_with(&frp.error,&frp.set_view_mode,
+            error_color_anim.target <+ all_with(&input.set_error,&input.set_view_mode,
                 f!([style](error,&mode)
                     let error_color = Self::error_color(error,&style);
                     match mode {
@@ -800,8 +801,8 @@ impl Node {
                     }
                 ));
 
-            eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
-            visualization_enabled_frp <- bool(&frp.disable_visualization,&frp.enable_visualization);
+            eval input.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
+            visualization_enabled_frp <- bool(&input.disable_visualization,&input.enable_visualization);
             eval visualization_enabled_frp ((enabled)
                 model.action_bar.set_action_visibility_state(enabled)
             );
@@ -810,9 +811,9 @@ impl Node {
             // or are in quick preview mode. Also, omit the preview if we don't have an
             // expression.
             has_tooltip    <- model.output.frp.tooltip.map(|tt| tt.has_content());
-            has_expression <- frp.set_expression.map(|expr| *expr != Expression::default());
+            has_expression <- input.set_expression.map(|expr| *expr != Expression::default());
 
-            preview_show_delay <- all(&frp.quick_preview_vis,&is_error_set);
+            preview_show_delay <- all(&input.quick_preview_vis,&is_error_set);
             preview_show_delay <- preview_show_delay.map(|(quick_preview,is_error)| {
                 match(is_error,quick_preview) {
                     (true,_)      => ERROR_PREVIEW_ONSET_MS,
@@ -833,13 +834,13 @@ impl Node {
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
-            frp.source.visualization_visible <+ visualization_visible_on_change;
-            frp.source.visualization_enabled <+ visualization_enabled;
+            out.visualization_visible <+ visualization_visible_on_change;
+            out.visualization_enabled <+ visualization_enabled;
             eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
             );
             init <- source::<()>();
-            frp.source.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
+            out.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
                 def_opt.as_ref().map(|def| def.signature.path.clone_ref())
             });
 
@@ -850,7 +851,7 @@ impl Node {
             layer              <- any(layer_on_hover,layer_on_not_hover);
             model.visualization.frp.set_layer <+ layer;
 
-            update_error <- all(frp.set_error,preview_visible);
+            update_error <- all(input.set_error,preview_visible);
             eval update_error([model]((error,visible)){
                 if *visible {
                      model.set_error(error.as_ref());
@@ -867,11 +868,11 @@ impl Node {
 
         frp::extend! { network
             model.profiling_label.set_min_global_duration
-                <+ frp.set_profiling_min_global_duration;
+                <+ input.set_profiling_min_global_duration;
             model.profiling_label.set_max_global_duration
-                <+ frp.set_profiling_max_global_duration;
-            model.profiling_label.set_status <+ frp.set_profiling_status;
-            model.input.set_profiling_status <+ frp.set_profiling_status;
+                <+ input.set_profiling_max_global_duration;
+            model.profiling_label.set_status <+ input.set_profiling_status;
+            model.input.set_profiling_status <+ input.set_profiling_status;
         }
 
         let bg_color_anim = color::Animation::new(network);
@@ -884,8 +885,8 @@ impl Node {
             let profiling_theme = profiling::Theme::from_styles(style_frp,network);
 
             profiling_color <- all_with5
-                (&frp.set_profiling_status,&frp.set_profiling_min_global_duration,
-                &frp.set_profiling_max_global_duration,&profiling_theme,&bgg,
+                (&input.set_profiling_status,&input.set_profiling_min_global_duration,
+                &input.set_profiling_max_global_duration,&profiling_theme,&bgg,
                 |&status,&min,&max,&theme,&bgg| {
                     if status.is_finished() {
                         status.display_color(min,max,theme).with_alpha(1.0)
@@ -894,7 +895,7 @@ impl Node {
                     }
                 });
 
-            bg_color_anim.target <+ all_with3(&bgg,&frp.set_view_mode,&profiling_color,
+            bg_color_anim.target <+ all_with3(&bgg,&input.set_view_mode,&profiling_color,
                 |bgg,&mode,&profiling_color| {
                     match mode {
                         view::Mode::Normal    => color::Lcha::from(*bgg),
@@ -921,10 +922,10 @@ impl Node {
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
-            frp.source.tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
+            out.tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
-            frp.source.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+            out.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
             // === Type Labels ===
@@ -935,7 +936,7 @@ impl Node {
 
             // === VCS Handling ===
 
-            model.vcs_indicator.frp.set_status <+ frp.set_vcs_status;
+            model.vcs_indicator.frp.set_status <+ input.set_vcs_status;
         }
 
         // Init defaults.
