@@ -62,7 +62,7 @@ mod background {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints! {
+ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
         set_size(Vector2)
@@ -71,12 +71,12 @@ ensogl_core::define_endpoints! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(&self, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
-        let network = &self.network;
+    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+        let network = &api.network;
         let background = &model.background.events;
         frp::extend! { network
-            eval self.set_content((t) model.set_content(t));
-            eval self.set_size((size) model.set_size(*size));
+            eval api.input.set_content((t) model.set_content(t));
+            eval api.input.set_size((size) model.set_size(*size));
 
             is_hovered <- bool(&background.mouse_out, &background.mouse_over);
             eval is_hovered((hovered) model.set_label_visible(*hovered));
