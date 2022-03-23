@@ -112,6 +112,30 @@ class HtmlReprTest extends AnyWordSpec with Matchers {
       render(elem) shouldEqual
       "<ul><li>first</li><ol><li>a</li><li>b</li><li>c</li></ol><li>second</li></ul>"
     }
+
+    "render lists formatted" in {
+      val elem = Doc.Elem.List(
+        0,
+        Doc.Elem.List.Unordered,
+        Doc.Elem.ListItem(
+          Doc.Elem.Formatter(Doc.Elem.Formatter.Italic, "one"),
+          ": the first"
+        ),
+        Doc.Elem.ListItem(
+          "two",
+          Doc.Elem.Formatter.Unclosed(
+            Doc.Elem.Formatter.Italic,
+            "three",
+            ": the ",
+            Doc.Elem.Formatter(Doc.Elem.Formatter.Bold, "second")
+          )
+        )
+      )
+
+      render(
+        elem
+      ) shouldEqual "<ul><li><i>one</i>: the first</li><li>two_three: the <b>second</b></li></ul>"
+    }
   }
 }
 object HtmlReprTest {

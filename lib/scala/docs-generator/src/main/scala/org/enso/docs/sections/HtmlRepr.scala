@@ -23,10 +23,6 @@ object HtmlRepr {
     Seq(elem.text)
   }
 
-  implicit val unclosedHtmlRep: HtmlRepr[Doc.Elem.Formatter.Unclosed] = {
-    elem => Seq(elem.repr.build())
-  }
-
   implicit val codeBlockHtmlRepr: HtmlRepr[Doc.Elem.CodeBlock] = { elem =>
     val firstIndent = elem.elems.head.indent
     val elemsHtml   = elem.elems.toList.map(_.htmlOffset(firstIndent))
@@ -39,6 +35,12 @@ object HtmlRepr {
 
   implicit val codeBlockLineHtmlRepr: HtmlRepr[Doc.Elem.CodeBlock.Line] = {
     elem => Seq(HTML.code(" " * elem.indent + elem.elem), HTML.br)
+  }
+
+  implicit val unclosedHtmlRep: HtmlRepr[Doc.Elem.Formatter.Unclosed] = {
+    elem =>
+      val elems = Doc.Elem.Text(elem.typ.marker.toString) :: elem.elems
+      Seq(elems.map(htmlRepr.toHtml))
   }
 
   implicit val formatterHtmlRepr: HtmlRepr[Doc.Elem.Formatter] = { elem =>
@@ -75,8 +77,12 @@ object HtmlRepr {
 
   implicit val listHtmlRepr: HtmlRepr[Doc.Elem.List] = { elem =>
     val elemsHTML = elem.elems.reverse.toList.map {
-      case elem: Doc.Elem.List     => elem.html
-      case elem: Doc.Elem.ListElem => Seq(HTML.li(elem.html))
+      case elem: Doc.Elem.List =>
+        listHtmlRepr.toHtml(elem)
+      case elem: Doc.Elem.ListItem =>
+        Seq(HTML.li(listItemHtmlRepr.toHtml(elem)))
+      case elem: Doc.Elem.MisalignedItem =>
+        Seq(HTML.li(listMisalignedItemHtmlRepr.toHtml(elem)))
     }
     Seq(elem.typ.HTMLMarker(elemsHTML))
   }
