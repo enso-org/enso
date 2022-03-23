@@ -57,12 +57,15 @@ fn main() {
 // === FuncCollector ===
 // =====================
 
+/// Aggregates all intervals created by a particular profiler, abstracting away where in the stack
+/// it occurs.
 #[derive(Default)]
 struct FuncCollector {
     funcs: collections::HashMap<Label, Func>,
 }
 
 impl FuncCollector {
+    /// Aggregate all intervals created by a particular profiler.
     fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, Func> {
         let mut collector = FuncCollector::default();
         for (label, frame) in &root.children {
@@ -74,6 +77,7 @@ impl FuncCollector {
 }
 
 impl FuncCollector {
+    /// Add time spent in an interval to the running sums; recurse into children.
     fn visit(&mut self, label: &Label, frame: &data::aggregate::Frame) {
         let func = self.funcs.entry(label.clone()).or_default();
         func.self_duration += frame.self_duration();
@@ -84,6 +88,7 @@ impl FuncCollector {
     }
 }
 
+/// Aggregate of all time spent in a particular profiler's intervals.
 #[derive(Default)]
 struct Func {
     total_duration: f64,

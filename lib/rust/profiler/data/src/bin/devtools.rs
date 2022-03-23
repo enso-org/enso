@@ -28,6 +28,42 @@ use enso_profiler_data as data;
 
 
 
+/// Support for the Chrome DevTools profile format.
+mod devtools {
+    // =============
+    // === Event ===
+    // =============
+
+    /// DevTools-profile interval.
+    #[derive(serde::Serialize)]
+    pub struct Event {
+        pub name:         String,
+        #[serde(rename = "cat")]
+        pub category:     String,
+        #[serde(rename = "ph")]
+        pub event_type:   EventType,
+        #[serde(rename = "ts")]
+        pub timestamp_us: u64,
+        #[serde(rename = "dur")]
+        pub duration_us:  u64,
+        #[serde(rename = "pid")]
+        pub process_id:   u32,
+        #[serde(rename = "tid")]
+        pub thread_id:    u32,
+        // Actually a type of map, but we don't need to write anything there.
+        pub args:         Option<()>,
+    }
+
+    /// Information about type of event in DevTools profiling interval.
+    #[derive(Clone, Copy, Eq, PartialEq, serde::Serialize)]
+    pub enum EventType {
+        #[serde(rename = "X")]
+        Complete,
+    }
+}
+
+
+
 // ============
 // === main ===
 // ============
@@ -41,43 +77,21 @@ fn main() {
     serde_json::to_writer(std::io::stdout(), &events).unwrap();
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, serde::Serialize)]
-enum EventType {
-    #[serde(rename = "X")]
-    Complete,
-}
-
-#[derive(serde::Serialize)]
-struct Event {
-    name:         String,
-    #[serde(rename = "cat")]
-    category:     String,
-    #[serde(rename = "ph")]
-    event_type:   EventType,
-    #[serde(rename = "ts")]
-    timestamp_us: u64,
-    #[serde(rename = "dur")]
-    duration_us:  u64,
-    #[serde(rename = "pid")]
-    process_id:   u32,
-    #[serde(rename = "tid")]
-    thread_id:    u32,
-    args:         Option<()>,
-}
-
 
 
 // ==========================
 // === IntervalTranslator ===
 // ==========================
 
+/// Translates `profiler` data to the Chrome DevTools format.
 struct IntervalTranslator<'p, Metadata> {
     profile: &'p data::Profile<Metadata>,
-    events:  Vec<Event>,
+    events:  Vec<devtools::Event>,
 }
 
 impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
-    fn run(profile: &'p data::Profile<Metadata>) -> Vec<Event> {
+    /// Translate `profiler` data to the Chrome DevTools format.
+    fn run(profile: &'p data::Profile<Metadata>) -> Vec<devtools::Event> {
         let events = Default::default();
         let mut builder = Self { profile, events };
         // We skip the root node APP_LIFETIME, which is not a real measurement.
@@ -90,6 +104,7 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
 }
 
 impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
+    /// Translate an interval, and its children.
     fn visit_interval(&mut self, active: data::IntervalId, row: u32) {
         let active = &self.profile[active];
         let measurement = &self.profile[active.measurement];
@@ -97,10 +112,10 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
         // TODO[kw]: The format supports incomplete events, but isn't documented.
         const DEFAULT_END: f64 = 30_000.0;
         let end = active.interval.end.map(|x| x.into_ms()).unwrap_or(DEFAULT_END);
-        let event = Event {
+        let event = devtools::Event {
             name:         measurement.label.to_string(),
             category:     "interval".to_owned(),
-            event_type:   EventType::Complete,
+            event_type:   devtools::EventType::Complete,
             timestamp_us: (start * 1000.0) as u64,
             duration_us:  ((end - start) * 1000.0) as u64,
             process_id:   1,
