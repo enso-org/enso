@@ -140,15 +140,8 @@ class HtmlReprTest extends AnyWordSpec with Matchers {
 }
 object HtmlReprTest {
 
-  private val DivOpenLength  = 5
-  private val DivCloseLength = 6
-
   def render(elem: Doc.Elem): String = {
-    val repr = HtmlRepr[Doc.Elem].toHtml(elem)
-    scalatags.Text.all
-      .div(repr: _*)
-      .toString()
-      .drop(DivOpenLength)
-      .dropRight(DivCloseLength)
+    val html = HtmlRepr[Doc.Elem].toHtml(elem)
+    HtmlRepr.renderHtml(html)
   }
 }

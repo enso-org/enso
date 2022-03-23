@@ -98,7 +98,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |
           |   If this didn't happen then it would be possible for the underlying array to
           |   be mutated under the hood, and sneak mutability into our immutable data.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = Seq(
         DocSection.Tag("ADVANCED", ""),
         DocSection.Paragraph(
@@ -140,7 +140,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   Find the maximum of 2 and 5.
           |
           |       2.max 5
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = Seq(
         DocSection.Paragraph(
           "Returns the larger value of <code>this</code> and <code>that</code>. "
@@ -176,7 +176,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | - value: The value stored at this node.
           | - left: The left subtree.
           | - right: The right subtree.
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val expected = Seq(
         DocSection.Tag("PRIVATE", ""),
         DocSection.Paragraph(

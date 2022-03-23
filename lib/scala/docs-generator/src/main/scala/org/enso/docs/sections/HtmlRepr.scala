@@ -4,14 +4,36 @@ import org.enso.syntax.text.ast.Doc
 import scalatags.Text.{all => HTML}
 import scalatags.Text.all._
 
+/** Convertor to the [[Doc.HTML]]. */
 trait HtmlRepr[A] {
 
+  /** Converts object to HTML representation.
+    *
+    * @param a the object to convert
+    * @return the [[Doc.HTML]] representation of the object
+    */
   def toHtml(a: A): Doc.HTML
 }
 object HtmlRepr {
 
+  private val DivOpenLength  = 5
+  private val DivCloseLength = 6
+
+  /** Obtain an instance of [[HtmlRepr]] for the given type. */
   def apply[A: HtmlRepr]: HtmlRepr[A] =
     implicitly[HtmlRepr[A]]
+
+  /** Renders the [[Doc.HTML]] into string.
+    *
+    * @param elems the HTML AST
+    * @return the string representation of HTML AST
+    */
+  def renderHtml(elems: Doc.HTML): String =
+    scalatags.Text.all
+      .div(elems: _*)
+      .toString
+      .drop(DivOpenLength)
+      .dropRight(DivCloseLength)
 
   val newlineRepr: String = " "
 

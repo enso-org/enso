@@ -149,7 +149,6 @@ final class ParsedSectionsBuilder {
     *
     * The function filters out:
     * - empty sections
-    * - newlines in the begin and the end of a section
     *
     * @param sections the list of documentation sections
     * @return the list of filtered sections

@@ -5,17 +5,31 @@ import org.enso.polyglot.DocSection
 import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
 
+/** Module that splits the documentation into sections.
+  *
+  * @param parsedSectionsBuilder creates documenation sections from the parsed
+  * docstring
+  */
 final class DocSectionsBuilder(parsedSectionsBuilder: ParsedSectionsBuilder) {
 
   import DocSectionsBuilder._
 
+  /** Create the list of docsections from the documentation comment.
+    *
+    * @param comment the documentation comment
+    * @return the list of documentation sections
+    */
   def build(comment: String): List[DocSection] = {
     val doc    = DocParser.runMatched(comment)
     val parsed = parsedSectionsBuilder.build(doc)
     parsed.map(render)
   }
 
-  def render(section: Section): DocSection =
+  /** Converts the docsection AST into a human-readable representation.
+    *
+    * @param section the docsection AST
+    */
+  private def render(section: Section): DocSection =
     section match {
       case Section.Tag(name, body) =>
         DocSection.Tag(name, renderElems(body))
@@ -30,6 +44,11 @@ final class DocSectionsBuilder(parsedSectionsBuilder: ParsedSectionsBuilder) {
         DocSection.Marked(buildMark(mark), header, renderElems(body))
     }
 
+  /** Convert the [[Section.Mark]] into [[DocSection.Mark]] representation.
+    *
+    * @param mark the section mark AST
+    * @return the [[DocSection.Mark]] mark representation
+    */
   private def buildMark(mark: Section.Mark): DocSection.Mark =
     mark match {
       case Section.Mark.Important => DocSection.Mark.Important()
@@ -39,24 +58,15 @@ final class DocSectionsBuilder(parsedSectionsBuilder: ParsedSectionsBuilder) {
 }
 object DocSectionsBuilder {
 
-  private val DivOpenLength  = 5
-  private val DivCloseLength = 6
-
+  /** @return the instance of [[DocSectionsBuilder]]. */
   def apply(): DocSectionsBuilder =
     new DocSectionsBuilder(new ParsedSectionsBuilder)
-
-  private def renderHtml(elems: Doc.HTML): String =
-    scalatags.Text.all
-      .div(elems: _*)
-      .toString
-      .drop(DivOpenLength)
-      .dropRight(DivCloseLength)
 
   private def renderElems(elems: Seq[Doc.Elem]): String = {
     val builder =
       elems.foldLeft(Seq.newBuilder[scalatags.Text.all.Modifier]) { (b, a) =>
         b ++= HtmlRepr[Doc.Elem].toHtml(a)
       }
-    renderHtml(builder.result())
+    HtmlRepr.renderHtml(builder.result())
   }
 }
