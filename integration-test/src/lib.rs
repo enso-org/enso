@@ -26,7 +26,6 @@ use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
 use enso_web::HtmlDivElement;
-use ensogl::application::Application;
 use ensogl::application::test_utils::ApplicationExt;
 
 

@@ -90,9 +90,12 @@ impl AsRef<theme::Manager> for Application {
 
 /// Test-specific API.
 pub mod test_utils {
+    use super::*;
+
     /// Screen size for unit and integration tests.
     const TEST_SCREEN_SIZE: (f32, f32) = (1920.0, 1080.0);
 
+    /// Extended API for tests.
     pub trait ApplicationExt {
         /// Set "fake" screen dimensions for unit and integration tests. This is important for a lot
         /// of position and screen size related computations in the IDE.

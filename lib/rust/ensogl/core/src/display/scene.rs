@@ -405,12 +405,6 @@ impl Mouse {
         let position = Vector2(new_pos.x as f32, new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
     }
-
-    /// Emulate click on background for testing purposes.
-    pub fn click_on_background(&self) {
-        self.target.set(PointerTarget::Background);
-        self.frp.up.emit(frp::io::mouse::Button::Button0);
-    }
 }
 
 
@@ -1256,5 +1250,30 @@ impl<'t> DomPath for &'t String {
 impl<'t> DomPath for &'t str {
     fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
+    }
+}
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Extended API for tests.
+pub mod test_utils {
+    use super::*;
+
+    pub trait MouseExt {
+        /// Emulate click on background for testing purposes.
+        fn click_on_background(&self);
+    }
+
+    impl MouseExt for Mouse {
+        fn click_on_background(&self) {
+            self.target.set(PointerTarget::Background);
+            let left_mouse_button = frp::io::mouse::Button::Button0;
+            self.frp.down.emit(left_mouse_button);
+            self.frp.up.emit(left_mouse_button);
+        }
     }
 }

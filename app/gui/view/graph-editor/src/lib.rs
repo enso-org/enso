@@ -2393,12 +2393,12 @@ pub struct GraphEditor {
 
 impl GraphEditor {
     /// Graph editor nodes.
-    fn nodes(&self) -> &Nodes {
+    pub fn nodes(&self) -> &Nodes {
         &self.model.nodes
     }
 
     /// Graph editor edges.
-    fn edges(&self) -> &Edges {
+    pub fn edges(&self) -> &Edges {
         &self.model.edges
     }
 }
@@ -3671,8 +3671,9 @@ impl display::Object for GraphEditor {
 #[cfg(test)]
 mod graph_editor_tests {
     use super::*;
-    use node::test_utils::NodeModelExt;
     use application::test_utils::ApplicationExt;
+    use ensogl::display::scene::test_utils::MouseExt;
+    use node::test_utils::NodeModelExt;
 
     #[test]
     fn test_adding_node_by_internal_api() {
@@ -3712,16 +3713,17 @@ mod graph_editor_tests {
         let node_1_pos = node_1.position();
         let screen_center = app.display.default_scene.screen_to_scene_coordinates(Vector3::zeros());
         assert_eq!(node_1_pos.xy(), screen_center.xy());
-        graph_editor.nodes().select(node_1_id);
 
-        // Adding second node.
+        // Adding second node with the first node selected.
+        graph_editor.nodes().select(node_1_id);
         let (_, node_2) = graph_editor.add_node_by(&add_node);
         graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
         assert_eq!(graph_editor.nodes().len(), 2);
 
-        // Second node is below the first.
+        // Second node is below the first and left-aligned to it.
         let node_2_pos = node_2.position();
         assert!(node_2_pos.y < node_1_pos.y);
+        assert_eq!(node_2_pos.x, node_1_pos.x);
     }
 
     #[test]
@@ -3734,6 +3736,7 @@ mod graph_editor_tests {
         // Creating edge.
         let port = node_1.model.output_port_shape().expect("No output port.");
         port.events.mouse_down.emit(());
+        port.events.mouse_up.emit(());
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
@@ -3760,6 +3763,7 @@ mod graph_editor_tests {
         // Creating edge.
         let port = node_1.model.output_port_shape().expect("No output port.");
         port.events.mouse_down.emit(());
+        port.events.mouse_up.emit(());
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3770,6 +3774,7 @@ mod graph_editor_tests {
         node_2.model.input.frp.set_ports_active(true, None);
         let port = node_2.model.input_port_shape().expect("No input port.");
         port.hover.events.mouse_down.emit(());
+        port.hover.events.mouse_up.emit(());
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }

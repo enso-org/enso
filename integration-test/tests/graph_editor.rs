@@ -5,6 +5,7 @@
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
+use enso_gui::view::graph_editor::component::node::test_utils::NodeModelExt;
 use enso_gui::view::graph_editor::component::node::Expression;
 use enso_gui::view::graph_editor::GraphEditor;
 use enso_gui::view::graph_editor::Node;
@@ -24,7 +25,7 @@ async fn create_new_project_and_add_nodes() {
     let test = IntegrationTestOnNewProject::setup().await;
     let graph_editor = test.graph_editor();
 
-        assert_eq!(graph_editor.nodes().all.len(), 2);
+    assert_eq!(graph_editor.nodes().all.len(), 2);
     let expect_node_added = graph_editor.node_added.next_event();
     graph_editor.add_node();
     let (added_node_id, source_node, _) = expect_node_added.expect();
@@ -164,7 +165,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1");
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model.output_port().expect("No output port");
+        let port = node_1.model.output_port_shape().expect("No output port");
         port.events.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
