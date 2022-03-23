@@ -3,14 +3,11 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  Resolution,
-  ResolvedConstructor
-}
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedConstructor}
 import org.enso.compiler.pass.IRPass
 
-/** Resolves calls to methods defined on modules, called on direct (resolved)
-  * module references.
+/** Resolves parameter-less calls to Atom Constructors with the parameter list
+  * fully defaulted.
   */
 object FullyAppliedFunctionUses extends IRPass {
 
