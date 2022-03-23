@@ -3784,7 +3784,9 @@ mod graph_editor_tests {
 
     /// An assertion case used when adding new nodes. See [`GraphEditor::assert`] below.
     struct Case {
+        /// A source node of the added node.
         node_source: Option<NodeId>,
+        /// Should we start the node editing immediately after adding it?
         should_edit: bool,
     }
 
