@@ -2391,6 +2391,18 @@ pub struct GraphEditor {
     pub frp:   Frp,
 }
 
+impl GraphEditor {
+    /// Graph editor nodes.
+    fn nodes(&self) -> &Nodes {
+        &self.model.nodes
+    }
+
+    /// Graph editor edges.
+    fn edges(&self) -> &Edges {
+        &self.model.edges
+    }
+}
+
 impl Deref for GraphEditor {
     type Target = Frp;
     fn deref(&self) -> &Self::Target {
@@ -3659,6 +3671,8 @@ impl display::Object for GraphEditor {
 #[cfg(test)]
 mod graph_editor_tests {
     use super::*;
+    use node::test_utils::NodeModelExt;
+    use application::test_utils::ApplicationExt;
 
     #[test]
     fn test_adding_node_by_internal_api() {
@@ -3698,7 +3712,7 @@ mod graph_editor_tests {
         let node_1_pos = node_1.position();
         let screen_center = app.display.default_scene.screen_to_scene_coordinates(Vector3::zeros());
         assert_eq!(node_1_pos.xy(), screen_center.xy());
-        graph_editor.model.nodes.select(node_1_id);
+        graph_editor.nodes().select(node_1_id);
 
         // Adding second node.
         let (_, node_2) = graph_editor.add_node_by(&add_node);
@@ -3713,15 +3727,14 @@ mod graph_editor_tests {
     #[test]
     fn test_adding_node_by_dropping_edge() {
         let (app, graph_editor) = init();
-        assert_eq!(graph_editor.model.nodes.all.len(), 0);
+        assert_eq!(graph_editor.nodes().len(), 0);
         // Adding a new node.
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        let port = node_1.model.output_port().expect("No output port");
+        let port = node_1.model.output_port_shape().expect("No output port.");
         port.events.mouse_down.emit(());
         assert_eq!(graph_editor.edges().len(), 1);
-        //node_1.model.output.test_port_press();
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
         let click_pos = Vector2(300.0, 300.0);
@@ -3745,17 +3758,17 @@ mod graph_editor_tests {
         let (node_id_2, node_2) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        let port = node_1.model.output_port().expect("No output port");
+        let port = node_1.model.output_port_shape().expect("No output port.");
         port.events.mouse_down.emit(());
         let edge_id = graph_editor.on_edge_add.value();
-        let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added");
+        let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), None);
         assert_eq!(edges.len(), 1);
         // Connecting edge.
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model.input.frp.set_ports_active(true, None);
-        let port = node_2.model.input_port().expect("No input port");
+        let port = node_2.model.input_port_shape().expect("No input port.");
         port.hover.events.mouse_down.emit(());
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
@@ -3764,6 +3777,7 @@ mod graph_editor_tests {
 
     // === Test utilities ===
 
+    /// An assertion case used when adding new nodes. See [`GraphEditor::assert`] below.
     struct Case {
         node_source: Option<NodeId>,
         should_edit: bool,
@@ -3773,7 +3787,7 @@ mod graph_editor_tests {
         fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
             add_node(self);
             let (node_id, ..) = self.node_added.value();
-            let node = self.model.nodes.all.get_cloned_ref(&node_id).expect("Node was not added");
+            let node = self.model.nodes.all.get_cloned_ref(&node_id).expect("Node was not added.");
             node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
             (node_id, node)
         }
@@ -3796,14 +3810,6 @@ mod graph_editor_tests {
             }
             let node_source = node_source.map(|source| source.node);
             assert_eq!(node_source, case.node_source, "Source node does not match expected.");
-        }
-
-        fn nodes(&self) -> &Nodes {
-            &self.model.nodes
-        }
-
-        fn edges(&self) -> &Edges {
-            &self.model.edges
         }
     }
 

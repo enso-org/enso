@@ -654,34 +654,6 @@ impl NodeModel {
             self.display_object.add_child(&self.error_indicator);
         }
     }
-
-    /// Return the `SinglePortView` of the first output port of the node.
-    ///
-    /// Returns `None`:
-    /// 1. If there are no output ports.
-    /// 2. If the port does not have a `PortShapeView`.
-    /// 3. If the output port is [`MultiPortView`].
-    pub fn output_port(&self) -> Option<output::port::SinglePortView> {
-        let ports = self.output.model.ports();
-        let port = ports.first()?;
-        let shape = port.shape.as_ref()?;
-        use output::port::PortShapeView::Single;
-        match shape {
-            Single(shape) => Some(shape.clone_ref()),
-            _ => None,
-        }
-    }
-
-    /// Return the `Shape` of the first input port of the node.
-    ///
-    /// Returns `None`:
-    /// 1. If there are no input ports.
-    /// 2. If the port does not have a `Shape`.
-    pub fn input_port(&self) -> Option<input::port::Shape> {
-        let ports = self.input.model.ports();
-        let port = ports.first()?;
-        port.shape.as_ref().map(CloneRef::clone_ref)
-    }
 }
 
 impl Node {
@@ -994,5 +966,54 @@ impl Node {
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
+    }
+}
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Test-specific API.
+pub mod test_utils {
+    use super::*;
+
+    /// Addional [`NodeModel`] API for tests.
+    pub trait NodeModelExt {
+        /// Return the `SinglePortView` of the first output port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no output ports.
+        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
+        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
+        /// 3. If the output port is [`MultiPortView`].
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+        /// Return the `Shape` of the first input port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no input ports.
+        /// 2. If the port does not have a `Shape`. Some port models does not initialize the
+        ///    `Shape`, see [`input::port::Model::init_shape`].
+        fn input_port_shape(&self) -> Option<input::port::Shape>;
+    }
+
+    impl NodeModelExt for NodeModel {
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView> {
+            let ports = self.output.model.ports();
+            let port = ports.first()?;
+            let shape = port.shape.as_ref()?;
+            use output::port::PortShapeView::Single;
+            match shape {
+                Single(shape) => Some(shape.clone_ref()),
+                _ => None,
+            }
+        }
+
+        fn input_port_shape(&self) -> Option<input::port::Shape> {
+            let ports = self.input.model.ports();
+            let port = ports.first()?;
+            port.shape.as_ref().map(CloneRef::clone_ref)
+        }
     }
 }

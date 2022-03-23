@@ -433,10 +433,9 @@ impl Model {
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Area {
-    #[allow(missing_docs)]
     pub frp:   Frp,
-    #[allow(missing_docs)]
     pub model: Rc<Model>,
 }
 
