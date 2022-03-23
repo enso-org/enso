@@ -102,6 +102,10 @@ object DocSection {
     *   ! Notice
     *     This is important.
     * }}}
+    *
+    * @param mark the section mark
+    * @param header the section header
+    * @param body the elements that make up the body of the section
     */
   case class Marked(mark: Mark, header: Option[String], body: String)
       extends DocSection
