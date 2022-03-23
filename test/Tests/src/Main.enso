@@ -44,6 +44,8 @@ import project.Network.Http.Request_Spec as Http_Request_Spec
 import project.Network.Http_Spec
 import project.Network.Uri_Spec
 
+import project.Resource.Bracket_Spec
+
 import project.Runtime.Stack_Traces_Spec
 
 import project.System.File_Spec
@@ -87,6 +89,7 @@ main = Test.Suite.run_main <|
     Matching_Spec.spec
     Runtime_Spec.spec
     Span_Spec.spec
+    Bracket_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec
     Text_Spec.spec
