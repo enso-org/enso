@@ -164,7 +164,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1");
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model.output_port_unchecked();
+        let port = node_1.model.output_port().expect("No output port");
         port.events.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };

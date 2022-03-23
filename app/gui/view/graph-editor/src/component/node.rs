@@ -657,32 +657,30 @@ impl NodeModel {
 
     /// Return the `SinglePortView` of the first output port of the node.
     ///
-    /// ### Panics
+    /// Returns `None`:
     /// 1. If there are no output ports.
     /// 2. If the port does not have a `PortShapeView`.
     /// 3. If the output port is [`MultiPortView`].
-    pub fn output_port_unchecked(&self) -> output::port::SinglePortView {
+    pub fn output_port(&self) -> Option<output::port::SinglePortView> {
         let ports = self.output.model.ports();
-        let port = ports.first().expect("The node has no ports");
-        let shape = port.shape.as_ref().expect("The port has no PortShapeView");
+        let port = ports.first()?;
+        let shape = port.shape.as_ref()?;
         use output::port::PortShapeView::Single;
         match shape {
-            Single(shape) => shape.clone_ref(),
-            _ => panic!("Expected a SinglePortView"),
+            Single(shape) => Some(shape.clone_ref()),
+            _ => None,
         }
     }
 
     /// Return the `Shape` of the first input port of the node.
     ///
-    /// ### Panics
+    /// Returns `None`:
     /// 1. If there are no input ports.
     /// 2. If the port does not have a `Shape`.
-    pub fn input_port_unchecked(&self) -> input::port::Shape {
+    pub fn input_port(&self) -> Option<input::port::Shape> {
         let ports = self.input.model.ports();
-        println!("Ports: {}", ports.len());
-        let port = ports.first().expect("The node has no ports");
-        let shape = port.shape.as_ref().expect("The port has no Shape");
-        shape.clone_ref()
+        let port = ports.first()?;
+        port.shape.as_ref().map(CloneRef::clone_ref)
     }
 }
 

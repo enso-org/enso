@@ -3718,7 +3718,7 @@ mod graph_editor_tests {
         let (node_1_id, node_1) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        let port = node_1.model.output_port_unchecked();
+        let port = node_1.model.output_port().expect("No output port");
         port.events.mouse_down.emit(());
         assert_eq!(graph_editor.edges().len(), 1);
         //node_1.model.output.test_port_press();
@@ -3745,7 +3745,7 @@ mod graph_editor_tests {
         let (node_id_2, node_2) = graph_editor.add_node_by_api();
         graph_editor.stop_editing();
         // Creating edge.
-        let port = node_1.model.output_port_unchecked();
+        let port = node_1.model.output_port().expect("No output port");
         port.events.mouse_down.emit(());
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added");
@@ -3755,7 +3755,7 @@ mod graph_editor_tests {
         // Connecting edge.
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model.input.frp.set_ports_active(true, None);
-        let port = node_2.model.input_port_unchecked();
+        let port = node_2.model.input_port().expect("No input port");
         port.hover.events.mouse_down.emit(());
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
