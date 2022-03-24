@@ -109,20 +109,21 @@ impl<'p, Metadata> IntervalTranslator<'p, Metadata> {
         let active = &self.profile[active];
         let measurement = &self.profile[active.measurement];
         let start = active.interval.start.into_ms();
-        // TODO[kw]: The format supports incomplete events, but isn't documented.
-        const DEFAULT_END: f64 = 30_000.0;
-        let end = active.interval.end.map(|x| x.into_ms()).unwrap_or(DEFAULT_END);
-        let event = devtools::Event {
-            name:         measurement.label.to_string(),
-            category:     "interval".to_owned(),
-            event_type:   devtools::EventType::Complete,
-            timestamp_us: (start * 1000.0) as u64,
-            duration_us:  ((end - start) * 1000.0) as u64,
-            process_id:   1,
-            thread_id:    1,
-            args:         None,
-        };
-        self.events.push(event);
+        // DevTools ignores open intervals.
+        if let Some(duration_ms) = active.interval.duration_ms() {
+            let duration_us = (duration_ms * 1000.0) as u64;
+            let event = devtools::Event {
+                name: measurement.label.to_string(),
+                event_type: devtools::EventType::Complete,
+                category: "interval".to_owned(),
+                duration_us,
+                timestamp_us: (start * 1000.0) as u64,
+                process_id: 1,
+                thread_id: 1,
+                args: None,
+            };
+            self.events.push(event);
+        }
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
