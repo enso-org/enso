@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Helpers.Fake_Test_Connection
+import project.Database.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Table as Table_Module
 import Standard.Test
