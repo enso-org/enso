@@ -2056,6 +2056,12 @@ impl GraphEditorModel {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
     }
 
+    pub fn node_bounding_box(&self, node_id: impl Into<NodeId>) -> selection::BoundingBox {
+        let node_id = node_id.into();
+        let node = self.nodes.get_cloned_ref(&node_id);
+        node.map(|node| node.frp.bounding_box.value()).unwrap_or_default()
+    }
+
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn node_pos_mod(&self, node_id: impl Into<NodeId>, pos_diff: Vector2) -> (NodeId, Vector2) {
         let node_id = node_id.into();

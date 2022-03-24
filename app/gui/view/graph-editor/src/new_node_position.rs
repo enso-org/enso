@@ -61,14 +61,15 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
     // FIXME: try to avoid unwrap()
     let first_selected_node = selected_nodes_iter.next().unwrap();
     let first_selected_node_pos = graph_editor.node_position(first_selected_node);
+    let first_selected_node_bbox = graph_editor.node_bounding_box(first_selected_node);
     let x = first_selected_node_pos.x;
     // TODO: .map().min()?
-    let mut min_y = first_selected_node_pos.y;
+    let mut min_bbox_bottom = first_selected_node_bbox.bottom();
     for node_id in selected_nodes_iter {
-        let node_pos = graph_editor.node_position(node_id);
-        min_y = min(min_y, node_pos.y);
+        let node_bbox = graph_editor.node_bounding_box(node_id);
+        min_bbox_bottom = min(min_bbox_bottom, node_bbox.bottom());
     }
-    under_position(graph_editor, Vector2(x, min_y))
+    left_aligned_to_x_below_y_with_gap(graph_editor, x, min_bbox_bottom)
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
@@ -76,15 +77,20 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
 /// position.
 ///
 /// Availability of a position is defined in the docs of [`on_ray`].
-pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
-    let above_pos = graph_editor.node_position(node_above);
-    under_position(graph_editor, above_pos)
+pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
+    let above_node_pos = graph_editor.node_position(node_id);
+    let above_node_bbox = graph_editor.node_bounding_box(node_id);
+    left_aligned_to_x_below_y_with_gap(graph_editor, above_node_pos.x, above_node_bbox.bottom())
 }
 
-pub fn under_position(graph_editor: &GraphEditorModel, above_pos: Vector2) -> Vector2 {
+pub fn left_aligned_to_x_below_y_with_gap(
+    graph_editor: &GraphEditorModel,
+    left_align_x: f32,
+    below_y: f32,
+) -> Vector2 {
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
-    let y_offset = y_gap + node::HEIGHT;
-    let starting_point = above_pos - Vector2(0.0, y_offset);
+    let y_offset = y_gap + node::HEIGHT / 2.0;
+    let starting_point = Vector2(left_align_x, below_y - y_offset);
     let direction = Vector2(-1.0, 0.0);
     on_ray(graph_editor, starting_point, direction).unwrap()
 }
