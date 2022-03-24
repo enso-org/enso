@@ -42,7 +42,7 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table name = here.wrap_sql_errors <|
+    access_table name = here.handle_sql_errors <|
         columns = this.fetch_columns name
         Database_Table.make_table this name columns
 
@@ -64,7 +64,7 @@ type Connection
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
-    execute_query query expected_types=Nothing = here.wrap_sql_errors <|
+    execute_query query expected_types=Nothing = here.handle_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
@@ -96,7 +96,7 @@ type Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
-    execute_update query = here.wrap_sql_errors <|
+    execute_update query = here.handle_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             ## FIXME USE CATCH HERE!
             result = Panic.recover Any stmt.executeLargeUpdate
@@ -159,7 +159,7 @@ type Connection
        the table already existed), inserts the contents of the provided
        in-memory table and returns a handle to the newly created table.
     upload_table : Text -> Materialized_Table -> Integer -> Database_Table
-    upload_table name table batch_size=1000 = Panic.recover Illegal_State_Error <| here.wrap_sql_errors <|
+    upload_table name table batch_size=1000 = Panic.recover Illegal_State_Error <| here.handle_sql_errors <|
         column_types = table.columns.map col-> here.default_storage_type col.storage_type
         column_names = table.columns.map .name
         col_makers = column_names.zip column_types name-> typ->
@@ -308,7 +308,7 @@ Unsupported_Dialect.to_display_text =
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
 create_jdbc_connection : Text -> Vector -> Connection
-create_jdbc_connection url properties = here.wrap_sql_errors <|
+create_jdbc_connection url properties = here.handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
@@ -343,13 +343,17 @@ type Sql_Error
 
        Arguments:
        - java_exception: The underlying exception.
-    type Sql_Error java_exception
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
        Convert the SQL error to a textual representation.
     to_text : Text
-    to_text = "There was an SQL error: " + this.java_exception.getMessage.to_text + "."
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "There was an SQL error: " + this.java_exception.getMessage.to_text + "." + query
 
     ## UNSTABLE
 
@@ -365,13 +369,17 @@ type Sql_Timeout_Error
 
        Arguments:
        - java_exception: The underlying exception.
-    type Sql_Timeout_Error java_exception
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Timeout_Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
        Convert the timeout error to a textual representation.
     to_text : Text
-    to_text = "The SQL connection timed out: " + this.java_exception.getMessage + "."
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "The SQL connection timed out: " + this.java_exception.getMessage + "." + query
 
     ## UNSTABLE
 
@@ -382,17 +390,32 @@ type Sql_Timeout_Error
 ## PRIVATE
 
    Executes `action` and returns its result, catching any panics and if they are
-   coming from JDBC, wraps them with our own error types.
+   coming from JDBC, wraps them with our own error types and returns as regular
+   data-flow errors.
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-wrap_sql_errors : Any -> Any ! (Sql_Error | Sql_Timeout_Error)
-wrap_sql_errors ~action = Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action related_query=Nothing =
+    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+        here.wrap_sql_errors action
+
+## PRIVATE
+
+   Executes `action` and returns its result, converting any SQL exceptions into
+   Enso panics.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+   - related_query: A related query that is currently being run, to enrich the
+     error metadata.
+wrap_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+wrap_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (Sql_Timeout_Error exc)
-            False -> Error.throw (Sql_Error exc)
+            True -> Panic.throw (Sql_Timeout_Error exc related_query)
+            False -> Panic.throw (Sql_Error exc related_query)
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage

@@ -7,6 +7,7 @@ import Standard.Test
 import Standard.Table as Materialized_Table
 import project.Database.Common_Spec
 import project.Common_Table_Spec
+import project.Aggregate_Spec
 
 redshift_specific_spec connection pending =
     Test.group "[Redshift] Info" pending=pending <|
@@ -28,6 +29,7 @@ redshift_specific_spec connection pending =
         connection.execute_update 'DROP TABLE "Tinfo"'
 
 run_tests connection pending=Nothing =
+    prefix = "[Redshift] "
     name_counter = Ref.new 0
     tables = Vector.new_builder
     table_builder columns =
@@ -44,9 +46,19 @@ run_tests connection pending=Nothing =
             sql = 'DROP TABLE "' + name + '"'
             Panic.rethrow <| connection.execute_update sql
 
-    Common_Spec.spec "[Redshift] " connection pending=pending
+    Common_Spec.spec prefix connection pending=pending
     here.redshift_specific_spec connection pending=pending
-    Common_Table_Spec.spec "[Redshift] " table_builder supports_case_sensitive_columns=True pending=pending
+    Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=True pending=pending
+
+    selection = Aggregate_Spec.Test_Selection problem_handling=False advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False
+    agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
+    agg_table = connection.upload_table "AggT1" agg_in_memory_table
+    tables.append "AggT1"
+    empty_agg_table = connection.upload_table "AggT2" (agg_in_memory_table.take_start 0)
+    tables.append "AggT2"
+    materialize = .to_dataframe
+    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table materialize selection pending=pending
+
     clean_tables tables.to_vector
 
 spec =
