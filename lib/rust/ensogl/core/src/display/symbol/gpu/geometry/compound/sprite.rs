@@ -229,8 +229,7 @@ impl Sprite {
     pub fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
         match target {
             display::scene::PointerTarget::Background => false,
-            display::scene::PointerTarget::Symbol { symbol_id, instance_id } =>
-                self.symbol_id() == symbol_id && self.instance_id == instance_id,
+            display::scene::PointerTarget::Symbol { id } => self.global_instance_id == id,
         }
     }
 }
@@ -291,6 +290,8 @@ impl SpriteSystem {
         let instance_id = self.symbol.surface().instance_scope().add_instance();
         let transform = self.transform.at(instance_id);
         let size = self.size.at(instance_id);
+        let global_instance_id_attr = self.symbol.global_instance_id.at(instance_id);
+        global_instance_id_attr.set(*global_instance_id as i32);
         let sprite = Sprite::new(
             &self.symbol,
             instance_id,

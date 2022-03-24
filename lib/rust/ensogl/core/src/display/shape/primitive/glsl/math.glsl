@@ -186,6 +186,16 @@ float neg(float a) {
 
 // === Encode ===
 
+uvec3 encode2(int value) {
+    int r_mask = 0xFF;
+    int g_mask = 0xFF00;
+    int b_mask = 0xFF0000;
+    int r = (value & r_mask);
+    int g = (value & g_mask) >> 8;
+    int b = (value & b_mask) >> 16;
+    return uvec3(r,g,b);
+}
+
 // This encoding must correspond to the decoding in the `Target` struct in
 // src\rust\ensogl\src\display\scene.rs See there for more explanation.
 uvec3 encode(int value1, int value2) {

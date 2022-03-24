@@ -14,6 +14,7 @@ use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
+use crate::display::symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::attribute;
 
@@ -138,7 +139,7 @@ pub struct ShapeViewModel<S> {
     shape:               S,
     pub events:          ShapeViewEvents,
     pub registry:        RefCell<Option<ShapeRegistry>>,
-    pub pointer_targets: RefCell<Vec<(SymbolId, attribute::InstanceIndex)>>,
+    pub pointer_targets: RefCell<Vec<(SymbolId, symbol::GlobalInstanceId)>>,
 }
 
 impl<S> Deref for ShapeViewModel<S> {
@@ -197,12 +198,8 @@ impl<S: DynamicShape> ShapeViewModel<S> {
 
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let instance = layer.instantiate(scene, &self.shape);
-        scene.shapes.insert_mouse_target(
-            instance.symbol_id,
-            instance.instance_id,
-            self.events.clone_ref(),
-        );
-        self.pointer_targets.borrow_mut().push((instance.symbol_id, instance.instance_id));
+        scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
+        self.pointer_targets.borrow_mut().push((instance.symbol_id, instance.global_instance_id));
         *self.registry.borrow_mut() = Some(scene.shapes.clone_ref());
     }
 }
@@ -210,8 +207,10 @@ impl<S: DynamicShape> ShapeViewModel<S> {
 impl<S> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
         if let Some(registry) = &*self.registry.borrow() {
-            for (symbol_id, instance_id) in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-                registry.remove_mouse_target(symbol_id, instance_id);
+            for (symbol_id, global_instance_id) in
+                mem::take(&mut *self.pointer_targets.borrow_mut())
+            {
+                registry.remove_mouse_target(global_instance_id);
             }
         }
     }

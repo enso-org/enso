@@ -7,6 +7,7 @@ use crate::system::gpu::types::*;
 use crate::display;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
+use crate::display::symbol;
 use crate::display::symbol::geometry::compound::sprite;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
@@ -166,7 +167,10 @@ pub trait DynShapeSystemInstance: ShapeSystemInstance {
     /// The dynamic shape type of this shape system definition.
     type DynamicShape: DynamicShape<System = Self>;
     /// New shape instantiation. Used to bind a shape to a specific scene implementation.
-    fn instantiate(&self, shape: &Self::DynamicShape) -> attribute::InstanceIndex;
+    fn instantiate(
+        &self,
+        shape: &Self::DynamicShape,
+    ) -> (attribute::InstanceIndex, symbol::GlobalInstanceId);
 }
 
 /// Abstraction for every entity which is associated with a shape system (user generated one). For
@@ -372,6 +376,7 @@ macro_rules! _define_shape_system {
         mod shape_system_definition {
             use super::*;
             use $crate::display;
+            use $crate::display::symbol;
             use $crate::display::symbol::geometry::compound::sprite;
             use $crate::display::symbol::geometry::Sprite;
             use $crate::system::gpu;
@@ -576,13 +581,14 @@ macro_rules! _define_shape_system {
                 type DynamicShape = DynamicShape;
 
                 fn instantiate(&self, dyn_shape:&Self::DynamicShape)
-                -> gpu::data::attribute::InstanceIndex {
+                -> (gpu::data::attribute::InstanceIndex, symbol::GlobalInstanceId) {
                     let sprite = self.shape_system.new_instance();
                     let id     = sprite.instance_id;
+                    let global_id = sprite.global_instance_id;
                     $(let $gpu_param = self.$gpu_param.at(id);)*
                     let shape = Shape {sprite, $($gpu_param),*};
                     dyn_shape.add_instance(shape);
-                    id
+                    (id,global_id)
                 }
             }
 

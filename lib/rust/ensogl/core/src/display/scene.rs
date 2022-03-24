@@ -20,6 +20,7 @@ use crate::display::shape::system::StaticShapeSystemInstance;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
+use crate::display::symbol;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -74,7 +75,7 @@ pub struct ShapeRegistryData {
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<(SymbolId,attribute::InstanceIndex),Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<(symbol::GlobalInstanceId),Rc<dyn MouseTarget>>,
 }
 
 impl {
@@ -106,22 +107,20 @@ impl {
     }
 
     pub fn insert_mouse_target<T:MouseTarget>
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex, target:T) {
+    (&mut self, id:symbol::GlobalInstanceId, target:T) {
         let target = Rc::new(target);
-        self.mouse_target_map.insert((symbol_id,instance_id),target);
+        self.mouse_target_map.insert(id,target);
     }
 
     pub fn remove_mouse_target
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex) {
-        self.mouse_target_map.remove(&(symbol_id,instance_id));
+    (&mut self, id:symbol::GlobalInstanceId) {
+        self.mouse_target_map.remove(&id);
     }
 
     pub fn get_mouse_target(&mut self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
         match target {
             PointerTarget::Background => None,
-            PointerTarget::Symbol {symbol_id,instance_id} => {
-                self.mouse_target_map.get(&(symbol_id,instance_id)).cloned()
-            }
+            PointerTarget::Symbol {id} => self.mouse_target_map.get(&id).cloned()
         }
     }
 }}
@@ -145,7 +144,7 @@ enum DecodingResult {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PointerTarget {
     Background,
-    Symbol { symbol_id: SymbolId, instance_id: attribute::InstanceIndex },
+    Symbol { id: symbol::GlobalInstanceId },
 }
 
 impl PointerTarget {
@@ -192,40 +191,37 @@ impl PointerTarget {
     /// Decode the symbol_id and instance_id that was encoded in the `fragment_runner`.
     ///
     /// See the `encode` method for more information on the encoding.
-    fn decode(chunk1: u32, chunk2: u32, chunk3: u32) -> (u32, u32) {
-        let value1 = (chunk1 << 4) + (chunk2 >> 4);
-        let value2 = chunk3 + ((chunk2 & 0x000F) << 8);
-        (value1, value2)
+    fn decode(r: u32, g: u32, b: u32) -> u32 {
+        (b << 16) + (g << 8) + r
     }
 
-    fn to_internal(self, logger: &Logger) -> Vector4<u32> {
-        match self {
-            Self::Background => Vector4::new(0, 0, 0, 0),
-            Self::Symbol { symbol_id, instance_id } => {
-                match Self::encode(*symbol_id, (*instance_id) as u32) {
-                    DecodingResult::Truncated(pack0, pack1, pack2) => {
-                        warning!(
-                            logger,
-                            "Target values too big to encode: \
-                                         ({symbol_id},{instance_id})."
-                        );
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1)
-                    }
-                    DecodingResult::Ok(pack0, pack1, pack2) =>
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1),
-                }
-            }
-        }
-    }
+    // fn to_internal(self, logger: &Logger) -> Vector4<u32> {
+    //     match self {
+    //         Self::Background => Vector4::new(0, 0, 0, 0),
+    //         Self::Symbol { symbol_id, instance_id } => {
+    //             match Self::encode(*symbol_id, (*instance_id) as u32) {
+    //                 DecodingResult::Truncated(pack0, pack1, pack2) => {
+    //                     warning!(
+    //                         logger,
+    //                         "Target values too big to encode: \
+    //                                      ({symbol_id},{instance_id})."
+    //                     );
+    //                     Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1)
+    //                 }
+    //                 DecodingResult::Ok(pack0, pack1, pack2) =>
+    //                     Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1),
+    //             }
+    //         }
+    //     }
+    // }
 
     fn from_internal(v: Vector4<u32>) -> Self {
         if v.w == 0 {
             Self::Background
         } else if v.w == 255 {
-            let decoded = Self::decode(v.x, v.y, v.z);
-            let symbol_id = SymbolId::new(decoded.0);
-            let instance_id = attribute::InstanceIndex::new(decoded.1 as usize);
-            Self::Symbol { symbol_id, instance_id }
+            let raw_id = Self::decode(v.x, v.y, v.z);
+            let id = symbol::GlobalInstanceId::new(raw_id);
+            Self::Symbol { id }
         } else {
             panic!("Wrong internal format alpha for mouse target.")
         }
@@ -249,56 +245,56 @@ impl Default for PointerTarget {
 
 // === Target Tests ===
 
-#[cfg(test)]
-mod target_tests {
-    use super::*;
-
-    /// Asserts that decoding encoded the given values returns the correct initial values again.
-    /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
-    fn assert_valid_roundtrip(value1: u32, value2: u32) {
-        let pack = PointerTarget::encode(value1, value2);
-        match pack {
-            DecodingResult::Truncated { .. } => {
-                panic!("Values got truncated. This is an invalid test case: {}, {}", value1, value1)
-            }
-            DecodingResult::Ok(pack0, pack1, pack2) => {
-                let unpack = PointerTarget::decode(pack0.into(), pack1.into(), pack2.into());
-                assert_eq!(unpack.0, value1);
-                assert_eq!(unpack.1, value2);
-            }
-        }
-    }
-
-    #[test]
-    fn test_roundtrip_coding() {
-        assert_valid_roundtrip(0, 0);
-        assert_valid_roundtrip(0, 5);
-        assert_valid_roundtrip(512, 0);
-        assert_valid_roundtrip(1024, 64);
-        assert_valid_roundtrip(1024, 999);
-    }
-
-    #[test]
-    fn test_encoding() {
-        let pack = PointerTarget::encode(0, 0);
-        assert_eq!(pack, DecodingResult::Ok(0, 0, 0));
-
-        let pack = PointerTarget::encode(3, 7);
-        assert_eq!(pack, DecodingResult::Ok(0, 48, 7));
-
-        let pack = PointerTarget::encode(3, 256);
-        assert_eq!(pack, DecodingResult::Ok(0, 49, 0));
-
-        let pack = PointerTarget::encode(255, 356);
-        assert_eq!(pack, DecodingResult::Ok(15, 241, 100));
-
-        let pack = PointerTarget::encode(256, 356);
-        assert_eq!(pack, DecodingResult::Ok(16, 1, 100));
-
-        let pack = PointerTarget::encode(31256, 0);
-        assert_eq!(pack, DecodingResult::Truncated(161, 128, 0));
-    }
-}
+// #[cfg(test)]
+// mod target_tests {
+//     use super::*;
+//
+//     /// Asserts that decoding encoded the given values returns the correct initial values again.
+//     /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
+//     fn assert_valid_roundtrip(value1: u32, value2: u32) {
+//         let pack = PointerTarget::encode(value1, value2);
+//         match pack {
+//             DecodingResult::Truncated { .. } => {
+//                 panic!("Values got truncated. This is an invalid test case: {}, {}", value1,
+// value1)             }
+//             DecodingResult::Ok(pack0, pack1, pack2) => {
+//                 let unpack = PointerTarget::decode(pack0.into(), pack1.into(), pack2.into());
+//                 assert_eq!(unpack.0, value1);
+//                 assert_eq!(unpack.1, value2);
+//             }
+//         }
+//     }
+//
+//     #[test]
+//     fn test_roundtrip_coding() {
+//         assert_valid_roundtrip(0, 0);
+//         assert_valid_roundtrip(0, 5);
+//         assert_valid_roundtrip(512, 0);
+//         assert_valid_roundtrip(1024, 64);
+//         assert_valid_roundtrip(1024, 999);
+//     }
+//
+//     #[test]
+//     fn test_encoding() {
+//         let pack = PointerTarget::encode(0, 0);
+//         assert_eq!(pack, DecodingResult::Ok(0, 0, 0));
+//
+//         let pack = PointerTarget::encode(3, 7);
+//         assert_eq!(pack, DecodingResult::Ok(0, 48, 7));
+//
+//         let pack = PointerTarget::encode(3, 256);
+//         assert_eq!(pack, DecodingResult::Ok(0, 49, 0));
+//
+//         let pack = PointerTarget::encode(255, 356);
+//         assert_eq!(pack, DecodingResult::Ok(15, 241, 100));
+//
+//         let pack = PointerTarget::encode(256, 356);
+//         assert_eq!(pack, DecodingResult::Ok(16, 1, 100));
+//
+//         let pack = PointerTarget::encode(31256, 0);
+//         assert_eq!(pack, DecodingResult::Truncated(161, 128, 0));
+//     }
+// }
 
 
 
@@ -330,8 +326,9 @@ impl Mouse {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTarget::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2::new(0, 0));
-        let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
+        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        // let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
+        let hover_ids = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
