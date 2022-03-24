@@ -12,10 +12,10 @@ function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
-const output_path = utils.require_env('ENSO_IDE_DIST')
-const wasm_path = utils.require_env('ENSO_GUI_WASM')
-const js_glue_path = utils.require_env('ENSO_GUI_JS_GLUE')
-const assets_path = utils.require_env('ENSO_GUI_ASSETS')
+const output_path = utils.require_env('ENSO_BUILD_GUI')
+const wasm_path = utils.require_env('ENSO_BUILD_GUI_WASM')
+const js_glue_path = utils.require_env('ENSO_BUILD_GUI_JS_GLUE')
+const assets_path = utils.require_env('ENSO_BUILD_GUI_ASSETS')
 
 // scala-parser.js is compiled from Scala code, so no source map is available for it.
 const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]

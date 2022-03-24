@@ -28,6 +28,7 @@
         "copy-webpack-plugin": "^5.1.1",
         "electron": "17.1.0",
         "electron-builder": "^22.14.13",
+        "enso-studio-common": "1.0.0",
         "crypto-js": "4.0.0",
         "electron-notarize": "1.1.1"
     },

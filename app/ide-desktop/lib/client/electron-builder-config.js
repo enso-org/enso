@@ -3,8 +3,11 @@
 
 const utils = require('../../utils')
 
-const dist_var_name = "ENSO_IDE_DIST"
-const dist = utils.require_env(dist_var_name)
+const dist = utils.require_env("ENSO_BUILD_IDE")
+const gui = utils.require_env("ENSO_BUILD_GUI")
+const icons = utils.require_env("ENSO_BUILD_ICONS")
+const project_manager = utils.require_env("ENSO_BUILD_PROJECT_MANAGER")
+
 const build = require('../../build.json')
 
 const config = {
@@ -18,7 +21,7 @@ const config = {
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['dmg'],
-        icon: `${dist}/icons/icon.icns`,
+        icon: `${icons}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
         type: 'distribution',
@@ -36,16 +39,16 @@ const config = {
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['nsis'],
-        icon: `${dist}/icons/icon.ico`,
+        icon: `${icons}/icon.ico`,
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['AppImage'],
-        icon: `${dist}/icons/png`,
+        icon: `${icons}/png`,
         category: 'Development',
     },
-    files: [{ from: `${dist}/content/`, to: '.' }],
-    extraResources: [{ from: `${dist}/project-manager/`, to: '.', filter: ['!**.tar.gz', '!**.zip'] }],
+    files: ["!**/node_modules/**/*", { from: `${gui}/`, to: '.' }, {from: `${dist}/client`, to: '.'}],
+    extraResources: [{ from: `${project_manager}/`, to: './enso', filter: ['!**.tar.gz', '!**.zip'] }],
     fileAssociations: [
         {
             ext: 'enso',
@@ -54,7 +57,7 @@ const config = {
         },
     ],
     directories: {
-        output: `${dist}/client`,
+        output: `${dist}`,
     },
     nsis: {
         // Disables "block map" generation during electron building. Block maps

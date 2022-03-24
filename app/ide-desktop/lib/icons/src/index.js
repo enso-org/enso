@@ -10,6 +10,7 @@ import {default as sharp} from 'sharp';
 import {platform} from 'os';
 import path from 'path'
 import url from 'url'
+import utils from "../../../utils.js";
 
 class Logo {
     constructor(size = 64, compatibleMode = true) {
@@ -203,11 +204,11 @@ async function genIcons(outputDir) {
 }
 
 async function main() {
-    if (!process.argv[2]) {
+    const outputDir = process.env.ENSO_BUILD_ICONS ?? process.argv[2]
+    if (!outputDir) {
         const script = process.env.npm_package_name ?? url.fileURLToPath(import.meta.url)
-        throw Error(`Script '${script}' invocation is missing output directory argument.`)
+        throw Error(`Script '${script}' invocation needs to be given an output path either through command line argument or 'ENSO_BUILD_ICONS' environment variable.`)
     }
-    const outputDir = path.resolve(process.argv[2])
     await genIcons(outputDir)
 }
 

@@ -1,10 +1,9 @@
 const Copy = require('copy-webpack-plugin')
 const path = require('path')
+const utils = require('../../utils')
 
 const thisPath = path.resolve(__dirname)
-
-const dist = path.resolve(process.env.ENSO_IDE_DIST ?? '../../../../dist')
-const distContent = path.join(dist, 'content')
+const dist = path.resolve(utils.require_env("ENSO_BUILD_IDE"), "client")
 
 module.exports = {
     entry: {
@@ -13,18 +12,18 @@ module.exports = {
     mode: 'production',
     target: 'electron-main',
     output: {
-        path: distContent,
+        path: dist,
         filename: '[name].js',
     },
     plugins: [
         new Copy([
             {
                 from: path.resolve(thisPath, 'package.json'),
-                to: path.join(distContent, 'package.json')
+                to: path.join(dist, 'package.json')
             },
             {
                 from: path.resolve(thisPath, 'src', 'preload.js'),
-                to: path.join(distContent, 'preload.js'),
+                to: path.join(dist, 'preload.js'),
             },
         ]),
     ],
