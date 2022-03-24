@@ -14,6 +14,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
       val comment =
         """ ADVANCED
           | UNSTABLE
+          | ALIAS foo, bar, baz
           |
           | Returns the method name of the method that could not be found.
           |
@@ -29,6 +30,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
       val expected = Seq(
         DocSection.Tag("ADVANCED", ""),
         DocSection.Tag("UNSTABLE", ""),
+        DocSection.Tag("ALIAS", "foo, bar, baz"),
         DocSection.Paragraph(
           "Returns the method name of the method that could not be found. "
         ),
