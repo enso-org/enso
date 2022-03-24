@@ -37,15 +37,15 @@ impl VizNode {
 /// Visualization data for a link between nodes.
 #[derive(Debug, Clone)]
 pub struct VizLink {
-    source_display_id: usize,
-    target_display_id: usize,
+    source_display_id: u64,
+    target_display_id: u64,
     //    message_type      : DataType,
     data_type:         String,
 }
 
 impl VizLink {
     /// Constructor.
-    pub fn new(source_display_id: usize, target_display_id: usize, data_type: String) -> Self {
+    pub fn new(source_display_id: u64, target_display_id: u64, data_type: String) -> Self {
         Self { source_display_id, target_display_id, data_type }
     }
 }
@@ -54,14 +54,14 @@ impl VizLink {
 /// Graphviz FRP system visualizer.
 #[derive(Debug, Default)]
 pub struct Graphviz {
-    nodes:  HashMap<usize, VizNode>,
-    labels: HashMap<usize, String>,
+    nodes:  HashMap<u64, VizNode>,
+    labels: HashMap<u64, String>,
     links:  Vec<VizLink>,
 }
 
 impl Graphviz {
     /// Defines a new node.
-    pub fn add_node<Tp: Str, Label: Str>(&mut self, id: usize, tp: Tp, label: Label) {
+    pub fn add_node<Tp: Str, Label: Str>(&mut self, id: u64, tp: Tp, label: Label) {
         let tp = tp.into();
         let label = label.into();
         self.nodes.insert(id, VizNode::new(tp, label.clone()));
@@ -70,21 +70,21 @@ impl Graphviz {
     //
     //    /// Defines a new link between nodes.
     //    pub fn add_link<S:Str>
-    //    (&mut self, source:usize, target:usize, message_type:DataType, data_type:S) {
+    //    (&mut self, source:u64, target:u64, message_type:DataType, data_type:S) {
     //        let link = VizLink::new(source,target,message_type,data_type.into());
     //        self.links.push(link);
     //    }
     //
     //    /// Checks if a node with the given id is already registered in the node map.
-    //    pub fn contains(&mut self, id:usize) -> bool {
+    //    pub fn contains(&mut self, id:u64) -> bool {
     //        self.nodes.contains_key(&id)
     //    }
     //
     //    /// Takes a set of nodes and outputs a map from `display_id` to a particular node. In case
     // the    /// `display_id` points to several nodes, the node types `Hold` and `Recursive`
     // has weaker    /// preference.
-    //    fn create_node_map(&self) -> HashMap<usize,VizNode> {
-    //        let mut node_map : HashMap<usize,VizNode> = default();
+    //    fn create_node_map(&self) -> HashMap<u64,VizNode> {
+    //        let mut node_map : HashMap<u64,VizNode> = default();
     //        for node in self.nodes.values() {
     //            let entry        = node_map.entry(node.display_id);
     //            let merged_entry = entry.and_modify(|node2|{

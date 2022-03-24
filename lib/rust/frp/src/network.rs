@@ -137,8 +137,7 @@ impl Network {
         let mut viz = debug::Graphviz::default();
         self.data.nodes.borrow().iter().for_each(|node| {
             let id = Option::<u64>::from(node.id()).unwrap();
-            let id_usize = usize::try_from(id).unwrap();
-            viz.add_node(id_usize, node.output_type_label(), node.label());
+            viz.add_node(id.into(), node.output_type_label(), node.label());
         });
         debug::display_graphviz(viz);
     }
