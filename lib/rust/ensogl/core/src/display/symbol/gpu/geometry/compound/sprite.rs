@@ -341,6 +341,7 @@ impl SpriteSystem {
         material.add_input_def::<Matrix4<f32>>("transform");
         material.add_input_def::<Matrix4<f32>>("view_projection");
         material.add_input_def::<Vector2<f32>>("alignment");
+        material.add_input_def::<i32>("global_instance_id");
         material.add_output_def::<Vector3<f32>>("local");
         material.add_output_def::<i32>("instance_id");
         // FIXME: double check why `gl_InstanceID` works here and document it.

@@ -1,6 +1,6 @@
 /// This code is the body of the fragment shader main function of a GLSL shape.
 
-
+int foo = input_global_instance_id;
 
 // =================
 // === Constants ===

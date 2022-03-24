@@ -64,18 +64,27 @@ pub fn entry_point_shape_system() {
     let sprite_system = ShapeSystem::new(&world, &shape());
     let sprite = sprite_system.new_instance();
 
+
+
     sprite.size.set(Vector2::new(300.0, 300.0));
     sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
     world.add_child(&sprite_system);
     world.keep_alive_forever();
 
+    let mut i = 0;
     world
         .on
         .before_frame
         .add(move |_time| {
             let _keep_alive = &sprite;
             let _keep_alive = &navigator;
+            i += 1;
+            if i == 5 {
+                let shader = sprite.symbol.shader().shader().unwrap();
+                DEBUG!("\n\nVERTEX:\n{shader.vertex}");
+                DEBUG!("\n\nFRAGMENT:\n{shader.fragment}");
+            }
         })
         .forget();
 }
