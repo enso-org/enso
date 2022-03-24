@@ -233,7 +233,9 @@ type Aggregate_Column
                     By_Name _ _ -> resolve_selector_to_vector c
                     By_Index _ -> resolve_selector_to_vector c
                     By_Column _ -> resolve_selector_to_vector c
-                    _ -> resolve c
+                    ## TODO this is a temporary fix, remove it
+                    Vector.Vector _ -> c.map resolve
+                    _ -> [resolve c]
                 Count_Distinct new_c new_name ignore_nothing
             Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
             Count_Nothing c new_name -> Count_Nothing (resolve c) new_name

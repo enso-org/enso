@@ -8,14 +8,13 @@ from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_I
 import Standard.Test
 import Standard.Test.Problems
 
-type Test_Selection problem_handling=True advanced_stats=True
+type Test_Selection problem_handling=True advanced_stats=True text=True first_last=True
 
-all_tests = Test_Selection True True
+all_tests = Test_Selection True True True True
 
 spec =
     file_contents = (Enso_Project.data / "data.csv") . read
     table = Table.from_csv file_contents
-    table.info.print
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
     here.aggregate_spec table empty_table materialize
@@ -73,6 +72,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 2 . at 0 . should_equal 2
             grouped.columns.at 3 . name . should_equal "Count Distinct Index Flag"
             grouped.columns.at 3 . at 0 . should_equal 20
+            ## TODO [RW] add Count_Distinct with overridden ignore_nothing!
 
         Test.specify "should be able to sum, average and standard deviation of values" <|
             grouped = materialize <| table.aggregate [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
@@ -112,7 +112,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
             grouped.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" <|
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
             grouped = materialize <| table.aggregate [First "Index", Last "Value"]
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 2
@@ -134,7 +134,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
             grouped.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" <|
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix)  <|
             grouped = materialize <| table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 3
@@ -197,7 +197,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 2 . name . should_equal "25%-ile Value"
             grouped.columns.at 2 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get first and last values" <|
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
             grouped = materialize <| empty_table.aggregate [First "Index", Last "Value"]
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 2
@@ -215,7 +215,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
             grouped.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get shortest, longest and concatenated values" <|
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
             grouped = materialize <| empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 3
@@ -270,7 +270,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 2 . name . should_equal "Mode Index"
             grouped.columns.at 3 . name . should_equal "25%-ile Value"
 
-        Test.specify "should be able to get first and last values" <|
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
             grouped = materialize <| empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
             grouped.row_count . should_equal 0
             grouped.columns.length . should_equal 3
@@ -286,7 +286,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 1 . name . should_equal "Minimum Value"
             grouped.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
 
-        Test.specify "should be able to get shortest, longest and concatenated values" <|
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
             grouped = materialize <| empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 0
             grouped.columns.length . should_equal 4
@@ -382,7 +382,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
             grouped.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" <|
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
             grouped = materialize <| table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 3
@@ -410,7 +410,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
             grouped.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" <|
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
             grouped = materialize <| table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 4
@@ -516,7 +516,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 7 . name . should_equal "40%-ile ValueWithNothing"
             grouped.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" <|
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
             grouped = materialize <| table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
             grouped.row_count . should_equal 20
             grouped.columns.length . should_equal 4
@@ -546,7 +546,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             grouped.columns.at 5 . name . should_equal "Maximum ValueWithNothing"
             grouped.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" <|
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
             grouped = materialize <| table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
             grouped.row_count . should_equal 20
             grouped.columns.length . should_equal 5
