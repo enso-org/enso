@@ -3,8 +3,10 @@ from Standard.Base import all
 import Standard.Table
 import Standard.Table.Data.Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 import Standard.Test
+import Standard.Test.Problems
 
 spec =
     file_contents = (Enso_Project.data / "data.csv") . read
@@ -536,5 +538,56 @@ spec =
             grouped.columns.at 3 . at idx . should_equal "kmqxqkl6qx"
             grouped.columns.at 4 . name . should_equal "Concatenate Code"
             grouped.columns.at 4 . at idx . length . should_equal 381
+
+    Test.group "Table.aggregate should raise warnings when there are issues" <|
+        table =
+            col1 = ["Index", [1, 2, 3]]
+            col2 = ["Value", [1, 2, 3]]
+            Table.new [col1, col2]
+
+        expect_column_names names table =
+            table.columns . map .name . should_equal names frames_to_skip=2
+
+        Test.specify "should raise a warning when there are no output columns" <|
+            action = table.aggregate [] on_problems=_
+            problems = [No_Output_Columns]
+            tester = expect_column_names []
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when can't find a column by name" <|
+            action = table.aggregate [Group_By "Missing", Group_By "Index"] on_problems=_
+            problems = [Missing_Input_Columns ["Missing"]]
+            tester = expect_column_names ["Index"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when an invalid column index" <|
+            action = table.aggregate [Group_By -3, Group_By "Index"] on_problems=_
+            problems = [Column_Indexes_Out_Of_Range [-3]]
+            tester = expect_column_names ["Index"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise warnings when an invalid column index and no valid output" <|
+            action = table.aggregate [Group_By -3] on_problems=_
+            problems = [Column_Indexes_Out_Of_Range [-3], No_Output_Columns]
+            tester = expect_column_names []
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when an invalid output name" <|
+            action = table.aggregate [Group_By "Index" ""] on_problems=_
+            problems = [Invalid_Output_Column_Names [""]]
+            tester = expect_column_names ["Column"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when a duplicate column name" <|
+            action = table.aggregate [Group_By "Index", Group_By 0] on_problems=_
+            problems = [Duplicate_Output_Column_Names ["Index"]]
+            tester = expect_column_names ["Index", "Index_1"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should raise a warning when a duplicate column name and rename default names first" <|
+            action = table.aggregate [Group_By "Value", Group_By "Index" "Value"] on_problems=_
+            problems = [Duplicate_Output_Column_Names ["Value"]]
+            tester = expect_column_names ["Value_1", "Value"]
+            Problems.test_problem_handling action problems tester
 
 main = Test.Suite.run_main here.spec

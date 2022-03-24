@@ -13,6 +13,3 @@ enso-web = { path = "../web" }
 
 [dev-dependencies]
 futures = "0.3"
-
-[features]
-line-numbers = ["enso-profiler-macros/lineno"]
