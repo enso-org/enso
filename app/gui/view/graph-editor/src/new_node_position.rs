@@ -54,6 +54,11 @@ pub fn new_node_position(
     }
 }
 
+/// Return a position for a newly created node. Returns a position closely below the lowest
+/// selected node, left aligned to the first selected node, or a first available position to the
+/// left if the initial position is not available.
+///
+/// Availability of a position is defined in the docs of [`on_ray`].
 pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
     let selected_nodes = graph_editor.nodes.selected.raw.borrow();
     let mut selected_nodes_iter = selected_nodes.iter();
