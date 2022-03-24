@@ -45,9 +45,10 @@ fn main() {
     let funcs = FuncCollector::run(&root);
     let mut funcs: Vec<_> = funcs.into_iter().collect();
     funcs.sort_by_key(|(_, func)| 0 - (func.self_duration * 10.0).round() as i64);
-    println!("self_duration total_duration profiler");
+    println!("self_duration total_duration count profiler");
     for (label, func) in &funcs {
-        println!("{:>6.1} {:>6.1} {}", func.self_duration, func.total_duration, label);
+        let Func { total_duration, self_duration, count } = func;
+        println!("{:>6.1} {:>6.1} {} {}", self_duration, total_duration, count, label);
     }
 }
 
@@ -82,6 +83,7 @@ impl FuncCollector {
         let func = self.funcs.entry(label.clone()).or_default();
         func.self_duration += frame.self_duration();
         func.total_duration += frame.total_duration();
+        func.count += frame.interval_count();
         for (label, frame) in &frame.children {
             self.visit(label, frame);
         }
@@ -93,6 +95,7 @@ impl FuncCollector {
 struct Func {
     total_duration: f64,
     self_duration:  f64,
+    count:          usize,
 }
 
 type Label = std::rc::Rc<String>;

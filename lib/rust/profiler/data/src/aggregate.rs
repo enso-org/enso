@@ -30,7 +30,7 @@ impl Aggregator {
         self.stack.push(label);
         match active.interval.duration_ms() {
             Some(duration) if duration > 0.0 => {
-                self.log_duration(duration);
+                self.log_interval(duration);
                 for child in &active.children {
                     self.visit_interval(profile, *child);
                 }
@@ -40,14 +40,15 @@ impl Aggregator {
         self.stack.pop();
     }
 
-    /// Add the duration to the total for the current stack.
-    fn log_duration(&mut self, duration: f64) {
+    /// Add the interval to the total for the current stack.
+    fn log_interval(&mut self, duration: f64) {
         let stack = &self.stack;
         let mut frame = &mut self.root;
         for id in stack {
             frame = frame.children.entry(id.clone()).or_default();
         }
         frame.duration += duration;
+        frame.intervals += 1;
     }
 }
 
@@ -63,21 +64,24 @@ pub struct Frame {
     duration:     f64,
     /// Aggregated intervals that ran as children of this profiler.
     pub children: collections::HashMap<rc::Rc<String>, Self>,
+    intervals:    usize,
 }
 
 impl Frame {
     /// Return the duration spent in this profiler's intervals, exclusive of time in child
     /// intervals.
     pub fn self_duration(&self) -> f64 {
-        let mut duration = self.duration;
-        for child in self.children.values() {
-            duration -= child.duration;
-        }
-        duration
+        let children_duration: f64 = self.children.values().map(Frame::total_duration).sum();
+        self.duration - children_duration
     }
 
     /// Return the duration spent in this profiler's intervals.
     pub fn total_duration(&self) -> f64 {
         self.duration
+    }
+
+    /// Return the number of intervals this aggregate represents.
+    pub fn interval_count(&self) -> usize {
+        self.intervals
     }
 }
