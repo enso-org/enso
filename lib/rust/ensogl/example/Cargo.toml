@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-example-animation = { path = "animation" }
 ensogl-example-complex-shape-system = { path = "complex-shape-system" }
+ensogl-example-custom-shape-system = { path = "custom-shape-system" }
 ensogl-example-dom-symbols = { path = "dom-symbols" }
 ensogl-example-drop-manager = { path = "drop-manager" }
 ensogl-example-easing-animator = { path = "easing-animator" }

@@ -64,8 +64,6 @@ pub fn entry_point_shape_system() {
     let sprite_system = ShapeSystem::new(&world, &shape());
     let sprite = sprite_system.new_instance();
 
-
-
     sprite.size.set(Vector2::new(300.0, 300.0));
     sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 

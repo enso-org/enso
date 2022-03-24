@@ -16,11 +16,13 @@ use crate::system::gpu::data::uniform::AnyTextureUniform;
 use crate::system::gpu::data::uniform::AnyUniform;
 
 use enso_shapely::newtype_prim;
+use enso_shapely::shared2;
 use shader::Shader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
 use web_sys::WebGlVertexArrayObject;
+
 
 
 // ==============
@@ -229,6 +231,38 @@ impl Drop for SymbolStatsData {
 
 
 
+// ================================
+// === GlobalInstanceIdProvider ===
+// ================================
+
+newtype_prim! {
+    GlobalInstanceId(u32);
+}
+
+shared2! { GlobalInstanceIdProvider
+    #[derive(Debug,Default)]
+    pub struct GlobalInstanceIdProviderData {
+        next: GlobalInstanceId,
+        free: Vec<GlobalInstanceId>,
+    }
+
+    impl {
+        pub fn reserve(&mut self) -> GlobalInstanceId {
+            self.free.pop().unwrap_or_else(|| {
+                let out = self.next;
+                self.next = GlobalInstanceId::new((*out) + 1);
+                out
+            })
+        }
+
+        pub fn dispose(&mut self, id: GlobalInstanceId) {
+            self.free.push(id);
+        }
+    }
+}
+
+
+
 // ==============
 // === Symbol ===
 // ==============
@@ -265,15 +299,11 @@ newtype_prim! {
     SymbolId(u32);
 }
 
-// TODO
-// chyba powinnismy rejestrowac globlane id w symbolu - bo symbol w przyslosci powinien chyba
-// odbierac klikniecia myszka. Na razie odbiera jes dynamic shape, ale to jest za wysoko. Moze warto
-// zrobic osobna astrakcje nad symbolem? Ale to chyba za duzo
-
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Symbol {
     pub id:             SymbolId,
+    global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
     surface:            Mesh,
     shader:             Shader,
@@ -293,10 +323,16 @@ pub struct Symbol {
 
 impl Symbol {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, id: SymbolId, on_mut: OnMut) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        id: SymbolId,
+        global_id_provider: &GlobalInstanceIdProvider,
+        on_mut: OnMut,
+    ) -> Self {
         let logger = Logger::new(format!("symbol_{}", id));
         let init_logger = logger.clone();
         debug!(init_logger, "Initializing.", || {
+            let global_id_provider = global_id_provider.clone_ref();
             let on_mut2 = on_mut.clone();
             let surface_logger = Logger::new_sub(&logger, "surface");
             let shader_logger = Logger::new_sub(&logger, "shader");
@@ -321,6 +357,7 @@ impl Symbol {
 
             Self {
                 id,
+                global_id_provider,
                 display_object,
                 surface,
                 shader,

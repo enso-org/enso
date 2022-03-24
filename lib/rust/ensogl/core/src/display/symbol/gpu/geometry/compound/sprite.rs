@@ -11,6 +11,7 @@ use crate::display;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
 use crate::display::scene::Scene;
+use crate::display::symbol;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -61,15 +62,17 @@ impl Drop for SpriteStats {
 /// the sprite dimensions to zero and marking it index as a free for future reuse.
 #[derive(Debug)]
 pub struct SpriteGuard {
-    instance_id:    attribute::InstanceIndex,
-    symbol:         Symbol,
-    size:           Attribute<Vector2<f32>>,
-    display_object: display::object::Instance,
+    instance_id:        attribute::InstanceIndex,
+    global_instance_id: symbol::GlobalInstanceId,
+    symbol:             Symbol,
+    size:               Attribute<Vector2<f32>>,
+    display_object:     display::object::Instance,
 }
 
 impl SpriteGuard {
     fn new(
         instance_id: attribute::InstanceIndex,
+        global_instance_id: symbol::GlobalInstanceId,
         symbol: &Symbol,
         size: &Attribute<Vector2<f32>>,
         display_object: &display::object::Instance,
@@ -77,7 +80,7 @@ impl SpriteGuard {
         let symbol = symbol.clone_ref();
         let size = size.clone_ref();
         let display_object = display_object.clone_ref();
-        Self { instance_id, symbol, size, display_object }
+        Self { instance_id, global_instance_id, symbol, size, display_object }
     }
 }
 
@@ -85,6 +88,7 @@ impl Drop for SpriteGuard {
     fn drop(&mut self) {
         self.size.set(zero());
         self.symbol.surface().instance_scope().dispose(self.instance_id);
+        self.symbol.global_id_provider.dispose(self.global_instance_id);
         self.display_object.unset_parent();
     }
 }
@@ -158,13 +162,14 @@ impl Size {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Sprite {
-    pub symbol:      Symbol,
-    pub instance_id: attribute::InstanceIndex,
-    pub size:        Size,
-    display_object:  display::object::Instance,
-    transform:       Attribute<Matrix4<f32>>,
-    stats:           Rc<SpriteStats>,
-    guard:           Rc<SpriteGuard>,
+    pub symbol:             Symbol,
+    pub instance_id:        attribute::InstanceIndex,
+    pub global_instance_id: symbol::GlobalInstanceId,
+    pub size:               Size,
+    display_object:         display::object::Instance,
+    transform:              Attribute<Matrix4<f32>>,
+    stats:                  Rc<SpriteStats>,
+    guard:                  Rc<SpriteGuard>,
 }
 
 impl Sprite {
@@ -172,6 +177,7 @@ impl Sprite {
     pub fn new(
         symbol: &Symbol,
         instance_id: attribute::InstanceIndex,
+        global_instance_id: symbol::GlobalInstanceId,
         transform: Attribute<Matrix4<f32>>,
         size: Attribute<Vector2<f32>>,
         stats: &Stats,
@@ -180,11 +186,27 @@ impl Sprite {
         let logger = Logger::new(iformat!("Sprite{instance_id}"));
         let display_object = display::object::Instance::new(logger);
         let stats = Rc::new(SpriteStats::new(stats));
-        let guard = Rc::new(SpriteGuard::new(instance_id, &symbol, &size, &display_object));
+        let guard = Rc::new(SpriteGuard::new(
+            instance_id,
+            global_instance_id,
+            &symbol,
+            &size,
+            &display_object,
+        ));
         let size = Size::new(size);
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
-        Self { symbol, instance_id, size, display_object, transform, stats, guard }.init()
+        Self {
+            symbol,
+            instance_id,
+            global_instance_id,
+            size,
+            display_object,
+            transform,
+            stats,
+            guard,
+        }
+        .init()
     }
 
     /// Init display object bindings. In particular defines the behavior of the show and hide
@@ -265,10 +287,18 @@ impl SpriteSystem {
 
     /// Creates a new sprite instance.
     pub fn new_instance(&self) -> Sprite {
+        let global_instance_id = self.symbol.global_id_provider.reserve();
         let instance_id = self.symbol.surface().instance_scope().add_instance();
         let transform = self.transform.at(instance_id);
         let size = self.size.at(instance_id);
-        let sprite = Sprite::new(&self.symbol, instance_id, transform, size, &self.stats);
+        let sprite = Sprite::new(
+            &self.symbol,
+            instance_id,
+            global_instance_id,
+            transform,
+            size,
+            &self.stats,
+        );
         self.add_child(&sprite);
         sprite
     }
