@@ -98,6 +98,10 @@ type Sql_Type
     text : Sql_Type
     text = Sql_Type Types.VARCHAR "VARCHAR"
 
+    ## The SQL type representing a binary object.
+    blob : Sql_Type
+    blob = Sql_Type Types.BLOB "BLOB"
+
     ## PRIVATE
 
        Returns True if this type represents an integer.

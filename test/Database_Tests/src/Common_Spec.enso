@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Database import all
+import Standard.Table.Data.Table as Materialized_Table
 import Standard.Test
 
 from Standard.Table.Data.Aggregate_Column import all
@@ -20,9 +21,7 @@ spec prefix connection test_selection pending=Nothing =
     clean_table name = Panic.recover Any <|
         sql = 'DROP TABLE "' + name + '"'
         Panic.rethrow <| connection.execute_update sql
-    t1 = make_table "T1" ["a", "b", "c"] ["INT", "INT", "INT"]
-    t1.insert [1, 2, 3]
-    t1.insert [4, 5, 6]
+    t1 = connection.upload_table "T1" (Materialized_Table.new [["a", [1, 4]], ["b", [2, 5]], ["c", [3, 6]]])
     Test.group prefix+"Basic Table Access" pending=pending <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.to_dataframe
@@ -58,11 +57,14 @@ spec prefix connection test_selection pending=Nothing =
             empty.to_dataframe.columns.length . should_equal 0
             empty.to_dataframe.row_count . should_equal empty.row_count
         # TODO: https://stackoverflow.com/questions/3784197/efficient-way-to-do-batch-inserts-with-jdbc
-        Test.specify "should handle bigger result sets" pending="FIXME - disabled for quicker iterations testing other stuff" <|
-            table = make_table "Big" ["a", "b", "c"] ["INT", "REAL", "VARCHAR"]
+        Test.specify "should handle bigger result sets" <|
+            # pending="FIXME - disabled for quicker iterations testing other stuff" <|
+#            table = make_table "Big" ["a", "b", "c"] ["INT", "REAL", "VARCHAR"]
             n = 1000
-            0.up_to n . each ix->
-                table.insert [ix, ix * 3.1415926, ix.to_text]
+#            0.up_to n . each ix->
+#                table.insert [ix, ix * 3.1415926, ix.to_text]
+            original = Materialized_Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
+            table = connection.upload_table "Big" original
             materialized = table.to_dataframe
             materialized.row_count . should_equal n
 

@@ -31,6 +31,11 @@ sqlite_specific_spec connection =
             t.at "ints" . sql_type . is_definitely_integer . should_be_true
             t.at "bools" . sql_type . is_definitely_boolean . should_be_true
             t.at "reals" . sql_type . is_definitely_double . should_be_true
+
+            t.at "ints" . sql_type . is_definitely_text . should_be_false
+            t.at "strs" . sql_type . is_definitely_integer . should_be_false
+            t.at "reals" . sql_type . is_definitely_boolean . should_be_false
+            t.at "bools" . sql_type . is_definitely_double . should_be_false
         connection.execute_update 'DROP TABLE "Tinfo"'
 
 spec =
