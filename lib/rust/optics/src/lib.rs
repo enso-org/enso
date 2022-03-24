@@ -322,7 +322,7 @@ impl<T> HasLens for T {}
 
 macro_rules! mk_lens_field_decl {
 ($struct_name:ident<$($param:ident),*>{$field_name:ident : $field_type:ty}) => {
-paste::item! {
+paste! {
     // struct FIELD_bar;
     struct [<FIELD_ $field_name>];
 
@@ -336,7 +336,7 @@ paste::item! {
 
 macro_rules! mk_lenses_for {
 ($struct_name:ident<$($param:ident),*>{$field_name:ident : $field_type:ty}) => {
-paste::item! {
+paste! {
 
     mk_lens_field_decl!($struct_name<$($param),*>{$field_name:$field_type});
 
@@ -423,7 +423,7 @@ paste::item! {
 }};
 
 ($struct_name:ident<$($param:ident),*> :: $cons_name:ident {$field_name:ident : $field_type:ty}) => {
-paste::item! {
+paste! {
 
     mk_lens_field_decl!($struct_name<$($param),*>{$field_name:$field_type});
 

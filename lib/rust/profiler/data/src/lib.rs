@@ -1,7 +1,6 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-#![allow(rustdoc::private_intra_doc_links)] // check_no_async_tasks_active
 //! Interface to profile data.
 //!
 //! # Overview
@@ -77,25 +76,20 @@
 //!     // Obtain log data directly; it could also be deserialized from a file.
 //!     let log = profiler::internal::take_log();
 //!     // Parse the log. Interpret metadata according to the enum defined above.
-//!     let root: profiler_data::Measurement<MyMetadata> = log.parse().unwrap();
-//!     // Verify the MyData object is present and attached to the right profiler.
-//!     let profiler = &root.children[0].children[0];
-//!     assert_eq!(&profiler.label.name, "action_producing_metadata");
-//!     assert_eq!(profiler.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
-//!     assert_eq!(profiler.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
+//!     let profile: profiler_data::Profile<MyMetadata> = log.parse().unwrap();
+//!     // Verify the MyData objects are present and attached to the right interval.
+//!     let demo = &profile[profile.root_interval().children[0]];
+//!     let interval = &profile[demo.children[0]];
+//!     let action = &profile[interval.measurement];
+//!     assert_eq!(&action.label.name, "action_producing_metadata");
+//!     assert_eq!(interval.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
+//!     assert_eq!(interval.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
 //!     // Marks can be used to compare the order of events.
-//!     assert!(profiler.metadata[0].mark < profiler.metadata[1].mark);
+//!     assert!(interval.metadata[0].mark < interval.metadata[1].mark);
 //! }
 //!
 //! store_and_retrieve_metadata();
 //! ```
-//!
-//! # Limitations
-//!
-//! [`parse::LogVisitor::check_no_async_task_active`] checks for a type of API misuse error, but
-//! currently also disallows running an async profiler during the lifetime of a non-async parent.
-//! The only way that could occur is with the use of `block_on`, which is never used in the Enso
-//! codebase except in tests.
 
 #![feature(test)]
 #![deny(unconditional_recursion)]
@@ -139,7 +133,7 @@ pub enum Error<M> {
         ///
         /// If some errors are not metadata errors (i.e. the core format has changed), the readable
         /// subset of events might not form a valid log, and this will contain an error too.
-        with_missing_data: Result<Measurement<M>, EventError<parse::DataError>>,
+        with_missing_data: Result<Profile<M>, EventError<parse::DataError>>,
     },
     /// Failed to interpret the event log data.
     DataError(EventError<parse::DataError>),
@@ -198,99 +192,103 @@ impl<E: error::Error> error::Error for EventError<E> {
 
 
 
-// ===================
-// === Measurement ===
-// ===================
+// ===============
+// === Profile ===
+// ===============
 
-/// All the information produced by a profiler.
+/// All the profiling information captured during one run of the application.
 ///
 /// This is parameterized by a type that determines how metadata is interpreted. The type must be
 /// an enum, with a variant for each type of metadata that is handled. Each variant's name and type
 /// should correspond to the parameters supplied to [`profiler::MetadataLogger::new`]. For an
 /// example, see the docs for the [`crate`].
 #[derive(Clone, Debug)]
-pub struct Measurement<M> {
-    /// When the profiler was running.
-    pub lifetime: Lifetime,
+pub struct Profile<M> {
+    /// The hierarchy of profilers. A parent-child relationship indicates that the child was
+    /// started while the parent was running.
+    pub measurements: Vec<Measurement>,
+    /// The hierarchy of intervals. A parent-child relationship indicates that the child is
+    /// contained within the parent.
+    pub intervals:    Vec<ActiveInterval<M>>,
+}
+
+impl<M> Profile<M> {
+    /// A virtual measurement containing the top-level measurements as children.
+    pub fn root_measurement(&self) -> &Measurement {
+        self.measurements.last().unwrap()
+    }
+}
+
+impl<M> Profile<M> {
+    /// A virtual interval containing the top-level intervals as children.
+    pub fn root_interval(&self) -> &ActiveInterval<M> {
+        self.intervals.last().unwrap()
+    }
+}
+
+
+// === IDs and indexing ===
+
+/// Identifies a measurement in a particular profile.
+#[derive(Copy, Clone, Debug)]
+pub struct MeasurementId(pub(crate) usize);
+
+/// Identifies an interval in a particular profile.
+#[derive(Copy, Clone, Debug)]
+pub struct IntervalId(pub(crate) usize);
+
+impl<M> std::ops::Index<MeasurementId> for Profile<M> {
+    type Output = Measurement;
+    fn index(&self, MeasurementId(index): MeasurementId) -> &Self::Output {
+        &self.measurements[index]
+    }
+}
+
+impl<M> std::ops::Index<IntervalId> for Profile<M> {
+    type Output = ActiveInterval<M>;
+    fn index(&self, IntervalId(index): IntervalId) -> &Self::Output {
+        &self.intervals[index]
+    }
+}
+
+
+
+// ===================
+// === Measurement ===
+// ===================
+
+/// All the information produced by a profiler.
+#[derive(Clone, Debug)]
+pub struct Measurement {
     /// Identifies the profiler's source and scope to the user.
-    pub label:    Label,
+    pub label:     Label,
     /// Profilers started by this profiler, ordered by time created.
-    pub children: Vec<Self>,
-    /// Metadata attached to this profiler, ordered by time logged.
-    pub metadata: Vec<Metadata<M>>,
+    pub children:  Vec<MeasurementId>,
+    /// When the profiler was created.
+    pub created:   Mark,
+    /// Whether the profiler logged its completion at the end of its last active interval.
+    pub finished:  bool,
+    /// When the profiler was running.
+    pub intervals: Vec<IntervalId>,
 }
 
-
-// === Lifetime ===
-
-/// Information about when a profiler was running.
-#[derive(Clone, Debug)]
-pub enum Lifetime {
-    /// Information applicable to async profilers.
-    Async(AsyncLifetime),
-    /// Information applicable to non-async profilers.
-    NonAsync {
-        /// The interval that the profiler was running.
-        active: Interval,
-    },
-}
-
-impl Lifetime {
-    /// Whether the task this profiler measures was completed.
-    pub fn finished(&self) -> bool {
-        match self {
-            Lifetime::Async(lifetime) => lifetime.finished,
-            Lifetime::NonAsync { active } => active.end.is_some(),
-        }
-    }
-
-    /// Get a AsyncLifetime, if this Lifetime was async.
-    pub fn as_async(&self) -> Option<&AsyncLifetime> {
-        match self {
-            Lifetime::Async(lifetime) => Some(lifetime),
-            Lifetime::NonAsync { .. } => None,
-        }
-    }
-
-    /// Whether this profiler recorded an async task.
-    pub fn is_async(&self) -> bool {
-        self.as_async().is_some()
+impl Measurement {
+    /// Distinguish between classes of profilers that may need to be handled differently.
+    pub fn classify(&self) -> Class {
+        self.label.classify()
     }
 }
 
-/// Information about when an async profiler was running.
-#[derive(Clone, Debug)]
-pub struct AsyncLifetime {
-    /// The time a profiled `async fn` was called, if known.
-    ///
-    /// This will always be before the first interval in `active`, as the function must be
-    /// called before it can be awaited and begin running.
-    pub created:  Option<Mark>,
-    /// Intervals that the profiler was running.
-    pub active:   Vec<Interval>,
-    /// If true: the last interval in `active` ended when the task was completed.
-    /// If false: the task was awaiting or running (indicated by whether the last interval in
-    /// `active` has an end) at the time the log was created.
-    pub finished: bool,
-}
 
-impl AsyncLifetime {
-    /// The interval from when the async profiler was created, to when it finished.
-    ///
-    /// If creation time is not known, it will be approximated by first start-time.
-    ///
-    /// If the profiler is associated with a Future that was created but never awaited,
-    /// this will return None.
-    pub fn create_to_finish(&self) -> Option<Interval> {
-        self.active.first().map(|first| {
-            let start = self.created.unwrap_or(first.start);
-            let end = match self.finished {
-                true => self.active.last().unwrap().end,
-                false => None,
-            };
-            Interval { start, end }
-        })
-    }
+// == Class ==
+
+/// Distinguishes special profilers from normal profilers.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Class {
+    /// Profiler that is active during the execution of anything else, after early startup.
+    OnFrame,
+    /// Any profiler that doesn't need special treatment.
+    Normal,
 }
 
 
@@ -361,6 +359,25 @@ impl Seq {
 
 
 
+// ======================
+// === ActiveInterval ===
+// ======================
+
+/// Represents the tree of profilers active during some interval.
+#[derive(Clone, Debug)]
+pub struct ActiveInterval<M> {
+    /// The profiler instance that this interval belongs to.
+    pub measurement: MeasurementId,
+    /// The time spanned by this interval.
+    pub interval:    Interval,
+    /// Active intervals that occurred during this interval.
+    pub children:    Vec<IntervalId>,
+    /// Metadata emitted while this was the active interval.
+    pub metadata:    Vec<Metadata<M>>,
+}
+
+
+
 // ================
 // === Interval ===
 // ================
@@ -379,6 +396,11 @@ impl Interval {
     pub fn closed(self) -> bool {
         self.end.is_some()
     }
+
+    /// Return the duration from start to end in milliseconds, if the end is known.
+    pub fn duration_ms(self) -> Option<f64> {
+        self.end.map(|end| end.into_ms() - self.start.into_ms())
+    }
 }
 
 
@@ -394,6 +416,18 @@ pub struct Label {
     pub name: String,
     /// Location in the code the measurement originated, if compiled with line numbers enabled.
     pub pos:  Option<CodePos>,
+}
+
+impl Label {
+    /// Recognize profilers with special names.
+    fn classify(&self) -> Class {
+        match self.name.as_str() {
+            "@on_frame" => Class::OnFrame,
+            // Data producer is probably newer than consumer. Forward compatibility isn't necessary.
+            name if name.starts_with('@') => panic!("Unrecognized special profiler: {:?}", name),
+            _ => Class::Normal,
+        }
+    }
 }
 
 
@@ -445,19 +479,16 @@ mod tests {
             4
         }
         parent();
-        let root: profiler_data::Measurement<OpaqueMetadata> =
+        let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
-        let roots = &root.children;
+        let roots = &profile.root_measurement().children;
         assert_eq!(roots.len(), 1);
-        assert!(roots[0].lifetime.finished());
-        assert!(!roots[0].lifetime.is_async(), "{:?}", &roots[0].lifetime);
-        assert!(roots[0].lifetime.finished());
-        assert_eq!(roots[0].label.name, "parent");
-        assert_eq!(roots[0].children.len(), 1);
-        let child = &roots[0].children[0];
-        assert!(child.lifetime.finished());
-        assert!(!child.lifetime.is_async());
-        assert!(child.lifetime.finished());
+        let parent = &profile[roots[0]];
+        assert!(parent.finished);
+        assert_eq!(parent.label.name, "parent");
+        assert_eq!(parent.children.len(), 1);
+        let child = &profile[parent.children[0]];
+        assert!(child.finished);
         assert_eq!(child.label.name, "child");
         assert_eq!(child.children.len(), 0);
     }
@@ -475,29 +506,30 @@ mod tests {
         }
         let future = parent();
         futures::executor::block_on(future);
-        let root: profiler_data::Measurement<OpaqueMetadata> =
+        let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
-        let roots = &root.children;
+        let roots = &profile.root_measurement().children;
         assert_eq!(roots.len(), 1);
-        assert!(roots[0].lifetime.finished());
-        let root_intervals = &roots[0].lifetime.as_async().unwrap().active;
-        assert_eq!(root_intervals.len(), 2);
-        for interval in root_intervals {
-            assert!(interval.closed());
+        let parent = &profile[roots[0]];
+        assert!(parent.finished);
+        let parent_intervals = &parent.intervals;
+        assert_eq!(parent_intervals.len(), 2);
+        for interval in parent_intervals {
+            assert!(profile[*interval].interval.closed());
         }
-        assert!(roots[0].lifetime.finished());
-        assert_eq!(roots[0].label.name, "parent");
-        assert_eq!(roots[0].children.len(), 1);
-        let child = &roots[0].children[0];
-        assert!(child.lifetime.finished());
-        let child_intervals = &child.lifetime.as_async().unwrap().active;
+        assert!(parent.finished);
+        assert_eq!(parent.label.name, "parent");
+        assert_eq!(parent.children.len(), 1);
+        let child = &profile[parent.children[0]];
+        assert!(child.finished);
+        let child_intervals = &child.intervals;
         assert_eq!(child_intervals.len(), 2);
         for interval in child_intervals {
-            assert!(interval.closed());
+            assert!(profile[*interval].interval.closed());
         }
-        assert!(child.lifetime.finished());
+        assert!(child.finished);
         assert_eq!(child.label.name, "child");
-        assert_eq!(child.children.len(), 0);
+        assert_eq!(child.children.len(), 1, "{:?}", &profile);
     }
 
     #[test]
@@ -506,9 +538,10 @@ mod tests {
         async fn func() {}
         // Create a Future, but don't await it.
         let _future = func();
-        let root: profiler_data::Measurement<OpaqueMetadata> =
+        let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
-        assert!(!root.children[0].lifetime.finished());
+        let roots = &profile.root_measurement().children;
+        assert!(!profile[roots[0]].finished);
     }
 
     #[test]
@@ -519,9 +552,10 @@ mod tests {
             None,
             profiler::internal::StartState::Active,
         );
-        let root: profiler_data::Measurement<OpaqueMetadata> =
+        let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
-        assert!(!root.children[0].lifetime.finished());
+        let roots = &profile.root_measurement().children;
+        assert!(!profile[roots[0]].finished);
     }
 
     #[test]
@@ -533,9 +567,10 @@ mod tests {
             profiler::internal::StartState::Active,
         );
         profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
-        let root: profiler_data::Measurement<OpaqueMetadata> =
+        let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
-        assert!(!root.children[0].lifetime.finished(), "{:?}", &root);
+        let roots = &profile.root_measurement().children;
+        assert!(!profile[roots[0]].finished);
     }
 
     /// Simulate a change to the format of a type of metadata; ensure the error is reported
@@ -560,7 +595,7 @@ mod tests {
             MyDataB(MyDataBExpected),
         }
         let log = profiler::internal::take_log();
-        let root: Result<profiler_data::Measurement<MyMetadata>, _> = log.parse();
+        let root: Result<profiler_data::Profile<MyMetadata>, _> = log.parse();
         let root = match root {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {
                 assert_eq!(errors.len(), 1);
@@ -569,7 +604,7 @@ mod tests {
             }
             other => panic!("Expected RecoverableFormatError, found: {:?}", other),
         };
-        assert_eq!(root.metadata.len(), 1);
-        assert_eq!(root.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
+        assert_eq!(root.root_interval().metadata.len(), 1);
+        assert_eq!(root.root_interval().metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
     }
 }

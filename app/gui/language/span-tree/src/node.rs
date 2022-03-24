@@ -592,6 +592,7 @@ impl<'a, T: Payload> Ref<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,
@@ -756,6 +757,7 @@ impl<'a, T: Payload> RefMut<'a, T> {
     /// This algorithm allows passing any kind of data to layers. In order to set data for all
     /// children of the current branch, return it as the second argument of the tuple. Please note
     /// that callbacks get mutable access to the passed data, so they can freely modify it.
+    #[profile(Debug)]
     pub fn partial_dfs_with_layer_data<D>(
         self,
         mut data: D,

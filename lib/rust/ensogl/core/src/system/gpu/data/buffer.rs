@@ -410,7 +410,7 @@ use enum_dispatch::*;
 pub struct BadVariant;
 
 macro_rules! define_any_buffer {
-([] [$([$base:ident $param:ident])*]) => { paste::item! {
+([] [$([$base:ident $param:ident])*]) => { paste! {
 
     /// An enum with a variant per possible buffer type (i32, f32, Vector<f32>,
     /// and many, many more). It provides a faster alternative to dyn trait one:

@@ -2,6 +2,8 @@
 
 #### Visual Environment
 
+- [Nodes can be added to the graph by double-clicking the output ports of
+  existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
   searcher and edited node is now fixed. It simplifies node editing on
   non-standard zoom levels.
@@ -73,6 +75,7 @@
 - [Replaced `Table.group_by` with `Table.aggregate`][3339]
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
+- [Added warning handling to `Table.aggregate`][3349]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -116,6 +119,8 @@
 [3327]: https://github.com/enso-org/enso/pull/3327
 [3339]: https://github.com/enso-org/enso/pull/3339
 [3344]: https://github.com/enso-org/enso/pull/3344
+[3346]: https://github.com/enso-org/enso/pull/3346
+[3349]: https://github.com/enso-org/enso/pull/3349
 
 #### Enso Compiler
 

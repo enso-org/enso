@@ -278,9 +278,9 @@ macro_rules! examples {
     ($($name:ident),*) => {$(
         std::mem::forget(Example::new(
             stringify!($name),
-            paste::expr!{[<$name _in>]()},
-            paste::expr!{[<$name _out>]()},
-            paste::expr!{[<$name _in_out>]()},
+            paste!{[<$name _in>]()},
+            paste!{[<$name _out>]()},
+            paste!{[<$name _in_out>]()},
         ));
     )*};
 }

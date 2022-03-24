@@ -525,6 +525,7 @@ impl Project {
             .acquire_capability(&capability.method, &capability.register_options)
     }
 
+    #[profile(Task)]
     fn load_module(
         &self,
         path: module::Path,
@@ -583,6 +584,7 @@ impl model::project::API for Project {
         self.content_roots.get(id)
     }
 
+    #[profile(Detail)]
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
         async move {
             info!(self.logger, "Obtaining module for {path}");
@@ -593,6 +595,7 @@ impl model::project::API for Project {
         .boxed_local()
     }
 
+    #[profile(Detail)]
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,

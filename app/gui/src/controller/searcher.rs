@@ -652,6 +652,7 @@ impl Searcher {
     ///
     /// If the action results in adding new node to the graph, or changing an exiting node, its id
     /// will be returned by this function.
+    #[profile(Task)]
     pub fn execute_action(&self, action: Action) -> FallibleResult<Option<ast::Id>> {
         match action {
             Action::Suggestion(suggestion) => {

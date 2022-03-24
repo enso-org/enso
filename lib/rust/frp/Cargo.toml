@@ -11,6 +11,7 @@ enso-callback = { path = "../callback" }
 enso-generics = { path = "../generics"}
 enso-logger = { path = "../logger"}
 enso-prelude = { path = "../prelude"}
+enso-profiler = { path = "../profiler"}
 enso-web = { path = "../web" }
 Inflector = { version = "0.11.4" }
 keyboard-types = { version = "0.5.0" }

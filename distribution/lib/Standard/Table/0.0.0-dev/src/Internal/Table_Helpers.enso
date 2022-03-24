@@ -174,8 +174,8 @@ rename_columns internal_columns mapping on_problems =
     processed = mapped.valid.map_with_index i->n->
         if n.is_nothing then (unique.make_unique (internal_columns.at i).name) else n
 
-    invalid_names = (if unique.invalid_names.length == 0 then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
-    duplicate_names = (if unique.renames.length == 0 then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
+    invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
+    duplicate_names = (if unique.renames.is_empty then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
     problems = mapped.problems + invalid_names + duplicate_names
 
     on_problems.attach_problems_before problems processed
@@ -321,7 +321,7 @@ validate_unique vector problem_wrapper on=(x->x) =
             False -> [existing.insert key True, acc.at 1 . append item, acc.at 2]
 
     duplicates = acc.at 2
-    problems = if duplicates.length == 0 then [] else problem_wrapper duplicates.to_vector
+    problems = if duplicates.is_empty then [] else problem_wrapper duplicates.to_vector
 
     Validation_Result (acc.at 1).to_vector problems
 

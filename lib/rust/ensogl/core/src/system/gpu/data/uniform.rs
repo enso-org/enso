@@ -237,7 +237,7 @@ impl<T> WithContent for Uniform<T> {
 pub struct TypeMismatch;
 
 macro_rules! define_any_prim_uniform {
-    ( [] [$([$t1:ident $t2:ident])*] ) => { paste::item! {
+    ( [] [$([$t1:ident $t2:ident])*] ) => { paste! {
         /// Existentially typed uniform value.
         #[allow(non_camel_case_types)]
         #[enum_dispatch(AnyPrimUniformOps)]
@@ -285,7 +285,7 @@ impl<Value: UniformUpload> AnyPrimUniformOps for UniformData<Value> {
 // =========================
 
 macro_rules! define_any_texture_uniform {
-    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste::item! {
+    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste! {
         #[allow(non_camel_case_types)]
         #[derive(Clone,CloneRef,Debug)]
         pub enum AnyTextureUniform {

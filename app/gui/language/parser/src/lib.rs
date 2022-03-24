@@ -44,6 +44,8 @@ use std::panic;
 pub mod prelude {
     pub use ast::traits::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 }
 
 
@@ -102,6 +104,7 @@ impl Parser {
     ///
     /// If metadata deserialization fails, error is ignored and default value for metadata is used.
     /// Other errors are returned through `Result`.
+    #[profile(Detail)]
     pub fn parse_with_metadata<M: api::Metadata>(
         &self,
         program: String,
