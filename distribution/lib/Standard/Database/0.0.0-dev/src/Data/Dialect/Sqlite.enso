@@ -103,15 +103,15 @@ resolve_target_sql_type aggregate = case aggregate of
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
-    Sql.code "SUM(" ++ arg.paren ++ Sql.code " IS NULL)"
+    Sql.code "COALESCE(SUM(" ++ arg.paren ++ Sql.code " IS NULL), 0)"
 
 ## PRIVATE
 agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
-    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " == ''))"
+    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " == '')), 0)"
 
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
-    Sql.code "SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != ''))"
+    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '')), 0)"
 
 ## PRIVATE
 agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINCT_INCLUDE_NULL" arg->
