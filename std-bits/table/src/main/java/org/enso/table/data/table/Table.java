@@ -13,6 +13,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.aggregate.AggregateTable;
 import org.enso.table.error.NoSuchColumnException;
@@ -190,6 +191,16 @@ public class Table {
     Column col = getColumnByName(name);
     if (col == null) throw new NoSuchColumnException(name);
     return indexFromColumn(col);
+  }
+
+  /**
+   * Creates an index fpr this table by using values from the specified columns.
+   *
+   * @param columns set of columns to use as an Index
+   * @return a table indexed by the proper column
+   */
+  public MultiValueIndex indexFromColumns(Column[] columns) {
+    return new MultiValueIndex(this, Arrays.stream(columns).map(c -> c.getStorage()).toArray(Storage[]::new));
   }
 
   /**
