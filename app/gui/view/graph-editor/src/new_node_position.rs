@@ -46,8 +46,7 @@ pub fn new_node_position(
     let some_nodes_selected = graph_editor.nodes.selected.len() > 0;
     match way {
         AddNodeEvent => default(),
-        StartCreationEvent | ClickingButton if some_nodes_selected =>
-            under_selection(graph_editor),
+        StartCreationEvent | ClickingButton if some_nodes_selected => under_selection(graph_editor),
         StartCreationEvent => mouse_position,
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { .. } => mouse_position,

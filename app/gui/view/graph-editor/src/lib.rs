@@ -1436,10 +1436,7 @@ impl GraphEditorModelWithNetwork {
         (node.id(), source, should_edit)
     }
 
-    fn data_source_for_new_node(
-        &self,
-        way: &WayOfCreatingNode,
-    ) -> Option<NodeSource> {
+    fn data_source_for_new_node(&self, way: &WayOfCreatingNode) -> Option<NodeSource> {
         use WayOfCreatingNode::*;
         let source_node = match way {
             AddNodeEvent => None,
