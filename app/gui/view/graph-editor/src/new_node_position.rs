@@ -79,7 +79,7 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
 pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
     let above_node_pos = graph_editor.node_position(node_id);
     let above_node_bbox = graph_editor.node_bounding_box(node_id);
-    below_line_left_aligned(graph_editor, above_node_pos.bottom(), above_node_pos.x)
+    below_line_left_aligned(graph_editor, above_node_bbox.bottom(), above_node_pos.x)
 }
 
 /// Return a position for a newly created node. Returns a position left-aligned to `align_x`
