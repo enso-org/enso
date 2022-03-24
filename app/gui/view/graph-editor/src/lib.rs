@@ -2053,6 +2053,8 @@ impl GraphEditorModel {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
     }
 
+    /// Return the bounding box of the node identified by `node_id`, or a default bounding box if
+    /// the node was not found.
     pub fn node_bounding_box(&self, node_id: impl Into<NodeId>) -> selection::BoundingBox {
         let node_id = node_id.into();
         let node = self.nodes.get_cloned_ref(&node_id);
