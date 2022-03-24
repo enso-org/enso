@@ -54,6 +54,10 @@ spec =
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
 
+        Test.specify "should implement to_text" <|
+            Error.throw Nothing . to_text . should_equal "(Error: Nothing)"
+            Error.to_text . should_equal "Error"
+
         Test.specify "should be able to be mapped" <|
             error = Error.throw 42
             regular = 10
