@@ -1471,6 +1471,7 @@ dependencies = [
 name = "ensogl-example-shape-system"
 version = "0.1.0"
 dependencies = [
+ "enso-profiler",
  "ensogl-core",
  "wasm-bindgen",
 ]

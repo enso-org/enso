@@ -7,7 +7,7 @@
 // =================
 
 /// The threshold used to decide whether a value should be included in the generated ID map. The
-/// threshold is defined as 0.0 because it is failry common to use almost completely transparent
+/// threshold is defined as 0.0 because it is quite common to use almost completely transparent
 /// colors (like `Rgba(0.0, 0.0, 0.0, 0.000001)`) for shapes which should just catch mouse events
 /// without providing any visual feedback.
 const float ID_ALPHA_THRESHOLD = 0.0;
