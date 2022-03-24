@@ -68,7 +68,7 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
         let node_bbox = graph_editor.node_bounding_box(node_id);
         min_bbox_bottom = min(min_bbox_bottom, node_bbox.bottom());
     }
-    left_aligned_to_x_below_y_with_gap(graph_editor, x, min_bbox_bottom)
+    below_line_and_pushed_left(graph_editor, min_bbox_bottom, x)
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
@@ -79,17 +79,17 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
 pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
     let above_node_pos = graph_editor.node_position(node_id);
     let above_node_bbox = graph_editor.node_bounding_box(node_id);
-    left_aligned_to_x_below_y_with_gap(graph_editor, above_node_pos.x, above_node_bbox.bottom())
+    below_line_and_pushed_left(graph_editor, above_node_pos.bottom(), above_node_pos.x)
 }
 
-pub fn left_aligned_to_x_below_y_with_gap(
+pub fn below_line_and_pushed_left(
     graph_editor: &GraphEditorModel,
-    left_align_x: f32,
     below_y: f32,
+    max_x: f32,
 ) -> Vector2 {
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT / 2.0;
-    let starting_point = Vector2(left_align_x, below_y - y_offset);
+    let starting_point = Vector2(max_x, below_y - y_offset);
     let direction = Vector2(-1.0, 0.0);
     on_ray(graph_editor, starting_point, direction).unwrap()
 }
