@@ -423,7 +423,6 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
         Section.Tag("DEPRECATED", List()),
-        Section.Paragraph(List(Doc.Elem.Newline)),
         Section.Paragraph(
           List(
             Doc.Elem.Text("Some paragraph"),
