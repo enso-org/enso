@@ -54,26 +54,21 @@ pub fn new_node_position(
     }
 }
 
-/// Return a position for a newly created node. Returns a position closely below the lowest
-/// selected node, left aligned to the first selected node, or a first available position to the
-/// left if the initial position is not available.
+/// Return a position for a newly created node closely below all selected nodes, or a zero vector
+/// if no nodes are selected. The position is left-aligned to the first selected node, then moved
+/// to the left to the first available position if the initial position is not available.
 ///
 /// Availability of a position is defined in the docs of [`on_ray`].
 pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
+    let first_selected_node_id = graph_editor.nodes.selected.first_cloned();
+    let x = match first_selected_node_id {
+        None => return Vector2::zeros(),
+        Some(node_id) => graph_editor.node_position(node_id).x,
+    };
+    let node_bbox_bottom = |node_id| graph_editor.node_bounding_box(node_id).bottom();
     let selected_nodes = graph_editor.nodes.selected.raw.borrow();
-    let mut selected_nodes_iter = selected_nodes.iter();
-    // FIXME: try to avoid unwrap()
-    let first_selected_node = selected_nodes_iter.next().unwrap();
-    let first_selected_node_pos = graph_editor.node_position(first_selected_node);
-    let first_selected_node_bbox = graph_editor.node_bounding_box(first_selected_node);
-    let x = first_selected_node_pos.x;
-    // TODO: .map().min()?
-    let mut min_bbox_bottom = first_selected_node_bbox.bottom();
-    for node_id in selected_nodes_iter {
-        let node_bbox = graph_editor.node_bounding_box(node_id);
-        min_bbox_bottom = min(min_bbox_bottom, node_bbox.bottom());
-    }
-    left_aligned_below_line(graph_editor, x, min_bbox_bottom)
+    let selection_bottom_y = selected_nodes.iter().map(node_bbox_bottom).reduce(min);
+    left_aligned_below_line(graph_editor, x, selection_bottom_y.unwrap_or_default())
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
