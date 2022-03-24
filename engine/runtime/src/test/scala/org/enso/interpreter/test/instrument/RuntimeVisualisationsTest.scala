@@ -102,12 +102,12 @@ class RuntimeVisualisationsTest
     }
 
     def receive: Option[Api.Response] =
-      receiveTimeout(10)
+      receiveTimeout(20)
 
     def receiveTimeout(timeoutSeconds: Int): Option[Api.Response] =
       Option(messageQueue.poll(timeoutSeconds.toLong, TimeUnit.SECONDS))
 
-    def receive(n: Int, timeoutSeconds: Int = 10): List[Api.Response] =
+    def receive(n: Int, timeoutSeconds: Int = 20): List[Api.Response] =
       Iterator
         .continually(receiveTimeout(timeoutSeconds))
         .take(n)
@@ -1902,7 +1902,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushContextResponses =
-      context.receive(n = 4, timeoutSeconds = 60)
+      context.receive(n = 4, timeoutSeconds = 90)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
