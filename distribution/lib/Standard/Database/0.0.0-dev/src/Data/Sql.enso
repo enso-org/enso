@@ -81,7 +81,7 @@ type Sql_Type
 
     ## The SQL type representing double-precision floating-point numbers.
     double : Sql_Type
-    double = Sql_Type Types.DOUBLE "DOUBLE"
+    double = Sql_Type Types.DOUBLE "DOUBLE PRECISION"
 
     ## The SQL type representing a general numeric type.
     numeric : Sql_Type

@@ -401,7 +401,7 @@ default_storage_type : Storage.Type -> Sql_Type
 default_storage_type storage_type = case storage_type of
     Storage.Text -> Sql_Type.text
     Storage.Integer -> Sql_Type.integer
-    Storage.Decimal -> Sql_Type.real
+    Storage.Decimal -> Sql_Type.double
     Storage.Boolean -> Sql_Type.boolean
     Storage.Any -> Sql_Type.blob
 
