@@ -4,7 +4,7 @@ use crate::prelude::*;
 use crate::system::gpu::types::*;
 
 use crate::data::color;
-use crate::display::shape::primitive::def::class;
+use crate::display::shape::primitive::def::class::ShapeId;
 use crate::display::shape::primitive::def::var::Var;
 use crate::system::gpu::shader::glsl::Glsl;
 
@@ -38,14 +38,14 @@ impl Shape {
 /// reference to GLSL code which defines a vector shape there.
 #[derive(Clone, Debug)]
 pub struct ShapeData {
-    shape_num: class::ShapeId,
+    shape_num: ShapeId,
     ids:       Vec<usize>,
     name:      String,
 }
 
 impl ShapeData {
     /// Constructor.
-    pub fn new(shape_num: class::ShapeId) -> Self {
+    pub fn new(shape_num: ShapeId) -> Self {
         let ids = default();
         let name = format!("shape_{}", shape_num);
         Self { shape_num, ids, name }
@@ -85,7 +85,7 @@ pub struct Canvas {
     next_id:                usize,
     functions:              Vec<String>,
     current_function_lines: Vec<String>,
-    defined_shapes:         HashMap<class::ShapeId, Shape>,
+    defined_shapes:         HashMap<ShapeId, Shape>,
 }
 
 
@@ -108,7 +108,7 @@ impl Canvas {
     /// returned. Otherwise the provided constructor is run and the result is cached.
     pub fn if_not_defined<F: FnOnce(&mut Self) -> ShapeData>(
         &mut self,
-        id: class::ShapeId,
+        id: ShapeId,
         f: F,
     ) -> Shape {
         match self.defined_shapes.get(&id) {
@@ -158,7 +158,7 @@ impl Canvas {
 
 impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
-    pub fn define_shape(&mut self, num: class::ShapeId, sdf: &str) -> Shape {
+    pub fn define_shape(&mut self, num: ShapeId, sdf: &str) -> Shape {
         self.if_not_defined(num, |this| {
             let color = "srgba(1.0,0.0,0.0)";
             let mut shape = ShapeData::new(num);
@@ -174,7 +174,7 @@ impl Canvas {
     }
 
     /// Define a new shape from the provided GLSL expression.
-    pub fn new_shape_from_expr(&mut self, num: class::ShapeId, expr: &str) -> ShapeData {
+    pub fn new_shape_from_expr(&mut self, num: ShapeId, expr: &str) -> ShapeData {
         let shape = ShapeData::new(num);
         self.add_current_function_code_line(expr);
         self.submit_shape_constructor(&shape.name);
@@ -187,7 +187,7 @@ impl Canvas {
 
 impl Canvas {
     /// Create a union shape from the provided shape components.
-    pub fn union(&mut self, num: class::ShapeId, s1: Shape, s2: Shape) -> Shape {
+    pub fn union(&mut self, num: ShapeId, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return unify({s1.getter()},{s2.getter()});");
             let mut shape = this.new_shape_from_expr(num, &expr);
@@ -198,7 +198,7 @@ impl Canvas {
     }
 
     /// Create a difference shape from the provided shape components.
-    pub fn difference(&mut self, num: class::ShapeId, s1: Shape, s2: Shape) -> Shape {
+    pub fn difference(&mut self, num: ShapeId, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return difference({s1.getter()},{s2.getter()});");
             let mut shape = this.new_shape_from_expr(num, &expr);
@@ -209,7 +209,7 @@ impl Canvas {
     }
 
     /// Create a difference shape from the provided shape components.
-    pub fn intersection(&mut self, num: class::ShapeId, s1: Shape, s2: Shape) -> Shape {
+    pub fn intersection(&mut self, num: ShapeId, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return intersection({s1.getter()},{s2.getter()});");
             let mut shape = this.new_shape_from_expr(num, &expr);
@@ -222,7 +222,7 @@ impl Canvas {
     /// Translate the current canvas origin.
     pub fn translate<V: Into<Var<Vector2<Pixels>>>>(
         &mut self,
-        num: class::ShapeId,
+        num: ShapeId,
         s1: Shape,
         v: V,
     ) -> Shape {
@@ -240,7 +240,7 @@ impl Canvas {
     /// Rotate the current canvas origin.
     pub fn rotation<A: Into<Var<Radians>>>(
         &mut self,
-        num: class::ShapeId,
+        num: ShapeId,
         s1: Shape,
         angle: A,
     ) -> Shape {
@@ -256,7 +256,7 @@ impl Canvas {
     }
 
     /// Scale the current canvas origin.
-    pub fn scale<T: Into<Var<f32>>>(&mut self, num: class::ShapeId, s1: Shape, value: T) -> Shape {
+    pub fn scale<T: Into<Var<f32>>>(&mut self, num: ShapeId, s1: Shape, value: T) -> Shape {
         self.if_not_defined(num, |this| {
             let value: Glsl = value.into().glsl();
             let trans = iformat!("position = scale(position,{value});");
@@ -271,7 +271,7 @@ impl Canvas {
     /// Fill the shape with the provided color.
     pub fn fill<Color: Into<Var<color::Rgba>>>(
         &mut self,
-        num: class::ShapeId,
+        num: ShapeId,
         s: Shape,
         color: Color,
     ) -> Shape {
@@ -287,7 +287,7 @@ impl Canvas {
     }
 
     /// Make the borders of the shape crisp. Please note that it removes any form of antialiasing.
-    pub fn pixel_snap(&mut self, num: class::ShapeId, s: Shape) -> Shape {
+    pub fn pixel_snap(&mut self, num: ShapeId, s: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return pixel_snap({s.getter()});");
             let mut shape = this.new_shape_from_expr(num, &expr);
@@ -297,7 +297,7 @@ impl Canvas {
     }
 
     /// Grow the shape by the given value.
-    pub fn grow<T: Into<Var<f32>>>(&mut self, num: class::ShapeId, s: Shape, value: T) -> Shape {
+    pub fn grow<T: Into<Var<f32>>>(&mut self, num: ShapeId, s: Shape, value: T) -> Shape {
         self.if_not_defined(num, |this| {
             let value: Glsl = value.into().glsl();
             let expr = iformat!("return grow({s.getter()},{value});");
@@ -308,7 +308,7 @@ impl Canvas {
     }
 
     /// Shrink the shape by the given value.
-    pub fn shrink<T: Into<Var<f32>>>(&mut self, num: class::ShapeId, s: Shape, value: T) -> Shape {
+    pub fn shrink<T: Into<Var<f32>>>(&mut self, num: ShapeId, s: Shape, value: T) -> Shape {
         let value = value.into();
         self.grow(num, s, -value)
     }
@@ -316,7 +316,7 @@ impl Canvas {
     /// Repeat the shape with the given tile size.
     pub fn repeat<T: Into<Var<Vector2<Pixels>>>>(
         &mut self,
-        num: class::ShapeId,
+        num: ShapeId,
         s: Shape,
         tile_size: T,
     ) -> Shape {
