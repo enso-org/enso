@@ -1076,6 +1076,13 @@ impl Nodes {
         self.recompute_grid(default());
     }
 
+    /// Calculate a Magnet Alignment grid used for nodes alignment.
+    ///
+    /// A grid consists of:
+    ///  - Horizontal lines through each node's Y coordinate.
+    ///  - Vertical lines through each node's X coordinate.
+    ///
+    ///  `blacklist` nodes are excluded from the calculation.
     fn recompute_grid(&self, blacklist: HashSet<NodeId>) {
         let mut sorted_xs = Vec::new();
         let mut sorted_ys = Vec::new();
@@ -1091,9 +1098,21 @@ impl Nodes {
         *self.grid.borrow_mut() = Grid { sorted_xs, sorted_ys };
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Same as [`check_grid_magnet_with_threshold`], but with default threshold.
     pub fn check_grid_magnet(&self, position: Vector2<f32>) -> Vector2<Option<f32>> {
-        self.grid.borrow().close_to(position, SNAP_DISTANCE_THRESHOLD)
+        self.check_grid_magnet_with_threshold(position, SNAP_DISTANCE_THRESHOLD)
+    }
+
+    /// Return the nearest point in a Magnet Alignment grid. Returns `None` if the nearest point's
+    /// coordinate is further than a `threshold`.
+    ///
+    /// See [`recompute_grid`] docs for grid description.
+    pub fn check_grid_magnet_with_threshold(
+        &self,
+        position: Vector2<f32>,
+        threshold: f32,
+    ) -> Vector2<Option<f32>> {
+        self.grid.borrow().close_to(position, threshold)
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

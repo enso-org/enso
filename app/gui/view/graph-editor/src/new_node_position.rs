@@ -29,6 +29,12 @@ pub mod free_place_finder;
 /// === New Node Positioning ===
 /// ============================
 
+/// The maximum distance to the nearest grid line in Magnet Alignment algorithm.
+///
+/// This value defines the "sensitivity" of the Magnet Alignment for new nodes - greater values
+/// lead to more "aggressive" snapping.
+const MAGNET_ALIGNMENT_THRESHOLD: f32 = 150.0;
+
 /// Return a position for a newly created node. The position is calculated by establishing a
 /// reference position and then aligning it to existing nodes.
 ///
@@ -43,6 +49,11 @@ pub mod free_place_finder;
 ///  - the node closest to the reference position (if available),
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
+///
+/// The Magnet Alignment algorithm is used to calculate the final position in the following cases:
+///  - When creating node with (+) button without nodes selected.
+///  - When creating node at mouse cursor, but not under the source node.
+///  - When the node is pushed left due to lack of space - only horizontally.
 ///
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn new_node_position(
@@ -60,7 +71,10 @@ pub fn new_node_position(
         StartCreationEvent | ClickingButton if some_nodes_are_selected =>
             under_selected_nodes(graph_editor),
         StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
-        ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
+        ClickingButton => {
+            let pos = on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap();
+            magnet_alignment_xy(graph_editor, pos)
+        }
         DroppingEdge { edge_id } =>
             at_mouse_aligned_to_source_node(graph_editor, *edge_id, mouse_position),
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
@@ -113,7 +127,42 @@ pub fn below_line_and_left_aligned(
     let y_offset = y_gap + node::HEIGHT / 2.0;
     let starting_point = Vector2(align_x, line_y - y_offset);
     let direction = Vector2(-1.0, 0.0);
-    on_ray(graph_editor, starting_point, direction).unwrap()
+    let pos = on_ray(graph_editor, starting_point, direction).unwrap();
+    // Perform Magnet Alignment if the node is pushed left to the free space.
+    if pos.x != align_x {
+        magnet_alignment_x(graph_editor, pos)
+    } else {
+        pos
+    }
+}
+
+/// Perform a Magnet Alignment algorithm both horizontally and vertically.
+///
+/// Magnet Alignment tries to place a node so that it is aligned to the positions of the other
+/// nodes, creating a "grid" of nodes.
+pub fn magnet_alignment_xy(graph_editor: &GraphEditorModel, position: Vector2) -> Vector2 {
+    magnet_alignment(graph_editor, position, false)
+}
+
+/// Perform a Magnet Alignment algorithm horizontally only.
+///
+/// Magnet Alignment tries to place a node so that it is aligned to the positions of the other
+/// nodes, creating a "grid" of nodes.
+pub fn magnet_alignment_x(graph_editor: &GraphEditorModel, position: Vector2) -> Vector2 {
+    magnet_alignment(graph_editor, position, true)
+}
+
+fn magnet_alignment(
+    graph_editor: &GraphEditorModel,
+    position: Vector2,
+    only_horizontally: bool,
+) -> Vector2 {
+    graph_editor.nodes.recompute_grid(default());
+    let threshold = MAGNET_ALIGNMENT_THRESHOLD;
+    let grid_alignment = graph_editor.nodes.check_grid_magnet_with_threshold(position, threshold);
+    let x = grid_alignment.x.unwrap_or(position.x);
+    let y = if only_horizontally { position.y } else { grid_alignment.y.unwrap_or(position.y) };
+    on_ray(graph_editor, Vector2(x, y), Vector2(0.0, -1.0)).unwrap()
 }
 
 /// Return a position for a newly created node. The position is calculated by taking the mouse
@@ -145,7 +194,7 @@ pub fn at_mouse_aligned_to_source_node(
 }
 
 /// Return a position for a newly created node, aligning it to the `alignment_node` if the proposed
-/// position is close enough to it.
+/// position is close enough to it. Otherwise perform a Magnet Alignment.
 ///
 /// A point is close enough to a node if it is located in an alignment area around a node,
 /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
@@ -190,7 +239,7 @@ pub fn aligned_if_close_to_node(
     });
     match alignment_node {
         Some(node) => under(graph_editor, node.id()),
-        None => proposed_position,
+        None => magnet_alignment_xy(graph_editor, proposed_position),
     }
 }
 
