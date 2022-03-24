@@ -75,17 +75,14 @@ macro_rules! define_id {
         $(#[$attrs:meta])*
         pub struct $name:ident($);
     ) => {
-        // FIXME[anyone]: ID types should not be nullable. I [KW] am implementing it this way here
-        //  to maintain compatibility with the previous implementations of IDs.
-        //  See: https://www.pivotaltracker.com/story/show/181626362
         $(#[$attrs])*
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
-        pub struct $name(Option<$crate::counter::Counter>);
+        pub struct $name($crate::counter::Counter);
 
         impl $name {
             /// Create a new unique ID.
             pub fn new() -> Self {
-                Self(Some($crate::counter::Counter::new()))
+                Self($crate::counter::Counter::new())
             }
         }
 
@@ -96,9 +93,9 @@ macro_rules! define_id {
         }
 
         /// Convert to a raw count, losing counter-type information.
-        impl From<$name> for Option<u64> {
-            fn from(counter: $name) -> Self {
-                counter.0.map(|value| value.into())
+        impl From<$name> for u64 {
+            fn from($name(counter): $name) -> Self {
+                counter.into()
             }
         }
 

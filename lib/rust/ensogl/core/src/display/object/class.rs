@@ -578,10 +578,32 @@ impl<Host> Model<Host> {
 // === Id ===
 // ==========
 
+/// Globally unique identifier of a display object.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
+pub struct Id(Option<ObjectId>);
+
+impl Id {
+    /// Return a new unique ID.
+    pub fn new() -> Self {
+        Self(Some(ObjectId::new()))
+    }
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl CloneRef for Id {
+    fn clone_ref(&self) -> Self {
+        Self(self.0)
+    }
+}
+
 enso_data_structures::define_id! {
     /// Globally unique identifier of a display object.
-    #[derive(Default)]
-    pub struct Id($);
+    pub struct ObjectId($);
 }
 
 
