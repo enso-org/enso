@@ -68,7 +68,7 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
         let node_bbox = graph_editor.node_bounding_box(node_id);
         min_bbox_bottom = min(min_bbox_bottom, node_bbox.bottom());
     }
-    below_line_left_aligned(graph_editor, min_bbox_bottom, x)
+    left_aligned_below_line(graph_editor, x, min_bbox_bottom)
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
@@ -79,7 +79,7 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
 pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
     let above_node_pos = graph_editor.node_position(node_id);
     let above_node_bbox = graph_editor.node_bounding_box(node_id);
-    below_line_left_aligned(graph_editor, above_node_bbox.bottom(), above_node_pos.x)
+    left_aligned_below_line(graph_editor, above_node_pos.x, above_node_bbox.bottom())
 }
 
 /// Return a position for a newly created node. Returns a position left-aligned to `align_x`
@@ -90,10 +90,10 @@ pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
 /// a node placed at the returned position. The vertical gap is equal to
 /// [`theme::graph_editor::default_y_gap_between_nodes`].
 /// Availability of a position is defined in the docs of [`on_ray`].
-pub fn below_line_left_aligned(
+pub fn left_aligned_below_line(
     graph_editor: &GraphEditorModel,
-    line_y: f32,
     align_x: f32,
+    line_y: f32,
 ) -> Vector2 {
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT / 2.0;
