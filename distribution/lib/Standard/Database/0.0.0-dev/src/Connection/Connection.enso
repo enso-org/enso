@@ -395,8 +395,8 @@ type Sql_Timeout_Error
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
-handle_sql_errors ~action related_query=Nothing =
+handle_sql_errors : Any -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action =
     Panic.recover [Sql_Error, Sql_Timeout_Error] <|
         here.wrap_sql_errors action
 
