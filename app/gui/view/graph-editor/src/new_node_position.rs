@@ -47,7 +47,7 @@ pub fn new_node_position(
     match way {
         AddNodeEvent => default(),
         StartCreationEvent | ClickingButton if some_nodes_are_selected =>
-            under_selection(graph_editor),
+            under_selected_nodes(graph_editor),
         StartCreationEvent => mouse_position,
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { .. } => mouse_position,
@@ -60,7 +60,7 @@ pub fn new_node_position(
 /// to the left to the first available position if the initial position is not available.
 ///
 /// Availability of a position is defined in the docs of [`on_ray`].
-pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
+pub fn under_selected_nodes(graph_editor: &GraphEditorModel) -> Vector2 {
     let first_selected_node = graph_editor.nodes.selected.first_cloned();
     let first_selected_node_x = match first_selected_node {
         None => return Vector2::zeros(),
