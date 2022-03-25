@@ -42,8 +42,8 @@ impl Builder {
         let shape_header = header("Shape Definition");
         canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
         canvas.submit_shape_constructor("run");
-        let defs = overload::allow_overloading(&canvas.to_glsl());
-        let code = [GLSL_PRELUDE.as_str(), "", &shape_header, &defs].join("\n\n");
+        let shape_def = overload::allow_overloading(&canvas.to_glsl());
+        let code = [GLSL_PRELUDE.as_str(), "", &shape_header, &shape_def].join("\n\n");
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
@@ -78,6 +78,6 @@ fn make_glsl_prelude() -> String {
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
     let defs_header = header("SDF Primitives");
-    let sdf_defs = primitive::all_shapes_glsl_definitions();
+    let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
     [redirections, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
 }
