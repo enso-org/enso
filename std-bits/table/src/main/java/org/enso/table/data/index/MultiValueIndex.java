@@ -39,13 +39,7 @@ public class MultiValueIndex {
     for (List<Integer> group_locs: this.locs.values()) {
       for (int i = 0; i < length; i++) {
         AggregateColumnDefinition column = columns[i];
-
-        Object reduced = column.getInitialValue();
-        for (int idx: group_locs) {
-          reduced = column.aggregate(reduced, idx);
-        }
-
-        storage[i].appendNoGrow(column.finalise(reduced));
+        storage[i].appendNoGrow(column.aggregate(group_locs));
       }
     }
 

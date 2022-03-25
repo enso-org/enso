@@ -161,6 +161,12 @@ java_aggregator table name column =
         Count _ -> AggregateColumnDefinition.Count name
         Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column True
         Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column False
-        Count_Empty c _ -> AggregateColumnDefinition.Count_Empty name (resolve c).java_column True
-        Count_Not_Empty c _ -> AggregateColumnDefinition.Count_Empty name (resolve c).java_column False
+        Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column True
+        Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column False
+        First c _ ignore_nothing _ -> AggregateColumnDefinition.First name (resolve c).java_column ignore_nothing
+        Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name (resolve c).java_column ignore_nothing
+        Maximum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column 1
+        Minimum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column -1
+        Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column -1
+        Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column 1
         _ -> Error.throw "Not done yet..."
