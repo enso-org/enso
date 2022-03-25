@@ -1224,7 +1224,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(`docs-generator`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
