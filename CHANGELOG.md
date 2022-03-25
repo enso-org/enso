@@ -2,6 +2,11 @@
 
 #### Visual Environment
 
+- [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
+  screen are now placed below all the selected nodes when more than one node is
+  selected.][3361] (Previously, they were placed below the first node that was
+  selected.) This is to help the user easily achieve a compact, vertical layout
+  of the graph.
 - [Nodes can be added to the graph by double-clicking the output ports of
   existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
@@ -121,6 +126,7 @@
 [3344]: https://github.com/enso-org/enso/pull/3344
 [3346]: https://github.com/enso-org/enso/pull/3346
 [3349]: https://github.com/enso-org/enso/pull/3349
+[3361]: https://github.com/enso-org/enso/pull/3361
 
 #### Enso Compiler
 
