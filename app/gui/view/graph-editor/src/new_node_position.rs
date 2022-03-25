@@ -61,15 +61,15 @@ pub fn new_node_position(
 ///
 /// Availability of a position is defined in the docs of [`on_ray`].
 pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
-    let first_selected_node_id = graph_editor.nodes.selected.first_cloned();
-    let x = match first_selected_node_id {
+    let first_selected_node = graph_editor.nodes.selected.first_cloned();
+    let first_selected_node_x = match first_selected_node {
         None => return Vector2::zeros(),
         Some(node_id) => graph_editor.node_position(node_id).x,
     };
     let node_bbox_bottom = |node_id| graph_editor.node_bounding_box(node_id).bottom();
     let selected_nodes = graph_editor.nodes.selected.raw.borrow();
-    let selection_bottom_y = selected_nodes.iter().map(node_bbox_bottom).reduce(min);
-    left_aligned_below_line(graph_editor, x, selection_bottom_y.unwrap_or_default())
+    let selection_bottom = selected_nodes.iter().map(node_bbox_bottom).reduce(min);
+    below_line_and_left_aligned(graph_editor, selection_bottom.unwrap_or_default(), first_selected_node_x)
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
@@ -80,21 +80,21 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
 pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
     let above_node_pos = graph_editor.node_position(node_id);
     let above_node_bbox = graph_editor.node_bounding_box(node_id);
-    left_aligned_below_line(graph_editor, above_node_pos.x, above_node_bbox.bottom())
+    below_line_and_left_aligned(graph_editor, above_node_bbox.bottom(), above_node_pos.x)
 }
 
-/// Return a position for a newly created node. Returns a position left-aligned to `align_x`
-/// closely below a horizontal line at `line_y`, or a first available position to the left if the
-/// initial position is not available.
+/// Return a position for a newly created node. Returns a position closely below a horizontal line
+/// at `line_y` and left-aligned to `align_x`, or a first available position to the left of it if
+/// the initial position is not available.
 ///
 /// "Closely below" means that a vertical gap is maintained between the line and the top border of
 /// a node placed at the returned position. The vertical gap is equal to
 /// [`theme::graph_editor::default_y_gap_between_nodes`].
 /// Availability of a position is defined in the docs of [`on_ray`].
-pub fn left_aligned_below_line(
+pub fn below_line_and_left_aligned(
     graph_editor: &GraphEditorModel,
-    align_x: f32,
     line_y: f32,
+    align_x: f32,
 ) -> Vector2 {
     let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
     let y_offset = y_gap + node::HEIGHT / 2.0;
