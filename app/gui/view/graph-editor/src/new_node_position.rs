@@ -43,10 +43,11 @@ pub fn new_node_position(
     let scene = graph_editor.scene();
     let origin = Vector2(0.0, 0.0);
     let screen_center = scene.screen_to_object_space(&graph_editor.display_object, origin);
-    let some_nodes_selected = graph_editor.nodes.selected.len() > 0;
+    let some_nodes_are_selected = !graph_editor.nodes.selected.is_empty();
     match way {
         AddNodeEvent => default(),
-        StartCreationEvent | ClickingButton if some_nodes_selected => under_selection(graph_editor),
+        StartCreationEvent | ClickingButton if some_nodes_are_selected =>
+            under_selection(graph_editor),
         StartCreationEvent => mouse_position,
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { .. } => mouse_position,
