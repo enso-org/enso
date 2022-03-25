@@ -92,6 +92,21 @@ pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     derive_clone_ref::derive(input)
 }
 
+/// Makes sure that the structure does not derive [`Clone`] and that it implements custom [`Drop`]
+/// implementation.
+///
+/// For the given input
+/// ```ignore
+/// #[derive(NoCloneBecauseOfCustomDrop)]
+/// struct Test {}
+/// ```
+///
+/// The following output will be generated:
+/// ```ignore
+/// struct Test {}
+/// impl !Clone for Test {}
+//  impl ImplementsDrop for Test {}
+/// ```
 #[proc_macro_derive(NoCloneBecauseOfCustomDrop)]
 pub fn derive_no_clone(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_no_clone::derive(input)

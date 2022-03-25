@@ -393,7 +393,6 @@ ops! { ReflectOps for Reflect
          (target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
              let mut tgt = target.clone();
              for key in keys {
-                 DEBUG!(">> {key:?}: {tgt:?}");
                  let obj = tgt.dyn_into::<Object>()?;
                  let key = (*key).into();
                  match Reflect::get(&obj, &key) {

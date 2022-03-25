@@ -62,6 +62,7 @@ pub fn entry_point_custom_shape_system() {
     world.keep_alive_forever();
     let scene = world.default_scene.clone_ref();
 
+    // FIXME: mouse_down does not work. Its an old error, but should be fixed.
     frp::new_network! { network
         trace view1.events.mouse_over;
         trace view1.events.mouse_out;

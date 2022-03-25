@@ -8,7 +8,8 @@ use syn::DeriveInput;
 // === Entry Point ===
 // ===================
 
-/// Derives `CloneRef` implementation, refer to `crate::derive_clone_ref` for details.
+/// Makes sure that the structure does not derive [`Clone`] and that it implements custom [`Drop`]
+/// implementation.
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;

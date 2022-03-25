@@ -381,7 +381,8 @@ macro_rules! _normalize_input {
 
 
 
-/// New version of [`shared`] - faster, understood by IntelliJ, but not yet covering all cases.
+/// New version of [`shared`] - faster, understood by IntelliJ, but not yet covering all cases yet
+/// (like where contexts in functions). These cases can be added in the future.
 #[macro_export]
 macro_rules! shared2 {
     ($name:ident

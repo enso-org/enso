@@ -169,6 +169,7 @@ impl {
         geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
     }
 
+    /// Get the generated shader, if it was already generated.
     pub fn shader(&self) -> Option<builder::Shader> {
         self.shader.clone()
     }

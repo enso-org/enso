@@ -58,7 +58,7 @@ if (input_display_mode == DISPLAY_MODE_NORMAL) {
     output_color.rgb *= alpha_no_aa;
 
 } else if (input_display_mode == DISPLAY_MODE_DEBUG_ID) {
-    float object_hue  = float((input_instance_id * 7) % 100) / 100.0;
+    float object_hue  = float((input_global_instance_id * 7) % 100) / 100.0;
     Srgb object_color = srgb(hsv(object_hue, 1.0, 0.5));
     output_color.rgb  = object_color.raw.rgb;
     output_color.a    = alpha_no_aa;

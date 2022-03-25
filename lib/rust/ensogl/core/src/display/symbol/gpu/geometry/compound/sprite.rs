@@ -326,16 +326,16 @@ impl SpriteSystem {
         material.add_input_def::<Vector2<f32>>("alignment");
         material.add_input_def::<i32>("global_instance_id");
         material.add_output_def::<Vector3<f32>>("local");
-        material.add_output_def::<i32>("instance_id");
-        // FIXME: double check why `gl_InstanceID` works here and document it.
         material.set_main(
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local                = vec3((input_uv - input_alignment) * input_size, 0.0);
                 gl_Position                = model_view_projection * vec4(input_local,1.0);
                 input_local.z              = gl_Position.z;
-                input_instance_id          = gl_InstanceID;
                 ",
+            // This is left here in case it will be needed. The `instance_id` is the same as the
+            // built-in `gl_InstanceID` and can be implemented very efficiently:
+            // input_instance_id = gl_InstanceID;
         );
         material
     }
