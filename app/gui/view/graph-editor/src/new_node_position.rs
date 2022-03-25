@@ -69,7 +69,8 @@ pub fn under_selection(graph_editor: &GraphEditorModel) -> Vector2 {
     let node_bbox_bottom = |node_id| graph_editor.node_bounding_box(node_id).bottom();
     let selected_nodes = graph_editor.nodes.selected.raw.borrow();
     let selection_bottom = selected_nodes.iter().map(node_bbox_bottom).reduce(min);
-    below_line_and_left_aligned(graph_editor, selection_bottom.unwrap_or_default(), first_selected_node_x)
+    let selection_bottom_or_zero = selection_bottom.unwrap_or_default();
+    below_line_and_left_aligned(graph_editor, selection_bottom_or_zero, first_selected_node_x)
 }
 
 /// Return a position for a newly created node. Returns a position closely below the `node_id` node
