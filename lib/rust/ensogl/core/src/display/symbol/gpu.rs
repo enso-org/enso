@@ -397,6 +397,10 @@ impl Symbol {
         self
     }
 
+    pub fn new_instance(&self) -> SymbolInstance {
+        SymbolInstance::new(self)
+    }
+
     pub(crate) fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         self.surface.set_context(context);
@@ -709,5 +713,47 @@ impl Symbol {
 impl display::Object for Symbol {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+
+// ======================
+// === SymbolInstance ===
+// ======================
+
+/// Instance of a [`Symbol`]. It does not define any custom parameters, however, it manages the
+/// [`InstanceIndex`] and [`GlobalInstanceId`] ones.
+#[derive(Debug, Clone, CloneRef, Deref)]
+pub struct SymbolInstance {
+    rc: Rc<SymbolInstanceData>,
+}
+
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct SymbolInstanceData {
+    pub symbol:             Symbol,
+    pub instance_id:        attribute::InstanceIndex,
+    pub global_instance_id: GlobalInstanceId,
+}
+
+impl SymbolInstance {
+    fn new(symbol: &Symbol) -> Self {
+        let symbol = symbol.clone_ref();
+        let global_instance_id = symbol.global_id_provider.reserve();
+        let instance_id = symbol.surface().instance_scope().add_instance();
+
+        let global_instance_id_attr = symbol.global_instance_id.at(instance_id);
+        global_instance_id_attr.set(*global_instance_id as i32);
+
+        let data = SymbolInstanceData { symbol, instance_id, global_instance_id };
+        let rc = Rc::new(data);
+        Self { rc }
+    }
+}
+
+impl Drop for SymbolInstanceData {
+    fn drop(&mut self) {
+        self.symbol.surface().instance_scope().dispose(self.instance_id);
+        self.symbol.global_id_provider.dispose(self.global_instance_id);
     }
 }

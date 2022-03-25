@@ -1188,6 +1188,32 @@ impl<Host> Object<Host> for Any<Host> {
 
 
 
+// =========================
+// === UnsetParentOnDrop ===
+// =========================
+
+/// Wrapper that unsets parent of a display object when dropped.
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct UnsetParentOnDrop {
+    instance: Instance,
+}
+
+impl UnsetParentOnDrop {
+    /// Constructor.
+    pub fn new(instance: impl Into<Instance>) -> Self {
+        let instance = instance.into();
+        Self { instance }
+    }
+}
+
+impl Drop for UnsetParentOnDrop {
+    fn drop(&mut self) {
+        self.instance.unset_parent()
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============

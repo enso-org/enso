@@ -252,3 +252,74 @@ impl<T: Storable> CellSetter for Attribute<T> {
         self.buffer.set(self.index.into(), value);
     }
 }
+
+impl<T: Storable + Default> Erase for Attribute<T> {
+    fn erase(&self) {
+        self.set(default())
+    }
+}
+
+
+
+// =======================
+// === EraseOnLastDrop ===
+// =======================
+
+// FIXME: Where to move it? To chat with team about it.
+
+pub trait Erase {
+    fn erase(&self);
+}
+
+#[derive(Clone, CloneRef)]
+#[clone_ref(bound = "T:CloneRef")]
+pub struct EraseOnLastDrop<T: Erase> {
+    elem:  T,
+    watch: Rc<EraseOnDrop<T>>,
+}
+
+impl<T: CloneRef + Erase> EraseOnLastDrop<T> {
+    pub fn new(elem: T) -> Self {
+        let watch = Rc::new(EraseOnDrop::new(elem.clone_ref()));
+        Self { elem, watch }
+    }
+}
+
+impl<T: Erase> Deref for EraseOnLastDrop<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.elem
+    }
+}
+
+impl<T: Erase + Display> Display for EraseOnLastDrop<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.elem, f)
+    }
+}
+
+impl<T: Erase + Debug> Debug for EraseOnLastDrop<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.elem, f)
+    }
+}
+
+
+// === Watch ===
+
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct EraseOnDrop<T: Erase> {
+    elem: T,
+}
+
+impl<T: Erase> EraseOnDrop<T> {
+    pub fn new(elem: T) -> Self {
+        Self { elem }
+    }
+}
+
+impl<T: Erase> Drop for EraseOnDrop<T> {
+    fn drop(&mut self) {
+        self.elem.erase()
+    }
+}

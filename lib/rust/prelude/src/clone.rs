@@ -6,6 +6,7 @@ use crate::*;
 // ==============
 
 pub use enso_shapely::CloneRef;
+pub use enso_shapely::NoCloneBecauseOfCustomDrop;
 
 
 

@@ -23,6 +23,7 @@ extern crate proc_macro;
 
 mod derive_clone_ref;
 mod derive_iterator;
+mod derive_no_clone;
 mod overlappable;
 
 mod prelude {
@@ -89,6 +90,11 @@ pub fn derive_iterator_mut(input: proc_macro::TokenStream) -> proc_macro::TokenS
 #[proc_macro_derive(CloneRef, attributes(clone_ref))]
 pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_clone_ref::derive(input)
+}
+
+#[proc_macro_derive(NoCloneBecauseOfCustomDrop)]
+pub fn derive_no_clone(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_no_clone::derive(input)
 }
 
 #[allow(missing_docs)]
