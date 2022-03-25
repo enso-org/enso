@@ -213,11 +213,11 @@ Caught_Panic.stack_trace =
      Convert a string to an integer, catching the Java `NumberFormatException`
      and converting it to a more Enso-friendly dataflow error.
 
-     polyglot java import java.lang.Long
-     polyglot java import java.lang.NumberFormatException
-     parse str =
-         Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-             Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+         polyglot java import java.lang.Long
+         polyglot java import java.lang.NumberFormatException
+         parse str =
+             Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+                 Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
 Panic.catch : Any -> Any -> (Caught_Panic -> Any) -> Any
 Panic.catch panic_type ~action handler =
     Panic.catch_primitive action caught_panic->
