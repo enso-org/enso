@@ -12,7 +12,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis, DataflowAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns, UppercaseNames}
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, MethodDefinitions, Patterns, UppercaseNames}
 import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
@@ -243,6 +243,9 @@ class IrToTruffle(
         )
 
         val function = methodDef.body match {
+          case fn: IR.Function if isBuiltin(fn.body) =>
+            val builtinFunction = context.getBuiltins.getBuiltinFunction(cons.getName(), methodDef.methodName.name, language);
+            builtinFunction.orElseThrow()
           case fn: IR.Function =>
             val (body, arguments) =
               expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
@@ -326,6 +329,16 @@ class IrToTruffle(
         moduleScope.registerConversionMethod(toType, fromType, function)
       }
     })
+  }
+
+  private def isBuiltin(expression: IR.Expression): Boolean = {
+    expression
+      .getMetadata(ExpressionAnnotations)
+      .exists(anns =>
+        anns.annotations.exists(a =>
+          a.name == ExpressionAnnotations.builtinMethodName
+        )
+      )
   }
 
   // ==========================================================================
@@ -781,7 +794,7 @@ class IrToTruffle(
             val array = context.getBuiltins.mutable.array
             val bool = context.getBuiltins.bool
             val number = context.getBuiltins.number
-            val polyglot = context.getBuiltins.polyglot.getPolyglot
+            val polyglot = context.getBuiltins.polyglot
             val text = context.getBuiltins.text
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {

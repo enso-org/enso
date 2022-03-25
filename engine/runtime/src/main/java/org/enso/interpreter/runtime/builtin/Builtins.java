@@ -2,13 +2,17 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.util.*;
+
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
@@ -17,6 +21,8 @@ import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDa
 import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
+import org.enso.interpreter.node.expression.builtin.interop.generic.GetMemberMethodGen;
+import org.enso.interpreter.node.expression.builtin.interop.generic.IsLanguageInstalledMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.GetCwdMethodGen;
@@ -41,9 +47,13 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.pkg.QualifiedName;
+
+import org.reflections.Reflections;
+import org.reflections.scanners.Scanners;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
@@ -58,6 +68,8 @@ public class Builtins {
       public static final String EVAL = "eval";
     }
   }
+
+  private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
 
   private final AtomConstructor any;
   private final AtomConstructor debug;
@@ -76,7 +88,7 @@ public class Builtins {
   private final Mutable mutable;
   private final Number number;
   private final Ordering ordering;
-  private final Polyglot polyglot;
+  private final AtomConstructor polyglot;
   private final Resource resource;
   private final System system;
   private final Text text;
@@ -91,6 +103,7 @@ public class Builtins {
     Language language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
+    builtinNodes = new HashMap<>();
 
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
@@ -117,7 +130,9 @@ public class Builtins {
                 new ArgumentDefinition(0, "payload", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(
                     1, "internal_original_exception", ArgumentDefinition.ExecutionMode.EXECUTE));
-    polyglot = new Polyglot(language, scope);
+    // TODO remove once @Builtin_Type is handled
+    polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
+    scope.registerConstructor(polyglot);
     resource = new Resource(language, scope);
     system = new System(language, scope);
     text = new Text(language, scope);
@@ -200,6 +215,7 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
+    readAllBuiltinNodes();
   }
 
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
@@ -237,6 +253,50 @@ public class Builtins {
       BuiltinsIrBuilder.build(module, freshNameSupply, passes);
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public void readAllBuiltinNodes() {
+    try {
+      Reflections reflections = new Reflections("org.enso.interpreter.node.expression.builtin");
+      Set<String> subtypes = reflections.get(Scanners.SubTypes.of(Scanners.TypesAnnotated.with(NodeInfo.class)));
+      subtypes.stream().forEach(className -> {
+        try {
+          Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
+          NodeInfo info = clazz.getDeclaredAnnotation(NodeInfo.class);
+          String[] name = info.shortName().split("\\.");
+          if (name.length == 2 && !name[0].isEmpty()) {
+            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(name[0]);
+            if (atomNodes == null) {
+              atomNodes = new HashMap<>();
+              builtinNodes.put(name[0], atomNodes);
+            }
+            atomNodes.put(name[1], clazz);
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        // todo: handle gracefully other cases
+      });
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public Optional<Function> getBuiltinFunction(String atomName, String methodName, Language language) {
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(atomName);
+    if (atomNodes == null)
+      return Optional.empty();
+    Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
+    if (clazz == null)
+      return Optional.empty();
+    try {
+      Method meth = clazz.getMethod("makeFunction", Language.class);
+      return Optional.ofNullable((Function) meth.invoke(null, language));
+    } catch (Exception e) {
+      e.printStackTrace();
+      return Optional.empty();
     }
   }
 
@@ -320,7 +380,7 @@ public class Builtins {
   }
 
   /** @return the container for polyglot-related builtins. */
-  public Polyglot polyglot() {
+  public AtomConstructor polyglot() {
     return polyglot;
   }
 

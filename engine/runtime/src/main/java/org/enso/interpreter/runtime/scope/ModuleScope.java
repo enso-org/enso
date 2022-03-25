@@ -7,6 +7,7 @@ import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
@@ -129,8 +130,6 @@ public class ModuleScope implements TruffleObject {
    * @return a list containing all the defined conversions in definition order
    */
   private Map<AtomConstructor,Function> ensureConversionsFor(AtomConstructor cons) {
-    //var methods = ensureMethodMapFor(cons);
-    //methods.
     return conversions.computeIfAbsent(cons, k -> new HashMap<>());
   }
 

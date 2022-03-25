@@ -110,6 +110,7 @@ case object UnusedBindings extends IRPass {
       .unsafeAs[AliasAnalysis.Info.Occurrence]
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
+    // FIXME: take into account @Builtin_Method
     if (!isIgnored && !isUsed) {
       binding
         .copy(expression = runExpression(binding.expression, context))
