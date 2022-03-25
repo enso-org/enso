@@ -203,6 +203,7 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
 // === Flamegraphs ===
 // ===================
 
+/// Build a graph that illustrates aggregate time spent in different functions.
 #[derive(Default)]
 pub struct FlamegraphBuilder {
     aggregator: data::aggregate::Aggregator,
