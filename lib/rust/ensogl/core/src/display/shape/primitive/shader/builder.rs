@@ -35,15 +35,15 @@ pub struct Builder {}
 impl Builder {
     /// Returns the final GLSL code. If `pointer_events_enabled` is set to false, the generated
     /// shape will be transparent for pointer events and will pass them trough.
+    #[profile(Detail)]
     pub fn run<S: canvas::Draw>(shape: &S, pointer_events_enabled: bool) -> CodeTemplate {
         let mut canvas = Canvas::default();
         let shape_ref = shape.draw(&mut canvas);
         let shape_header = header("Shape Definition");
         canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
         canvas.submit_shape_constructor("run");
-        let defs = [&shape_header, canvas.to_glsl()].join("\n\n");
-        let defs = overload::allow_overloading(defs);
-        let code = [GLSL_PRELUDE.as_str(), &defs].join("\n\n\n\n");
+        let defs = overload::allow_overloading(&canvas.to_glsl());
+        let code = [GLSL_PRELUDE.as_str(), "", &shape_header, &defs].join("\n\n");
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
