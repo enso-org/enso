@@ -236,10 +236,13 @@ impl Drop for SymbolStatsData {
 // ================================
 
 newtype_prim! {
+    /// Global [`Symbol`] instance id. Allows encoding symbol IDs in a texture and then decode on
+    /// mouse interaction.
     GlobalInstanceId(u32);
 }
 
 shared2! { GlobalInstanceIdProvider
+    /// [`GlobalInstanceId`] provider.
     #[derive(Debug,Default)]
     pub struct GlobalInstanceIdProviderData {
         next: GlobalInstanceId,
@@ -247,6 +250,8 @@ shared2! { GlobalInstanceIdProvider
     }
 
     impl {
+        /// Get a new [`GlobalInstanceId`] either by reusing previously disposed one or reserving a
+        /// new one.
         pub fn reserve(&mut self) -> GlobalInstanceId {
             self.free.pop().unwrap_or_else(|| {
                 let out = self.next;
@@ -255,6 +260,7 @@ shared2! { GlobalInstanceIdProvider
             })
         }
 
+        /// Dispose previously used [`GlobalInstanceId`]. It will be reused for new instances.
         pub fn dispose(&mut self, id: GlobalInstanceId) {
             self.free.push(id);
         }
@@ -292,10 +298,9 @@ pub struct Bindings {
 
 // === Definition ===
 
-// FIXME: Every symbol is registered (probably), so these docs seems to be obsolete.
 newtype_prim! {
     /// The ID of a [`Symbol`] instance. The ID is also the index of the symbol inside of symbol
-    /// registry. In case the symbol was not yet registered, the ID will be `0`.
+    /// registry.
     SymbolId(u32);
 }
 

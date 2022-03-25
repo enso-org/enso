@@ -579,9 +579,9 @@ macro_rules! _define_shape_system {
 
                 fn instantiate(&self, dyn_shape:&Self::DynamicShape) -> symbol::GlobalInstanceId {
                     let sprite = self.shape_system.new_instance();
-                    let id = sprite.instance_id;
+                    let instance_id = sprite.instance_id;
                     let global_id = sprite.global_instance_id;
-                    $(let $gpu_param = self.$gpu_param.at(id);)*
+                    $(let $gpu_param = self.$gpu_param.at(instance_id);)*
                     let shape = Shape {sprite, $($gpu_param),*};
                     dyn_shape.add_instance(shape);
                     global_id

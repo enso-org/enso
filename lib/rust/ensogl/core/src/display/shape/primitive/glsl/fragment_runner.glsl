@@ -1,7 +1,5 @@
 /// This code is the body of the fragment shader main function of a GLSL shape.
 
-int foo = input_global_instance_id;
-
 // =================
 // === Constants ===
 // =================
@@ -33,11 +31,10 @@ float alpha    = shape.color.color.raw.a;
 // === Object ID Rendering ===
 // ===========================
 
-//uvec3 chunks      = encode(input_symbol_id,input_instance_id);
-uvec3 chunks      = encode2(input_global_instance_id);
 float alpha_no_aa = alpha > ID_ALPHA_THRESHOLD ? 1.0 : 0.0;
 
 if (pointer_events_enabled) {
+    uvec3 chunks = encode(input_global_instance_id);
     output_id = vec4(as_float_u8(chunks),alpha_no_aa);
     output_id.rgb *= alpha_no_aa;
 }

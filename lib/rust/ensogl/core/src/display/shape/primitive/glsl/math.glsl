@@ -186,7 +186,9 @@ float neg(float a) {
 
 // === Encode ===
 
-uvec3 encode2(int value) {
+// This encoding must correspond to the decoding in the `Target` struct in
+// src\rust\ensogl\src\display\scene.rs See there for more explanation.
+uvec3 encode(int value) {
     int r_mask = 0xFF;
     int g_mask = 0xFF00;
     int b_mask = 0xFF0000;
@@ -194,16 +196,6 @@ uvec3 encode2(int value) {
     int g = (value & g_mask) >> 8;
     int b = (value & b_mask) >> 16;
     return uvec3(r,g,b);
-}
-
-// This encoding must correspond to the decoding in the `Target` struct in
-// src\rust\ensogl\src\display\scene.rs See there for more explanation.
-uvec3 encode(int value1, int value2) {
-    uint chunk1 = (uint(value1) >> 4u) & 0x00FFu;
-    uint chunk2 = (uint(value1) & 0x000Fu) << 4u;
-    chunk2 = chunk2 + ((uint(value2) & 0x0F00u) >> 8u);
-    uint chunk3 = uint(value2) & 0x00FFu;
-    return uvec3(chunk1,chunk2,chunk3);
 }
 
 // Encodes a uint values so it can be stored in a u8 encoded float. Will clamp values that are

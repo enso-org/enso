@@ -127,20 +127,11 @@ impl {
 
 
 
-// ==============
-// === Target ===
-// ==============
+// =====================
+// === PointerTarget ===
+// =====================
 
-/// Result of a Decoding operation in the Target.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum DecodingResult {
-    /// Values had to be truncated.
-    Truncated(u8, u8, u8),
-    /// Values have been encoded successfully.
-    Ok(u8, u8, u8),
-}
-
-/// Mouse target. Contains a path to an object pointed by mouse.
+/// Mouse target. Contains an unique ID for an object pointed by the mouse.
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum PointerTarget {
     Background,
@@ -148,83 +139,24 @@ pub enum PointerTarget {
 }
 
 impl PointerTarget {
-    /// Encode two u32 values into three u8 values.
-    ///
-    /// This is the same encoding that is used in the `fragment_runner`. This encoding is lossy and
-    /// can only encode values up to 4096 (2^12) each.
-    ///
-    /// We use 12 bits from each value and pack them into the 3 output bytes like described in the
-    /// following diagram.
-    ///
-    /// ```text
-    ///  Input
-    ///
-    ///    value1 (v1) as bytes               value2 (v2) as bytes
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///   |     |     |     |     |           |     |     |     |     |
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///  32    24    16     8     0          32    24    16     8     0   <- Bit index
-    ///
-    ///
-    /// Output
-    ///
-    /// byte1            byte2                     byte3
-    /// +-----------+    +----------------------+     +------------+
-    /// | v ]12..4] |    | v1 ]4..0]  v2 ]4..0] |     | v2 ]12..4] |
-    /// +-----------+    +----------------------+     +------------+
-    ///
-    /// Ranges use mathematical notation for inclusion/exclusion.
-    /// ```
-    fn encode(value1: u32, value2: u32) -> DecodingResult {
-        let chunk1 = (value1 >> 4u32) & 0x00FFu32;
-        let chunk2 = (value1 & 0x000Fu32) << 4u32;
-        let chunk2 = chunk2 | ((value2 & 0x0F00u32) >> 8u32);
-        let chunk3 = value2 & 0x00FFu32;
-
-        if value1 > 2u32.pow(12) || value2 > 2u32.pow(12) {
-            DecodingResult::Truncated(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        } else {
-            DecodingResult::Ok(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        }
-    }
-
-    /// Decode the symbol_id and instance_id that was encoded in the `fragment_runner`.
-    ///
-    /// See the `encode` method for more information on the encoding.
-    fn decode(r: u32, g: u32, b: u32) -> u32 {
-        (b << 16) + (g << 8) + r
-    }
-
-    // fn to_internal(self, logger: &Logger) -> Vector4<u32> {
-    //     match self {
-    //         Self::Background => Vector4::new(0, 0, 0, 0),
-    //         Self::Symbol { symbol_id, instance_id } => {
-    //             match Self::encode(*symbol_id, (*instance_id) as u32) {
-    //                 DecodingResult::Truncated(pack0, pack1, pack2) => {
-    //                     warning!(
-    //                         logger,
-    //                         "Target values too big to encode: \
-    //                                      ({symbol_id},{instance_id})."
-    //                     );
-    //                     Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1)
-    //                 }
-    //                 DecodingResult::Ok(pack0, pack1, pack2) =>
-    //                     Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1),
-    //             }
-    //         }
-    //     }
-    // }
-
-    fn from_internal(v: Vector4<u32>) -> Self {
-        if v.w == 0 {
-            Self::Background
-        } else if v.w == 255 {
-            let raw_id = Self::decode(v.x, v.y, v.z);
+    /// Decode the [`PointerTarget`] from an RGBA value. If alpha is set to 0, the result will be
+    /// background. In case alpha is 255, the result will be decoded based on the first 3 bytes,
+    /// which allows for storing up to 16 581 375 unique IDs.
+    fn decode_from_rgba(v: Vector4<u32>) -> Result<Self, DecodeError> {
+        let alpha = v.w;
+        if alpha == 0 {
+            Ok(Self::Background)
+        } else if alpha == 255 {
+            let raw_id = Self::decode_raw(v.x, v.y, v.z);
             let id = symbol::GlobalInstanceId::new(raw_id);
-            Self::Symbol { id }
+            Ok(Self::Symbol { id })
         } else {
-            panic!("Wrong internal format alpha for mouse target.")
+            Err(DecodeError::WrongAlpha(alpha))
         }
+    }
+
+    fn decode_raw(r: u32, g: u32, b: u32) -> u32 {
+        (b << 16) + (g << 8) + r
     }
 
     pub fn is_background(self) -> bool {
@@ -242,59 +174,25 @@ impl Default for PointerTarget {
     }
 }
 
+/// [`PointerTarget`] decoding error. See the docs of [`PointerTarget::decode_from_rgba`] to learn
+/// more.
+#[derive(Debug, Fail)]
+#[allow(missing_docs)]
+pub enum DecodeError {
+    WrongAlpha(u32),
+}
 
-// === Target Tests ===
-
-// #[cfg(test)]
-// mod target_tests {
-//     use super::*;
-//
-//     /// Asserts that decoding encoded the given values returns the correct initial values again.
-//     /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
-//     fn assert_valid_roundtrip(value1: u32, value2: u32) {
-//         let pack = PointerTarget::encode(value1, value2);
-//         match pack {
-//             DecodingResult::Truncated { .. } => {
-//                 panic!("Values got truncated. This is an invalid test case: {}, {}", value1,
-// value1)             }
-//             DecodingResult::Ok(pack0, pack1, pack2) => {
-//                 let unpack = PointerTarget::decode(pack0.into(), pack1.into(), pack2.into());
-//                 assert_eq!(unpack.0, value1);
-//                 assert_eq!(unpack.1, value2);
-//             }
-//         }
-//     }
-//
-//     #[test]
-//     fn test_roundtrip_coding() {
-//         assert_valid_roundtrip(0, 0);
-//         assert_valid_roundtrip(0, 5);
-//         assert_valid_roundtrip(512, 0);
-//         assert_valid_roundtrip(1024, 64);
-//         assert_valid_roundtrip(1024, 999);
-//     }
-//
-//     #[test]
-//     fn test_encoding() {
-//         let pack = PointerTarget::encode(0, 0);
-//         assert_eq!(pack, DecodingResult::Ok(0, 0, 0));
-//
-//         let pack = PointerTarget::encode(3, 7);
-//         assert_eq!(pack, DecodingResult::Ok(0, 48, 7));
-//
-//         let pack = PointerTarget::encode(3, 256);
-//         assert_eq!(pack, DecodingResult::Ok(0, 49, 0));
-//
-//         let pack = PointerTarget::encode(255, 356);
-//         assert_eq!(pack, DecodingResult::Ok(15, 241, 100));
-//
-//         let pack = PointerTarget::encode(256, 356);
-//         assert_eq!(pack, DecodingResult::Ok(16, 1, 100));
-//
-//         let pack = PointerTarget::encode(31256, 0);
-//         assert_eq!(pack, DecodingResult::Truncated(161, 128, 0));
-//     }
-// }
+impl Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::WrongAlpha(alpha) => {
+                let err1 = "Failed to decode mouse target.";
+                let err2 = "The alpha channel should be either 0 or 255, got";
+                write!(f, "{} {} {}.", err1, err2, alpha)
+            }
+        }
+    }
+}
 
 
 
@@ -307,7 +205,7 @@ pub struct Mouse {
     pub mouse_manager: MouseManager,
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
-    pub hover_ids:     Uniform<Vector4<u32>>,
+    pub hover_rgba:    Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTarget>>,
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
@@ -327,8 +225,7 @@ impl Mouse {
         let target = PointerTarget::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
         let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
-        // let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
-        let hover_ids = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
+        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
@@ -367,7 +264,7 @@ impl Mouse {
             mouse_manager,
             last_position,
             position,
-            hover_ids,
+            hover_rgba,
             target,
             handles,
             frp,
@@ -980,7 +877,11 @@ impl SceneData {
     }
 
     fn handle_mouse_events(&self) {
-        let new_target = PointerTarget::from_internal(self.mouse.hover_ids.get());
+        let opt_new_target = PointerTarget::decode_from_rgba(self.mouse.hover_rgba.get());
+        let new_target = opt_new_target.unwrap_or_else(|err| {
+            error!(self.logger, "{err}");
+            default()
+        });
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
