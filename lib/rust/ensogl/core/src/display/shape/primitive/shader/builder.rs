@@ -36,18 +36,14 @@ impl Builder {
     /// Returns the final GLSL code. If `pointer_events_enabled` is set to false, the generated
     /// shape will be transparent for pointer events and will pass them trough.
     pub fn run<S: canvas::Draw>(shape: &S, pointer_events_enabled: bool) -> CodeTemplate {
-        let sdf_defs = primitive::all_shapes_glsl_definitions();
         let mut canvas = Canvas::default();
         let shape_ref = shape.draw(&mut canvas);
-        let defs_header = header("SDF Primitives");
         let shape_header = header("Shape Definition");
         canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
         canvas.submit_shape_constructor("run");
-        let defs =
-            iformat!("{defs_header}\n\n{sdf_defs}\n\n\n\n{shape_header}\n\n{canvas.to_glsl()}");
-
-        let defs = overload::allow_overloading(&defs);
-        let code = [GLSL_PRELUDE.as_str(), &defs].join("\n\n");
+        let defs = [&shape_header, canvas.to_glsl()].join("\n\n");
+        let defs = overload::allow_overloading(defs);
+        let code = [GLSL_PRELUDE.as_str(), &defs].join("\n\n\n\n");
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
@@ -67,6 +63,7 @@ fn header(label: &str) -> String {
     iformat!("// {border}\n// === {label} ===\n// {border}")
 }
 
+
 // == GLSL_PRELUDE ==
 
 lazy_static! {
@@ -80,5 +77,7 @@ fn make_glsl_prelude() -> String {
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
-    [redirections, math, color, debug, shape].join("\n\n")
+    let defs_header = header("SDF Primitives");
+    let sdf_defs = primitive::all_shapes_glsl_definitions();
+    [redirections, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
 }
