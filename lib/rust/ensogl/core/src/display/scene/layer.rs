@@ -200,10 +200,10 @@ impl Layer {
     /// Instantiate the provided [`DynamicShape`].
     pub fn instantiate<T>(&self, scene: &Scene, shape: &T) -> LayerDynamicShapeInstance
     where T: display::shape::system::DynamicShape {
-        let (shape_system_info, symbol_id, instance_id, global_instance_id) =
+        let (shape_system_info, symbol_id, global_instance_id) =
             self.shape_system_registry.instantiate(scene, shape);
         self.add_shape(shape_system_info, symbol_id);
-        LayerDynamicShapeInstance::new(self, symbol_id, instance_id, global_instance_id)
+        LayerDynamicShapeInstance::new(self, global_instance_id)
     }
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
@@ -792,22 +792,14 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 #[allow(missing_docs)]
 pub struct LayerDynamicShapeInstance {
     pub layer:              WeakLayer,
-    // FIXME: are these needed still?
-    pub symbol_id:          SymbolId,
-    pub instance_id:        attribute::InstanceIndex,
     pub global_instance_id: symbol::GlobalInstanceId,
 }
 
 impl LayerDynamicShapeInstance {
     /// Constructor.
-    pub fn new(
-        layer: &Layer,
-        symbol_id: SymbolId,
-        instance_id: attribute::InstanceIndex,
-        global_instance_id: symbol::GlobalInstanceId,
-    ) -> Self {
+    pub fn new(layer: &Layer, global_instance_id: symbol::GlobalInstanceId) -> Self {
         let layer = layer.downgrade();
-        Self { layer, symbol_id, instance_id, global_instance_id }
+        Self { layer, global_instance_id }
     }
 }
 
@@ -970,19 +962,19 @@ impl {
 
     /// Instantiate the provided [`DynamicShape`].
     pub fn instantiate<T>
-    (&mut self, scene:&Scene, shape:&T) -> (ShapeSystemInfo,SymbolId,attribute::InstanceIndex, symbol::GlobalInstanceId)
+    (&mut self, scene:&Scene, shape:&T) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
     where T : display::shape::system::DynamicShape {
         self.with_get_or_register_mut::<DynShapeSystemOf<T>,_,_>(scene,|entry| {
-            let system            = entry.shape_system;
-            let system_id         = DynShapeSystemOf::<T>::id();
-            let (instance_id,global_instance_id)       = system.instantiate(shape);
-            let symbol_id         = system.shape_system().sprite_system.symbol.id;
-            let above             = DynShapeSystemOf::<T>::above();
-            let below             = DynShapeSystemOf::<T>::below();
-            let ordering          = ShapeSystemStaticDepthOrdering {above,below};
+            let system = entry.shape_system;
+            let system_id = DynShapeSystemOf::<T>::id();
+            let global_instance_id = system.instantiate(shape);
+            let symbol_id = system.shape_system().sprite_system.symbol.id;
+            let above = DynShapeSystemOf::<T>::above();
+            let below = DynShapeSystemOf::<T>::below();
+            let ordering = ShapeSystemStaticDepthOrdering {above,below};
             let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
             *entry.instance_count += 1;
-            (shape_system_info,symbol_id,instance_id,global_instance_id)
+            (shape_system_info, symbol_id, global_instance_id)
         })
     }
 

@@ -167,10 +167,7 @@ pub trait DynShapeSystemInstance: ShapeSystemInstance {
     /// The dynamic shape type of this shape system definition.
     type DynamicShape: DynamicShape<System = Self>;
     /// New shape instantiation. Used to bind a shape to a specific scene implementation.
-    fn instantiate(
-        &self,
-        shape: &Self::DynamicShape,
-    ) -> (attribute::InstanceIndex, symbol::GlobalInstanceId);
+    fn instantiate(&self, shape: &Self::DynamicShape) -> symbol::GlobalInstanceId;
 }
 
 /// Abstraction for every entity which is associated with a shape system (user generated one). For
@@ -580,15 +577,14 @@ macro_rules! _define_shape_system {
             impl display::shape::DynShapeSystemInstance for ShapeSystem {
                 type DynamicShape = DynamicShape;
 
-                fn instantiate(&self, dyn_shape:&Self::DynamicShape)
-                -> (gpu::data::attribute::InstanceIndex, symbol::GlobalInstanceId) {
+                fn instantiate(&self, dyn_shape:&Self::DynamicShape) -> symbol::GlobalInstanceId {
                     let sprite = self.shape_system.new_instance();
-                    let id     = sprite.instance_id;
+                    let id = sprite.instance_id;
                     let global_id = sprite.global_instance_id;
                     $(let $gpu_param = self.$gpu_param.at(id);)*
                     let shape = Shape {sprite, $($gpu_param),*};
                     dyn_shape.add_instance(shape);
-                    (id,global_id)
+                    global_id
                 }
             }
 
