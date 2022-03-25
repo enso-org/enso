@@ -24,6 +24,10 @@
 - [Node connections can be dropped by pressing the Esc key while dragging
   them.][3231]
 - [Added support of source maps for JS-based visualizations.][3208]
+- [Fixed alignment of newly created nodes in relation to existing nodes with
+  visualizations enabled.][3361] When applicable, new nodes are now placed below
+  visualizations. (Previously, they were placed to the left of the
+  visualizations.)
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
