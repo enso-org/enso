@@ -5,8 +5,8 @@
 - [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
   screen are now placed below all the selected nodes when more than one node is
   selected.][3361] (Previously, they were placed below the first node that was
-  selected.) This change is intended to help the user easily achieve a compact,
-  vertical layout of the graph.
+  selected.) This makes it easier to achieve a compact, vertical layout of the
+  graph.
 - [Nodes can be added to the graph by double-clicking the output ports of
   existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
