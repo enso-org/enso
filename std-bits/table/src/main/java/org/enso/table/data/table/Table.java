@@ -200,7 +200,7 @@ public class Table {
    * @return a table indexed by the proper column
    */
   public MultiValueIndex indexFromColumns(Column[] columns) {
-    return new MultiValueIndex(this, Arrays.stream(columns).map(c -> c.getStorage()).toArray(Storage[]::new));
+    return new MultiValueIndex(Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new));
   }
 
   /**

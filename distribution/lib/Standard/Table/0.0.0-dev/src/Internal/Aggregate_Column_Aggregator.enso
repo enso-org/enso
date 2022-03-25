@@ -4,6 +4,8 @@ from Standard.Table.Data.Column as Column_Module import Column
 import Standard.Table.Data.Group_By_Key
 from Standard.Table.Data.Aggregate_Column import all
 
+polyglot java import org.enso.table.data.table.aggregate.AggregateColumnDefinition
+
 ## Type used to compute an aggregate column
 type Aggregate_Column_Aggregator
     type Aggregate_Column_Aggregator initial accumulator finalizer
@@ -150,3 +152,15 @@ new column =
                 v = col.at i
                 if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
             create_aggregator accumulator=accumulator
+
+java_aggregator : Table->Aggregate_Column->AggregateColumnDefinition
+java_aggregator table name column =
+    resolve c = column.resolve_column table c
+    case column of
+        Group_By c _ -> AggregateColumnDefinition.GroupBy name (resolve c).java_column
+        Count _ -> AggregateColumnDefinition.Count name
+        Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column True
+        Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column False
+        Count_Empty c _ -> AggregateColumnDefinition.Count_Empty name (resolve c).java_column True
+        Count_Not_Empty c _ -> AggregateColumnDefinition.Count_Empty name (resolve c).java_column False
+        _ -> Error.throw "Not done yet..."

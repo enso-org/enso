@@ -486,6 +486,15 @@ type Table
         new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
+    aggregate_2 : [Aggregate_Column] -> Table
+    aggregate_2 columns =
+        validated = Aggregate_Column_Helper.validate columns this
+
+        java_columns = validated.key_columns.map .java_column
+        index = this.java_table.indexFromColumns java_columns.to_array
+
+        new_table = validated.valid_columns.map c->(Aggregate_Column_Aggregator.java_aggregator this c.first c.second)
+        index.makeTable new_table.to_array
 
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table

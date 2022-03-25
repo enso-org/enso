@@ -15,14 +15,9 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 public class MultiValueIndex {
-  private final Table parent;
-  private final Storage[] keyColumns;
   private final Map<MultiValueKey, List<Integer>> locs;
 
-  public MultiValueIndex(Table parent, Storage[] keyColumns) {
-    this.parent = parent;
-    this.keyColumns = keyColumns;
-
+  public MultiValueIndex(Storage[] keyColumns) {
     this.locs = new HashMap<>();
     if (keyColumns.length != 0) {
       int size = keyColumns[0].size();
@@ -47,7 +42,7 @@ public class MultiValueIndex {
 
         Object reduced = column.getInitialValue();
         for (int idx: group_locs) {
-          reduced = column.aggregate(reduced, this.parent, idx);
+          reduced = column.aggregate(reduced, idx);
         }
 
         storage[i].appendNoGrow(column.finalise(reduced));
