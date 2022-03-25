@@ -1,26 +1,53 @@
 package org.enso.languageserver.search
 
-import java.util.UUID
-
+import org.enso.docs.generator.DocsGenerator
 import org.enso.polyglot.Suggestion
+
+import java.util.UUID
 
 /** Suggestion instances used in tests. */
 object Suggestions {
 
+  object comment {
+
+    val atom =
+      """ PRIVATE
+        |
+        | A key-value store. This type assumes all keys are pairwise comparable,
+        | using the `<`, `>` and `==` operators.
+        |
+        | Arguments:
+        | - one: The first.
+        | - two_three: The *second*.
+        |
+        | ? Info
+        |   Here is a thing.
+        |""".stripMargin.linesIterator.mkString("\n")
+  }
+
+  val htmlDocsGenerator: DocsGenerator =
+    DocsGenerator
+  val docSectionsBuilder: DocSectionsBuilder =
+    DocSectionsBuilder()
+
   val module: Suggestion.Module = Suggestion.Module(
-    module            = "Test.Main",
-    documentation     = Some("Module doc"),
-    documentationHtml = Some("<html></html>")
+    module        = "Test.Main",
+    documentation = Some("Module doc"),
+    documentationHtml =
+      Some(htmlDocsGenerator.generate("Module doc", "Test.Main")),
+    documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId        = None,
-    module            = "Test.Main",
-    name              = "MyType",
-    arguments         = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType        = "MyAtom",
-    documentation     = None,
-    documentationHtml = None
+    externalId    = None,
+    module        = "Test.Main",
+    name          = "MyType",
+    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType    = "MyAtom",
+    documentation = Some(comment.atom),
+    documentationHtml =
+      Some(htmlDocsGenerator.generate(comment.atom, "MyType")),
+    documentationSections = Some(docSectionsBuilder.build(comment.atom))
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -31,10 +58,11 @@ object Suggestions {
       Suggestion.Argument("this", "MyType", false, false, None),
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
-    selfType          = "MyType",
-    returnType        = "Number",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "MyType",
+    returnType            = "Number",
+    documentation         = Some("Lovely"),
+    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "foo")),
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -68,10 +96,11 @@ object Suggestions {
       Suggestion.Argument("this", "Any", false, false, None),
       Suggestion.Argument("that", "Any", false, false, None)
     ),
-    selfType          = "Any",
-    returnType        = "Any",
-    documentation     = Some("Lovely"),
-    documentationHtml = Some("<p>Lovely</p>")
+    selfType              = "Any",
+    returnType            = "Any",
+    documentation         = Some("Lovely"),
+    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "<<")),
+    documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -81,10 +110,11 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("this", "Number", false, false, None)
     ),
-    selfType          = "Number",
-    returnType        = "Number",
-    documentation     = None,
-    documentationHtml = None
+    selfType              = "Number",
+    returnType            = "Number",
+    documentation         = None,
+    documentationHtml     = None,
+    documentationSections = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -94,10 +124,11 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("that", "Number", false, false, None)
     ),
-    selfType          = "Integer",
-    returnType        = "Number",
-    documentation     = Some("Blah, blah"),
-    documentationHtml = Some("<p>Blah, blah</p>")
+    selfType              = "Integer",
+    returnType            = "Number",
+    documentation         = Some("Blah, blah"),
+    documentationHtml     = Some(htmlDocsGenerator.generate("Blah, blah", "+")),
+    documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
   )
 
   val all = Seq(
