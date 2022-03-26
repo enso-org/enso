@@ -15,7 +15,6 @@ use crate::display::shape::system::ShapeSystemId;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::symbol;
 use crate::display::symbol::SymbolId;
-use crate::system::gpu::data::attribute;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;

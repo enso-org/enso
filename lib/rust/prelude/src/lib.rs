@@ -446,4 +446,5 @@ impl<T: ?Sized> WeakRef for Weak<T> {
 
 /// Check whether the structure implements custom drop behavior. Used mainly by the
 /// [`NoCloneBecauseOfCustomDrop`] macro.
+#[allow(drop_bounds)]
 pub trait ImplementsDrop: Drop {}

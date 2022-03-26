@@ -12,7 +12,6 @@ use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
 use crate::display::scene::Scene;
-use crate::display::symbol;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;

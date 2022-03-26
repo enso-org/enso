@@ -23,9 +23,7 @@ use crate::display::style::data::DataMatch;
 use crate::display::symbol;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
-use crate::display::symbol::SymbolId;
 use crate::system;
-use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::web;
@@ -75,7 +73,7 @@ pub struct ShapeRegistryData {
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<(symbol::GlobalInstanceId),Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<symbol::GlobalInstanceId,Rc<dyn MouseTarget>>,
 }
 
 impl {
@@ -176,7 +174,7 @@ impl Default for PointerTarget {
 
 /// [`PointerTarget`] decoding error. See the docs of [`PointerTarget::decode_from_rgba`] to learn
 /// more.
-#[derive(Debug, Fail)]
+#[derive(Copy, Clone, Debug, Fail)]
 #[allow(missing_docs)]
 pub enum DecodeError {
     WrongAlpha(u32),

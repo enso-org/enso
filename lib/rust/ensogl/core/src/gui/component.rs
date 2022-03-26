@@ -15,8 +15,6 @@ use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
-use crate::display::symbol::SymbolId;
-use crate::system::gpu::data::attribute;
 
 use enso_frp as frp;
 

@@ -159,9 +159,9 @@ impl application::View for View {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_mouse_events() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         let shape: View = app.new_view();

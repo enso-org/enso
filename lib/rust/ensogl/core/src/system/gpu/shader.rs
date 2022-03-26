@@ -248,9 +248,9 @@ pub fn compile_program(
             let len = web::Object::keys(&shader_dbg).length();
             let debug_var_name = format!("shader_{}", len);
             let shader_tgt_dbg = web::Object::new();
-            web::Reflect::set(&shader_dbg, &(&debug_var_name).into(), &shader_tgt_dbg);
-            web::Reflect::set(&shader_tgt_dbg, &"vertex".into(), &vert_src.into());
-            web::Reflect::set(&shader_tgt_dbg, &"fragment".into(), &frag_src.into());
+            web::Reflect::set(&shader_dbg, &(&debug_var_name).into(), &shader_tgt_dbg).ok();
+            web::Reflect::set(&shader_tgt_dbg, &"vertex".into(), &vert_src.into()).ok();
+            web::Reflect::set(&shader_tgt_dbg, &"fragment".into(), &frag_src.into()).ok();
 
             let js_path = format!("window.{}.{}", path.join("."), debug_var_name);
             Err(ContextLossOrError::Error(Error::Compile { js_path, vertex, fragment }))

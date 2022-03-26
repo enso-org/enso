@@ -13,7 +13,6 @@ use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
-use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::buffer::item::Storable;
 
 use super::def;

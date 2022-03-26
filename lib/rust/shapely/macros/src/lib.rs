@@ -22,6 +22,7 @@
 extern crate proc_macro;
 
 mod derive_clone_ref;
+mod derive_entry_point;
 mod derive_iterator;
 mod derive_no_clone;
 mod overlappable;
@@ -110,6 +111,16 @@ pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 #[proc_macro_derive(NoCloneBecauseOfCustomDrop)]
 pub fn derive_no_clone(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_no_clone::derive(input)
+}
+
+/// Exposes the function as an application entry point. Entry points are alternative application
+/// running modes that you can access by adding `?entry=` to the end of the application URL.
+#[proc_macro_attribute]
+pub fn entry_point(
+    _: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    derive_entry_point::derive(item)
 }
 
 #[allow(missing_docs)]

@@ -13,8 +13,6 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene;
-use ensogl_core::display::style::theme;
 
 
 
@@ -44,9 +42,9 @@ mod shape {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_custom_shape_system() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
@@ -60,7 +58,6 @@ pub fn entry_point_custom_shape_system() {
     world.add_child(&view1);
 
     world.keep_alive_forever();
-    let scene = world.default_scene.clone_ref();
 
     // FIXME: mouse_down does not work. Its an old error, but should be fixed.
     frp::new_network! { network
