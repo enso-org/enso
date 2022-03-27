@@ -52,19 +52,50 @@ pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 
 
+
 /// Abstraction for objects that can interact with a mouse.
-pub trait MouseTarget: Debug + 'static {
+#[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
+pub struct MouseTarget {
+    network:           frp::Network,
     /// Mouse button was pressed while the pointer was hovering this object.
-    fn mouse_down(&self) -> &frp::Source<mouse::Button>;
+    pub mouse_down:    frp::Source<mouse::Button>,
     /// Mouse button was released while the pointer was hovering this object.
-    fn mouse_up(&self) -> &frp::Source<mouse::Button>;
+    pub mouse_up:      frp::Source<mouse::Button>,
     /// Mouse button that was earlier pressed on this object was just released. The mouse pointer
     /// does not have to hover this object anymore.
-    fn mouse_release(&self) -> &frp::Source<mouse::Button>;
+    pub mouse_release: frp::Source<mouse::Button>,
     /// Mouse pointer entered the object shape.
-    fn mouse_over(&self) -> &frp::Source;
+    pub mouse_over:    frp::Source,
     /// Mouse pointer exited the object shape.
-    fn mouse_out(&self) -> &frp::Source;
+    pub mouse_out:     frp::Source,
+    /// The mouse target was dropped.
+    pub on_drop:       frp::Source,
+}
+
+impl MouseTarget {
+    /// Constructor.
+    pub fn new() -> Self {
+        frp::new_network! { network
+            on_drop       <- source_();
+            mouse_down    <- source();
+            mouse_up      <- source();
+            mouse_release <- source();
+            mouse_over    <- source_();
+            mouse_out     <- source_();
+
+            is_mouse_over <- bool(&mouse_out,&mouse_over);
+            out_on_drop   <- on_drop.gate(&is_mouse_over);
+            eval_ out_on_drop (mouse_out.emit(()));
+        }
+        Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
+    }
+}
+
+impl Default for MouseTarget {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 
@@ -74,17 +105,24 @@ pub trait MouseTarget: Debug + 'static {
 // =====================
 
 shared! { ShapeRegistry
-#[derive(Debug,Default)]
+#[derive(Debug)]
 pub struct ShapeRegistryData {
-    // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
+    // FIXME[WD]: The only valid fields here is the `mouse_target_map`. The rest should be removed
     //            after proper implementation of text depth sorting, which is the only component
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<symbol::GlobalInstanceId,Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<PointerTarget, MouseTarget>,
 }
 
 impl {
+    fn new(background: &MouseTarget) -> Self {
+        let scene = default();
+        let shape_system_map = default();
+        let mouse_target_map = default();
+        Self {scene, shape_system_map, mouse_target_map} . init(background)
+    }
+
     fn get<T:ShapeSystemInstance>(&self) -> Option<T> {
         let id = TypeId::of::<T>();
         self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<T>()).map(|t| t.clone_ref())
@@ -112,29 +150,32 @@ impl {
         system.new_instance()
     }
 
-    pub fn insert_mouse_target<T:MouseTarget>
-    (&mut self, id:symbol::GlobalInstanceId, target:T) {
-        let target = Rc::new(target);
-        self.mouse_target_map.insert(id,target);
+    pub fn insert_mouse_target
+    (&mut self, id:impl Into<PointerTarget>, target:impl Into<MouseTarget>) {
+        self.mouse_target_map.insert(id.into(),target.into());
     }
 
     pub fn remove_mouse_target
-    (&mut self, id:symbol::GlobalInstanceId) {
-        self.mouse_target_map.remove(&id);
+    (&mut self, id:impl Into<PointerTarget>) {
+        self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
-        match target {
-            PointerTarget::Background => None,
-            PointerTarget::Symbol {id} => self.mouse_target_map.get(&id).cloned()
-        }
+    pub fn get_mouse_target(&self, target:PointerTarget) -> Option<MouseTarget> {
+        self.mouse_target_map.get(&target).cloned()
     }
 
     pub fn with_mouse_target<T>
-    (&self, target:PointerTarget, f: impl FnOnce(&Rc<dyn MouseTarget>) -> T) -> Option<T> {
-        self.get_mouse_target(target).map(|t| f(&t))
+    (&self, target:PointerTarget, f: impl FnOnce(&MouseTarget) -> T) -> Option<T> {
+        self.mouse_target_map.get(&target).as_ref().map(|t| f(t))
     }
 }}
+
+impl ShapeRegistryData {
+    fn init(mut self, background: &MouseTarget) -> Self {
+        self.mouse_target_map.insert(PointerTarget::Background, background.clone_ref());
+        self
+    }
+}
 
 
 
@@ -143,7 +184,7 @@ impl {
 // =====================
 
 /// Mouse target. Contains an unique ID for an object pointed by the mouse.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub enum PointerTarget {
     Background,
     Symbol { id: symbol::GlobalInstanceId },
@@ -184,6 +225,20 @@ impl Default for PointerTarget {
         Self::Background
     }
 }
+
+impl From<symbol::GlobalInstanceId> for PointerTarget {
+    fn from(id: symbol::GlobalInstanceId) -> Self {
+        Self::Symbol { id }
+    }
+}
+
+impl From<&symbol::GlobalInstanceId> for PointerTarget {
+    fn from(id: &symbol::GlobalInstanceId) -> Self {
+        Self::from(*id)
+    }
+}
+
+
 
 /// [`PointerTarget`] decoding error. See the docs of [`PointerTarget::decode_from_rgba`] to learn
 /// more.
@@ -777,6 +832,7 @@ pub struct SceneData {
     pub mouse:                Mouse,
     pub keyboard:             Keyboard,
     pub uniforms:             Uniforms,
+    pub background:           MouseTarget,
     pub shapes:               ShapeRegistry,
     pub stats:                Stats,
     pub dirty:                Dirty,
@@ -810,7 +866,8 @@ impl SceneData {
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
-        let shapes = ShapeRegistry::default();
+        let background = MouseTarget::new();
+        let shapes = ShapeRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
@@ -850,6 +907,7 @@ impl SceneData {
             keyboard,
             uniforms,
             shapes,
+            background,
             stats,
             dirty,
             logger,
@@ -1009,14 +1067,14 @@ impl SceneData {
             eval self.mouse.frp.down ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 pressed.borrow_mut().insert(*button,current_target);
-                shapes.with_mouse_target(current_target, |t| t.mouse_down().emit(button));
+                shapes.with_mouse_target(current_target, |t| t.mouse_down.emit(button));
             });
             eval self.mouse.frp.up ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    shapes.with_mouse_target(last_target, |t| t.mouse_release().emit(button));
+                    shapes.with_mouse_target(last_target, |t| t.mouse_release.emit(button));
                 }
-                shapes.with_mouse_target(current_target, |t| t.mouse_up().emit(button));
+                shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
             });
         }
     }
@@ -1031,8 +1089,8 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
-            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
+            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out.emit(()));
+            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over.emit(()));
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }

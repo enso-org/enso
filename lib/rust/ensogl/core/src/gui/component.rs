@@ -25,64 +25,65 @@ use enso_frp as frp;
 // === ShapeViewEvents ===
 // =======================
 
-/// FRP event endpoints exposed by each shape view. In particular these are all mouse events
-/// which are triggered by mouse interactions after the shape view is placed on the scene.
-///
-/// To learn more about the meaning of each of the mouse related events see the [`MouseTarget`]
-/// docs.
-#[derive(Clone, CloneRef, Debug)]
-#[allow(missing_docs)]
-pub struct ShapeViewEvents {
-    network:           frp::Network,
-    pub mouse_down:    frp::Source<mouse::Button>,
-    pub mouse_up:      frp::Source<mouse::Button>,
-    pub mouse_release: frp::Source<mouse::Button>,
-    pub mouse_over:    frp::Source,
-    pub mouse_out:     frp::Source,
-    pub on_drop:       frp::Source,
-}
-
-impl ShapeViewEvents {
-    fn new() -> Self {
-        frp::new_network! { network
-            on_drop       <- source_();
-            mouse_down    <- source();
-            mouse_up      <- source();
-            mouse_release <- source();
-            mouse_over    <- source_();
-            mouse_out     <- source_();
-
-            is_mouse_over <- bool(&mouse_out,&mouse_over);
-            out_on_drop   <- on_drop.gate(&is_mouse_over);
-            eval_ out_on_drop (mouse_out.emit(()));
-        }
-        Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
-    }
-}
-
-impl MouseTarget for ShapeViewEvents {
-    fn mouse_down(&self) -> &frp::Source<mouse::Button> {
-        &self.mouse_down
-    }
-    fn mouse_up(&self) -> &frp::Source<mouse::Button> {
-        &self.mouse_up
-    }
-    fn mouse_release(&self) -> &frp::Source<mouse::Button> {
-        &self.mouse_release
-    }
-    fn mouse_over(&self) -> &frp::Source {
-        &self.mouse_over
-    }
-    fn mouse_out(&self) -> &frp::Source {
-        &self.mouse_out
-    }
-}
-
-impl Default for ShapeViewEvents {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub type ShapeViewEvents = MouseTarget;
+// /// FRP event endpoints exposed by each shape view. In particular these are all mouse events
+// /// which are triggered by mouse interactions after the shape view is placed on the scene.
+// ///
+// /// To learn more about the meaning of each of the mouse related events see the [`MouseTarget`]
+// /// docs.
+// #[derive(Clone, CloneRef, Debug)]
+// #[allow(missing_docs)]
+// pub struct ShapeViewEvents {
+//     network:           frp::Network,
+//     pub mouse_down:    frp::Source<mouse::Button>,
+//     pub mouse_up:      frp::Source<mouse::Button>,
+//     pub mouse_release: frp::Source<mouse::Button>,
+//     pub mouse_over:    frp::Source,
+//     pub mouse_out:     frp::Source,
+//     pub on_drop:       frp::Source,
+// }
+//
+// impl ShapeViewEvents {
+//     fn new() -> Self {
+//         frp::new_network! { network
+//             on_drop       <- source_();
+//             mouse_down    <- source();
+//             mouse_up      <- source();
+//             mouse_release <- source();
+//             mouse_over    <- source_();
+//             mouse_out     <- source_();
+//
+//             is_mouse_over <- bool(&mouse_out,&mouse_over);
+//             out_on_drop   <- on_drop.gate(&is_mouse_over);
+//             eval_ out_on_drop (mouse_out.emit(()));
+//         }
+//         Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
+//     }
+// }
+//
+// impl MouseTarget for ShapeViewEvents {
+//     fn mouse_down(&self) -> &frp::Source<mouse::Button> {
+//         &self.mouse_down
+//     }
+//     fn mouse_up(&self) -> &frp::Source<mouse::Button> {
+//         &self.mouse_up
+//     }
+//     fn mouse_release(&self) -> &frp::Source<mouse::Button> {
+//         &self.mouse_release
+//     }
+//     fn mouse_over(&self) -> &frp::Source {
+//         &self.mouse_over
+//     }
+//     fn mouse_out(&self) -> &frp::Source {
+//         &self.mouse_out
+//     }
+// }
+//
+// impl Default for ShapeViewEvents {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 
 
