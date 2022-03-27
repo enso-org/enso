@@ -695,7 +695,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.source.background_press <+ model.drag_area.events.mouse_down;
+            out.source.background_press <+ model.drag_area.events.mouse_down.constant(());
             out.source.background_press <+ model.input.on_background_press;
 
 

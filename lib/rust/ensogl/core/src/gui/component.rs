@@ -6,6 +6,7 @@
 use crate::display::object::traits::*;
 use crate::prelude::*;
 
+use crate::control::io::mouse;
 use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
@@ -26,40 +27,48 @@ use enso_frp as frp;
 
 /// FRP event endpoints exposed by each shape view. In particular these are all mouse events
 /// which are triggered by mouse interactions after the shape view is placed on the scene.
+///
+/// To learn more about the meaning of each of the mouse related events see the [`MouseTarget`]
+/// docs.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct ShapeViewEvents {
-    pub network:    frp::Network,
-    pub mouse_up:   frp::Source,
-    pub mouse_down: frp::Source,
-    pub mouse_over: frp::Source,
-    pub mouse_out:  frp::Source,
-    pub on_drop:    frp::Source,
+    network:           frp::Network,
+    pub mouse_down:    frp::Source<mouse::Button>,
+    pub mouse_up:      frp::Source<mouse::Button>,
+    pub mouse_release: frp::Source<mouse::Button>,
+    pub mouse_over:    frp::Source,
+    pub mouse_out:     frp::Source,
+    pub on_drop:       frp::Source,
 }
 
 impl ShapeViewEvents {
     fn new() -> Self {
         frp::new_network! { network
-            on_drop    <- source_();
-            mouse_down <- source_();
-            mouse_up   <- source_();
-            mouse_over <- source_();
-            mouse_out  <- source_();
+            on_drop       <- source_();
+            mouse_down    <- source();
+            mouse_up      <- source();
+            mouse_release <- source();
+            mouse_over    <- source_();
+            mouse_out     <- source_();
 
             is_mouse_over <- bool(&mouse_out,&mouse_over);
             out_on_drop   <- on_drop.gate(&is_mouse_over);
             eval_ out_on_drop (mouse_out.emit(()));
         }
-        Self { network, mouse_up, mouse_down, mouse_over, mouse_out, on_drop }
+        Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
     }
 }
 
 impl MouseTarget for ShapeViewEvents {
-    fn mouse_down(&self) -> &frp::Source {
+    fn mouse_down(&self) -> &frp::Source<mouse::Button> {
         &self.mouse_down
     }
-    fn mouse_up(&self) -> &frp::Source {
+    fn mouse_up(&self) -> &frp::Source<mouse::Button> {
         &self.mouse_up
+    }
+    fn mouse_release(&self) -> &frp::Source<mouse::Button> {
+        &self.mouse_release
     }
     fn mouse_over(&self) -> &frp::Source {
         &self.mouse_over

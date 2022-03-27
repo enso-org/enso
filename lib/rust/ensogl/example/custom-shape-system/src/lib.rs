@@ -56,7 +56,6 @@ pub fn main() {
     view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
     world.add_child(&view1);
-
     world.keep_alive_forever();
 
     // FIXME: mouse_down does not work. Its an old error, but should be fixed.

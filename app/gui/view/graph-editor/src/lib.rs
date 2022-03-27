@@ -2611,27 +2611,28 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             |t| (t==&display::scene::PointerTarget::Background).as_some(())
         );
 
-        eval mouse_down_target([touch,model](target) {
+        eval mouse_down_target([touch](target) {
             match target {
                 display::scene::PointerTarget::Background  => touch.background.down.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_down().emit(());
-                    }
-                }
+                _ => {}
+                // display::scene::PointerTarget::Symbol {..} => {
+                //     if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
+                //         target.mouse_down().emit(());
+                //     }
+                // }
             }
         });
 
-        eval mouse_up_target([model](target) {
-            match target {
-                display::scene::PointerTarget::Background  => {} // touch.background.up.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_up().emit(());
-                    }
-                }
-            }
-        });
+        // eval mouse_up_target([model](target) {
+        //     match target {
+        //         display::scene::PointerTarget::Background  => {} // touch.background.up.emit(()),
+        //         display::scene::PointerTarget::Symbol {..} => {
+        //             if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
+        //                 target.mouse_up().emit(());
+        //             }
+        //         }
+        //     }
+        // });
     }
 
 

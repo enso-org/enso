@@ -107,11 +107,10 @@ impl View {
         let frp = Frp::new();
         let model = Model::new(app);
         let events = &model.shape.events;
-        let network = &events.network;
+        let network = &frp.network;
         frp::extend! { network
-            // FIXME [mwu] Currently only `mouse_over` and `mouse_out` events are delivered.
-            //             See: https://github.com/enso-org/ide/issues/1477
             trace model.shape.events.mouse_up;
+            trace model.shape.events.mouse_release;
             trace model.shape.events.mouse_down;
             trace model.shape.events.mouse_over;
             trace model.shape.events.mouse_out;

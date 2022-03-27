@@ -38,6 +38,7 @@ use std::any::TypeId;
 use web::HtmlElement;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -51,11 +52,18 @@ pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 
 
-
+/// Abstraction for objects that can interact with a mouse.
 pub trait MouseTarget: Debug + 'static {
-    fn mouse_down(&self) -> &frp::Source;
-    fn mouse_up(&self) -> &frp::Source;
+    /// Mouse button was pressed while the pointer was hovering this object.
+    fn mouse_down(&self) -> &frp::Source<mouse::Button>;
+    /// Mouse button was released while the pointer was hovering this object.
+    fn mouse_up(&self) -> &frp::Source<mouse::Button>;
+    /// Mouse button that was earlier pressed on this object was just released. The mouse pointer
+    /// does not have to hover this object anymore.
+    fn mouse_release(&self) -> &frp::Source<mouse::Button>;
+    /// Mouse pointer entered the object shape.
     fn mouse_over(&self) -> &frp::Source;
+    /// Mouse pointer exited the object shape.
     fn mouse_out(&self) -> &frp::Source;
 }
 
@@ -115,11 +123,16 @@ impl {
         self.mouse_target_map.remove(&id);
     }
 
-    pub fn get_mouse_target(&mut self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
+    pub fn get_mouse_target(&self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
         match target {
             PointerTarget::Background => None,
             PointerTarget::Symbol {id} => self.mouse_target_map.get(&id).cloned()
         }
+    }
+
+    pub fn with_mouse_target<T>
+    (&self, target:PointerTarget, f: impl FnOnce(&Rc<dyn MouseTarget>) -> T) -> Option<T> {
+        self.get_mouse_target(target).map(|t| f(&t))
     }
 }}
 
@@ -274,12 +287,12 @@ impl Mouse {
     /// Re-emits FRP mouse changed position event with the last mouse position value.
     ///
     /// The immediate question that appears is why it is even needed. The reason is tightly coupled
-    /// with how the rendering engine works and it is important to understand it properly. When
+    /// with how the rendering engine works, and it is important to understand it properly. When
     /// moving a mouse the following events happen:
     /// - `MouseManager` gets notification and fires callbacks.
     /// - Callback above is run. The value of `screen_position` uniform changes and FRP events are
     ///   emitted.
-    /// - FRP events propagate trough the whole system.
+    /// - FRP events propagate through the whole system.
     /// - The rendering engine renders a frame and waits for the pixel read pass to report symbol ID
     ///   under the cursor. This is normally done the next frame but sometimes could take even few
     ///   frames.
@@ -849,6 +862,12 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
+        .init()
+    }
+
+    fn init(self) -> Self {
+        self.init_mouse_down_and_up_events();
+        self
     }
 
     pub fn set_context(&self, context: Option<&Context>) {
@@ -872,21 +891,6 @@ impl SceneData {
 
     pub fn symbols(&self) -> &SymbolRegistry {
         &self.symbols
-    }
-
-    fn handle_mouse_events(&self) {
-        let opt_new_target = PointerTarget::decode_from_rgba(self.mouse.hover_rgba.get());
-        let new_target = opt_new_target.unwrap_or_else(|err| {
-            error!(self.logger, "{err}");
-            default()
-        });
-        let current_target = self.mouse.target.get();
-        if new_target != current_target {
-            self.mouse.target.set(new_target);
-            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
-            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
-            self.mouse.re_emit_position_event(); // See docs to learn why.
-        }
     }
 
     fn update_shape(&self) {
@@ -989,6 +993,52 @@ impl SceneData {
     }
 }
 
+
+// === Mouse ===
+
+impl SceneData {
+    /// Init handling of mouse up and down events. It is also responsible for discovering of the
+    /// mouse release events. To learn more see the documentation of [`MouseTarget`].
+    fn init_mouse_down_and_up_events(&self) {
+        let network = &self.frp.network;
+        let shapes = &self.shapes;
+        let target = &self.mouse.target;
+        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTarget>>> = default();
+
+        frp::extend! { network
+            eval self.mouse.frp.down ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                pressed.borrow_mut().insert(*button,current_target);
+                shapes.with_mouse_target(current_target, |t| t.mouse_down().emit(button));
+            });
+            eval self.mouse.frp.up ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                if let Some(last_target) = pressed.borrow_mut().remove(button) {
+                    shapes.with_mouse_target(last_target, |t| t.mouse_release().emit(button));
+                }
+                shapes.with_mouse_target(current_target, |t| t.mouse_up().emit(button));
+            });
+        }
+    }
+
+    /// Discover what object the mouse pointer is on.
+    fn handle_mouse_over_and_out_events(&self) {
+        let opt_new_target = PointerTarget::decode_from_rgba(self.mouse.hover_rgba.get());
+        let new_target = opt_new_target.unwrap_or_else(|err| {
+            error!(self.logger, "{err}");
+            default()
+        });
+        let current_target = self.mouse.target.get();
+        if new_target != current_target {
+            self.mouse.target.set(new_target);
+            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
+            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
+            self.mouse.re_emit_position_event(); // See docs to learn why.
+        }
+    }
+}
+
+
 impl display::Object for SceneData {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
@@ -1087,7 +1137,7 @@ impl Scene {
                 self.layers.update();
                 self.update_shape();
                 self.update_symbols();
-                self.handle_mouse_events();
+                self.handle_mouse_over_and_out_events();
             })
         }
     }
