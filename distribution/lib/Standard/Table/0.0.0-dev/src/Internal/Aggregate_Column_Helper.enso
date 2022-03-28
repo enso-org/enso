@@ -59,6 +59,7 @@ validate aggregate_columns table =
     pass_1 = valid_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
     valid_columns = pass_1.map_with_index i->c->
         Pair (if c.is_nothing then unique.make_unique (valid_aggregate_columns.at i . column_name table) else c) (valid_aggregate_columns.at i)
+    ## TODO resolve the columns
 
     # Build Problems Output
     missing_problems = (if missing_names.is_empty then [] else [Missing_Input_Columns missing_names.to_vector])
