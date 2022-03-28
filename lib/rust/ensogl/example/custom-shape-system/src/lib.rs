@@ -58,7 +58,6 @@ pub fn main() {
     world.add_child(&view1);
     world.keep_alive_forever();
 
-    // FIXME: mouse_down does not work. Its an old error, but should be fixed.
     frp::new_network! { network
         trace view1.events.mouse_over;
         trace view1.events.mouse_out;
