@@ -20,7 +20,8 @@ import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
 
-import {SemVer, Comparator} from "semver";
+import * as semver from "semver"
+import {SemVer, Comparator } from "semver";
 
 
 const authInfo = 'auth-info'
@@ -775,6 +776,7 @@ class Config {
     public email: string
     public application_config_url: string
     public skip_min_version_check: boolean
+    public preferred_engine_version: SemVer
 
     static default() {
         let config = new Config()
@@ -789,6 +791,7 @@ class Config {
         config.application_config_url =
             'https://raw.githubusercontent.com/enso-org/ide/develop/config.json' // FIXME
         config.skip_min_version_check = false
+        config.preferred_engine_version = Versions.ideVersion
         return config
     }
 
@@ -841,6 +844,7 @@ class Config {
         this.skip_min_version_check = ok(other.skip_min_version_check)
             ? tryAsBoolean(other.skip_min_version_check)
             : this.skip_min_version_check
+        this.preferred_engine_version = semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
     }
 }
 
