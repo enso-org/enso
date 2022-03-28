@@ -74,9 +74,12 @@ macro_rules! define_id {
             }
         }
 
+        // This can't be derived because the derive implementation depends on `CloneRef` being in
+        // scope at the definition site, and we don't know if that will be the case where this
+        // macro is used.
         impl $crate::prelude::CloneRef for $name {
             fn clone_ref(&self) -> Self {
-                Self(self.0)
+                self.clone()
             }
         }
     };

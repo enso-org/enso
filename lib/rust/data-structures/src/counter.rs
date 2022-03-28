@@ -12,7 +12,7 @@ use crate::prelude::*;
 // ===============
 
 /// Implements a globally-unique counter.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, CloneRef, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
 pub struct Counter {
     value: std::num::NonZeroU64,
 }
@@ -39,12 +39,6 @@ impl Counter {
 impl From<Counter> for u64 {
     fn from(Counter { value }: Counter) -> Self {
         value.into()
-    }
-}
-
-impl CloneRef for Counter {
-    fn clone_ref(&self) -> Self {
-        Self { value: self.value }
     }
 }
 
