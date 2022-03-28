@@ -58,11 +58,7 @@ impl CloneRef for Counter {
 ///
 /// Example usage:
 /// ```
-/// enso_data_structures::define_id! {
-///     /// Example ID type. This macro syntax allows applying doc comments and attribute macros to
-///     /// the type being defined.
-///     pub struct MyId($);
-/// }
+/// enso_data_structures::define_id!(MyId);
 ///
 /// // `new()` produces unique values of the new type.
 /// let a = MyId::new();
@@ -71,11 +67,8 @@ impl CloneRef for Counter {
 /// ```
 #[macro_export]
 macro_rules! define_id {
-    (
-        $(#[$attrs:meta])*
-        pub struct $name:ident($);
-    ) => {
-        $(#[$attrs])*
+    ($name:ident) => {
+        #[allow(missing_docs)]
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
         pub struct $name($crate::counter::Counter);
 
@@ -115,8 +108,8 @@ macro_rules! define_id {
 
 #[cfg(test)]
 mod tests {
-    define_id! { pub struct TestIdA($); }
-    define_id! { pub struct TestIdB($); }
+    define_id!(TestIdA);
+    define_id!(TestIdB);
 
     #[test]
     fn test_counter() {

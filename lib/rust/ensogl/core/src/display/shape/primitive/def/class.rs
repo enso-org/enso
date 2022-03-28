@@ -57,10 +57,7 @@ pub struct ShapeRef<T> {
     id: ShapeId,
 }
 
-enso_data_structures::define_id! {
-    /// Unique ID for a shape.
-    pub struct ShapeId($);
-}
+enso_data_structures::define_id!(ShapeId);
 
 impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
     fn from(t: &ShapeRef<T>) -> Self {

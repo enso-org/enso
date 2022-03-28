@@ -37,10 +37,7 @@ pub type Output<T> = <T as HasOutput>::Output;
 // === Id ===
 // ==========
 
-enso_data_structures::define_id! {
-    /// Identifier of FRP node. Used mainly for debug purposes.
-    pub struct Id($);
-}
+enso_data_structures::define_id!(Id);
 
 /// Implementors of this trait has to be assigned with an unique Id. All FRP nodes implement it.
 #[allow(missing_docs)]

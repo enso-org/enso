@@ -13,10 +13,7 @@ use crate::stream::Stream;
 // === Id ===
 // ==========
 
-enso_data_structures::define_id! {
-    /// Globally unique identifier of an frp network.
-    pub struct NetworkId($);
-}
+enso_data_structures::define_id!(NetworkId);
 
 
 

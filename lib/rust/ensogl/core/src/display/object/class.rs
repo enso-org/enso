@@ -601,10 +601,7 @@ impl CloneRef for Id {
     }
 }
 
-enso_data_structures::define_id! {
-    /// Globally unique identifier of a display object.
-    pub struct ObjectId($);
-}
+enso_data_structures::define_id!(ObjectId);
 
 
 
