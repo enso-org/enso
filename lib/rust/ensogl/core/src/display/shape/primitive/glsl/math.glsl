@@ -186,8 +186,33 @@ float neg(float a) {
 
 // === Encode ===
 
-// This encoding must correspond to the decoding in the `Target` struct in
-// src\rust\ensogl\src\display\scene.rs See there for more explanation.
+/// Encodes na [`uint`] values so it can be stored as a u8 encoded [`float`]. Will clamp values that
+/// are out of range.
+float as_float_u8(uint value) {
+    return clamp(float(value) / 255.0);
+}
+
+vec3 as_float_u8(uvec3 v) {
+    return vec3(as_float_u8(v.x),as_float_u8(v.y),as_float_u8(v.z));
+}
+
+/// The threshold used to decide whether a value should be included in the generated ID map. The
+/// threshold is defined as 0.0 because it is quite common to use almost completely transparent
+/// colors (like `Rgba(0.0, 0.0, 0.0, 0.000001)`) for shapes which should just catch mouse events
+/// without providing any visual feedback.
+const float ID_ALPHA_THRESHOLD = 0.0;
+
+/// The maximum ID that can be encoded. We are encoding IDs using rgb values (3 bytes).
+const int MAX_ENCODE_ID = 0;
+
+/// Enables check for ID encoding.
+#define ID_ENCODING_OVERFLOW_CHECK
+
+/// This encoding must correspond to the decoding in the [`PointerTarget`] struct in the
+/// `ensogl/core/src/display/scene/pointer_target.rs` file.
+///
+/// *Overflow Behavior*
+///
 uvec3 encode(int value) {
     int r_mask = 0xFF;
     int g_mask = 0xFF00;
@@ -198,12 +223,13 @@ uvec3 encode(int value) {
     return uvec3(r,g,b);
 }
 
-// Encodes a uint values so it can be stored in a u8 encoded float. Will clamp values that are
-// out of range.
-float as_float_u8(uint value) {
-    return clamp(float(value) / 255.0);
-}
-
-vec3 as_float_u8(uvec3 v) {
-    return vec3(as_float_u8(v.x),as_float_u8(v.y),as_float_u8(v.z));
+vec4 encode2(int value, float alpha) {
+    uvec3 chunks = encode(value);
+    vec3 rgb = as_float_u8(chunks);
+    rgb *= alpha;
+#ifdef ID_ENCODING_OVERFLOW_CHECK
+    bool is_overflow = value > MAX_ENCODE_ID;
+    alpha = is_overflow ? (100.0/255.0) : alpha;
+#endif
+    return vec4(as_float_u8(chunks),alpha);
 }

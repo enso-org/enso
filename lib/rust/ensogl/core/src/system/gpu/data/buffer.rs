@@ -224,7 +224,6 @@ impl<T:Storable> {
             let cols           = T::cols() as i32;
             let col_byte_size  = item_byte_size * rows;
             let stride         = col_byte_size  * cols;
-            let norm           = false;
             for col in 0..cols {
                 let lloc = loc + col as u32;
                 let off  = col * col_byte_size;
@@ -232,7 +231,9 @@ impl<T:Storable> {
                 if is_integer {
                     gl.context.vertex_attrib_i_pointer_with_i32(lloc,rows,item_type,stride,off);
                 } else {
-                    gl.context.vertex_attrib_pointer_with_i32(lloc,rows,item_type,norm,stride,off);
+                    let normalize = false;
+                    gl.context.vertex_attrib_pointer_with_i32
+                        (lloc,rows,item_type,normalize,stride,off);
                 }
                 if instanced {
                     let instance_count = 1;

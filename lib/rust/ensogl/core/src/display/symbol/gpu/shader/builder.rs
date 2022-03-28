@@ -108,6 +108,10 @@ pub struct AttributeQualifier {
 }
 
 impl AttributeQualifier {
+    /// Convert the qualifier to input variable definition. The [`use_qual`] parameter defines if
+    /// the qualified storage interpolator (e.g. `flat`) should be used. Interpolation modifiers are
+    /// illegal on vertex shader input attributes, however, they are required on fragment shader
+    /// ones.
     pub fn to_input_var<Name: Into<glsl::Identifier>>(
         &self,
         name: Name,
@@ -115,8 +119,6 @@ impl AttributeQualifier {
     ) -> glsl::GlobalVar {
         let mut storage = self.storage;
         if !use_qual {
-            // Interpolation modifiers (like `flat`) are illegal on vertex shader input attributes,
-            // however, they are required on fragment shader input attributes.
             storage.interpolation = None;
         }
         glsl::GlobalVar {

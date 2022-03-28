@@ -76,6 +76,9 @@ impl PointerTargetId {
     /// Decode the [`PointerTargetId`] from an RGBA value. If alpha is set to 0, the result will be
     /// background. In case alpha is 255, the result will be decoded based on the first 3 bytes,
     /// which allows for storing up to 16 581 375 unique IDs.
+    ///
+    /// Please see the [`fragment_runner.glsl`] file to see the encoding implementation and learn
+    /// more about the possible overflow behavior.
     pub fn decode_from_rgba(v: Vector4<u32>) -> Result<Self, DecodeError> {
         let alpha = v.w;
         match alpha {

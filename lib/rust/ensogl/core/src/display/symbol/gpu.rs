@@ -237,6 +237,9 @@ impl Drop for SymbolStatsData {
 newtype_prim! {
     /// Global [`Symbol`] instance id. Allows encoding symbol IDs in a texture and then decode on
     /// mouse interaction.
+    ///
+    /// Please see the [`fragment_runner.glsl`] file to see the encoding implementation and learn
+    /// more about the possible overflow behavior.
     GlobalInstanceId(u32);
 }
 

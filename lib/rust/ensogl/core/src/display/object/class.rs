@@ -1192,7 +1192,8 @@ impl<Host> Object<Host> for Any<Host> {
 // === UnsetParentOnDrop ===
 // =========================
 
-/// Wrapper that unsets parent of a display object when dropped.
+/// Wrapper that unsets parent of a display object when dropped. Please note that [`Instance`]
+/// implements [`CloneRef`], so it can still be alive even if this struct is dropped.
 #[derive(Debug, NoCloneBecauseOfCustomDrop)]
 pub struct UnsetParentOnDrop {
     instance: Instance,

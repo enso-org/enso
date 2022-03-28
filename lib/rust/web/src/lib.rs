@@ -359,8 +359,8 @@ ops! { ReflectOps for Reflect
         /// [`get_nested`] to learn more.
         fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
 
-        /// Get the nested value of the provided object and cast it to [`Object`]. In case the
-        /// object does not exist, they will be created. See docs of [`get_nested`] to learn more.
+        /// Get the nested value of the provided object. In case the object does not exist, they
+        /// will be created. See docs of [`get_nested`] to learn more.
          fn get_nested_or_create(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue>;
 
          /// Get the nested value of the provided object and cast it to [`Object`]. In case the
