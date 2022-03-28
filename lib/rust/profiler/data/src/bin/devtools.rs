@@ -1,5 +1,9 @@
 //! Tool that generates Chrome DevTools-compatible files from profiling interval data.
 //!
+//! The Chrome DevTools profile format has no official publicly available documentation.
+//! Someone's description of it is available here:
+//! https://docs.google.com/document/d/1lieZBBXZiEKOVk5vLCGmMT99_O-5lv9cGXoKnhqlY4g/preview
+//!
 //! # Usage
 //!
 //! The tool reads a JSON-formatted event log from stdin, and writes a report to stdout.
