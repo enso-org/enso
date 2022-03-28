@@ -68,7 +68,7 @@ impl CloneRef for Counter {
 #[macro_export]
 macro_rules! define_id {
     ($name:ident) => {
-        #[allow(missing_docs)]
+        /// A unique ID.
         #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
         pub struct $name($crate::counter::Counter);
 
@@ -88,6 +88,13 @@ macro_rules! define_id {
         /// Convert to a raw count, losing counter-type information.
         impl From<$name> for u64 {
             fn from($name(counter): $name) -> Self {
+                counter.into()
+            }
+        }
+
+        /// Convert to a raw count, losing counter-type information.
+        impl From<&$name> for u64 {
+            fn from(&$name(counter): &$name) -> Self {
                 counter.into()
             }
         }
