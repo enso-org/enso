@@ -165,6 +165,7 @@ java_aggregator table name column =
         Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column True
         Sum c _ -> AggregateColumnDefinition.Sum name (resolve c).java_column
         Average c _ -> AggregateColumnDefinition.Mean name (resolve c).java_column
+        Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name (resolve c).java_column p
         First c _ ignore_nothing _ -> AggregateColumnDefinition.First name (resolve c).java_column ignore_nothing
         Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name (resolve c).java_column ignore_nothing
         Maximum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column 1

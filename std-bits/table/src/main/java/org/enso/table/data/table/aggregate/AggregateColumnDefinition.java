@@ -272,8 +272,8 @@ public class AggregateColumnDefinition {
       public double total;
 
       public MeanCalculation(double value) {
-        total = value;
         count = 1;
+        total = value;
       }
     }
 
@@ -300,6 +300,48 @@ public class AggregateColumnDefinition {
             }
           }
           return current == null ? null : current.total / current.count;
+        });
+  }
+
+  public static AggregateColumnDefinition StDev(String name, Column column, boolean population) {
+    class StDevCalculation {
+      public long count;
+      public double total;
+      public double total_sqr;
+
+      public StDevCalculation(double value) {
+        count = 1;
+        total = value;
+        total_sqr = value * value;
+      }
+    }
+
+    Storage storage = column.getStorage();
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.OBJECT,
+        rows -> {
+          StDevCalculation current = null;
+          for (int row: rows) {
+            Object value = storage.getItemBoxed(row);
+            if (value != null) {
+              Double dValue = CastToDouble(value);
+              if (dValue == null) {
+                return new InvalidAggregation(name, row, "Cannot convert to a Double.");
+              }
+
+              if (current == null) {
+                current = new StDevCalculation(dValue);
+              } else {
+                current.count++;
+                current.total += dValue;
+                current.total_sqr += dValue*dValue;
+              }
+            }
+          }
+          return current == null ? null :
+              (population ? 1 : Math.sqrt(current.count) / (current.count - 1.0)) *
+                  Math.sqrt(current.total_sqr / current.count - Math.pow(current.total / current.count, 2));
         });
   }
 
