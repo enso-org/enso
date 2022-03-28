@@ -2,7 +2,9 @@
 //!
 //! # Usage
 //!
-//! The tool reads a JSON-formatted event log from stdin, and writes a report to stdout.
+//! The tool reads a
+//! [JSON-formatted event log](https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md#file-format)
+//! from stdin, and writes a report to stdout.
 //!
 //! For example:
 //!
