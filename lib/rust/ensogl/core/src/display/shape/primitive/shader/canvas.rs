@@ -238,12 +238,7 @@ impl Canvas {
     }
 
     /// Rotate the current canvas origin.
-    pub fn rotation<A: Into<Var<Radians>>>(
-        &mut self,
-        num: ShapeId,
-        s1: Shape,
-        angle: A,
-    ) -> Shape {
+    pub fn rotation<A: Into<Var<Radians>>>(&mut self, num: ShapeId, s1: Shape, angle: A) -> Shape {
         self.if_not_defined(num, |this| {
             let angle: Glsl = angle.into().glsl();
             let trans = iformat!("position = rotate(position,{angle});");

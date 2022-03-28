@@ -657,7 +657,7 @@ enso_data_structures::define_id!(ObjectId);
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), PartialEq(bound = ""), Eq(bound = ""))]
 pub struct Instance<Host = Scene> {
-    #[derivative(PartialEq(compare_with="IdentityEq::eq"))]
+    #[derivative(PartialEq(compare_with = "IdentityEq::eq"))]
     rc: RcWithId<Model<Host>, Id>,
 }
 
@@ -828,7 +828,7 @@ impl<Host> Debug for Instance<Host> {
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""), Debug(bound = ""), PartialEq(bound = ""), Eq(bound = ""))]
 pub struct WeakInstance<Host> {
-    #[derivative(PartialEq(compare_with="IdentityEq::eq"))]
+    #[derivative(PartialEq(compare_with = "IdentityEq::eq"))]
     weak: WeakWithId<Model<Host>, Id>,
 }
 

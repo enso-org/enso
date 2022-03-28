@@ -65,7 +65,7 @@ macro_rules! impl_ref_with_id {
                 self.id
             }
         }
-    }
+    };
 }
 
 
