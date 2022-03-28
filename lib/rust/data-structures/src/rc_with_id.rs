@@ -26,13 +26,6 @@ macro_rules! impl_ref_with_id {
             id: Id,
         }
 
-        impl<T, Id: UniqueId> IdentityEq for $name<T, Id> {
-            /// Return whether two values are references to the same object.
-            fn eq(&self, rhs: &Self) -> bool {
-                self.id() == rhs.id()
-            }
-        }
-
         impl<T, Id: UniqueId> Clone for $name<T, Id> {
             fn clone(&self) -> Self {
                 let rc = self.rc.clone();
@@ -63,6 +56,13 @@ macro_rules! impl_ref_with_id {
             /// Get this object's unique ID.
             pub fn id(&self) -> Id {
                 self.id
+            }
+        }
+
+        impl<T, Id: UniqueId> IdentityEq for $name<T, Id> {
+            /// Return whether two values are references to the same object.
+            fn eq(&self, rhs: &Self) -> bool {
+                self.id() == rhs.id()
             }
         }
     };
