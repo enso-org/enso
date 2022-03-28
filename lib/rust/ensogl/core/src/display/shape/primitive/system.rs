@@ -191,7 +191,7 @@ pub trait Shape: display::Object + CloneRef + Debug + Sized {
     /// Accessor for the underlying sprite.
     fn sprite(&self) -> &Sprite;
     /// Check if given mouse-event-target means this shape.
-    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         self.sprite().is_this_target(target)
     }
 }
@@ -217,7 +217,7 @@ pub trait DynamicShape: display::Object + CloneRef + Debug + Sized {
     /// The "canvas" size of the shape. It defines the bounding-box for the shape drawing area.
     fn size(&self) -> &DynamicParam<sprite::Size>;
     /// Check if given pointer-event-target means this object.
-    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         self.sprites().into_iter().any(|sprite| sprite.is_this_target(target))
     }
 }

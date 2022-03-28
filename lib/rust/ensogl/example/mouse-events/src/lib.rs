@@ -106,7 +106,6 @@ impl View {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Model::new(app);
-        let events = &model.shape.events;
         let network = &frp.network;
         frp::extend! { network
             trace model.shape.events.mouse_up;

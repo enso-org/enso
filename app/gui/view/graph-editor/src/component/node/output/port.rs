@@ -403,7 +403,7 @@ impl PortShapeView {
         set_padding_right (this,t:f32)   { this.padding_right.set(t) }
     }
 
-    fn events(&self) -> &component::ShapeViewEvents {
+    fn events(&self) -> &component::PointerTarget {
         match self {
             Self::Single(t) => &t.events,
             Self::Multi(t) => &t.events,

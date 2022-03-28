@@ -20,7 +20,6 @@ use crate::display::shape::system::StaticShapeSystemInstance;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
-use crate::display::symbol;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::system;
@@ -47,56 +46,13 @@ use web::HtmlElement;
 pub mod dom;
 #[warn(missing_docs)]
 pub mod layer;
+#[warn(missing_docs)]
+pub mod pointer_target;
 
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
-
-
-
-/// Abstraction for objects that can interact with a mouse.
-#[derive(Clone, CloneRef, Debug)]
-#[allow(missing_docs)]
-pub struct MouseTarget {
-    network:           frp::Network,
-    /// Mouse button was pressed while the pointer was hovering this object.
-    pub mouse_down:    frp::Source<mouse::Button>,
-    /// Mouse button was released while the pointer was hovering this object.
-    pub mouse_up:      frp::Source<mouse::Button>,
-    /// Mouse button that was earlier pressed on this object was just released. The mouse pointer
-    /// does not have to hover this object anymore.
-    pub mouse_release: frp::Source<mouse::Button>,
-    /// Mouse pointer entered the object shape.
-    pub mouse_over:    frp::Source,
-    /// Mouse pointer exited the object shape.
-    pub mouse_out:     frp::Source,
-    /// The mouse target was dropped.
-    pub on_drop:       frp::Source,
-}
-
-impl MouseTarget {
-    /// Constructor.
-    pub fn new() -> Self {
-        frp::new_network! { network
-            on_drop       <- source_();
-            mouse_down    <- source();
-            mouse_up      <- source();
-            mouse_release <- source();
-            mouse_over    <- source_();
-            mouse_out     <- source_();
-
-            is_mouse_over <- bool(&mouse_out,&mouse_over);
-            out_on_drop   <- on_drop.gate(&is_mouse_over);
-            eval_ out_on_drop (mouse_out.emit(()));
-        }
-        Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
-    }
-}
-
-impl Default for MouseTarget {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub use pointer_target::PointerTarget;
+pub use pointer_target::PointerTargetId;
 
 
 
@@ -112,11 +68,11 @@ pub struct ShapeRegistryData {
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<PointerTarget, MouseTarget>,
+    mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
 }
 
 impl {
-    fn new(background: &MouseTarget) -> Self {
+    fn new(background: &PointerTarget) -> Self {
         let scene = default();
         let shape_system_map = default();
         let mouse_target_map = default();
@@ -151,112 +107,29 @@ impl {
     }
 
     pub fn insert_mouse_target
-    (&mut self, id:impl Into<PointerTarget>, target:impl Into<MouseTarget>) {
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
         self.mouse_target_map.insert(id.into(),target.into());
     }
 
     pub fn remove_mouse_target
-    (&mut self, id:impl Into<PointerTarget>) {
+    (&mut self, id:impl Into<PointerTargetId>) {
         self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&self, target:PointerTarget) -> Option<MouseTarget> {
+    pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
         self.mouse_target_map.get(&target).cloned()
     }
 
     pub fn with_mouse_target<T>
-    (&self, target:PointerTarget, f: impl FnOnce(&MouseTarget) -> T) -> Option<T> {
+    (&self, target:PointerTargetId, f: impl FnOnce(&PointerTarget) -> T) -> Option<T> {
         self.mouse_target_map.get(&target).as_ref().map(|t| f(t))
     }
 }}
 
 impl ShapeRegistryData {
-    fn init(mut self, background: &MouseTarget) -> Self {
-        self.mouse_target_map.insert(PointerTarget::Background, background.clone_ref());
+    fn init(mut self, background: &PointerTarget) -> Self {
+        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
         self
-    }
-}
-
-
-
-// =====================
-// === PointerTarget ===
-// =====================
-
-/// Mouse target. Contains an unique ID for an object pointed by the mouse.
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
-pub enum PointerTarget {
-    Background,
-    Symbol { id: symbol::GlobalInstanceId },
-}
-
-impl PointerTarget {
-    /// Decode the [`PointerTarget`] from an RGBA value. If alpha is set to 0, the result will be
-    /// background. In case alpha is 255, the result will be decoded based on the first 3 bytes,
-    /// which allows for storing up to 16 581 375 unique IDs.
-    fn decode_from_rgba(v: Vector4<u32>) -> Result<Self, DecodeError> {
-        let alpha = v.w;
-        if alpha == 0 {
-            Ok(Self::Background)
-        } else if alpha == 255 {
-            let raw_id = Self::decode_raw(v.x, v.y, v.z);
-            let id = symbol::GlobalInstanceId::new(raw_id);
-            Ok(Self::Symbol { id })
-        } else {
-            Err(DecodeError::WrongAlpha(alpha))
-        }
-    }
-
-    fn decode_raw(r: u32, g: u32, b: u32) -> u32 {
-        (b << 16) + (g << 8) + r
-    }
-
-    pub fn is_background(self) -> bool {
-        self == Self::Background
-    }
-
-    pub fn is_symbol(self) -> bool {
-        !self.is_background()
-    }
-}
-
-impl Default for PointerTarget {
-    fn default() -> Self {
-        Self::Background
-    }
-}
-
-impl From<symbol::GlobalInstanceId> for PointerTarget {
-    fn from(id: symbol::GlobalInstanceId) -> Self {
-        Self::Symbol { id }
-    }
-}
-
-impl From<&symbol::GlobalInstanceId> for PointerTarget {
-    fn from(id: &symbol::GlobalInstanceId) -> Self {
-        Self::from(*id)
-    }
-}
-
-
-
-/// [`PointerTarget`] decoding error. See the docs of [`PointerTarget::decode_from_rgba`] to learn
-/// more.
-#[derive(Copy, Clone, Debug, Fail)]
-#[allow(missing_docs)]
-pub enum DecodeError {
-    WrongAlpha(u32),
-}
-
-impl Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::WrongAlpha(alpha) => {
-                let err1 = "Failed to decode mouse target.";
-                let err2 = "The alpha channel should be either 0 or 255, got";
-                write!(f, "{} {} {}.", err1, err2, alpha)
-            }
-        }
     }
 }
 
@@ -272,7 +145,7 @@ pub struct Mouse {
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
     pub hover_rgba:    Uniform<Vector4<u32>>,
-    pub target:        Rc<Cell<PointerTarget>>,
+    pub target:        Rc<Cell<PointerTargetId>>,
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
@@ -288,7 +161,7 @@ impl Mouse {
         logger: Logger,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
-        let target = PointerTarget::default();
+        let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
         let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
@@ -832,7 +705,7 @@ pub struct SceneData {
     pub mouse:                Mouse,
     pub keyboard:             Keyboard,
     pub uniforms:             Uniforms,
-    pub background:           MouseTarget,
+    pub background:           PointerTarget,
     pub shapes:               ShapeRegistry,
     pub stats:                Stats,
     pub dirty:                Dirty,
@@ -866,7 +739,7 @@ impl SceneData {
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
-        let background = MouseTarget::new();
+        let background = PointerTarget::new();
         let shapes = ShapeRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&logger, &dom, &variables);
@@ -1056,12 +929,12 @@ impl SceneData {
 
 impl SceneData {
     /// Init handling of mouse up and down events. It is also responsible for discovering of the
-    /// mouse release events. To learn more see the documentation of [`MouseTarget`].
+    /// mouse release events. To learn more see the documentation of [`PointerTarget`].
     fn init_mouse_down_and_up_events(&self) {
         let network = &self.frp.network;
         let shapes = &self.shapes;
         let target = &self.mouse.target;
-        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTarget>>> = default();
+        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
             eval self.mouse.frp.down ([shapes,target,pressed](button) {
@@ -1081,7 +954,7 @@ impl SceneData {
 
     /// Discover what object the mouse pointer is on.
     fn handle_mouse_over_and_out_events(&self) {
-        let opt_new_target = PointerTarget::decode_from_rgba(self.mouse.hover_rgba.get());
+        let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
         let new_target = opt_new_target.unwrap_or_else(|err| {
             error!(self.logger, "{err}");
             default()

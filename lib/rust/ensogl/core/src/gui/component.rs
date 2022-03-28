@@ -1,89 +1,18 @@
 //! Root module for GUI related components.
-//! NOTE
-//! This file is under a heavy development. It contains commented lines of code and some code may
-//! be of poor quality. Expect drastic changes.
 
 use crate::display::object::traits::*;
 use crate::prelude::*;
 
-use crate::control::io::mouse;
 use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
-use crate::display::scene::MouseTarget;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
 
-use enso_frp as frp;
-
-
-
-// =======================
-// === ShapeViewEvents ===
-// =======================
-
-pub type ShapeViewEvents = MouseTarget;
-// /// FRP event endpoints exposed by each shape view. In particular these are all mouse events
-// /// which are triggered by mouse interactions after the shape view is placed on the scene.
-// ///
-// /// To learn more about the meaning of each of the mouse related events see the [`MouseTarget`]
-// /// docs.
-// #[derive(Clone, CloneRef, Debug)]
-// #[allow(missing_docs)]
-// pub struct ShapeViewEvents {
-//     network:           frp::Network,
-//     pub mouse_down:    frp::Source<mouse::Button>,
-//     pub mouse_up:      frp::Source<mouse::Button>,
-//     pub mouse_release: frp::Source<mouse::Button>,
-//     pub mouse_over:    frp::Source,
-//     pub mouse_out:     frp::Source,
-//     pub on_drop:       frp::Source,
-// }
-//
-// impl ShapeViewEvents {
-//     fn new() -> Self {
-//         frp::new_network! { network
-//             on_drop       <- source_();
-//             mouse_down    <- source();
-//             mouse_up      <- source();
-//             mouse_release <- source();
-//             mouse_over    <- source_();
-//             mouse_out     <- source_();
-//
-//             is_mouse_over <- bool(&mouse_out,&mouse_over);
-//             out_on_drop   <- on_drop.gate(&is_mouse_over);
-//             eval_ out_on_drop (mouse_out.emit(()));
-//         }
-//         Self { network, mouse_down, mouse_up, mouse_release, mouse_over, mouse_out, on_drop }
-//     }
-// }
-//
-// impl MouseTarget for ShapeViewEvents {
-//     fn mouse_down(&self) -> &frp::Source<mouse::Button> {
-//         &self.mouse_down
-//     }
-//     fn mouse_up(&self) -> &frp::Source<mouse::Button> {
-//         &self.mouse_up
-//     }
-//     fn mouse_release(&self) -> &frp::Source<mouse::Button> {
-//         &self.mouse_release
-//     }
-//     fn mouse_over(&self) -> &frp::Source {
-//         &self.mouse_over
-//     }
-//     fn mouse_out(&self) -> &frp::Source {
-//         &self.mouse_out
-//     }
-// }
-//
-// impl Default for ShapeViewEvents {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
+pub use crate::display::scene::PointerTarget;
 
 
 
@@ -145,7 +74,7 @@ impl<S> HasContent for ShapeView<S> {
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S> {
     shape:               S,
-    pub events:          ShapeViewEvents,
+    pub events:          PointerTarget,
     pub registry:        RefCell<Option<ShapeRegistry>>,
     pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
@@ -198,7 +127,7 @@ impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let shape = S::new(logger);
-        let events = ShapeViewEvents::new();
+        let events = PointerTarget::new();
         let registry = default();
         let pointer_targets = default();
         ShapeViewModel { shape, events, registry, pointer_targets }

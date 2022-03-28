@@ -180,10 +180,10 @@ impl Sprite {
     }
 
     /// Check if given pointer-event-target means this object.
-    pub fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    pub fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         match target {
-            display::scene::PointerTarget::Background => false,
-            display::scene::PointerTarget::Symbol { id } => self.global_instance_id == id,
+            display::scene::PointerTargetId::Background => false,
+            display::scene::PointerTargetId::Symbol { id } => self.global_instance_id == id,
         }
     }
 }
