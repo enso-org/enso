@@ -610,8 +610,10 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
     inConfig(Benchmark)(Defaults.testSettings),
     Benchmark / unmanagedSourceDirectories +=
       baseDirectory.value.getParentFile / "bench" / "scala",
-    libraryDependencies +=
+    libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+      "org.scalatest"     %% "scalatest"  % scalatestVersion  % Test
+    ),
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -1222,7 +1224,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(`docs-generator`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)

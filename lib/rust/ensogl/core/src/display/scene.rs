@@ -802,6 +802,7 @@ impl SceneData {
     }
 
     pub fn set_context(&self, context: Option<&Context>) {
+        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
@@ -1057,6 +1058,7 @@ impl Deref for Scene {
 }
 
 impl Scene {
+    #[profile(Debug)]
     pub fn update(&self, t: animation::TimeInfo) {
         if self.context.borrow().is_some() {
             debug!(self.logger, "Updating.", || {

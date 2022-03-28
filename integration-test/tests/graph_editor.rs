@@ -7,6 +7,7 @@ use enso_integration_test::prelude::*;
 use approx::assert_abs_diff_eq;
 use enso_gui::view::graph_editor::component::node::Expression;
 use enso_gui::view::graph_editor::GraphEditor;
+use enso_gui::view::graph_editor::Node;
 use enso_gui::view::graph_editor::NodeId;
 use enso_gui::view::graph_editor::NodeSource;
 use enso_web::sleep;
@@ -124,7 +125,7 @@ async fn adding_node_with_add_node_button() {
         sorted_positions.next().expect("Default project does not contain any nodes");
 
     // Node is created below the bottom-most one.
-    let (first_node_id, node_source) = add_node_with_add_node_button(&graph_editor, "1 + 1");
+    let (first_node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1 + 1");
     assert!(node_source.is_none());
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 1);
     let node_position =
@@ -137,7 +138,7 @@ async fn adding_node_with_add_node_button() {
     // Selected node is used as a `source` node.
     graph_editor.model.nodes.deselect_all();
     graph_editor.model.nodes.select(first_node_id);
-    let (_, node_source) = add_node_with_add_node_button(&graph_editor, "+ 1");
+    let (_, node_source, _) = add_node_with_add_node_button(&graph_editor, "+ 1");
     assert_eq!(node_source, Some(NodeSource { node: first_node_id }));
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 2);
 
@@ -147,7 +148,7 @@ async fn adding_node_with_add_node_button() {
     let wait_for_update = Duration::from_millis(500);
     sleep(wait_for_update).await;
     graph_editor.model.nodes.deselect_all();
-    let (node_id, node_source) = add_node_with_add_node_button(&graph_editor, "1");
+    let (node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1");
     assert!(node_source.is_none());
     assert_eq!(graph_editor.model.nodes.all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect("Node was not added");
@@ -156,16 +157,50 @@ async fn adding_node_with_add_node_button() {
     assert_abs_diff_eq!(node_position.y, center_of_screen.y, epsilon = 10.0);
 }
 
-fn add_node_with_add_node_button(
+#[wasm_bindgen_test]
+async fn adding_node_by_clicking_on_the_output_port() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let graph_editor = test.graph_editor();
+    let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1");
+
+    let output = &node_1.model.output;
+    let method = |editor: &GraphEditor| {
+        output.test_port_hover();
+        editor.start_node_creation_from_port();
+    };
+    let (_, source, node_2) = add_node(&graph_editor, "+ 1", method);
+
+    assert_eq!(source.unwrap(), NodeSource { node: node_1_id });
+    assert!(node_2.position().y < node_1.position().y);
+}
+
+fn add_node(
     graph_editor: &GraphEditor,
     expression: &str,
-) -> (NodeId, Option<NodeSource>) {
-    let add_node_button = &graph_editor.model.add_node_button;
+    method: impl Fn(&GraphEditor),
+) -> (NodeId, Option<NodeSource>, Node) {
     let node_added = graph_editor.node_added.next_event();
-    add_node_button.click();
+    method(graph_editor);
     let (node_id, source_node, _) = node_added.expect();
     let node = graph_editor.model.nodes.get_cloned_ref(&node_id).expect("Node was not added");
     node.set_expression(Expression::new_plain(expression));
     graph_editor.stop_editing();
-    (node_id, source_node)
+    (node_id, source_node, node)
+}
+
+fn add_node_with_internal_api(
+    graph_editor: &GraphEditor,
+    expression: &str,
+) -> (NodeId, Option<NodeSource>, Node) {
+    let method = |editor: &GraphEditor| editor.add_node();
+    add_node(graph_editor, expression, method)
+}
+
+fn add_node_with_add_node_button(
+    graph_editor: &GraphEditor,
+    expression: &str,
+) -> (NodeId, Option<NodeSource>, Node) {
+    let add_node_button = &graph_editor.model.add_node_button;
+    let method = |_: &GraphEditor| add_node_button.click();
+    add_node(graph_editor, expression, method)
 }

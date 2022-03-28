@@ -381,6 +381,7 @@ impl ViewUpdate {
     /// input for nodes where expression changed.
     ///
     /// The nodes not having views are also updated in the state.
+    #[profile(Task)]
     fn set_node_expressions(&self) -> Vec<(ViewNodeId, node_view::Expression)> {
         self.nodes
             .iter()

@@ -1,4 +1,4 @@
-//! Renders profiling data, obtained from a file, as a flame graph.
+//! Renders profiling data, obtained from a file, as a graph.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -16,6 +16,7 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use enso_profiler_data as profiler_data;
+use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application;
 use ensogl_core::data::color;
 use ensogl_core::display;
@@ -40,9 +41,9 @@ pub async fn main() {
     let navigator = navigator::Navigator::new(scene, &scene.camera());
     init_theme(scene);
     let data = get_data().await;
-    let measurements: profiler_data::Measurement<profiler_data::OpaqueMetadata> =
-        data.parse().unwrap();
-    let flame_graph = flame_graph::FlameGraph::from_data(measurements.into(), &app);
+    let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
+    let graph = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
+    let flame_graph = flame_graph::FlameGraph::from_data(graph, &app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);
     world.keep_alive_forever();
@@ -81,7 +82,7 @@ fn init_theme(scene: &display::Scene) {
     let theme_manager = theme::Manager::from(&scene.style_sheet);
     let theme = theme::Theme::new();
     const COLOR_PATH: &str = "flame_graph_color";
-    theme.set(COLOR_PATH, color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
+    theme.set(COLOR_PATH, color::Rgb::new(1.0, 180.0 / 255.0, 0.0));
     theme_manager.register("theme", theme);
     theme_manager.set_enabled(&["theme".to_string()]);
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);

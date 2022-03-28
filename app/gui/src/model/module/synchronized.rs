@@ -144,6 +144,7 @@ impl Module {
     ///
     /// This function will open the module in Language Server and schedule task which will send
     /// updates about module's change to Language Server.
+    #[profile(Detail)]
     pub async fn open(
         path: Path,
         language_server: Rc<language_server::Connection>,

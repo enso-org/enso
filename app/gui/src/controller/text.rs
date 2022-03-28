@@ -55,6 +55,7 @@ impl Handle {
     ///
     /// This constructor checks what kind of file we read, and load it as a module file or plain
     /// text file.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project: &model::Project,
@@ -83,6 +84,7 @@ impl Handle {
     }
 
     /// Read file's content.
+    #[profile(Detail)]
     pub async fn read_content(&self) -> Result<String, RpcError> {
         use FileHandle::*;
         match &self.file {
@@ -95,6 +97,7 @@ impl Handle {
     }
 
     /// Store the given content to file.
+    #[profile(Detail)]
     pub fn store_content(&self, content: String) -> impl Future<Output = FallibleResult> {
         let file_handle = self.file.clone_ref();
         async move {
@@ -115,6 +118,7 @@ impl Handle {
     /// This function should be called by view on every user interaction changing the text content
     /// of file. It will e.g. update the Module Controller state and notify other views about
     /// update in case of module files.
+    #[profile(Detail)]
     pub fn apply_text_change(&self, change: TextChange) -> FallibleResult {
         if let FileHandle::Module { controller } = &self.file {
             controller.apply_code_change(change)

@@ -210,7 +210,7 @@ macro_rules! shared_struct {
             }
         }
 
-        paste::item! {
+        paste! {
             $(#[$($meta)*])*
             #[derive(CloneRef)]
             pub struct [<Weak $name>] <$($params)*> { weak: Weak<RefCell<$name_mut<$($params)*>>> }

@@ -1,7 +1,6 @@
-//! Build script for [`enso_profiler_macros`]. This is needed because `profiler_macros` has a
-//! profiling level controlled by the value of an environment variable at compile time, and cargo
-//! needs to be made aware that changes to the env can invalidate the result of compiling this
-//! crate and any dependents.
+//! Build script for [`enso_profiler_macros`]. This is needed to make cargo aware that
+//! the crate depends on the values of environment variables at compile time, and changes to those
+//! variables should result in recompiling this crate and its dependents.
 
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
@@ -16,8 +15,23 @@
 
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=ENSO_MAX_PROFILING_LEVEL");
+    declare_env_dependence("ENSO_MAX_PROFILING_LEVEL");
+    declare_env_cfg_flag("ENSO_ENABLE_PROC_MACRO_SPAN", "enso_enable=\"proc_macro_span\"");
+}
+
+/// Make cargo aware that the result of compiling this crate depends on an environment variable.
+fn declare_env_dependence(env: &str) {
+    println!("cargo:rerun-if-env-changed={}", env);
     // This is a no-op assignment, except it makes cargo aware that the output depends on the env.
-    let value = std::env::var("ENSO_MAX_PROFILING_LEVEL").unwrap_or_default();
-    println!("cargo:rustc-env=ENSO_MAX_PROFILING_LEVEL={}", value);
+    let value = std::env::var(env).unwrap_or_default();
+    println!("cargo:rustc-env={}={}", env, value);
+}
+
+/// Make cargo aware that the result of compiling this crate depends on an environment variable;
+/// convert that variable to a `cfg` flag so that it can be used for conditional compilation.
+fn declare_env_cfg_flag(env: &str, cfg: &str) {
+    println!("cargo:rerun-if-env-changed={}", env);
+    if std::env::var(env).is_ok() {
+        println!("cargo:rustc-cfg={}", cfg);
+    }
 }
