@@ -1,13 +1,20 @@
 //! Supports aggregating interval data by profiler to analyze total time spent, abstracting away
 //! *when* intervals occurred.
 
+use enso_prelude::*;
+
 use std::collections;
-use std::rc;
+
+
+
+// ==================
+// === Aggregator ===
+// ==================
 
 /// Aggregate time spent in different functions.
 #[derive(Default, Debug)]
 pub struct Aggregator {
-    stack: Vec<std::rc::Rc<String>>,
+    stack: Vec<ImString>,
     root:  Frame,
 }
 
@@ -26,7 +33,7 @@ impl Aggregator {
         active: crate::IntervalId,
     ) {
         let active = &profile[active];
-        let label = std::rc::Rc::new(profile[active.measurement].label.to_string());
+        let label = profile[active.measurement].label.to_string().into();
         self.stack.push(label);
         match active.interval.duration_ms() {
             Some(duration) if duration > 0.0 => {
@@ -58,12 +65,18 @@ impl From<Aggregator> for Frame {
     }
 }
 
+
+
+// =============
+// === Frame ===
+// =============
+
 /// Aggregated info about all occurrences of a particular stack of profilers.
 #[derive(Default, Debug)]
 pub struct Frame {
     duration:     f64,
     /// Aggregated intervals that ran as children of this profiler.
-    pub children: collections::HashMap<rc::Rc<String>, Self>,
+    pub children: collections::HashMap<ImString, Self>,
     intervals:    usize,
 }
 

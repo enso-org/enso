@@ -12,6 +12,7 @@
 
 // === Features ===
 #![feature(test)]
+#![feature(total_cmp)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -24,7 +25,9 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 
+use enso_prelude::*;
 use enso_profiler_data as data;
+
 use std::collections;
 
 
@@ -43,11 +46,12 @@ fn main() {
     aggregator.visit_profile(&profile);
     let root = data::aggregate::Frame::from(aggregator);
     let funcs = FuncCollector::run(&root);
-    let mut funcs: Vec<_> = funcs.into_iter().collect();
-    funcs.sort_by_key(|(_, func)| 0 - (func.self_duration * 10.0).round() as i64);
+    let kv_to_func = |(label, timings)| Func { label, timings };
+    let mut funcs: Vec<_> = funcs.into_iter().map(kv_to_func).collect();
+    funcs.sort_unstable_by(|a, b| a.timings.self_duration.total_cmp(&b.timings.self_duration));
     println!("self_duration total_duration count profiler");
-    for (label, func) in &funcs {
-        let Func { total_duration, self_duration, count } = func;
+    for Func { label, timings } in funcs.iter().rev() {
+        let FuncTimings { total_duration, self_duration, count } = timings;
         println!("{:>6.1} {:>6.1} {} {}", self_duration, total_duration, count, label);
     }
 }
@@ -62,12 +66,12 @@ fn main() {
 /// it occurs.
 #[derive(Default)]
 struct FuncCollector {
-    funcs: collections::HashMap<Label, Func>,
+    funcs: collections::HashMap<Label, FuncTimings>,
 }
 
 impl FuncCollector {
     /// Aggregate all intervals created by a particular profiler.
-    fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, Func> {
+    fn run(root: &data::aggregate::Frame) -> collections::HashMap<Label, FuncTimings> {
         let mut collector = FuncCollector::default();
         for (label, frame) in &root.children {
             collector.visit(label, frame);
@@ -90,12 +94,30 @@ impl FuncCollector {
     }
 }
 
+type Label = ImString;
+
+
+
+// ===================
+// === FuncTimings ===
+// ===================
+
 /// Aggregate of all time spent in a particular profiler's intervals.
 #[derive(Default)]
-struct Func {
+struct FuncTimings {
     total_duration: f64,
     self_duration:  f64,
     count:          usize,
 }
 
-type Label = std::rc::Rc<String>;
+
+
+// ============
+// === Func ===
+// ============
+
+/// Identifies a profiler, and contains information about the time spent in its intervals.
+struct Func {
+    label:   Label,
+    timings: FuncTimings,
+}
