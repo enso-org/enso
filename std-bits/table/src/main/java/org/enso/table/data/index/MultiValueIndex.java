@@ -15,9 +15,11 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 public class MultiValueIndex {
+  private final Storage[] keyColumns;
   private final Map<MultiValueKey, List<Integer>> locs;
 
   public MultiValueIndex(Storage[] keyColumns) {
+    this.keyColumns = keyColumns;
     this.locs = new HashMap<>();
     if (keyColumns.length != 0) {
       int size = keyColumns[0].size();
@@ -36,10 +38,17 @@ public class MultiValueIndex {
 
     Builder[] storage = Arrays.stream(columns).map(c -> getBuilderForType(c.getType(), size)).toArray(Builder[]::new);
 
-    for (List<Integer> group_locs: this.locs.values()) {
+    if (size == 0 & keyColumns.length == 0) {
+      // No grouping and no data
+      List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {
-        AggregateColumnDefinition column = columns[i];
-        storage[i].appendNoGrow(column.aggregate(group_locs));
+        storage[i].appendNoGrow(columns[i].aggregate(empty));
+      }
+    } else {
+      for (List<Integer> group_locs : this.locs.values()) {
+        for (int i = 0; i < length; i++) {
+          storage[i].appendNoGrow(columns[i].aggregate(group_locs));
+        }
       }
     }
 

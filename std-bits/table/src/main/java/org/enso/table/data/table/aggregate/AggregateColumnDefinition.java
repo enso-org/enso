@@ -340,7 +340,7 @@ public class AggregateColumnDefinition {
             }
           }
           return current == null ? null :
-              (population ? 1 : Math.sqrt(current.count) / (current.count - 1.0)) *
+              (population ? 1 : Math.sqrt(current.count / (current.count - 1.0))) *
                   Math.sqrt(current.total_sqr / current.count - Math.pow(current.total / current.count, 2));
         });
   }
