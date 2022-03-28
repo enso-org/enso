@@ -186,6 +186,9 @@ float neg(float a) {
 
 // === Encode ===
 
+/// Enables check for ID encoding.
+#define ID_ENCODING_OVERFLOW_CHECK
+
 /// Encodes na [`uint`] values so it can be stored as a u8 encoded [`float`]. Will clamp values that
 /// are out of range.
 float as_float_u8(uint value) {
@@ -203,17 +206,10 @@ vec3 as_float_u8(uvec3 v) {
 const float ID_ALPHA_THRESHOLD = 0.0;
 
 /// The maximum ID that can be encoded. We are encoding IDs using rgb values (3 bytes).
-const int MAX_ENCODE_ID = 0;
+const int MAX_ENCODE_ID = 255*255*255;
 
-/// Enables check for ID encoding.
-#define ID_ENCODING_OVERFLOW_CHECK
-
-/// This encoding must correspond to the decoding in the [`PointerTarget`] struct in the
-/// `ensogl/core/src/display/scene/pointer_target.rs` file.
-///
-/// *Overflow Behavior*
-///
-uvec3 encode(int value) {
+/// Converts provided [`int`] value to three [`u8`] chunks, skipping overflow bits.
+uvec3 int_to_rgb_drop_overflow(int value) {
     int r_mask = 0xFF;
     int g_mask = 0xFF00;
     int b_mask = 0xFF0000;
@@ -223,8 +219,15 @@ uvec3 encode(int value) {
     return uvec3(r,g,b);
 }
 
-vec4 encode2(int value, float alpha) {
-    uvec3 chunks = encode(value);
+/// This encoding must correspond to the decoding in the [`PointerTarget`] struct in the
+/// `ensogl/core/src/display/scene/pointer_target.rs` file.
+///
+/// *Overflow Behavior*
+/// If [`ID_ENCODING_OVERFLOW_CHECK`] is defined, the overflow will be reported to the CPU code as
+/// part of the alpha channel. In case it is not defined, the overflow bits will be skipped and the
+/// ID may alias with existing ones.
+vec4 encode(int value, float alpha) {
+    uvec3 chunks = int_to_rgb_drop_overflow(value);
     vec3 rgb = as_float_u8(chunks);
     rgb *= alpha;
 #ifdef ID_ENCODING_OVERFLOW_CHECK

@@ -28,7 +28,7 @@ float alpha    = shape.color.color.raw.a;
 float alpha_no_aa = alpha > ID_ALPHA_THRESHOLD ? 1.0 : 0.0;
 
 if (pointer_events_enabled) {
-    output_id = encode2(input_global_instance_id,alpha_no_aa);
+    output_id = encode(input_global_instance_id,alpha_no_aa);
 }
 
 

@@ -8,6 +8,14 @@ use crate::display::symbol;
 use enso_frp as frp;
 
 
+// =================
+// === Constants ===
+// =================
+
+const ID_ENCODING_OVERFLOW_ERR: u32 =
+    include!("../shape/primitive/glsl/error_codes/id_encoding_overflow.txt");
+
+
 
 // =====================
 // === PointerTarget ===
@@ -88,7 +96,14 @@ impl PointerTargetId {
                 let id = symbol::GlobalInstanceId::new(raw_id);
                 Ok(Self::Symbol { id })
             }
-            _ => Err(DecodeError::WrongAlpha(alpha)),
+            _ => {
+                let err = if alpha == ID_ENCODING_OVERFLOW_ERR {
+                    DecodeError::Overflow
+                } else {
+                    DecodeError::WrongAlpha(alpha)
+                };
+                Err(err)
+            }
         }
     }
 
@@ -134,6 +149,7 @@ impl From<&symbol::GlobalInstanceId> for PointerTargetId {
 #[allow(missing_docs)]
 pub enum DecodeError {
     WrongAlpha(u32),
+    Overflow,
 }
 
 impl Display for DecodeError {
@@ -143,6 +159,9 @@ impl Display for DecodeError {
                 let err1 = "Failed to decode mouse target.";
                 let err2 = "The alpha channel should be either 0 or 255, got";
                 write!(f, "{} {} {}.", err1, err2, alpha)
+            }
+            Self::Overflow => {
+                write!(f, "ID overflow error, too many objects on the scene.")
             }
         }
     }
