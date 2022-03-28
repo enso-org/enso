@@ -27,5 +27,7 @@ pub mod diet;
 pub mod hash_map_tree;
 pub mod index;
 pub mod opt_vec;
+pub mod rc_with_id;
+pub mod unique_id;
 
 pub use enso_prelude as prelude;

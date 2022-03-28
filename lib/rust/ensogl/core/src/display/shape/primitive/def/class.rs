@@ -52,9 +52,7 @@ impl canvas::Draw for AnyShape {
 #[derive(Debug, Derivative, Shrinkwrap)]
 #[derivative(Clone(bound = ""))]
 pub struct ShapeRef<T> {
-    #[shrinkwrap(main_field)]
-    rc: Rc<T>,
-    id: ShapeId,
+    rc: RcWithId<T, ShapeId>,
 }
 
 enso_data_structures::define_id!(ShapeId);
@@ -68,7 +66,7 @@ impl<T> From<&ShapeRef<T>> for ShapeRef<T> {
 impl<T> ShapeRef<T> {
     /// Constructor.
     pub fn new(t: T) -> Self {
-        Self { rc: Rc::new(t), id: ShapeId::new() }
+        Self { rc: RcWithId::new(t) }
     }
 
     /// Unwraps the shape and provides the raw reference to its content.
@@ -81,7 +79,7 @@ impl<T> ShapeRef<T> {
     /// want to define `s4 = s1 - s2`, `s5 = s1 - s3`, and `s6 = s4 + s5`. We need to discover that
     /// we use `s1` twice under the hood in order to optimize the GLSL.
     pub fn id(&self) -> ShapeId {
-        self.id
+        self.rc.id()
     }
 }
 

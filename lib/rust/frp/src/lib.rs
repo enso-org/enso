@@ -180,6 +180,7 @@ pub use stream::Stream;
 
 /// Set of often used types and functions.
 pub mod prelude {
+    pub use enso_data_structures::rc_with_id::prelude::*;
     pub use enso_logger::WarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;

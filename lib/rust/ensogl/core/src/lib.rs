@@ -63,6 +63,8 @@ pub mod prelude {
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
     pub use enso_data_structures as data;
+    pub use enso_data_structures::rc_with_id::prelude::*;
+    pub use enso_data_structures::unique_id::UniqueId;
     pub use enso_logger as logger;
     pub use enso_logger::AnyLogger;
     pub use enso_logger::DefaultWarningLogger as Logger;

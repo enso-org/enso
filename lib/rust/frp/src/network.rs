@@ -28,15 +28,13 @@ enso_data_structures::define_id!(NetworkId);
 /// Moreover, you should not grow the FRP network after it is constructed.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Network {
-    data: Rc<NetworkData>,
-    id:   NetworkId,
+    data: RcWithId<NetworkData, NetworkId>,
 }
 
 /// Weak version of `Network`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct WeakNetwork {
-    data: Weak<NetworkData>,
-    id:   NetworkId,
+    data: WeakWithId<NetworkData, NetworkId>,
 }
 
 /// Network item.
@@ -81,19 +79,19 @@ impl Drop for NetworkData {
 impl Network {
     /// Constructor.
     pub fn new(label: impl Into<String>) -> Self {
-        let data = Rc::new(NetworkData::new(label));
-        let id = NetworkId::new();
-        Self { data, id }
+        let data = RcWithId::new(NetworkData::new(label));
+        Self { data }
     }
 
     /// Get the weak version.
     pub fn downgrade(&self) -> WeakNetwork {
-        WeakNetwork { data: Rc::downgrade(&self.data), id: self.id }
+        let data = self.data.downgrade();
+        WeakNetwork { data }
     }
 
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        self.id
+        self.data.id()
     }
 
     /// Store arbitrary item in this network. Used as a convenient storage of data associated with
@@ -142,12 +140,12 @@ impl Network {
 impl WeakNetwork {
     /// Upgrade to strong reference.
     pub fn upgrade(&self) -> Option<Network> {
-        self.data.upgrade().map(|data| Network { data, id: self.id })
+        self.data.upgrade().map(|data| Network { data })
     }
 
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        self.id
+        self.data.id()
     }
 }
 

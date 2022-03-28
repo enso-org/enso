@@ -589,6 +589,12 @@ impl Id {
     }
 }
 
+impl UniqueId for Id {
+    fn new() -> Self {
+        Self::new()
+    }
+}
+
 impl Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self, f)
@@ -649,32 +655,36 @@ enso_data_structures::define_id!(ObjectId);
 /// to be assigned to a particular [`scene::Layer`], and thus allows for easy to use depth
 /// management.
 #[derive(Derivative)]
-#[derive(CloneRef)]
-#[derivative(Clone(bound = ""))]
+#[derivative(Clone(bound = ""), PartialEq(bound = ""), Eq(bound = ""))]
 pub struct Instance<Host = Scene> {
-    rc: Rc<Model<Host>>,
-    id: Id,
+    #[derivative(PartialEq(compare_with="IdentityEq::eq"))]
+    rc: RcWithId<Model<Host>, Id>,
+}
+
+impl<Host> CloneRef for Instance<Host> {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
 }
 
 impl<Host> Deref for Instance<Host> {
     type Target = Rc<Model<Host>>;
     fn deref(&self) -> &Self::Target {
-        &self.rc
+        self.rc.deref()
     }
 }
 
 impl<Host> Instance<Host> {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
-        let rc = Rc::new(Model::new(logger));
-        let id = Id::new();
-        Self { rc, id }
+        let rc = RcWithId::new(Model::new(logger));
+        Self { rc }
     }
 
     /// Create a new weak pointer to this display object instance.
     pub fn downgrade(&self) -> WeakInstance<Host> {
-        let weak = Rc::downgrade(&self.rc);
-        WeakInstance { weak, id: self.id }
+        let weak = self.rc.downgrade();
+        WeakInstance { weak }
     }
 }
 
@@ -684,7 +694,7 @@ impl<Host> Instance<Host> {
 impl<Host> Instance<Host> {
     /// ID getter of this display object.
     pub fn _id(&self) -> Id {
-        self.id
+        self.rc.id()
     }
 
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
@@ -796,12 +806,6 @@ impl<Host> Instance<Host> {
 
 // === Instances ===
 
-impl<Host> PartialEq for Instance<Host> {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.rc, &other.rc)
-    }
-}
-
 impl<Host> Display for Instance<Host> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Instance")
@@ -822,32 +826,21 @@ impl<Host> Debug for Instance<Host> {
 
 /// Weak display object instance. Will be dropped if no all strong instances are dropped.
 #[derive(Derivative)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Debug(bound = ""))]
+#[derivative(Clone(bound = ""), Debug(bound = ""), PartialEq(bound = ""), Eq(bound = ""))]
 pub struct WeakInstance<Host> {
-    weak: Weak<Model<Host>>,
-    id:   Id,
+    #[derivative(PartialEq(compare_with="IdentityEq::eq"))]
+    weak: WeakWithId<Model<Host>, Id>,
 }
 
 impl<Host> WeakInstance<Host> {
     /// Upgrade the weak instance to strong one if it was not yet dropped.
     pub fn upgrade(&self) -> Option<Instance<Host>> {
-        self.weak.upgrade().map(|rc| Instance { rc, id: self.id })
+        self.weak.upgrade().map(|rc| Instance { rc })
     }
 
     /// Checks whether this weak instance still exists (its strong instance was not dropped yet).
     pub fn exists(&self) -> bool {
         self.upgrade().is_some()
-    }
-}
-
-impl<Host> PartialEq for WeakInstance<Host> {
-    fn eq(&self, other: &Self) -> bool {
-        if self.exists() && other.exists() {
-            self.weak.ptr_eq(&other.weak)
-        } else {
-            false
-        }
     }
 }
 

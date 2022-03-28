@@ -260,10 +260,11 @@ macro_rules! shared_struct {
                 pub fn new_from_data(data:$name_mut<$($params)*>) -> Self {
                     Self {rc:Rc::new(RefCell::new(data))}
                 }
+            }
 
-                /// Check if the shared pointer points to the same struct as `other`.
-                pub fn identity_equals(&self, other:&Self) -> bool {
-                    Rc::ptr_eq(&self.rc,&other.rc)
+            impl<$($params)*> IdentityEq for $name <$($params)*> {
+                fn eq(&self, other:&Self) -> bool {
+                    Rc::ptr_eq(&self.rc, &other.rc)
                 }
             }
         }

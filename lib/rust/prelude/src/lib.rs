@@ -438,3 +438,19 @@ impl<T: ?Sized> WeakRef for Weak<T> {
         Weak::upgrade(self)
     }
 }
+
+
+
+// ==================
+// === IdentityEq ===
+// ==================
+
+/// Trait for types that can be compared by identity.
+pub trait IdentityEq {
+    /// Compare two values by identity. This function should return true if and only if the two
+    /// values are interchangeable; that is:
+    /// - Changes to one value would be reflected in the other.
+    /// - If the same method is called on both objects, the values returned should be equal and
+    ///   interchangeable.
+    fn eq(&self, rhs: &Self) -> bool;
+}

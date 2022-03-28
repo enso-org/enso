@@ -326,8 +326,7 @@ impl<Out: Data> ValueProvider for NodeData<Out> {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct OwnedStream<Out = ()> {
-    data: Rc<NodeData<Out>>,
-    id:   Id,
+    data: RcWithId<NodeData<Out>, Id>,
 }
 
 /// Weak reference to FRP stream node with limited functionality and parametrized only by the
@@ -336,8 +335,7 @@ pub struct OwnedStream<Out = ()> {
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct Stream<Out = ()> {
-    data: Weak<NodeData<Out>>,
-    id:   Id,
+    data: WeakWithId<NodeData<Out>, Id>,
 }
 
 /// A strong reference to FRP stream node. See the docs of `NodeData` to learn more about its
@@ -405,9 +403,8 @@ where Def: HasOutputStatic
 impl<Def: HasOutputStatic> Node<Def> {
     /// Constructor.
     pub fn construct(label: Label, definition: Def) -> Self {
-        let data = Rc::new(NodeData::new(label));
-        let id = Id::new();
-        let stream = OwnedStream { data, id };
+        let data = RcWithId::new(NodeData::new(label));
+        let stream = OwnedStream { data };
         let definition = Rc::new(definition);
         Self { stream, definition }
     }
@@ -459,14 +456,15 @@ impl<T: HasOutputStatic> WeakNode<T> {
 impl<Out> OwnedStream<Out> {
     /// Downgrades to the weak version.
     pub fn downgrade(&self) -> Stream<Out> {
-        Stream { data: Rc::downgrade(&self.data), id: self.id }
+        let data = self.data.downgrade();
+        Stream { data }
     }
 }
 
 impl<Out> Stream<Out> {
     /// Upgrades to the strong version.
     pub fn upgrade(&self) -> Option<OwnedStream<Out>> {
-        self.data.upgrade().map(|data| OwnedStream { data, id: self.id })
+        self.data.upgrade().map(|data| OwnedStream { data })
     }
 }
 
@@ -624,21 +622,27 @@ impl<Def: HasOutputStatic> ValueProvider for WeakNode<Def> {
 
 // === HasId ===
 
+impl<Out> HasId for OwnedStream<Out> {
+    fn id(&self) -> Id {
+        self.data.id()
+    }
+}
+
 impl<Out> HasId for Stream<Out> {
     fn id(&self) -> Id {
-        self.id
+        self.data.id()
     }
 }
 
 impl<Def: HasOutputStatic> HasId for Node<Def> {
     fn id(&self) -> Id {
-        self.stream.id
+        self.stream.id()
     }
 }
 
 impl<Def: HasOutputStatic> HasId for WeakNode<Def> {
     fn id(&self) -> Id {
-        self.stream.id
+        self.stream.id()
     }
 }
 
