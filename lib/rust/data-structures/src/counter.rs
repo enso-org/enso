@@ -11,8 +11,11 @@ use crate::prelude::*;
 // === Counter ===
 // ===============
 
+// This is `repr(transparent)` and `NonZero` to allow the compiler to perform "niche
+// value optimizations" in some cases, reducing space usage.
 /// Implements a globally-unique counter.
 #[derive(Clone, CloneRef, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
+#[repr(transparent)]
 pub struct Counter {
     value: std::num::NonZeroU64,
 }
