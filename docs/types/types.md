@@ -108,6 +108,7 @@ type Vector a
 
 this internally elaborates to
 
+```
 type Vector a
   type MkVec.type a
     type MkVec (unsafe_to_array: Array a)
