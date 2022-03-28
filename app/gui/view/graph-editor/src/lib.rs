@@ -1387,18 +1387,17 @@ impl GraphEditorModelWithNetwork {
 
 /// Describes the way used to request creation of a new node.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum WayOfCreatingNode {
     /// "add_node" FRP event was emitted.
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
     /// "start_node_creation_from_port" FRP event was emitted.
-    #[allow(missing_docs)]
     StartCreationFromPortEvent { endpoint: EdgeEndpoint },
     /// add_node_button was clicked.
     ClickingButton,
     /// The edge was dropped on the stage.
-    #[allow(missing_docs)]
     DroppingEdge { edge_id: EdgeId },
 }
 
