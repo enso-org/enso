@@ -43,7 +43,7 @@ fn main() {
     std::io::stdin().read_to_string(&mut log).unwrap();
     let profile: data::Profile<()> = log.parse().unwrap();
     let mut aggregator = data::aggregate::Aggregator::default();
-    aggregator.visit_profile(&profile);
+    aggregator.add_profile(&profile);
     let root = data::aggregate::Frame::from(aggregator);
     let funcs = FuncCollector::run(&root);
     let kv_to_func = |(label, timings)| Func { label, timings };

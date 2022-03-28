@@ -20,7 +20,7 @@ pub struct Aggregator {
 
 impl Aggregator {
     /// Add data from a profile to the tree.
-    pub fn visit_profile<Metadata>(&mut self, profile: &crate::Profile<Metadata>) {
+    pub fn add_profile<Metadata>(&mut self, profile: &crate::Profile<Metadata>) {
         for child in &profile.root_interval().children {
             self.visit_interval(profile, *child);
         }

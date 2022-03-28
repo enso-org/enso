@@ -218,8 +218,8 @@ pub struct FlamegraphBuilder {
 
 impl FlamegraphBuilder {
     /// Add data from a profile to the graph.
-    pub fn visit_profile<Metadata>(&mut self, profile: &data::Profile<Metadata>) {
-        self.aggregator.visit_profile(profile);
+    pub fn add_profile<Metadata>(&mut self, profile: &data::Profile<Metadata>) {
+        self.aggregator.add_profile(profile);
     }
 }
 
@@ -228,7 +228,7 @@ impl From<FlamegraphBuilder> for Graph {
         let mut grapher = FlamegraphGrapher::default();
         let root = data::aggregate::Frame::from(builder.aggregator);
         for (label, frame) in &root.children {
-            grapher.visit(frame, label.to_string(), 0);
+            grapher.visit_frame(frame, label.to_string(), 0);
         }
         let FlamegraphGrapher { blocks, .. } = grapher;
         Self { blocks }
@@ -243,12 +243,12 @@ struct FlamegraphGrapher {
 }
 
 impl FlamegraphGrapher {
-    fn visit(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
+    fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
         let start = self.time;
         let end = self.time + frame.total_duration();
         self.blocks.push(Block { start, end, label, row });
         for (label, frame) in &frame.children {
-            self.visit(frame, label.to_string(), row + 1);
+            self.visit_frame(frame, label.to_string(), row + 1);
         }
         self.time = end;
     }
