@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.Data.Internal.Helpers
+import Standard.Database.Data.Internal.Aggregate_Helper
 import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Table.Data.Column as Materialized_Column
@@ -8,7 +9,8 @@ import Standard.Table.Data.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 
-from Standard.Database.Data.Column as Column_Module import Column, Aggregate_Column
+import Standard.Table.Data.Aggregate_Column
+from Standard.Database.Data.Column as Column_Module import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
@@ -29,7 +31,7 @@ type Table
 
        Arguments:
        - name: The name of the table.
-       - connection: The connection with whicg the table is associated.
+       - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
     # type Table (name : Text) (connection : Connection)
@@ -458,7 +460,7 @@ type Table
          rules specified in the `by` argument will default to this setting,
          unless specified in the rule.
        - missing_last: Specifies the default placement of missing values when
-         compared to non-missing ones. This setting may be overriden by the
+         compared to non-missing ones. This setting may be overridden by the
          particular rules of the `by` argument.  Note thet this argument is
          independent from `order`, i.e. missing values will always be sorted
          according to this rule, ignoring the ascending / descending setting.
@@ -639,6 +641,23 @@ type Table
         new_ctx = this.context.set_groups exprs . set_index cols
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
+    ## Prototype Group By function
+    aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
+    aggregate columns (on_problems=Report_Warning) =
+        ## TODO handle errors here and turn them into warnings where applicable
+        _ = on_problems
+        resolved_aggregates = columns.map (_.resolve_columns this)
+        # TODO handling duplicate names etc. is to be done as part of https://www.pivotaltracker.com/story/show/181420794
+        # Grouping Key
+        is_a_key c = case c of
+            Aggregate_Column.Group_By _ _ -> True
+            _ -> False
+        key_columns = resolved_aggregates.filter is_a_key . map .column
+        key_expressions = key_columns.map .expression
+        new_ctx = this.context.set_groups key_expressions
+        new_columns = resolved_aggregates.map (Aggregate_Helper.make_aggregate_column this)
+        this.updated_context_and_columns new_ctx new_columns
+
     ## UNSTABLE
 
        Returns a new Table without rows that contained missing values in any of
@@ -762,8 +781,8 @@ type Table
 
        Arguments:
        - columns: The columns with which to update this table.
-    updated_columns : Vector Colums -> Table
-    updated_columns columns = Table this.name this.connection columns this.context
+    updated_columns : Vector Internal_Column -> Table
+    updated_columns internal_columns = Table this.name this.connection internal_columns this.context
 
     ## PRIVATE
 
@@ -773,6 +792,16 @@ type Table
        - ctx: The new context for this table.
     updated_context : Context -> Table
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
+
+    ## PRIVATE
+
+       Returns a copy of this table with updated context and columns.
+
+       Arguments:
+       - ctx: The new context for this table.
+       - internal_columns: The new columns to include in the table.
+    updated_context_and_columns : Context -> Vector Internal_Column -> Table
+    updated_context_and_columns ctx internal_columns = Table this.name this.connection internal_columns ctx
 
     ## PRIVATE
 
@@ -817,7 +846,7 @@ type Aggregate_Table
 
        Arguments:
        - name: The name of the table.
-       - connection: The connection with whicg the table is associated.
+       - connection: The connection with which the table is associated.
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
     # type Aggregate_Table (name : Text) (connection : Connection)
@@ -857,9 +886,9 @@ type Aggregate_Table
 
        Arguments:
        - internal: The internal column to make into an aggregate column.
-    make_column : Internal_Column -> Aggregate_Column
+    make_column : Internal_Column -> Aggregate_Column_Builder
     make_column internal =
-        Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
+        Aggregate_Column_Builder internal.name this.connection internal.sql_type internal.expression this.context
 
     ## PRIVATE
 

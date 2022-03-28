@@ -2,10 +2,10 @@ package org.enso.languageserver.search
 
 import java.util.UUID
 import java.util.concurrent.Executors
-
 import akka.actor.{Actor, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.docs.generator.DocsGenerator
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
@@ -82,6 +82,8 @@ import scala.util.{Failure, Success}
   * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
+  * @param htmlDocGenerator the generator of HTML docs
+  * @param docSectionsBuilder the builder of documentation sections
   */
 final class SuggestionsHandler(
   config: Config,
@@ -89,7 +91,9 @@ final class SuggestionsHandler(
   suggestionsRepo: SuggestionsRepo[Future],
   versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
-  runtimeConnector: ActorRef
+  runtimeConnector: ActorRef,
+  htmlDocGenerator: DocsGenerator,
+  docSectionsBuilder: DocSectionsBuilder
 ) extends Actor
     with Stash
     with LazyLogging
@@ -322,7 +326,11 @@ final class SuggestionsHandler(
         .map { case (version, entries) =>
           GetSuggestionsDatabaseResult(
             version,
-            entries.map(SuggestionDatabaseEntry(_))
+            entries.map { entry =>
+              SuggestionDatabaseEntry(
+                entry.copy(suggestion = generateDocumentation(entry.suggestion))
+              )
+            }
           )
         }
         .pipeTo(sender())
@@ -517,12 +525,19 @@ final class SuggestionsHandler(
           val verb = action.getClass.getSimpleName
           action match {
             case Api.SuggestionAction.Add() =>
-              if (ids.isEmpty)
+              if (ids.isEmpty) {
                 logger.error("Failed to {} [{}].", verb, suggestion)
-              ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
+              }
+              ids.map(
+                SuggestionsDatabaseUpdate.Add(
+                  _,
+                  generateDocumentation(suggestion)
+                )
+              )
             case Api.SuggestionAction.Remove() =>
-              if (ids.isEmpty)
+              if (ids.isEmpty) {
                 logger.error(s"Failed to {} [{}].", verb, suggestion)
+              }
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
               ids.map { id =>
@@ -532,9 +547,7 @@ final class SuggestionsHandler(
                   arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
                   documentation = m.documentation.map(fieldUpdateOption),
-                  documentationHtml =
-                    m.documentationHtml.map(fieldUpdateOption),
-                  scope = m.scope.map(fieldUpdate)
+                  scope         = m.scope.map(fieldUpdate)
                 )
               }
           }
@@ -637,8 +650,64 @@ final class SuggestionsHandler(
       } yield module
     }
 
+  /** Convert the internal position representation to the API position.
+    *
+    * @param pos the internal position
+    * @return the API position
+    */
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)
+
+  /** Generate the documentation for the given suggestion.
+    *
+    * @param suggestion the initial suggestion
+    * @return the suggestion with documentation fields set
+    */
+  private def generateDocumentation(suggestion: Suggestion): Suggestion =
+    suggestion match {
+      case module: Suggestion.Module =>
+        val htmlDoc = module.documentation.map { doc =>
+          htmlDocGenerator.generate(doc, module.name)
+        }
+        val docSections = module.documentation.map(docSectionsBuilder.build)
+        module.copy(
+          documentationHtml     = htmlDoc,
+          documentationSections = docSections
+        )
+
+      case atom: Suggestion.Atom =>
+        val htmlDoc = atom.documentation.map { doc =>
+          htmlDocGenerator.generate(doc, atom.name)
+        }
+        val docSections = atom.documentation.map(docSectionsBuilder.build)
+        atom.copy(
+          documentationHtml     = htmlDoc,
+          documentationSections = docSections
+        )
+
+      case method: Suggestion.Method =>
+        val htmlDoc = method.documentation.map { doc =>
+          htmlDocGenerator.generate(doc, method.name)
+        }
+        val docSections = method.documentation.map(docSectionsBuilder.build)
+        method.copy(
+          documentationHtml     = htmlDoc,
+          documentationSections = docSections
+        )
+
+      case conversion: Suggestion.Conversion =>
+        val htmlDoc = conversion.documentation.map { doc =>
+          htmlDocGenerator.generate(doc, conversion.name)
+        }
+        val docSections = conversion.documentation.map(docSectionsBuilder.build)
+        conversion.copy(
+          documentationHtml     = htmlDoc,
+          documentationSections = docSections
+        )
+
+      case _: Suggestion.Function => suggestion
+      case _: Suggestion.Local    => suggestion
+    }
 }
 
 object SuggestionsHandler {
@@ -717,6 +786,8 @@ object SuggestionsHandler {
     * @param fileVersionsRepo the file versions repo
     * @param sessionRouter the session router
     * @param runtimeConnector the runtime connector
+    * @param htmlDocsGenerator the generator of HTML docs
+    * @param docSectionsBuilder the builder of documentation sections
     */
   def props(
     config: Config,
@@ -724,7 +795,9 @@ object SuggestionsHandler {
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
-    runtimeConnector: ActorRef
+    runtimeConnector: ActorRef,
+    htmlDocsGenerator: DocsGenerator       = DocsGenerator,
+    docSectionsBuilder: DocSectionsBuilder = DocSectionsBuilder()
   ): Props =
     Props(
       new SuggestionsHandler(
@@ -733,7 +806,9 @@ object SuggestionsHandler {
         suggestionsRepo,
         fileVersionsRepo,
         sessionRouter,
-        runtimeConnector
+        runtimeConnector,
+        htmlDocsGenerator,
+        docSectionsBuilder
       )
     )
 }

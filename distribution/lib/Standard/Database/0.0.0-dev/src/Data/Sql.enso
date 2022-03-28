@@ -67,9 +67,21 @@ type Sql_Type
     integer : Sql_Type
     integer = Sql_Type Types.INTEGER "INTEGER"
 
+    ## The SQL representation of the `BIGINT` type.
+    bigint : Sql_Type
+    bigint = Sql_Type Types.BIGINT "BIGINT"
+
     ## The SQL type representing decimal numbers.
     decimal : Sql_Type
     decimal = Sql_Type Types.DECIMAL "DECIMAL"
+
+    ## The SQL type representing decimal numbers.
+    real : Sql_Type
+    real = Sql_Type Types.REAL "REAL"
+
+    ## The SQL type representing double-precision floating-point numbers.
+    double : Sql_Type
+    double = Sql_Type Types.DOUBLE "DOUBLE PRECISION"
 
     ## The SQL type representing a general numeric type.
     numeric : Sql_Type
@@ -79,6 +91,17 @@ type Sql_Type
     varchar : Sql_Type
     varchar = Sql_Type Types.VARCHAR "VARCHAR"
 
+    ## UNSTABLE
+       The SQL type representing one of the suppported textual types.
+
+       It seems that JDBC treats the `TEXT` and `VARCHAR` types as interchangeable.
+    text : Sql_Type
+    text = Sql_Type Types.VARCHAR "VARCHAR"
+
+    ## The SQL type representing a binary object.
+    blob : Sql_Type
+    blob = Sql_Type Types.BLOB "BLOB"
+
     ## PRIVATE
 
        Returns True if this type represents an integer.
@@ -87,7 +110,7 @@ type Sql_Type
        non-standard ones.
     is_definitely_integer : Boolean
     is_definitely_integer =
-        [Types.INTEGER, Types.SMALLINT, Types.TINYINT].contains this.typeid
+        [Types.INTEGER, Types.BIGINT, Types.SMALLINT, Types.TINYINT].contains this.typeid
 
     ## PRIVATE
 
