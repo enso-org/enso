@@ -24,7 +24,6 @@ use web_sys::WebGlUniformLocation;
 use web_sys::WebGlVertexArrayObject;
 
 
-
 // ==============
 // === Export ===
 // ==============

@@ -2,17 +2,15 @@
 #![allow(missing_docs)]
 
 use enso_prelude::*;
+use enso_web::traits::*;
 
 use crate::system::Context;
 
+use enso_web as web;
 use js_sys::Float32Array;
 use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
-
-use enso_web as web;
-use enso_web::traits::*;
-
 
 
 // ==============

@@ -4,12 +4,12 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use enso_frp as frp;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use enso_frp as frp;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
