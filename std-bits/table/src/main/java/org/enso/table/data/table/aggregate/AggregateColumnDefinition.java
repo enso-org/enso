@@ -77,16 +77,60 @@ public class AggregateColumnDefinition {
     return count;
   }
 
+  private static Long CastToLong(Object value) {
+    if (value instanceof Long) {
+      return (Long)value;
+    } else if (value instanceof Integer) {
+      return ((Integer)value).longValue();
+    } else if (value instanceof Byte) {
+      return ((Byte)value).longValue();
+    } else if (value instanceof Float && ((Float)value) % 1 == 0) {
+      return ((Float)value).longValue();
+    } else if (value instanceof Double && ((Double)value) % 1 == 0) {
+      return ((Double)value).longValue();
+    }
+
+    return null;
+  }
+
+  private static Double CastToDouble(Object value) {
+    if (value instanceof Long) {
+      return ((Long)value).doubleValue();
+    } else if (value instanceof Integer) {
+      return ((Integer)value).doubleValue();
+    } else if (value instanceof Byte) {
+      return ((Byte)value).doubleValue();
+    } else if (value instanceof Float) {
+      return ((Float)value).doubleValue();
+    } else if (value instanceof Double) {
+      return ((Double)value);
+    }
+
+    return null;
+  }
+
   private static int Compare(Object current, Object value) {
     if (current instanceof String && value instanceof String) {
       return ((String)value).compareTo((String)current);
     }
 
     if (current instanceof Long) {
+      Long lValue = CastToLong(value);
+      if (null != lValue) {
+        return Long.compare(lValue, (Long)current);
+      }
+
+      Double dValue = CastToDouble(value);
+      if (null != dValue) {
+        return Double.compare(dValue, (Long)current);
+      }
     }
 
     if (current instanceof Double) {
-
+      Double dValue = CastToDouble(value);
+      if (null != dValue) {
+        return Double.compare(dValue, (Double)current);
+      }
     }
 
     throw new ClassCastException();
@@ -186,6 +230,76 @@ public class AggregateColumnDefinition {
           }
 
           return current;
+        });
+  }
+
+  public static AggregateColumnDefinition Sum(String name, Column column) {
+    Storage storage = column.getStorage();
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.OBJECT,
+        rows -> {
+          Object current = null;
+          for (int row: rows) {
+            Object value = storage.getItemBoxed(row);
+            if (value != null) {
+              if (current == null) {
+                current = value;
+              } else {
+                Long lCurrent = CastToLong(current);
+                Long lValue = CastToLong(value);
+                if (lCurrent != null && lValue != null) {
+                  current = lCurrent + lValue;
+                } else {
+                  Double dCurrent = CastToDouble(current);
+                  Double dValue = CastToDouble(value);
+                  if (dCurrent != null && dValue != null) {
+                    current = dCurrent + dValue;
+                  } else {
+                    return new InvalidAggregation(name, row, "Cannot Total Values.");
+                  }
+                }
+              }
+            }
+          }
+          return current;
+        });
+  }
+
+  public static AggregateColumnDefinition Mean(String name, Column column) {
+    class MeanCalculation {
+      public long count;
+      public double total;
+
+      public MeanCalculation(double value) {
+        total = value;
+        count = 1;
+      }
+    }
+
+    Storage storage = column.getStorage();
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.OBJECT,
+        rows -> {
+          MeanCalculation current = null;
+          for (int row: rows) {
+            Object value = storage.getItemBoxed(row);
+            if (value != null) {
+              Double dValue = CastToDouble(value);
+              if (dValue == null) {
+                return new InvalidAggregation(name, row, "Cannot convert to a Double.");
+              }
+
+              if (current == null) {
+                current = new MeanCalculation(dValue);
+              } else {
+                current.count++;
+                current.total += dValue;
+              }
+            }
+          }
+          return current == null ? null : current.total / current.count;
         });
   }
 
