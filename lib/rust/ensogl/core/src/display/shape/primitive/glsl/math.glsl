@@ -232,7 +232,7 @@ vec4 encode(int value, float alpha) {
     rgb *= alpha;
 #ifdef ID_ENCODING_OVERFLOW_CHECK
     bool is_overflow = value > MAX_ENCODE_ID;
-    alpha = is_overflow ? (100.0/255.0) : alpha;
+    alpha = is_overflow ? (ID_ENCODING_OVERFLOW_ERROR_CODE/255.0) : alpha;
 #endif
     return vec4(as_float_u8(chunks),alpha);
 }

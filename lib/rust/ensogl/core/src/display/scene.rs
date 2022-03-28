@@ -63,7 +63,7 @@ pub use pointer_target::PointerTargetId;
 shared! { ShapeRegistry
 #[derive(Debug)]
 pub struct ShapeRegistryData {
-    // FIXME[WD]: The only valid fields here is the `mouse_target_map`. The rest should be removed
+    // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
     //            after proper implementation of text depth sorting, which is the only component
     //            using the obsolete fields now.
     scene            : Option<Scene>,
