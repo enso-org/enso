@@ -162,8 +162,15 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 let active = &self.profile[*active];
                 let start = active.interval.start.into_ms();
                 let mut end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
-                // We want to show every wakeup of the task, even if it is momentary.
-                const DURATION_FLOOR_MS: f64 = 2.0;
+                // The rungraph view should illustrate every time an async task wakes up, because
+                // wakeups reveal the dependencies between tasks: A task is always awake before
+                // and after awaiting another task.
+                //
+                // These wakeups are often momentary, when there is no (or trivial) work between
+                // .await points. The real intervals would often be difficult or impossible to see,
+                // so here we enlarge short intervals to a value that will make them visible at a
+                // moderate zoom level.
+                const DURATION_FLOOR_MS: f64 = 3.0;
                 if end < start + DURATION_FLOOR_MS {
                     end = start + DURATION_FLOOR_MS;
                 }
