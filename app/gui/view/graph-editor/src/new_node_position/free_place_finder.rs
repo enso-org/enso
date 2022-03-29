@@ -127,7 +127,6 @@ pub fn find_free_place(
         for area in sorted_areas {
             if area.contains(current_point) {
                 current_point = area.boundary_intersection(current_point, direction);
-                DEBUG!("{current_point:?}");
             }
         }
         current_point

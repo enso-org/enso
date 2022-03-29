@@ -227,6 +227,9 @@ async fn mouse_oriented_node_placement() {
         graph_editor.stop_editing();
         assert_eq!(graph_editor.model.nodes.all.len(), 2);
     };
+    // let check_edge_drop = |mouse_pos:Vector2, expected:Vector2| {
+    //     below.view.model.output.
+    // };
 
     let far_away = below.position().xy() + Vector2(500.0, 500.0);
     let far_away_expect = far_away;
