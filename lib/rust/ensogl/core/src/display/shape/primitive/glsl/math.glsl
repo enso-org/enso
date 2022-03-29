@@ -206,7 +206,7 @@ vec3 as_float_u8(uvec3 v) {
 const float ID_ALPHA_THRESHOLD = 0.0;
 
 /// The maximum ID that can be encoded. We are encoding IDs using rgb values (3 bytes).
-const int MAX_ENCODE_ID = 255*255*255;
+const int MAX_ENCODE_ID = 256 * 256 * 256 - 1;
 
 /// Converts provided [`int`] value to three [`u8`] chunks, skipping overflow bits.
 uvec3 int_to_rgb_drop_overflow(int value) {
