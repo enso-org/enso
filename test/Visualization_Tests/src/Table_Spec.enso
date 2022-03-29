@@ -6,17 +6,15 @@ import Standard.Table.Data.Table as Dataframe_Table
 import Standard.Visualization.Table.Visualization as Visualization
 import Standard.Test
 
+polyglot java import java.util.UUID
+
 type Foo
     type Foo x
     to_json : Json
     to_json = Json.from_pairs [["x", this.x]]
 
 visualization_spec connection =
-    connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
-    t = connection.access_table "T"
-    t.insert ['a', 2, 3]
-    t.insert ['a', 2, 5]
-    t.insert ['a', 3, 6]
+    t = connection.upload_table "T" <| Dataframe_Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
 
     make_json header data all_rows ixes_header ixes =
         p_header      = ["header", header]

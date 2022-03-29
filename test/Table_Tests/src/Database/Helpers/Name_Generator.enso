@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+polyglot java import java.util.UUID
+
+random_uuid : Text
+random_uuid =
+    UUID.randomUUID.to_text
+
+fresh_name : Text -> Text
+fresh_name prefix =
+    prefix + "-" + here.random_uuid
