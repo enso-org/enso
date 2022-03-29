@@ -108,19 +108,8 @@ pub struct AttributeQualifier {
 }
 
 impl AttributeQualifier {
-    /// Convert the qualifier to input variable definition. The [`use_qual`] parameter defines if
-    /// the qualified storage interpolator (e.g. `flat`) should be used. Interpolation modifiers are
-    /// illegal on vertex shader input attributes, however, they are required on fragment shader
-    /// ones.
-    pub fn to_input_var<Name: Into<glsl::Identifier>>(
-        &self,
-        name: Name,
-        use_qual: bool,
-    ) -> glsl::GlobalVar {
-        let mut storage = self.storage;
-        if !use_qual {
-            storage.interpolation = None;
-        }
+    pub fn to_input_var<Name: Into<glsl::Identifier>>(&self, name: Name) -> glsl::GlobalVar {
+        let storage = self.storage;
         glsl::GlobalVar {
             layout:  None,
             storage: Some(glsl::GlobalVarStorage::InStorage(storage)),
@@ -331,9 +320,9 @@ impl ShaderBuilder {
                 let vert_name = mk_vertex_name(name);
                 let frag_name = mk_fragment_name(name);
                 let sharing = glsl::Assignment::new(&frag_name, &vert_name);
-                self.vertex.add(qual.to_input_var(&vert_name, false));
+                self.vertex.add(qual.to_input_var(&vert_name));
                 self.vertex.add(qual.to_output_var(&frag_name));
-                self.fragment.add(qual.to_input_var(&frag_name, true));
+                self.fragment.add(qual.to_input_var(&frag_name));
                 self.vertex.main.add(sharing);
             }
         }
@@ -344,7 +333,7 @@ impl ShaderBuilder {
             for (name, qual) in &cfg.shared {
                 let frag_name = mk_fragment_name(name);
                 self.vertex.add(qual.to_output_var(&frag_name));
-                self.fragment.add(qual.to_input_var(&frag_name, true));
+                self.fragment.add(qual.to_input_var(&frag_name));
             }
         }
     }

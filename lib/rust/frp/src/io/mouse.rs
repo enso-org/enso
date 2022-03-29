@@ -20,7 +20,7 @@ use nalgebra::Vector2;
 /// JS supports up to 5 mouse buttons currently:
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
 /// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Button {
     Button0,
@@ -57,12 +57,7 @@ impl Button {
     /// Construct a button from the provided code point. In case the code is unrecognized, the
     /// default button will be returned.
     pub fn from_code(code: i32) -> Self {
-        Self::try_from_code(code).unwrap_or_else(|| {
-            let invalid_msg = "The provided mouse button code is invalid";
-            let revert_msg = "Reverting to the default button.";
-            WARNING!("{invalid_msg} ({code}). {revert_msg}");
-            default()
-        })
+        Self::try_from_code(code).unwrap_or_default()
     }
 
     /// The code point of the button.

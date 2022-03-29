@@ -11,4 +11,3 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
-enso-profiler = { path = "../../../profiler"}

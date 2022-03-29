@@ -316,7 +316,6 @@ where Self: MockData + MockDefault + AsRef<JsValue> + Into<JsValue> {
 
 mock_data! { JsValue
     fn is_undefined(&self) -> bool;
-    fn is_null(&self) -> bool;
 }
 
 impl JsValue {
@@ -393,9 +392,7 @@ impl From<&JsString> for String {
 
 
 // === Array ===
-mock_data! { Array => Object
-    fn length(&self) -> u32;
-}
+mock_data! { Array => Object }
 
 
 // === Error ===
