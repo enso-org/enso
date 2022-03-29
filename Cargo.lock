@@ -1355,16 +1355,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-example-custom-shape-system"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "enso-profiler",
- "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "ensogl-example-dom-symbols"
 version = "0.1.0"
 dependencies = [
@@ -1501,7 +1491,6 @@ dependencies = [
 name = "ensogl-example-shape-system"
 version = "0.1.0"
 dependencies = [
- "enso-profiler",
  "ensogl-core",
  "wasm-bindgen",
 ]
@@ -1552,7 +1541,6 @@ version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-complex-shape-system",
- "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",

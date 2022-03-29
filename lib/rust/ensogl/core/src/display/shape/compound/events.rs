@@ -49,7 +49,7 @@ impl MouseEvents {
         default()
     }
 
-    /// Connect the given [`PointerTarget`] to the [`Events`] output.
+    /// Connect the given [`ShapeViewEvents`] to the [`Events`] output.
     pub fn add_sub_shape<T: DynamicShape>(&self, sub_shape: &ShapeView<T>) {
         frp::extend! { network
             self.frp.source.mouse_over <+ sub_shape.events.mouse_over;

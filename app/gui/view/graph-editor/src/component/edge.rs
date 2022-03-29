@@ -12,7 +12,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Scene;
-use ensogl::gui::component::PointerTarget;
+use ensogl::gui::component::ShapeViewEvents;
 use ensogl_hardcoded_theme as theme;
 use nalgebra::Rotation2;
 
@@ -74,7 +74,7 @@ trait EdgeShape: display::Object {
     fn id(&self) -> display::object::Id {
         self.display_object().id()
     }
-    fn events(&self) -> &PointerTarget;
+    fn events(&self) -> &ShapeViewEvents;
     fn set_color(&self, color: color::Rgba);
     fn set_color_focus(&self, color: color::Rgba);
 
@@ -172,8 +172,8 @@ trait AnyEdgeShape {
     /// Return references to all `EdgeShape`s in this `AnyEdgeShape`.
     fn shapes(&self) -> Vec<&dyn EdgeShape>;
 
-    /// Connect the given `PointerTargetProxy` to the mouse events of all sub-shapes.
-    fn register_proxy_frp(&self, network: &frp::Network, frp: &PointerTargetProxy) {
+    /// Connect the given `ShapeViewEventsProxy` to the mouse events of all sub-shapes.
+    fn register_proxy_frp(&self, network: &frp::Network, frp: &ShapeViewEventsProxy) {
         for shape in &self.shapes() {
             let event = shape.events();
             let id = shape.id();
@@ -374,7 +374,7 @@ macro_rules! define_corner_start {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
+                fn events(&self) -> &ShapeViewEvents {
                     &self.events
                 }
 
@@ -469,7 +469,7 @@ macro_rules! define_corner_end {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
+                fn events(&self) -> &ShapeViewEvents {
                     &self.events
                 }
 
@@ -549,7 +549,7 @@ macro_rules! define_line {
                     self.focus_split_angle.set(angle);
                 }
 
-                fn events(&self) -> &PointerTarget {
+                fn events(&self) -> &ShapeViewEvents {
                     &self.events
                 }
 
@@ -621,7 +621,7 @@ macro_rules! define_arrow { () => {
                  self.focus_split_angle.set(angle);
             }
 
-            fn events(&self) -> &PointerTarget {
+            fn events(&self) -> &ShapeViewEvents {
                 &self.events
             }
 
@@ -752,7 +752,7 @@ macro_rules! define_components {
         pub struct $name {
             pub logger            : Logger,
             pub display_object    : display::object::Instance,
-            pub shape_view_events : Rc<Vec<PointerTarget>>,
+            pub shape_view_events : Rc<Vec<ShapeViewEvents>>,
             shape_type_map        : Rc<HashMap<display::object::Id,ShapeRole>>,
             $(pub $field : $field_type),*
         }
@@ -764,7 +764,7 @@ macro_rules! define_components {
                 let display_object = display::object::Instance::new(&logger);
                 $(let $field = <$field_type>::new(Logger::new_sub(&logger,stringify!($field)));)*
                 $(display_object.add_child(&$field);)*
-                let mut shape_view_events:Vec<PointerTarget> = Vec::default();
+                let mut shape_view_events:Vec<ShapeViewEvents> = Vec::default();
                 $(shape_view_events.push($field.events.clone_ref());)*
                 let shape_view_events = Rc::new(shape_view_events);
 
@@ -1021,7 +1021,7 @@ impl SemanticSplit {
 /// emit events via th internal `on_mouse_down`/`on_mouse_over`/`on_mouse_out` sources.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
-pub struct PointerTargetProxy {
+pub struct ShapeViewEventsProxy {
     pub mouse_down: frp::Stream,
     pub mouse_over: frp::Stream,
     pub mouse_out:  frp::Stream,
@@ -1032,7 +1032,7 @@ pub struct PointerTargetProxy {
 }
 
 #[allow(missing_docs)]
-impl PointerTargetProxy {
+impl ShapeViewEventsProxy {
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             on_mouse_over <- source();
@@ -1063,7 +1063,7 @@ pub struct Frp {
     pub set_color:       frp::Source<color::Lcha>,
 
     pub hover_position: frp::Source<Option<Vector2<f32>>>,
-    pub shape_events:   PointerTargetProxy,
+    pub shape_events:   ShapeViewEventsProxy,
 }
 
 impl Frp {
@@ -1080,7 +1080,7 @@ impl Frp {
             def set_disabled    = source();
             def set_color       = source();
         }
-        let shape_events = PointerTargetProxy::new(network);
+        let shape_events = ShapeViewEventsProxy::new(network);
         Self {
             source_width,
             source_height,

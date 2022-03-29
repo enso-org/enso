@@ -34,9 +34,9 @@ use ensogl_flame_graph as flame_graph;
 // ===================
 
 /// The example entry point.
-#[entry_point]
+#[wasm_bindgen]
 #[allow(dead_code)]
-pub fn main() {
+pub fn entry_point_profiling_run_graph() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
 
