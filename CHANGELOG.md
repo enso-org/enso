@@ -128,12 +128,14 @@
 - [Upgraded to Graal VM 21.3.0][3258]
 - [Added the ability to decorate values with warnings.][3248]
 - [Fixed issues related to constructors' default arguments][3330]
+- [Fixed compiler issue related to module cache.][3367]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 [3330]: https://github.com/enso-org/enso/pull/3330
 [3360]: https://github.com/enso-org/enso/pull/3360
+[3367]: https://github.com/enso-org/enso/pull/3367
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
