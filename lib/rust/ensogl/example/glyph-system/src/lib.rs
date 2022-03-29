@@ -31,9 +31,9 @@ use ensogl_text_msdf_sys::run_once_initialized;
 
 
 /// Main example runner.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_glyph_system() {
+pub fn main() {
     run_once_initialized(|| init(&World::new().displayed_in("root")));
 }
 

@@ -6,10 +6,12 @@ use derivative::Derivative;
 use shrinkwraprs::Shrinkwrap;
 
 
-
 // ===================
 // === PhantomData ===
 // ===================
+
+/// Replacement for the default phantom data, that provides a default type argument.
+pub type PhantomData0<T = ()> = std::marker::PhantomData<T>;
 
 /// The following `PhantomData` implementations allow each argument to be non
 /// Sized. Unfortunately, this is not equivalent to `PhantomData<(T1,T2,...)>`,

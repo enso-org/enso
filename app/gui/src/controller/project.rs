@@ -214,6 +214,7 @@ impl Project {
         }
     }
 
+    #[profile(Detail)]
     fn notify_about_compiling_process(&self, graph: &controller::ExecutedGraph) {
         let status_notifier = self.status_notifications.clone_ref();
         let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);

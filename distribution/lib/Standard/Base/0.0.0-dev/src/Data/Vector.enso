@@ -637,7 +637,7 @@ type Vector
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text
     join separator="" prefix="" suffix="" =
-        if this.length == 0 then prefix+suffix else
+        if this.is_empty then prefix+suffix else
             if this.length == 1 then prefix + this.unsafe_at 0 + suffix else
                 prefix + this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i) + suffix
 
@@ -1012,6 +1012,15 @@ type Builder
              Vector.new_builder.capacity
     capacity : Integer
     capacity = this.to_array.length
+
+    ## Checks if this builder is empty.
+
+       > Example
+         Checking for emptiness.
+
+             [].is_empty
+    is_empty : Boolean
+    is_empty = this.length == 0
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.

@@ -498,11 +498,11 @@ built runner executable as explained above):
 enso --run test/Tests # for the Base library
 enso --run test/Geo_Tests
 enso --run test/Table_Tests
-enso --run test/Database_Tests
 ```
 
 The Database tests will by default only test the SQLite backend, to test other
-backends see [`test/Database_Tests/README.md`](../test/Database_Tests/README.md)
+backends see
+[`test/Table_Tests/src/Database/README.md`](../test/Table_Tests/src/Database/README.md)
 for information on how to configure them.
 
 The Base tests rely in a few places on the system language. On Linux you can set

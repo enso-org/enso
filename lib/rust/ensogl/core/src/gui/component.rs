@@ -1,7 +1,4 @@
 //! Root module for GUI related components.
-//! NOTE
-//! This file is under a heavy development. It contains commented lines of code and some code may
-//! be of poor quality. Expect drastic changes.
 
 use crate::display::object::traits::*;
 use crate::prelude::*;
@@ -9,72 +6,18 @@ use crate::prelude::*;
 use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
-use crate::display::scene::MouseTarget;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
-use crate::display::symbol::SymbolId;
-use crate::system::gpu::data::attribute;
-
-use enso_frp as frp;
+use crate::display::symbol;
 
 
+// ==============
+// === Export ===
+// ==============
 
-// =======================
-// === ShapeViewEvents ===
-// =======================
-
-/// FRP event endpoints exposed by each shape view. In particular these are all mouse events
-/// which are triggered by mouse interactions after the shape view is placed on the scene.
-#[derive(Clone, CloneRef, Debug)]
-#[allow(missing_docs)]
-pub struct ShapeViewEvents {
-    pub network:    frp::Network,
-    pub mouse_up:   frp::Source,
-    pub mouse_down: frp::Source,
-    pub mouse_over: frp::Source,
-    pub mouse_out:  frp::Source,
-    pub on_drop:    frp::Source,
-}
-
-impl ShapeViewEvents {
-    fn new() -> Self {
-        frp::new_network! { network
-            on_drop    <- source_();
-            mouse_down <- source_();
-            mouse_up   <- source_();
-            mouse_over <- source_();
-            mouse_out  <- source_();
-
-            is_mouse_over <- bool(&mouse_out,&mouse_over);
-            out_on_drop   <- on_drop.gate(&is_mouse_over);
-            eval_ out_on_drop (mouse_out.emit(()));
-        }
-        Self { network, mouse_up, mouse_down, mouse_over, mouse_out, on_drop }
-    }
-}
-
-impl MouseTarget for ShapeViewEvents {
-    fn mouse_down(&self) -> &frp::Source {
-        &self.mouse_down
-    }
-    fn mouse_up(&self) -> &frp::Source {
-        &self.mouse_up
-    }
-    fn mouse_over(&self) -> &frp::Source {
-        &self.mouse_over
-    }
-    fn mouse_out(&self) -> &frp::Source {
-        &self.mouse_out
-    }
-}
-
-impl Default for ShapeViewEvents {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub use crate::display::scene::PointerTarget;
 
 
 
@@ -136,9 +79,9 @@ impl<S> HasContent for ShapeView<S> {
 #[allow(missing_docs)]
 pub struct ShapeViewModel<S> {
     shape:               S,
-    pub events:          ShapeViewEvents,
+    pub events:          PointerTarget,
     pub registry:        RefCell<Option<ShapeRegistry>>,
-    pub pointer_targets: RefCell<Vec<(SymbolId, attribute::InstanceIndex)>>,
+    pub pointer_targets: RefCell<Vec<symbol::GlobalInstanceId>>,
 }
 
 impl<S> Deref for ShapeViewModel<S> {
@@ -189,7 +132,7 @@ impl<S: DynamicShape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new(logger: impl AnyLogger) -> Self {
         let shape = S::new(logger);
-        let events = ShapeViewEvents::new();
+        let events = PointerTarget::new();
         let registry = default();
         let pointer_targets = default();
         ShapeViewModel { shape, events, registry, pointer_targets }
@@ -197,12 +140,8 @@ impl<S: DynamicShape> ShapeViewModel<S> {
 
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
         let instance = layer.instantiate(scene, &self.shape);
-        scene.shapes.insert_mouse_target(
-            instance.symbol_id,
-            instance.instance_id,
-            self.events.clone_ref(),
-        );
-        self.pointer_targets.borrow_mut().push((instance.symbol_id, instance.instance_id));
+        scene.shapes.insert_mouse_target(instance.global_instance_id, self.events.clone_ref());
+        self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         *self.registry.borrow_mut() = Some(scene.shapes.clone_ref());
     }
 }
@@ -210,8 +149,8 @@ impl<S: DynamicShape> ShapeViewModel<S> {
 impl<S> ShapeViewModel<S> {
     fn unregister_existing_mouse_targets(&self) {
         if let Some(registry) = &*self.registry.borrow() {
-            for (symbol_id, instance_id) in mem::take(&mut *self.pointer_targets.borrow_mut()) {
-                registry.remove_mouse_target(symbol_id, instance_id);
+            for global_instance_id in mem::take(&mut *self.pointer_targets.borrow_mut()) {
+                registry.remove_mouse_target(global_instance_id);
             }
         }
     }

@@ -265,9 +265,10 @@ impl ProjectName {
 
             // === Mouse IO ===
 
+            mouse_down <- model.view.events.mouse_down.constant(());
             frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
                                           &model.view.events.mouse_over);
-            frp.source.mouse_down <+ model.view.events.mouse_down;
+            frp.source.mouse_down <+ model.view.events.mouse_down.constant(());
 
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
@@ -280,7 +281,7 @@ impl ProjectName {
             );
             on_deselect <- not_selected.gate(&not_selected).constant(());
 
-            edit_click    <- model.view.events.mouse_down.gate(&frp.ide_text_edit_mode);
+            edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
             eval_ start_editing ({
                 text.set_focus(true);

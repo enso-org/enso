@@ -1,10 +1,11 @@
 //! The core vector rendering engine for EnsoGL, a blazing fast 2D drawing library. This crate
-//! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
+//! contains the core utilities necessary for the rendering engine to run correctly. See the docs
 //! of the `ensogl` crate to learn more.
 
 #![recursion_limit = "512"]
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(negative_impls)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
@@ -17,6 +18,7 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(trace_macros)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

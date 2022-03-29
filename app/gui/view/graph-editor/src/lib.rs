@@ -1453,6 +1453,7 @@ impl GraphEditorModelWithNetwork {
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
+        use ensogl::application::command::FrpNetworkProvider;
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
         let node_id = node.id();
@@ -1468,7 +1469,8 @@ impl GraphEditorModelWithNetwork {
             output,
         } = ctx;
 
-        frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
+        let node_network = node.frp.network();
+        frp::new_bridge_network! { [self.network, node_network] graph_node_bridge
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
 
             hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
@@ -1831,6 +1833,7 @@ impl GraphEditorModel {
         edges
     }
 
+    #[profile(Detail)]
     fn set_node_expression(&self, node_id: impl Into<NodeId>, expr: impl Into<node::Expression>) {
         let node_id = node_id.into();
         let expr = expr.into();
@@ -2577,33 +2580,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Selection Target Redirection ===
 
     frp::extend! { network
-        mouse_down_target <- mouse.down_primary.map(f_!(model.scene().mouse.target.get()));
-        mouse_up_target   <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
-        background_up     <= mouse_up_target.map(
-            |t| (t==&display::scene::PointerTarget::Background).as_some(())
+        let scene = model.scene();
+
+        mouse_up_target <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
+        background_up   <= mouse_up_target.map(
+            |t| (t==&display::scene::PointerTargetId::Background).as_some(())
         );
 
-        eval mouse_down_target([touch,model](target) {
-            match target {
-                display::scene::PointerTarget::Background  => touch.background.down.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_down().emit(());
-                    }
-                }
-            }
-        });
-
-        eval mouse_up_target([model](target) {
-            match target {
-                display::scene::PointerTarget::Background  => {} // touch.background.up.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_up().emit(());
-                    }
-                }
-            }
-        });
+        eval_ scene.background.mouse_down (touch.background.down.emit(()));
     }
 
 

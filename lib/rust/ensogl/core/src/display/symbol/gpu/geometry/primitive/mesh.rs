@@ -8,7 +8,7 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::system::Context;
 
-use enso_shapely::shared;
+use enso_shapely::shared2;
 use num_enum::IntoPrimitive;
 
 
@@ -90,9 +90,9 @@ macro_rules! update_scopes {
 
 // === Definition ===
 
-shared! { Mesh
+shared2! { Mesh
 /// A polygon mesh is a collection of vertices, edges and faces that defines the shape of a
-/// polyhedral object. Mesh describes the shape of the display element. It consist of several
+/// polyhedral object. Mesh describes the shape of the display element. It consists of several
 /// scopes containing sets of variables. See the documentation of `Scopes` to learn more.
 ///
 /// Please note, that there are other, higher-level scopes defined by other structures, including:
@@ -101,7 +101,7 @@ shared! { Mesh
 ///     Object refers to the whole geometry with all of its instances.
 ///
 ///   - Global Scope
-///     Global scope is shared by all objects and it contains some universal global variables, like
+///     Global scope is shared by all objects, and it contains some universal global variables, like
 ///     the current 'time' counter.
 ///
 /// Each scope can contain named attributes which can be accessed from within materials. If the same
