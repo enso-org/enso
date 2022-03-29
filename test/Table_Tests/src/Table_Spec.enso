@@ -638,7 +638,7 @@ spec =
     table_builder columns =
         Table.new <| columns.map description-> [description.at 0, description.at 2]
 
-    Common_Table_Spec.spec "" table_builder supports_case_sensitive_columns=True
+    Common_Table_Spec.spec "[In-Memory] " table_builder supports_case_sensitive_columns=True
 
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
