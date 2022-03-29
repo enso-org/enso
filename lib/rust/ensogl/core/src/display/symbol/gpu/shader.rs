@@ -62,6 +62,7 @@ pub struct ShaderData {
     geometry_material : Material,
     surface_material  : Material,
     program           : Option<WebGlProgram>,
+    shader            : Option<builder::Shader>,
     dirty             : Dirty,
     logger            : Logger,
     stats             : Stats,
@@ -97,10 +98,11 @@ impl {
         let geometry_material = default();
         let surface_material  = default();
         let program           = default();
+        let shader            = default();
         let dirty_logger      = Logger::new_sub(&logger,"dirty");
         let dirty             = Dirty::new(dirty_logger,Box::new(on_mut));
         let stats             = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,dirty,logger,stats}
+        Self {context,geometry_material,surface_material,program,shader,dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -146,7 +148,10 @@ impl {
                     let shader = shader_builder.build();
                     let program = compile_program(context,&shader.vertex,&shader.fragment);
                     match program {
-                        Ok(program) => { self.program = Some(program);}
+                        Ok(program) => {
+                            self.program = Some(program);
+                            self.shader = Some(shader);
+                        }
                         Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
                         Err(ContextLossOrError::ContextLoss) => {}
                     }
@@ -162,6 +167,11 @@ impl {
         let geometry_material_inputs = self.geometry_material.inputs().clone();
         let surface_material_inputs  = self.surface_material.inputs().clone();
         geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
+    }
+
+    /// Get the generated shader, if it was already generated.
+    pub fn shader(&self) -> Option<builder::Shader> {
+        self.shader.clone()
     }
 }}
 

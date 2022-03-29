@@ -217,18 +217,24 @@ impl<T:Storable> {
     /// https://stackoverflow.com/questions/38853096/webgl-how-to-bind-values-to-a-mat4-attribute
     pub fn vertex_attrib_pointer(&self, loc:u32, instanced:bool) {
         if let Some(gl) = &self.gl {
+            let is_integer     = T::is_integer();
             let item_byte_size = T::item_gpu_byte_size() as i32;
             let item_type      = T::item_gl_enum().into();
             let rows           = T::rows() as i32;
             let cols           = T::cols() as i32;
             let col_byte_size  = item_byte_size * rows;
             let stride         = col_byte_size  * cols;
-            let normalize      = false;
             for col in 0..cols {
                 let lloc = loc + col as u32;
                 let off  = col * col_byte_size;
                 gl.context.enable_vertex_attrib_array(lloc);
-                gl.context.vertex_attrib_pointer_with_i32(lloc,rows,item_type,normalize,stride,off);
+                if is_integer {
+                    gl.context.vertex_attrib_i_pointer_with_i32(lloc,rows,item_type,stride,off);
+                } else {
+                    let normalize = false;
+                    gl.context.vertex_attrib_pointer_with_i32
+                        (lloc,rows,item_type,normalize,stride,off);
+                }
                 if instanced {
                     let instance_count = 1;
                     gl.context.vertex_attrib_divisor(lloc,instance_count);

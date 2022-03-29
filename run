@@ -7,7 +7,7 @@ const os    = require('os')
 const fss   = require('fs')
 const paths = require('./build/paths')
 
-process.on('unhandledRejection', error => { throw(error) })
+process.on('unhandledRejection', error => { throw(error.stack) })
 
 let args = process.argv.slice(2)
 

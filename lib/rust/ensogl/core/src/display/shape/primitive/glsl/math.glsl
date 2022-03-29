@@ -186,22 +186,53 @@ float neg(float a) {
 
 // === Encode ===
 
-// This encoding must correspond to the decoding in the `Target` struct in
-// src\rust\ensogl\src\display\scene.rs See there for more explanation.
-uvec3 encode(int value1, int value2) {
-    uint chunk1 = (uint(value1) >> 4u) & 0x00FFu;
-    uint chunk2 = (uint(value1) & 0x000Fu) << 4u;
-    chunk2 = chunk2 + ((uint(value2) & 0x0F00u) >> 8u);
-    uint chunk3 = uint(value2) & 0x00FFu;
-    return uvec3(chunk1,chunk2,chunk3);
-}
+/// Enables check for ID encoding.
+#define ID_ENCODING_OVERFLOW_CHECK
 
-// Encodes a uint values so it can be stored in a u8 encoded float. Will clamp values that are
-// out of range.
+/// Encodes na [`uint`] values so it can be stored as a u8 encoded [`float`]. Will clamp values that
+/// are out of range.
 float as_float_u8(uint value) {
     return clamp(float(value) / 255.0);
 }
 
 vec3 as_float_u8(uvec3 v) {
     return vec3(as_float_u8(v.x),as_float_u8(v.y),as_float_u8(v.z));
+}
+
+/// The threshold used to decide whether a value should be included in the generated ID map. The
+/// threshold is defined as 0.0 because it is quite common to use almost completely transparent
+/// colors (like `Rgba(0.0, 0.0, 0.0, 0.000001)`) for shapes which should just catch mouse events
+/// without providing any visual feedback.
+const float ID_ALPHA_THRESHOLD = 0.0;
+
+/// The maximum ID that can be encoded. We are encoding IDs using rgb values (3 bytes).
+const int MAX_ENCODE_ID = 256 * 256 * 256 - 1;
+
+/// Converts provided [`int`] value to three [`u8`] chunks, skipping overflow bits.
+uvec3 int_to_rgb_drop_overflow(int value) {
+    int r_mask = 0xFF;
+    int g_mask = 0xFF00;
+    int b_mask = 0xFF0000;
+    int r = (value & r_mask);
+    int g = (value & g_mask) >> 8;
+    int b = (value & b_mask) >> 16;
+    return uvec3(r,g,b);
+}
+
+/// This encoding must correspond to the decoding in the [`PointerTarget`] struct in the
+/// `ensogl/core/src/display/scene/pointer_target.rs` file.
+///
+/// *Overflow Behavior*
+/// If [`ID_ENCODING_OVERFLOW_CHECK`] is defined, the overflow will be reported to the CPU code as
+/// part of the alpha channel. In case it is not defined, the overflow bits will be skipped and the
+/// ID may alias with existing ones.
+vec4 encode(int value, float alpha) {
+    uvec3 chunks = int_to_rgb_drop_overflow(value);
+    vec3 rgb = as_float_u8(chunks);
+    rgb *= alpha;
+#ifdef ID_ENCODING_OVERFLOW_CHECK
+    bool is_overflow = value > MAX_ENCODE_ID;
+    alpha = is_overflow ? (ID_ENCODING_OVERFLOW_ERROR_CODE/255.0) : alpha;
+#endif
+    return vec4(as_float_u8(chunks),alpha);
 }
