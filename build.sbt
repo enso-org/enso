@@ -948,7 +948,6 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -1067,6 +1066,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1233,11 +1233,11 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(graph)
   .dependsOn(pkg)
-  .dependsOn(searcher)
   .dependsOn(`edition-updater`)
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
 /* Note [Unmanaged Classpath]

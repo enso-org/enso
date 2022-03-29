@@ -3,12 +3,14 @@ package org.enso.interpreter.test.instrument
 import org.enso.compiler.pass.resolve.VectorLiterals
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.docs.generator.DocsGenerator
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
+import org.scalatest.concurrent.TimeLimits
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -18,9 +20,12 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.concurrent.duration._
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeStdlibTest
     extends AnyFlatSpec
+    with TimeLimits
     with Matchers
     with BeforeAndAfterEach
     with BeforeAndAfterAll
@@ -31,6 +36,8 @@ class RuntimeStdlibTest
   var context: TestContext = _
 
   class TestContext(packageName: String) {
+
+    val docsGenerator = new DocsGenerator
 
     val messageQueue: LinkedBlockingQueue[Api.Response] =
       new LinkedBlockingQueue()
@@ -244,6 +251,28 @@ class RuntimeStdlibTest
     contentRootNotifications should contain(
       ("Standard", "Base", TestEdition.testLibraryVersion.toString)
     )
+
+    // check documentation generation
+    failAfter(60.seconds) {
+      responses.collect {
+        case Api.Response(
+              None,
+              Api.SuggestionsDatabaseModuleUpdateNotification(
+                _,
+                _,
+                _,
+                _,
+                updates
+              )
+            ) =>
+          updates.toVector.foreach { update =>
+            val docstring = Suggestion.Documentation(update.suggestion)
+            docstring.foreach(
+              context.docsGenerator.generate(_, update.suggestion.name)
+            )
+          }
+      }
+    }
 
     context.consumeOut shouldEqual List("Hello World!")
   }
