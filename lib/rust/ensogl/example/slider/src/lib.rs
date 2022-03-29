@@ -38,9 +38,9 @@ use ensogl_text_msdf_sys::run_once_initialized;
 // ===================
 
 /// An entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_slider() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);

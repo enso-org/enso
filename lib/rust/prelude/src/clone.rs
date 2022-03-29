@@ -5,7 +5,9 @@ use crate::*;
 // === Export ===
 // ==============
 
+pub use enso_shapely::entry_point;
 pub use enso_shapely::CloneRef;
+pub use enso_shapely::NoCloneBecauseOfCustomDrop;
 
 
 

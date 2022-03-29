@@ -8,12 +8,14 @@ use crate::system::gpu::types::*;
 
 use crate::debug::Stats;
 use crate::display;
+use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
 use crate::display::scene::Scene;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
+use crate::display::symbol::SymbolInstance;
 
 
 
@@ -47,45 +49,6 @@ impl SpriteStats {
 impl Drop for SpriteStats {
     fn drop(&mut self) {
         self.stats.dec_sprite_count();
-    }
-}
-
-
-
-// ===================
-// === SpriteGuard ===
-// ===================
-
-/// Lifetime guard for `Sprite`. After sprite is dropped, it is removed from the sprite system.
-/// Note that the removal does not involve many changes to buffers. What really happens is setting
-/// the sprite dimensions to zero and marking it index as a free for future reuse.
-#[derive(Debug)]
-pub struct SpriteGuard {
-    instance_id:    attribute::InstanceIndex,
-    symbol:         Symbol,
-    size:           Attribute<Vector2<f32>>,
-    display_object: display::object::Instance,
-}
-
-impl SpriteGuard {
-    fn new(
-        instance_id: attribute::InstanceIndex,
-        symbol: &Symbol,
-        size: &Attribute<Vector2<f32>>,
-        display_object: &display::object::Instance,
-    ) -> Self {
-        let symbol = symbol.clone_ref();
-        let size = size.clone_ref();
-        let display_object = display_object.clone_ref();
-        Self { instance_id, symbol, size, display_object }
-    }
-}
-
-impl Drop for SpriteGuard {
-    fn drop(&mut self) {
-        self.size.set(zero());
-        self.symbol.surface().instance_scope().dispose(self.instance_id);
-        self.display_object.unset_parent();
     }
 }
 
@@ -158,33 +121,46 @@ impl Size {
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Sprite {
-    pub symbol:      Symbol,
-    pub instance_id: attribute::InstanceIndex,
-    pub size:        Size,
-    display_object:  display::object::Instance,
-    transform:       Attribute<Matrix4<f32>>,
-    stats:           Rc<SpriteStats>,
-    guard:           Rc<SpriteGuard>,
+    pub symbol:           Symbol,
+    pub instance:         SymbolInstance,
+    pub size:             Size,
+    display_object:       display::object::Instance,
+    transform:            Attribute<Matrix4<f32>>,
+    stats:                Rc<SpriteStats>,
+    erase_on_drop:        Rc<EraseOnDrop<Attribute<Vector2<f32>>>>,
+    unset_parent_on_drop: Rc<display::object::UnsetParentOnDrop>,
 }
 
 impl Sprite {
     /// Constructor.
     pub fn new(
         symbol: &Symbol,
-        instance_id: attribute::InstanceIndex,
+        instance: SymbolInstance,
         transform: Attribute<Matrix4<f32>>,
         size: Attribute<Vector2<f32>>,
         stats: &Stats,
     ) -> Self {
         let symbol = symbol.clone_ref();
-        let logger = Logger::new(iformat!("Sprite{instance_id}"));
+        let logger = Logger::new(iformat!("Sprite{instance.instance_id}"));
         let display_object = display::object::Instance::new(logger);
         let stats = Rc::new(SpriteStats::new(stats));
-        let guard = Rc::new(SpriteGuard::new(instance_id, &symbol, &size, &display_object));
+        let erase_on_drop = Rc::new(EraseOnDrop::new(size.clone_ref()));
         let size = Size::new(size);
+        let unset_parent_on_drop =
+            Rc::new(display::object::UnsetParentOnDrop::new(&display_object));
         let default_size = Vector2(DEFAULT_SPRITE_SIZE.0, DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
-        Self { symbol, instance_id, size, display_object, transform, stats, guard }.init()
+        Self {
+            symbol,
+            instance,
+            size,
+            display_object,
+            transform,
+            stats,
+            erase_on_drop,
+            unset_parent_on_drop,
+        }
+        .init()
     }
 
     /// Init display object bindings. In particular defines the behavior of the show and hide
@@ -204,11 +180,10 @@ impl Sprite {
     }
 
     /// Check if given pointer-event-target means this object.
-    pub fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    pub fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         match target {
-            display::scene::PointerTarget::Background => false,
-            display::scene::PointerTarget::Symbol { symbol_id, instance_id } =>
-                self.symbol_id() == symbol_id && self.instance_id == instance_id,
+            display::scene::PointerTargetId::Background => false,
+            display::scene::PointerTargetId::Symbol { id } => self.global_instance_id == id,
         }
     }
 }
@@ -216,6 +191,13 @@ impl Sprite {
 impl display::Object for Sprite {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+impl Deref for Sprite {
+    type Target = SymbolInstance;
+    fn deref(&self) -> &Self::Target {
+        &self.instance
     }
 }
 
@@ -265,10 +247,10 @@ impl SpriteSystem {
 
     /// Creates a new sprite instance.
     pub fn new_instance(&self) -> Sprite {
-        let instance_id = self.symbol.surface().instance_scope().add_instance();
-        let transform = self.transform.at(instance_id);
-        let size = self.size.at(instance_id);
-        let sprite = Sprite::new(&self.symbol, instance_id, transform, size, &self.stats);
+        let instance = self.symbol.new_instance();
+        let transform = self.transform.at(instance.instance_id);
+        let size = self.size.at(instance.instance_id);
+        let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
         self.add_child(&sprite);
         sprite
     }
@@ -341,16 +323,18 @@ impl SpriteSystem {
         material.add_input_def::<Matrix4<f32>>("transform");
         material.add_input_def::<Matrix4<f32>>("view_projection");
         material.add_input_def::<Vector2<f32>>("alignment");
+        material.add_input_def::<i32>("global_instance_id");
         material.add_output_def::<Vector3<f32>>("local");
-        material.add_output_def::<i32>("instance_id");
         material.set_main(
             "
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local                = vec3((input_uv - input_alignment) * input_size, 0.0);
                 gl_Position                = model_view_projection * vec4(input_local,1.0);
                 input_local.z              = gl_Position.z;
-                input_instance_id          = gl_InstanceID;
                 ",
+            // This is left here in case it will be needed. The `instance_id` is the same as the
+            // built-in `gl_InstanceID` and can be implemented very efficiently:
+            // input_instance_id = gl_InstanceID;
         );
         material
     }

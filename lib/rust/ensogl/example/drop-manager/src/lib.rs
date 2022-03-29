@@ -52,9 +52,9 @@ fn download_file(file: ensogl_drop_manager::File) {
 }
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_drop_manager() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let drop_manager = ensogl_drop_manager::Manager::new(world.default_scene.dom.root.as_ref());
     let network = enso_frp::Network::new("Debug Scene");

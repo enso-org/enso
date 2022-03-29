@@ -16,6 +16,7 @@ use crate::system::gpu::data::uniform::AnyTextureUniform;
 use crate::system::gpu::data::uniform::AnyUniform;
 
 use enso_shapely::newtype_prim;
+use enso_shapely::shared2;
 use shader::Shader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
@@ -229,6 +230,47 @@ impl Drop for SymbolStatsData {
 
 
 
+// ================================
+// === GlobalInstanceIdProvider ===
+// ================================
+
+newtype_prim! {
+    /// Global [`Symbol`] instance id. Allows encoding symbol IDs in a texture and then decode on
+    /// mouse interaction.
+    ///
+    /// Please see the [`fragment_runner.glsl`] file to see the encoding implementation and learn
+    /// more about the possible overflow behavior.
+    GlobalInstanceId(u32);
+}
+
+shared2! { GlobalInstanceIdProvider
+    /// [`GlobalInstanceId`] provider.
+    #[derive(Debug,Default)]
+    pub struct GlobalInstanceIdProviderData {
+        next: GlobalInstanceId,
+        free: Vec<GlobalInstanceId>,
+    }
+
+    impl {
+        /// Get a new [`GlobalInstanceId`] either by reusing previously disposed one or reserving a
+        /// new one.
+        pub fn reserve(&mut self) -> GlobalInstanceId {
+            self.free.pop().unwrap_or_else(|| {
+                let out = self.next;
+                self.next = GlobalInstanceId::new((*out) + 1);
+                out
+            })
+        }
+
+        /// Dispose previously used [`GlobalInstanceId`]. It will be reused for new instances.
+        pub fn dispose(&mut self, id: GlobalInstanceId) {
+            self.free.push(id);
+        }
+    }
+}
+
+
+
 // ==============
 // === Symbol ===
 // ==============
@@ -260,36 +302,44 @@ pub struct Bindings {
 
 newtype_prim! {
     /// The ID of a [`Symbol`] instance. The ID is also the index of the symbol inside of symbol
-    /// registry. In case the symbol was not yet registered, the ID will be `0`.
+    /// registry.
     SymbolId(u32);
 }
 
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Symbol {
-    pub id:            SymbolId,
-    display_object:    display::object::Instance,
-    surface:           Mesh,
-    shader:            Shader,
-    surface_dirty:     GeometryDirty,
-    shader_dirty:      ShaderDirty,
-    variables:         UniformScope,
+    pub id:             SymbolId,
+    global_id_provider: GlobalInstanceIdProvider,
+    display_object:     display::object::Instance,
+    surface:            Mesh,
+    shader:             Shader,
+    surface_dirty:      GeometryDirty,
+    shader_dirty:       ShaderDirty,
+    variables:          UniformScope,
     /// Please note that changing the uniform type to `u32` breaks node ID encoding in GLSL, as the
     /// functions are declared to work on `int`s, not `uint`s. This might be improved one day.
-    symbol_id_uniform: Uniform<i32>,
-    context:           Rc<RefCell<Option<Context>>>,
-    logger:            Logger,
-    bindings:          Rc<RefCell<Bindings>>,
-    stats:             SymbolStats,
-    is_hidden:         Rc<Cell<bool>>,
+    symbol_id_uniform:  Uniform<i32>,
+    context:            Rc<RefCell<Option<Context>>>,
+    logger:             Logger,
+    bindings:           Rc<RefCell<Bindings>>,
+    stats:              SymbolStats,
+    is_hidden:          Rc<Cell<bool>>,
+    global_instance_id: Buffer<i32>,
 }
 
 impl Symbol {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, id: SymbolId, on_mut: OnMut) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        id: SymbolId,
+        global_id_provider: &GlobalInstanceIdProvider,
+        on_mut: OnMut,
+    ) -> Self {
         let logger = Logger::new(format!("symbol_{}", id));
         let init_logger = logger.clone();
         debug!(init_logger, "Initializing.", || {
+            let global_id_provider = global_id_provider.clone_ref();
             let on_mut2 = on_mut.clone();
             let surface_logger = Logger::new_sub(&logger, "surface");
             let shader_logger = Logger::new_sub(&logger, "shader");
@@ -308,8 +358,13 @@ impl Symbol {
             let symbol_id_uniform = variables.add_or_panic("symbol_id", (*id) as i32);
             let display_object = display::object::Instance::new(logger.clone());
             let is_hidden = Rc::new(Cell::new(false));
+
+            let instance_scope = surface.instance_scope();
+            let global_instance_id = instance_scope.add_buffer("global_instance_id");
+
             Self {
                 id,
+                global_id_provider,
                 display_object,
                 surface,
                 shader,
@@ -322,6 +377,7 @@ impl Symbol {
                 bindings,
                 stats,
                 is_hidden,
+                global_instance_id,
             }
             .init()
         })
@@ -341,6 +397,10 @@ impl Symbol {
             }
         });
         self
+    }
+
+    pub fn new_instance(&self) -> SymbolInstance {
+        SymbolInstance::new(self)
     }
 
     pub(crate) fn set_context(&self, context: Option<&Context>) {
@@ -655,5 +715,47 @@ impl Symbol {
 impl display::Object for Symbol {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
+    }
+}
+
+
+
+// ======================
+// === SymbolInstance ===
+// ======================
+
+/// Instance of a [`Symbol`]. It does not define any custom parameters, however, it manages the
+/// [`InstanceIndex`] and [`GlobalInstanceId`] ones.
+#[derive(Debug, Clone, CloneRef, Deref)]
+pub struct SymbolInstance {
+    rc: Rc<SymbolInstanceData>,
+}
+
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct SymbolInstanceData {
+    pub symbol:             Symbol,
+    pub instance_id:        attribute::InstanceIndex,
+    pub global_instance_id: GlobalInstanceId,
+}
+
+impl SymbolInstance {
+    fn new(symbol: &Symbol) -> Self {
+        let symbol = symbol.clone_ref();
+        let global_instance_id = symbol.global_id_provider.reserve();
+        let instance_id = symbol.surface().instance_scope().add_instance();
+
+        let global_instance_id_attr = symbol.global_instance_id.at(instance_id);
+        global_instance_id_attr.set(*global_instance_id as i32);
+
+        let data = SymbolInstanceData { symbol, instance_id, global_instance_id };
+        let rc = Rc::new(data);
+        Self { rc }
+    }
+}
+
+impl Drop for SymbolInstanceData {
+    fn drop(&mut self) {
+        self.symbol.surface().instance_scope().dispose(self.instance_id);
+        self.symbol.global_id_provider.dispose(self.global_instance_id);
     }
 }
