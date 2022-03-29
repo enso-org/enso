@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+import Standard.Test
+
+import project.Model_Spec
+import project.Column_Spec
+import project.Csv_Spec
+import project.Json_Spec
+import project.Table_Spec
+import project.Spreadsheet_Spec
+import project.Aggregate_Column_Spec
+import project.Aggregate_Spec
+
+in_memory_spec =
+    Column_Spec.spec
+    Csv_Spec.spec
+    Json_Spec.spec
+    Spreadsheet_Spec.spec
+    Table_Spec.spec
+    Model_Spec.spec
+    Aggregate_Column_Spec.spec
+    Aggregate_Spec.spec
+
+main = Test.Suite.run_main here.in_memory_spec

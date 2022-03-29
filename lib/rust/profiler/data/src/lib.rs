@@ -292,6 +292,8 @@ impl Measurement {
 pub enum Class {
     /// Profiler that is active during the execution of anything else, after early startup.
     OnFrame,
+    /// Profiler that is run when a WebGL context is acquired or lost.
+    SetContext,
     /// Any profiler that doesn't need special treatment.
     Normal,
 }
@@ -428,6 +430,7 @@ impl Label {
     fn classify(&self) -> Class {
         match self.name.as_str() {
             "@on_frame" => Class::OnFrame,
+            "@set_context" => Class::SetContext,
             // Data producer is probably newer than consumer. Forward compatibility isn't necessary.
             name if name.starts_with('@') => panic!("Unrecognized special profiler: {:?}", name),
             _ => Class::Normal,

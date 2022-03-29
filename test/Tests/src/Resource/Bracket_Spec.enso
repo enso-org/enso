@@ -1,0 +1,55 @@
+from Standard.Base import all
+import Standard.Test
+
+spec = Test.group "Resource.bracket" <|
+    Test.specify "should call the destructor even if the action fails" <|
+        log_1 = Vector.new_builder
+        r_1 = Resource.bracket 42 log_1.append x->
+            log_1.append x+1
+            x
+        r_1 . should_equal 42
+        log_1.to_vector . should_equal [43, 42]
+
+        log_2 = Vector.new_builder
+        r_2 = Panic.recover Any <| Resource.bracket 42 log_2.append x->
+            log_2.append x+1
+            Panic.throw (Illegal_State_Error "foo")
+            log_2.append x+2
+        r_2.catch . should_equal (Illegal_State_Error "foo")
+        log_2.to_vector . should_equal [43, 42]
+
+        log_3 = Vector.new_builder
+        r_3 = Resource.bracket 42 log_3.append x->
+            log_3.append x+1
+            r = Error.throw (Illegal_State_Error "foo")
+            log_3.append x+2
+            r
+        r_3.catch . should_equal (Illegal_State_Error "foo")
+        log_3.to_vector . should_equal [43, 44, 42]
+
+    Test.specify "should not proceed further if initialization fails" <|
+        log_1 = Vector.new_builder
+        r_1 = Panic.recover Any <| Resource.bracket (Panic.throw (Illegal_State_Error "foo")) (_ -> log_1.append "destructor") _->
+            log_1.append "action"
+            42
+        r_1.catch . should_equal (Illegal_State_Error "foo")
+        log_1.to_vector . should_equal []
+
+        log_2 = Vector.new_builder
+        r_2 = Resource.bracket (Error.throw (Illegal_State_Error "foo")) (_ -> log_2.append "destructor") _->
+            log_2.append "action"
+            42
+        r_2.catch . should_equal (Illegal_State_Error "foo")
+        log_2.to_vector . should_equal []
+
+    Test.specify "should forward panics thrown in initializer and destructor" <|
+        r_1 = Panic.recover Any <| Resource.bracket (Panic.throw "init") (_-> Panic.throw "destruct") (_-> Panic.throw "action")
+        r_1.catch . should_equal "init"
+
+        r_2 = Panic.recover Any <| Resource.bracket 42 (_-> Panic.throw "destruct") (_-> Panic.throw "action")
+        r_2.catch . should_equal "destruct"
+
+        r_3 = Panic.recover Any <| Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
+        r_3.catch . should_equal "action"
+
+main = Test.Suite.run_main here.spec

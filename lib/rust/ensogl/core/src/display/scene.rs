@@ -960,6 +960,7 @@ impl SceneData {
     }
 
     pub fn set_context(&self, context: Option<&Context>) {
+        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
