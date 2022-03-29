@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Database.Data.Internal.Vector_Builder
+import Standard.Table.Internal.Vector_Builder
 
 polyglot java import java.sql.Types
 

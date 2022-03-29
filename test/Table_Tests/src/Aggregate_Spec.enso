@@ -42,6 +42,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
     Test.group prefix+"Table.aggregate should summarize whole table" pending=pending <|
         Test.specify "should be able to count" <|
             grouped = materialize <| table.aggregate [Count Nothing]
+            ## TODO check row count of not materialized one
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 1
             grouped.columns.at 0 . name . should_equal "Count"

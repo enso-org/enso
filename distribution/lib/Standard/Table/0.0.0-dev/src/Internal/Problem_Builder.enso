@@ -1,0 +1,53 @@
+from Standard.Base import all
+
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Table.Internal.Vector_Builder
+
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+
+type Problem_Builder
+    type Problem_Builder problem_behavior oob_indices  duplicate_column_selectors input_indices_already_matched missing_input_columns
+
+    report_oob_indices indices =
+        here.append_to_ref this.oob_indices indices
+
+    report_duplicate_column_selector selectors =
+        here.append_to_ref this.duplicate_column_selectors selectors
+
+    report_input_indices_already_matched indices =
+        here.append_to_ref this.input_indices_already_matched indices
+
+    report_missing_input_columns columns =
+        here.append_to_ref this.missing_input_columns columns
+
+    build_problemset : Vector
+    build_problemset =
+        problems = Vector.new_builder
+        if Ref.get this.oob_indices . not_empty then
+            problems.append (Column_Indexes_Out_Of_Range (Ref.get this.oob_indices).build)
+        if Ref.get this.duplicate_column_selectors . not_empty then
+            problems.append (Duplicate_Column_Selectors (Ref.get this.duplicate_column_selectors).build)
+        if Ref.get this.input_indices_already_matched . not_empty then
+            problems.append (Input_Indices_Already_Matched (Ref.get this.input_indices_already_matched).build)
+        if Ref.get this.missing_input_columns . not_empty then
+            problems.append (Missing_Input_Columns (Ref.get this.missing_input_columns).build)
+        problems.to_vector
+
+    attach_to_result result =
+        this.problem_behavior.attach_problems_after result this.build_problemset
+
+    attach_to_computation ~computation =
+        this.problem_behavior.attach_problems_before this.build_problemset computation
+
+## PRIVATE
+   Creates a new helper object for aggregating problems to report.
+new : Problem_Behavior -> Problem_Builder
+new problem_behavior =
+    Problem_Builder problem_behavior (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty)
+
+## PRIVATE
+   Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
+append_to_ref : Ref Vector_Builder -> Vector -> Nothing
+append_to_ref ref vector =
+    appended = Ref.get ref ++ vector
+    Ref.put ref appended
