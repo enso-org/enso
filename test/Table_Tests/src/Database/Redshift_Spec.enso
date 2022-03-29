@@ -13,7 +13,7 @@ import project.Aggregate_Spec
 redshift_specific_spec connection pending =
     Test.group "[Redshift] Info" pending=pending <|
         tinfo = Name_Generator.fresh_name "Tinfo"
-        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.access_table tinfo
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
