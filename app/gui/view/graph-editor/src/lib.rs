@@ -3794,7 +3794,7 @@ mod graph_editor_tests {
         fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
             add_node(self);
             let (node_id, ..) = self.node_added.value();
-            let node = self.model.nodes.all.get_cloned_ref(&node_id).expect("Node was not added.");
+            let node = self.nodes().get_cloned_ref(&node_id).expect("Node was not added.");
             node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
             (node_id, node)
         }
