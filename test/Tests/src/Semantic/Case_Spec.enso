@@ -1,5 +1,5 @@
 from Standard.Base import all
-
+import Standard.Builtins
 import Standard.Test
 
 polyglot java import java.util.Random
@@ -68,10 +68,10 @@ spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Polyglot type" <|
         random_gen = Random.new
         case random_gen of
-            Polyglot -> Nothing
+            Builtins.Polyglot -> Nothing
             _ -> Test.fail "Expected a polyglot object to match."
-        case Polyglot of
-            Polyglot -> Nothing
+        case Builtins.Polyglot of
+            Builtins.Polyglot -> Nothing
             _ -> Test.fail "Expected the Polyglot constructor to match."
     Test.specify "should be able to match on the Any type" <|
         value_1 = 1.23143
@@ -82,7 +82,7 @@ spec = Test.group "Pattern Matches" <|
         case value_2 of
             Any -> Nothing
             _ -> Test.fail "Expected any value to match Any."
-        case Polyglot of
+        case Builtins.Polyglot of
             Any -> Nothing
             _ -> Test.fail "Expect any constructor to match Any."
         case Any of

@@ -89,7 +89,7 @@ new_builder = Builder.new
      If this didn't happen then it would be possible for the underlying array to
      be mutated under the hood, and sneak mutability into our immutable data.
 from_array : Any -> Vector.Vector Any
-from_array arr = here.new (Polyglot.get_array_size arr) (arr.at _)
+from_array arr = here.new (Base.Polyglot.get_array_size arr) (arr.at _)
 
 ## The basic, immutable, vector type.
 type Vector
@@ -121,7 +121,7 @@ type Vector
 
              [1, 2, 3, 4].length
     length : Number
-    length = Polyglot.get_array_size this.to_array
+    length = Base.Polyglot.get_array_size this.to_array
 
     ## Gets an element from the vector at a specified index (0-based).
 

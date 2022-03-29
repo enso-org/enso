@@ -867,7 +867,7 @@ type File_Error
 list_immediate_children : File -> Vector.Vector File
 list_immediate_children directory =
     arr = directory.prim_file.list
-    Vector.new (Polyglot.get_array_size arr) ix->
+    Vector.new (Base.Polyglot.get_array_size arr) ix->
         File (arr.at ix)
 
 ## PRIVATE

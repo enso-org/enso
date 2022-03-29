@@ -243,9 +243,9 @@ class IrToTruffle(
         )
 
         val function = methodDef.body match {
-          case fn: IR.Function if isBuiltin(fn.body) =>
-            val builtinFunction = context.getBuiltins.getBuiltinFunction(cons.getName(), methodDef.methodName.name, language);
-            builtinFunction.orElseThrow()
+          case fn: IR.Function if isBuiltinMethod(fn.body) =>
+            val builtinFunction = context.getBuiltins.getBuiltinFunction(cons.getName(), methodDef.methodName.name, language)
+            builtinFunction.orElseThrow(() => new CompilerError(s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"))
           case fn: IR.Function =>
             val (body, arguments) =
               expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
@@ -331,19 +331,20 @@ class IrToTruffle(
     })
   }
 
-  private def isBuiltin(expression: IR.Expression): Boolean = {
-    expression
-      .getMetadata(ExpressionAnnotations)
-      .exists(anns =>
-        anns.annotations.exists(a =>
-          a.name == ExpressionAnnotations.builtinMethodName
-        )
-      )
-  }
-
   // ==========================================================================
   // === Utility Functions ====================================================
   // ==========================================================================
+
+  /** Checks if the expression has a @Builtin_Method annotation
+    *
+    * @param expression the expression to check
+    * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
+    */
+  private def isBuiltinMethod(expression: IR.Expression): Boolean = {
+    expression
+      .getMetadata(ExpressionAnnotations)
+      .exists(_.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName))
+  }
 
   /** Creates a source section from a given location in the code.
    *

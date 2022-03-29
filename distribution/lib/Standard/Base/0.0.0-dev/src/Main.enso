@@ -20,6 +20,7 @@ import project.Error.Extensions
 import project.Math
 import project.Meta
 import project.Meta.Enso_Project
+import project.Polyglot
 import project.Polyglot.Java
 import project.Runtime.Extensions
 import project.System.Environment
@@ -39,6 +40,7 @@ export project.Data.Ordering.Sort_Order
 export project.Data.Vector
 export project.Math
 export project.Meta
+export project.Polyglot
 export project.System.Environment
 export project.System.File
 export project.Data.Text.Regex.Mode as Regex_Mode
@@ -66,5 +68,5 @@ from project.Meta.Enso_Project export all
 from project.Polyglot.Java export all
 from project.Runtime.Extensions export all
 
-from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering
+from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering, Polyglot
 

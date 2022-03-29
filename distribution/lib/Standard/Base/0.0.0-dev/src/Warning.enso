@@ -39,10 +39,10 @@ type Warning
     reassignments : Vector.Vector Stack_Trace_Element
     reassignments =
         Vector.Vector (Prim_Warning.get_reassignments this.prim_warning) . map r->
-            loc = case Polyglot.has_source_location r of
+            loc = case Base.Polyglot.has_source_location r of
                 False -> Nothing
-                True -> Source_Location (Polyglot.get_source_location r)
-            Stack_Trace_Element (Polyglot.get_executable_name r) loc
+                True -> Source_Location (Base.Polyglot.get_source_location r)
+            Stack_Trace_Element (Base.Polyglot.get_executable_name r) loc
 
 ## UNSTABLE
 
