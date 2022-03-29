@@ -51,7 +51,7 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
         here.prepare_visualization ungrouped.to_table max_rows
     Database_Table.Aggregate_Table _ _ _ _ ->
         here.prepare_visualization x.ungrouped max_rows
-    Database_Column.Aggregate_Column _ _ _ _ _ ->
+    Database_Column.Aggregate_Column_Builder _ _ _ _ _ ->
         here.prepare_visualization x.ungrouped.to_table max_rows
 
     # TODO [RW] Should we truncate Vectors?

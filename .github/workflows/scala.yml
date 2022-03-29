@@ -278,7 +278,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Image_Tests
@@ -304,7 +303,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Image_Tests
@@ -315,7 +313,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Image_Tests
@@ -341,7 +338,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
