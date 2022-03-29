@@ -1,11 +1,16 @@
 package org.enso.table.data.table.aggregate;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.index.MultiValueKey;
 import org.enso.table.data.table.Column;
 
 import com.ibm.icu.text.BreakIterator;
+import org.enso.table.data.table.problems.InvalidAggregation;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -13,30 +18,6 @@ public class AggregateColumnDefinition {
   @FunctionalInterface
   private interface Aggregator {
     Object aggregate(List<Integer> rows);
-  }
-
-  public static class InvalidAggregation {
-    private final String columnName;
-    private final int row;
-    private final String message;
-
-    public InvalidAggregation(String columnName, int row, String message) {
-      this.columnName = columnName;
-      this.row = row;
-      this.message = message;
-    }
-
-    public String getColumnName() {
-      return columnName;
-    }
-
-    public int getRow() {
-      return row;
-    }
-
-    public String getMessage() {
-      return message;
-    }
   }
 
   private final String name;
@@ -109,6 +90,19 @@ public class AggregateColumnDefinition {
     return null;
   }
 
+  private static String ToQuotedString(Object value, final String quote, final String join) {
+    if (value == null) {
+      return "";
+    }
+
+    String textValue = value.toString();
+    if (!quote.equals("") && (textValue.equals("") || textValue.contains(join))) {
+      return quote + textValue.replace(quote, quote + quote) + quote;
+    }
+
+    return textValue;
+  }
+
   private static int Compare(Object current, Object value) {
     if (current instanceof String && value instanceof String) {
       return ((String)value).compareTo((String)current);
@@ -178,6 +172,23 @@ public class AggregateColumnDefinition {
             count += ((value == null || ((String)value).length() == 0) == isEmpty ? 1 : 0);
           }
           return count;
+        });
+  }
+
+  public static AggregateColumnDefinition CountDistinct(String name, Column[] columns, boolean ignoreEmpty) {
+    Storage[] storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.LONG,
+        rows -> {
+          Set<MultiValueKey> set = new HashSet<>();
+          for (int row: rows) {
+            MultiValueKey key = new MultiValueKey(Arrays.stream(storage).map(s->s.getItemBoxed(row)).toArray());
+            if (!ignoreEmpty || !key.areAllNull()) {
+              set.add(key);
+            }
+          }
+          return set.size();
         });
   }
 
@@ -375,6 +386,42 @@ public class AggregateColumnDefinition {
             }
           }
           return current;
+        });
+  }
+
+  public static AggregateColumnDefinition Concatenate(String name, Column column, String join, final String prefix, final String suffix, String quote){
+    final String finalJoin = join == null ? "" : join;
+    final String finalQuote = quote == null ? "" : quote;
+
+    Storage storage = column.getStorage();
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.OBJECT,
+        rows -> {
+          StringBuilder current = null;
+          for (int row: rows) {
+            Object value = storage.getItemBoxed(row);
+            if (value == null || value instanceof String) {
+              String textValue = ToQuotedString(value, finalQuote, finalJoin);
+              if (current == null) {
+                current = new StringBuilder();
+                current.append(textValue);
+              } else {
+                current.append(finalJoin);
+                current.append(textValue);
+              }
+            } else {
+              return new InvalidAggregation(name, row, "Non-Text value - cannot Concatenate");
+            }
+          }
+
+          if (current == null) {
+            return null;
+          }
+
+          if (prefix != null) { current.insert(0, prefix); }
+          current.append(suffix);
+          return current.toString();
         });
   }
 }

@@ -98,14 +98,6 @@ new column =
                 if v.is_nothing then map else (map.insert v (1 + (map.get_or_else v 0)))
             finalizer value = (value.fold_with_key (Pair 0 Nothing) p->k->v->(if v>(p.first) then (Pair v k) else p) . second)
             create_aggregator initial=Map.empty accumulator=accumulator finalizer=finalizer
-        Standard_Deviation c _ p ->
-            accumulator = create_closure c col->a->i->
-                v = col.at i
-                if v.is_nothing then a else [a.first + 1, a.second + v, (a.at 2) + v*v]
-            finalizer value = if value.first == 0 then Nothing else
-                f = if p then 1 else (value.first / (value.first - 1)).sqrt
-                ((value.at 2)/value.first - (value.second/value.first)^2).sqrt * f
-            create_aggregator initial=[0, 0, 0] accumulator=accumulator finalizer=finalizer
         Concatenate c _ join prefix suffix q ->
             accumulator = create_closure c col->text->i->
                 v = col.at i
@@ -118,40 +110,6 @@ new column =
                 if text.is_nothing then val else (text + join + val)
             finalizer value = if value.is_nothing then value else (prefix + value + suffix)
             create_aggregator accumulator=accumulator finalizer=finalizer
-        First c _ ignore_nothing _ ->
-            accumulator = case ignore_nothing of
-                False -> create_closure c col->current->i->(if current.second then current else [(col.at i), True])
-                True -> create_closure c col->current->i->if current.second then current else
-                    v = col.at i
-                    if v.is_nothing then current else [v, True]
-            create_aggregator initial=[Nothing, False] accumulator=accumulator finalizer=(p->p.first)
-        Last c _ ignore_nothing _ ->
-            accumulator = case ignore_nothing of
-                False -> create_closure c col->_->i->(col.at i)
-                True -> create_closure c col->current->i->
-                    v = (col.at i)
-                    if v.is_nothing then current else v
-            create_aggregator accumulator=accumulator
-        Maximum c _ ->
-            accumulator = create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else m.max v
-            create_aggregator accumulator=accumulator
-        Minimum c _ ->
-            accumulator = create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else m.min v
-            create_aggregator accumulator=accumulator
-        Shortest c _ ->
-            accumulator = create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else if m.length <= v.length then m else v
-            create_aggregator accumulator=accumulator
-        Longest c _ ->
-            accumulator = create_closure c col->m->i->
-                v = col.at i
-                if v.is_nothing then m else if m.is_nothing then v else if m.length >= v.length then m else v
-            create_aggregator accumulator=accumulator
 
 java_aggregator : Table->Aggregate_Column->AggregateColumnDefinition
 java_aggregator table name column =
@@ -159,6 +117,11 @@ java_aggregator table name column =
     case column of
         Group_By c _ -> AggregateColumnDefinition.GroupBy name (resolve c).java_column
         Count _ -> AggregateColumnDefinition.Count name
+        Count_Distinct columns _ ignore_nothing ->
+            resolved = case columns of
+                Vector.Vector _ -> columns.map c->(resolve c).java_column
+                _ -> [resolve columns . java_column]
+            AggregateColumnDefinition.CountDistinct name resolved.to_array ignore_nothing
         Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column False
         Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column True
         Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column False
@@ -172,5 +135,6 @@ java_aggregator table name column =
         Minimum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column -1
         Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column -1
         Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column 1
+        Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name (resolve c).java_column join prefix suffix quote
         _ -> Error.throw "Not done yet..."
 
