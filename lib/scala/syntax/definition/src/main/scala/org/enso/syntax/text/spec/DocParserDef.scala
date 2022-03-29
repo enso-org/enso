@@ -488,6 +488,7 @@ case class DocParserDef() extends Parser[Doc] {
         val diff = indent - list.current
 
         if (!list.isInList) {
+          section.checkForUnclosedFormattersOnEOS()
           onPushingNewLine()
 
           stack +:= indent
