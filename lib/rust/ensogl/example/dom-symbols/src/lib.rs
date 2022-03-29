@@ -32,10 +32,10 @@ use nalgebra::Vector3;
 
 
 
-#[entry_point]
+#[wasm_bindgen]
 #[allow(dead_code)]
 #[allow(clippy::many_single_char_names)]
-pub fn main() {
+pub fn entry_point_dom_symbols() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera();

@@ -31,9 +31,9 @@ use nalgebra::Vector3;
 
 
 
-#[entry_point]
+#[wasm_bindgen]
 #[allow(dead_code)]
-pub fn main() {
+pub fn entry_point_sprite_system_benchmark() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();

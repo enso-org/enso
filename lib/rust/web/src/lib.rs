@@ -359,14 +359,6 @@ ops! { ReflectOps for Reflect
         /// [`get_nested`] to learn more.
         fn get_nested_object(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
 
-        /// Get the nested value of the provided object. In case the object does not exist, they
-        /// will be created. See docs of [`get_nested`] to learn more.
-         fn get_nested_or_create(target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue>;
-
-         /// Get the nested value of the provided object and cast it to [`Object`]. In case the
-         /// object does not exist, they will be created. See docs of [`get_nested`] to learn more.
-         fn get_nested_object_or_create(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue>;
-
         /// Get the nested value of the provided object and cast it to [`String`]. See docs of
         /// [`get_nested`] to learn more.
         fn get_nested_object_printed_as_string(target: &JsValue, keys: &[&str])
@@ -388,35 +380,6 @@ ops! { ReflectOps for Reflect
             let tgt = Self::get_nested(target, keys)?;
             tgt.dyn_into()
         }
-
-        fn get_nested_or_create
-         (target: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
-             let mut tgt = target.clone();
-             for key in keys {
-                 let obj = tgt.dyn_into::<Object>()?;
-                 let key = (*key).into();
-                 match Reflect::get(&obj, &key) {
-                     Ok(v) => {
-                         if v.is_undefined() || v.is_null() {
-                             tgt = Object::new().into();
-                             Reflect::set(&obj, &key, &tgt)?;
-                         } else {
-                             tgt = v;
-                         }
-                     }
-                     Err(_) => {
-                         tgt = Object::new().into();
-                         Reflect::set(&obj, &key, &tgt)?;
-                     }
-                 }
-             }
-             Ok(tgt)
-         }
-
-         fn get_nested_object_or_create(target: &JsValue, keys: &[&str]) -> Result<Object, JsValue> {
-             let tgt = Self::get_nested_or_create(target, keys)?;
-             tgt.dyn_into()
-         }
 
         fn get_nested_object_printed_as_string
         (target: &JsValue, keys: &[&str]) -> Result<String, JsValue> {

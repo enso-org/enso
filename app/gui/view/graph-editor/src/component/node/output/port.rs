@@ -403,7 +403,7 @@ impl PortShapeView {
         set_padding_right (this,t:f32)   { this.padding_right.set(t) }
     }
 
-    fn events(&self) -> &component::PointerTarget {
+    fn events(&self) -> &component::ShapeViewEvents {
         match self {
             Self::Single(t) => &t.events,
             Self::Multi(t) => &t.events,
@@ -525,7 +525,7 @@ impl Model {
             // === Mouse Event Handling ===
 
             frp.source.on_hover <+ bool(&events.mouse_out,&events.mouse_over);
-            frp.source.on_press <+ events.mouse_down.constant(());
+            frp.source.on_press <+ events.mouse_down;
 
 
             // === Opacity ===

@@ -2,11 +2,9 @@
 #![allow(missing_docs)]
 
 use enso_prelude::*;
-use enso_web::traits::*;
 
 use crate::system::Context;
 
-use enso_web as web;
 use js_sys::Float32Array;
 use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
@@ -49,44 +47,12 @@ pub type Program = WebGlProgram;
 // === Error ===
 // =============
 
-#[derive(Debug, Fail)]
-pub enum SingleTargetError {
-    #[fail(display = "Unable to create {}.", target)]
-    Create { target: ErrorTarget },
-    #[fail(display = "Unable to compile {}.\n{}\n\n{}", target, message, preview_code)]
-    Compile { target: ErrorTarget, message: String, preview_code: String },
-}
-
 #[derive(Debug, Fail, From)]
 pub enum Error {
-    Create {
-        target: ErrorTarget,
-    },
-
-    Compile {
-        js_path:  String,
-        vertex:   Option<SingleTargetError>,
-        fragment: Option<SingleTargetError>,
-    },
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Create { target } => write!(f, "Unable to create {}", target),
-            Self::Compile { js_path, vertex, fragment } => {
-                let vtx_msg = vertex.as_ref().map(|t| format!("\n\n{}", t)).unwrap_or_default();
-                let frag_msg = fragment.as_ref().map(|t| format!("\n\n{}", t)).unwrap_or_default();
-                let run_msg = |n| {
-                    format!("Run `console.log({}.{})` to inspect the {} shader.", js_path, n, n)
-                };
-                let vtx_run_msg = run_msg("vertex");
-                let frag_run_msg = run_msg("fragment");
-                let err_msg = "Unable to create shader.";
-                write!(f, "{}\n{}\n{}{}{}", err_msg, vtx_run_msg, frag_run_msg, vtx_msg, frag_msg)
-            }
-        }
-    }
+    #[fail(display = "Unable to create {}.", target)]
+    Create { target: ErrorTarget },
+    #[fail(display = "Unable to compile {}.\n{}\n\n{}", target, message, code)]
+    Compile { target: ErrorTarget, message: String, code: String },
 }
 
 #[derive(Copy, Clone, Debug, Fail)]
@@ -154,17 +120,17 @@ fn unwrap_error(opt_err: Option<String>) -> String {
 // === Compile / Link ===
 // ======================
 
-pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<Shader, Error> {
     compile_shader(ctx, Context::VERTEX_SHADER, src)
 }
 
-pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<Shader, Error> {
     compile_shader(ctx, Context::FRAGMENT_SHADER, src)
 }
 
-pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, Error> {
     let target = ErrorTarget::Shader;
-    let shader = ctx.create_shader(tp).ok_or(SingleTargetError::Create { target })?;
+    let shader = ctx.create_shader(tp).ok_or(Error::Create { target })?;
     ctx.shader_source(&shader, src);
     ctx.compile_shader(&shader);
     match shader.check(ctx) {
@@ -180,7 +146,7 @@ pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, Singl
             let lines_with_num = lines_with_num.collect::<Vec<String>>();
             let code_with_num = lines_with_num.join("\n");
             let error_loc_pfx = "ERROR: 0:";
-            let preview_code = if let Some(msg) = message.strip_prefix(error_loc_pfx) {
+            let out = if let Some(msg) = message.strip_prefix(error_loc_pfx) {
                 let line_num: String = msg.chars().take_while(|c| c.is_digit(10)).collect();
                 let line_num = line_num.parse::<usize>().unwrap() - 1;
                 let preview_radius = 5;
@@ -190,7 +156,7 @@ pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, Singl
             } else {
                 code_with_num
             };
-            Err(SingleTargetError::Compile { target, message, preview_code })
+            Err(Error::Compile { target, message, code: out })
         }
     }
 }
@@ -231,29 +197,9 @@ pub fn compile_program(
     vert_src: &str,
     frag_src: &str,
 ) -> Result<Program, ContextLossOrError> {
-    let vert_shader = compile_vertex_shader(ctx, vert_src);
-    let frag_shader = compile_fragment_shader(ctx, frag_src);
-    match (vert_shader, frag_shader) {
-        (Ok(vert_shader), Ok(frag_shader)) => link_program(ctx, &vert_shader, &frag_shader),
-        (vert_shader, frag_shader) => {
-            let vertex = vert_shader.err();
-            let fragment = frag_shader.err();
-
-            // FIXME: this should be taken from config and refactored to a function
-            let path = &["enso", "debug", "shader"];
-            let shader_dbg = web::Reflect::get_nested_object_or_create(&web::window, path);
-            let shader_dbg = shader_dbg.unwrap();
-            let len = web::Object::keys(&shader_dbg).length();
-            let debug_var_name = format!("shader_{}", len);
-            let shader_tgt_dbg = web::Object::new();
-            web::Reflect::set(&shader_dbg, &(&debug_var_name).into(), &shader_tgt_dbg).ok();
-            web::Reflect::set(&shader_tgt_dbg, &"vertex".into(), &vert_src.into()).ok();
-            web::Reflect::set(&shader_tgt_dbg, &"fragment".into(), &frag_src.into()).ok();
-
-            let js_path = format!("window.{}.{}", path.join("."), debug_var_name);
-            Err(ContextLossOrError::Error(Error::Compile { js_path, vertex, fragment }))
-        }
-    }
+    let vert_shader = compile_vertex_shader(ctx, vert_src).map_err(ContextLossOrError::Error)?;
+    let frag_shader = compile_fragment_shader(ctx, frag_src).map_err(ContextLossOrError::Error)?;
+    link_program(ctx, &vert_shader, &frag_shader)
 }
 
 

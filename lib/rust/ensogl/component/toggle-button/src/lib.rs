@@ -230,7 +230,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === State ===
 
-            toggle <- any_(frp.toggle,icon.mouse_down);
+            toggle <- any(frp.toggle,icon.mouse_down);
             frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 

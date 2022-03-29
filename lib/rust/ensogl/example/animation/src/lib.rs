@@ -35,9 +35,9 @@ use logger::TraceLogger as Logger;
 // ===================
 
 /// An entry point.
-#[entry_point]
+#[wasm_bindgen]
 #[allow(dead_code)]
-pub fn main() {
+pub fn entry_point_animation() {
     run_once_initialized(|| {
         let app = Application::new("root");
         let logger: Logger = Logger::new("AnimationTest");

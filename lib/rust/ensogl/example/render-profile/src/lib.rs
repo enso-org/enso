@@ -31,9 +31,9 @@ use ensogl_flame_graph as flame_graph;
 // ===================
 
 /// Render a graph of a profile file.
-#[entry_point]
+#[wasm_bindgen]
 #[allow(dead_code)]
-pub async fn main() {
+pub async fn entry_point_render_profile() {
     use ensogl_core::display::object::ObjectOps;
     let app = application::Application::new("root");
     let world = &app.display;
