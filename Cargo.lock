@@ -1257,6 +1257,7 @@ name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
  "ensogl-button",
+ "ensogl-component-group-view",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -1269,6 +1270,17 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
+]
+
+[[package]]
+name = "ensogl-component-group-view"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-shadow",
+ "ensogl-text",
 ]
 
 [[package]]
