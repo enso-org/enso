@@ -1,6 +1,6 @@
 package org.enso.table.data.table.problems;
 
-public class InvalidAggregation {
+public class InvalidAggregation implements Problem {
   private final String columnName;
   private final int row;
   private final String message;
@@ -19,6 +19,7 @@ public class InvalidAggregation {
     return row;
   }
 
+  @Override
   public String getMessage() {
     return message;
   }

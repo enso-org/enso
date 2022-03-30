@@ -12,6 +12,7 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */

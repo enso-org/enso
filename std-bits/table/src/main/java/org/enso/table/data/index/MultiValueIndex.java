@@ -6,6 +6,8 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.aggregate.AggregateColumnDefinition;
+import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.data.table.problems.Problem;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -37,6 +39,7 @@ public class MultiValueIndex {
     final int size = locs.size();
 
     Builder[] storage = Arrays.stream(columns).map(c -> getBuilderForType(c.getType(), size)).toArray(Builder[]::new);
+    AggregatedProblems[] problems = IntStream.range(0, length).mapToObj(i->new AggregatedProblems()).toArray(AggregatedProblems[]::new);
 
     if (size == 0 & keyColumns.length == 0) {
       // No grouping and no data
@@ -47,7 +50,13 @@ public class MultiValueIndex {
     } else {
       for (List<Integer> group_locs : this.locs.values()) {
         for (int i = 0; i < length; i++) {
-          storage[i].appendNoGrow(columns[i].aggregate(group_locs));
+          Object value = columns[i].aggregate(group_locs);
+          if (value instanceof Problem) {
+            problems[i].add((Problem)value);
+            storage[i].appendNoGrow(null);
+          } else {
+            storage[i].appendNoGrow(value);
+          }
         }
       }
     }
@@ -55,7 +64,8 @@ public class MultiValueIndex {
     return new Table(
         IntStream.range(0, length)
             .mapToObj(i -> new Column(columns[i].getName(), storage[i].seal()))
-            .toArray(Column[]::new));
+            .toArray(Column[]::new),
+        AggregatedProblems.merge(problems));
   }
 
   private static Builder getBuilderForType(int type, int size) {
