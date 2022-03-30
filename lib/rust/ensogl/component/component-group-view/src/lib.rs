@@ -70,6 +70,7 @@ impl component::Frp<Model> for Frp {
         // let background = &model.background.events;
         frp::extend! { network
             model.entries.show_background_shadow(false);
+            model.entries.set_background_corners_radius(0.0);
 
             model.entries.set_entries <+ api.input.set_entries;
             model.entries.resize <+ api.input.resize;

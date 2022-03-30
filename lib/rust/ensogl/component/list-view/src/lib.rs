@@ -98,13 +98,13 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style,show_shadow:f32) {
+        (style:Style,show_shadow:f32,corners_radius_px:f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
             let height        = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
             let color         = style.get_color(theme::widget::list_view::background);
-            let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
+            let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
             let shape         = rect.fill(color);
 
             let shadow  = shadow::from_shape_with_alpha(rect.into(),&show_shadow,style);
@@ -157,6 +157,10 @@ impl<E: Entry> Model<E> {
     pub fn show_background_shadow(&self, value: bool) {
         let alpha = if value { 1.0 } else { 0.0 };
         self.background.show_shadow.set(alpha);
+    }
+
+    pub fn set_background_corners_radius(&self, px: f32) {
+        self.background.corners_radius_px.set(px);
     }
 
     fn padding(&self) -> f32 {
@@ -261,6 +265,7 @@ ensogl_core::define_endpoints! {
         select_entry(entry::Id),
         chose_entry(entry::Id),
         show_background_shadow(bool),
+        set_background_corners_radius(f32),
     }
 
     Output {
@@ -319,12 +324,14 @@ where E::Model: Default
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
         model.show_background_shadow(true);
+        model.set_background_corners_radius(background::CORNER_RADIUS_PX);
 
         frp::extend! { network
 
-            // === Background Visibility ===
+            // === Background ===
 
             eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
+            eval frp.set_background_corners_radius ((px) model.set_background_corners_radius(*px));
 
 
             // === Mouse Position ===
