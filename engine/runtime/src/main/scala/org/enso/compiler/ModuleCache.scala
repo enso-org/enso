@@ -1,5 +1,10 @@
 package org.enso.compiler
 
+import java.io._
+import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.file._
+import java.util.logging.Level
+
 import buildinfo.Info
 import com.oracle.truffle.api.source.Source
 import com.oracle.truffle.api.{TruffleFile, TruffleLogger}
@@ -14,12 +19,8 @@ import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.logger.masking.MaskedPath
 
-import java.io._
-import java.nio.charset.{Charset, StandardCharsets}
-import java.nio.file._
-import java.util.logging.Level
 import scala.jdk.OptionConverters._
-import scala.util.Using
+import scala.util.{Failure, Success, Using}
 
 // TODO Once #1971 is fixed, the logging statements should go back to using our
 //  normal templating syntax.
@@ -136,10 +137,11 @@ class ModuleCache(private val module: Module) {
   )(implicit logger: TruffleLogger): Boolean = {
     if (ensureRoot(cacheRoot)) {
       val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
-      val stream: ObjectOutputStream        = new ObjectOutputStream(byteStream)
-      stream.writeObject(module.module)
-      val bytesToWrite = byteStream.toByteArray
-      stream.close()
+      val bytesToWrite =
+        Using.resource(new ObjectOutputStream(byteStream)) { stream =>
+          stream.writeObject(module.module)
+          byteStream.toByteArray
+        }
 
       val blobDigest       = computeDigest(bytesToWrite)
       val sourceDigest     = computeSourceDigest(module.source)
@@ -224,14 +226,13 @@ class ModuleCache(private val module: Module) {
           Module.CompilationStage.valueOf(meta.compilationStage)
 
         if (sourceDigestValid && blobDigestValid) {
-          val bais: ByteArrayInputStream = new ByteArrayInputStream(blobBytes)
-          val ois: ObjectInputStream     = new ObjectInputStream(bais)
-
-          val readObject = ois.readObject()
-          ois.close()
+          val readObject =
+            Using(new ObjectInputStream(new ByteArrayInputStream(blobBytes))) {
+              _.readObject()
+            }
 
           readObject match {
-            case mod: IR.Module =>
+            case Success(mod: IR.Module) =>
               Some(
                 ModuleCache.CachedModule(
                   mod,
@@ -239,10 +240,17 @@ class ModuleCache(private val module: Module) {
                   module.getSource
                 )
               )
-            case _ =>
+            case Success(_) =>
               logger.log(
                 ModuleCache.logLevel,
                 s"Module `${module.getName.toString}` was corrupt on disk."
+              )
+              None
+            case Failure(ex) =>
+              logger.log(
+                ModuleCache.logLevel,
+                s"Module `${module.getName.toString}` failed to load " +
+                s"(caused by: ${ex.getMessage})."
               )
               None
           }

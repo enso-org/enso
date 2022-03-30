@@ -119,12 +119,27 @@ impl {
     pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
         self.mouse_target_map.get(&target).cloned()
     }
-
-    pub fn with_mouse_target<T>
-    (&self, target:PointerTargetId, f: impl FnOnce(&PointerTarget) -> T) -> Option<T> {
-        self.mouse_target_map.get(&target).as_ref().map(|t| f(t))
-    }
 }}
+
+impl ShapeRegistry {
+    /// Runs the provided function on the [`PointerTarget`] associated with the provided
+    /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
+    /// evaluation of the provided function this registry might be changed, which would result in
+    /// double borrow mut otherwise.
+    pub fn with_mouse_target<T>(
+        &self,
+        target: PointerTargetId,
+        f: impl FnOnce(&PointerTarget) -> T,
+    ) -> Option<T> {
+        match self.get_mouse_target(target) {
+            Some(target) => Some(f(&target)),
+            None => {
+                WARNING!("Internal error. Symbol ID {target:?} is not registered.");
+                None
+            }
+        }
+    }
+}
 
 impl ShapeRegistryData {
     fn init(mut self, background: &PointerTarget) -> Self {
@@ -963,8 +978,8 @@ impl SceneData {
         let current_target = self.mouse.target.get();
         if new_target != current_target {
             self.mouse.target.set(new_target);
-            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out.emit(()));
-            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over.emit(()));
+            self.shapes.with_mouse_target(current_target, |t| t.mouse_out.emit(()));
+            self.shapes.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
             self.mouse.re_emit_position_event(); // See docs to learn why.
         }
     }
@@ -1128,5 +1143,30 @@ impl<'t> DomPath for &'t String {
 impl<'t> DomPath for &'t str {
     fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
+    }
+}
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Extended API for tests.
+pub mod test_utils {
+    use super::*;
+
+    pub trait MouseExt {
+        /// Emulate click on background for testing purposes.
+        fn click_on_background(&self);
+    }
+
+    impl MouseExt for Mouse {
+        fn click_on_background(&self) {
+            self.target.set(PointerTargetId::Background);
+            let left_mouse_button = frp::io::mouse::Button::Button0;
+            self.frp.down.emit(left_mouse_button);
+            self.frp.up.emit(left_mouse_button);
+        }
     }
 }
