@@ -97,12 +97,8 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        expected_length = case selector of
-            By_Name names _ -> names.length
-            By_Index indexes -> indexes.length
-            By_Column columns -> columns.length
         resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
-        if resolved.length < expected_length then Error.throw Internal_Missing_Column_Error else resolved
+        if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_selector_or_nothing selector = case selector of
         Nothing -> Nothing
