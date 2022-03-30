@@ -11,7 +11,7 @@
 //! let a = cell.setter();
 //! let b = cell.setter(); // This operation invalidates `a`.
 //! b.set(2).unwrap();
-//! assert_eq!(a.set(3), Err(Error::Stale));
+//! assert_eq!(a.set(3), Err(Error::StaleUpdate));
 //! assert_eq!(cell.get(), 2)
 //! ```
 
@@ -36,38 +36,39 @@ use crate::prelude::*;
 /// Then a [`Fresh`] will not allow *Process A* to overwrite the fresher value produced by
 /// *Process B*.
 #[derive(Debug, Default)]
-pub struct Fresh<C, D> {
+pub struct Fresh<C> {
     cell:           C,
     data_id:        Cell<Id>,
     last_setter_id: Cell<Id>,
-    _data:          PhantomData<*const D>,
 }
 
-impl<C, D> Fresh<C, D>
-where C: CellSetter<Item = D>
-{
+impl<C: CellSetter> Fresh<C> {
     /// Create a new instance guarding a cell.
     pub fn new(cell: C) -> Self {
         let data_id = default();
         let last_setter_id = default();
-        let _data = default();
-        Fresh { cell, data_id, last_setter_id, _data }
+        Fresh { cell, data_id, last_setter_id }
     }
 
     /// Obtain a reference that can be used to set the value of the cell later. Any other existing
     /// setters become stale.
-    pub fn setter(self: &Rc<Self>) -> Setter<C, D> {
+    pub fn setter(self: &Rc<Self>) -> Setter<C> {
         let cell = self.downgrade();
         let id = self.new_setter_id();
-        let _data = default();
-        Setter { cell, id, _data }
+        Setter { cell, id }
     }
 
     /// Set the value now. Any outstanding setters will become stale.
-    pub fn set(&self, data: D) {
+    pub fn set(&self, data: C::Item) {
         let id = self.new_setter_id();
         self.cell.set(data);
         self.data_id.set(id);
+    }
+
+    /// Return whether the current value is up-to-date, or a new setter has been created since the
+    /// last time a value was set.
+    pub fn is_fresh(&self) -> bool {
+        self.data_id.get() == self.last_setter_id.get()
     }
 
     fn new_setter_id(&self) -> Id {
@@ -77,7 +78,7 @@ where C: CellSetter<Item = D>
     }
 }
 
-impl<C, D> Deref for Fresh<C, D> {
+impl<C> Deref for Fresh<C> {
     type Target = C;
     fn deref(&self) -> &Self::Target {
         &self.cell
@@ -103,21 +104,18 @@ type Id = u64;
 /// Note that it is not an error to drop this without using it; creating a [`Setter`] and dropping
 /// it unused has the effect of invalidating any older setters, without setting any new value.
 #[derive(Debug)]
-pub struct Setter<C, D> {
-    cell:  Weak<Fresh<C, D>>,
+pub struct Setter<C> {
+    cell:  Weak<Fresh<C>>,
     id:    Id,
-    _data: PhantomData<*const D>,
 }
 
-impl<C, D> Setter<C, D>
-where C: CellSetter<Item = D>
-{
+impl<C: CellSetter> Setter<C> {
     /// Try to update the value of the cell.
-    pub fn set(self, data: D) -> Result<(), Error> {
+    pub fn set(self, data: C::Item) -> Result<(), Error> {
         let rc = self.cell.upgrade().ok_or(Error::Dropped)?;
         let fresh = rc.data_id.get() < self.id;
         if !fresh {
-            return Err(Error::Stale);
+            return Err(Error::StaleUpdate);
         }
         rc.cell.set(data);
         rc.data_id.set(self.id);
@@ -133,8 +131,8 @@ where C: CellSetter<Item = D>
 pub enum Error {
     /// There is no cell to update.
     Dropped,
-    /// The setter
-    Stale,
+    /// The setter was invalidated by creation of a newer setter.
+    StaleUpdate,
 }
 
 
