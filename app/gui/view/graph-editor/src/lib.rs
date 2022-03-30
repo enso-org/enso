@@ -391,6 +391,11 @@ impl<K, V, S> SharedHashMap<K, V, S> {
     where K: Clone {
         self.raw.borrow().keys().cloned().collect_vec()
     }
+
+    /// Get the vector of map's keys and values.
+    pub fn entries(&self) -> Vec<(K, V)> where K: Clone, V: CloneRef {
+        self.raw.borrow().iter().map(|(k, v)| (k.clone(), v.clone_ref())).collect_vec()
+    }
 }
 
 
