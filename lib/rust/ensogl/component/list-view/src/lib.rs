@@ -151,7 +151,7 @@ impl<E: Entry> Model<E> {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        background.show_shadow.set(1.0);
+        // background.show_shadow.set(1.0);
         Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
@@ -322,7 +322,7 @@ where E::Model: Default
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
-        model.show_background(true);
+        // model.show_background(true);
 
         frp::extend! { network
 
