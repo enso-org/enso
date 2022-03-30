@@ -23,6 +23,7 @@
 
 pub mod dependency_graph;
 pub mod diet;
+pub mod fresh_cell;
 pub mod hash_map_tree;
 pub mod index;
 pub mod opt_vec;

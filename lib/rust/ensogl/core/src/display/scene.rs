@@ -25,6 +25,7 @@ use crate::display::symbol::Symbol;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::shader;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
 use crate::system::Context;
@@ -733,6 +734,7 @@ pub struct SceneData {
     pub frp:                  Frp,
     extensions:               Extensions,
     disable_context_menu:     Rc<EventListenerHandle>,
+    pub shader_compiler:      Rc<RefCell<shader::Compiler>>,
 }
 
 impl SceneData {
@@ -783,6 +785,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
+        let shader_compiler = default();
         Self {
             display_object,
             dom,
@@ -807,6 +810,7 @@ impl SceneData {
             frp,
             extensions,
             disable_context_menu,
+            shader_compiler,
         }
         .init()
     }
@@ -856,6 +860,8 @@ impl SceneData {
         if self.dirty.symbols.check_all() {
             self.symbols.update();
             self.dirty.symbols.unset_all();
+            // Start compiling any new shaders submitted to the compiler by symbol updates.
+            self.shader_compiler.start_jobs();
         }
     }
 

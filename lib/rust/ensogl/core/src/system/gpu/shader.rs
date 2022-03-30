@@ -19,6 +19,7 @@ use web_sys::WebGlShader;
 
 #[warn(missing_docs)]
 pub mod glsl;
+pub mod compiler;
 
 
 
@@ -33,6 +34,7 @@ pub mod types {
     pub use glsl::Glsl;
 }
 pub use types::*;
+pub use compiler::Compiler;
 
 
 
