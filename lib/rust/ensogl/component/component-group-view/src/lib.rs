@@ -35,6 +35,7 @@ use ensogl_core::DEPRECATED_Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
 use ensogl_hardcoded_theme as theme;
+use ensogl_list_view::ListView;
 use ensogl_list_view::entry;
 use ensogl_shadow as shadow;
 
@@ -68,6 +69,8 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         // let background = &model.background.events;
         frp::extend! { network
+            model.entries.set_entries <+ api.input.set_entries;
+            model.entries.resize <+ api.input.resize;
             // eval api.input.set_content((t) model.set_content(t));
             // eval api.input.set_size((size) model.set_size(*size));
 
@@ -86,6 +89,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
+    entries:        ListView<entry::Label>,
 }
 
 impl component::Model for Model {
@@ -99,13 +103,15 @@ impl component::Model for Model {
         // let label = default();
         // let text = default();
 
+        let entries = ListView::new(app);
+        display_object.add_child(&entries);
         // let background = background::View::new(&logger);
         // display_object.add_child(&background);
         // scene.layers.tooltip.add_exclusive(&background);
 
         // let app = app.clone_ref();
         // Model { app, background, label, display_object, text }
-        Model { display_object }
+        Model { display_object, entries }
     }
 }
 
