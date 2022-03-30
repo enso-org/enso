@@ -51,14 +51,6 @@ class RuntimeStdlibTest
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
     val editionHome: File =
       Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
-    println(s"!!! DEBUG pwd ${Paths.get(".").toAbsolutePath}")
-    println(
-      s"!!! DEBUG pwd.realpath ${Paths.get(".").toRealPath().toAbsolutePath}"
-    )
-    println(
-      s"!!! DEBUG pwd.realfile ${Paths.get(".").toRealPath().toFile.getAbsoluteFile}"
-    )
-    println(s"!!! DEBUG editionHome=$editionHome")
     val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
