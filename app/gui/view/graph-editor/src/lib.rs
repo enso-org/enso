@@ -2623,33 +2623,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // === Selection Target Redirection ===
 
     frp::extend! { network
-        mouse_down_target <- mouse.down_primary.map(f_!(model.scene().mouse.target.get()));
-        mouse_up_target   <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
-        background_up     <= mouse_up_target.map(
-            |t| (t==&display::scene::PointerTarget::Background).as_some(())
+        let scene = model.scene();
+
+        mouse_up_target <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
+        background_up   <= mouse_up_target.map(
+            |t| (t==&display::scene::PointerTargetId::Background).as_some(())
         );
 
-        eval mouse_down_target([touch,model](target) {
-            match target {
-                display::scene::PointerTarget::Background  => touch.background.down.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_down().emit(());
-                    }
-                }
-            }
-        });
-
-        eval mouse_up_target([model](target) {
-            match target {
-                display::scene::PointerTarget::Background  => {} // touch.background.up.emit(()),
-                display::scene::PointerTarget::Symbol {..} => {
-                    if let Some(target) = model.scene().shapes.get_mouse_target(*target) {
-                        target.mouse_up().emit(());
-                    }
-                }
-            }
-        });
+        eval_ scene.background.mouse_down (touch.background.down.emit(()));
     }
 
 

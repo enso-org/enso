@@ -23,6 +23,10 @@ const COLOR: &str = include_str!("../glsl/color.glsl");
 const DEBUG: &str = include_str!("../glsl/debug.glsl");
 const SHAPE: &str = include_str!("../glsl/shape.glsl");
 const FRAGMENT_RUNNER: &str = include_str!("../glsl/fragment_runner.glsl");
+const ERROR_CODES: &[(&str, &str)] = &[(
+    "ID_ENCODING_OVERFLOW_ERROR_CODE",
+    include_str!("../glsl/error_codes/id_encoding_overflow.txt"),
+)];
 
 
 // === Definition ===
@@ -71,13 +75,19 @@ lazy_static! {
     static ref GLSL_PRELUDE: String = make_glsl_prelude();
 }
 
+fn make_error_codes() -> String {
+    let codes = ERROR_CODES.iter();
+    codes.map(|(name, code)| format!("const float {} = {}.0;", name, code.trim())).join("\n")
+}
+
 fn make_glsl_prelude() -> String {
     let redirections = overload::builtin_redirections();
     let math = overload::allow_overloading(MATH);
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
+    let err_codes = make_error_codes();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
-    [redirections, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
+    [redirections, err_codes, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
 }
