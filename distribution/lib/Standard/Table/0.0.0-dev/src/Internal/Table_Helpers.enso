@@ -43,8 +43,9 @@ select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vec
 select_columns internal_columns selector reorder on_problems =
     problem_builder = Problem_Builder.new
     result = here.select_columns_helper internal_columns selector reorder problem_builder
-    problems = problem_builder.build_problemset + if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result problems
+    if result.is_empty then
+        problem_builder.report_other_warning No_Output_Columns
+    problem_builder.attach_problems_after on_problems result
 
 ## PRIVATE
    A helper function encapsulating shared code for `remove_columns`
@@ -70,8 +71,9 @@ remove_columns internal_columns selector on_problems =
     result = internal_columns.filter column->
         should_be_removed = selected_names.get_or_else column.name False
         should_be_removed.not
-    issues = problem_builder.build_problemset + if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result issues
+    if result.is_empty then
+        problem_builder.report_other_warning No_Output_Columns
+    problem_builder.attach_problems_after on_problems result
 
 ## PRIVATE
    A helper function encapsulating shared code for `reorder_columns`
@@ -96,7 +98,7 @@ reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Beha
 reorder_columns internal_columns selector position on_problems =
     problem_builder = Problem_Builder.new
     selection = here.select_columns_helper internal_columns selector reorder=True problem_builder
-    problem_builder.attach_to_computation on_problems <|
+    problem_builder.attach_problems_before on_problems <|
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         other_columns = internal_columns.filter column->
             is_selected = selected_names.get_or_else column.name False
@@ -179,12 +181,12 @@ rename_columns internal_columns mapping on_problems =
     processed = mapped.map_with_index i->n->
         if n.is_nothing then (unique.make_unique (internal_columns.at i).name) else n
 
-    invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
-    duplicate_names = (if unique.renames.is_empty then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
-    problems = problem_builder.build_problemset + invalid_names + duplicate_names
+    if unique.invalid_names.not_empty then
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+    if unique.renames.not_empty then
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
 
-    on_problems.attach_problems_before problems processed
-
+    problem_builder.attach_problems_before on_problems processed
 
 ## PRIVATE
    A helper function encapsulating shared code for `sort_columns`

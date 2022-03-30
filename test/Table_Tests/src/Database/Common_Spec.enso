@@ -9,7 +9,7 @@ from Standard.Table.Data.Aggregate_Column import all
 spec prefix connection pending=Nothing =
     tables_to_clean = Vector.new_builder
     upload prefix data =
-        name = Name_Generator.fresh_name prefix
+        name = Name_Generator.random_name prefix
         table = connection.upload_table name data
         tables_to_clean.append name
         table

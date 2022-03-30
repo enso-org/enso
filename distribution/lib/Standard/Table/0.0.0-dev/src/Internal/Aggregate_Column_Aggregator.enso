@@ -25,10 +25,10 @@ calculate_percentile p:Decimal value:Map =
                 (output.second + (output.at 2 - output.second) * (mid_value - mid))
 
 ## PRIVATE
-   Given a Table and a Column create an aggregator.
+   Creates an aggregator from a resolved `Aggregate_Column`.
 
-   Assumes that the `Aggregate_Column` is resolved. You may need to transform it
-   with `resolve_columns` first.
+   You may need to transform the column with `resolve_columns` first to make
+   sure that it is resolved.
 new : Aggregate_Column->Aggregate_Column_Aggregator
 new column =
     ## This can be removed completely, but it is being removed by other PR so I'm not touching it too much.

@@ -89,10 +89,12 @@ default_aggregate_column_name aggregate_column =
 resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
 resolve_aggregate table problem_builder aggregate_column =
     table_columns = table.columns
+
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
         res = Table_Helpers.resolve_column_helper table_columns c problem_builder
         if res.is_nothing then Error.throw Internal_Missing_Column_Error else res
+
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
         expected_length = case selector of
@@ -101,9 +103,11 @@ resolve_aggregate table problem_builder aggregate_column =
             By_Column columns -> columns.length
         resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
         if resolved.length < expected_length then Error.throw Internal_Missing_Column_Error else resolved
+
     resolve_selector_or_nothing selector = case selector of
         Nothing -> Nothing
         _ -> resolve_selector_to_vector selector
+
     result = case aggregate_column of
         Group_By c new_name -> Group_By (resolve c) new_name
         Count new_name -> Count new_name
@@ -132,6 +136,7 @@ resolve_aggregate table problem_builder aggregate_column =
         Minimum c new_name -> Minimum (resolve c) new_name
         Shortest c new_name -> Shortest (resolve c) new_name
         Longest c new_name -> Longest (resolve c) new_name
+
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.
     result.catch err-> case err of

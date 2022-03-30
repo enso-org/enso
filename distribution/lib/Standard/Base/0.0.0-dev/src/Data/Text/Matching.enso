@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Table.Error import Wrapped_Dataflow_Error
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
@@ -320,10 +321,3 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
 
     result = selected_indices.map objects.at
     Pair result unmatched_criteria
-
-## Wraps a dataflow error lifted to a panic, making possible to distinguish it
-   from other panics.
-type Wrapped_Dataflow_Error payload
-
-## Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw this.payload

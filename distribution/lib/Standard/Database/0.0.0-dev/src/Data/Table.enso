@@ -648,7 +648,6 @@ type Table
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
         on_problems.attach_problems_before validated.problems <|
             key_columns = validated.key_columns
-            ## TODO!!! use the names from .first!
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = this.context.set_groups key_expressions

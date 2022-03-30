@@ -12,7 +12,7 @@ import project.Aggregate_Spec
 
 redshift_specific_spec connection pending =
     Test.group "[Redshift] Info" pending=pending <|
-        tinfo = Name_Generator.fresh_name "Tinfo"
+        tinfo = Name_Generator.random_name "Tinfo"
         connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.access_table tinfo
         t.insert ["a", Nothing, False, 1.2]
@@ -37,7 +37,7 @@ run_tests connection pending=Nothing =
     table_builder columns =
         ix = Ref.get name_counter
         Ref.put name_counter ix+1
-        name = Name_Generator.fresh_name "table_"+ix.to_text
+        name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Materialized_Table.new <| columns.map description-> [description.at 0, description.at 2]
         table = connection.upload_table name in_mem_table
@@ -54,9 +54,9 @@ run_tests connection pending=Nothing =
 
     selection = Aggregate_Spec.Test_Selection problem_handling=False advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False
     agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
-    agg_table = connection.upload_table (Name_Generator.fresh_name "Agg1") agg_in_memory_table
+    agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
-    empty_agg_table = connection.upload_table (Name_Generator.fresh_name "Agg_Empty") (agg_in_memory_table.take_start 0)
+    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     tables.append empty_agg_table.name
     materialize = .to_dataframe
     Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table materialize selection pending=pending
