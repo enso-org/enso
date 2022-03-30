@@ -255,6 +255,7 @@ ensogl_core::define_endpoints! {
         set_entries(entry::AnyModelProvider<E>),
         select_entry(entry::Id),
         chose_entry(entry::Id),
+        background_visible(bool),
     }
 
     Output {
