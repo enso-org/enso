@@ -732,9 +732,9 @@ pub struct SceneData {
     pub bg_color_var:         style::Var,
     pub bg_color_change:      callback::Handle,
     pub frp:                  Frp,
+    pub shader_compiler:      Rc<RefCell<shader::Compiler>>,
     extensions:               Extensions,
     disable_context_menu:     Rc<EventListenerHandle>,
-    pub shader_compiler:      Rc<RefCell<shader::Compiler>>,
 }
 
 impl SceneData {
@@ -753,7 +753,10 @@ impl SceneData {
         let variables = UniformScope::new(var_logger);
         let dirty = Dirty::new(&logger, on_mut);
         let symbols_dirty = &dirty.symbols;
-        let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
+        let shader_compiler = Rc::new(RefCell::new(shader::Compiler::default()));
+        let set_dirty = f!(symbols_dirty.set());
+        let compiler = shader_compiler.clone();
+        let symbols = SymbolRegistry::mk(&variables, stats, &logger, set_dirty, compiler);
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
         let background = PointerTarget::new();
@@ -785,7 +788,6 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
-        let shader_compiler = default();
         Self {
             display_object,
             dom,
@@ -824,6 +826,7 @@ impl SceneData {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
+        *self.shader_compiler.borrow_mut() = default();
         self.dirty.shape.set();
         self.renderer.set_context(context);
     }
@@ -856,12 +859,12 @@ impl SceneData {
         }
     }
 
-    fn update_symbols(&self) {
+    fn update_symbols(&self, context: &Context) {
         if self.dirty.symbols.check_all() {
             self.symbols.update();
             self.dirty.symbols.unset_all();
             // Start compiling any new shaders submitted to the compiler by symbol updates.
-            self.shader_compiler.start_jobs();
+            self.shader_compiler.borrow_mut().start_jobs(context);
         }
     }
 
@@ -1081,7 +1084,7 @@ impl Deref for Scene {
 impl Scene {
     #[profile(Debug)]
     pub fn update(&self, t: animation::TimeInfo) {
-        if self.context.borrow().is_some() {
+        if let Some(context) = self.context.borrow().as_ref() {
             debug!(self.logger, "Updating.", || {
                 self.frp.frame_time_source.emit(t.local);
                 // Please note that `update_camera` is called first as it may trigger FRP events
@@ -1090,7 +1093,7 @@ impl Scene {
                 self.display_object.update(self);
                 self.layers.update();
                 self.update_shape();
-                self.update_symbols();
+                self.update_symbols(context);
                 self.handle_mouse_over_and_out_events();
             })
         }

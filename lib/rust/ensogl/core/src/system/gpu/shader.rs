@@ -47,6 +47,19 @@ pub type Program = WebGlProgram;
 
 
 
+// ==================
+// === ShaderCode ===
+// ==================
+
+/// GLSL source code of a shader program.
+#[derive(Clone, Debug)]
+pub struct ShaderCode {
+    pub vertex:   String,
+    pub fragment: String,
+}
+
+
+
 // =============
 // === Error ===
 // =============

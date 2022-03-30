@@ -12,6 +12,7 @@ use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::shader;
 use crate::system::Context;
 
 use data::opt_vec::OptVec;
@@ -45,6 +46,7 @@ pub struct SymbolRegistry {
     variables:          UniformScope,
     context:            Rc<RefCell<Option<Context>>>,
     stats:              Stats,
+    shader_compiler:    Rc<RefCell<shader::Compiler>>,
 }
 
 impl SymbolRegistry {
@@ -54,6 +56,7 @@ impl SymbolRegistry {
         stats: &Stats,
         logger: &Log,
         on_mut: OnMut,
+        shader_compiler: Rc<RefCell<shader::Compiler>>,
     ) -> Self {
         let logger = Logger::new_sub(logger, "symbol_registry");
         debug!(logger, "Initializing.");
@@ -76,6 +79,7 @@ impl SymbolRegistry {
             variables,
             context,
             stats,
+            shader_compiler,
         }
     }
 
@@ -86,7 +90,8 @@ impl SymbolRegistry {
         let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
             let id = SymbolId::new(ix as u32);
             let on_mut = move || symbol_dirty.set(id);
-            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
+            let compiler = self.shader_compiler.clone();
+            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut, compiler);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
         });

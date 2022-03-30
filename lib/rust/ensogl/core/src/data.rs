@@ -13,6 +13,8 @@ pub mod mix;
 pub mod seq;
 
 pub use enso_data_structures::dependency_graph;
+pub use enso_data_structures::fresh_cell;
+pub use enso_data_structures::fresh_cell::Fresh;
 pub use enso_data_structures::hash_map_tree;
 pub use enso_data_structures::hash_map_tree::HashMapTree;
 pub use enso_data_structures::index::Index;

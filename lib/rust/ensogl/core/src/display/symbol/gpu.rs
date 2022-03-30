@@ -14,6 +14,7 @@ use crate::system::gpu::data::uniform::AnyPrimUniform;
 use crate::system::gpu::data::uniform::AnyPrimUniformOps;
 use crate::system::gpu::data::uniform::AnyTextureUniform;
 use crate::system::gpu::data::uniform::AnyUniform;
+use crate::system::gpu::shader::Compiler as ShaderCompiler;
 
 use enso_shapely::newtype_prim;
 use enso_shapely::shared2;
@@ -335,6 +336,7 @@ impl Symbol {
         id: SymbolId,
         global_id_provider: &GlobalInstanceIdProvider,
         on_mut: OnMut,
+        compiler: Rc<RefCell<ShaderCompiler>>,
     ) -> Self {
         let logger = Logger::new(format!("symbol_{}", id));
         let init_logger = logger.clone();
@@ -349,7 +351,7 @@ impl Symbol {
             let shader_dirty = ShaderDirty::new(mat_dirt_logger, Box::new(on_mut));
             let surface_on_mut = Box::new(f!(surface_dirty.set()));
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
-            let shader = Shader::new(shader_logger, stats, shader_on_mut);
+            let shader = Shader::new(shader_logger, stats, shader_on_mut, compiler);
             let surface = Mesh::new(surface_logger, stats, surface_on_mut);
             let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
             let bindings = default();
@@ -419,8 +421,12 @@ impl Symbol {
                 }
                 if self.shader_dirty.check() {
                     let var_bindings = self.discover_variable_bindings(global_variables);
-                    self.shader.update(&var_bindings);
-                    self.init_variable_bindings(&var_bindings, global_variables);
+                    let self_ = self.clone_ref();
+                    let global_variables = global_variables.clone_ref();
+                    let bindings = var_bindings.clone();
+                    let on_shader_ready = move ||
+                        self_.init_variable_bindings(&bindings, &global_variables);
+                    self.shader.update(&var_bindings, on_shader_ready);
                     self.shader_dirty.unset();
                 }
             })
@@ -447,6 +453,9 @@ impl Symbol {
     pub fn render(&self) {
         debug!(self.logger, "Rendering.", || {
             if self.is_hidden() {
+                return;
+            }
+            if !self.shader.is_ready() {
                 return;
             }
             if let Some(context) = &*self.context.borrow() {

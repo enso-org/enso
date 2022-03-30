@@ -100,7 +100,7 @@ impl pass::Definition for SymbolsRenderPass {
         instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 1, &arr);
 
         // Switch to the latest-available shader programs.
-        self.scene.shader_compiler.borrow_mut().handle_finished_jobs();
+        self.scene.shader_compiler.borrow_mut().handle_finished_jobs(&instance.context);
 
         let mut scissor_stack = default();
         self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
