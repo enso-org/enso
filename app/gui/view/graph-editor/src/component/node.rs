@@ -990,6 +990,7 @@ pub mod test_utils {
         ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
         /// 3. If the output port is [`MultiPortView`].
         fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+        
         /// Return the `Shape` of the first input port of the node.
         ///
         /// Returns `None`:
