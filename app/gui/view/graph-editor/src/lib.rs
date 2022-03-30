@@ -3656,6 +3656,7 @@ mod graph_editor_tests {
     use super::*;
     use application::test_utils::ApplicationExt;
     use ensogl::display::scene::test_utils::MouseExt;
+    use ensogl::control::io::mouse::PrimaryButton;
     use node::test_utils::NodeModelExt;
 
     #[test]
@@ -3718,8 +3719,8 @@ mod graph_editor_tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model.output_port_shape().expect("No output port.");
-        port.events.mouse_down.emit(());
-        port.events.mouse_up.emit(());
+        port.events.mouse_down.emit(PrimaryButton);
+        port.events.mouse_up.emit(PrimaryButton);
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
@@ -3745,8 +3746,8 @@ mod graph_editor_tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model.output_port_shape().expect("No output port.");
-        port.events.mouse_down.emit(());
-        port.events.mouse_up.emit(());
+        port.events.mouse_down.emit(PrimaryButton);
+        port.events.mouse_up.emit(PrimaryButton);
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3756,8 +3757,8 @@ mod graph_editor_tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model.input.frp.set_ports_active(true, None);
         let port = node_2.model.input_port_shape().expect("No input port.");
-        port.hover.events.mouse_down.emit(());
-        port.hover.events.mouse_up.emit(());
+        port.hover.events.mouse_down.emit(PrimaryButton);
+        port.hover.events.mouse_up.emit(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }

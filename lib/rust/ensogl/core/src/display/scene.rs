@@ -1163,7 +1163,7 @@ pub mod test_utils {
 
     impl MouseExt for Mouse {
         fn click_on_background(&self) {
-            self.target.set(PointerTarget::Background);
+            self.target.set(PointerTargetId::Background);
             let left_mouse_button = frp::io::mouse::Button::Button0;
             self.frp.down.emit(left_mouse_button);
             self.frp.up.emit(left_mouse_button);
