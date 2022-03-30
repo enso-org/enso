@@ -1006,3 +1006,39 @@ fn bounding_box(
         node_bbox
     }
 }
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Test-specific API.
+pub mod test_utils {
+    use super::*;
+
+    /// Addional [`NodeModel`] API for tests.
+    pub trait NodeModelExt {
+        /// Return the `SinglePortView` of the first output port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no output ports.
+        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
+        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
+        /// 3. If the output port is [`MultiPortView`].
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+    }
+
+    impl NodeModelExt for NodeModel {
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView> {
+            let ports = self.output.model.ports();
+            let port = ports.first()?;
+            let shape = port.shape.as_ref()?;
+            use output::port::PortShapeView::Single;
+            match shape {
+                Single(shape) => Some(shape.clone_ref()),
+                _ => None,
+            }
+        }
+    }
+}

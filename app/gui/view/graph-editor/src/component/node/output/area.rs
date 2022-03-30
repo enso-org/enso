@@ -218,6 +218,18 @@ impl Model {
         self
     }
 
+    /// Return a list of Node's output ports.
+    pub fn ports(&self) -> Vec<port::Model> {
+        let port_count = self.port_count.get();
+        let mut ports = Vec::with_capacity(port_count);
+        self.traverse_borrowed_expression(|is_a_port, node, _| {
+            if is_a_port {
+                ports.push(node.payload.clone());
+            }
+        });
+        ports
+    }
+
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
     }
@@ -425,10 +437,10 @@ impl Model {
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Area {
-    #[allow(missing_docs)]
-    pub frp: Frp,
-    model:   Rc<Model>,
+    pub frp:   Frp,
+    pub model: Rc<Model>,
 }
 
 impl Deref for Area {

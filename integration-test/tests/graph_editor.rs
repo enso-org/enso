@@ -5,15 +5,19 @@
 use enso_integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
+use enso_frp::future::FutureEvent;
 use enso_gui::view::graph_editor;
+use enso_gui::view::graph_editor::component::node as node_view;
+use enso_gui::view::graph_editor::component::node::test_utils::NodeModelExt;
 use enso_gui::view::graph_editor::component::node::Expression;
 use enso_gui::view::graph_editor::GraphEditor;
 use enso_gui::view::graph_editor::Node;
 use enso_gui::view::graph_editor::NodeId;
 use enso_gui::view::graph_editor::NodeSource;
-use enso_gui::view::graph_editor::component::node as node_view;
 use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
+use ensogl::display::scene::test_utils::MouseExt;
+use ensogl::display::Scene;
 use ordered_float::OrderedFloat;
 use std::time::Duration;
 
@@ -209,6 +213,54 @@ fn add_node_with_add_node_button(
 
 #[wasm_bindgen_test]
 async fn mouse_oriented_node_placement() {
+    struct Case {
+        scene:             Scene,
+        graph_editor:      GraphEditor,
+        source_node:       Node,
+        mouse_position:    Vector2,
+        expected_position: Vector2,
+    }
+
+    impl Case {
+        fn run(&self) {
+            self.check_tab_key();
+            // self.check_edge_drop();
+        }
+
+        fn check_searcher_opening_place(
+            &self,
+            added_node: FutureEvent<(NodeId, Option<NodeSource>, bool)>,
+        ) {
+            let (new_node_id, _, _) = added_node.expect();
+            let new_node_pos =
+                self.graph_editor.model.get_node_position(new_node_id).map(|v| v.xy());
+            assert_eq!(new_node_pos, Some(self.expected_position));
+            self.graph_editor.stop_editing();
+            assert_eq!(self.graph_editor.model.nodes.all.len(), 2);
+        }
+
+        fn check_tab_key(&self) {
+            self.scene.mouse.frp.position.emit(self.mouse_position);
+            self.graph_editor.start_node_creation();
+            let added_node = self.graph_editor.node_added.next_event();
+            self.check_searcher_opening_place(added_node);
+        }
+
+        fn check_edge_drop(&self) {
+            let port = self.source_node.view.model.output_port_shape().unwrap();
+            port.events.mouse_down.emit(());
+            port.events.mouse_up.emit(());
+            self.scene.mouse.frp.position.emit(self.mouse_position);
+            assert!(
+                self.graph_editor.has_detached_edge.value(),
+                "No detached edge after clicking port"
+            );
+            let added_node = self.graph_editor.node_added.next_event();
+            self.scene.mouse.click_on_background();
+            self.check_searcher_opening_place(added_node);
+        }
+    }
+
     let test = IntegrationTestOnNewProject::setup().await;
     let scene = &test.ide.ensogl_app.display.default_scene;
     let graph_editor = test.graph_editor();
@@ -216,35 +268,31 @@ async fn mouse_oriented_node_placement() {
     let gap_y = graph_editor.default_y_gap_between_nodes.value();
     let min_spacing = graph_editor.min_x_spacing_for_new_nodes.value();
 
-    let InitialNodes {above, below} = InitialNodes::obtain_from_graph_editor(&graph_editor);
-    let check_tab = |mouse_pos:Vector2, expected: Vector2| {
-        scene.mouse.frp.position.emit(mouse_pos);
-        let expect_new_node = graph_editor.node_added.next_event();
-        graph_editor.start_node_creation();
-        let (new_node_id, _, _) = expect_new_node.expect();
-        let new_node_pos = graph_editor.model.get_node_position(new_node_id).map(|v| v.xy());
-        assert_eq!(new_node_pos, Some(expected));
-        graph_editor.stop_editing();
-        assert_eq!(graph_editor.model.nodes.all.len(), 2);
-    };
-    // let check_edge_drop = |mouse_pos:Vector2, expected:Vector2| {
-    //     below.view.model.output.
-    // };
+    let InitialNodes { above, below } = InitialNodes::obtain_from_graph_editor(&graph_editor);
+
+    let create_case =
+        |source_node: &Node, mouse_position: Vector2, expected_position: Vector2| Case {
+            scene: scene.clone_ref(),
+            graph_editor: graph_editor.clone_ref(),
+            source_node: source_node.clone_ref(),
+            mouse_position,
+            expected_position,
+        };
 
     let far_away = below.position().xy() + Vector2(500.0, 500.0);
     let far_away_expect = far_away;
-    check_tab(far_away, far_away_expect);
+    create_case(&below, far_away, far_away_expect).run();
 
     let under_below = below.position().xy() + Vector2(30.0, -15.0);
-    let under_below_expect = below.position().xy() + Vector2(0.0, - gap_y - node_view::HEIGHT);
-    check_tab(under_below, under_below_expect);
+    let under_below_expect = below.position().xy() + Vector2(0.0, -gap_y - node_view::HEIGHT);
+    create_case(&below, under_below, under_below_expect).run();
 
     let under_above = above.position().xy() + Vector2(30.0, 15.0);
     let under_above_expect = Vector2(
         below.position().x - gap_x - min_spacing,
         above.position().y - gap_y - node_view::HEIGHT,
     );
-    check_tab(under_above, under_above_expect);
+    create_case(&above, under_above, under_above_expect).run();
 }
 
 struct InitialNodes {
