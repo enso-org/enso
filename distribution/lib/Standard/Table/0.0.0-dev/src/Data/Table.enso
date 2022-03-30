@@ -9,7 +9,6 @@ import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Aggregate_Column_Aggregator
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -486,59 +485,18 @@ type Table
         new_names = this.columns.map mapper
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
-    aggregate_2 : [Aggregate_Column] -> Problem_Behavior -> Table
-    aggregate_2 columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.validate columns this
-
-        java_columns = validated.key_columns.map .java_column
-        index = this.java_table.indexFromColumns java_columns.to_array
-
-        on_problems.attach_problems_before validated.problems <|
-            new_table = validated.valid_columns.map c->(Aggregate_Column_Aggregator.java_aggregator this c.first c.second)
-            index.makeTable new_table.to_array
 
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
 
-        make_key = if (validated.key_columns.length == 0) then _->(Group_By_Key.key [1]) else
-            i->(Group_By_Key.key (validated.key_columns.map v->(v.at i)))
-
-        new_table = validated.valid_columns.map c->[c.first, Vector.new_builder]
-        aggregators = validated.valid_columns.map c->(Aggregate_Column_Aggregator.new c.second)
-        add_row _ =
-            idx = new_table.at 0 . at 1 . length
-            0.up_to (aggregators.length) . each i->
-                new_table.at i . at 1 . append ((aggregators.at i).initial)
-            idx
-
-        # Fold
-        aggregate map i =
-            key = make_key i
-            row_index = map.get_or_else key (add_row Nothing)
-
-            # Accumulate
-            0.up_to (validated.valid_columns.length) . each j->
-                accumulator = aggregators.at j . accumulator
-                array = new_table.at j . at 1 . to_array
-                current = array . at row_index
-                new = accumulator current i
-                array . set_at row_index new
-
-            map.insert key row_index
-
         on_problems.attach_problems_before validated.problems <|
-            # Build Table
-            if ((validated.key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
-                0.up_to this.row_count . fold Map.empty aggregate
+            java_columns = validated.key_columns.map .java_column
+            index = this.java_table.indexFromColumns java_columns.to_array
 
-            # Now Finalise and make a table
-            finalise builder index =
-                aggregator = aggregators.at index
-                Vector.new builder.length i->(aggregator.finalizer (builder.to_array.at i))
-
-            here.new (new_table.map_with_index i->c->[c.first, finalise c.second i])
+            new_table = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator this c.first c.second)
+            index.makeTable new_table.to_array
 
 
     ## ALIAS Filter Rows

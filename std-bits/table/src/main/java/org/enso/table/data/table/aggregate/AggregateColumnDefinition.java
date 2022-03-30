@@ -8,9 +8,11 @@ import com.ibm.icu.text.BreakIterator;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -396,7 +398,7 @@ public class AggregateColumnDefinition {
     Storage storage = column.getStorage();
     return new AggregateColumnDefinition(
         name,
-        Storage.Type.OBJECT,
+        Storage.Type.STRING,
         rows -> {
           StringBuilder current = null;
           for (int row: rows) {
@@ -422,6 +424,41 @@ public class AggregateColumnDefinition {
           if (prefix != null) { current.insert(0, prefix); }
           current.append(suffix);
           return current.toString();
+        });
+  }
+
+  public static AggregateColumnDefinition Mode(String name, Column column) {
+    Storage storage = column.getStorage();
+    return new AggregateColumnDefinition(
+        name,
+        Storage.Type.OBJECT,
+        rows -> {
+          Object current = null;
+          int count = 0;
+          Map<Object, Integer> currentMap = null;
+          for (int row: rows) {
+            Object value = storage.getItemBoxed(row);
+            if (value != null) {
+              // Merge all numbers onto Double
+              Double dValue = CastToDouble(value);
+              value = dValue == null ? value : dValue;
+
+              if (current == null) {
+                current = value;
+                count = 1;
+                currentMap = new HashMap<>();
+                currentMap.put(value, 1);
+              } else {
+                int newCount = currentMap.getOrDefault(value, 0) + 1;
+                currentMap.put(value, newCount);
+                if (newCount > count) {
+                  count = newCount;
+                  current = value;
+                }
+              }
+            }
+          }
+          return current;
         });
   }
 }

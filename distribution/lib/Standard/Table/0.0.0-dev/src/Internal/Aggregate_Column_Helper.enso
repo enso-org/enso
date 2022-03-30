@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table.Data.Table as Table_Module import No_Such_Column_Error
 from Standard.Table.Data.Column as Column_Module import Column
+import Standard.Table.Data.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
 import Standard.Table.Internal.Problem_Builder
@@ -9,6 +10,8 @@ import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+
+polyglot java import org.enso.table.data.table.aggregate.AggregateColumnDefinition
 
 ## Result type for aggregate_columns validation
    - key_columns: Vector of Columns from the table to group by
@@ -142,3 +145,33 @@ resolve_aggregate table problem_builder aggregate_column =
 ## PRIVATE
    A marker for missing columns during resolution.
 type Internal_Missing_Column_Error
+
+## PRIVATE
+   Creates a Java AggregateColumnDefinition for the Aggregate_Column
+java_aggregator : Table->Aggregate_Column->AggregateColumnDefinition
+java_aggregator table name column =
+    resolve c = column.resolve_column table c
+    case column of
+        Group_By c _ -> AggregateColumnDefinition.GroupBy name (resolve c).java_column
+        Count _ -> AggregateColumnDefinition.Count name
+        Count_Distinct columns _ ignore_nothing ->
+            resolved = case columns of
+                Vector.Vector _ -> columns.map c->(resolve c).java_column
+                _ -> [resolve columns . java_column]
+            AggregateColumnDefinition.CountDistinct name resolved.to_array ignore_nothing
+        Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column False
+        Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column True
+        Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column False
+        Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column True
+        Sum c _ -> AggregateColumnDefinition.Sum name (resolve c).java_column
+        Average c _ -> AggregateColumnDefinition.Mean name (resolve c).java_column
+        Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name (resolve c).java_column p
+        Mode c _ -> AggregateColumnDefinition.Mode name (resolve c).java_column
+        First c _ ignore_nothing _ -> AggregateColumnDefinition.First name (resolve c).java_column ignore_nothing
+        Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name (resolve c).java_column ignore_nothing
+        Maximum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column 1
+        Minimum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column -1
+        Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column -1
+        Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column 1
+        Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name (resolve c).java_column join prefix suffix quote
+        _ -> Error.throw "Not done yet..."

@@ -19,8 +19,6 @@ spec = Test.group "Aggregate Columns" <|
 
     test_name = "Test Column"
 
-    use_java = True
-
     test_aggregator table col expected_name expected_result epsilon=False =
         problem_builder = Problem_Builder.new
         resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
@@ -30,15 +28,10 @@ spec = Test.group "Aggregate Columns" <|
             overridden -> overridden
         name . should_equal expected_name
 
-        result = case use_java of
-            False ->
-                acc = Aggregate_Column_Aggregator.new resolved
-                folded_value = 0.up_to table.row_count . fold acc.initial acc.accumulator
-                acc.finalizer folded_value
-            True ->
-                acc = Aggregate_Column_Aggregator.java_aggregator table "Name" col
-                indexes = Vector.new table.row_count v->v
-                acc.aggregate indexes.to_array
+        result =
+            acc = Aggregate_Column_Helper.java_aggregator table "Name" col
+            indexes = Vector.new table.row_count v->v
+            acc.aggregate indexes.to_array
 
         if epsilon != False then ((result - expected_result).abs < epsilon).should_be_true else
             result.should_equal expected_result
