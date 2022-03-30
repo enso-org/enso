@@ -9,14 +9,14 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
 
   import ParsedSectionsBuilderTest._
 
-  "DocSectionsGenerator" should {
+  "ParsedSectionsBuilder" should {
 
     "generate single tag" in {
       val comment =
         """ UNSTABLE
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
-        Section.Tag("UNSTABLE", None)
+        Section.Tag("UNSTABLE", List())
       )
 
       parseSections(comment) shouldEqual expected
@@ -28,8 +28,8 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           | DEPRECATED
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
-        Section.Tag("UNSTABLE", None),
-        Section.Tag("DEPRECATED", None)
+        Section.Tag("UNSTABLE", List()),
+        Section.Tag("DEPRECATED", List())
       )
 
       parseSections(comment) shouldEqual expected
@@ -40,7 +40,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
         """ ALIAS Check Matches
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
-        Section.Tag("ALIAS", Some(Doc.Elem.Text("Check Matches")))
+        Section.Tag("ALIAS", List(Doc.Elem.Text("Check Matches")))
       )
 
       parseSections(comment) shouldEqual expected
@@ -422,8 +422,7 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
           |   FYI.
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = List(
-        Section.Tag("DEPRECATED", None),
-        Section.Paragraph(List(Doc.Elem.Newline)),
+        Section.Tag("DEPRECATED", List()),
         Section.Paragraph(
           List(
             Doc.Elem.Text("Some paragraph"),
@@ -473,7 +472,7 @@ object ParsedSectionsBuilderTest {
 
   val parsedSectionsBuilder = new ParsedSectionsBuilder
 
-  def parseSections(comment: String): List[ParsedSection] = {
+  def parseSections(comment: String): List[Section] = {
     val doc = DocParser.runMatched(comment)
     parsedSectionsBuilder.build(doc)
   }

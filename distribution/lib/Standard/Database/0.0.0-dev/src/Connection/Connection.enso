@@ -5,8 +5,9 @@ import Standard.Database.Data.Internal.IR
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Table as Database_Table
 import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Data.Storage
 import Standard.Table.Internal.Java_Exports
-
+import Standard.Database.Data.Internal.Base_Generator
 from Standard.Database.Data.Sql import Sql_Type
 
 polyglot java import java.lang.UnsupportedOperationException
@@ -26,7 +27,8 @@ type Connection
        A Database connection using a JDBC driver.
 
        Arguments:
-       - java_connection: the resource managing the underlying JDBC connection.
+       - connection_resource: the resource managing the underlying JDBC
+         connection.
        - dialect: the dialect associated with the database we are connected to.
 
        Allows accessing tables from a database.
@@ -40,7 +42,7 @@ type Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table name = here.wrap_sql_errors <|
+    access_table name = here.handle_sql_errors <|
         columns = this.fetch_columns name
         Database_Table.make_table this name columns
 
@@ -62,7 +64,7 @@ type Connection
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
-    execute_query query expected_types=Nothing = here.wrap_sql_errors <|
+    execute_query query expected_types=Nothing = here.handle_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
@@ -94,8 +96,9 @@ type Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
-    execute_update query = here.wrap_sql_errors <|
+    execute_update query = here.handle_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
+            ## FIXME USE CATCH HERE!
             result = Panic.recover Any stmt.executeLargeUpdate
             result.catch err-> case err of
                 Polyglot_Error exc ->
@@ -115,15 +118,9 @@ type Connection
     prepare_statement query =
         go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
             stmt = java_connection.prepareStatement template
-            setup_error = Panic.recover Any <|
-                holes.map_with_index ix-> obj->
-                    position = ix + 1
-                    case obj.first of
-                        Nothing -> stmt.setNull position obj.second.typeid
-                        _ -> stmt.setObject position obj.first
-            setup_error.catch error->
+            Panic.catch Any (here.set_statement_values stmt holes) caught_panic->
                 stmt.close
-                Panic.throw error
+                Panic.throw caught_panic
             stmt
         case query of
             Text -> go query []
@@ -153,6 +150,52 @@ type Connection
                 typename = metadata.getColumnTypeName ix+1
                 [name, Sql_Type typeid typename]
             Vector.new ncols resolve_column
+
+    ## PRIVATE
+       UNSTABLE
+       This is a prototype function used in our test suites. It may change.
+
+       It creates a new table in the database with the given name (will fail if
+       the table already existed), inserts the contents of the provided
+       in-memory table and returns a handle to the newly created table.
+    upload_table : Text -> Materialized_Table -> Integer -> Database_Table
+    upload_table name table batch_size=1000 = Panic.recover Illegal_State_Error <| here.handle_sql_errors <|
+        column_types = table.columns.map col-> here.default_storage_type col.storage_type
+        column_names = table.columns.map .name
+        col_makers = column_names.zip column_types name-> typ->
+            Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
+        create_sql = (Sql.code "CREATE TABLE " ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
+        Panic.rethrow <| this.execute_update create_sql
+        db_table = Panic.rethrow <| this.access_table name
+
+        pairs = db_table.internal_columns.map col->
+            [col.name, IR.Constant col.sql_type Nothing]
+        db_types = pairs.map p-> p.second.sql_type
+        insert_query = this.dialect.generate_sql <| IR.Insert name pairs
+        insert_template = insert_query.prepare.first
+        Managed_Resource.with this.connection_resource java_connection->
+            default_autocommit = java_connection.getAutoCommit
+            java_connection.setAutoCommit False
+            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                    num_rows = table.row_count
+                    columns = table.columns
+                    check_rows updates_array expected_size =
+                        updates = Vector.Vector updates_array
+                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                            updates.each affected_rows->
+                                if affected_rows != 1 then
+                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                    0.up_to num_rows . each row_id->
+                        values = columns.map col-> col.at row_id
+                        holes = values.zip db_types
+                        here.set_statement_values stmt holes
+                        stmt.addBatch
+                        if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
+                    if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                java_connection.commit
+        db_table
+
 
 ## PRIVATE
 
@@ -265,7 +308,7 @@ Unsupported_Dialect.to_display_text =
    - url: The URL to connect to.
    - properties: A vector of properties for the connection.
 create_jdbc_connection : Text -> Vector -> Connection
-create_jdbc_connection url properties = here.wrap_sql_errors <|
+create_jdbc_connection url properties = here.handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
@@ -300,13 +343,17 @@ type Sql_Error
 
        Arguments:
        - java_exception: The underlying exception.
-    type Sql_Error java_exception
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
        Convert the SQL error to a textual representation.
     to_text : Text
-    to_text = "There was an SQL error: " + this.java_exception.getMessage.to_text + "."
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "There was an SQL error: " + this.java_exception.getMessage.to_text + "." + query
 
     ## UNSTABLE
 
@@ -322,13 +369,17 @@ type Sql_Timeout_Error
 
        Arguments:
        - java_exception: The underlying exception.
-    type Sql_Timeout_Error java_exception
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Timeout_Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
        Convert the timeout error to a textual representation.
     to_text : Text
-    to_text = "The SQL connection timed out: " + this.java_exception.getMessage + "."
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "The SQL connection timed out: " + this.java_exception.getMessage + "." + query
 
     ## UNSTABLE
 
@@ -339,16 +390,50 @@ type Sql_Timeout_Error
 ## PRIVATE
 
    Executes `action` and returns its result, catching any panics and if they are
-   coming from JDBC, wraps them with our own error types.
+   coming from JDBC, wraps them with our own error types and returns as regular
+   data-flow errors.
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-wrap_sql_errors : Any -> Any ! Error
-wrap_sql_errors ~action =
-    result = Panic.recover Any action
-    result.catch err-> case err of
-        Polyglot_Error exc ->
-            transformed = if Java.is_instance exc SQLTimeoutException then Sql_Timeout_Error exc else
-                if Java.is_instance exc SQLException then Sql_Error exc else err
-            Error.throw transformed
-        _ -> Error.throw err
+handle_sql_errors : Any -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action =
+    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+        here.wrap_sql_errors action
+
+## PRIVATE
+
+   Executes `action` and returns its result, converting any SQL exceptions into
+   Enso panics.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+   - related_query: A related query that is currently being run, to enrich the
+     error metadata.
+wrap_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+wrap_sql_errors ~action related_query=Nothing =
+    Panic.catch SQLException action caught_panic->
+        exc = caught_panic.payload.cause
+        case Java.is_instance exc SQLTimeoutException of
+            True -> Panic.throw (Sql_Timeout_Error exc related_query)
+            False -> Panic.throw (Sql_Error exc related_query)
+
+## PRIVATE
+   Returns the default database type corresponding to an in-memory storage
+   type.
+default_storage_type : Storage.Type -> Sql_Type
+default_storage_type storage_type = case storage_type of
+    Storage.Text -> Sql_Type.text
+    Storage.Integer -> Sql_Type.integer
+    Storage.Decimal -> Sql_Type.double
+    Storage.Boolean -> Sql_Type.boolean
+    Storage.Any -> Sql_Type.blob
+
+## PRIVATE
+   Sets values inside of a prepared statement.
+set_statement_values : PreparedStatement -> Vector (Pair Any Sql_Type) -> Nothing
+set_statement_values stmt holes =
+    holes.map_with_index ix-> obj->
+        position = ix + 1
+        case obj.first of
+            Nothing -> stmt.setNull position obj.second.typeid
+            _ -> stmt.setObject position obj.first

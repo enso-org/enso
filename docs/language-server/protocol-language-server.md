@@ -31,8 +31,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
+  - [`DocSection`](#docsection)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
-  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
@@ -453,9 +453,11 @@ interface SuggestionEntryModule {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryAtom {
@@ -480,9 +482,11 @@ interface SuggestionEntryAtom {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryMethod {
@@ -510,9 +514,11 @@ interface SuggestionEntryMethod {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryFunction {
@@ -533,10 +539,6 @@ interface SuggestionEntryFunction {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 
 interface SuggestionEntryLocal {
@@ -554,10 +556,6 @@ interface SuggestionEntryLocal {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 ```
 
@@ -582,11 +580,124 @@ The suggestion entry id of the suggestions database.
 type SuggestionId = number;
 ```
 
-### `SuggestionsDatabaseEntry`
+### `DocSection`
+
+A single section of the documentation.
 
 #### Format
 
+```typescript
+type DocSection = Tag | Paragraph | Keyed | Marked;
+
+/** The documentation tag.
+ *
+ * {{{
+ *   name text
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   UNSTABLE
+ *   DEPRECATED
+ *   ALIAS Length
+ * }}}
+ *
+ */
+interface Tag {
+  /** The tag name. */
+  name: string;
+
+  /** The tag text. */
+  text: HTMLString;
+}
+
+/** The paragraph of the text.
+ *
+ * @example
+ *
+ * {{{
+ *   Arbitrary text in the documentation comment.
+ *
+ *   This is another paragraph.
+ * }}}
+ *
+ */
+interface Paragraph {
+  /** The elements that make up this paragraph. */
+  body: HTMLString;
+}
+
+/** The section that starts with the key followed by the colon and the body.
+ *
+ * {{{
+ *   key: body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   Arguments:
+ *   - one: the first
+ *   - two: the second
+ * }}}
+ *
+ *
+ * {{{
+ *   Icon: table-from-rows
+ * }}}
+ *
+ */
+interface Keyed {
+  /** The section key. */
+  key: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** The section that starts with the mark followed by the header and the body.
+ *
+ * {{{
+ *   mark header
+ *   body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   > Example
+ *     This is how it's done.
+ *         foo = bar baz
+ * }}}
+ *
+ * {{{
+ *   ! Notice
+ *     This is important.
+ * }}}
+ */
+interface Marked {
+  /** The section mark. */
+  mark: Mark;
+
+  /** The section header. */
+  header?: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** Text rendered as HTML (may contain HTML tags). */
+type HTMLString = string;
+
+type Mark = "Important" | "Info" | "Example";
+```
+
+### `SuggestionsDatabaseEntry`
+
 The entry in the suggestions database.
+
+#### Format
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -599,32 +710,6 @@ interface SuggestionsDatabaseEntry {
    * The suggestion entry.
    */
   suggestion: SuggestionEntry;
-}
-```
-
-### `SuggestionsOrderDatabaseEntry`
-
-The entry in the suggestions order database.
-
-#### Format
-
-```typescript
-interface SuggestionsOrderDatabaseEntry {
-  /**
-   * The unique identifier of a suggestion referring to the `id` identifier of
-   * the suggestions database.
-   */
-  suggestionId: SuggestionId;
-
-  /**
-   * The suggestion that goes before this one in the source file.
-   */
-  prevId?: SuggestionId;
-
-  /**
-   * Ths suggestion that goes after this one in the source file.
-   */
-  nextId?: SuggestionId;
 }
 ```
 

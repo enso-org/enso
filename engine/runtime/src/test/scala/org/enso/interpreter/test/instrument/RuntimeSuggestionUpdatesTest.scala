@@ -160,6 +160,7 @@ class RuntimeSuggestionUpdatesTest
                   Suggestion.Module(
                     moduleName,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -184,6 +185,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -247,6 +249,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -332,6 +335,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -437,6 +441,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -553,6 +558,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -627,6 +633,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -695,6 +702,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -788,6 +796,7 @@ class RuntimeSuggestionUpdatesTest
                   Suggestion.Module(
                     moduleName,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -812,6 +821,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -856,6 +866,7 @@ class RuntimeSuggestionUpdatesTest
                     Constants.TEXT,
                     Constants.ANY,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -881,6 +892,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -968,7 +980,7 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Module("Enso_Test.Test.A", None, None),
+                  Suggestion.Module("Enso_Test.Test.A", None, None, None),
                   Api.SuggestionAction.Add()
                 ),
                 Vector()
@@ -984,6 +996,7 @@ class RuntimeSuggestionUpdatesTest
                         .Argument("a", Constants.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MkA",
+                    None,
                     None,
                     None
                   ),
@@ -1010,6 +1023,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A.MkA",
                     Constants.ANY,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1034,6 +1048,7 @@ class RuntimeSuggestionUpdatesTest
                     Constants.INTEGER,
                     Constants.ANY,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1057,6 +1072,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.A",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),
@@ -1092,6 +1108,7 @@ class RuntimeSuggestionUpdatesTest
                   Suggestion.Module(
                     moduleName,
                     None,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -1116,6 +1133,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
+                    None,
                     None,
                     None
                   ),

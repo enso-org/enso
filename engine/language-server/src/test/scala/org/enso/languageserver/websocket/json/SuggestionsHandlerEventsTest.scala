@@ -61,10 +61,34 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "defaultValue" : null
                     }
                   ],
-                  "returnType" : "MyAtom"
-                }
-              }
-            ],
+                  "returnType" : "MyAtom",
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
+                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">MyType</div><div class=\"tags\"><p class=\"tag\"><span class=\"private\">PRIVATE</span></p></div></div><div class=\"synopsis\"><p> </p></div><div class=\"body\"><p>A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. </p><p>Arguments: <ul><li>one: The first.</li><li>two<div class=\"Unclosed\"><i>three: The <b>second</b>.</i></div></li></ul> </p><div class=\"info\"><div class=\"summary\">Info</div> Here is a thing.</div></div></div></div></body></html>",
+                  "documentationSections" : [
+                    {
+                      "type" : "tag",
+                      "name" : "PRIVATE",
+                      "body" : ""
+                    },
+                    {
+                      "type" : "paragraph",
+                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
+                    },
+                    {
+                      "type" : "keyed",
+                      "key" : "Arguments",
+                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
+                    },
+                    {
+                      "type" : "marked",
+                      "mark" : "Info",
+                      "header" : "Info",
+                      "body" : " Here is a thing."
+                    }
+                  ]
+               }
+             }
+           ],
             "currentVersion" : 1
           }
         }
@@ -130,7 +154,13 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "documentation" : "Lovely",
-                  "documentationHtml" : "<p>Lovely</p>"
+                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">foo</div></div><div class=\"synopsis\"><p>Lovely</p></div></div></div></body></html>",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "Lovely"
+                    }
+                  ]
                 }
               }
             ],
@@ -314,24 +344,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
           "result" : {
             "entries" : [
               {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "atom",
-                  "module" : "Test.Main",
-                  "name" : "MyType",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    }
-                  ],
-                  "returnType" : "MyAtom"
-                }
-              },
-              {
                 "id" : 3,
                 "suggestion" : {
                   "type" : "function",
@@ -375,6 +387,26 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               },
               {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : ${Suggestions.local.externalId.get},
+                  "module" : "Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
+                }
+              },
+              {
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
@@ -400,27 +432,55 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "documentation" : "Lovely",
-                  "documentationHtml" : "<p>Lovely</p>"
+                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">foo</div></div><div class=\"synopsis\"><p>Lovely</p></div></div></div></body></html>",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "Lovely"
+                    }
+                  ]
                 }
               },
               {
-                "id" : 4,
+                "id" : 1,
                 "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
+                  "type" : "atom",
                   "module" : "Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
+                  "name" : "MyType",
+                  "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
                     }
-                  }
+                  ],
+                  "returnType" : "MyAtom",
+                  "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
+                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">MyType</div><div class=\"tags\"><p class=\"tag\"><span class=\"private\">PRIVATE</span></p></div></div><div class=\"synopsis\"><p> </p></div><div class=\"body\"><p>A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. </p><p>Arguments: <ul><li>one: The first.</li><li>two<div class=\"Unclosed\"><i>three: The <b>second</b>.</i></div></li></ul> </p><div class=\"info\"><div class=\"summary\">Info</div> Here is a thing.</div></div></div></div></body></html>",
+                  "documentationSections" : [
+                    {
+                      "type" : "tag",
+                      "name" : "PRIVATE",
+                      "body" : ""
+                    },
+                    {
+                      "type" : "paragraph",
+                      "body" : "A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. "
+                    },
+                    {
+                      "type" : "keyed",
+                      "key" : "Arguments",
+                      "body" : " <ul><li>one: The first.</li><li>two_three: The <b>second</b>.</li></ul> "
+                    },
+                    {
+                      "type" : "marked",
+                      "mark" : "Info",
+                      "header" : "Info",
+                      "body" : " Here is a thing."
+                    }
+                  ]
                 }
               }
             ],
