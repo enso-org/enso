@@ -26,9 +26,9 @@ use ensogl_core::display::symbol::geometry::SpriteSystem;
 
 
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_sprite_system() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let navigator = Navigator::new(&world.default_scene, &world.default_scene.camera());
     let sprite_system = SpriteSystem::new(&world);

@@ -22,9 +22,7 @@ use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
-use crate::display::symbol::SymbolId;
 use crate::system;
-use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::web;
@@ -39,6 +37,7 @@ use std::any::TypeId;
 use web::HtmlElement;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -47,18 +46,13 @@ use web::HtmlElement;
 pub mod dom;
 #[warn(missing_docs)]
 pub mod layer;
+#[warn(missing_docs)]
+pub mod pointer_target;
 
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
-
-
-
-pub trait MouseTarget: Debug + 'static {
-    fn mouse_down(&self) -> &frp::Source;
-    fn mouse_up(&self) -> &frp::Source;
-    fn mouse_over(&self) -> &frp::Source;
-    fn mouse_out(&self) -> &frp::Source;
-}
+pub use pointer_target::PointerTarget;
+pub use pointer_target::PointerTargetId;
 
 
 
@@ -67,17 +61,24 @@ pub trait MouseTarget: Debug + 'static {
 // =====================
 
 shared! { ShapeRegistry
-#[derive(Debug,Default)]
+#[derive(Debug)]
 pub struct ShapeRegistryData {
     // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
     //            after proper implementation of text depth sorting, which is the only component
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<(SymbolId,attribute::InstanceIndex),Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
 }
 
 impl {
+    fn new(background: &PointerTarget) -> Self {
+        let scene = default();
+        let shape_system_map = default();
+        let mouse_target_map = default();
+        Self {scene, shape_system_map, mouse_target_map} . init(background)
+    }
+
     fn get<T:ShapeSystemInstance>(&self) -> Option<T> {
         let id = TypeId::of::<T>();
         self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<T>()).map(|t| t.clone_ref())
@@ -105,198 +106,45 @@ impl {
         system.new_instance()
     }
 
-    pub fn insert_mouse_target<T:MouseTarget>
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex, target:T) {
-        let target = Rc::new(target);
-        self.mouse_target_map.insert((symbol_id,instance_id),target);
+    pub fn insert_mouse_target
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
+        self.mouse_target_map.insert(id.into(),target.into());
     }
 
     pub fn remove_mouse_target
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex) {
-        self.mouse_target_map.remove(&(symbol_id,instance_id));
+    (&mut self, id:impl Into<PointerTargetId>) {
+        self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&mut self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
-        match target {
-            PointerTarget::Background => None,
-            PointerTarget::Symbol {symbol_id,instance_id} => {
-                self.mouse_target_map.get(&(symbol_id,instance_id)).cloned()
-            }
-        }
+    pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
+        self.mouse_target_map.get(&target).cloned()
     }
 }}
 
-
-
-// ==============
-// === Target ===
-// ==============
-
-/// Result of a Decoding operation in the Target.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum DecodingResult {
-    /// Values had to be truncated.
-    Truncated(u8, u8, u8),
-    /// Values have been encoded successfully.
-    Ok(u8, u8, u8),
-}
-
-/// Mouse target. Contains a path to an object pointed by mouse.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum PointerTarget {
-    Background,
-    Symbol { symbol_id: SymbolId, instance_id: attribute::InstanceIndex },
-}
-
-impl PointerTarget {
-    /// Encode two u32 values into three u8 values.
-    ///
-    /// This is the same encoding that is used in the `fragment_runner`. This encoding is lossy and
-    /// can only encode values up to 4096 (2^12) each.
-    ///
-    /// We use 12 bits from each value and pack them into the 3 output bytes like described in the
-    /// following diagram.
-    ///
-    /// ```text
-    ///  Input
-    ///
-    ///    value1 (v1) as bytes               value2 (v2) as bytes
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///   |     |     |     |     |           |     |     |     |     |
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///  32    24    16     8     0          32    24    16     8     0   <- Bit index
-    ///
-    ///
-    /// Output
-    ///
-    /// byte1            byte2                     byte3
-    /// +-----------+    +----------------------+     +------------+
-    /// | v ]12..4] |    | v1 ]4..0]  v2 ]4..0] |     | v2 ]12..4] |
-    /// +-----------+    +----------------------+     +------------+
-    ///
-    /// Ranges use mathematical notation for inclusion/exclusion.
-    /// ```
-    fn encode(value1: u32, value2: u32) -> DecodingResult {
-        let chunk1 = (value1 >> 4u32) & 0x00FFu32;
-        let chunk2 = (value1 & 0x000Fu32) << 4u32;
-        let chunk2 = chunk2 | ((value2 & 0x0F00u32) >> 8u32);
-        let chunk3 = value2 & 0x00FFu32;
-
-        if value1 > 2u32.pow(12) || value2 > 2u32.pow(12) {
-            DecodingResult::Truncated(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        } else {
-            DecodingResult::Ok(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        }
-    }
-
-    /// Decode the symbol_id and instance_id that was encoded in the `fragment_runner`.
-    ///
-    /// See the `encode` method for more information on the encoding.
-    fn decode(chunk1: u32, chunk2: u32, chunk3: u32) -> (u32, u32) {
-        let value1 = (chunk1 << 4) + (chunk2 >> 4);
-        let value2 = chunk3 + ((chunk2 & 0x000F) << 8);
-        (value1, value2)
-    }
-
-    fn to_internal(self, logger: &Logger) -> Vector4<u32> {
-        match self {
-            Self::Background => Vector4::new(0, 0, 0, 0),
-            Self::Symbol { symbol_id, instance_id } => {
-                match Self::encode(*symbol_id, (*instance_id) as u32) {
-                    DecodingResult::Truncated(pack0, pack1, pack2) => {
-                        warning!(
-                            logger,
-                            "Target values too big to encode: \
-                                         ({symbol_id},{instance_id})."
-                        );
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1)
-                    }
-                    DecodingResult::Ok(pack0, pack1, pack2) =>
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1),
-                }
+impl ShapeRegistry {
+    /// Runs the provided function on the [`PointerTarget`] associated with the provided
+    /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
+    /// evaluation of the provided function this registry might be changed, which would result in
+    /// double borrow mut otherwise.
+    pub fn with_mouse_target<T>(
+        &self,
+        target: PointerTargetId,
+        f: impl FnOnce(&PointerTarget) -> T,
+    ) -> Option<T> {
+        match self.get_mouse_target(target) {
+            Some(target) => Some(f(&target)),
+            None => {
+                WARNING!("Internal error. Symbol ID {target:?} is not registered.");
+                None
             }
         }
     }
-
-    fn from_internal(v: Vector4<u32>) -> Self {
-        if v.w == 0 {
-            Self::Background
-        } else if v.w == 255 {
-            let decoded = Self::decode(v.x, v.y, v.z);
-            let symbol_id = SymbolId::new(decoded.0);
-            let instance_id = attribute::InstanceIndex::new(decoded.1 as usize);
-            Self::Symbol { symbol_id, instance_id }
-        } else {
-            panic!("Wrong internal format alpha for mouse target.")
-        }
-    }
-
-    pub fn is_background(self) -> bool {
-        self == Self::Background
-    }
-
-    pub fn is_symbol(self) -> bool {
-        !self.is_background()
-    }
 }
 
-impl Default for PointerTarget {
-    fn default() -> Self {
-        Self::Background
-    }
-}
-
-
-// === Target Tests ===
-
-#[cfg(test)]
-mod target_tests {
-    use super::*;
-
-    /// Asserts that decoding encoded the given values returns the correct initial values again.
-    /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
-    fn assert_valid_roundtrip(value1: u32, value2: u32) {
-        let pack = PointerTarget::encode(value1, value2);
-        match pack {
-            DecodingResult::Truncated { .. } => {
-                panic!("Values got truncated. This is an invalid test case: {}, {}", value1, value1)
-            }
-            DecodingResult::Ok(pack0, pack1, pack2) => {
-                let unpack = PointerTarget::decode(pack0.into(), pack1.into(), pack2.into());
-                assert_eq!(unpack.0, value1);
-                assert_eq!(unpack.1, value2);
-            }
-        }
-    }
-
-    #[test]
-    fn test_roundtrip_coding() {
-        assert_valid_roundtrip(0, 0);
-        assert_valid_roundtrip(0, 5);
-        assert_valid_roundtrip(512, 0);
-        assert_valid_roundtrip(1024, 64);
-        assert_valid_roundtrip(1024, 999);
-    }
-
-    #[test]
-    fn test_encoding() {
-        let pack = PointerTarget::encode(0, 0);
-        assert_eq!(pack, DecodingResult::Ok(0, 0, 0));
-
-        let pack = PointerTarget::encode(3, 7);
-        assert_eq!(pack, DecodingResult::Ok(0, 48, 7));
-
-        let pack = PointerTarget::encode(3, 256);
-        assert_eq!(pack, DecodingResult::Ok(0, 49, 0));
-
-        let pack = PointerTarget::encode(255, 356);
-        assert_eq!(pack, DecodingResult::Ok(15, 241, 100));
-
-        let pack = PointerTarget::encode(256, 356);
-        assert_eq!(pack, DecodingResult::Ok(16, 1, 100));
-
-        let pack = PointerTarget::encode(31256, 0);
-        assert_eq!(pack, DecodingResult::Truncated(161, 128, 0));
+impl ShapeRegistryData {
+    fn init(mut self, background: &PointerTarget) -> Self {
+        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+        self
     }
 }
 
@@ -311,8 +159,8 @@ pub struct Mouse {
     pub mouse_manager: MouseManager,
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
-    pub hover_ids:     Uniform<Vector4<u32>>,
-    pub target:        Rc<Cell<PointerTarget>>,
+    pub hover_rgba:    Uniform<Vector4<u32>>,
+    pub target:        Rc<Cell<PointerTargetId>>,
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
@@ -328,10 +176,10 @@ impl Mouse {
         logger: Logger,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
-        let target = PointerTarget::default();
+        let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2::new(0, 0));
-        let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
+        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
@@ -370,7 +218,7 @@ impl Mouse {
             mouse_manager,
             last_position,
             position,
-            hover_ids,
+            hover_rgba,
             target,
             handles,
             frp,
@@ -382,12 +230,12 @@ impl Mouse {
     /// Re-emits FRP mouse changed position event with the last mouse position value.
     ///
     /// The immediate question that appears is why it is even needed. The reason is tightly coupled
-    /// with how the rendering engine works and it is important to understand it properly. When
+    /// with how the rendering engine works, and it is important to understand it properly. When
     /// moving a mouse the following events happen:
     /// - `MouseManager` gets notification and fires callbacks.
     /// - Callback above is run. The value of `screen_position` uniform changes and FRP events are
     ///   emitted.
-    /// - FRP events propagate trough the whole system.
+    /// - FRP events propagate through the whole system.
     /// - The rendering engine renders a frame and waits for the pixel read pass to report symbol ID
     ///   under the cursor. This is normally done the next frame but sometimes could take even few
     ///   frames.
@@ -872,6 +720,7 @@ pub struct SceneData {
     pub mouse:                Mouse,
     pub keyboard:             Keyboard,
     pub uniforms:             Uniforms,
+    pub background:           PointerTarget,
     pub shapes:               ShapeRegistry,
     pub stats:                Stats,
     pub dirty:                Dirty,
@@ -905,7 +754,8 @@ impl SceneData {
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
-        let shapes = ShapeRegistry::default();
+        let background = PointerTarget::new();
+        let shapes = ShapeRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
@@ -945,6 +795,7 @@ impl SceneData {
             keyboard,
             uniforms,
             shapes,
+            background,
             stats,
             dirty,
             logger,
@@ -957,6 +808,12 @@ impl SceneData {
             extensions,
             disable_context_menu,
         }
+        .init()
+    }
+
+    fn init(self) -> Self {
+        self.init_mouse_down_and_up_events();
+        self
     }
 
     pub fn set_context(&self, context: Option<&Context>) {
@@ -981,17 +838,6 @@ impl SceneData {
 
     pub fn symbols(&self) -> &SymbolRegistry {
         &self.symbols
-    }
-
-    fn handle_mouse_events(&self) {
-        let new_target = PointerTarget::from_internal(self.mouse.hover_ids.get());
-        let current_target = self.mouse.target.get();
-        if new_target != current_target {
-            self.mouse.target.set(new_target);
-            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
-            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
-            self.mouse.re_emit_position_event(); // See docs to learn why.
-        }
     }
 
     fn update_shape(&self) {
@@ -1094,6 +940,52 @@ impl SceneData {
     }
 }
 
+
+// === Mouse ===
+
+impl SceneData {
+    /// Init handling of mouse up and down events. It is also responsible for discovering of the
+    /// mouse release events. To learn more see the documentation of [`PointerTarget`].
+    fn init_mouse_down_and_up_events(&self) {
+        let network = &self.frp.network;
+        let shapes = &self.shapes;
+        let target = &self.mouse.target;
+        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
+
+        frp::extend! { network
+            eval self.mouse.frp.down ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                pressed.borrow_mut().insert(*button,current_target);
+                shapes.with_mouse_target(current_target, |t| t.mouse_down.emit(button));
+            });
+            eval self.mouse.frp.up ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                if let Some(last_target) = pressed.borrow_mut().remove(button) {
+                    shapes.with_mouse_target(last_target, |t| t.mouse_release.emit(button));
+                }
+                shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
+            });
+        }
+    }
+
+    /// Discover what object the mouse pointer is on.
+    fn handle_mouse_over_and_out_events(&self) {
+        let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
+        let new_target = opt_new_target.unwrap_or_else(|err| {
+            error!(self.logger, "{err}");
+            default()
+        });
+        let current_target = self.mouse.target.get();
+        if new_target != current_target {
+            self.mouse.target.set(new_target);
+            self.shapes.with_mouse_target(current_target, |t| t.mouse_out.emit(()));
+            self.shapes.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
+            self.mouse.re_emit_position_event(); // See docs to learn why.
+        }
+    }
+}
+
+
 impl display::Object for SceneData {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
@@ -1193,7 +1085,7 @@ impl Scene {
                 self.layers.update();
                 self.update_shape();
                 self.update_symbols();
-                self.handle_mouse_events();
+                self.handle_mouse_over_and_out_events();
             })
         }
     }

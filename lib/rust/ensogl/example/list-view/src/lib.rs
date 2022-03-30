@@ -38,9 +38,9 @@ use logger::TraceLogger as Logger;
 // ===================
 
 /// An entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_list_view() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);

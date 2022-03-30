@@ -1,5 +1,5 @@
 [package]
-name = "ensogl-example-shape-system"
+name = "ensogl-example-custom-shape-system"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
@@ -10,5 +10,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ensogl-core = { path = "../../core" }
+enso-frp = { path = "../../../frp" }
 wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
 enso-profiler = { path = "../../../profiler"}
