@@ -41,7 +41,7 @@ polyglot java import java.util.HashSet
      If set to `Ignore`, the operation proceeds without errors or warnings.
 select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
 select_columns internal_columns selector reorder on_problems =
-    problem_builder = Problem_Builder.new on_problems
+    problem_builder = Problem_Builder.new
     result = here.select_columns_helper internal_columns selector reorder problem_builder
     problems = problem_builder.build_problemset + if result.is_empty then [No_Output_Columns] else []
     on_problems.attach_problems_after result problems
@@ -64,7 +64,7 @@ select_columns internal_columns selector reorder on_problems =
      If set to `Ignore`, the operation proceeds without errors or warnings.
 remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Vector
 remove_columns internal_columns selector on_problems =
-    problem_builder = Problem_Builder.new on_problems
+    problem_builder = Problem_Builder.new
     selection = here.select_columns_helper internal_columns selector reorder=False problem_builder
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
     result = internal_columns.filter column->
@@ -94,9 +94,9 @@ remove_columns internal_columns selector on_problems =
      If set to `Ignore`, the operation proceeds without errors or warnings.
 reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Vector
 reorder_columns internal_columns selector position on_problems =
-    problem_builder = Problem_Builder.new on_problems
+    problem_builder = Problem_Builder.new
     selection = here.select_columns_helper internal_columns selector reorder=True problem_builder
-    problem_builder.attach_to_computation <|
+    problem_builder.attach_to_computation on_problems <|
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         other_columns = internal_columns.filter column->
             is_selected = selected_names.get_or_else column.name False
@@ -128,7 +128,7 @@ rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Map
 rename_columns internal_columns mapping on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
-    problem_builder = Problem_Builder.new on_problems
+    problem_builder = Problem_Builder.new
 
     name_mapper vec ms =
         good_names = here.validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
@@ -244,6 +244,25 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
         here.select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
+   A helper function which selects a single column from the table. It is aligned with the
+   `select_columns_helper`.
+resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
+resolve_column_helper internal_columns selector problem_builder = case selector of
+    Text ->
+        matched_columns = Matching.match_criteria_callback (Text_Matcher case_sensitive=True) internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+        if matched_columns.length == 1 then matched_columns.first else
+            if matched_columns.length == 0 then Nothing else
+                Panic.throw (Illegal_State_Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
+    Integer -> case here.is_index_valid internal_columns.length selector of
+        True -> internal_columns.at selector
+        False ->
+            problem_builder.report_oob_indices [selector]
+            Nothing
+    ## A wildcard to match any backend's column.
+    _ ->
+        here.resolve_column_helper internal_columns selector.name problem_builder=problem_builder
+
+## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
@@ -319,6 +338,3 @@ validate_unique vector problem_callback on=(x->x) =
     if duplicates.not_empty then problem_callback duplicates
 
     acc.at 1 . to_vector
-
-## PRIVATE
-type Validation_Result valid problems

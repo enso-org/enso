@@ -6,7 +6,7 @@ import Standard.Table.Internal.Vector_Builder
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
-    type Problem_Builder problem_behavior oob_indices  duplicate_column_selectors input_indices_already_matched missing_input_columns other
+    type Problem_Builder oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
     report_oob_indices indices =
         here.append_to_ref this.oob_indices indices
@@ -23,11 +23,10 @@ type Problem_Builder
     report_other_warning warning =
         this.other.append warning
 
+    ## Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset =
         problems = Vector.new_builder
-        ## TODO we could have a builder from_vector
-        this.other.to_vector.each problems.append
         build_vector_and_append ref problem_creator =
             vec = Ref.get ref . build
             if vec.not_empty then
@@ -37,20 +36,29 @@ type Problem_Builder
         build_vector_and_append this.duplicate_column_selectors Duplicate_Column_Selectors
         build_vector_and_append this.input_indices_already_matched Input_Indices_Already_Matched
         build_vector_and_append this.missing_input_columns Missing_Input_Columns
+        this.other.to_vector.each problems.append
 
         problems.to_vector
 
-    attach_to_result result =
-        this.problem_behavior.attach_problems_after result this.build_problemset
+    ## Attaches gathered warnings to the result.
+       Any errors from the `result` take precedence over the ones owned by this
+       builder.
+    attach_to_result : Problem_Behavior -> Any -> Any
+    attach_to_result problem_behavior result =
+        problem_behavior.attach_problems_after result this.build_problemset
 
-    attach_to_computation ~computation =
-        this.problem_behavior.attach_problems_before this.build_problemset computation
+    ## Attaches gathered warnings to the result of the provided computation.
+       If in `Report_Error` mode and there are any problems gathered, the first
+       one will be returned as error without even running the computation.
+    attach_to_computation : Problem_Behavior -> Any -> Any
+    attach_to_computation problem_behavior ~computation =
+        problem_behavior.attach_problems_before this.build_problemset computation
 
 ## PRIVATE
    Creates a new helper object for aggregating problems to report.
-new : Problem_Behavior -> Problem_Builder
-new problem_behavior =
-    Problem_Builder problem_behavior (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+new : Problem_Builder
+new =
+    Problem_Builder (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.

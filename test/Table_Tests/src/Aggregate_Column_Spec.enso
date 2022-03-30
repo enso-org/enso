@@ -2,7 +2,10 @@ from Standard.Base import all
 
 import Standard.Table.Data.Table
 from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Data.Column_Selector import By_Name, By_Index
 import Standard.Table.Internal.Aggregate_Column_Aggregator
+import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Problem_Builder
 
 import Standard.Test
 
@@ -17,9 +20,15 @@ spec = Test.group "Aggregate Columns" <|
     test_name = "Test Column"
 
     test_aggregator table col expected_name expected_result epsilon=False =
-        col.column_name table . should_equal expected_name
+        problem_builder = Problem_Builder.new
+        resolved = Aggregate_Column_Helper.resolve_aggregate table problem_builder col
+        name = case resolved.new_name of
+            Nothing ->
+                Aggregate_Column_Helper.default_aggregate_column_name resolved
+            overridden -> overridden
+        name . should_equal expected_name
 
-        acc = Aggregate_Column_Aggregator.new table col
+        acc = Aggregate_Column_Aggregator.new resolved
         folded_value = 0.up_to table.row_count . fold acc.initial acc.accumulator
         result = acc.finalizer folded_value
 
@@ -139,9 +148,9 @@ spec = Test.group "Aggregate Columns" <|
         test_aggregator simple_table (Count_Distinct float_col test_name ignore_nothing=True) test_name 4
 
     Test.specify "should be able to count distinct items on a multiple sets of values" <|
-        test_aggregator simple_table (Count_Distinct [0, 1]) "Count Distinct count is_valid" 5
-        test_aggregator simple_table (Count_Distinct ["is_valid", "float"]) "Count Distinct is_valid float" 5
-        test_aggregator simple_table (Count_Distinct ["is_valid", "float"] ignore_nothing=True) "Count Distinct is_valid float" 4
+        test_aggregator simple_table (Count_Distinct (By_Index [0, 1])) "Count Distinct count is_valid" 5
+        test_aggregator simple_table (Count_Distinct (By_Name ["is_valid", "float"])) "Count Distinct is_valid float" 5
+        test_aggregator simple_table (Count_Distinct (By_Name ["is_valid", "float"]) ignore_nothing=True) "Count Distinct is_valid float" 4
 
     Test.specify "should be able to get the minimum of a set of values" <|
         test_aggregator simple_table (Minimum -2) "Minimum float" 1

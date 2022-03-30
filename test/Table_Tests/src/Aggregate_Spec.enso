@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table
-import Standard.Table.Data.Column_Selector
+from Standard.Table.Data.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
@@ -74,7 +74,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
         Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
             ## TODO [RW] add Count_Distinct with overridden ignore_nothing! also need to modify data.csv to include some nulls on index and flag
-            grouped = materialize <| table.aggregate [Count_Distinct ["Index", "Flag"]]
+            grouped = materialize <| table.aggregate [Count_Distinct (By_Name ["Index", "Flag"])]
             grouped.row_count . should_equal 1
             grouped.columns.length . should_equal 1
             grouped.columns.at 0 . name . should_equal "Count Distinct Index Flag"
@@ -360,7 +360,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
         Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"]]
+            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"])]
             grouped.row_count . should_equal 10
             grouped.columns.length . should_equal 2
             grouped.columns.at 0 . name . should_equal "Index"
@@ -509,7 +509,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
         Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"], Group_By "Flag"]
+            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"]), Group_By "Flag"]
             grouped.row_count . should_equal 20
             grouped.columns.length . should_equal 3
             grouped.columns.at 0 . name . should_equal "Index"
