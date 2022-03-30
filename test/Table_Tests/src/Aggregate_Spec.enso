@@ -669,7 +669,7 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
     problem_pending = case pending.is_nothing of
         False -> pending
-        True -> if test_selection.advanced_stats.not then "Not supported."
+        True -> if test_selection.problem_handling.not then "Not supported."
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=problem_pending <|
         table =
             col1 = ["Index", [1, 2, 3]]
