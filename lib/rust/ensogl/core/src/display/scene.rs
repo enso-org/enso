@@ -1145,3 +1145,28 @@ impl<'t> DomPath for &'t str {
         web::document.get_html_element_by_id(self)
     }
 }
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Extended API for tests.
+pub mod test_utils {
+    use super::*;
+
+    pub trait MouseExt {
+        /// Emulate click on background for testing purposes.
+        fn click_on_background(&self);
+    }
+
+    impl MouseExt for Mouse {
+        fn click_on_background(&self) {
+            self.target.set(PointerTargetId::Background);
+            let left_mouse_button = frp::io::mouse::Button::Button0;
+            self.frp.down.emit(left_mouse_button);
+            self.frp.up.emit(left_mouse_button);
+        }
+    }
+}

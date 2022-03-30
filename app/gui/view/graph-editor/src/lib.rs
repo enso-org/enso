@@ -2393,6 +2393,18 @@ pub struct GraphEditor {
     pub frp:   Frp,
 }
 
+impl GraphEditor {
+    /// Graph editor nodes.
+    pub fn nodes(&self) -> &Nodes {
+        &self.model.nodes
+    }
+
+    /// Graph editor edges.
+    pub fn edges(&self) -> &Edges {
+        &self.model.edges
+    }
+}
+
 impl Deref for GraphEditor {
     type Target = Frp;
     fn deref(&self) -> &Self::Target {
@@ -2734,9 +2746,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
     create_edge_from_output <- node_output_touch.down.gate_not(&has_detached_edge_on_output_down);
     create_edge_from_input  <- node_input_touch.down.map(|value| value.clone());
-
-
-    // === Edge creation  ===
 
     on_new_edge    <- any(&output_down,&input_down);
     let selection_mode = selection::get_mode(network,inputs);
@@ -3633,5 +3642,174 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 impl display::Object for GraphEditor {
     fn display_object(&self) -> &display::object::Instance {
         self.model.display_object()
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod graph_editor_tests {
+    use super::*;
+    use application::test_utils::ApplicationExt;
+    use ensogl::control::io::mouse::PrimaryButton;
+    use ensogl::display::scene::test_utils::MouseExt;
+    use node::test_utils::NodeModelExt;
+
+    #[test]
+    fn test_adding_node_by_internal_api() {
+        let (_, graph_editor) = init();
+        assert_eq!(graph_editor.nodes().len(), 0);
+        graph_editor.add_node();
+        assert_eq!(graph_editor.nodes().len(), 1);
+        graph_editor.assert(Case { node_source: None, should_edit: false });
+    }
+
+    #[test]
+    fn test_adding_node_by_shortcut() {
+        let add_node = |editor: &GraphEditor| editor.start_node_creation();
+        test_adding_node(add_node);
+    }
+
+    #[test]
+    fn test_adding_node_by_adding_node_button() {
+        let add_node = |editor: &GraphEditor| {
+            let adding_node_button = &editor.model.add_node_button;
+            adding_node_button.click();
+        };
+        test_adding_node(add_node);
+    }
+
+    fn test_adding_node(add_node: impl Fn(&GraphEditor)) {
+        let (app, graph_editor) = init();
+        assert_eq!(graph_editor.nodes().len(), 0);
+
+        // Adding first node.
+        let (node_1_id, node_1) = graph_editor.add_node_by(&add_node);
+        graph_editor.assert(Case { node_source: None, should_edit: true });
+        graph_editor.stop_editing();
+        assert_eq!(graph_editor.nodes().len(), 1);
+
+        // First node is created in the center of the screen.
+        let node_1_pos = node_1.position();
+        let screen_center = app.display.default_scene.screen_to_scene_coordinates(Vector3::zeros());
+        assert_eq!(node_1_pos.xy(), screen_center.xy());
+
+        // Adding second node with the first node selected.
+        graph_editor.nodes().select(node_1_id);
+        let (_, node_2) = graph_editor.add_node_by(&add_node);
+        graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
+        assert_eq!(graph_editor.nodes().len(), 2);
+
+        // Second node is below the first and left-aligned to it.
+        let node_2_pos = node_2.position();
+        assert!(node_2_pos.y < node_1_pos.y);
+        assert_eq!(node_2_pos.x, node_1_pos.x);
+    }
+
+    #[test]
+    fn test_adding_node_by_dropping_edge() {
+        let (app, graph_editor) = init();
+        assert_eq!(graph_editor.nodes().len(), 0);
+        // Adding a new node.
+        let (node_1_id, node_1) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        // Creating edge.
+        let port = node_1.model.output_port_shape().expect("No output port.");
+        port.events.mouse_down.emit(PrimaryButton);
+        port.events.mouse_up.emit(PrimaryButton);
+        assert_eq!(graph_editor.edges().len(), 1);
+        // Dropping edge.
+        let mouse = &app.display.default_scene.mouse;
+        let click_pos = Vector2(300.0, 300.0);
+        mouse.frp.position.emit(click_pos);
+        let click_on_background = |_: &GraphEditor| mouse.click_on_background();
+        let (_, node_2) = graph_editor.add_node_by(&click_on_background);
+        graph_editor.assert(Case { node_source: Some(node_1_id), should_edit: true });
+        let node_pos = node_2.position();
+        assert_eq!(node_pos.xy(), click_pos);
+    }
+
+    #[test]
+    fn test_connecting_two_nodes() {
+        let (_, ref graph_editor) = init();
+        let edges = graph_editor.edges();
+        assert!(graph_editor.nodes().is_empty());
+        assert!(edges.is_empty());
+        // Adding two nodes.
+        let (node_id_1, node_1) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        let (node_id_2, node_2) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+        // Creating edge.
+        let port = node_1.model.output_port_shape().expect("No output port.");
+        port.events.mouse_down.emit(PrimaryButton);
+        port.events.mouse_up.emit(PrimaryButton);
+        let edge_id = graph_editor.on_edge_add.value();
+        let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
+        assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
+        assert_eq!(edge.target().map(|e| e.node_id), None);
+        assert_eq!(edges.len(), 1);
+        // Connecting edge.
+        // We need to enable ports. Normally it is done by hovering the node.
+        node_2.model.input.frp.set_ports_active(true, None);
+        let port = node_2.model.input_port_shape().expect("No input port.");
+        port.hover.events.mouse_down.emit(PrimaryButton);
+        port.hover.events.mouse_up.emit(PrimaryButton);
+        assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
+        assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
+    }
+
+
+    // === Test utilities ===
+
+    /// An assertion case used when adding new nodes. See [`GraphEditor::assert`] below.
+    struct Case {
+        /// A source node of the added node.
+        node_source: Option<NodeId>,
+        /// Should we start the node editing immediately after adding it?
+        should_edit: bool,
+    }
+
+    impl GraphEditor {
+        fn add_node_by<F: Fn(&GraphEditor)>(&self, add_node: &F) -> (NodeId, Node) {
+            add_node(self);
+            let (node_id, ..) = self.node_added.value();
+            let node = self.nodes().get_cloned_ref(&node_id).expect("Node was not added.");
+            node.set_expression(node::Expression::new_plain("some_not_empty_expression"));
+            (node_id, node)
+        }
+
+        fn add_node_by_api(&self) -> (NodeId, Node) {
+            let add_node = |editor: &GraphEditor| editor.add_node();
+            self.add_node_by(&add_node)
+        }
+
+        fn assert(&self, case: Case) {
+            let (added_node, node_source, should_edit) = self.node_added.value();
+            let node_being_edited = self.node_being_edited.value();
+            assert_eq!(
+                should_edit, case.should_edit,
+                "Node editing state does not match expected."
+            );
+            assert_eq!(should_edit, node_being_edited.is_some());
+            if let Some(node_being_edited) = node_being_edited {
+                assert_eq!(node_being_edited, added_node, "Edited node does not match added one.");
+            }
+            let node_source = node_source.map(|source| source.node);
+            assert_eq!(node_source, case.node_source, "Source node does not match expected.");
+        }
+    }
+
+    fn init() -> (Application, GraphEditor) {
+        let app = Application::new("root");
+        app.set_screen_size_for_tests();
+        let graph_editor = new_graph_editor(&app);
+        let mouse = &app.display.default_scene.mouse;
+        mouse.frp.position.emit(Vector2::zeros());
+        (app, graph_editor)
     }
 }
