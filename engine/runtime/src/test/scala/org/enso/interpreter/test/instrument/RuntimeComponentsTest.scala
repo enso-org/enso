@@ -55,7 +55,7 @@ class RuntimeComponentsTest
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
     val editionHome: File =
-      Paths.get("../../distribution/lib").normalize.toFile.getAbsoluteFile
+      Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
     val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
