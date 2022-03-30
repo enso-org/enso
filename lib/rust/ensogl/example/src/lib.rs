@@ -30,6 +30,7 @@
 
 pub use ensogl_example_animation as animation;
 pub use ensogl_example_complex_shape_system as complex_shape_system;
+pub use ensogl_example_component_group as component_group;
 pub use ensogl_example_dom_symbols as dom_symbols;
 pub use ensogl_example_drop_manager as drop_manager;
 pub use ensogl_example_easing_animator as easing_animator;
