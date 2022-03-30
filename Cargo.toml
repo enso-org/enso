@@ -16,7 +16,7 @@ members = [
 default-members = ["app/gui", "lib/rust/*"]
 
 [profile.dev]
-opt-level = 0
+opt-level = 2
 lto = false
 debug = true
 debug-assertions = true
