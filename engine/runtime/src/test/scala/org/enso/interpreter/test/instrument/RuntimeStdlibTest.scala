@@ -10,7 +10,7 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
-import org.scalatest.concurrent.TimeLimits
+import org.scalatest.concurrent.{TimeLimitedTests, TimeLimits}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -25,11 +25,14 @@ import scala.concurrent.duration._
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeStdlibTest
     extends AnyFlatSpec
+    with TimeLimitedTests
     with TimeLimits
     with Matchers
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  override val timeLimit = 5.minutes
 
   final val ContextPathSeparator: String = File.pathSeparator
 
@@ -55,7 +58,7 @@ class RuntimeStdlibTest
         tmpDir.toFile,
         packageName,
         "Enso_Test",
-        edition = Some(TestEdition.edition)
+        edition = Some(TestEdition.stdlib)
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
@@ -150,11 +153,17 @@ class RuntimeStdlibTest
 
     val metadata = new Metadata
 
+    val imports = TestEdition.stdlibLibraries.tail
+      .map(lib => s"import ${lib.namespace}.${lib.name}")
+      .mkString(System.lineSeparator())
+
     val code =
-      """from Standard.Base import all
-        |
-        |main = IO.println "Hello World!"
-        |""".stripMargin.linesIterator.mkString("\n")
+      s"""from Standard.Base import all
+         |
+         |$imports
+         |
+         |main = IO.println "Hello World!"
+         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -187,7 +196,7 @@ class RuntimeStdlibTest
     val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 60
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
@@ -248,12 +257,13 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    contentRootNotifications should contain(
-      ("Standard", "Base", TestEdition.testLibraryVersion.toString)
-    )
+    val expectedLibraries = TestEdition.stdlibLibraries.map { lib =>
+      (lib.namespace, lib.name, TestEdition.testLibraryVersion.toString)
+    }
+    contentRootNotifications should contain theSameElementsAs expectedLibraries
 
     // check documentation generation
-    failAfter(60.seconds) {
+    failAfter(30.seconds) {
       responses.collect {
         case Api.Response(
               None,
