@@ -70,20 +70,21 @@ impl MockEntries {
     }
 }
 
-impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> for MockEntries {
+impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
     fn entry_count(&self) -> usize {
         self.entries_count
     }
 
-    fn get(&self, id: usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
+    fn get(&self, id: usize) -> Option<String> {
         if id >= self.entries_count {
             None
         } else {
             let label = iformat!("Entry {id}");
-            // TODO[AO]: The highlight below should use SDF-based bold mechanism
-            // (see: https://www.pivotaltracker.com/story/show/181641027)
-            let highlighted = if id == 5 { vec![(Bytes(1)..Bytes(3)).into()] } else { vec![] };
-            Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
+            // // TODO[AO]: The highlight below should use SDF-based bold mechanism
+            // // (see: https://www.pivotaltracker.com/story/show/181641027)
+            // let highlighted = if id == 5 { vec![(Bytes(1)..Bytes(3)).into()] } else { vec![] };
+            // Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
+            Some(label)
         }
     }
 }
@@ -121,8 +122,8 @@ fn init(app: &Application) {
 
     let component_group_view = app.new_view::<component_group_view::View>();
     let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
-    component_group_view.frp.resize(Vector2(100.0, 160.0));
-    component_group_view.frp.set_entries(provider);
+    component_group_view.resize(Vector2(100.0, 160.0));
+    component_group_view.set_entries(provider);
     app.display.add_child(&component_group_view);
 
     std::mem::forget(component_group_view);
