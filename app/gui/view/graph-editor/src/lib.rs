@@ -3655,8 +3655,8 @@ impl display::Object for GraphEditor {
 mod graph_editor_tests {
     use super::*;
     use application::test_utils::ApplicationExt;
-    use ensogl::display::scene::test_utils::MouseExt;
     use ensogl::control::io::mouse::PrimaryButton;
+    use ensogl::display::scene::test_utils::MouseExt;
     use node::test_utils::NodeModelExt;
 
     #[test]
