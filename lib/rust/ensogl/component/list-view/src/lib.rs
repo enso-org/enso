@@ -250,18 +250,18 @@ ensogl_core::define_endpoints! {
         /// Deselect all entries.
         deselect_entries(),
 
-        resize       (Vector2<f32>),
-        scroll_jump  (f32),
-        set_entries  (entry::AnyModelProvider<E>),
-        select_entry (entry::Id),
-        chose_entry  (entry::Id),
+        resize(Vector2<f32>),
+        scroll_jump(f32),
+        set_entries(entry::AnyModelProvider<E>),
+        select_entry(entry::Id),
+        chose_entry(entry::Id),
     }
 
     Output {
-        selected_entry  (Option<entry::Id>),
-        chosen_entry    (Option<entry::Id>),
-        size            (Vector2<f32>),
-        scroll_position (f32),
+        selected_entry(Option<entry::Id>),
+        chosen_entry(Option<entry::Id>),
+        size(Vector2<f32>),
+        scroll_position(f32),
     }
 }
 
