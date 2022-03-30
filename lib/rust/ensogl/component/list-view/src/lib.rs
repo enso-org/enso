@@ -151,16 +151,12 @@ impl<E: Entry> Model<E> {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        // background.show_shadow.set(1.0);
         Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
-    pub fn show_background(&self, value: bool) {
-        if value {
-            self.background.show_shadow.set(1.0);
-        } else {
-            self.background.show_shadow.set(0.0);
-        }
+    pub fn show_background_shadow(&self, value: bool) {
+        let alpha = if value { 1.0 } else { 0.0 };
+        self.background.show_shadow.set(alpha);
     }
 
     fn padding(&self) -> f32 {
@@ -264,7 +260,7 @@ ensogl_core::define_endpoints! {
         set_entries(entry::AnyModelProvider<E>),
         select_entry(entry::Id),
         chose_entry(entry::Id),
-        show_background(bool),
+        show_background_shadow(bool),
     }
 
     Output {
@@ -322,13 +318,13 @@ where E::Model: Default
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
-        model.show_background(true);
+        model.show_background_shadow(true);
 
         frp::extend! { network
 
             // === Background Visibility ===
 
-            eval frp.show_background ((t) model.show_background(*t));
+            eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
 
 
             // === Mouse Position ===
