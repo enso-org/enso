@@ -3,19 +3,9 @@ package org.enso.interpreter.test.instrument
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName}
 
-object TestEdition {
+import java.io.File
 
-  val stdlibLibraries: Seq[LibraryName] = Seq(
-    LibraryName("Standard", "Base"),
-    LibraryName("Standard", "Test"),
-    LibraryName("Standard", "Table"),
-    LibraryName("Standard", "Database"),
-    LibraryName("Standard", "Image"),
-    LibraryName("Standard", "Geo"),
-    LibraryName("Standard", "Visualization"),
-    LibraryName("Standard", "Examples"),
-    LibraryName("Standard", "Searcher")
-  )
+object TestEdition {
 
   val testLibraryVersion: SemVer = SemVer(0, 0, 0, Some("dev"))
 
@@ -27,8 +17,16 @@ object TestEdition {
       libraries = Map()
     )
 
-  val stdlib: Editions.RawEdition =
-    mkEdition(stdlibLibraries)
+  def readStdlib(path: File): Editions.RawEdition =
+    mkEdition(readStdlibLibraries(path))
+
+  def readStdlibLibraries(path: File): Seq[LibraryName] =
+    for {
+      namespace <- path.listFiles.toSeq
+      if namespace.isDirectory
+      name <- namespace.listFiles
+      if name.isDirectory
+    } yield LibraryName(namespace.getName, name.getName)
 
   private def mkEdition(libraries: Seq[LibraryName]): Editions.RawEdition =
     empty.copy(

@@ -49,6 +49,9 @@ class RuntimeStdlibTest
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val editionHome: File =
+      Paths.get(distributionHome.toString, "..", "lib").toFile.getAbsoluteFile
+    val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -58,7 +61,7 @@ class RuntimeStdlibTest
         tmpDir.toFile,
         packageName,
         "Enso_Test",
-        edition = Some(TestEdition.stdlib)
+        edition = Some(edition)
       )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
@@ -153,7 +156,8 @@ class RuntimeStdlibTest
 
     val metadata = new Metadata
 
-    val imports = TestEdition.stdlibLibraries.tail
+    val imports = context.edition.libraries.keys
+      .filter(_.name != "Base")
       .map(lib => s"import ${lib.namespace}.${lib.name}")
       .mkString(System.lineSeparator())
 
@@ -257,7 +261,7 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    val expectedLibraries = TestEdition.stdlibLibraries.map { lib =>
+    val expectedLibraries = context.edition.libraries.keys.map { lib =>
       (lib.namespace, lib.name, TestEdition.testLibraryVersion.toString)
     }
     contentRootNotifications should contain theSameElementsAs expectedLibraries

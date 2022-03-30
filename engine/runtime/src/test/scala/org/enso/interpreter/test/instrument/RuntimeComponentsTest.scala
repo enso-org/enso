@@ -54,6 +54,9 @@ class RuntimeComponentsTest
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val editionHome: File =
+      Paths.get(distributionHome.toString, "..", "lib").toFile.getAbsoluteFile
+    val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -76,7 +79,7 @@ class RuntimeComponentsTest
         root            = tmpDir.toFile,
         name            = packageName,
         namespace       = "Enso_Test",
-        edition         = Some(TestEdition.stdlib),
+        edition         = Some(edition),
         componentGroups = componentGroups
       )
     }
