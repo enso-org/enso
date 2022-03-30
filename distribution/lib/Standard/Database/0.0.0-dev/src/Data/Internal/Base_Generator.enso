@@ -69,6 +69,22 @@ make_unary_op name =
 
 ## PRIVATE
 
+   A helper function to create an unary operation from a function.
+
+   Arguments:
+   - name: Name of the operation, used for error reporting.
+   - function: A function taking exactly one argument: the generated SQL code
+     for the argument of the operation, and returning the generated SQL code for
+     the whole operation.
+lift_unary_op : Text -> (Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
+lift_unary_op name function =
+    generator = arguments -> case arguments.length == 1 of
+        False -> Error.throw ("Invalid amount of arguments for operation " + name + ".")
+        True -> function (arguments.at 0)
+    [name, generator]
+
+## PRIVATE
+
    A helper function to create a unary operator which is added to the right of
    the expression.
 
@@ -128,16 +144,21 @@ wrap_in_quotes identifier =
    It is a base to help creating concrete dialects. It can be extended or
    completely overridden.
 base_dialect =
-    bin = here.make_binary_op
-    unary = here.make_unary_op
-    fun = here.make_function
-    arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
-    logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
-    compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
-    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"], ["SUM", fun "SUM"], ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
-    nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
-    base_map = Map.from_vector (arith + logic + compare + agg + nulls)
+    bin = name -> [name, here.make_binary_op name]
+    unary = name -> [name, here.make_unary_op name]
+    fun = name -> [name, here.make_function name]
+    arith = [bin "+", bin "-", bin "*", bin "/"]
+    logic = [bin "AND", bin "OR", unary "NOT"]
+    compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">="]
+    agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
+    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], here.count_distinct]
+    nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
+    base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
     Internal_Dialect base_map here.wrap_in_quotes
+
+## PRIVATE
+count_distinct = here.lift_unary_op "COUNT_DISTINCT" arg->
+    Sql.code "COUNT(DISTINCT " ++ arg.paren ++ Sql.code ")"
 
 ## PRIVATE
 
@@ -153,7 +174,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+op+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+kind+" is not supported.")
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 

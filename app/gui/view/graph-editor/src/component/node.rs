@@ -696,7 +696,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down;
+            out.background_press <+ model.drag_area.events.mouse_down.constant(());
             out.background_press <+ model.input.on_background_press;
 
 
@@ -967,5 +967,55 @@ impl Node {
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
+    }
+}
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Test-specific API.
+pub mod test_utils {
+    use super::*;
+
+    /// Addional [`NodeModel`] API for tests.
+    pub trait NodeModelExt {
+        /// Return the `SinglePortView` of the first output port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no output ports.
+        /// 2. If the port does not have a `PortShapeView`. Some port models does not initialize
+        ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
+        /// 3. If the output port is [`MultiPortView`].
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+
+        /// Return the `Shape` of the first input port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no input ports.
+        /// 2. If the port does not have a `Shape`. Some port models does not initialize the
+        ///    `Shape`, see [`input::port::Model::init_shape`].
+        fn input_port_shape(&self) -> Option<input::port::Shape>;
+    }
+
+    impl NodeModelExt for NodeModel {
+        fn output_port_shape(&self) -> Option<output::port::SinglePortView> {
+            let ports = self.output.model.ports();
+            let port = ports.first()?;
+            let shape = port.shape.as_ref()?;
+            use output::port::PortShapeView::Single;
+            match shape {
+                Single(shape) => Some(shape.clone_ref()),
+                _ => None,
+            }
+        }
+
+        fn input_port_shape(&self) -> Option<input::port::Shape> {
+            let ports = self.input.model.ports();
+            let port = ports.first()?;
+            port.shape.as_ref().map(CloneRef::clone_ref)
+        }
     }
 }

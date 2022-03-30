@@ -1964,8 +1964,14 @@ type System
        - command: The name of the system process.
        - arguments: An array of arguments to the system process.
        - input: The input to pass to the process via standard input.
-    create_process : Text -> Array -> Text -> System_Process_Result
-    create_process command arguments input =
+       - redirect_in: Specifies if the standard input of the program should be
+         redirected to the started process.
+       - redirect_out: Specifies if the standard output of the started process
+         should be redirected to the program's standard output.
+       - redirect_err: Specifies if the standard error output of the started
+         process should be redirected to the program's standard error output.
+    create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
+    create_process command arguments input redirect_in redirect_out redirect_err =
         @Builtin_Method "System.create_process"
 
     ## Exits the Enso program, returning the provided code to the parent

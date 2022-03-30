@@ -252,3 +252,45 @@ impl<T: Storable> CellSetter for Attribute<T> {
         self.buffer.set(self.index.into(), value);
     }
 }
+
+impl<T: Storable + Default> Erase for Attribute<T> {
+    fn erase(&self) {
+        self.set(default())
+    }
+}
+
+
+
+// =============
+// === Erase ===
+// =============
+
+/// Generalization for internally mutable structures which can be erased.
+///
+/// For now, it is placed here, as only [`Attribute`] uses it, but it might be refactored in the
+/// future if it will be usable in more places.
+#[allow(missing_docs)]
+pub trait Erase {
+    fn erase(&self);
+}
+
+/// The provided element will be erased whenever this structure is dropped. Please note that the
+///provided element implements [`CloneRef`] it can still be referenced after this struct is
+/// dropped.
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct EraseOnDrop<T: Erase> {
+    elem: T,
+}
+
+impl<T: Erase> EraseOnDrop<T> {
+    /// Constructor.
+    pub fn new(elem: T) -> Self {
+        Self { elem }
+    }
+}
+
+impl<T: Erase> Drop for EraseOnDrop<T> {
+    fn drop(&mut self) {
+        self.elem.erase()
+    }
+}
