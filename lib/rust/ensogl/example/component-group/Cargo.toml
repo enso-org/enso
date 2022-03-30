@@ -13,7 +13,6 @@ enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-list-view = { path = "../../component/list-view" }
-ensogl-scroll-area = { path = "../../component/scroll-area" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 enso-text = { path = "../../../text" }
 wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
