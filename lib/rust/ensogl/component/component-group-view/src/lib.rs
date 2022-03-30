@@ -69,6 +69,8 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         // let background = &model.background.events;
         frp::extend! { network
+            model.entries.background_visible(false);
+
             model.entries.set_entries <+ api.input.set_entries;
             model.entries.resize <+ api.input.resize;
             // eval api.input.set_content((t) model.set_content(t));

@@ -98,7 +98,7 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style) {
+        (style:Style,show_shadow:f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
@@ -107,7 +107,7 @@ pub mod background {
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
             let shape         = rect.fill(color);
 
-            let shadow  = shadow::from_shape(rect.into(),style);
+            let shadow  = shadow::from_shape_with_alpha(rect.into(),&show_shadow,style);
 
             (shadow + shape).into()
         }
@@ -151,7 +151,16 @@ impl<E: Entry> Model<E> {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
+        background.show_shadow.set(1.0);
         Model { app, entries, selection, background, scrolled_area, display_object }
+    }
+
+    pub fn show_background(&self, value: bool) {
+        if value {
+            self.background.show_shadow.set(1.0);
+        } else {
+            self.background.show_shadow.set(0.0);
+        }
     }
 
     fn padding(&self) -> f32 {
@@ -313,7 +322,18 @@ where E::Model: Default
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
+        model.show_background(true);
+
         frp::extend! { network
+
+            // === Background Visibility ===
+
+            // TODO: rename `set_background_visibility` + same for most other Inputs?
+            background_visible <- frp.background_visible.constant(true);
+            // eval background_visible ((t) model.background.set_visibility(t));
+            // eval background_visible ((t) model.background.show_shadow.set(if *t { 1.0 } else { 0.0 }));
+            eval background_visible ((t) model.show_background(*t));
+
 
             // === Mouse Position ===
 
