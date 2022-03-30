@@ -166,6 +166,8 @@ java_aggregator table name column =
         Sum c _ -> AggregateColumnDefinition.Sum name (resolve c).java_column
         Average c _ -> AggregateColumnDefinition.Mean name (resolve c).java_column
         Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name (resolve c).java_column p
+        Median c _ -> AggregateColumnDefinition.Percentile name (resolve c).java_column 0.5
+        Percentile p c _ -> AggregateColumnDefinition.Percentile name (resolve c).java_column p
         Mode c _ -> AggregateColumnDefinition.Mode name (resolve c).java_column
         First c _ ignore_nothing _ -> AggregateColumnDefinition.First name (resolve c).java_column ignore_nothing
         Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name (resolve c).java_column ignore_nothing
@@ -174,4 +176,4 @@ java_aggregator table name column =
         Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column -1
         Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column 1
         Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name (resolve c).java_column join prefix suffix quote
-        _ -> Error.throw "Not done yet..."
+        _ -> Error.throw "Unsupported aggregation."
