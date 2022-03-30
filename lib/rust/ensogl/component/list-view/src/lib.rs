@@ -264,7 +264,7 @@ ensogl_core::define_endpoints! {
         set_entries(entry::AnyModelProvider<E>),
         select_entry(entry::Id),
         chose_entry(entry::Id),
-        background_visible(bool),
+        show_background(bool),
     }
 
     Output {
@@ -328,12 +328,7 @@ where E::Model: Default
 
             // === Background Visibility ===
 
-            // TODO: rename `set_background_visibility` + same for most other Inputs?
-            eval frp.background_visible ((t) model.show_background(*t));
-            // background_visible <- frp.background_visible.constant(true);
-            // eval background_visible ((t) model.background.set_visibility(t));
-            // eval background_visible ((t) model.background.show_shadow.set(if *t { 1.0 } else { 0.0 }));
-            // eval background_visible ((t) model.show_background(*t));
+            eval frp.show_background ((t) model.show_background(*t));
 
 
             // === Mouse Position ===

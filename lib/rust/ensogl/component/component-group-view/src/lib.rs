@@ -67,11 +67,9 @@ ensogl_core::define_endpoints_2! {
 impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
-        model.entries.background_visible(false);
         // let background = &model.background.events;
         frp::extend! { network
-            // model.entries.background_visible(false);
-            // model.entries.background_visible(true);
+            model.entries.show_background(false);
 
             model.entries.set_entries <+ api.input.set_entries;
             model.entries.resize <+ api.input.resize;
