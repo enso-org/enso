@@ -688,11 +688,14 @@ type Table
 
     ## Returns the amount of rows in this table.
     row_count : Integer
-    row_count =
+    row_count = if this.internal_columns.is_empty then 0 else
         expr = IR.Operation "COUNT_ROWS" []
         column_name = "row_count"
-        virtual_column = IR.Internal_Column "1" Sql.Sql_Type.integer (IR.Constant Sql.Sql_Type.integer 1)
-        setup = this.context.as_subquery this.name [[virtual_column]]
+        ## We need to keep some column in the subquery which will determine if
+           the query is performing regular selection or aggregation. To avoid
+           computing too much we do not pass all the columns but only the first
+           one.
+        setup = this.context.as_subquery this.name [[this.internal_columns.first]]
         new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
         sql = this.connection.dialect.generate_sql query
