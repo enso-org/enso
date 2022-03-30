@@ -54,7 +54,9 @@ use ensogl_shadow as shadow;
 
 ensogl_core::define_endpoints_2! {
     Input {
-        set_entries  (entry::AnyModelProvider<entry::Label>),
+        set_entries(entry::AnyModelProvider<entry::Label>),
+        // TODO: or `set_size(Vector2)` ??
+        resize(Vector2<f32>),
         // set_content(String),
         // set_size(Vector2)
     }
