@@ -71,7 +71,7 @@ type Vector_Builder
        It returns a new builder that will yield a vector that is a concatenation
        of `this` and the argument.
     ++ : Vector_Builder Any | Vector.Vector Any -> Vector_Builder Any
-    ++ other =
+    ++ other = if other.is_empty then this else
         len = this.length + other.length
         case other of
             Leaf _ -> Append this other len

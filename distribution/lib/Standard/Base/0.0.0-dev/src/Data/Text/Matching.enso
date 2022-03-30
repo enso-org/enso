@@ -272,14 +272,13 @@ match_criteria_implementation matcher objects criteria reorder=False name_mapper
 match_criteria_callback matcher objects criteria problem_callback reorder=False name_mapper=(x->x) =
     result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
     unmatched_criteria = result.second
-    problems = if unmatched_criteria.not_empty then
-        problem_callback unmatched_criteria
+    problem_callback unmatched_criteria
     result.first
 
 ## PRIVATE
 internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error (handler = x-> x.payload.unwrap) <|
     ## TODO [RW] discuss: this line of code also shows an issue we had with ensuring input dataflow-errors are correctly propagated, later on we stopped doing that and testing for that as it was too cumbersome. Maybe it could be helped with an @Accepts_Error annotation similar to the one from the interpreter???
-    [matcher, objects, criteria, reorder, name_mapper, on_problems] . each v->
+    [matcher, objects, criteria, reorder, name_mapper] . each v->
         Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
@@ -327,4 +326,4 @@ internal_match_criteria_implementation matcher objects criteria reorder=False na
 type Wrapped_Dataflow_Error payload
 
 ## Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw payload
+Wrapped_Dataflow_Error.unwrap = Error.throw this.payload
