@@ -32,6 +32,7 @@ use ensogl_core::display::shape::Rect;
 use ensogl_core::display::shape::ShapeOps;
 use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::Sprite;
+use ensogl_component_group_view as component_group_view;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -116,25 +117,35 @@ fn init(app: &Application) {
     // std::mem::forget(background);
 
 
+    // === Component Group View ===
+
+    let component_group_view = app.new_view::<component_group_view::View>();
+    let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
+    component_group_view.frp.resize(Vector2(100.0, 160.0));
+    component_group_view.frp.set_entries(provider);
+    app.display.add_child(&component_group_view);
+
+    std::mem::forget(component_group_view);
+
     // === List View ===
 
-    let list_view = app.new_view::<list_view::ListView<list_view::entry::GlyphHighlightedLabel>>();
-    let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
-    list_view.frp.resize(Vector2(100.0, 160.0));
-    list_view.frp.set_entries(provider);
-    app.display.add_child(&list_view);
-    // list_view.set_position_x(100.0);
-    // list_view.set_position_y(-100.0);
-    // FIXME[WD]: This should not be needed after text gets proper depth-handling.
-    // app.display.default_scene.layers.below_main.add_exclusive(&list_view);
+    // let list_view = app.new_view::<list_view::ListView<list_view::entry::GlyphHighlightedLabel>>();
+    // let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
+    // list_view.frp.resize(Vector2(100.0, 160.0));
+    // list_view.frp.set_entries(provider);
+    // app.display.add_child(&list_view);
+    // // list_view.set_position_x(100.0);
+    // // list_view.set_position_y(-100.0);
+    // // FIXME[WD]: This should not be needed after text gets proper depth-handling.
+    // // app.display.default_scene.layers.below_main.add_exclusive(&list_view);
 
-    let logger: Logger = Logger::new("SelectDebugScene");
-    let network = enso_frp::Network::new("test");
-    enso_frp::extend! {network
-        eval list_view.chosen_entry([logger](entry) {
-            info!(logger, "Chosen entry {entry:?}")
-        });
-    }
+    // let logger: Logger = Logger::new("SelectDebugScene");
+    // let network = enso_frp::Network::new("test");
+    // enso_frp::extend! {network
+    //     eval list_view.chosen_entry([logger](entry) {
+    //         info!(logger, "Chosen entry {entry:?}")
+    //     });
+    // }
 
-    std::mem::forget(list_view);
+    // std::mem::forget(list_view);
 }

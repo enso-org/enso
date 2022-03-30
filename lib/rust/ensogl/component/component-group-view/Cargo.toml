@@ -7,6 +7,8 @@ edition = "2021"
 [dependencies]
 enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
+ensogl-gui-component = { version = "0.1.0", path = "../../component/gui" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-list-view = { path = "../list-view" }
 ensogl-shadow = { path = "../shadow" }
 ensogl-text = { path = "../text" }
