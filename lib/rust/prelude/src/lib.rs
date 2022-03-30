@@ -261,6 +261,14 @@ impl<T: Default> Default for CloneCell<T> {
         Self::new(default())
     }
 }
+impl<T> HasItem for CloneCell<T> {
+    type Item = T;
+}
+impl<T> CellSetter for CloneCell<T> {
+    fn set(&self, value: Self::Item) {
+        self.set(value)
+    }
+}
 
 // ====================
 // === CloneRefCell ===
