@@ -224,7 +224,7 @@ impl Model {
     }
 
     fn searcher_left_top_position_when_under_node(&self, node_id: NodeId) -> Vector2<f32> {
-        if let Some(node) = self.graph_editor.model.nodes.get_cloned_ref(&node_id) {
+        if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             Self::searcher_left_top_position_when_under_node_at(node.position().xy())
         } else {
             error!(self.logger, "Trying to show searcher under nonexisting node");
@@ -252,7 +252,7 @@ impl Model {
     }
 
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
-        let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
+        let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
         if let Some(node) = node {
             let visualization =
                 node.view.model.visualization.fullscreen_visualization().clone_ref();

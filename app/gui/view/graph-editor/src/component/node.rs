@@ -697,7 +697,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down;
+            out.background_press <+ model.drag_area.events.mouse_down.constant(());
             out.background_press <+ model.input.on_background_press;
 
 
@@ -1027,6 +1027,14 @@ pub mod test_utils {
         ///    the `PortShapeView`, see [`output::port::Model::init_shape`].
         /// 3. If the output port is [`MultiPortView`].
         fn output_port_shape(&self) -> Option<output::port::SinglePortView>;
+
+        /// Return the `Shape` of the first input port of the node.
+        ///
+        /// Returns `None`:
+        /// 1. If there are no input ports.
+        /// 2. If the port does not have a `Shape`. Some port models does not initialize the
+        ///    `Shape`, see [`input::port::Model::init_shape`].
+        fn input_port_shape(&self) -> Option<input::port::Shape>;
     }
 
     impl NodeModelExt for NodeModel {
@@ -1039,6 +1047,12 @@ pub mod test_utils {
                 Single(shape) => Some(shape.clone_ref()),
                 _ => None,
             }
+        }
+
+        fn input_port_shape(&self) -> Option<input::port::Shape> {
+            let ports = self.input.model.ports();
+            let port = ports.first()?;
+            port.shape.as_ref().map(CloneRef::clone_ref)
         }
     }
 }

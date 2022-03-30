@@ -7,6 +7,7 @@ use crate::prelude::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
+use crate::display::symbol;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
@@ -35,14 +36,15 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols:         Rc<RefCell<OptVec<Symbol>>>,
-    symbol_dirty:    SymbolDirty,
-    logger:          Logger,
-    view_projection: Uniform<Matrix4<f32>>,
-    z_zoom_1:        Uniform<f32>,
-    variables:       UniformScope,
-    context:         Rc<RefCell<Option<Context>>>,
-    stats:           Stats,
+    symbols:            Rc<RefCell<OptVec<Symbol>>>,
+    global_id_provider: symbol::GlobalInstanceIdProvider,
+    symbol_dirty:       SymbolDirty,
+    logger:             Logger,
+    view_projection:    Uniform<Matrix4<f32>>,
+    z_zoom_1:           Uniform<f32>,
+    variables:          UniformScope,
+    context:            Rc<RefCell<Option<Context>>>,
+    stats:              Stats,
 }
 
 impl SymbolRegistry {
@@ -63,7 +65,18 @@ impl SymbolRegistry {
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let context = default();
         let stats = stats.clone_ref();
-        Self { symbols, symbol_dirty, logger, view_projection, z_zoom_1, variables, context, stats }
+        let global_id_provider = default();
+        Self {
+            symbols,
+            global_id_provider,
+            symbol_dirty,
+            logger,
+            view_projection,
+            z_zoom_1,
+            variables,
+            context,
+            stats,
+        }
     }
 
     /// Creates a new `Symbol` instance and returns its id.
@@ -73,7 +86,7 @@ impl SymbolRegistry {
         let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
             let id = SymbolId::new(ix as u32);
             let on_mut = move || symbol_dirty.set(id);
-            let symbol = Symbol::new(stats, id, on_mut);
+            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
         });
