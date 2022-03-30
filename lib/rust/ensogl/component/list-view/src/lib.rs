@@ -322,17 +322,18 @@ where E::Model: Default
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
-        // model.show_background(true);
+        model.show_background(true);
 
         frp::extend! { network
 
             // === Background Visibility ===
 
             // TODO: rename `set_background_visibility` + same for most other Inputs?
-            background_visible <- frp.background_visible.constant(true);
+            eval frp.background_visible ((t) model.show_background(*t));
+            // background_visible <- frp.background_visible.constant(true);
             // eval background_visible ((t) model.background.set_visibility(t));
             // eval background_visible ((t) model.background.show_shadow.set(if *t { 1.0 } else { 0.0 }));
-            eval background_visible ((t) model.show_background(*t));
+            // eval background_visible ((t) model.show_background(*t));
 
 
             // === Mouse Position ===
