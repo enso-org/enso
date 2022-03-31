@@ -36,6 +36,7 @@ use ensogl_core::DEPRECATED_Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
 use ensogl_hardcoded_theme as theme;
+use ensogl_list_view as list_view;
 use ensogl_list_view::ListView;
 use ensogl_list_view::entry;
 use ensogl_shadow as shadow;
@@ -162,6 +163,16 @@ impl component::Model for Model {
         // let background = background::View::new(&logger);
         // display_object.add_child(&background);
         // scene.layers.tooltip.add_exclusive(&background);
+
+        ensogl_core::shapes_order_dependencies! {
+            app.display.default_scene => {
+                // TODO: how to hide list_view text "below" header_background, but keep the header
+                // text above header_background?
+                list_view::selection -> header_background;
+                //background            -> list_view::selection;
+                //list_view::background -> background;
+            }
+        }
 
         // let app = app.clone_ref();
         // Model { app, background, label, display_object, text }
