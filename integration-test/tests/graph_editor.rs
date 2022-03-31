@@ -211,7 +211,7 @@ async fn new_nodes_placement_with_nodes_selected() {
     graph_editor.model.nodes.select(node_1_id);
     graph_editor.model.nodes.select(node_2_id);
 
-    let (node_5_id, _, node_5) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    let (.., node_5) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     assert_eq!(
         node_5.position().x,
         node_1.position().x,
@@ -244,7 +244,7 @@ async fn new_nodes_placement_with_nodes_selected() {
     graph_editor.model.nodes.select(node_6_id);
     node_6.enable_visualization();
     wait_a_frame().await;
-    let (node_7_id, _, node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    let (.., node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
     assert!(
         node_7.position().y < pos_without_visualization,
         "New node is not below the visualization."
