@@ -390,24 +390,24 @@ ensogl::define_endpoints! {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    widget: Rc<gui::Widget<Rc<NodeModel>, Frp>>,
+    widget: gui::Widget<NodeModel, Frp>,
 }
 
 impl AsRef<Node> for Node {
-    fn as_ref(&self) -> &Node {
+    fn as_ref(&self) -> &Self {
         self
     }
 }
 
-impl AsRef<gui::Widget<Rc<NodeModel>, Frp>> for Node {
-    fn as_ref(&self) -> &gui::Widget<Rc<NodeModel>, Frp> {
+impl AsRef<gui::Widget<NodeModel, Frp>> for Node {
+    fn as_ref(&self) -> &gui::Widget<NodeModel, Frp> {
         &self.widget
     }
 }
 
 
 impl Deref for Node {
-    type Target = gui::Widget<Rc<NodeModel>, Frp>;
+    type Target = gui::Widget<NodeModel, Frp>;
     fn deref(&self) -> &Self::Target {
         &self.widget
     }
@@ -953,8 +953,8 @@ impl Node {
         frp.show_quick_action_bar_on_hover.emit(true);
 
         let display_object = model.display_object.clone_ref();
-        let component = Rc::new(gui::Widget::new(app, frp, model, display_object));
-        Node { widget: component }
+        let widget = gui::Widget::new(app, frp, model, display_object);
+        Node { widget }
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {

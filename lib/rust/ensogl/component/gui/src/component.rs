@@ -65,7 +65,7 @@ pub trait Frp<Model>: Default + CommandApi {
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct ComponentView<Model: 'static, Frp: 'static> {
-    widget: Rc<Widget<Model, Frp>>,
+    widget: Widget<Model, Frp>,
     logger: Logger,
 }
 
@@ -77,12 +77,12 @@ where
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let logger = Logger::new(M::label());
-        let model = M::new(app, &logger);
+        let model = Rc::new(M::new(app, &logger));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         frp.init(app, &model, &style);
         let display_object = model.display_object().clone_ref();
-        let widget = Rc::new(Widget::new(app, frp, model, display_object));
+        let widget = Widget::new(app, frp, model, display_object);
         Self { widget, logger }
     }
 }
@@ -120,7 +120,7 @@ where
     }
 
     fn app(&self) -> &Application {
-        &self.widget.app
+        self.widget.app()
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
