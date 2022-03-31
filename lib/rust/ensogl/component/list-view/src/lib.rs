@@ -156,16 +156,16 @@ impl<E: Entry> Model<E> {
         Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
-    pub fn show_background_shadow(&self, value: bool) {
+    fn show_background_shadow(&self, value: bool) {
         let alpha = if value { 1.0 } else { 0.0 };
         self.background.show_shadow.set(alpha);
     }
 
-    pub fn set_background_corners_radius(&self, px: f32) {
+    fn set_background_corners_radius(&self, px: f32) {
         self.background.corners_radius_px.set(px);
     }
 
-    pub fn set_background_color(&self, color: color::Rgba) {
+    fn set_background_color(&self, color: color::Rgba) {
         self.background.color.set(color.into());
     }
 
