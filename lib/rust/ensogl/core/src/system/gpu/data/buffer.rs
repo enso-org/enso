@@ -15,7 +15,7 @@ use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
 use crate::system::gpu::data::default::gpu_default;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use std::iter::Extend;
@@ -187,7 +187,7 @@ impl<T:Storable> {
     pub fn update(&mut self) {
         info!(self.logger, "Updating.", || {
             if let Some(gl) = &self.gl {
-                gl.context.bind_buffer(Context::ARRAY_BUFFER,Some(&gl.buffer));
+                gl.context.bind_buffer(*Context::ARRAY_BUFFER,Some(&gl.buffer));
                 if self.resize_dirty.check() {
                     self.upload_data(&None);
                 } else if self.mut_dirty.check_all() {
@@ -302,7 +302,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_data_with_array_buffer_view(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     &js_array,
                     gl_enum,
                 );
@@ -335,7 +335,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     dst_byte_offset,
                     &js_array,
                     start_item,

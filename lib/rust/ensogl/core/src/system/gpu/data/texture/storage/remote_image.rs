@@ -62,10 +62,10 @@ impl<I: InternalFormat, T: ItemType> Texture<RemoteImage, I, T> {
         let height = 1;
         let border = 0;
         let color = vec![0, 0, 255, 255];
-        self.context().bind_texture(Context::TEXTURE_2D, Some(self.gl_texture()));
+        self.context().bind_texture(*Context::TEXTURE_2D, Some(self.gl_texture()));
         self.context()
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                target,
+                *target,
                 level,
                 internal_format,
                 width,

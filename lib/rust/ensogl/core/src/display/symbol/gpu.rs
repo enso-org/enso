@@ -488,9 +488,9 @@ impl Symbol {
 
                     self.stats.inc_draw_call_count();
                     if instance_count > 0 {
-                        context.draw_arrays_instanced(mode, first, count, instance_count);
+                        context.draw_arrays_instanced(*mode, first, count, instance_count);
                     } else {
-                        context.draw_arrays(mode, first, count);
+                        context.draw_arrays(*mode, first, count);
                     }
                 });
             }
@@ -554,7 +554,7 @@ impl Symbol {
         global_variables: &UniformScope,
     ) {
         if let Some(context) = &*self.context.borrow() {
-            let max_texture_units = context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
+            let max_texture_units = context.get_parameter(*Context::MAX_TEXTURE_IMAGE_UNITS);
             let max_texture_units = max_texture_units.unwrap_or_else(|num| {
                 let min_texture_units = 2;
                 error!(
@@ -604,7 +604,7 @@ impl Symbol {
             let location = location as u32;
             let buffer = &scope.buffer(&binding.name).unwrap();
             let is_instanced = mesh_scope_type == mesh::ScopeType::Instance;
-            buffer.bind(Context::ARRAY_BUFFER);
+            buffer.bind(*Context::ARRAY_BUFFER);
             buffer.vertex_attrib_pointer(location, is_instanced);
         }
     }

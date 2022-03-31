@@ -4,7 +4,7 @@
 use enso_prelude::*;
 use enso_web::traits::*;
 
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_web as web;
 use js_sys::Float32Array;
@@ -127,7 +127,7 @@ pub trait CompilationTarget {
 impl CompilationTarget for Shader {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::COMPILE_STATUS;
-        let status_ok = ctx.get_shader_parameter(self, status).as_bool().unwrap_or(false);
+        let status_ok = ctx.get_shader_parameter(self, *status).as_bool().unwrap_or(false);
         let context_lost = ctx.is_context_lost();
         let ok = (status_ok || context_lost).then_some(());
         ok.ok_or_else(|| CompilationError(unwrap_error(ctx.get_shader_info_log(self))))
@@ -137,7 +137,7 @@ impl CompilationTarget for Shader {
 impl CompilationTarget for Program {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::LINK_STATUS;
-        let status_ok = ctx.get_program_parameter(self, status).as_bool().unwrap_or(false);
+        let status_ok = ctx.get_program_parameter(self, *status).as_bool().unwrap_or(false);
         let context_lost = ctx.is_context_lost();
         let ok = (status_ok || context_lost).then_some(());
         ok.ok_or_else(|| CompilationError(unwrap_error(ctx.get_program_info_log(self))))
@@ -155,11 +155,11 @@ fn unwrap_error(opt_err: Option<String>) -> String {
 // ======================
 
 pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
-    compile_shader(ctx, Context::VERTEX_SHADER, src)
+    compile_shader(ctx, *Context::VERTEX_SHADER, src)
 }
 
 pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
-    compile_shader(ctx, Context::FRAGMENT_SHADER, src)
+    compile_shader(ctx, *Context::FRAGMENT_SHADER, src)
 }
 
 pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, SingleTargetError> {
@@ -267,8 +267,8 @@ pub fn compile_program(
 /// Set the array buffer data with floats.
 pub fn set_buffer_data(gl_context: &Context, buffer: &WebGlBuffer, data: &[f32]) {
     let target = Context::ARRAY_BUFFER;
-    gl_context.bind_buffer(target, Some(buffer));
-    set_bound_buffer_data(gl_context, target, data);
+    gl_context.bind_buffer(*target, Some(buffer));
+    set_bound_buffer_data(gl_context, *target, data);
 }
 
 /// Set data in currently bound buffer.
@@ -283,15 +283,15 @@ fn set_bound_buffer_data(gl_context: &Context, target: u32, data: &[f32]) {
     let usage = Context::STATIC_DRAW;
     unsafe {
         let float_array = Float32Array::view(data);
-        gl_context.buffer_data_with_array_buffer_view(target, &float_array, usage);
+        gl_context.buffer_data_with_array_buffer_view(target, &float_array, *usage);
     }
 }
 
 /// Set the array buffer fragment with with floats.
 pub fn set_buffer_subdata(gl_context: &Context, buffer: &WebGlBuffer, offset: usize, data: &[f32]) {
     let target = Context::ARRAY_BUFFER;
-    gl_context.bind_buffer(target, Some(buffer));
-    set_bound_buffer_subdata(gl_context, target, offset as i32, data);
+    gl_context.bind_buffer(*target, Some(buffer));
+    set_bound_buffer_subdata(gl_context, *target, offset as i32, data);
 }
 
 /// Set subdata in currently bound buffer.

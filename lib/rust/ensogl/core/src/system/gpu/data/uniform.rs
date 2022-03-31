@@ -6,7 +6,7 @@ use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
 use enum_dispatch::*;
 
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use upload::UniformUpload;

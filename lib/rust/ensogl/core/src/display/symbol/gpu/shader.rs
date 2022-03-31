@@ -13,7 +13,7 @@ use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
 use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use web_sys::WebGlProgram;

@@ -25,10 +25,10 @@ use crate::display::symbol::Symbol;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::Context;
+use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
-use crate::system::Context;
-use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
@@ -473,13 +473,13 @@ impl Renderer {
             // articles:
             // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
             // - https://www.khronos.org/opengl/wiki/Blending#Colors
-            context.enable(Context::BLEND);
-            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.enable(*Context::BLEND);
+            context.blend_equation_separate(*Context::FUNC_ADD, *Context::FUNC_ADD);
             context.blend_func_separate(
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
             );
 
             let (width, height) = self.view_size();
@@ -1031,7 +1031,7 @@ impl Scene {
     }
 
     fn init(&self) {
-        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
+        let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
         match context_loss_handler {
             Err(err) => error!(self.logger, "{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
@@ -1043,8 +1043,8 @@ impl Scene {
     }
 }
 
-impl system::context::Display for Scene {
-    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+impl system::gpu::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
         &self.dom.layers.canvas
     }
 
