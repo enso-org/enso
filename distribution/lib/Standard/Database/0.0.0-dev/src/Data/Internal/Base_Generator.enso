@@ -4,6 +4,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 
 from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 type Internal_Dialect
 
@@ -190,7 +191,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+kind+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
@@ -306,4 +307,4 @@ generate_query dialect query = case query of
         (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
     IR.Insert table_name pairs ->
         here.generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Illegal_State_Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."
