@@ -334,8 +334,7 @@ where E::Model: Default
         model.show_background_shadow(true);
         model.set_background_corners_radius(background::CORNER_RADIUS_PX);
         let default_background_color = style.get_color(theme::widget::list_view::background);
-        model.background.color.set(default_background_color.value().into());
-        // model.background.color.set(Vector4(1.0, 0.0, 0.0, 1.0));
+        model.set_background_color(default_background_color.value().into());
 
         frp::extend! { network
 
