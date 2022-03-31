@@ -2,71 +2,143 @@ from Standard.Base import all
 
 from Standard.Table.Data.Table as Table_Module import No_Such_Column_Error
 from Standard.Table.Data.Column as Column_Module import Column
-import Standard.Table.Data.Aggregate_Column
+from Standard.Table.Data.Aggregate_Column import all
+from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
+import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
+import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
-## PRIVATE
-   Output of validation process for aggregate columns
-type Validated_Aggregate_Columns
-    ## Result type for aggregate_columns validation
-       - key_columns: Vector of Columns from the table to group by
-       - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
-       - problems: Set of any problems when validating the input
-    type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
+## Result type for aggregate_columns validation
+   - key_columns: Vector of Columns from the table to group by
+   - valid_columns: Table structure to build as pairs of unique column name and Aggregate_Column
+   - problems: Set of any problems when validating the input
+type Validated_Aggregate_Columns (key_columns:[Column]) (valid_columns:[Pair Text Aggregate_Column]) (problems:[Any])
 
 ## PRIVATE
-   Given a set of Aggregate_Column:
-   - get the set of grouping keys
-   - create
-validate : [Aggregate_Column] -> Table -> Resolved_Columns
-validate aggregate_columns table =
-    # Validate Columns
-    missing_names = Vector.new_builder
-    oob_indices = Vector.new_builder
-    valid_name name =
-        column = table.at name
-        if column.is_error.not then True else
-            missing_names.append name
-            False
-    range = (-table.columns.length).up_to table.columns.length
-    valid_index index = if range.contains index then True else
-        oob_indices.append index
-        False
-    valid_column column =
-        case column of
-            Column _ -> valid_name column.name
-            Text -> valid_name column
-            Integer -> valid_index column
-    is_valid aggregate_column = case aggregate_column of
-        Aggregate_Column.Count _ -> True
-        Aggregate_Column.Count_Distinct columns _ _ -> case columns of
-            Vector.Vector _ -> columns.all valid_column
-            _ -> valid_column columns
-        _ -> valid_column aggregate_column.column
-    valid_aggregate_columns = aggregate_columns.filter is_valid
+   Prepares an aggregation input for further processing:
+   - resolves the column descriptors, reporting any issues,
+   - ensures that the output names are unique,
+   - finds the key columns.
+prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+prepare_aggregate_columns aggregates table =
+    problem_builder = Problem_Builder.new
+
+    # Validate and resolve the columns
+    valid_resolved_aggregate_columns = aggregates.map (here.resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
     # Grouping Key
     is_a_key c = case c of
         Aggregate_Column.Group_By _ _ -> True
         _ -> False
-    key_columns_resolved = valid_aggregate_columns.filter is_a_key . map c->(c.resolve_column table c.column)
-    key_columns = key_columns_resolved.fold Map.empty m->c->(m.insert c.name c) . values
+    key_columns = valid_resolved_aggregate_columns.filter is_a_key . map .column
+    unique_key_columns = key_columns.distinct (on = .name)
 
     # Resolve Names
     unique = Unique_Name_Strategy.new
-    pass_1 = valid_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
-    valid_columns = pass_1.map_with_index i->c->
-        Pair (if c.is_nothing then unique.make_unique (valid_aggregate_columns.at i . column_name table) else c) (valid_aggregate_columns.at i)
-    ## TODO resolve the columns
+    ## First pass ensures the custom names specified by the user are unique.
+       The second pass resolves the default names, ensuring that they do not
+       clash with the user-specified names (ensuring that user-specified names
+       take precedence).
+    pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
+    renamed_columns = pass_1.map_with_index i->name->
+        agg = valid_resolved_aggregate_columns.at i
+        new_name = (if name.is_nothing then unique.make_unique (here.default_aggregate_column_name agg) else name)
+        Pair new_name agg
 
     # Build Problems Output
-    missing_problems = (if missing_names.is_empty then [] else [Missing_Input_Columns missing_names.to_vector])
-    oob_problems = (if oob_indices.is_empty then [] else [Column_Indexes_Out_Of_Range oob_indices.to_vector])
-    no_output = (if valid_aggregate_columns.is_empty then [No_Output_Columns] else [])
-    invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
-    duplicate_names = (if unique.renames.is_empty then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
-    problems = missing_problems + oob_problems + no_output + invalid_names + duplicate_names
+    if renamed_columns.is_empty then
+        problem_builder.report_other_warning No_Output_Columns
+    if unique.invalid_names.not_empty then
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+    if unique.renames.not_empty then
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
 
-    Validated_Aggregate_Columns key_columns valid_columns problems
+    Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
+
+## PRIVATE
+   Defines the default name of an `Aggregate_Column`.
+
+   To be used when `new_name` is `Nothing`.
+
+   Assumes that the `Aggregate_Column` is resolved. You may need to transform it
+   with `resolve_columns` first.
+default_aggregate_column_name aggregate_column =
+    case aggregate_column of
+        Group_By c _ -> c.name
+        Count _ -> "Count"
+        Count_Distinct columns _ _ ->
+            "Count Distinct " + (columns.map .name . join " ")
+        Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + c.name
+        _ ->
+            prefix = Meta.get_simple_type_name aggregate_column . replace "_" " "
+            prefix + " " + aggregate_column.column.name
+
+## PRIVATE
+   Returns a copy of this aggregate where all column descriptors (names,
+   indices or column references potentially from a different table) are
+   replaced with column references from the provided table.
+
+   This preprocess step is required by some helper function, to avoid having
+   to pass the table reference and resolve the column descriptors all the
+   time.
+
+   If some columns cannot be resolved, `Nothing` is returned. Any issues are
+   reported to the `Problem_Builder`.
+resolve_aggregate : Table -> Problem_Builder -> Aggregate_Column -> Aggregate_Column | Nothing
+resolve_aggregate table problem_builder aggregate_column =
+    table_columns = table.columns
+
+    resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
+    resolve c =
+        res = Table_Helpers.resolve_column_helper table_columns c problem_builder
+        if res.is_nothing then Error.throw Internal_Missing_Column_Error else res
+
+    resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
+    resolve_selector_to_vector selector =
+        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
+        if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
+
+    resolve_selector_or_nothing selector = case selector of
+        Nothing -> Nothing
+        _ -> resolve_selector_to_vector selector
+
+    result = case aggregate_column of
+        Group_By c new_name -> Group_By (resolve c) new_name
+        Count new_name -> Count new_name
+        Count_Distinct c new_name ignore_nothing ->
+            new_c = case c of
+                ## TODO once we have sum type pattern matching this could be replaced with a single branch
+                By_Name _ _ -> resolve_selector_to_vector c
+                By_Index _ -> resolve_selector_to_vector c
+                By_Column _ -> resolve_selector_to_vector c
+                _ -> [resolve c]
+            Count_Distinct new_c new_name ignore_nothing
+        Count_Not_Nothing c new_name -> Count_Not_Nothing (resolve c) new_name
+        Count_Nothing c new_name -> Count_Nothing (resolve c) new_name
+        Count_Not_Empty c new_name -> Count_Not_Empty (resolve c) new_name
+        Count_Empty c new_name ->  Count_Empty (resolve c) new_name
+        Sum c new_name ->  Sum (resolve c) new_name
+        Average c new_name -> Average (resolve c) new_name
+        Median c new_name -> Median (resolve c) new_name
+        Percentile p c new_name -> Percentile p (resolve c) new_name
+        Mode c new_name -> Mode (resolve c) new_name
+        Standard_Deviation c new_name population -> Standard_Deviation (resolve c) new_name population
+        Concatenate c new_name separator prefix suffix quote_char -> Concatenate (resolve c) new_name separator prefix suffix quote_char
+        First c new_name ignore_nothing order_by -> First (resolve c) new_name ignore_nothing (resolve_selector_or_nothing order_by)
+        Last c new_name ignore_nothing order_by -> Last (resolve c) new_name ignore_nothing (resolve_selector_or_nothing order_by)
+        Maximum c new_name -> Maximum (resolve c) new_name
+        Minimum c new_name -> Minimum (resolve c) new_name
+        Shortest c new_name -> Shortest (resolve c) new_name
+        Longest c new_name -> Longest (resolve c) new_name
+
+    ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
+       value, keeping any other dataflow errors intact.
+    result.catch err-> case err of
+        Internal_Missing_Column_Error -> Nothing
+        _ -> result
+
+## PRIVATE
+   A marker for missing columns during resolution.
+type Internal_Missing_Column_Error

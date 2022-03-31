@@ -24,10 +24,15 @@ calculate_percentile p:Decimal value:Map =
                     [new_v, new_s, new_t]
                 (output.second + (output.at 2 - output.second) * (mid_value - mid))
 
-## Given a Table and a Column create an aggregator
-new : Table->Aggregate_Column->Aggregate_Column_Aggregator
-new table column =
-    create_closure c function:(Column->Any->Integer->Any) = function (column.resolve_column table c)
+## PRIVATE
+   Creates an aggregator from a resolved `Aggregate_Column`.
+
+   You may need to transform the column with `resolve_columns` first to make
+   sure that it is resolved.
+new : Aggregate_Column->Aggregate_Column_Aggregator
+new column =
+    ## This can be removed completely, but it is being removed by other PR so I'm not touching it too much.
+    create_closure c function:(Column->Any->Integer->Any) = function c
 
     is_empty s = if s.is_nothing then True else case s of
         Text -> s.is_empty
@@ -42,10 +47,7 @@ new table column =
         Count _ ->
             create_aggregator initial=0 accumulator=(c->_->c+1)
         Count_Distinct columns _ ignore_nothing ->
-            resolved = case columns of
-                Vector.Vector _ -> columns.map c->(column.resolve_column table c)
-                _ -> [column.resolve_column table columns]
-            key_maker i = Group_By_Key.key (resolved.map c->(c.at i))
+            key_maker i = Group_By_Key.key (columns.map c->(c.at i))
             accumulator = case ignore_nothing of
                 False-> map->i->(map.insert (key_maker i) 1)
                 True-> map->i->

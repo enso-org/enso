@@ -4,9 +4,8 @@ from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
 
-make_aggregate_column : Table -> Aggregate_Column -> IR.Internal_Column
-make_aggregate_column table aggregate =
-    new_name = aggregate.column_name table
+make_aggregate_column : Table -> Aggregate_Column -> Text -> IR.Internal_Column
+make_aggregate_column table aggregate new_name =
     sql_type = table.connection.dialect.resolve_target_sql_type aggregate
     expression = here.make_expression aggregate
     IR.Internal_Column new_name sql_type expression

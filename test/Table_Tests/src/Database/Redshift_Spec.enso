@@ -6,13 +6,15 @@ from Standard.Database.Connection.Connection import Sql_Error
 import Standard.Test
 import Standard.Table as Materialized_Table
 import project.Database.Common_Spec
+import project.Database.Helpers.Name_Generator
 import project.Common_Table_Spec
 import project.Aggregate_Spec
 
 redshift_specific_spec connection pending =
     Test.group "[Redshift] Info" pending=pending <|
-        connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
-        t = connection.access_table "Tinfo"
+        tinfo = Name_Generator.random_name "Tinfo"
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        t = connection.access_table tinfo
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
         t.insert ["def", 42, True, 1.4]
@@ -26,7 +28,7 @@ redshift_specific_spec connection pending =
             t.at "ints" . sql_type . is_definitely_integer . should_be_true
             t.at "bools" . sql_type . is_definitely_boolean . should_be_true
             t.at "reals" . sql_type . is_definitely_double . should_be_true
-        connection.execute_update 'DROP TABLE "Tinfo"'
+        connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
 run_tests connection pending=Nothing =
     prefix = "[Redshift] "
@@ -35,7 +37,7 @@ run_tests connection pending=Nothing =
     table_builder columns =
         ix = Ref.get name_counter
         Ref.put name_counter ix+1
-        name = "table_"+ix.to_text
+        name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Materialized_Table.new <| columns.map description-> [description.at 0, description.at 2]
         table = connection.upload_table name in_mem_table
@@ -50,11 +52,11 @@ run_tests connection pending=Nothing =
     here.redshift_specific_spec connection pending=pending
     Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=True pending=pending
 
-    selection = Aggregate_Spec.Test_Selection problem_handling=False advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False
+    selection = Aggregate_Spec.Test_Selection advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False
     agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
-    agg_table = connection.upload_table "AggT1" agg_in_memory_table
+    agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
-    empty_agg_table = connection.upload_table "AggT2" (agg_in_memory_table.take_start 0)
+    empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     tables.append empty_agg_table.name
     materialize = .to_dataframe
     Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table materialize selection pending=pending
