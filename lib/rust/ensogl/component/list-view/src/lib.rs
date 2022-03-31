@@ -342,6 +342,7 @@ where E::Model: Default
 
             eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
             eval frp.set_background_corners_radius ((px) model.set_background_corners_radius(*px));
+            // TODO: use all_with instead?
             background_color_change <- all(
                 &frp.set_custom_background_color, &default_background_color);
             background_color <- background_color_change.map(

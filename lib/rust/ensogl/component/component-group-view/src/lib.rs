@@ -61,8 +61,6 @@ ensogl_core::define_endpoints_2! {
         set_entries(entry::AnyModelProvider<entry::Label>),
         // TODO: or `set_size(Vector2)` ??
         resize(Vector2<f32>),
-        // set_content(String),
-        // set_size(Vector2)
     }
     Output {}
 }
@@ -86,11 +84,6 @@ impl component::Frp<Model> for Frp {
 
             model.entries.set_entries <+ api.input.set_entries;
             model.entries.resize <+ api.input.resize;
-            // eval api.input.set_content((t) model.set_content(t));
-            // eval api.input.set_size((size) model.set_size(*size));
-
-            // is_hovered <- bool(&background.mouse_out, &background.mouse_over);
-            // eval is_hovered((hovered) model.set_label_visible(*hovered));
         }
     }
 }
