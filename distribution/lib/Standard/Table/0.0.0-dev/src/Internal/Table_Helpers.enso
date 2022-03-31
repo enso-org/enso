@@ -9,6 +9,7 @@ import Standard.Table.Data.Position
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
+import Standard.Table.Internal.Problem_Builder
 import Standard.Base.Data.Ordering.Natural_Order
 
 polyglot java import java.util.HashSet
@@ -40,9 +41,11 @@ polyglot java import java.util.HashSet
      If set to `Ignore`, the operation proceeds without errors or warnings.
 select_columns : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
 select_columns internal_columns selector reorder on_problems =
-    result = here.select_columns_helper internal_columns selector reorder on_problems
-    problems = if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result problems
+    problem_builder = Problem_Builder.new
+    result = here.select_columns_helper internal_columns selector reorder problem_builder
+    if result.is_empty then
+        problem_builder.report_other_warning No_Output_Columns
+    problem_builder.attach_problems_after on_problems result
 
 ## PRIVATE
    A helper function encapsulating shared code for `remove_columns`
@@ -62,13 +65,15 @@ select_columns internal_columns selector reorder on_problems =
      If set to `Ignore`, the operation proceeds without errors or warnings.
 remove_columns : Vector -> Column_Selector -> Problem_Behavior -> Vector
 remove_columns internal_columns selector on_problems =
-    selection = here.select_columns_helper internal_columns selector reorder=False on_problems
+    problem_builder = Problem_Builder.new
+    selection = here.select_columns_helper internal_columns selector reorder=False problem_builder
     selected_names = Map.from_vector (selection.map column-> [column.name, True])
     result = internal_columns.filter column->
         should_be_removed = selected_names.get_or_else column.name False
         should_be_removed.not
-    issues = if result.is_empty then [No_Output_Columns] else []
-    on_problems.attach_problems_after result issues
+    if result.is_empty then
+        problem_builder.report_other_warning No_Output_Columns
+    problem_builder.attach_problems_after on_problems result
 
 ## PRIVATE
    A helper function encapsulating shared code for `reorder_columns`
@@ -91,15 +96,17 @@ remove_columns internal_columns selector on_problems =
      If set to `Ignore`, the operation proceeds without errors or warnings.
 reorder_columns : Vector -> Column_Selector -> Position.Position -> Problem_Behavior -> Vector
 reorder_columns internal_columns selector position on_problems =
-    selection = here.select_columns_helper internal_columns selector reorder=True on_problems
-    selected_names = Map.from_vector (selection.map column-> [column.name, True])
-    other_columns = internal_columns.filter column->
-        is_selected = selected_names.get_or_else column.name False
-        is_selected.not
-    result = case position of
-        Position.Before_Other_Columns -> selection + other_columns
-        Position.After_Other_Columns -> other_columns + selection
-    result
+    problem_builder = Problem_Builder.new
+    selection = here.select_columns_helper internal_columns selector reorder=True problem_builder
+    problem_builder.attach_problems_before on_problems <|
+        selected_names = Map.from_vector (selection.map column-> [column.name, True])
+        other_columns = internal_columns.filter column->
+            is_selected = selected_names.get_or_else column.name False
+            is_selected.not
+        result = case position of
+            Position.Before_Other_Columns -> selection + other_columns
+            Position.After_Other_Columns -> other_columns + selection
+        result
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -123,10 +130,10 @@ rename_columns : Vector -> Column_Mapping -> Problem_Behavior -> Map
 rename_columns internal_columns mapping on_problems =
     unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
+    problem_builder = Problem_Builder.new
 
     name_mapper vec ms =
-        validation = here.validate_unique vec v->[Duplicate_Column_Selectors (v.map c->(c.at 0))] x->(x.at 0)
-        good_names = validation.valid
+        good_names = here.validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
         matched = HashSet.new
 
         mapper = name->
@@ -144,15 +151,14 @@ rename_columns internal_columns mapping on_problems =
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
         unused = good_names.filter_with_index i->_->(matched.contains i).not . map e->(e.at 0)
-
-        Validation_Result new_names (validation.problems + if unused.is_empty then [] else [Missing_Input_Columns unused])
+        problem_builder.report_missing_input_columns unused
+        new_names
 
     mapped = case mapping of
         Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher.new case_sensitive=True)
         Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Mapping.By_Index map ->
-            validation = here.validate_indices col_count map.keys
-            good_indices = validation.valid
+            good_indices = here.validate_indices col_count map.keys problem_builder
 
             index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
 
@@ -160,26 +166,27 @@ rename_columns internal_columns mapping on_problems =
                 target = index_map.get_or_else i Nothing
                 if target.is_nothing then target else unique.make_unique target
 
-            Validation_Result new_names validation.problems
+            new_names
         Column_Mapping.By_Position vec ->
-            validation = case vec.length > col_count of
-                True -> Validation_Result (vec.take_start col_count) [Too_Many_Column_Names_Provided (vec.drop_start col_count)]
-                False -> Validation_Result vec []
-            good_names = validation.valid
+            good_names = case vec.length > col_count of
+                True ->
+                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided (vec.drop_start col_count))
+                    vec.take_start col_count
+                False -> vec
 
             new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
                 unique.make_unique (good_names.at i)
-            Validation_Result new_names validation.problems
+            new_names
 
-    processed = mapped.valid.map_with_index i->n->
+    processed = mapped.map_with_index i->n->
         if n.is_nothing then (unique.make_unique (internal_columns.at i).name) else n
 
-    invalid_names = (if unique.invalid_names.is_empty then [] else [Invalid_Output_Column_Names unique.invalid_names.to_vector])
-    duplicate_names = (if unique.renames.is_empty then [] else [Duplicate_Output_Column_Names unique.renames.to_vector])
-    problems = mapped.problems + invalid_names + duplicate_names
+    if unique.invalid_names.not_empty then
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+    if unique.renames.not_empty then
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
 
-    on_problems.attach_problems_before problems processed
-
+    problem_builder.attach_problems_before on_problems processed
 
 ## PRIVATE
    A helper function encapsulating shared code for `sort_columns`
@@ -220,21 +227,15 @@ sort_columns internal_columns sort_method =
      is placed in the group belonging to the first matching criterion on the
      list. If a single criterion's group has more than one element, their
      relative order is the same as in the input.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
-select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Behavior -> Vector
-select_columns_helper internal_columns selector reorder on_problems = case selector of
+   - problem_builder: Encapsulates the aggregation of encountered problems.
+select_columns_helper : Vector -> Column_Selector -> Boolean -> Problem_Builder -> Vector
+select_columns_helper internal_columns selector reorder problem_builder = case selector of
     By_Name names matcher ->
-        validation = here.validate_unique names v->[Duplicate_Column_Selectors v]
-        on_problems.attach_problems_before validation.problems <|
-            Warning.map_warnings_and_errors here.promote_no_matches_to_missing_columns <|
-                matcher.match_criteria internal_columns validation.valid reorder=reorder name_mapper=(_.name) on_problems=on_problems
+        valid_names = here.validate_unique names problem_builder.report_duplicate_column_selectors
+        Matching.match_criteria_callback matcher internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
     By_Index indices ->
-        validation  = here.validate_indices internal_columns.length indices
-        good_indices = validation.valid.map p->(p.at 0)
-        on_problems.attach_problems_before validation.problems <| case reorder of
+        good_indices = here.validate_indices internal_columns.length indices problem_builder . map .first
+        case reorder of
             True ->
                 here.select_indices_reordering internal_columns good_indices
             False ->
@@ -242,7 +243,26 @@ select_columns_helper internal_columns selector reorder on_problems = case selec
     By_Column columns ->
         column_names = columns.map .name
         new_selector = By_Name column_names (Text_Matcher.new case_sensitive=True)
-        here.select_columns internal_columns new_selector reorder=reorder on_problems=on_problems
+        here.select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
+
+## PRIVATE
+   A helper function which selects a single column from the table. It is aligned with the
+   `select_columns_helper`.
+resolve_column_helper : Vector a -> (Integer | Text | Column) -> Problem_Builder -> a | Nothing
+resolve_column_helper internal_columns selector problem_builder = case selector of
+    Text ->
+        matched_columns = Matching.match_criteria_callback (Text_Matcher case_sensitive=True) internal_columns [selector] reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+        if matched_columns.length == 1 then matched_columns.first else
+            if matched_columns.length == 0 then Nothing else
+                Panic.throw (Illegal_State_Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?")
+    Integer -> case here.is_index_valid internal_columns.length selector of
+        True -> internal_columns.at selector
+        False ->
+            problem_builder.report_oob_indices [selector]
+            Nothing
+    ## A wildcard to match any backend's column.
+    _ ->
+        here.resolve_column_helper internal_columns selector.name problem_builder=problem_builder
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
@@ -289,29 +309,25 @@ is_index_valid length ix =
 
 ## PRIVATE
    Validates a Vector of indices returning a pair of `good_indices` and `problems`
-validate_indices : Integer -> Vector -> Validation_Result Vector Vector
-validate_indices length indices =
+validate_indices : Integer -> Vector -> Problem_Builder -> Vector
+validate_indices length indices problem_builder =
     partitioned_indices = indices.partition (here.is_index_valid length)
     inbound_indices = partitioned_indices.first
     oob_indices = partitioned_indices.second
-    oob_problems = if oob_indices.is_empty then [] else
-        [Column_Indexes_Out_Of_Range oob_indices]
+    problem_builder.report_oob_indices oob_indices
 
-    uniques = here.validate_unique inbound_indices v->[Duplicate_Column_Selectors v]
+    uniques = here.validate_unique inbound_indices problem_builder.report_duplicate_column_selectors
 
     resolver = ix->(here.resolve_index length ix)
-    alias_uniques = here.validate_unique uniques.valid v->[Input_Indices_Already_Matched v] resolver
-    good_indices = alias_uniques.valid.map i->[resolver i, i]
-
-    problems = oob_problems + uniques.problems + alias_uniques.problems
-
-    Validation_Result good_indices problems
+    alias_uniques = here.validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
+    good_indices = alias_uniques.map i->[resolver i, i]
+    good_indices
 
 ## PRIVATE
    Splits a vector into elements which are distinct and the duplicates.
    Duplicates are wrapped as an error
-validate_unique : Vector -> (Vector -> Vector) -> (Any -> Any) -> Validation_Result Vector Vector
-validate_unique vector problem_wrapper on=(x->x) =
+validate_unique : Vector -> (Vector -> Vector) -> (Any -> Any) -> Vector
+validate_unique vector problem_callback on=(x->x) =
     acc = vector.fold [Map.empty, Vector.new_builder, Vector.new_builder] acc-> item->
         existing = acc.at 0
         key = on item
@@ -320,10 +336,7 @@ validate_unique vector problem_wrapper on=(x->x) =
             True -> [existing, acc.at 1, acc.at 2 . append item]
             False -> [existing.insert key True, acc.at 1 . append item, acc.at 2]
 
-    duplicates = acc.at 2
-    problems = if duplicates.is_empty then [] else problem_wrapper duplicates.to_vector
+    duplicates = acc.at 2 . to_vector
+    if duplicates.not_empty then problem_callback duplicates
 
-    Validation_Result (acc.at 1).to_vector problems
-
-## PRIVATE
-type Validation_Result valid problems
+    acc.at 1 . to_vector

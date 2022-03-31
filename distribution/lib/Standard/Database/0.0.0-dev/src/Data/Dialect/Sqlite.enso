@@ -1,0 +1,118 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Aggregate_Column import all
+from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Internal.Base_Generator
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+sqlite : Dialect
+sqlite =
+    Sqlite_Dialect here.make_internal_generator_dialect
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+type Sqlite_Dialect
+    ## PRIVATE
+
+       The dialect of SQLite databases.
+    type Sqlite_Dialect internal_generator_dialect
+
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name = "sqlite"
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> Sql.Statement
+    generate_sql query =
+        Base_Generator.generate_query this.internal_generator_dialect query . build
+
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_columns` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+
+## PRIVATE
+make_internal_generator_dialect =
+    starts_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation starts_with")
+    ends_with arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation ends_with")
+    contains arguments =
+        case arguments.length == 2 of
+            True ->
+                str = arguments.at 0
+                sub = arguments.at 1
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
+                res.paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation contains")
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, here.agg_count_distinct_including_nulls]
+    my_mappings = text + counts
+    Base_Generator.base_dialect . extend_with my_mappings
+
+## PRIVATE
+   The provided aggregate is assumed to contain only already resolved columns.
+   You may need to transform it with `resolve_columns` first.
+resolve_target_sql_type aggregate = case aggregate of
+    Group_By c _ -> c.sql_type
+    Count _ -> Sql_Type.integer
+    Count_Distinct _ _ _ -> Sql_Type.integer
+    Count_Not_Nothing _ _ -> Sql_Type.integer
+    Count_Nothing _ _ -> Sql_Type.integer
+    Count_Not_Empty _ _ -> Sql_Type.integer
+    Count_Empty _ _ -> Sql_Type.integer
+    Percentile _ _ _ -> Sql_Type.real
+    Mode c _ -> c.sql_type
+    First c _ _ _ -> c.sql_type
+    Last c _ _ _ -> c.sql_type
+    Maximum c _ -> c.sql_type
+    Minimum c _ -> c.sql_type
+    Shortest c _ -> c.sql_type
+    Longest c _ -> c.sql_type
+    Standard_Deviation _ _ _ -> Sql_Type.real
+    Concatenate _ _ _ _ _ _ -> Sql_Type.text
+    ## TODO revise these
+    Sum c _ -> c.sql_type
+    Average _ _ -> Sql_Type.real
+    Median _ _ -> Sql_Type.real
+
+## PRIVATE
+agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
+    Sql.code "COALESCE(SUM(" ++ arg.paren ++ Sql.code " IS NULL), 0)"
+
+## PRIVATE
+agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
+    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " == '')), 0)"
+
+## PRIVATE
+agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
+    Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '')), 0)"
+
+## PRIVATE
+agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINCT_INCLUDE_NULL" arg->
+    Sql.code "(COUNT(DISTINCT " ++ arg.paren ++ Sql.code ") + CASE WHEN SUM(" ++ arg.paren ++ Sql.code " IS NULL) > 0 THEN 1 ELSE 0 END)"

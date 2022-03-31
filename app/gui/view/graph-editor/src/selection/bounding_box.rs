@@ -2,6 +2,8 @@
 
 use ensogl::prelude::*;
 
+use nalgebra::clamp;
+
 
 
 // ===================
@@ -111,6 +113,18 @@ impl BoundingBox {
     pub fn bottom(&self) -> f32 {
         self.bottom
     }
+
+    /// Calculates the squared norm of a vector between the point passed as an argument, and a
+    /// point in the bounding box that is nearest to the point passed as an argument.
+    ///
+    /// If the point passed as an argument is inside the bounding box, returns 0.
+    pub fn squared_distance_to_point(&self, point: Vector2) -> f32 {
+        let x_of_nearest_point_in_bounding_box = clamp(point.x, self.left, self.right);
+        let y_of_nearest_point_in_bounding_box = clamp(point.y, self.bottom, self.top);
+        let nearest_point_in_bounding_box =
+            Vector2(x_of_nearest_point_in_bounding_box, y_of_nearest_point_in_bounding_box);
+        (nearest_point_in_bounding_box - point).norm_squared()
+    }
 }
 
 impl PartialSemigroup<BoundingBox> for BoundingBox {
@@ -185,6 +199,42 @@ mod tests {
             ((0.0, 0.0), (2.0, 3.0)) + (( 2.0,  3.0), (4.0, 5.0)) == ((0.0,   0.0), (4.0, 5.0));
             ((0.0, 0.0), (1.0, 1.0)) + ((-1.0, -1.0), (0.5, 0.5)) == ((-1.0, -1.0), (1.0, 1.0));
             ((0.0, 0.0), (1.0, 1.0)) + (( 0.3,  0.3), (0.6, 0.6)) == ((0.0,   0.0), (1.0, 1.0));
+        };
+    }
+
+    const SQUARED_DISTANCE_COMPARISON_PRECISION: f32 = 0.001;
+
+    macro_rules! assert_squared_distance_to_point {
+        ( $( $bbox:tt <-sq-> $point:tt =~ $expected_sq_distance:expr ; )+ ) => {
+            $(
+                assert_squared_distance_to_point!{ $bbox <-sq-> $point =~ $expected_sq_distance };
+            )+
+        };
+
+        ($bbox:tt <-sq-> $point:tt =~ $expected_sq_distance:expr) => {
+            let bbox: BoundingBox = $bbox.into();
+            let point = Vector2($point.0, $point.1);
+            let result = bbox.squared_distance_to_point(point);
+            let result_deviation = (result - $expected_sq_distance).abs();
+            let result_ok = result_deviation < SQUARED_DISTANCE_COMPARISON_PRECISION;
+            let assert_msg = iformat!(
+                "Squared distance between " bbox;? " and " point;?
+                " expected to approximately equal " $expected_sq_distance
+                ", but got " result " instead.");
+            assert!(result_ok, "{}", assert_msg);
+        };
+    }
+
+    #[test]
+    fn test_squared_distance_to_point() {
+        assert_squared_distance_to_point! {
+            ((-1.0, -1.0), (0.0, 0.0))  <-sq->  ( 3.0,  4.0)  =~  5.0.pow(2.0);
+            // Distance between a bounding box and a point inside it should be 0.
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.5,  0.5)  =~  0.0;
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 3.0,  0.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  (-2.0,  0.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.0, -2.0)  =~  2.0.pow(2.0);
+            (( 0.0,  0.0), (1.0, 1.0))  <-sq->  ( 0.0,  3.0)  =~  2.0.pow(2.0);
         };
     }
 }

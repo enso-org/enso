@@ -647,7 +647,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   """ List
     |   - unclosed_formatter
     |   - second""".stripMargin.stripMargin
-    .replaceAll(System.lineSeparator(), "\n") ?== Doc(
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         1,
@@ -665,7 +665,52 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
-
+  """ unclosed_formatter
+    | - first
+    | - second
+    |""".stripMargin.stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "unclosed",
+        Formatter.Unclosed(Formatter.Italic, "formatter"),
+        Newline,
+        List(
+          1,
+          List.Unordered,
+          "first",
+          "second"
+        ),
+        Newline
+      )
+    )
+  )
+  """ unclosed_formatter
+    | - first
+    | - second_unclosed
+    |   - sub""".stripMargin.stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "unclosed",
+        Formatter.Unclosed(Formatter.Italic, "formatter"),
+        Newline,
+        List(
+          1,
+          List.Unordered,
+          ListItem("first"),
+          ListItem("second", Formatter.Unclosed(Formatter.Italic, "unclosed")),
+          List(
+            3,
+            List.Unordered,
+            "sub"
+          )
+        )
+      )
+    )
+  )
   """List
     |  - First
     |  - Second

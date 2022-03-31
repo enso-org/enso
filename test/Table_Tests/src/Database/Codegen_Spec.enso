@@ -1,10 +1,11 @@
 from Standard.Base import all
 
-import project.Helpers.Fake_Test_Connection
+import project.Database.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Table as Table_Module
 import Standard.Test
 
+from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Table import No_Such_Column_Error, Order_Rule
@@ -142,22 +143,6 @@ spec =
             t2 = t1.drop_missing_rows
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
 
-    Test.group "[Codegen] Aggregation" pending="Codegen test for aggregations is disabled until 1643 is resolved. The semantics is still being tested by tests that run on actual databases." <|
-        agg = t1.group by='A'
-
-        Test.specify "should allow counting group sizes" <|
-            agg.count.to_sql.prepare . should_equal ['SELECT COUNT(*) AS "count" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
-
-        Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
-            c1 = agg.at 'B' . mean
-            c1.to_sql.prepare . should_equal ['SELECT AVG("T1"."B") AS "B_mean" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
-            c2 = agg.at 'B' . min
-            c2.to_sql.prepare . should_equal ['SELECT MIN("T1"."B") AS "B_min" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
-
-        Test.specify "should allow grouping by multiple columns" <|
-            agg = t1.group by=['A','B']
-            agg.count.to_sql.prepare . should_equal ['SELECT COUNT(*) AS "count" FROM "T1" AS "T1" GROUP BY "T1"."A", "T1"."B"', []]
-
     Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
             r1 = t1.sort by="A" . at "B"
@@ -196,3 +181,14 @@ spec =
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]
             Table_Module.fresh_names used_names preferred_names . should_equal ["A_2", "A_3", "B"]
+
+    Test.group "[Codegen] Aggregation" <|
+        Test.specify "should allow to count rows" <|
+            code = t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
+            code . should_equal ['SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
+
+        Test.specify "should allow to group by multiple fields" <|
+            code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
+            code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
+
+main = Test.Suite.run_main here.spec

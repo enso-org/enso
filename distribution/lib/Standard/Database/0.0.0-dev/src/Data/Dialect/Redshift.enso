@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Aggregate_Column
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Dialect.Postgres
+import Standard.Database.Data.Internal.Base_Generator
+
+## PRIVATE
+
+   The dialect for Redshift connections.
+redshift : Dialect
+redshift =
+    Redshift_Dialect Postgres.make_internal_generator_dialect
+
+## PRIVATE
+
+   The dialect for Redshift connections.
+type Redshift_Dialect
+    ## PRIVATE
+
+       The dialect for Redshift connections.
+    type Redshift_Dialect internal_generator_dialect
+
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name = "redshift"
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> Sql.Statement
+    generate_sql query =
+        Base_Generator.generate_query this.internal_generator_dialect query . build
+
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_columns` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type aggregate =
+        Postgres.resolve_target_sql_type aggregate

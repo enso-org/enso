@@ -1,5 +1,6 @@
 //! An EnsoGL implementation of a basic flame graph.
 
+#![recursion_limit = "256"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -11,7 +12,6 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "256"]
 
 use ensogl_core::prelude::*;
 

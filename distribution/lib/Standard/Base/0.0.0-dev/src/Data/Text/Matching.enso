@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Error.Common import Wrapped_Dataflow_Error
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.
@@ -261,8 +262,25 @@ type Matcher
     Regex_Matcher
 
 ## PRIVATE
-match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning = Panic.recover Any <|
-    [matcher, objects, criteria, reorder, name_mapper, on_problems] . each Panic.rethrow
+match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) on_problems=Report_Warning =
+    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    unmatched_criteria = result.second
+    problems = if unmatched_criteria.is_empty then [] else
+        [No_Matches_Found unmatched_criteria]
+    on_problems.attach_problems_after result.first problems
+
+## PRIVATE
+match_criteria_callback matcher objects criteria problem_callback reorder=False name_mapper=(x->x) =
+    result = here.internal_match_criteria_implementation matcher objects criteria reorder name_mapper
+    unmatched_criteria = result.second
+    problem_callback unmatched_criteria
+    result.first
+
+## PRIVATE
+internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error (handler = x-> x.payload.unwrap) <|
+    ## TODO [RW] discuss: this line of code also shows an issue we had with ensuring input dataflow-errors are correctly propagated, later on we stopped doing that and testing for that as it was too cumbersome. Maybe it could be helped with an @Accepts_Error annotation similar to the one from the interpreter???
+    [matcher, objects, criteria, reorder, name_mapper] . each v->
+        Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
 
     # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
     match_matrix = objects.map obj->
@@ -302,6 +320,4 @@ match_criteria_implementation matcher objects criteria reorder=False name_mapper
             select_matching_indices is_object_matched_by_anything
 
     result = selected_indices.map objects.at
-    problems = if unmatched_criteria.is_empty then [] else
-        [No_Matches_Found unmatched_criteria]
-    on_problems.attach_problems_after result problems
+    Pair result unmatched_criteria

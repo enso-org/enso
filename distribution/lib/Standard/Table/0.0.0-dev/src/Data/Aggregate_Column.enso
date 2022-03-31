@@ -20,7 +20,7 @@ type Aggregate_Column
        - columns: either a single or set of columns (specified by name, index or Column object) to count across.
        - name: name of new column.
        - ignore_nothing: if all values are Nothing won't be included.
-    type Count_Distinct (columns:Column|Text|Integer|[(Column|Text|Integer)]) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
+    type Count_Distinct (columns:Column|Text|Integer|Column_Selector) (new_name:Text|Nothing=Nothing) (ignore_nothing:Boolean=False)
 
     ## ALIAS Count_Not_Null
 
@@ -169,34 +169,6 @@ type Aggregate_Column
        - column: column (specified by name, index or Column object) to find longest value.
        - name: name of new column.
     type Longest (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing)
-
-    ## Gets a column name to use for the aggregate column
-    column_name : Table->Text
-    column_name table =
-        if this.new_name.is_nothing.not then this.new_name else
-            get_name c = (this.resolve_column table c).name
-            case this of
-                Group_By c _ -> get_name c
-                Count _ -> "Count"
-                Count_Distinct columns _ _ ->
-                    as_vector = case columns of
-                        Vector.Vector _ -> columns
-                        _ -> [columns]
-                    "Count Distinct " + (as_vector.map get_name . join " ")
-                Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + get_name c
-                _ ->
-                    prefix = Meta.get_simple_type_name this . replace "_" " "
-                    prefix + " " + get_name this.column
-
-    ## PRIVATE
-       Given a column reference resolve to the underlying column
-    resolve_column : Table->(Column|Text|Integer)->Column
-    resolve_column table column =
-        case column of
-            Column _ -> table.at (column.name)
-            Text -> table.at column
-            Integer -> table.columns.at column
-
 
 ## Occurs when cannot aggregate a column
 type Invalid_Aggregation_Method (column : Text) (message : Text)

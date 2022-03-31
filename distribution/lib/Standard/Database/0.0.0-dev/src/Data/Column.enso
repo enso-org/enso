@@ -510,7 +510,7 @@ type Column
     as_internal : IR.Internal_Column
     as_internal = IR.Internal_Column this.name this.sql_type this.expression
 
-type Aggregate_Column
+type Aggregate_Column_Builder
 
     ## UNSTABLE
 
@@ -524,10 +524,10 @@ type Aggregate_Column
        - context: The SQl context in which the column exists.
 
        Allows performing aggregation operations on the contained values.
-    # type Aggregate_Column (name : Text) (connection : Connection)
+    # type Aggregate_Column_Builder (name : Text) (connection : Connection)
     #                       (sql_type : Sql_Type) (expression : IR.Expression)
     #                       (context : IR.Context)
-    type Aggregate_Column name connection sql_type expression context
+    type Aggregate_Column_Builder name connection sql_type expression context
 
     ## UNSTABLE
 
