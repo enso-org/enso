@@ -74,14 +74,24 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+    fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
+        let input = &api.input;
+        // FIXME: should have separate style for CGV header text size most probably
+        let header_text_size = style.get_number(theme::widget::list_view::text::size);
         // let background = &model.background.events;
         frp::extend! { network
 
+            init <- source::<()>();
+            // TODO[LATER]: looks like a common pattern (also in LV); is there a helper in FRP?
+            eval input.resize((size) model.resize(*size));
+
+
             // === Header ===
 
-            model.header.set_content <+ api.input.set_header_text;
+            header_text_size <- all(&header_text_size,&init)._0();
+            model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
+            model.header.set_content <+ input.set_header_text;
 
 
             // === Entries ===
@@ -90,8 +100,7 @@ impl component::Frp<Model> for Frp {
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_custom_background_color(Some(Rgba(0.0, 1.0, 0.0, 1.0)));
 
-            model.entries.set_entries <+ api.input.set_entries;
-            model.entries.resize <+ api.input.resize;
+            model.entries.set_entries <+ input.set_entries;
         }
     }
 }
@@ -107,6 +116,12 @@ pub struct Model {
     display_object: display::object::Instance,
     header:         text::Area,
     entries:        ListView<entry::Label>,
+}
+
+impl display::Object for Model {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
 }
 
 impl component::Model for Model {
@@ -134,9 +149,18 @@ impl component::Model for Model {
     }
 }
 
-impl display::Object for Model {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+impl Model {
+    fn resize(&self, size: Vector2) {
+        // NOTE: Currently assuming that the widget's origin is at its center (global default).
+        // FIXME: what origin we want? what origin does ListView use? IMO a corner makes sense,
+        // though not sure if top-left or bottom-left is better. Alternatively, center is as good
+        // as anything else.
+        let top_left = Vector2(-size.x / 2.0, size.y / 2.0);
+        // FIXME: what's the origin of text::Area? assuming left-center
+        self.header.set_position_xy(top_left + Vector2(0.0, -HEADER_HEIGHT/2.0));
+        // TODO: what's the origin of ListView? assuming center
+        self.entries.set_position_y(-HEADER_HEIGHT);
+        self.entries.resize(size - Vector2(0.0, HEADER_HEIGHT));
     }
 }
 
