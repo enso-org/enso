@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.Dialect.Sqlite
 import Standard.Database.Data.Internal.Base_Generator
 
 ## PRIVATE
@@ -77,7 +78,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats
+    my_mappings = text + counts + stats + Sqlite.first_last_aggregators
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE

@@ -655,6 +655,7 @@ type Table
             new_columns = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
+                ## TODO recover errors, turn them into warnings and remove the offending column from result
                 Aggregate_Helper.make_aggregate_column this agg new_name
             this.updated_context_and_columns new_ctx new_columns
 
