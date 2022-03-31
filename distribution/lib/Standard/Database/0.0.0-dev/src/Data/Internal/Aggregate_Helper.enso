@@ -39,6 +39,7 @@ make_expression aggregate = case aggregate of
         True -> IR.Operation "STDDEV_POP" [c.expression]
         False -> IR.Operation "STDDEV_SAMP" [c.expression]
     Concatenate c _ _ _ _ _ ->
+        # TODO!
         IR.Operation "CONCAT" [c.expression]
     Sum c _ -> IR.Operation "SUM" [c.expression]
     Average c _ -> IR.Operation "AVG" [c.expression]

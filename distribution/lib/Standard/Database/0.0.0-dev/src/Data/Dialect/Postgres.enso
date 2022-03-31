@@ -76,7 +76,7 @@ make_internal_generator_dialect =
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
-    stats = [here.agg_median, stddev_pop, stddev_samp]
+    stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
     my_mappings = text + counts + stats
     Base_Generator.base_dialect . extend_with my_mappings
 
@@ -125,3 +125,10 @@ agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINC
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
     Sql.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+
+## PRIVATE
+agg_mode = Base_Generator.lift_unary_op "MODE" arg->
+    Sql.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+
+agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
+    Sql.code "percentile_cont(" ++ p ++ Sql.code ") WITHIN GROUP (ORDER BY " ++ expr ++ Sql.code ")"
