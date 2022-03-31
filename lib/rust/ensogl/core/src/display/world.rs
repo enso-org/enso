@@ -262,14 +262,13 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
-        let mouse_hover_ids = self.default_scene.mouse.hover_ids.clone_ref();
-        let garbage_collector = &self.garbage_collector;
+        let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let garbage_collector = self.garbage_collector.clone_ref();
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(f!([garbage_collector](v) {
-            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+        pixel_read_pass.set_callback(move |v| {
+            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
             garbage_collector.pixel_updated();
-        }));
-        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
+        });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");

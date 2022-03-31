@@ -443,7 +443,7 @@ impl ContainerModel {
     }
 
     /// Check if given mouse-event-target means this visualization.
-    fn is_this_target(&self, target: scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: scene::PointerTargetId) -> bool {
         self.view.overlay.is_this_target(target)
     }
 

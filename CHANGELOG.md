@@ -2,6 +2,11 @@
 
 #### Visual Environment
 
+- [Nodes created near existing nodes via the <kbd>TAB</kbd> key or by dropping a
+  connection are now repositioned and aligned to existing nodes.][3301] This is
+  to make the resulting graph prettier and avoid overlapping. In such cases,
+  created nodes will be placed below an existing node or on the bottom-left
+  diagonal if there is no space underneath.
 - [Nodes can be added to the graph by double-clicking the output ports of
   existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
@@ -106,6 +111,7 @@
 [3285]: https://github.com/enso-org/enso/pull/3285
 [3287]: https://github.com/enso-org/enso/pull/3287
 [3292]: https://github.com/enso-org/enso/pull/3292
+[3301]: https://github.com/enso-org/enso/pull/3301
 [3302]: https://github.com/enso-org/enso/pull/3302
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
@@ -128,11 +134,14 @@
 - [Upgraded to Graal VM 21.3.0][3258]
 - [Added the ability to decorate values with warnings.][3248]
 - [Fixed issues related to constructors' default arguments][3330]
+- [Fixed compiler issue related to module cache.][3367]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 [3330]: https://github.com/enso-org/enso/pull/3330
+[3360]: https://github.com/enso-org/enso/pull/3360
+[3367]: https://github.com/enso-org/enso/pull/3367
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

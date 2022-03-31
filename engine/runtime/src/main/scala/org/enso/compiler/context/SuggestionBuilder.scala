@@ -8,7 +8,6 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
-import org.enso.docs.generator.DocParserWrapper
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -176,15 +175,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId        = externalId,
-      module            = module.toString,
-      name              = name.name,
-      arguments         = methodArgs,
-      selfType          = selfType.toString,
-      returnType        = buildReturnType(returnTypeDef),
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
-      reexport          = None
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      selfType      = selfType.toString,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc
     )
   }
 
@@ -207,11 +204,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       arguments     = methodArgs,
       sourceType    = sourceTypeName,
       returnType    = buildReturnType(returnTypeDef),
-      documentation = doc,
-      documentationHtml = doc.map(
-        DocParserWrapper.runOnPureDoc(_, Suggestion.Kind.Conversion.From)
-      ),
-      reexport = None
+      documentation = doc
     )
   }
 
@@ -265,10 +258,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Suggestion =
     Suggestion.Module(
       module        = module.toString,
-      documentation = doc,
-      documentationHtml =
-        doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
-      reexport = None
+      documentation = doc
     )
 
   /** Build suggestions for an atom definition. */
@@ -290,14 +280,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId        = None,
-      module            = module.toString,
-      name              = name,
-      arguments         = arguments.map(buildArgument),
-      returnType        = module.createChild(name).toString,
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
-      reexport          = None
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      arguments     = arguments.map(buildArgument),
+      returnType    = module.createChild(name).toString,
+      documentation = doc
     )
 
   /** Build getter methods from atom arguments. */

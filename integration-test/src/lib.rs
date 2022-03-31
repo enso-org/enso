@@ -26,7 +26,7 @@ use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
 use enso_web::HtmlDivElement;
-use ensogl::application::Application;
+use ensogl::application::test_utils::ApplicationExt;
 
 
 
@@ -57,8 +57,6 @@ pub struct IntegrationTest {
 }
 
 impl IntegrationTest {
-    const SCREEN_SIZE: (f32, f32) = (1920.0, 1000.0);
-
     /// Initializes the executor and `Ide` structure and returns new Fixture.
     pub async fn setup() -> Self {
         let executor = setup_global_executor();
@@ -69,15 +67,8 @@ impl IntegrationTest {
 
         let initializer = enso_gui::ide::Initializer::new(default());
         let ide = initializer.start().await.expect("Failed to initialize the application.");
-        Self::set_screen_size(&ide.ensogl_app);
+        ide.ensogl_app.set_screen_size_for_tests();
         Self { executor, ide, root_div }
-    }
-
-    fn set_screen_size(app: &Application) {
-        let (screen_width, screen_height) = Self::SCREEN_SIZE;
-        app.display.default_scene.layers.iter_sublayers_and_masks_nested(|layer| {
-            layer.camera().set_screen(screen_width, screen_height)
-        });
     }
 }
 

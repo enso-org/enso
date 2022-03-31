@@ -10,8 +10,8 @@ use ensogl_core::display::shape::*;
 
 use enso_frp as frp;
 use ensogl_core::application;
-use ensogl_core::application::command::CommandApi;
 use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::display;
@@ -42,11 +42,17 @@ pub trait Model {
 // ===========
 
 /// Frp that can be used in a [`ComponentView`]. The FRP requires an initializer that will be called
-/// during the construction of the component. `Default` + `CommandApi` are usually implemented when
-/// using the `ensogl_core::define_endpoints!` macro to create an FRP API.
-pub trait Frp<Model>: Default + CommandApi {
-    /// Frp initializer.
-    fn init(&self, app: &Application, model: &Model, style: &StyleWatchFrp);
+/// during the construction of the component. `Default` is usually implemented when using
+/// the `ensogl_core::define_endpoints!` macro to create an FRP API.
+pub trait Frp<Model>: Default + API {
+    /// Frp initializer. Should set up the logic for processing inputs and generating outputs
+    /// through the FRP API.
+    fn init(
+        frp_api: &<Self as ensogl_core::application::frp::API>::Private,
+        app: &Application,
+        model: &Model,
+        style: &StyleWatchFrp,
+    );
 
     /// Set of default shortcuts to be used in the `CommandApi`. See
     /// `lib/rust/ensogl/core/src/application/command.rs` for more details.
@@ -80,7 +86,7 @@ where
         let model = Rc::new(M::new(app, &logger));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        frp.init(app, &model, &style);
+        F::init(frp.private(), &app, &model, &style);
         let display_object = model.display_object().clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget, logger }
@@ -93,10 +99,10 @@ impl<M: 'static, F: 'static> display::Object for ComponentView<M, F> {
     }
 }
 
-impl<M: 'static, F: Frp<M> + 'static> Deref for ComponentView<M, F> {
-    type Target = F;
+impl<M, F: Frp<M>> Deref for ComponentView<M, F> {
+    type Target = F::Public;
     fn deref(&self) -> &Self::Target {
-        self.widget.frp()
+        self.widget.frp().public()
     }
 }
 

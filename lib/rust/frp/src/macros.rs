@@ -58,22 +58,28 @@
 ///   each_node = all_nodes.iter(); ```
 #[macro_export]
 macro_rules! new_network {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_new_network! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_new_network! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_new_network! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_new_network! { NO_TRACE $($ts)* } };
 }
 
 /// Just like `new_network` but for the dynamic FRP mode.
 #[macro_export]
 macro_rules! new_dynamic_network {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
 }
 
 /// Extends the provided network with new rules. See documentation of `new_network` to learn more.
 #[macro_export]
 macro_rules! extend {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_extend! { NO_TRACE $($ts)* } };
+    ([TRACE_ALL] $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
+    ([]          $($ts:tt)*) => { $crate::_extend! { NO_TRACE $($ts)* } };
+    (TRACE_ALL   $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
+    ($($ts:tt)*)             => { $crate::_extend! { NO_TRACE $($ts)* } };
 }
 
 

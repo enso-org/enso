@@ -490,13 +490,13 @@ type Table
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
-        validated = Aggregate_Column_Helper.validate columns this
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
 
         make_key = if (validated.key_columns.length == 0) then _->(Group_By_Key.key [1]) else
             i->(Group_By_Key.key (validated.key_columns.map v->(v.at i)))
 
         new_table = validated.valid_columns.map c->[c.first, Vector.new_builder]
-        aggregators = validated.valid_columns.map c->(Aggregate_Column_Aggregator.new this c.second)
+        aggregators = validated.valid_columns.map c->(Aggregate_Column_Aggregator.new c.second)
         add_row _ =
             idx = new_table.at 0 . at 1 . length
             0.up_to (aggregators.length) . each i->

@@ -22,7 +22,7 @@ use crate::stream::Stream;
 use crate::stream::ValueProvider;
 
 use enso_generics as generics;
-
+use enso_profiler as profiler;
 
 
 // ========================
@@ -53,6 +53,12 @@ impl Network {
     /// Print the incoming events to console and pass them to output.
     pub fn trace<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedTrace::new(label, src))
+    }
+
+    /// Profile the event resolution from this node onwards and log the result in the profiling
+    /// framework.
+    pub fn profile<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
+        self.register(OwnedProfile::new(label, src))
     }
 
     /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
@@ -945,6 +951,10 @@ impl DynamicNetwork {
         OwnedTrace::new(label, src).into()
     }
 
+    pub fn profile<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+        OwnedProfile::new(label, src).into()
+    }
+
     pub fn toggle<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<bool> {
         OwnedToggle::new(label, src).into()
     }
@@ -1581,6 +1591,49 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
         DEBUG!("[FRP] {self.label()}: {event:?}");
         DEBUG!("[FRP] {stack}");
         self.emit_event(stack, event);
+    }
+}
+
+
+
+// ===============
+// === Profile ===
+// ===============
+
+#[derive(Clone, Debug)]
+pub struct ProfileData<T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src: T,
+}
+pub type OwnedProfile<T> = stream::Node<ProfileData<T>>;
+pub type Profile<T> = stream::WeakNode<ProfileData<T>>;
+
+impl<T: EventOutput> HasOutput for ProfileData<T> {
+    type Output = Output<T>;
+}
+
+impl<T: EventOutput> OwnedProfile<T> {
+    /// Constructor.
+    pub fn new(label: Label, src1: &T) -> Self {
+        let src = src1.clone_ref();
+        let def = ProfileData { src };
+        Self::construct_and_connect(label, src1, def)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        use profiler::internal::Profiler;
+        use profiler::internal::StartState;
+
+        let label = profiler::internal::Label(self.label());
+        let parent = profiler::internal::EventId::implicit();
+        let now = Some(profiler::internal::Timestamp::now());
+        let profiler = profiler::Debug::start(parent, label, now, StartState::Active);
+        self.emit_event(stack, event);
+        profiler.finish();
     }
 }
 

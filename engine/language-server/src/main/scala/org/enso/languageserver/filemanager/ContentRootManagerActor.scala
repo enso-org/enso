@@ -64,7 +64,7 @@ class ContentRootManagerActor(config: Config)
             id        = UUID.randomUUID(),
             namespace = namespace,
             name      = name,
-            version   = version.toString
+            version   = version
           ),
           file = rootPath.getCanonicalFile
         )

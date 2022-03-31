@@ -5,6 +5,7 @@
 #![recursion_limit = "512"]
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(negative_impls)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
@@ -17,6 +18,7 @@
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(trace_macros)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

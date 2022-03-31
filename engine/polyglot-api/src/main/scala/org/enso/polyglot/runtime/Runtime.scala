@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
-  DefaultScalaModule,
-  ClassTagExtensions
+  ClassTagExtensions,
+  DefaultScalaModule
 }
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.{ModuleExports, Suggestion}
@@ -602,7 +602,6 @@ object Runtime {
         * @param arguments the arguments to update
         * @param returnType the return type to update
         * @param documentation the documentation string to update
-        * @param documentationHtml the HTML documentation to update
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
@@ -611,7 +610,6 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
-        documentationHtml: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
@@ -620,17 +618,14 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           "Modify(" +
-          s"externalId=$externalId," +
-          s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
-          s"returnType=$returnType" +
-          s"documentation=" +
+          s"externalId=$externalId" +
+          s",arguments=${arguments.map(_.map(_.toLogString(shouldMask)))}" +
+          s",returnType=$returnType" +
+          s",documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
-          s"documentationHtml=" +
-          (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
-           else documentationHtml) +
           s",scope=$scope" +
-          s"reexport=$reexport" +
+          s",reexport=$reexport" +
           ")"
       }
     }
