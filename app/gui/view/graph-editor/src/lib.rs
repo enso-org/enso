@@ -31,8 +31,7 @@ pub mod component;
 
 pub mod builtin;
 pub mod data;
-#[warn(missing_docs)]
-pub mod free_place_finder;
+pub mod new_node_position;
 #[warn(missing_docs)]
 pub mod profiling;
 #[warn(missing_docs)]
@@ -49,8 +48,6 @@ use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
-use crate::free_place_finder::find_free_place;
-use crate::free_place_finder::OccupiedArea;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
 use enso_config::ARGS;
@@ -393,6 +390,12 @@ impl<K, V, S> SharedHashMap<K, V, S> {
     pub fn keys(&self) -> Vec<K>
     where K: Clone {
         self.raw.borrow().keys().cloned().collect_vec()
+    }
+
+    /// Get the vector of map's values.
+    pub fn values(&self) -> Vec<V>
+    where V: Clone {
+        self.raw.borrow().values().cloned().collect_vec()
     }
 }
 
@@ -1388,17 +1391,20 @@ impl GraphEditorModelWithNetwork {
 
 // === Node Creation ===
 
+/// Describes the way used to request creation of a new node.
 #[derive(Clone, Debug)]
-enum WayOfCreatingNode {
+pub enum WayOfCreatingNode {
     /// "add_node" FRP event was emitted.
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
     /// "start_node_creation_from_port" FRP event was emitted.
+    #[allow(missing_docs)]
     StartCreationFromPortEvent { endpoint: EdgeEndpoint },
     /// add_node_button was clicked.
     ClickingButton,
     /// The edge was dropped on the stage.
+    #[allow(missing_docs)]
     DroppingEdge { edge_id: EdgeId },
 }
 
@@ -1425,34 +1431,31 @@ impl GraphEditorModelWithNetwork {
         way: &WayOfCreatingNode,
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
-        use WayOfCreatingNode::*;
-        let should_edit = !matches!(way, AddNodeEvent);
         let selection = self.nodes.selected.first_cloned();
+        let position = new_node_position::new_node_position(self, way, selection, mouse_position);
+        let node = self.new_node(ctx);
+        node.set_position_xy(position);
+        let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
+        if should_edit {
+            node.view.set_expression(node::Expression::default());
+        }
+        let source = self.data_source_for_new_node(way, selection);
+        (node.id(), source, should_edit)
+    }
+
+    fn data_source_for_new_node(
+        &self,
+        way: &WayOfCreatingNode,
+        selection: Option<NodeId>,
+    ) -> Option<NodeSource> {
+        use WayOfCreatingNode::*;
         let source_node = match way {
             AddNodeEvent => None,
             StartCreationEvent | ClickingButton => selection,
             DroppingEdge { edge_id } => self.edge_source_node_id(*edge_id),
             StartCreationFromPortEvent { endpoint } => Some(endpoint.node_id),
         };
-        let source = source_node.map(|node| NodeSource { node });
-        let screen_center =
-            self.scene().screen_to_object_space(&self.display_object, Vector2(0.0, 0.0));
-        let position: Vector2 = match way {
-            AddNodeEvent => default(),
-            StartCreationEvent | ClickingButton if selection.is_some() =>
-                self.find_free_place_under(selection.unwrap()),
-            StartCreationEvent => mouse_position,
-            ClickingButton =>
-                self.find_free_place_for_node(screen_center, Vector2(0.0, -1.0)).unwrap(),
-            DroppingEdge { .. } => mouse_position,
-            StartCreationFromPortEvent { endpoint } => self.find_free_place_under(endpoint.node_id),
-        };
-        let node = self.new_node(ctx);
-        node.set_position_xy(position);
-        if should_edit {
-            node.view.set_expression(node::Expression::default());
-        }
-        (node.id(), source, should_edit)
+        source_node.map(|node| NodeSource { node })
     }
 
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
@@ -1722,7 +1725,7 @@ impl GraphEditorModel {
 
     /// Create a new node and place it at a free place below `above` node.
     pub fn add_node_below(&self, above: NodeId) -> NodeId {
-        let pos = self.find_free_place_under(above);
+        let pos = new_node_position::under(self, above);
         self.add_node_at(pos)
     }
 
@@ -1731,46 +1734,6 @@ impl GraphEditorModel {
         let node_id = self.add_node();
         self.frp.set_node_position((node_id, pos));
         node_id
-    }
-
-    /// Return the first available position for a new node below `node_above` node.
-    pub fn find_free_place_under(&self, node_above: NodeId) -> Vector2 {
-        let above_pos = self.node_position(node_above);
-        let y_gap = self.frp.default_y_gap_between_nodes.value();
-        let y_offset = y_gap + node::HEIGHT;
-        let starting_point = above_pos - Vector2(0.0, y_offset);
-        let direction = Vector2(-1.0, 0.0);
-        self.find_free_place_for_node(starting_point, direction).unwrap()
-    }
-
-    /// Return the first unoccupied point when going along the ray starting from `starting_point`
-    /// and parallel to `direction` vector.
-    pub fn find_free_place_for_node(
-        &self,
-        starting_from: Vector2,
-        direction: Vector2,
-    ) -> Option<Vector2> {
-        let x_gap = self.frp.default_x_gap_between_nodes.value();
-        let y_gap = self.frp.default_y_gap_between_nodes.value();
-        // This is how much horizontal space we are looking for.
-        let min_spacing = self.frp.min_x_spacing_for_new_nodes.value();
-        let nodes = self.nodes.all.raw.borrow();
-        // The "occupied area" for given node consists of:
-        // - area taken by node view (obviously);
-        // - the minimum gap between nodes in all directions, so the new node won't be "glued" to
-        //   another;
-        // - the new node size measured from origin point at each direction accordingly: because
-        //   `find_free_place` looks for free place for the origin point, and we want to fit not
-        //   only the point, but the whole node.
-        let node_areas = nodes.values().map(|node| {
-            let position = node.position();
-            let left = position.x - x_gap - min_spacing;
-            let right = position.x + node.view.model.width() + x_gap;
-            let top = position.y + node::HEIGHT + y_gap;
-            let bottom = position.y - node::HEIGHT - y_gap;
-            OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
-        });
-        find_free_place(starting_from, direction, node_areas)
     }
 }
 

@@ -2,6 +2,11 @@
 
 #### Visual Environment
 
+- [Nodes created near existing nodes via the <kbd>TAB</kbd> key or by dropping a
+  connection are now repositioned and aligned to existing nodes.][3301] This is
+  to make the resulting graph prettier and avoid overlapping. In such cases,
+  created nodes will be placed below an existing node or on the bottom-left
+  diagonal if there is no space underneath.
 - [Nodes can be added to the graph by double-clicking the output ports of
   existing nodes (or by clicking them with the right mouse button).][3346]
 - [Node Searcher preserves its zoom factor.][3327] The visible size of the node
@@ -106,6 +111,7 @@
 [3285]: https://github.com/enso-org/enso/pull/3285
 [3287]: https://github.com/enso-org/enso/pull/3287
 [3292]: https://github.com/enso-org/enso/pull/3292
+[3301]: https://github.com/enso-org/enso/pull/3301
 [3302]: https://github.com/enso-org/enso/pull/3302
 [3305]: https://github.com/enso-org/enso/pull/3305
 [3309]: https://github.com/enso-org/enso/pull/3309
