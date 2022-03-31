@@ -43,6 +43,14 @@ use ensogl_text as text;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const HEADER_HEIGHT: f32 = entry::HEIGHT;
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
