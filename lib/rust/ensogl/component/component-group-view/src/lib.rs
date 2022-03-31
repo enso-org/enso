@@ -74,6 +74,18 @@ pub mod header_background {
     }
 }
 
+pub mod mcdbg {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let sprite_width  : Var<Pixels> = "input_size.x".into();
+            let sprite_height : Var<Pixels> = "input_size.y".into();
+            let shape = Rect((&sprite_width,&sprite_height)).fill(Rgba(1.0,0.0,0.0,1.0));
+            shape.into()
+        }
+    }
+}
 
 
 // ===========
@@ -134,6 +146,7 @@ pub struct Model {
     display_object:    display::object::Instance,
     header:            text::Area,
     header_background: header_background::View,
+    mcdbg: mcdbg::View,
     entries:           ListView<entry::Label>,
 }
 
@@ -156,8 +169,10 @@ impl component::Model for Model {
 
         let entries = ListView::new(app);
         let header_background = header_background::View::new(&logger);
+        let mcdbg = mcdbg::View::new(&logger);
         let header = text::Area::new(app);
         display_object.add_child(&entries);
+        display_object.add_child(&mcdbg);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
         // let background = background::View::new(&logger);
@@ -173,6 +188,7 @@ impl component::Model for Model {
             app.display.default_scene => {
                 // TODO: how to hide list_view text "below" header_background, but keep the header
                 // text above header_background?
+                mcdbg -> list_view::background;
                 list_view::selection -> header_background;
                 // header_background -> text;
                 //background            -> list_view::selection;
@@ -182,7 +198,7 @@ impl component::Model for Model {
 
         // let app = app.clone_ref();
         // Model { app, background, label, display_object, text }
-        Model { display_object, header, header_background, entries }
+        Model { display_object, header, mcdbg, header_background, entries }
     }
 }
 
@@ -194,6 +210,7 @@ impl Model {
         // as anything else.
         let half_height = size.y / 2.0;
         let top_left = Vector2(-size.x / 2.0, half_height);
+        self.mcdbg.size.set(size);
         // FIXME: what's the origin of text::Area? assuming left-center
         self.header.set_position_xy(top_left + Vector2(0.0, -HEADER_HEIGHT/2.0));
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
