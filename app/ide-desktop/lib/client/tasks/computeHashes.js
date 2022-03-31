@@ -42,9 +42,9 @@ async function writeFileChecksum(path, type) {
 // === Callback ===
 // ================
 
-exports.default = async function () {
-    let files = glob.sync(paths.dist.client + '/*.{dmg,exe,AppImage}')
-    for (let file of files) {
+exports.default = async function (context) {
+    // `context` is BuildResult, see https://www.electron.build/configuration/configuration.html#buildresult
+    for (let file of context.artifactPaths) {
         console.log(`Generating ${CHECKSUM_TYPE} checksum for ${file}.`)
         await writeFileChecksum(file, CHECKSUM_TYPE)
     }
