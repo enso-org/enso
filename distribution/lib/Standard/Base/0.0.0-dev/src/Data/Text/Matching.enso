@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Regex
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
-from Standard.Table.Error import Wrapped_Dataflow_Error
+from Standard.Base.Error.Common import Wrapped_Dataflow_Error
 
 ## UNSTABLE
    An error indicating that some criteria did not match any names in the input.

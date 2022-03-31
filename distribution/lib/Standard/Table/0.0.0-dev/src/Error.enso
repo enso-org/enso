@@ -67,12 +67,3 @@ type Input_Indices_Already_Matched (indices : [Integer])
 Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text =
     "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
-
-## PRIVATE
-   Wraps a dataflow error lifted to a panic, making possible to distinguish it
-   from other panics.
-type Wrapped_Dataflow_Error payload
-
-## PRIVATE
-   Throws the original error.
-Wrapped_Dataflow_Error.unwrap = Error.throw this.payload
