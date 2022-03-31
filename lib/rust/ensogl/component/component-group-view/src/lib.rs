@@ -97,7 +97,7 @@ impl component::Frp<Model> for Frp {
         // FIXME: should have separate style for CGV header text size most probably
         let header_text_size = style.get_number(theme::widget::list_view::text::size);
         // let background = &model.background.events;
-        model.header_background.color.set(Rgba(0.0, 0.0, 1.0, 1.0).into());
+        model.header_background.color.set(Rgba(1.0, 1.0, 0.7, 1.0).into());
         frp::extend! { network
 
             init <- source::<()>();
