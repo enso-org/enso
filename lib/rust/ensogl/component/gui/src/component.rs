@@ -86,7 +86,7 @@ where
         let model = Rc::new(M::new(app, &logger));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        F::init(frp.private(), &app, &model, &style);
+        F::init(frp.private(), app, &model, &style);
         let display_object = model.display_object().clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget, logger }
