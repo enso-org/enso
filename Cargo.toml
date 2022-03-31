@@ -41,4 +41,7 @@ debug-assertions = true
 
 [profile.integration-test]
 inherits = "test"
-opt-level = 2
+# The integration-test profile was created to be able run integration tests with optimizations (as they took a lot of
+# time). There is, however, an issue with running them with optimizations #181740444.
+# opt-level = 2
+opt-level = 0
