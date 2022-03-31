@@ -39,6 +39,7 @@ use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
@@ -98,12 +99,13 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style,show_shadow:f32,corners_radius_px:f32) {
+        (style:Style,show_shadow:f32,corners_radius_px:f32,color:Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
             let height        = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
-            let color         = style.get_color(theme::widget::list_view::background);
+            // let color         = style.get_color(theme::widget::list_view::background);
+            let color         = Var::<color::Rgba>::from(color);
             let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
             let shape         = rect.fill(color);
 
@@ -266,6 +268,7 @@ ensogl_core::define_endpoints! {
         chose_entry(entry::Id),
         show_background_shadow(bool),
         set_background_corners_radius(f32),
+        set_custom_background_color(Option<color::Rgba>),
     }
 
     Output {
@@ -322,9 +325,13 @@ where E::Model: Default
         let view_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
+        let style = StyleWatchFrp::new(&scene.style_sheet);
 
         model.show_background_shadow(true);
         model.set_background_corners_radius(background::CORNER_RADIUS_PX);
+        let default_background_color = style.get_color(theme::widget::list_view::background);
+        model.background.color.set(default_background_color.value().into());
+        // model.background.color.set(Vector4(1.0, 0.0, 0.0, 1.0));
 
         frp::extend! { network
 
@@ -332,6 +339,8 @@ where E::Model: Default
 
             eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
             eval frp.set_background_corners_radius ((px) model.set_background_corners_radius(*px));
+            // TODO: use Switch instead?
+            background_color_is_custom <- frp.set_custom_background_color.map(Option::is_some);
 
 
             // === Mouse Position ===
