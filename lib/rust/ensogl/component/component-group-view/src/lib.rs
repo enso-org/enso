@@ -55,7 +55,23 @@ const HEADER_HEIGHT: f32 = entry::HEIGHT;
 // === Shapes Definitions ===
 // ==========================
 
-// TODO
+
+// === Header Background ===
+
+pub mod header_background {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        (style:Style,color:Vector4) {
+            let sprite_width  : Var<Pixels> = "input_size.x".into();
+            let sprite_height : Var<Pixels> = "input_size.y".into();
+            // TODO: padding?
+            let color = Var::<Rgba>::from(color);
+            let shape = Rect((&sprite_width,&sprite_height)).fill(color);
+            shape.into()
+        }
+    }
+}
 
 
 
@@ -80,6 +96,7 @@ impl component::Frp<Model> for Frp {
         // FIXME: should have separate style for CGV header text size most probably
         let header_text_size = style.get_number(theme::widget::list_view::text::size);
         // let background = &model.background.events;
+        model.header_background.color.set(Rgba(0.0, 0.0, 1.0, 1.0).into());
         frp::extend! { network
 
             init <- source::<()>();
@@ -113,9 +130,10 @@ impl component::Frp<Model> for Frp {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object: display::object::Instance,
-    header:         text::Area,
-    entries:        ListView<entry::Label>,
+    display_object:    display::object::Instance,
+    header:            text::Area,
+    header_background: header_background::View,
+    entries:           ListView<entry::Label>,
 }
 
 impl display::Object for Model {
@@ -136,8 +154,10 @@ impl component::Model for Model {
         // let text = default();
 
         let entries = ListView::new(app);
-        display_object.add_child(&entries);
+        let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
+        display_object.add_child(&entries);
+        display_object.add_child(&header_background);
         display_object.add_child(&header);
         // let background = background::View::new(&logger);
         // display_object.add_child(&background);
@@ -145,7 +165,7 @@ impl component::Model for Model {
 
         // let app = app.clone_ref();
         // Model { app, background, label, display_object, text }
-        Model { display_object, header, entries }
+        Model { display_object, header, header_background, entries }
     }
 }
 
@@ -155,9 +175,12 @@ impl Model {
         // FIXME: what origin we want? what origin does ListView use? IMO a corner makes sense,
         // though not sure if top-left or bottom-left is better. Alternatively, center is as good
         // as anything else.
-        let top_left = Vector2(-size.x / 2.0, size.y / 2.0);
+        let half_height = size.y / 2.0;
+        let top_left = Vector2(-size.x / 2.0, half_height);
         // FIXME: what's the origin of text::Area? assuming left-center
         self.header.set_position_xy(top_left + Vector2(0.0, -HEADER_HEIGHT/2.0));
+        self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
+        self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
         // TODO: what's the origin of ListView? assuming center
         self.entries.set_position_y(-HEADER_HEIGHT);
         self.entries.resize(size - Vector2(0.0, HEADER_HEIGHT));
