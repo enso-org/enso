@@ -165,6 +165,10 @@ impl<E: Entry> Model<E> {
         self.background.corners_radius_px.set(px);
     }
 
+    pub fn set_background_color(&self, color: color::Rgba) {
+        self.background.color.set(color.into());
+    }
+
     fn padding(&self) -> f32 {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -339,8 +343,11 @@ where E::Model: Default
 
             eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
             eval frp.set_background_corners_radius ((px) model.set_background_corners_radius(*px));
-            // TODO: use Switch instead?
-            background_color_is_custom <- frp.set_custom_background_color.map(Option::is_some);
+            background_color_change <- all(
+                &frp.set_custom_background_color, &default_background_color);
+            background_color <- background_color_change.map(
+                |(custom,default)| custom.unwrap_or(*default));
+            eval background_color ((color) model.set_background_color(*color));
 
 
             // === Mouse Position ===

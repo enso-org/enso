@@ -28,6 +28,7 @@ use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
@@ -71,6 +72,7 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
+            model.entries.set_custom_background_color(Some(Rgba(0.0, 1.0, 0.0, 1.0)));
 
             model.entries.set_entries <+ api.input.set_entries;
             model.entries.resize <+ api.input.resize;
