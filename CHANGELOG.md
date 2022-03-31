@@ -2,6 +2,9 @@
 
 #### Visual Environment
 
+- [Magnet Alignment algorithm is used while placing new nodes][3366]. The new
+  node position now depends on the positions of the surrounding nodes. This
+  makes the resulting graph prettier.
 - [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
   screen are now placed below all the selected nodes when more than one node is
   selected.][3361] (Previously, they were placed below the first node that was
@@ -137,6 +140,7 @@
 [3346]: https://github.com/enso-org/enso/pull/3346
 [3349]: https://github.com/enso-org/enso/pull/3349
 [3361]: https://github.com/enso-org/enso/pull/3361
+[3366]: https://github.com/enso-org/enso/pull/3366
 
 #### Enso Compiler
 
