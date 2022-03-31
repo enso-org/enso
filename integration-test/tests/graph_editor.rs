@@ -7,7 +7,6 @@ use enso_integration_test::prelude::*;
 use approx::assert_abs_diff_eq;
 use enso_frp::future::FutureEvent;
 use enso_frp::io::mouse::PrimaryButton;
-use enso_gui::view::graph_editor;
 use enso_gui::view::graph_editor::component::node as node_view;
 use enso_gui::view::graph_editor::component::node::test_utils::NodeModelExt;
 use enso_gui::view::graph_editor::component::node::Expression;
@@ -125,37 +124,34 @@ async fn adding_node_with_add_node_button() {
     let graph_editor = test.graph_editor();
     let scene = &test.ide.ensogl_app.display.default_scene;
 
-    let nodes = graph_editor.nodes().all.keys();
-    let nodes_positions = nodes.into_iter().flat_map(|id| graph_editor.model.get_node_position(id));
-    let mut sorted_positions = nodes_positions.sorted_by_key(|pos| OrderedFloat(pos.y));
-    let bottom_most_pos =
-        sorted_positions.next().expect("Default project does not contain any nodes");
+    let InitialNodes { below: (_, bottom_node), .. } =
+        InitialNodes::obtain_from_graph_editor(&graph_editor);
+    let bottom_node_pos = bottom_node.position();
 
     // Node is created below the bottom-most one.
-    let (first_node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1 + 1");
+    let (first_node_id, node_source, first_node) =
+        add_node_with_add_node_button(&graph_editor, "1 + 1").await;
     assert!(node_source.is_none());
     assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 1);
-    let node_position =
-        graph_editor.model.get_node_position(first_node_id).expect("Node was not added");
+    let node_position = first_node.position();
     assert!(
-        node_position.y < bottom_most_pos.y,
-        "Expected that {node_position}.y < {bottom_most_pos}.y"
+        first_node.position().y < bottom_node_pos.y,
+        "Expected that {node_position}.y < {bottom_node_pos}.y"
     );
 
     // Selected node is used as a `source` node.
     graph_editor.nodes().deselect_all();
     graph_editor.nodes().select(first_node_id);
-    let (_, node_source, _) = add_node_with_add_node_button(&graph_editor, "+ 1");
+    let (_, node_source, _) = add_node_with_add_node_button(&graph_editor, "+ 1").await;
     assert_eq!(node_source, Some(NodeSource { node: first_node_id }));
     assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 2);
 
     // If there is a free space, the new node is created in the center of screen.
     let camera = scene.layers.main.camera();
     camera.mod_position_xy(|pos| pos + Vector2(1000.0, 1000.0));
-    let wait_for_update = Duration::from_millis(500);
-    sleep(wait_for_update).await;
+    wait_a_frame().await;
     graph_editor.nodes().deselect_all();
-    let (node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1");
+    let (node_id, node_source, _) = add_node_with_add_node_button(&graph_editor, "1").await;
     assert!(node_source.is_none());
     assert_eq!(graph_editor.nodes().all.len(), INITIAL_NODE_COUNT + 3);
     let node_position = graph_editor.model.get_node_position(node_id).expect(
@@ -171,20 +167,100 @@ added",
 async fn adding_node_by_clicking_on_the_output_port() {
     let test = IntegrationTestOnNewProject::setup().await;
     let graph_editor = test.graph_editor();
-    let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1");
+    let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
     let method = |editor: &GraphEditor| {
         let port = node_1.model.output_port_shape().expect("No output port");
         port.events.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
-    let (_, source, node_2) = add_node(&graph_editor, "+ 1", method);
+    let (_, source, node_2) = add_node(&graph_editor, "+ 1", method).await;
 
     assert_eq!(source.unwrap(), NodeSource { node: node_1_id });
     assert!(node_2.position().y < node_1.position().y);
 }
 
-fn add_node(
+#[wasm_bindgen_test]
+async fn new_nodes_placement_with_nodes_selected() {
+    let test = IntegrationTestOnNewProject::setup().await;
+    let graph_editor = test.graph_editor();
+    let InitialNodes { above: (node_1_id, node_1), below: (node_2_id, node_2) } =
+        InitialNodes::obtain_from_graph_editor(&graph_editor);
+
+    // Scenario 1. Creating a new node with one node selected.
+    graph_editor.nodes().select(node_2_id);
+    let (node_3_id, _, node_3) = add_node_with_add_node_button(&graph_editor, "+ 1").await;
+    assert_eq!(
+        node_3.position().x,
+        node_2.position().x,
+        "New node is not left-aligned to the selected one."
+    );
+    assert!(node_3.position().y < node_2.position().y, "New node is not below the selected one.");
+
+    graph_editor.nodes().deselect_all();
+    graph_editor.nodes().select(node_2_id);
+    let (node_4_id, _, node_4) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    assert_eq!(
+        node_4.position().y,
+        node_3.position().y,
+        "New node is not vertically aligned to the previous one."
+    );
+    assert!(
+        node_4.position().x < node_3.position().x,
+        "New node is not to the left of the previous one."
+    );
+
+    graph_editor.remove_node(node_3_id);
+    graph_editor.remove_node(node_4_id);
+    graph_editor.nodes().deselect_all();
+
+    // Scenario 2. Creating a new node with multiple nodes selected.
+    node_1.set_position(Vector3(-100.0, 0.0, 0.0));
+    wait_a_frame().await;
+    graph_editor.nodes().select(node_1_id);
+    graph_editor.nodes().select(node_2_id);
+
+    let (.., node_5) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    assert_eq!(
+        node_5.position().x,
+        node_1.position().x,
+        "New node is not left-aligned to the first selected one."
+    );
+    assert!(node_5.position().y < node_2.position().y, "New node is not below the bottom node.");
+
+    graph_editor.nodes().deselect_all();
+    graph_editor.nodes().select(node_1_id);
+    graph_editor.nodes().select(node_2_id);
+
+    let (node_6_id, _, node_6) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    assert_eq!(
+        node_6.position().y,
+        node_5.position().y,
+        "New node is not vertically aligned to the previous one."
+    );
+    assert!(
+        node_6.position().x < node_5.position().x,
+        "New node is not to the left of the previous one."
+    );
+
+    // Scenario 3. Creating a new node with enabled visualization.
+    graph_editor.nodes().deselect_all();
+    graph_editor.nodes().select(node_6_id);
+    let (node_7_id, _, node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    let pos_without_visualization = node_7.position().y;
+    graph_editor.remove_node(node_7_id);
+    graph_editor.nodes().deselect_all();
+    graph_editor.nodes().select(node_6_id);
+    node_6.enable_visualization();
+    wait_a_frame().await;
+    let (.., node_7) = add_node_with_shortcut(&graph_editor, "+ 1").await;
+    assert!(
+        node_7.position().y < pos_without_visualization,
+        "New node is not below the visualization."
+    );
+}
+
+async fn add_node(
     graph_editor: &GraphEditor,
     expression: &str,
     method: impl Fn(&GraphEditor),
@@ -195,24 +271,33 @@ fn add_node(
     let node = graph_editor.nodes().get_cloned_ref(&node_id).expect("Node was not added");
     node.set_expression(Expression::new_plain(expression));
     graph_editor.stop_editing();
+    wait_a_frame().await;
     (node_id, source_node, node)
 }
 
-fn add_node_with_internal_api(
+async fn add_node_with_internal_api(
     graph_editor: &GraphEditor,
     expression: &str,
 ) -> (NodeId, Option<NodeSource>, Node) {
     let method = |editor: &GraphEditor| editor.add_node();
-    add_node(graph_editor, expression, method)
+    add_node(graph_editor, expression, method).await
 }
 
-fn add_node_with_add_node_button(
+async fn add_node_with_shortcut(
+    graph_editor: &GraphEditor,
+    expression: &str,
+) -> (NodeId, Option<NodeSource>, Node) {
+    let method = |editor: &GraphEditor| editor.start_node_creation();
+    add_node(graph_editor, expression, method).await
+}
+
+async fn add_node_with_add_node_button(
     graph_editor: &GraphEditor,
     expression: &str,
 ) -> (NodeId, Option<NodeSource>, Node) {
     let add_node_button = &graph_editor.model.add_node_button;
     let method = |_: &GraphEditor| add_node_button.click();
-    add_node(graph_editor, expression, method)
+    add_node(graph_editor, expression, method).await
 }
 
 #[wasm_bindgen_test]
@@ -240,7 +325,7 @@ async fn mouse_oriented_node_placement() {
                 self.graph_editor.model.get_node_position(new_node_id).map(|v| v.xy());
             assert_eq!(new_node_pos, Some(self.expected_position));
             self.graph_editor.stop_editing();
-            assert_eq!(self.graph_editor.model.nodes.all.len(), 2);
+            assert_eq!(self.graph_editor.nodes().all.len(), 2);
         }
 
         fn check_tab_key(&self) {
@@ -272,7 +357,8 @@ async fn mouse_oriented_node_placement() {
     let gap_y = graph_editor.default_y_gap_between_nodes.value();
     let min_spacing = graph_editor.min_x_spacing_for_new_nodes.value();
 
-    let InitialNodes { above, below } = InitialNodes::obtain_from_graph_editor(&graph_editor);
+    let InitialNodes { above: (_, above), below: (_, below) } =
+        InitialNodes::obtain_from_graph_editor(&graph_editor);
 
     let create_case =
         |source_node: &Node, mouse_position: Vector2, expected_position: Vector2| Case {
@@ -299,15 +385,22 @@ async fn mouse_oriented_node_placement() {
     create_case(&above, under_above, under_above_expect).run();
 }
 
+
+
+// ====================
+// === InitialNodes ===
+// ====================
+
 struct InitialNodes {
-    above: graph_editor::Node,
-    below: graph_editor::Node,
+    above: (NodeId, Node),
+    below: (NodeId, Node),
 }
 
 impl InitialNodes {
     fn obtain_from_graph_editor(graph_editor: &GraphEditor) -> Self {
-        let nodes = graph_editor.model.nodes.all.values();
-        let mut sorted = nodes.into_iter().sorted_by_key(|node| OrderedFloat(node.position().y));
+        let nodes = graph_editor.nodes().all.entries();
+        let mut sorted =
+            nodes.into_iter().sorted_by_key(|(_, node)| OrderedFloat(node.position().y));
         match (sorted.next(), sorted.next()) {
             (Some(below), Some(above)) => Self { above, below },
             _ => panic!("Expected two nodes in initial Graph Editor"),

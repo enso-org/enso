@@ -392,6 +392,14 @@ impl<K, V, S> SharedHashMap<K, V, S> {
         self.raw.borrow().keys().cloned().collect_vec()
     }
 
+    /// Get the vector of map's keys and values.
+    pub fn entries(&self) -> Vec<(K, V)>
+    where
+        K: Clone,
+        V: CloneRef, {
+        self.raw.borrow().iter().map(|(k, v)| (k.clone(), v.clone_ref())).collect_vec()
+    }
+
     /// Get the vector of map's values.
     pub fn values(&self) -> Vec<V>
     where V: Clone {
@@ -1393,18 +1401,17 @@ impl GraphEditorModelWithNetwork {
 
 /// Describes the way used to request creation of a new node.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum WayOfCreatingNode {
     /// "add_node" FRP event was emitted.
     AddNodeEvent,
     /// "start_node_creation" FRP event was emitted.
     StartCreationEvent,
     /// "start_node_creation_from_port" FRP event was emitted.
-    #[allow(missing_docs)]
     StartCreationFromPortEvent { endpoint: EdgeEndpoint },
     /// add_node_button was clicked.
     ClickingButton,
     /// The edge was dropped on the stage.
-    #[allow(missing_docs)]
     DroppingEdge { edge_id: EdgeId },
 }
 
@@ -1431,27 +1438,22 @@ impl GraphEditorModelWithNetwork {
         way: &WayOfCreatingNode,
         mouse_position: Vector2,
     ) -> (NodeId, Option<NodeSource>, bool) {
-        let selection = self.nodes.selected.first_cloned();
-        let position = new_node_position::new_node_position(self, way, selection, mouse_position);
+        let position = new_node_position::new_node_position(self, way, mouse_position);
         let node = self.new_node(ctx);
         node.set_position_xy(position);
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
         }
-        let source = self.data_source_for_new_node(way, selection);
+        let source = self.data_source_for_new_node(way);
         (node.id(), source, should_edit)
     }
 
-    fn data_source_for_new_node(
-        &self,
-        way: &WayOfCreatingNode,
-        selection: Option<NodeId>,
-    ) -> Option<NodeSource> {
+    fn data_source_for_new_node(&self, way: &WayOfCreatingNode) -> Option<NodeSource> {
         use WayOfCreatingNode::*;
         let source_node = match way {
             AddNodeEvent => None,
-            StartCreationEvent | ClickingButton => selection,
+            StartCreationEvent | ClickingButton => self.nodes.selected.first_cloned(),
             DroppingEdge { edge_id } => self.edge_source_node_id(*edge_id),
             StartCreationFromPortEvent { endpoint } => Some(endpoint.node_id),
         };
@@ -2062,6 +2064,14 @@ impl GraphEditorModel {
     pub fn node_position(&self, node_id: impl Into<NodeId>) -> Vector2<f32> {
         let node_id = node_id.into();
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
+    }
+
+    /// Return the bounding box of the node identified by `node_id`, or a default bounding box if
+    /// the node was not found.
+    pub fn node_bounding_box(&self, node_id: impl Into<NodeId>) -> selection::BoundingBox {
+        let node_id = node_id.into();
+        let node = self.nodes.get_cloned_ref(&node_id);
+        node.map(|node| node.bounding_box.value()).unwrap_or_default()
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

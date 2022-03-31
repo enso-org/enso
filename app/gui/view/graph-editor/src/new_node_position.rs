@@ -2,8 +2,6 @@
 //!
 //! The returned positions are such that the new nodes will not overlap with existing ones.
 
-pub mod free_place_finder;
-
 use crate::prelude::*;
 
 use crate::component::node;
@@ -19,6 +17,13 @@ use crate::WayOfCreatingNode;
 use ensogl_hardcoded_theme as theme;
 
 
+// ==============
+// === Export ===
+// ==============
+
+pub mod free_place_finder;
+
+
 
 /// ============================
 /// === New Node Positioning ===
@@ -29,11 +34,12 @@ use ensogl_hardcoded_theme as theme;
 ///
 /// The reference position is chosen from among:
 ///  - the position of a source node of the dropped edge (if available),
+///  - the bottom-most selected node (if available),
 ///  - the mouse position,
 ///  - the screen center.
 /// The position is then aligned to either:
 ///  - the source node of the dropped edge (if available),
-///  - the `selection` (if available),
+///  - the selected nodes (if available),
 ///  - the node closest to the reference position (if available),
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
@@ -42,25 +48,72 @@ use ensogl_hardcoded_theme as theme;
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
     way: &WayOfCreatingNode,
-    selection: Option<NodeId>,
     mouse_position: Vector2,
 ) -> Vector2 {
     use WayOfCreatingNode::*;
     let scene = graph_editor.scene();
     let origin = Vector2(0.0, 0.0);
     let screen_center = scene.screen_to_object_space(&graph_editor.display_object, origin);
-    assert!(!screen_center.x.is_nan());
-    assert!(!screen_center.y.is_nan());
+    let some_nodes_are_selected = !graph_editor.nodes.selected.is_empty();
     match way {
         AddNodeEvent => default(),
-        StartCreationEvent | ClickingButton if selection.is_some() =>
-            under(graph_editor, selection.unwrap()),
+        StartCreationEvent | ClickingButton if some_nodes_are_selected =>
+            under_selected_nodes(graph_editor),
         StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
         ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
         DroppingEdge { edge_id } =>
             at_mouse_aligned_to_source_node(graph_editor, *edge_id, mouse_position),
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
     }
+}
+
+/// Return a position for a newly created node closely below all selected nodes, or a zero vector
+/// if no nodes are selected. The position is left-aligned to the first selected node, then moved
+/// to the left to the first available position if the initial position is not available.
+///
+/// Availability of a position is defined in the docs of [`on_ray`].
+pub fn under_selected_nodes(graph_editor: &GraphEditorModel) -> Vector2 {
+    let first_selected_node = graph_editor.nodes.selected.first_cloned();
+    let first_selected_node_x = match first_selected_node {
+        None => return Vector2::zeros(),
+        Some(node_id) => graph_editor.node_position(node_id).x,
+    };
+    let node_bbox_bottom = |node_id| graph_editor.node_bounding_box(node_id).bottom();
+    let selected_nodes = graph_editor.nodes.selected.raw.borrow();
+    let selection_bottom = selected_nodes.iter().map(node_bbox_bottom).reduce(min);
+    let selection_bottom_or_zero = selection_bottom.unwrap_or_default();
+    below_line_and_left_aligned(graph_editor, selection_bottom_or_zero, first_selected_node_x)
+}
+
+/// Return a position for a newly created node. Returns a position closely below the `node_id` node
+/// if the position is available, or a first available point on a ray extending to the left of that
+/// position.
+///
+/// Availability of a position is defined in the docs of [`on_ray`].
+pub fn under(graph_editor: &GraphEditorModel, node_id: NodeId) -> Vector2 {
+    let above_node_pos = graph_editor.node_position(node_id);
+    let above_node_bbox = graph_editor.node_bounding_box(node_id);
+    below_line_and_left_aligned(graph_editor, above_node_bbox.bottom(), above_node_pos.x)
+}
+
+/// Return a position for a newly created node. Returns a position closely below a horizontal line
+/// at `line_y` and left-aligned to `align_x`, or a first available position to the left of it if
+/// the initial position is not available.
+///
+/// "Closely below" means that a vertical gap is maintained between the line and the top border of
+/// a node placed at the returned position. The vertical gap is equal to
+/// [`theme::graph_editor::default_y_gap_between_nodes`].
+/// Availability of a position is defined in the docs of [`on_ray`].
+pub fn below_line_and_left_aligned(
+    graph_editor: &GraphEditorModel,
+    line_y: f32,
+    align_x: f32,
+) -> Vector2 {
+    let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
+    let y_offset = y_gap + node::HEIGHT / 2.0;
+    let starting_point = Vector2(align_x, line_y - y_offset);
+    let direction = Vector2(-1.0, 0.0);
+    on_ray(graph_editor, starting_point, direction).unwrap()
 }
 
 /// Return a position for a newly created node. The position is calculated by taking the mouse
@@ -139,20 +192,6 @@ pub fn aligned_if_close_to_node(
         Some(node) => under(graph_editor, node.id()),
         None => proposed_position,
     }
-}
-
-/// Return a position for a newly created node. Returns a position closely below the `node_id` node
-/// if the position is available, or a first available point on a ray extending to the left of that
-/// position.
-///
-/// Availability of a position is defined in the docs of [`on_ray`].
-pub fn under(graph_editor: &GraphEditorModel, node_above: NodeId) -> Vector2 {
-    let above_pos = graph_editor.node_position(node_above);
-    let y_gap = graph_editor.frp.default_y_gap_between_nodes.value();
-    let y_offset = y_gap + node::HEIGHT;
-    let starting_point = above_pos - Vector2(0.0, y_offset);
-    let direction = Vector2(-1.0, 0.0);
-    on_ray(graph_editor, starting_point, direction).unwrap()
 }
 
 /// Return a position for a newly created node. Return the first available position on a ray
