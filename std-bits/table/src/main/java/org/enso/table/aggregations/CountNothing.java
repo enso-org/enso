@@ -19,9 +19,9 @@ public class CountNothing extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     long count = 0;
-    for (int row: rows) {
+    for (int row: indexes) {
       count += ((storage.getItemBoxed(row) == null) == isNothing ? 1 : 0);
     }
     return count;

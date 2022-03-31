@@ -32,9 +32,9 @@ public class StandardDeviation extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     Calculation current = null;
-    for (int row: rows) {
+    for (int row: indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         Double dValue = CastToDouble(value);

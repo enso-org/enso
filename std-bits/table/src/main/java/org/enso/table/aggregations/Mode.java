@@ -20,11 +20,11 @@ public class Mode extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     Object current = null;
     int count = 0;
     Map<Object, Integer> currentMap = null;
-    for (int row: rows) {
+    for (int row: indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         // Merge all numbers onto a Long if possible or a Double if needed

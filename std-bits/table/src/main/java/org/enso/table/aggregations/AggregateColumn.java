@@ -41,19 +41,19 @@ public abstract class AggregateColumn {
 
   /***
    * Compute the value for a set of rows
-   * @param rows - indexes to the rows in the source table to aggregate on
+   * @param indexes - indexes to the rows in the source table to aggregate on
    * @return aggregated value
    */
-  public Object aggregate(int[] rows) {
-    return this.aggregate(Arrays.stream(rows).boxed().collect(Collectors.toList()));
+  public Object aggregate(int[] indexes) {
+    return this.aggregate(Arrays.stream(indexes).boxed().collect(Collectors.toList()));
   }
 
   /***
    * Compute the value for a set of rows
-   * @param rows - indexes to the rows in the source table to aggregate on
+   * @param indexes - indexes to the rows in the source table to aggregate on
    * @return aggregated value
    */
-  public abstract Object aggregate(List<Integer> rows);
+  public abstract Object aggregate(List<Integer> indexes);
 
   protected void addProblem(Problem problem) {
     if (problems == null) {

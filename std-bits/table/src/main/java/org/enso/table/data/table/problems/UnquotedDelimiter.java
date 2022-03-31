@@ -20,7 +20,5 @@ public class UnquotedDelimiter implements Problem {
   }
 
   @Override
-  public String getMessage() {
-    return message;
-  }
+  public String getMessage() { return message; }
 }

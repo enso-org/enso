@@ -8,9 +8,12 @@ import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.data.table.aggregate.AggregateColumnDefinition
+polyglot java import org.enso.table.data.table.problems.InvalidAggregation
+polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 
 ## Result type for aggregate_columns validation
    - key_columns: Vector of Columns from the table to group by
@@ -173,3 +176,19 @@ java_aggregator name column =
         Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name c.java_column 1
         Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name c.java_column join prefix suffix quote
         _ -> Error.throw "Unsupported aggregation."
+
+## PRIVATE
+   Convert Java aggregated problems to Enso Vector of equivalents
+parse_aggregated_problems : Any->Vector
+parse_aggregated_problems problems =
+    if problems.is_nothing then [] else
+        problems_array = problems.getProblems
+        parsed = Vector.new problems_array.length i->
+            p = problems_array.at i
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName p.getRow p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName p.getRow else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName p.getRow else
+                        "Unknown Error"
+
+       if problems.getCount == problems_array.length then parsed else
+            parsed + [Additional_Warnings (problems.getCount - problems_array.count)]

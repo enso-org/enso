@@ -32,7 +32,7 @@ public class MultiValueIndex {
         MultiValueKey key = new MultiValueKey(Arrays.stream(keyColumns).map(c -> c.getItemBoxed(finalI)).toArray());
 
         if (key.hasFloatValues()) {
-          problems.add(new FloatingPointGrouping(null, i));
+          problems.add(new FloatingPointGrouping("GroupBy", i));
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());

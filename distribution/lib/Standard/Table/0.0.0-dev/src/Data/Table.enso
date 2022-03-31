@@ -495,9 +495,14 @@ type Table
             java_columns = validated.key_columns.map .java_column
             index = this.java_table.indexFromColumns java_columns.to_array
 
-            new_table = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
-            index.makeTable new_table.to_array
+            new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
+            java_table = index.makeTable new_columns.to_array
+            new_table = Table java_table
+
+            on_problems.attach_problems_after new_table <|
+                problems = java_table.getProblems
+                Aggregate_Column_Helper.parse_aggregated_problems problems
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns

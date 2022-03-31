@@ -20,9 +20,9 @@ public class CountEmpty extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     int count = 0;
-    for (int row : rows) {
+    for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null && !(value instanceof String)) {
         this.addProblem(new InvalidAggregation(this.getName(), row, "Non-Text value - cannot Count " + (isEmpty ? "Empty" : "Non-Empty")));

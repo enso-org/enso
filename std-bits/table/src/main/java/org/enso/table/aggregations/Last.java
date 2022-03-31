@@ -16,9 +16,9 @@ public class Last extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     Object current = null;
-    for (int row: rows) {
+    for (int row: indexes) {
       Object value = storage.getItemBoxed(row);
       if (!ignoreNothing || value != null) {
         current = value;

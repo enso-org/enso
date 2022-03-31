@@ -24,9 +24,9 @@ public class CountDistinct extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     Set<MultiValueKey> set = new HashSet<>();
-    for (int row: rows) {
+    for (int row: indexes) {
       MultiValueKey key = new MultiValueKey(Arrays.stream(storage).map(s->s.getItemBoxed(row)).toArray());
       if (key.hasFloatValues()) {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));

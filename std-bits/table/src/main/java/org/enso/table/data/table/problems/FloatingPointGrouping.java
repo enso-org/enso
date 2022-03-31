@@ -19,6 +19,6 @@ public class FloatingPointGrouping implements Problem {
 
   @Override
   public String getMessage() {
-    return "Grouping on floating points is not recommended.";
+    return this.getColumnName() + " " + this.row + " - grouping on floating points is not recommended.";
   }
 }

@@ -43,6 +43,10 @@ public class AggregatedProblems {
 
   public static AggregatedProblems merge(AggregatedProblems[] problems) {
     int size = Arrays.stream(problems).mapToInt(p->p == null ? 0 : p.problems.length).sum();
+    if (size == 0) {
+      return null;
+    }
+
     Problem[] merged = new Problem[size];
 
     int count = 0;

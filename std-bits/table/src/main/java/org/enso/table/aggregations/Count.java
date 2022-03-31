@@ -13,13 +13,13 @@ public class Count extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(int[] rows) {
-    return rows.length;
+  public Object aggregate(int[] indexes) {
+    return indexes.length;
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
-    return rows.size();
+  public Object aggregate(List<Integer> indexes) {
+    return indexes.size();
   }
 }
 

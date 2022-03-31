@@ -19,7 +19,7 @@ public class GroupBy extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
-    return rows.isEmpty() ? null : storage.getItemBoxed(rows.get(0));
+  public Object aggregate(List<Integer> indexes) {
+    return indexes.isEmpty() ? null : storage.getItemBoxed(indexes.get(0));
   }
 }

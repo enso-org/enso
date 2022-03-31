@@ -20,10 +20,10 @@ public class Percentile extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     int count = 0;
     SortedMap<Double, Integer> currentMap = null;
-    for (int row: rows) {
+    for (int row: indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         Double dValue = CastToDouble(value);

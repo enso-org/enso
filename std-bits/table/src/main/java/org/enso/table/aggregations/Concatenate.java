@@ -1,6 +1,5 @@
 package org.enso.table.aggregations;
 
-import com.ibm.icu.text.BreakIterator;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -26,14 +25,14 @@ public class Concatenate extends AggregateColumn {
   }
 
   @Override
-  public Object aggregate(List<Integer> rows) {
+  public Object aggregate(List<Integer> indexes) {
     StringBuilder current = null;
-    for (int row: rows) {
+    for (int row: indexes) {
       Object value = storage.getItemBoxed(row);
       if (value == null || value instanceof String) {
-        String textValue = ToQuotedString(value, quote, join);
+        String textValue = toQuotedString(value, quote, join);
 
-        if (quote == "" && textValue.contains(join)) {
+        if (quote.equals("") && textValue.contains(join)) {
           this.addProblem(new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }
 
@@ -59,7 +58,7 @@ public class Concatenate extends AggregateColumn {
     return current.toString();
   }
 
-  private static String ToQuotedString(Object value, final String quote, final String join) {
+  private static String toQuotedString(Object value, final String quote, final String join) {
     if (value == null) {
       return "";
     }
