@@ -35,8 +35,8 @@ public class MultiValueIndex {
           problems.add(new FloatingPointGrouping(null, i));
         }
 
-        List<Integer> its = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
-        its.add(i);
+        List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
+        ids.add(i);
       }
     }
   }
