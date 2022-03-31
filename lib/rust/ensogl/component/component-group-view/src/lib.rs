@@ -39,6 +39,7 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view::ListView;
 use ensogl_list_view::entry;
 use ensogl_shadow as shadow;
+use ensogl_text as text;
 
 
 
@@ -94,6 +95,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
+    header:         text::Area,
     entries:        ListView<entry::Label>,
 }
 
@@ -110,13 +112,15 @@ impl component::Model for Model {
 
         let entries = ListView::new(app);
         display_object.add_child(&entries);
+        let header = text::Area::new(app);
+        display_object.add_child(&header);
         // let background = background::View::new(&logger);
         // display_object.add_child(&background);
         // scene.layers.tooltip.add_exclusive(&background);
 
         // let app = app.clone_ref();
         // Model { app, background, label, display_object, text }
-        Model { display_object, entries }
+        Model { display_object, header, entries }
     }
 }
 
