@@ -1081,6 +1081,7 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// ```ignore
 /// shapes_order_dependencies! {
 ///     scene => {
+///         //                (below) -> (above)
 ///         output::port::single_port -> shape;
 ///         output::port::multi_port  -> shape;
 ///         shape                     -> input::port::hover;
