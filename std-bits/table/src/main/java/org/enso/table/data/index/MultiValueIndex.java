@@ -1,11 +1,11 @@
 package org.enso.table.data.index;
 
+import org.enso.table.aggregations.AggregateColumn;
 import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.data.table.aggregate.AggregateColumnDefinition;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.Problem;
 
@@ -34,7 +34,7 @@ public class MultiValueIndex {
     }
   }
 
-  public Table makeTable(AggregateColumnDefinition[] columns) {
+  public Table makeTable(AggregateColumn[] columns) {
     final int length = columns.length;
     final int size = locs.size();
 
