@@ -1,5 +1,8 @@
 package org.enso.table.aggregations;
 
+import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.data.table.problems.Problem;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,10 +13,12 @@ import java.util.stream.Collectors;
 public abstract class AggregateColumn {
   private final String name;
   private final int type;
+  private AggregatedProblems problems;
 
   protected AggregateColumn(String name, int type) {
     this.name = name;
     this.type = type;
+    this.problems = null;
   }
 
   /***
@@ -28,6 +33,10 @@ public abstract class AggregateColumn {
    */
   public int getType() {
     return type;
+  }
+
+  public AggregatedProblems getProblems() {
+    return problems;
   }
 
   /***
@@ -45,6 +54,13 @@ public abstract class AggregateColumn {
    * @return aggregated value
    */
   public abstract Object aggregate(List<Integer> rows);
+
+  protected void addProblem(Problem problem) {
+    if (problems == null) {
+      problems = new AggregatedProblems();
+    }
+    problems.add(problem);
+  }
 
   protected static Long CastToLong(Object value) {
     if (value instanceof Long) {

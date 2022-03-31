@@ -30,7 +30,8 @@ public class MinOrMax extends AggregateColumn{
             current = value;
           }
         } catch (ClassCastException e) {
-          return new InvalidAggregation(this.getName(), row, "Cannot Compare Values.");
+          this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot Compare Values."));
+          return null;
         }
       }
     }

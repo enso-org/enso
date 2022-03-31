@@ -36,7 +36,8 @@ public class Sum extends AggregateColumn {
             if (dCurrent != null && dValue != null) {
               current = dCurrent + dValue;
             } else {
-              return new InvalidAggregation(this.getName(), row, "Cannot Total Values.");
+              this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot Total Values."));
+              return null;
             }
           }
         }

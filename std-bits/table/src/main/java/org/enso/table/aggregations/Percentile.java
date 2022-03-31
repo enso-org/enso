@@ -29,7 +29,8 @@ public class Percentile extends AggregateColumn {
         Double dValue = CastToDouble(value);
 
         if (dValue == null) {
-          return new InvalidAggregation(this.getName(), row, "Cannot convert to a Double.");
+          this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot convert to a Double."));
+          return null;
         } else if (count == 0) {
           count = 1;
           currentMap = new TreeMap<>();
@@ -71,7 +72,8 @@ public class Percentile extends AggregateColumn {
       current = nextCurrent;
     }
 
-    return new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile.");
+    this.addProblem(new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile."));
+    return null;
   }
 }
 

@@ -25,7 +25,8 @@ public class CountEmpty extends AggregateColumn {
     for (int row : rows) {
       Object value = storage.getItemBoxed(row);
       if (value != null && !(value instanceof String)) {
-        return new InvalidAggregation(this.getName(), row, "Non-Text value - cannot Count " + (isEmpty ? "Empty" : "Non-Empty"));
+        this.addProblem(new InvalidAggregation(this.getName(), row, "Non-Text value - cannot Count " + (isEmpty ? "Empty" : "Non-Empty")));
+        return null;
       }
 
       count += ((value == null || ((String) value).length() == 0) == isEmpty ? 1 : 0);

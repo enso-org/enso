@@ -7,7 +7,6 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## Creates a new column given a name and a vector of elements.
-   Testing 123 Who's Here
 
    Arguments:
    - name: The name of the column to create.

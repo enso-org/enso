@@ -42,17 +42,19 @@ public class AggregatedProblems {
   }
 
   public static AggregatedProblems merge(AggregatedProblems[] problems) {
-    int size = Arrays.stream(problems).mapToInt(p->p.problems.length).sum();
+    int size = Arrays.stream(problems).mapToInt(p->p == null ? 0 : p.problems.length).sum();
     Problem[] merged = new Problem[size];
 
     int count = 0;
     int position = 0;
     for (AggregatedProblems p : problems) {
-      int toCopy = Math.min(p.problems.length, p.getCount());
-      System.arraycopy(p.problems, 0, merged, position, toCopy);
-      position += toCopy;
+      if (p != null) {
+        int toCopy = Math.min(p.problems.length, p.getCount());
+        System.arraycopy(p.problems, 0, merged, position, toCopy);
+        position += toCopy;
 
-      count += p.getCount();
+        count += p.getCount();
+      }
     }
 
     return new AggregatedProblems(merged, count);

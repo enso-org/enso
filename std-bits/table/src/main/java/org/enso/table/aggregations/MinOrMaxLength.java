@@ -29,7 +29,8 @@ public class MinOrMaxLength extends AggregateColumn {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (!(value instanceof String)) {
-          return new InvalidAggregation(this.getName(), row, "Non-Text value - cannot find " + (minOrMax == 1 ? "Longest" : "Shortest"));
+          this.addProblem(new InvalidAggregation(this.getName(), row, "Non-Text value - cannot find " + (minOrMax == 1 ? "Longest" : "Shortest")));
+          return null;
         }
 
         long valueLength = GraphemeLength((String)value);
