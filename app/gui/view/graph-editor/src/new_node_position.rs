@@ -40,10 +40,11 @@ pub mod free_place_finder;
 /// The position is then aligned to either:
 ///  - the source node of the dropped edge (if available),
 ///  - the selected nodes (if available),
+///  - the node closest to the reference position (if available),
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
 ///
-/// To learn more about the align algorithm, see the docs of [`under`].
+/// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
     way: &WayOfCreatingNode,
