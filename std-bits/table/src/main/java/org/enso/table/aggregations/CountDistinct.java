@@ -3,6 +3,7 @@ package org.enso.table.aggregations;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKey;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -27,6 +28,10 @@ public class CountDistinct extends AggregateColumn {
     Set<MultiValueKey> set = new HashSet<>();
     for (int row: rows) {
       MultiValueKey key = new MultiValueKey(Arrays.stream(storage).map(s->s.getItemBoxed(row)).toArray());
+      if (key.hasFloatValues()) {
+        this.addProblem(new FloatingPointGrouping(this.getName(), row));
+      }
+
       if (!ignoreEmpty || !key.areAllNull()) {
         set.add(key);
       }
