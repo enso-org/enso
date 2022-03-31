@@ -24,118 +24,230 @@ use web_sys::WebGlShader;
 #[derive(Debug, Default)]
 pub struct Compiler {
     /// Programs waiting to be submitted for compilation.
-    new_jobs:     Vec<Job>,
+    new_jobs:      Vec<Job<CompilableShaders>>,
     /// Programs that are ready to be polled for completion.
-    started_jobs: Vec<CompilingJob>,
+    started_jobs:  Vec<Job<LinkingProgram>>,
+    /// Mechanism for checking compilation/linking status. Lazily-initialized.
+    ready_checker: Option<ReadyChecker>,
 }
 
 impl Compiler {
-    /// Compile a shader program; the provided callback will be called when it is ready.
+    /// Compile a shader program. The provided callback will be called when it is ready, which will
+    /// likely not occur until a later frame.
     pub fn compile<F>(&mut self, code: ShaderCode, callback: Box<F>)
-    where F: FnOnce(CompileResult) + 'static {
-        self.new_jobs.push(Job { code, callback });
+    where F: FnOnce(Result) + 'static {
+        let work = CompilableShaders { code };
+        self.new_jobs.push(Job { work, callback });
     }
 
     /// Submit all new jobs to the WebGL engine for compilation.
     #[profile(Debug)]
     pub fn start_jobs(&mut self, context: &Context) {
-        let mut linkable = Vec::new();
-        let new_jobs = mem::replace(&mut self.new_jobs, default());
-        // Start all shaders compiling.
-        for job in &new_jobs {
-            let v = compile_shader(context, Context::VERTEX_SHADER, &job.code.vertex).unwrap();
-            let f = compile_shader(context, Context::FRAGMENT_SHADER, &job.code.fragment).unwrap();
-            linkable.push((v, f));
-        }
-        // Request that shader pairs be linked.
-        for (job, (v, f)) in new_jobs.into_iter().zip(linkable.into_iter()) {
-            let linking = link_program(context, &v, &f).unwrap();
-            let job = CompilingJob { job, linking };
-            self.started_jobs.push(job);
-        }
+        // First start all shaders compiling, then start programs linking.
+        // This maximizes the browser's parallelism:
+        // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#compile_shaders_and_link_programs_in_parallel
+        let new_jobs = self.new_jobs.drain(..);
+        let compiling = new_jobs.filter_map(|job| job.map_work(|work| work.compile(context)));
+        let compiling = compiling.collect::<Vec<_>>().into_iter();
+        let linking = compiling.filter_map(|job| job.map_work(|work| work.link(context)));
+        self.started_jobs.extend(linking);
     }
 
     /// Check for jobs that have finished compiling, and run their callbacks.
-    #[profile(Debug)]
+    #[profile(Detail)]
     pub fn handle_finished_jobs(&mut self, context: &Context) {
-        let psc = context.get_extension("KHR_parallel_shader_compile").unwrap().unwrap();
-        let psc = js_sys::Reflect::get(&psc, &"COMPLETION_STATUS_KHR".into()).unwrap().as_f64()
-            .unwrap() as u32;
-        let mut i = 0;
-        while i < self.started_jobs.len() {
-            let job = &self.started_jobs[i];
-            let ready = context.get_program_parameter(&job.linking.0, psc).as_bool().unwrap();
-            if !ready {
-                i += 1;
-                continue;
-            }
-            let job = self.started_jobs.swap_remove(i);
-            let linking = job.linking;
-            let status = Context::LINK_STATUS;
-            let ok = context.get_program_parameter(&linking.0, status).as_bool().unwrap_or(false);
-            assert!(ok, "ok");
-            (job.job.callback)(Ok(linking.0));
+        let ready_checker = self.ready_checker.get_or_insert_with(|| ReadyChecker::new(context));
+        let is_ready = |program| ready_checker.is_ready(context, program).unwrap_or(true);
+        let ready_jobs = self.started_jobs.drain_filter(|job| is_ready(&job.work));
+        for Job { callback, work } in ready_jobs {
+            work.block_until_finished(context).for_each(callback);
         }
     }
 }
 
-fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Option<WebGlShader> {
-    let shader = ctx.create_shader(tp)?;
-    ctx.shader_source(&shader, src);
-    ctx.compile_shader(&shader);
-    Some(shader)
-}
-
-fn link_program(
-    ctx: &Context,
-    vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader,
-) -> Option<Linking> {
-    let program = ctx.create_program()?;
-    ctx.attach_shader(&program, vert_shader);
-    ctx.attach_shader(&program, frag_shader);
-    ctx.link_program(&program);
-    Some(Linking(program))
-}
 
 
+// =============
 // === Error ===
+// =============
 
-#[derive(Debug, Display)]
-pub struct Error;
-
-pub type CompileResult = Result<WebGlProgram, Error>;
-
-
-// === Compiling ===
-
-/// A shader that has been submitted for compiling, but is not known to be ready for linking yet.
 #[derive(Debug)]
-struct Compiling(WebGlShader);
+pub struct Error {
+    program_info_log:         Option<String>,
+    vertex_shader_info_log:   Option<String>,
+    fragment_shader_info_log: Option<String>,
+}
 
-// === Linking ===
+pub type Result = std::result::Result<WebGlProgram, Error>;
 
-/// A program that has been submitted for linking, but is not known to be ready for use yet.
-#[derive(Debug)]
-struct Linking(WebGlProgram);
 
 
 // ===========
 // === Job ===
 // ===========
 
-/// A submission to the compile queue.
+/// Contains a callback that accepts a [`Result`], and some work in progress that will be passed to
+/// the callback when it is completed.
 #[derive(Derivative)]
 #[derivative(Debug)]
-struct Job {
-    code:     ShaderCode,
+struct Job<T> {
     #[derivative(Debug = "ignore")]
-    callback: Box<dyn FnOnce(CompileResult)>,
+    callback: Box<dyn FnOnce(Result)>,
+    work:     T,
 }
 
-/// A job that has been started.
+impl<T> Job<T> {
+    /// Return a new job with the work transformed by a function, if the function returns a value.
+    fn map_work<U, F>(self, f: F) -> Option<Job<U>> where F: FnOnce(T) -> Option<U> {
+        let Job { callback, work } = self;
+        f(work).map(|work| Job { callback, work })
+    }
+}
+
+
+
+// =========================
+// === CompilableShaders ===
+// =========================
+
+/// Complete program code, ready to be compiled.
 #[derive(Debug)]
-struct CompilingJob {
-    job:     Job,
-    linking: Linking,
+struct CompilableShaders {
+    code: ShaderCode,
+}
+
+impl CompilableShaders {
+    /// Starts shaders compiling, unless context is lost.
+    fn compile(self, context: &Context) -> Option<LinkableShaders> {
+        let vertex = compile_shader(context, Context::VERTEX_SHADER, &self.code.vertex)?;
+        let fragment = compile_shader(context, Context::FRAGMENT_SHADER, &self.code.fragment)?;
+        Some(LinkableShaders { vertex, fragment })
+    }
+}
+
+/// Returns a compiling shader, unless context is lost.
+fn compile_shader(context: &Context, tp: u32, src: &str) -> Option<WebGlShader> {
+    let shader = context.create_shader(tp)?;
+    context.shader_source(&shader, src);
+    context.compile_shader(&shader);
+    Some(shader)
+}
+
+
+
+// =======================
+// === LinkableShaders ===
+// =======================
+
+/// Shaders ready to be linked; they may still be compiling.
+#[derive(Debug)]
+struct LinkableShaders {
+    vertex:   WebGlShader,
+    fragment: WebGlShader,
+}
+
+impl LinkableShaders {
+    /// Starts shaders linking, unless context is lost.
+    ///
+    /// The underlying API is implicitly async and pipelined. If the shaders are still compiling,
+    /// this won't block; using the returned program in any way would block until compilation and
+    /// linking are finished.
+    fn link(self, context: &Context) -> Option<LinkingProgram> {
+        let program = context.create_program()?;
+        context.attach_shader(&program, &self.vertex);
+        context.attach_shader(&program, &self.fragment);
+        context.link_program(&program);
+        let shaders = self;
+        Some(LinkingProgram { program, shaders })
+    }
+}
+
+
+
+// ======================
+// === LinkingProgram ===
+// ======================
+
+/// A program that has been submitted for linking, but is not known to be ready for use yet.
+#[derive(Debug)]
+struct LinkingProgram {
+    program: WebGlProgram,
+    shaders: LinkableShaders,
+}
+
+impl LinkingProgram {
+    /// Block until compiling and linking is complete, and return the result, unless context was
+    /// lost.
+    fn block_until_finished(self, context: &Context) -> Option<Result> {
+        let LinkingProgram { program, shaders } = self;
+        let status = Context::LINK_STATUS;
+        let ok = context.get_program_parameter(&program, status).as_bool().unwrap_or(false);
+        if !ok {
+            if context.is_context_lost() {
+                return None;
+            }
+            let program_info_log = context.get_program_info_log(&program);
+            let vertex_shader_info_log = context.get_shader_info_log(&shaders.vertex);
+            let fragment_shader_info_log = context.get_shader_info_log(&shaders.fragment);
+            let error =
+                Error { program_info_log, vertex_shader_info_log, fragment_shader_info_log };
+            return Some(Err(error));
+        }
+        Some(Ok(program))
+    }
+}
+
+
+
+// ====================
+// === ReadyChecker ===
+// ====================
+
+/// Mechanism for checking compilation/linking status.
+#[derive(Debug)]
+struct ReadyChecker {
+    khr: Option<KhrParallelShaderCompile>,
+}
+
+impl ReadyChecker {
+    /// Select the best available ready-checker for the context.
+    pub fn new(context: &Context) -> Self {
+        let khr = KhrParallelShaderCompile::new(context);
+        if khr.is_none() && !context.is_context_lost() {
+            // TODO: log
+        }
+        Self { khr }
+    }
+
+    /// Check if the job is ready, or return None if unknown.
+    pub fn is_ready(&self, context: &Context, job: &LinkingProgram) -> Option<bool> {
+        self.khr.and_then(|khr| khr.is_ready(context, job))
+    }
+}
+
+
+// === KhrParallelShaderCompile ===
+
+/// Use the `KHR_parallel_shader_compile` extension to poll status without blocking.
+///
+/// See: [https://www.khronos.org/registry/webgl/extensions/KHR_parallel_shader_compile]
+#[derive(Debug)]
+struct KhrParallelShaderCompile {
+    completion_status_khr: u32,
+}
+
+impl KhrParallelShaderCompile {
+    /// Try to obtain the extension.
+    pub fn new(context: &Context) -> Option<Self> {
+        let ext = context.get_extension("KHR_parallel_shader_compile").ok()??;
+        let completion_status_khr =
+            js_sys::Reflect::get(&ext, &"COMPLETION_STATUS_KHR".into()).ok()?.as_f64()? as u32;
+        Some(Self { completion_status_khr })
+    }
+
+    /// Asynchronously check if the job is ready.
+    pub fn is_ready(&self, context: &Context, job: &LinkingProgram) -> Option<bool> {
+        let param = self.completion_status_khr;
+        context.get_program_parameter(&job.program, param).as_bool()
+    }
 }
