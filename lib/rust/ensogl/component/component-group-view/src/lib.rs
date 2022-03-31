@@ -164,11 +164,17 @@ impl component::Model for Model {
         // display_object.add_child(&background);
         // scene.layers.tooltip.add_exclusive(&background);
 
+        // TODO: this is based on code in list_view::entry::List::new(); is it right?
+        // let label_layer = app.display.default_scene.layers.label.id();
+        let label_layer = &app.display.default_scene.layers.label;
+        header.add_to_scene_layer(label_layer);
+
         ensogl_core::shapes_order_dependencies! {
             app.display.default_scene => {
                 // TODO: how to hide list_view text "below" header_background, but keep the header
                 // text above header_background?
                 list_view::selection -> header_background;
+                // header_background -> text;
                 //background            -> list_view::selection;
                 //list_view::background -> background;
             }
