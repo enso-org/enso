@@ -124,6 +124,7 @@ fn init(app: &Application) {
     let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
     component_group_view.resize(Vector2(100.0, 160.0));
     component_group_view.set_entries(provider);
+    component_group_view.set_header_text("Input / Output very long name".to_string());
     app.display.add_child(&component_group_view);
 
     std::mem::forget(component_group_view);

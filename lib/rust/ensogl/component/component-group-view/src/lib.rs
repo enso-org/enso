@@ -57,6 +57,7 @@ use ensogl_text as text;
 
 ensogl_core::define_endpoints_2! {
     Input {
+        set_header_text(String),
         set_entries(entry::AnyModelProvider<entry::Label>),
         // TODO: or `set_size(Vector2)` ??
         resize(Vector2<f32>),
@@ -71,6 +72,14 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         // let background = &model.background.events;
         frp::extend! { network
+
+            // === Header ===
+
+            model.header.set_content <+ api.input.set_header_text;
+
+
+            // === Entries ===
+
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_custom_background_color(Some(Rgba(0.0, 1.0, 0.0, 1.0)));
