@@ -35,10 +35,9 @@ make_expression aggregate = case aggregate of
     Minimum c _ -> IR.Operation "MIN" [c.expression]
     Shortest c _ -> IR.Operation "MIN" [c.expression]
     Longest c _ -> IR.Operation "MAX" [c.expression]
-    Standard_Deviation c _ population ->
-        ## TODO!
-        _ = population
-        IR.Operation "STD_DEV" [c.expression]
+    Standard_Deviation c _ population -> case population of
+        True -> IR.Operation "STDDEV_POP" [c.expression]
+        False -> IR.Operation "STDDEV_SAMP" [c.expression]
     Concatenate c _ _ _ _ _ ->
         IR.Operation "CONCAT" [c.expression]
     Sum c _ -> IR.Operation "SUM" [c.expression]
