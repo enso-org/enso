@@ -148,32 +148,29 @@ type Internal_Missing_Column_Error
 
 ## PRIVATE
    Creates a Java AggregateColumnDefinition for the Aggregate_Column
-java_aggregator : Table->Aggregate_Column->AggregateColumnDefinition
-java_aggregator table name column =
-    resolve c = column.resolve_column table c
+java_aggregator : Aggregate_Column->AggregateColumnDefinition
+java_aggregator name column =
     case column of
-        Group_By c _ -> AggregateColumnDefinition.GroupBy name (resolve c).java_column
+        Group_By c _ -> AggregateColumnDefinition.GroupBy name c.java_column
         Count _ -> AggregateColumnDefinition.Count name
         Count_Distinct columns _ ignore_nothing ->
-            resolved = case columns of
-                Vector.Vector _ -> columns.map c->(resolve c).java_column
-                _ -> [resolve columns . java_column]
+            resolved = columns.map .java_column
             AggregateColumnDefinition.CountDistinct name resolved.to_array ignore_nothing
-        Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column False
-        Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name (resolve c).java_column True
-        Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column False
-        Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name (resolve c).java_column True
-        Sum c _ -> AggregateColumnDefinition.Sum name (resolve c).java_column
-        Average c _ -> AggregateColumnDefinition.Mean name (resolve c).java_column
-        Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name (resolve c).java_column p
-        Median c _ -> AggregateColumnDefinition.Percentile name (resolve c).java_column 0.5
-        Percentile p c _ -> AggregateColumnDefinition.Percentile name (resolve c).java_column p
-        Mode c _ -> AggregateColumnDefinition.Mode name (resolve c).java_column
-        First c _ ignore_nothing _ -> AggregateColumnDefinition.First name (resolve c).java_column ignore_nothing
-        Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name (resolve c).java_column ignore_nothing
-        Maximum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column 1
-        Minimum c _ -> AggregateColumnDefinition.MinOrMax name (resolve c).java_column -1
-        Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column -1
-        Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name (resolve c).java_column 1
-        Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name (resolve c).java_column join prefix suffix quote
+        Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name c.java_column False
+        Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name c.java_column True
+        Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name c.java_column False
+        Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name c.java_column True
+        Sum c _ -> AggregateColumnDefinition.Sum name c.java_column
+        Average c _ -> AggregateColumnDefinition.Mean name c.java_column
+        Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name c.java_column p
+        Median c _ -> AggregateColumnDefinition.Percentile name c.java_column 0.5
+        Percentile p c _ -> AggregateColumnDefinition.Percentile name c.java_column p
+        Mode c _ -> AggregateColumnDefinition.Mode name c.java_column
+        First c _ ignore_nothing _ -> AggregateColumnDefinition.First name c.java_column ignore_nothing
+        Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name c.java_column ignore_nothing
+        Maximum c _ -> AggregateColumnDefinition.MinOrMax name c.java_column 1
+        Minimum c _ -> AggregateColumnDefinition.MinOrMax name c.java_column -1
+        Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name c.java_column -1
+        Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name c.java_column 1
+        Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name c.java_column join prefix suffix quote
         _ -> Error.throw "Unsupported aggregation."

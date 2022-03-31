@@ -495,7 +495,7 @@ type Table
             java_columns = validated.key_columns.map .java_column
             index = this.java_table.indexFromColumns java_columns.to_array
 
-            new_table = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator this c.first c.second)
+            new_table = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
             index.makeTable new_table.to_array
 
 

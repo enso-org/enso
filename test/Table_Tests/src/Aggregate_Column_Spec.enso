@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
-import Standard.Table.Internal.Aggregate_Column_Aggregator
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder
 
@@ -29,7 +28,7 @@ spec = Test.group "Aggregate Columns" <|
         name . should_equal expected_name
 
         result =
-            acc = Aggregate_Column_Helper.java_aggregator table "Name" col
+            acc = Aggregate_Column_Helper.java_aggregator "Name" resolved
             indexes = Vector.new table.row_count v->v
             acc.aggregate indexes.to_array
 
