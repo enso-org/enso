@@ -14,22 +14,24 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class MultiValueIndex {
-  private final Storage[] keyColumns;
+  private final int keyColumnsLength;
   private final Map<MultiValueKey, List<Integer>> locs;
   private final AggregatedProblems problems;
 
-  public MultiValueIndex(Storage[] keyColumns) {
-    this.keyColumns = keyColumns;
+  public MultiValueIndex(Column[] keyColumns, int tableSize) {
+    this.keyColumnsLength = keyColumns.length;
     this.locs = new HashMap<>();
     this.problems = new AggregatedProblems();
+
     if (keyColumns.length != 0) {
-      int size = keyColumns[0].size();
+      int size = keyColumns[0].getSize();
       for (int i = 0; i < size; i++) {
         int finalI = i;
-        MultiValueKey key = new MultiValueKey(Arrays.stream(keyColumns).map(c -> c.getItemBoxed(finalI)).toArray());
+        MultiValueKey key = new MultiValueKey(Arrays.stream(keyColumns).map(c -> c.getStorage().getItemBoxed(finalI)).toArray());
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -38,6 +40,8 @@ public class MultiValueIndex {
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
         ids.add(i);
       }
+    } else {
+      this.locs.put(new MultiValueKey(new Object[0]), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -45,9 +49,12 @@ public class MultiValueIndex {
     final int length = columns.length;
     final int size = locs.size();
 
-    Builder[] storage = Arrays.stream(columns).map(c -> getBuilderForType(c.getType(), size)).toArray(Builder[]::new);
+    boolean emptyScenario = size == 0 & keyColumnsLength == 0;
+    Builder[] storage = Arrays.stream(columns)
+        .map(c -> getBuilderForType(c.getType(), emptyScenario ? 1 : size))
+        .toArray(Builder[]::new);
 
-    if (size == 0 & keyColumns.length == 0) {
+    if (emptyScenario) {
       // No grouping and no data
       List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {

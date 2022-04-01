@@ -179,7 +179,7 @@ java_aggregator name column =
         Count_Empty c _ -> CountEmptyColumn.new name c.java_column True
         Sum c _ -> SumColumn.new name c.java_column
         Average c _ -> MeanColumn.new name c.java_column
-        Standard_Deviation c _ p -> StDevColumn.new name c.java_column p
+        Standard_Deviation c _ p -> StandardDeviationColumn.new name c.java_column p
         Median c _ -> PercentileColumn.new name c.java_column 0.5
         Percentile p c _ -> PercentileColumn.new name c.java_column p
         Mode c _ -> ModeColumn.new name c.java_column
