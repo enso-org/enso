@@ -773,7 +773,7 @@ impl AreaModel {
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
         let line_style2 = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let content = self.clip_line_to_width(&content, line_style2, 30.0);
+        let content = self.clip_line_to_width(content, line_style2, 50.0);
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
@@ -835,7 +835,7 @@ impl AreaModel {
 
     // FIXME: width in pixels explicitly - express in type? in name?
     // TODO: rename clip->truncate? also mention ellipsis in name
-    fn clip_line_to_width(&self, content: &str, mut line_style: StyleIterator, width: f32) -> String {
+    fn clip_line_to_width(&self, content: String, mut line_style: StyleIterator, width: f32) -> String {
         // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
         // FIXME: real width of ellipsis
         let width_of_ellipsis = 5.0;
@@ -860,7 +860,7 @@ impl AreaModel {
             }
         });
         match clip {
-            None => content.to_string(),
+            None => content,
             // FIXME: use unicode ellipsis char instead of three dots
             Some(i) => content[..i].to_string() + "...",
         }
