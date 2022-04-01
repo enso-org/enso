@@ -8,11 +8,19 @@ import java.util.List;
 
 /***
  * Aggregate Column counting the number of (non-)empty entries in a group.
+ * If `isEmpty` is true, counts null or empty entries.
+ * If `isEmpty` is false, counts non-empty entries.
  */
 public class CountEmpty extends Aggregator {
   private final Storage storage;
   private final boolean isEmpty;
 
+  /**
+   * Constructs a CountNothing Aggregator
+   * @param name output column name
+   * @param column input column
+   * @param isEmpty true to count nulls or empty, false to count non-empty
+   */
   public CountEmpty(String name, Column column, boolean isEmpty) {
     super(name, Storage.Type.LONG);
     this.storage = column.getStorage();

@@ -12,15 +12,22 @@ import java.util.Set;
 
 /***
  * Aggregate Column counting the number of distinct items in a group.
+ * If `ignoreAllNull` is true, does count when all items are null.
  */
 public class CountDistinct extends Aggregator {
   private final Storage[] storage;
-  private final boolean ignoreEmpty;
+  private final boolean ignoreAllNull;
 
-  public CountDistinct(String name, Column[] columns, boolean ignoreEmpty) {
+  /**
+   * Constructs a CountDistinct Aggregator
+   * @param name output column name
+   * @param columns input columns
+   * @param ignoreAllNull if true ignore then all values are null
+   */
+  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
     super(name, Storage.Type.LONG);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
-    this.ignoreEmpty = ignoreEmpty;
+    this.ignoreAllNull = ignoreAllNull;
   }
 
   @Override
@@ -32,7 +39,7 @@ public class CountDistinct extends Aggregator {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));
       }
 
-      if (!ignoreEmpty || !key.areAllNull()) {
+      if (!ignoreAllNull || !key.areAllNull()) {
         set.add(key);
       }
     }
