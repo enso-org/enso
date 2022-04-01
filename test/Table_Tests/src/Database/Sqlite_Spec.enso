@@ -62,7 +62,7 @@ spec =
     here.sqlite_specific_spec connection
     Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=False
 
-    selection = Aggregate_Spec.Test_Selection advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False
+    selection = Aggregate_Spec.Test_Selection advanced_stats=False text=False first_last=False std_dev=False multi_distinct=False aggregation_problems=False
     agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)

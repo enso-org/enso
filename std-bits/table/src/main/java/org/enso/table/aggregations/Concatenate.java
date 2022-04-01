@@ -44,7 +44,7 @@ public class Concatenate extends AggregateColumn {
           current.append(textValue);
         }
       } else {
-        this.addProblem(new InvalidAggregation(this.getName(), row, "Non-Text value - cannot Concatenate"));
+        this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
         return null;
       }
     }

@@ -29,7 +29,7 @@ public class ShortestOrLongest extends AggregateColumn {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (!(value instanceof String)) {
-          this.addProblem(new InvalidAggregation(this.getName(), row, "Non-Text value - cannot find " + (minOrMax == 1 ? "Longest" : "Shortest")));
+          this.addProblem(new InvalidAggregation(this.getName(), row, "Not a text value."));
           return null;
         }
 

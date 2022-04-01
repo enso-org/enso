@@ -35,7 +35,7 @@ public class Mean extends AggregateColumn {
       if (value != null) {
         Double dValue = CastToDouble(value);
         if (dValue == null) {
-          this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot convert to a Double."));
+          this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
           return null;
         }
 
