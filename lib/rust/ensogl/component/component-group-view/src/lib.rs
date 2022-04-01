@@ -216,7 +216,7 @@ impl Model {
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
         self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
         // TODO: what's the origin of ListView? assuming center
-        self.entries.set_position_y(-HEADER_HEIGHT);
+        self.entries.set_position_y(-HEADER_HEIGHT / 2.0);
         self.entries.resize(size - Vector2(0.0, HEADER_HEIGHT));
     }
 }
