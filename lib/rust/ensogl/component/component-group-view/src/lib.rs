@@ -112,10 +112,16 @@ impl component::Frp<Model> for Frp {
         // let background = &model.background.events;
         model.header_background.color.set(Rgba(1.0, 1.0, 0.7, 1.0).into());
         frp::extend! { network
+            // FIXME: taken from list_view::Model::padding(); this itself and calculations around it
+            // look fishy
+            let lv_padding = style.get_number(ensogl_hardcoded_theme::application::searcher::padding);
 
             init <- source::<()>();
+
+            size_and_lv_padding <- all(&input.resize, &lv_padding);
             // TODO[LATER]: looks like a common pattern (also in LV); is there a helper in FRP?
-            eval input.resize((size) model.resize(*size));
+            // eval input.resize((size) model.resize(*size));
+            eval size_and_lv_padding(((size, lv_padding)) model.resize(*size, *lv_padding));
 
 
             // === Header ===
@@ -204,7 +210,8 @@ impl component::Model for Model {
 }
 
 impl Model {
-    fn resize(&self, size: Vector2) {
+    fn resize(&self, size: Vector2, lv_padding: f32) {
+
         // NOTE: Currently assuming that the widget's origin is at its center (global default).
         // FIXME: what origin we want? what origin does ListView use? IMO a corner makes sense,
         // though not sure if top-left or bottom-left is better. Alternatively, center is as good
@@ -213,7 +220,7 @@ impl Model {
         let top_left = Vector2(-size.x / 2.0, half_height);
         self.mcdbg.size.set(size);
         // FIXME: what's the origin of text::Area? assuming left-center
-        self.header.set_position_xy(top_left + Vector2(HEADER_LEFT_PADDING, -HEADER_HEIGHT/2.0));
+        self.header.set_position_xy(top_left + Vector2(HEADER_LEFT_PADDING + lv_padding/2.0, -HEADER_HEIGHT/2.0));
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
         self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
         // TODO: what's the origin of ListView? assuming center
