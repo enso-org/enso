@@ -49,7 +49,7 @@ use ensogl_text as text;
 // =================
 
 const HEADER_HEIGHT: f32 = entry::HEIGHT;
-const HEADER_LEFT_PADDING: f32 = entry::PADDING;
+const HEADER_PADDING: f32 = entry::PADDING;
 
 
 
@@ -205,7 +205,9 @@ impl Model {
         let top_left = Vector2(-size.x / 2.0, half_height);
         // FIXME: what's the origin of text::Area? assuming left-center
         let header_height = self.header.height.value(); // TODO: pass via FRP?
-        self.header.set_position_xy(top_left + Vector2(HEADER_LEFT_PADDING + lv_padding/2.0, -HEADER_HEIGHT/2.0 + header_height/2.0));
+        let header_padding = HEADER_PADDING + lv_padding / 2.0;
+        self.header.set_position_xy(top_left + Vector2(header_padding, -HEADER_HEIGHT/2.0 + header_height/2.0));
+        self.header.set_truncation_width(size.x - 2.0 * header_padding);
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
         self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
         // TODO: what's the origin of ListView? assuming center

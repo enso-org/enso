@@ -258,6 +258,7 @@ ensogl_core::define_endpoints! {
         set_default_text_size (style::Size),
         set_font              (String),
         set_content           (String),
+        set_truncation_width  (Option<f32>),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -320,6 +321,14 @@ impl Area {
             // === Multi / Single Line ===
 
             eval input.single_line((t) m.single_line.set(*t));
+
+
+            // === Width Truncation ===
+
+            eval input.set_truncation_width((t) {
+                m.set_truncation_width(*t);
+                m.redraw(true);
+            });
 
 
             // === Hover ===
@@ -468,12 +477,14 @@ impl Area {
                 input.remove_all_cursors();
             });
 
+
             // === Font ===
 
             eval input.set_font ((t) {
                 m.set_font(t);
                 m.redraw(true);
             });
+
 
             // === Colors ===
 
@@ -495,6 +506,7 @@ impl Area {
                 m.redraw(false);
             });
             self.frp.source.selection_color <+ self.frp.set_selection_color;
+
 
             // === Changes ===
 
@@ -571,6 +583,8 @@ pub struct AreaModel {
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
+    // TODO[MC]: pass via FRP as argument to redraw() instead?
+    truncation_width: Rc<RefCell<Option<f32>>>,
 }
 
 impl AreaModel {
@@ -580,6 +594,7 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
+        let truncation_width = default();
         let fonts = scene.extension::<typeface::font::Registry>();
         let font = fonts.load("DejaVuSansMono");
         let glyph_system = typeface::glyph::System::new(&scene, font);
@@ -617,6 +632,7 @@ impl AreaModel {
             lines,
             single_line,
             selection_map,
+            truncation_width,
         }
         .init()
     }
@@ -771,9 +787,10 @@ impl AreaModel {
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let line_style2 = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let content = self.text_truncated_at_width_with_ellipsis(content, line_style2, 50.0);
+        let line_style = self.buffer.sub_style(line_range.start..line_range.end);
+        let truncation_width = self.truncation_width.borrow();
+        let content = self.text_truncated_with_ellipsis(content, line_style.iter(), *truncation_width);
+        let mut line_style_iter = line_style.iter();
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
@@ -783,7 +800,7 @@ impl AreaModel {
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
-            let style = line_style.next().unwrap_or_default();
+            let style = line_style_iter.next().unwrap_or_default();
             let chr_size = style.size.raw;
             let char_info = next.as_ref().map(|t| pen::CharInfo::new(t.1, chr_size));
             let info = pen.advance(char_info);
@@ -803,7 +820,7 @@ impl AreaModel {
             match opt_glyph.zip(info.char) {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
-                    line_style.drop(chr_bytes - 1.bytes());
+                    line_style_iter.drop(chr_bytes - 1.bytes());
                     let glyph_info = self.glyph_system.borrow().font.glyph_info(chr);
                     let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
@@ -833,31 +850,36 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
-    // FIXME: width in pixels explicitly - express in type? in name?
-    fn text_truncated_at_width_with_ellipsis(&self, content: String, mut line_style: StyleIterator, width: f32) -> String {
-        let ellipsis = '\u{2026}';
-        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        let mut number_of_bytes_fitting_with_ellipsis = 0;
-        let truncate_at = content.char_indices().find_map(|(i, ch)| {
-            let style = line_style.next().unwrap_or_default();
-            let font_size = style.size.raw;
-            let char_info = pen::CharInfo::new(ch, font_size);
-            let info = pen.advance(Some(char_info));
-            let next_offset = info.offset + char_info.size;
-            if next_offset > width {
-                return Some(number_of_bytes_fitting_with_ellipsis);
+    fn text_truncated_with_ellipsis(&self, content: String, mut line_style: StyleIterator, truncation_width: Option<f32>) -> String {
+        if let Some(width) = truncation_width {
+            let ellipsis = '\u{2026}';
+            let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+            let mut length_fitting_with_ellipsis = 0.bytes();
+            let truncate_at = content.char_indices().find_map(|(i, ch)| {
+                let style = line_style.next().unwrap_or_default();
+                let font_size = style.size.raw;
+                let char_info = pen::CharInfo::new(ch, font_size);
+                let info = pen.advance(Some(char_info));
+                let next_offset = info.offset + char_info.size;
+                if next_offset > width {
+                    return Some(length_fitting_with_ellipsis);
+                }
+                let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
+                let char_length: Bytes = ch.len_utf8().into();
+                line_style.drop(char_length - 1.bytes());
+                // TODO: account for kerning between `ch` and `ellipsis`
+                if next_offset + width_of_ellipsis <= width {
+                    length_fitting_with_ellipsis = Bytes::from(i) + char_length;
+                }
+                None
+            });
+            match truncate_at {
+                None => content,
+                // TODO: is there easier way to make a String from &str + char?
+                Some(i) => format!("{}{}", content[..i.as_usize()].to_string(), ellipsis),
             }
-            let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
-            // TODO: account for kerning between `ch` and `ellipsis`
-            if next_offset + width_of_ellipsis <= width {
-                number_of_bytes_fitting_with_ellipsis = i + ch.len_utf8();
-            }
-            None
-        });
-        match truncate_at {
-            None => content,
-            // TODO: is there easier way to make a String from &str + char?
-            Some(i) => format!("{}{}", content[..i].to_string(), ellipsis),
+        } else {
+            content
         }
     }
 
@@ -942,6 +964,10 @@ impl AreaModel {
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
+    }
+
+    fn set_truncation_width(&self, width: Option<f32>) {
+        self.truncation_width.replace(width);
     }
 }
 
