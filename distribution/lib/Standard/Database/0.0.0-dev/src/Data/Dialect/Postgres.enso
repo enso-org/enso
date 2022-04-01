@@ -78,7 +78,7 @@ make_internal_generator_dialect =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
-    my_mappings = text + counts + stats + Sqlite.first_last_aggregators
+    my_mappings = text + counts + stats + here.first_last_aggregators
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -133,3 +133,31 @@ agg_mode = Base_Generator.lift_unary_op "MODE" arg->
 
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     Sql.code "percentile_cont(" ++ p ++ Sql.code ") WITHIN GROUP (ORDER BY " ++ expr ++ Sql.code ")"
+
+## PRIVATE
+   These are written in a not most-efficient way, but a way that makes them
+   compatible with other group-by aggregations out-of-the-box. In the future, we
+   may want to consider some alternative solutions.
+first_last_aggregators =
+    first = here.make_first_aggregator reverse=False ignore_null=False
+    first_not_null = here.make_first_aggregator reverse=False ignore_null=True
+    last = here.make_first_aggregator reverse=True ignore_null=False
+    last_not_null = here.make_first_aggregator reverse=True ignore_null=True
+    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+make_first_aggregator reverse ignore_null args =
+    if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
+        result_expr = args.head
+        order_exprs = args.tail
+
+        filter_clause = if ignore_null.not then Sql.code "" else
+            Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
+        modified_order_exprs =
+            order_exprs.map expr-> expr ++ Sql.code " ASC NULLS LAST"
+        order_clause =
+            Sql.code " ORDER BY " ++ Sql.join "," modified_order_exprs
+        index = case reverse of
+            True -> "COUNT(*)"
+            False -> "1"
+
+        Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")["+index+"]"
