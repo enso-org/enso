@@ -37,7 +37,7 @@ pub trait UniqueId: Clone + Copy + Debug + Eq + Hash + PartialEq + Ord + Partial
 macro_rules! define_id {
     ($name:ident) => {
         /// A unique ID.
-        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
+        #[derive(Clone, Copy, Eq, Hash, PartialEq, Ord, PartialOrd)]
         pub struct $name($crate::counter::Counter);
 
         impl $name {
@@ -74,6 +74,12 @@ macro_rules! define_id {
         impl $crate::prelude::CloneRef for $name {
             fn clone_ref(&self) -> Self {
                 self.clone()
+            }
+        }
+
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, concat!(stringify!($name), "({})"), u64::from(self.0))
             }
         }
     };
