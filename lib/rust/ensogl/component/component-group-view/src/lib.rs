@@ -164,6 +164,7 @@ impl component::Model for Model {
         let entries = ListView::new(app);
         let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
+        header.set_font("DejaVuSansMono-Bold");
         display_object.add_child(&entries);
         display_object.add_child(&header_background);
         display_object.add_child(&header);

@@ -255,6 +255,7 @@ ensogl_core::define_endpoints! {
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
+        set_font              (String),
         set_content           (String),
     }
     Output {
@@ -466,6 +467,13 @@ impl Area {
                 input.remove_all_cursors();
             });
 
+            // === Font ===
+
+            eval input.set_font ((t) {
+                m.set_font(t);
+                m.redraw(true);
+            });
+
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
@@ -531,7 +539,7 @@ impl Area {
     }
 
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
+        let text_symbol = self.data.glyph_system.borrow().sprite_system().symbol.clone_ref();
         let shapes = &self.data.app.display.default_scene.shapes;
         let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
@@ -558,7 +566,7 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    glyph_system:   glyph::System,
+    glyph_system:   Rc<RefCell<glyph::System>>,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
@@ -595,6 +603,7 @@ impl AreaModel {
         scene.layers.label.add_exclusive(symbol);
 
         let frp_endpoints = frp_endpoints.clone_ref();
+        let glyph_system = Rc::new(RefCell::new(glyph_system));
 
         Self {
             app,
@@ -762,12 +771,12 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let mut pen = pen::Pen::new(&self.glyph_system.font);
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || self.glyph_system.new_glyph());
+        line.resize_with(content.chars().count(), || self.glyph_system.borrow().new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
@@ -792,7 +801,7 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = self.glyph_system.font.glyph_info(chr);
+                    let glyph_info = self.glyph_system.borrow().font.glyph_info(chr);
                     let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
@@ -890,7 +899,7 @@ impl AreaModel {
         selection.with_start(start).with_end(end)
     }
 
-    fn set_font(&mut self, font_name: &str) {
+    fn set_font(&self, font_name: &str) {
         // FIXME: symbols(), -> layer.add_exclusive(&symbol) (see add_to_scene_layer()); or call
         // separately from the callee, as is done now?
 
@@ -898,7 +907,10 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<typeface::font::Registry>();
         let font = fonts.load(font_name);
-        self.glyph_system = typeface::glyph::System::new(&scene, font);
+        let glyph_system = typeface::glyph::System::new(&scene, font);
+        self.display_object.add_child(&glyph_system);
+        let old_glyph_system = self.glyph_system.replace(glyph_system);
+        self.display_object.remove_child(&old_glyph_system);
     }
 }
 
