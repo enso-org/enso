@@ -54,12 +54,6 @@ macro_rules! define_id {
             }
         }
 
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Debug::fmt(self, f)
-            }
-        }
-
         /// Convert to a raw count, losing counter-type information.
         impl From<$name> for u64 {
             fn from($name(counter): $name) -> Self {

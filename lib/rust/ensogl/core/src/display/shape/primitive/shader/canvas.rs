@@ -47,7 +47,7 @@ impl ShapeData {
     /// Constructor.
     pub fn new(shape_num: ShapeId) -> Self {
         let ids = default();
-        let name = format!("shape_{}", shape_num);
+        let name = format!("shape_{}", u64::from(shape_num));
         Self { shape_num, ids, name }
     }
 

@@ -223,7 +223,7 @@ impl Registry {
         let name = name.as_ref();
         let id = T::network(target).id();
         match self.id_map.borrow_mut().get(&id) {
-            None => warning!(&self.logger, "The provided component ID is invalid {id}."),
+            None => warning!(&self.logger, "The provided component ID is invalid {id:?}."),
             Some(instance) => match instance.command_map.borrow_mut().get_mut(name) {
                 None => warning!(&self.logger, "The command name {name} is invalid."),
                 Some(command) => f(command),
