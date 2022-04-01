@@ -11,9 +11,12 @@ use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::pen;
 
 use enso_frp as frp;
@@ -47,6 +50,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 
 /// Mapping between selection id, `Selection`, and text location.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
     location_map: HashMap<usize, HashMap<Column, usize>>,
@@ -64,6 +68,7 @@ pub struct SelectionMap {
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
 #[derive(Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
     glyphs:         Vec<Glyph>,
@@ -82,6 +87,7 @@ impl Line {
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn set_divs(&mut self, divs: Vec<f32>) {
         let div_iter = divs.iter();
         let div_iter_skipped = divs.iter().skip(1);
@@ -93,11 +99,13 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
@@ -530,6 +538,12 @@ impl Area {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
         let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
         let shapes = &self.data.app.display.default_scene.shapes;
@@ -558,6 +572,7 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
+    #[cfg(target_arch = "wasm32")]
     glyph_system:   glyph::System,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
@@ -571,15 +586,19 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let fonts = scene.extension::<typeface::font::Registry>();
-        let font = fonts.load("DejaVuSansMono");
-        let glyph_system = typeface::glyph::System::new(&scene, font);
+        #[cfg(target_arch = "wasm32")]
+        let glyph_system = {
+            let fonts = scene.extension::<typeface::font::Registry>();
+            let font = fonts.load("DejaVuSansMono");
+            typeface::glyph::System::new(&scene, font)
+        };
         let display_object = display::object::Instance::new(&logger);
         let buffer = default();
         let lines = default();
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
+        #[cfg(target_arch = "wasm32")]
         display_object.add_child(&glyph_system);
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
@@ -603,6 +622,7 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
+            #[cfg(target_arch = "wasm32")]
             glyph_system,
             lines,
             single_line,
@@ -611,6 +631,10 @@ impl AreaModel {
         .init()
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
+
+    #[cfg(target_arch = "wasm32")]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -750,6 +774,12 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn redraw_line(&self, _: usize, _: String) -> f32 {
+        0.0
+    }
+
+    #[cfg(target_arch = "wasm32")]
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         let cursor_map = self
             .selection_map
@@ -881,6 +911,7 @@ impl AreaModel {
     }
 
     /// Constrain the selection to values fitting inside of the current text buffer.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn snap_selection(
         &self,
         selection: buffer::selection::Selection,

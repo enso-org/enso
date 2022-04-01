@@ -133,8 +133,6 @@ ensogl::define_endpoints! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type (Crumbs,Option<Type>),
-        /// Trigger `on_port_hover` output for testing purposes.
-        test_port_hover           (),
     }
 
     Output {
@@ -216,6 +214,18 @@ impl Model {
         self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
 
         self
+    }
+
+    /// Return a list of Node's output ports.
+    pub fn ports(&self) -> Vec<port::Model> {
+        let port_count = self.port_count.get();
+        let mut ports = Vec::with_capacity(port_count);
+        self.traverse_borrowed_expression(|is_a_port, node, _| {
+            if is_a_port {
+                ports.push(node.payload.clone());
+            }
+        });
+        ports
     }
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
@@ -351,8 +361,6 @@ impl Model {
                 frp::extend! { port_network
                     self.frp.source.on_port_hover <+ port_frp.on_hover.map
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.source.on_port_hover <+ self.frp.test_port_hover.map
-                        (f_!([crumbs] Switch::new(crumbs.clone(),true)));
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
 
                     port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
@@ -425,10 +433,10 @@ impl Model {
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Area {
-    #[allow(missing_docs)]
-    pub frp: Frp,
-    model:   Rc<Model>,
+    pub frp:   Frp,
+    pub model: Rc<Model>,
 }
 
 impl Deref for Area {

@@ -1014,13 +1014,12 @@ type Builder
     capacity = this.to_array.length
 
     ## Checks if this builder is empty.
-
-       > Example
-         Checking for emptiness.
-
-             [].is_empty
     is_empty : Boolean
     is_empty = this.length == 0
+
+    ## Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty = this.is_empty.not
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.

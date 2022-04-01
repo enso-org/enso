@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Table
-import Standard.Table.Data.Column_Selector
+from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
@@ -41,586 +41,635 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
     Test.group prefix+"Table.aggregate should summarize whole table" pending=pending <|
         Test.specify "should be able to count" <|
-            grouped = materialize <| table.aggregate [Count Nothing]
+            grouped = table.aggregate [Count Nothing]
+            materialized = materialize grouped
+            ## TODO check row count of not materialized one
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 1
-            grouped.columns.at 0 . name . should_equal "Count"
-            grouped.columns.at 0 . at 0 . should_equal 2500
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Count"
+            materialized.columns.at 0 . at 0 . should_equal 2500
 
         Test.specify "should be able to count missing values" <|
-            grouped = materialize <| table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
-            grouped.columns.at 0 . at 0 . should_equal 236
-            grouped.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
-            grouped.columns.at 1 . at 0 . should_equal 2264
-            grouped.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
-            grouped.columns.at 2 . at 0 . should_equal 249
-            grouped.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
-            grouped.columns.at 3 . at 0 . should_equal 2251
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
+            materialized.columns.at 0 . at 0 . should_equal 236
+            materialized.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
+            materialized.columns.at 1 . at 0 . should_equal 2264
+            materialized.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
+            materialized.columns.at 2 . at 0 . should_equal 249
+            materialized.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
+            materialized.columns.at 3 . at 0 . should_equal 2251
 
         Test.specify "should be able to count distinct values" <|
-            grouped = materialize <| table.aggregate [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            grouped = table.aggregate [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Count Distinct Code"
-            grouped.columns.at 0 . at 0 . should_equal 2333
-            grouped.columns.at 1 . name . should_equal "Count Distinct Index"
-            grouped.columns.at 1 . at 0 . should_equal 10
-            grouped.columns.at 2 . name . should_equal "Count Distinct Flag"
-            grouped.columns.at 2 . at 0 . should_equal 2
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Count Distinct Code"
+            materialized.columns.at 0 . at 0 . should_equal 2333
+            materialized.columns.at 1 . name . should_equal "Count Distinct Index"
+            materialized.columns.at 1 . at 0 . should_equal 10
+            materialized.columns.at 2 . name . should_equal "Count Distinct Flag"
+            materialized.columns.at 2 . at 0 . should_equal 2
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
             ## TODO [RW] add Count_Distinct with overridden ignore_nothing! also need to modify data.csv to include some nulls on index and flag
-            grouped = materialize <| table.aggregate [Count_Distinct ["Index", "Flag"]]
+            grouped = table.aggregate [Count_Distinct (By_Name ["Index", "Flag"])]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 1
-            grouped.columns.at 0 . name . should_equal "Count Distinct Index Flag"
-            grouped.columns.at 0 . at 0 . should_equal 20
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Count Distinct Index Flag"
+            materialized.columns.at 0 . at 0 . should_equal 20
 
         Test.specify "should be able to compute sum and average of values" <|
-            grouped = materialize <| table.aggregate [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            grouped = table.aggregate [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Sum Value"
-            grouped.columns.at 0 . at 0 . should_equal -932.411550 epsilon=0.000001
-            grouped.columns.at 1 . name . should_equal "Sum ValueWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal 2757.09 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Average Value"
-            grouped.columns.at 2 . at 0 . should_equal -0.372965 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Average ValueWithNothing"
-            grouped.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Sum Value"
+            materialized.columns.at 0 . at 0 . should_equal -932.411550 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Sum ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal 2757.09 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Average Value"
+            materialized.columns.at 2 . at 0 . should_equal -0.372965 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            grouped = table.aggregate [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Standard Deviation Value"
-            grouped.columns.at 0 . at 0 . should_equal 56.708660 epsilon=0.000001
-            grouped.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal 58.588610 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Standard Deviation Value_1"
-            grouped.columns.at 2 . at 0 . should_equal 56.697317 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing_1"
-            grouped.columns.at 3 . at 0 . should_equal 58.575554 epsilon=0.000001
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Standard Deviation Value"
+            materialized.columns.at 0 . at 0 . should_equal 56.708660 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal 58.588610 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 2 . at 0 . should_equal 56.697317 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 3 . at 0 . should_equal 58.575554 epsilon=0.000001
 
-        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 6
-            grouped.columns.at 0 . name . should_equal "Median Index"
-            grouped.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
-            grouped.columns.at 1 . name . should_equal "Median Value"
-            grouped.columns.at 1 . at 0 . should_equal 1.298375 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Median ValueWithNothing"
-            grouped.columns.at 2 . at 0 . should_equal 2.235 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Mode Index"
-            grouped.columns.at 3 . at 0 . should_equal 7
-            grouped.columns.at 4 . name . should_equal "25%-ile Value"
-            grouped.columns.at 4 . at 0 . should_equal -49.962710 epsilon=0.000001
-            grouped.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
-            grouped.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
+            materialized.columns.length . should_equal 6
+            materialized.columns.at 0 . name . should_equal "Median Index"
+            materialized.columns.at 0 . at 0 . should_equal 5 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Median Value"
+            materialized.columns.at 1 . at 0 . should_equal 1.298375 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Median ValueWithNothing"
+            materialized.columns.at 2 . at 0 . should_equal 2.235 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Mode Index"
+            materialized.columns.at 3 . at 0 . should_equal 7
+            materialized.columns.at 4 . name . should_equal "25%-ile Value"
+            materialized.columns.at 4 . at 0 . should_equal -49.962710 epsilon=0.000001
+            materialized.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
+            materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [First "Index", Last "Value"]
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+            grouped = table.aggregate [First "Index", Last "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "First Index"
-            grouped.columns.at 0 . at 0 . should_equal 7
-            grouped.columns.at 1 . name . should_equal "Last Value"
-            grouped.columns.at 1 . at 0 . should_equal 70.99931 epsilon=0.000001
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "First Index"
+            materialized.columns.at 0 . at 0 . should_equal 7
+            materialized.columns.at 1 . name . should_equal "Last Value"
+            materialized.columns.at 1 . at 0 . should_equal 70.99931 epsilon=0.000001
 
         Test.specify "should be able to get minimum and maximum values" <|
-            grouped = materialize <| table.aggregate [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = table.aggregate [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Minimum Value"
-            grouped.columns.at 0 . at 0 . should_equal -99.964200 epsilon=0.000001
-            grouped.columns.at 1 . name . should_equal "Maximum Value"
-            grouped.columns.at 1 . at 0 . should_equal 99.977480 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Minimum ValueWithNothing"
-            grouped.columns.at 2 . at 0 . should_equal -99.99 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
-            grouped.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Minimum Value"
+            materialized.columns.at 0 . at 0 . should_equal -99.964200 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Maximum Value"
+            materialized.columns.at 1 . at 0 . should_equal 99.977480 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Minimum ValueWithNothing"
+            materialized.columns.at 2 . at 0 . should_equal -99.99 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
+            materialized.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix)  <|
-            grouped = materialize <| table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.")  <|
+            grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Shortest TextWithNothing"
-            grouped.columns.at 0 . at 0 . should_equal "f5"
-            grouped.columns.at 1 . name . should_equal "Longest TextWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
-            grouped.columns.at 2 . name . should_equal "Concatenate Code"
-            grouped.columns.at 2 . at 0 . length . should_equal 7500
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 0 . at 0 . should_equal "f5"
+            materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
+            materialized.columns.at 2 . name . should_equal "Concatenate Code"
+            materialized.columns.at 2 . at 0 . length . should_equal 7500
 
     Test.group prefix+"Table.aggregate should summarize empty table" pending=pending <|
         Test.specify "should be able to count" <|
-            grouped = materialize <| empty_table.aggregate [Count Nothing]
+            grouped = empty_table.aggregate [Count Nothing]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 1
-            grouped.columns.at 0 . name . should_equal "Count"
-            grouped.columns.at 0 . at 0 . should_equal 0
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Count"
+            materialized.columns.at 0 . at 0 . should_equal 0
 
         Test.specify "should be able to count missing values" <|
-            grouped = materialize <| empty_table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = empty_table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
-            grouped.columns.at 0 . at 0 . should_equal 0
-            grouped.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
-            grouped.columns.at 1 . at 0 . should_equal 0
-            grouped.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
-            grouped.columns.at 2 . at 0 . should_equal 0
-            grouped.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
-            grouped.columns.at 3 . at 0 . should_equal 0
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
+            materialized.columns.at 0 . at 0 . should_equal 0
+            materialized.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
+            materialized.columns.at 1 . at 0 . should_equal 0
+            materialized.columns.at 2 . name . should_equal "Count Empty TextWithNothing"
+            materialized.columns.at 2 . at 0 . should_equal 0
+            materialized.columns.at 3 . name . should_equal "Count Not Empty TextWithNothing"
+            materialized.columns.at 3 . at 0 . should_equal 0
 
         Test.specify "should be able to count distinct values" <|
-            grouped = materialize <| empty_table.aggregate [Count_Distinct "Code"]
+            grouped = empty_table.aggregate [Count_Distinct "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 1
-            grouped.columns.at 0 . name . should_equal "Count Distinct Code"
-            grouped.columns.at 0 . at 0 . should_equal 0
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Count Distinct Code"
+            materialized.columns.at 0 . at 0 . should_equal 0
 
         Test.specify "should be able to compute sum and average of values" <|
-            grouped = materialize <| empty_table.aggregate [Sum "Value", Average "ValueWithNothing"]
+            grouped = empty_table.aggregate [Sum "Value", Average "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Sum Value"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Average ValueWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Sum Value"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Standard Deviation Value"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Standard Deviation Value"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Median "Index", Mode "Index", Percentile 0.25 "Value"]
+        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Median Index"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Mode Index"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
-            grouped.columns.at 2 . name . should_equal "25%-ile Value"
-            grouped.columns.at 2 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Median Index"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Mode Index"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.at 2 . name . should_equal "25%-ile Value"
+            materialized.columns.at 2 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [First "Index", Last "Value"]
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+            grouped = empty_table.aggregate [First "Index", Last "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "First Index"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Last Value"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "First Index"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Last Value"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
 
         Test.specify "should be able to get minimum and maximum values" <|
-            grouped = materialize <| empty_table.aggregate [Minimum "Value", Maximum "ValueWithNothing"]
+            grouped = empty_table.aggregate [Minimum "Value", Maximum "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Minimum Value"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Minimum Value"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 1
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Shortest TextWithNothing"
-            grouped.columns.at 0 . at 0 . should_equal Nothing
-            grouped.columns.at 1 . name . should_equal "Longest TextWithNothing"
-            grouped.columns.at 1 . at 0 . should_equal Nothing
-            grouped.columns.at 2 . name . should_equal "Concatenate Code"
-            grouped.columns.at 2 . at 0 . should_equal Nothing
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
+            materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 1 . at 0 . should_equal Nothing
+            materialized.columns.at 2 . name . should_equal "Concatenate Code"
+            materialized.columns.at 2 . at 0 . should_equal Nothing
 
     Test.group prefix+"Table.aggregate should not summarize empty table when grouped" pending=pending <|
         Test.specify "should be able to count" <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Count Nothing]
+            grouped = empty_table.aggregate [Group_By 0, Count Nothing]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Count"
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Count"
 
         Test.specify "should be able to count missing values" <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = empty_table.aggregate [Group_By 0, Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
-            grouped.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
-            grouped.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
-            grouped.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
+            materialized.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
+            materialized.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
+            materialized.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
 
         Test.specify "should be able to count distinct values" <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Count_Distinct "Code"]
+            grouped = empty_table.aggregate [Group_By 0, Count_Distinct "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Count Distinct Code"
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Count Distinct Code"
 
         Test.specify "should be able to compute sum and average of values" <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Sum "Value", Average "ValueWithNothing"]
+            grouped = empty_table.aggregate [Group_By 0, Sum "Value", Average "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Sum Value"
-            grouped.columns.at 2 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Sum Value"
+            materialized.columns.at 2 . name . should_equal "Average ValueWithNothing"
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Standard Deviation Value"
-            grouped.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Standard Deviation Value"
+            materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Median "Index", Mode "Index", Percentile 0.25 "Value"]
+        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Median Index"
-            grouped.columns.at 2 . name . should_equal "Mode Index"
-            grouped.columns.at 3 . name . should_equal "25%-ile Value"
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Median Index"
+            materialized.columns.at 2 . name . should_equal "Mode Index"
+            materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "First Index"
-            grouped.columns.at 2 . name . should_equal "Last Value"
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "First Index"
+            materialized.columns.at 2 . name . should_equal "Last Value"
 
         Test.specify "should be able to get minimum and maximum values" <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Minimum "Value", Maximum "ValueWithNothing"]
+            grouped = empty_table.aggregate [Group_By 0, Minimum "Value", Maximum "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Minimum Value"
-            grouped.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Minimum Value"
+            materialized.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
-            grouped = materialize <| empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 0
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Code"
-            grouped.columns.at 1 . name . should_equal "Shortest TextWithNothing"
-            grouped.columns.at 2 . name . should_equal "Longest TextWithNothing"
-            grouped.columns.at 3 . name . should_equal "Concatenate Code"
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 3 . name . should_equal "Concatenate Code"
 
     Test.group prefix+"Table.aggregate should be able to group on single field" pending=pending <|
         Test.specify "should be able to count" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Count Nothing]
+            grouped = table.aggregate [Group_By "Index", Count Nothing]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count"
-            grouped.columns.at 1 . at idx . should_equal 261
+            materialized.columns.at 1 . name . should_equal "Count"
+            materialized.columns.at 1 . at idx . should_equal 261
 
         Test.specify "should be able to count missing values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = table.aggregate [Group_By "Index", Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
-            grouped.columns.at 1 . at idx . should_equal 24
-            grouped.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
-            grouped.columns.at 2 . at idx . should_equal 237
-            grouped.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
-            grouped.columns.at 3 . at idx . should_equal 31
-            grouped.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
-            grouped.columns.at 4 . at idx . should_equal 230
+            materialized.columns.at 1 . name . should_equal "Count Nothing Hexadecimal"
+            materialized.columns.at 1 . at idx . should_equal 24
+            materialized.columns.at 2 . name . should_equal "Count Not Nothing Hexadecimal"
+            materialized.columns.at 2 . at idx . should_equal 237
+            materialized.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
+            materialized.columns.at 3 . at idx . should_equal 31
+            materialized.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
+            materialized.columns.at 4 . at idx . should_equal 230
 
         Test.specify "should be able to count distinct values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count Distinct Code"
-            grouped.columns.at 1 . at idx . should_equal 260
-            grouped.columns.at 2 . name . should_equal "Count Distinct Index"
-            grouped.columns.at 2 . at idx . should_equal 1
-            grouped.columns.at 3 . name . should_equal "Count Distinct Flag"
-            grouped.columns.at 3 . at idx . should_equal 2
+            materialized.columns.at 1 . name . should_equal "Count Distinct Code"
+            materialized.columns.at 1 . at idx . should_equal 260
+            materialized.columns.at 2 . name . should_equal "Count Distinct Index"
+            materialized.columns.at 2 . at idx . should_equal 1
+            materialized.columns.at 3 . name . should_equal "Count Distinct Flag"
+            materialized.columns.at 3 . at idx . should_equal 2
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"]]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"])]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 2
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count Distinct Index Flag"
-            grouped.columns.at 1 . at idx . should_equal 2
+            materialized.columns.at 1 . name . should_equal "Count Distinct Index Flag"
+            materialized.columns.at 1 . at idx . should_equal 2
 
         Test.specify "should be able to compute sum and average of values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Sum Value"
-            grouped.columns.at 1 . at idx . should_equal -447.847390 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Sum ValueWithNothing"
-            grouped.columns.at 2 . at idx . should_equal 151.86 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Average Value"
-            grouped.columns.at 3 . at idx . should_equal -1.715890 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Average ValueWithNothing"
-            grouped.columns.at 4 . at idx . should_equal 0.646213 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Sum Value"
+            materialized.columns.at 1 . at idx . should_equal -447.847390 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Sum ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal 151.86 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Average Value"
+            materialized.columns.at 3 . at idx . should_equal -1.715890 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.at 4 . at idx . should_equal 0.646213 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Standard Deviation Value"
-            grouped.columns.at 1 . at idx . should_equal 60.272158 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
-            grouped.columns.at 2 . at idx . should_equal 56.798691 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Standard Deviation Value_1"
-            grouped.columns.at 3 . at idx . should_equal 60.156583 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing_1"
-            grouped.columns.at 4 . at idx . should_equal 56.677714 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Standard Deviation Value"
+            materialized.columns.at 1 . at idx . should_equal 60.272158 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal 56.798691 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 3 . at idx . should_equal 60.156583 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 4 . at idx . should_equal 56.677714 epsilon=0.000001
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 7
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 7
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Median Index"
-            grouped.columns.at 1 . at idx . should_equal 6 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Median Value"
-            grouped.columns.at 2 . at idx . should_equal 2.041150 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Median ValueWithNothing"
-            grouped.columns.at 3 . at idx . should_equal 1.38 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Mode Index"
-            grouped.columns.at 4 . at idx . should_equal 6
-            grouped.columns.at 5 . name . should_equal "25%-ile Value"
-            grouped.columns.at 5 . at idx . should_equal -56.019100 epsilon=0.000001
-            grouped.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
-            grouped.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Median Index"
+            materialized.columns.at 1 . at idx . should_equal 6 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Median Value"
+            materialized.columns.at 2 . at idx . should_equal 2.041150 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Median ValueWithNothing"
+            materialized.columns.at 3 . at idx . should_equal 1.38 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Mode Index"
+            materialized.columns.at 4 . at idx . should_equal 6
+            materialized.columns.at 5 . name . should_equal "25%-ile Value"
+            materialized.columns.at 5 . at idx . should_equal -56.019100 epsilon=0.000001
+            materialized.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
+            materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "First TextWithNothing"
-            grouped.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 2 . name . should_equal "Last Value"
-            grouped.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 2 . name . should_equal "Last Value"
+            materialized.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
 
         Test.specify "should be able to get minimum and maximum values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Minimum Value"
-            grouped.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Maximum Value"
-            grouped.columns.at 2 . at idx . should_equal 99.12739 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Minimum ValueWithNothing"
-            grouped.columns.at 3 . at idx . should_equal -99.99 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
-            grouped.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Minimum Value"
+            materialized.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Maximum Value"
+            materialized.columns.at 2 . at idx . should_equal 99.12739 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Minimum ValueWithNothing"
+            materialized.columns.at 3 . at idx . should_equal -99.99 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
+            materialized.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 10
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row [6] grouped
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Shortest TextWithNothing"
-            grouped.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 2 . name . should_equal "Longest TextWithNothing"
-            grouped.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 3 . name . should_equal "Concatenate Code"
-            grouped.columns.at 3 . at idx . length . should_equal 783
+            materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 3 . name . should_equal "Concatenate Code"
+            materialized.columns.at 3 . at idx . length . should_equal 783
 
     Test.group prefix+"Table.aggregate should be able to group on multiple fields not in left columns" pending=pending <|
         Test.specify "should be able to count" <|
-            grouped = materialize <| table.aggregate [Group_By "Flag", Count Nothing, Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", Count Nothing, Group_By "Index"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Flag"
-            grouped.columns.at 2 . name . should_equal "Index"
-            idx = find_row ["False", 6] grouped [0, 2]
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Flag"
+            materialized.columns.at 2 . name . should_equal "Index"
+            idx = find_row ["False", 6] materialized [0, 2]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count"
-            grouped.columns.at 1 . at idx . should_equal 127
+            materialized.columns.at 1 . name . should_equal "Count"
+            materialized.columns.at 1 . at idx . should_equal 127
 
         Test.specify "should be able to count missing values" <|
-            grouped = materialize <| table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Group_By "Index", Count_Empty "TextWithNothing", Group_By "Flag", Count_Not_Empty "TextWithNothing"]
+            grouped = table.aggregate [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Group_By "Index", Count_Empty "TextWithNothing", Group_By "Flag", Count_Not_Empty "TextWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 6
-            grouped.columns.at 4 . name . should_equal "Flag"
-            grouped.columns.at 2 . name . should_equal "Index"
-            idx = find_row ["False", 6] grouped [4, 2]
+            materialized.columns.length . should_equal 6
+            materialized.columns.at 4 . name . should_equal "Flag"
+            materialized.columns.at 2 . name . should_equal "Index"
+            idx = find_row ["False", 6] materialized [4, 2]
             idx.is_nothing . should_be_false
-            grouped.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
-            grouped.columns.at 0 . at idx . should_equal 8
-            grouped.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
-            grouped.columns.at 1 . at idx . should_equal 119
-            grouped.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
-            grouped.columns.at 3 . at idx . should_equal 12
-            grouped.columns.at 5 . name . should_equal "Count Not Empty TextWithNothing"
-            grouped.columns.at 5 . at idx . should_equal 115
+            materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
+            materialized.columns.at 0 . at idx . should_equal 8
+            materialized.columns.at 1 . name . should_equal "Count Not Nothing Hexadecimal"
+            materialized.columns.at 1 . at idx . should_equal 119
+            materialized.columns.at 3 . name . should_equal "Count Empty TextWithNothing"
+            materialized.columns.at 3 . at idx . should_equal 12
+            materialized.columns.at 5 . name . should_equal "Count Not Empty TextWithNothing"
+            materialized.columns.at 5 . at idx . should_equal 115
 
         Test.specify "should be able to count distinct values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Group_By "Flag"]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag", Group_By "Flag"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            grouped.columns.at 4 . name . should_equal "Flag"
-            idx = find_row ["False", 6] grouped [4, 0]
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 4 . name . should_equal "Flag"
+            idx = find_row ["False", 6] materialized [4, 0]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count Distinct Code"
-            grouped.columns.at 1 . at idx . should_equal 127
-            grouped.columns.at 2 . name . should_equal "Count Distinct Index"
-            grouped.columns.at 2 . at idx . should_equal 1
-            grouped.columns.at 3 . name . should_equal "Count Distinct Flag"
-            grouped.columns.at 3 . at idx . should_equal 1
+            materialized.columns.at 1 . name . should_equal "Count Distinct Code"
+            materialized.columns.at 1 . at idx . should_equal 127
+            materialized.columns.at 2 . name . should_equal "Count Distinct Index"
+            materialized.columns.at 2 . at idx . should_equal 1
+            materialized.columns.at 3 . name . should_equal "Count Distinct Flag"
+            materialized.columns.at 3 . at idx . should_equal 1
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported by "+prefix) <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
-            grouped = materialize <| table.aggregate [Group_By "Index", Count_Distinct ["Index", "Flag"], Group_By "Flag"]
+            grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"]), Group_By "Flag"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 3
-            grouped.columns.at 0 . name . should_equal "Index"
-            grouped.columns.at 2 . name . should_equal "Flag"
-            idx = find_row ["False", 6] grouped [2, 0]
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 2 . name . should_equal "Flag"
+            idx = find_row ["False", 6] materialized [2, 0]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Count Distinct Index Flag"
-            grouped.columns.at 1 . at idx . should_equal 1
+            materialized.columns.at 1 . name . should_equal "Count Distinct Index Flag"
+            materialized.columns.at 1 . at idx . should_equal 1
 
         Test.specify "should be able to compute sum and average of values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Group_By "Flag"]
+            grouped = table.aggregate [Group_By "Index", Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing", Group_By "Flag"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 6
-            grouped.columns.at 0 . name . should_equal "Index"
-            grouped.columns.at 5 . name . should_equal "Flag"
-            idx = find_row ["False", 6] grouped [5, 0]
+            materialized.columns.length . should_equal 6
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 5 . name . should_equal "Flag"
+            idx = find_row ["False", 6] materialized [5, 0]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Sum Value"
-            grouped.columns.at 1 . at idx . should_equal -103.050170 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Sum ValueWithNothing"
-            grouped.columns.at 2 . at idx . should_equal 533.57 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Average Value"
-            grouped.columns.at 3 . at idx . should_equal -0.811419 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Average ValueWithNothing"
-            grouped.columns.at 4 . at idx . should_equal 4.721858 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Sum Value"
+            materialized.columns.at 1 . at idx . should_equal -103.050170 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Sum ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal 533.57 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Average Value"
+            materialized.columns.at 3 . at idx . should_equal -0.811419 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Average ValueWithNothing"
+            materialized.columns.at 4 . at idx . should_equal 4.721858 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 6
-            grouped.columns.at 0 . name . should_equal "Index"
-            grouped.columns.at 1 . name . should_equal "Flag"
-            idx = find_row ["False", 6] grouped [1, 0]
+            materialized.columns.length . should_equal 6
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 1 . name . should_equal "Flag"
+            idx = find_row ["False", 6] materialized [1, 0]
             idx.is_nothing . should_be_false
-            grouped.columns.at 2 . name . should_equal "Standard Deviation Value"
-            grouped.columns.at 2 . at idx . should_equal 58.979275 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing"
-            grouped.columns.at 3 . at idx . should_equal 57.561756 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Standard Deviation Value_1"
-            grouped.columns.at 4 . at idx . should_equal 58.746614 epsilon=0.000001
-            grouped.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing_1"
-            grouped.columns.at 5 . at idx . should_equal 57.306492 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Standard Deviation Value"
+            materialized.columns.at 2 . at idx . should_equal 58.979275 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing"
+            materialized.columns.at 3 . at idx . should_equal 57.561756 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Standard Deviation Value_1"
+            materialized.columns.at 4 . at idx . should_equal 58.746614 epsilon=0.000001
+            materialized.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing_1"
+            materialized.columns.at 5 . at idx . should_equal 57.306492 epsilon=0.000001
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Group_By "Index", Group_By "Flag", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Group_By "Index", Group_By "Flag", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 8
-            grouped.columns.at 5 . name . should_equal "Flag"
-            grouped.columns.at 4 . name . should_equal "Index"
-            idx = find_row ["False", 6] grouped [5, 4]
+            materialized.columns.length . should_equal 8
+            materialized.columns.at 5 . name . should_equal "Flag"
+            materialized.columns.at 4 . name . should_equal "Index"
+            idx = find_row ["False", 6] materialized [5, 4]
             idx.is_nothing . should_be_false
-            grouped.columns.at 0 . name . should_equal "Median Index"
-            grouped.columns.at 0 . at idx . should_equal 6 epsilon=0.000001
-            grouped.columns.at 1 . name . should_equal "Median Value"
-            grouped.columns.at 1 . at idx . should_equal 2.041150 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Median ValueWithNothing"
-            grouped.columns.at 2 . at idx . should_equal 3.55 epsilon=0.000001
-            grouped.columns.at 3 . name . should_equal "Mode Index"
-            grouped.columns.at 3 . at idx . should_equal 6
-            grouped.columns.at 6 . name . should_equal "25%-ile Value"
-            grouped.columns.at 6 . at idx . should_equal -52.628925 epsilon=0.000001
-            grouped.columns.at 7 . name . should_equal "40%-ile ValueWithNothing"
-            grouped.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
+            materialized.columns.at 0 . name . should_equal "Median Index"
+            materialized.columns.at 0 . at idx . should_equal 6 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Median Value"
+            materialized.columns.at 1 . at idx . should_equal 2.041150 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Median ValueWithNothing"
+            materialized.columns.at 2 . at idx . should_equal 3.55 epsilon=0.000001
+            materialized.columns.at 3 . name . should_equal "Mode Index"
+            materialized.columns.at 3 . at idx . should_equal 6
+            materialized.columns.at 6 . name . should_equal "25%-ile Value"
+            materialized.columns.at 6 . at idx . should_equal -52.628925 epsilon=0.000001
+            materialized.columns.at 7 . name . should_equal "40%-ile ValueWithNothing"
+            materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
+        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 4
-            grouped.columns.at 0 . name . should_equal "Flag"
-            grouped.columns.at 3 . name . should_equal "Index"
-            idx = find_row ["False", 6] grouped [0, 3]
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Flag"
+            materialized.columns.at 3 . name . should_equal "Index"
+            idx = find_row ["False", 6] materialized [0, 3]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "First TextWithNothing"
-            grouped.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 2 . name . should_equal "Last Value"
-            grouped.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "First TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 2 . name . should_equal "Last Value"
+            materialized.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
 
         Test.specify "should be able to get minimum and maximum values" <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Group_By "Flag", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = table.aggregate [Group_By "Index", Minimum "Value", Maximum "Value", Group_By "Flag", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 6
-            grouped.columns.at 3 . name . should_equal "Flag"
-            grouped.columns.at 0 . name . should_equal "Index"
-            idx = find_row ["False", 6] grouped [3, 0]
+            materialized.columns.length . should_equal 6
+            materialized.columns.at 3 . name . should_equal "Flag"
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row ["False", 6] materialized [3, 0]
             idx.is_nothing . should_be_false
-            grouped.columns.at 1 . name . should_equal "Minimum Value"
-            grouped.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
-            grouped.columns.at 2 . name . should_equal "Maximum Value"
-            grouped.columns.at 2 . at idx . should_equal 96.488390 epsilon=0.000001
-            grouped.columns.at 4 . name . should_equal "Minimum ValueWithNothing"
-            grouped.columns.at 4 . at idx . should_equal -99.99 epsilon=0.000001
-            grouped.columns.at 5 . name . should_equal "Maximum ValueWithNothing"
-            grouped.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
+            materialized.columns.at 1 . name . should_equal "Minimum Value"
+            materialized.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
+            materialized.columns.at 2 . name . should_equal "Maximum Value"
+            materialized.columns.at 2 . at idx . should_equal 96.488390 epsilon=0.000001
+            materialized.columns.at 4 . name . should_equal "Minimum ValueWithNothing"
+            materialized.columns.at 4 . at idx . should_equal -99.99 epsilon=0.000001
+            materialized.columns.at 5 . name . should_equal "Maximum ValueWithNothing"
+            materialized.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported by "+prefix) <|
-            grouped = materialize <| table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+            materialized = materialize grouped
             grouped.row_count . should_equal 20
-            grouped.columns.length . should_equal 5
-            grouped.columns.at 0 . name . should_equal "Index"
-            grouped.columns.at 1 . name . should_equal "Flag"
-            idx = find_row [6, "False"] grouped
+            materialized.columns.length . should_equal 5
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 1 . name . should_equal "Flag"
+            idx = find_row [6, "False"] materialized
             idx.is_nothing . should_be_false
-            grouped.columns.at 2 . name . should_equal "Shortest TextWithNothing"
-            grouped.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 3 . name . should_equal "Longest TextWithNothing"
-            grouped.columns.at 3 . at idx . should_equal "kmqxqkl6qx"
-            grouped.columns.at 4 . name . should_equal "Concatenate Code"
-            grouped.columns.at 4 . at idx . length . should_equal 381
+            materialized.columns.at 2 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 3 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 3 . at idx . should_equal "kmqxqkl6qx"
+            materialized.columns.at 4 . name . should_equal "Concatenate Code"
+            materialized.columns.at 4 . at idx . length . should_equal 381
 
     problem_pending = case pending.is_nothing of
         False -> pending
-        True -> if test_selection.advanced_stats.not then "Not supported by "+prefix
+        True -> if test_selection.problem_handling.not then "Not supported."
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=problem_pending <|
         table =
             col1 = ["Index", [1, 2, 3]]
@@ -670,6 +719,18 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             action = table.aggregate [Group_By "Value", Group_By "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names ["Value"]]
             tester = expect_column_names ["Value_1", "Value"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should allow partial matches on Count_Distinct" <|
+            action = table.aggregate [Count_Distinct (By_Name ["Missing", "Value"])] on_problems=_
+            problems = [Missing_Input_Columns ["Missing"]]
+            tester = expect_column_names ["Count Distinct Value"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should ignore Count_Distinct if no columns matched" <|
+            action = table.aggregate [Count_Distinct (By_Index [-100])] on_problems=_
+            problems = [Column_Indexes_Out_Of_Range [-100], No_Output_Columns]
+            tester = expect_column_names []
             Problems.test_problem_handling action problems tester
 
 main = Test.Suite.run_main here.spec
