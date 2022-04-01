@@ -15,6 +15,7 @@ use crate::typeface;
 use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
 use crate::typeface::pen;
+use crate::StyleIterator;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -768,10 +769,11 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
-        let content = self.clip_line_to_width(line, &content, 30.0);
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
+        let line_style2 = self.buffer.sub_style(line_range.start..line_range.end).iter();
+        let content = self.clip_line_to_width(&content, line_style2, 30.0);
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
@@ -831,14 +833,37 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
-    // FIXME: width in pixels explicitly - type? name?
-    fn clip_line_to_width(&self, line: &mut Line, content: &str, width: f32) -> String {
+    // FIXME: width in pixels explicitly - express in type? in name?
+    // TODO: rename clip->truncate? also mention ellipsis in name
+    fn clip_line_to_width(&self, content: &str, mut line_style: StyleIterator, width: f32) -> String {
         // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
         // FIXME: real width of ellipsis
         let width_of_ellipsis = 5.0;
         // FIXME: handle kerning (unless it can only reduce width, then maybe we're ok; but still
         // we can map with Pen)
-        content.to_string()
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        let mut clip = None;
+        content.char_indices().for_each(|(i, ch)| {
+            if clip.is_none() {
+                // TODO: make sure to not lose last char
+                let next = Some(ch);
+                let style = line_style.next().unwrap_or_default();
+                let chr_size = style.size.raw;
+                let char_info = next.as_ref().map(|t| pen::CharInfo::new(*t, chr_size));
+                let info = pen.advance(char_info);
+                // FIXME: make sure to *not* include kerning in case of ellipsis
+                if info.offset + width_of_ellipsis >= width {
+                    clip = Some(i);
+                } else if info.offset + char_info.map(|t| t.size).unwrap_or(0.0) >= width {
+                    clip = Some(i);
+                }
+            }
+        });
+        match clip {
+            None => content.to_string(),
+            // FIXME: use unicode ellipsis char instead of three dots
+            Some(i) => content[..i].to_string() + "...",
+        }
     }
 
     fn new_line(&self, index: usize) -> Line {
