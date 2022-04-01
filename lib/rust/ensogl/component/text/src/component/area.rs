@@ -768,6 +768,7 @@ impl AreaModel {
             .cloned()
             .unwrap_or_default();
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
+        let content = self.clip_line_to_width(line, &content, 30.0);
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
@@ -828,6 +829,16 @@ impl AreaModel {
         let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
         last_offset - cursor_offset
+    }
+
+    // FIXME: width in pixels explicitly - type? name?
+    fn clip_line_to_width(&self, line: &mut Line, content: &str, width: f32) -> String {
+        // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
+        // FIXME: real width of ellipsis
+        let width_of_ellipsis = 5.0;
+        // FIXME: handle kerning (unless it can only reduce width, then maybe we're ok; but still
+        // we can map with Pen)
+        content.to_string()
     }
 
     fn new_line(&self, index: usize) -> Line {
