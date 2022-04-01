@@ -842,9 +842,9 @@ impl AreaModel {
         // FIXME: handle kerning (unless it can only reduce width, then maybe we're ok; but still
         // we can map with Pen)
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        let mut clip = None;
+        let mut clip_at = None;
         content.char_indices().for_each(|(i, ch)| {
-            if clip.is_none() {
+            if clip_at.is_none() {
                 // TODO: make sure to not lose last char
                 let next = Some(ch);
                 let style = line_style.next().unwrap_or_default();
@@ -853,13 +853,13 @@ impl AreaModel {
                 let info = pen.advance(char_info);
                 // FIXME: make sure to *not* include kerning in case of ellipsis
                 if info.offset + width_of_ellipsis >= width {
-                    clip = Some(i);
+                    clip_at = Some(i);
                 } else if info.offset + char_info.map(|t| t.size).unwrap_or(0.0) >= width {
-                    clip = Some(i);
+                    clip_at = Some(i);
                 }
             }
         });
-        match clip {
+        match clip_at {
             None => content,
             Some(i) => content[..i].to_string() + "\u{2026}",
         }
