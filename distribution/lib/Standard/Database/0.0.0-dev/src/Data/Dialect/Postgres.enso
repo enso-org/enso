@@ -156,8 +156,9 @@ make_first_aggregator reverse ignore_null args =
             order_exprs.map expr-> expr ++ Sql.code " ASC NULLS LAST"
         order_clause =
             Sql.code " ORDER BY " ++ Sql.join "," modified_order_exprs
-        index = case reverse of
-            True -> "COUNT(*)"
-            False -> "1"
+        index_expr = case reverse of
+            True -> if ignore_null.not then Sql.code "COUNT(*)" else
+                Sql.code "COUNT(" ++ result_expr ++ Sql.code ")"
+            False -> Sql.code "1"
 
-        Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")["+index+"]"
+        Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")[" ++ index_expr ++ Sql.code "]"
