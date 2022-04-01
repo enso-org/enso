@@ -48,8 +48,8 @@ make_expression aggregate =
                     True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_exprs
         Maximum c _ -> IR.Operation "MAX" [c.expression]
         Minimum c _ -> IR.Operation "MIN" [c.expression]
-        Shortest c _ -> IR.Operation "MIN" [c.expression]
-        Longest c _ -> IR.Operation "MAX" [c.expression]
+        Shortest c _ -> IR.Operation "SHORTEST" [c.expression]
+        Longest c _ -> IR.Operation "LONGEST" [c.expression]
         Standard_Deviation c _ population -> case population of
             True -> IR.Operation "STDDEV_POP" [c.expression]
             False -> IR.Operation "STDDEV_SAMP" [c.expression]

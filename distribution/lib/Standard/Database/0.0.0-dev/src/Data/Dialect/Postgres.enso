@@ -72,7 +72,7 @@ make_internal_generator_dialect =
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, here.agg_count_distinct_including_nulls]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -162,3 +162,13 @@ make_first_aggregator reverse ignore_null args =
             False -> Sql.code "1"
 
         Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")[" ++ index_expr ++ Sql.code "]"
+
+agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
+     order_clause =
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") ASC NULLS LAST"
+     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+
+agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
+     order_clause =
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS LAST"
+     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"

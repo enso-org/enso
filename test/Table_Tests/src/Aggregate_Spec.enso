@@ -9,9 +9,9 @@ import Standard.Test
 import Standard.Test.Problems
 import Standard.Base.Error.Problem_Behavior
 
-type Test_Selection problem_handling=True advanced_stats=True text=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True
+type Test_Selection problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True
 
-all_tests = Test_Selection True True True True True True True True
+all_tests = Test_Selection True True True True True True True True True
 
 spec =
     file_contents = (Enso_Project.data / "data.csv") . read
@@ -168,17 +168,23 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             materialized.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.")  <|
-            grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.")  <|
+            grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 3
+            materialized.columns.length . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal "f5"
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
-            materialized.columns.at 2 . name . should_equal "Concatenate Code"
-            materialized.columns.at 2 . at 0 . length . should_equal 7500
+
+        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.")  <|
+            grouped = table.aggregate [Concatenate "Code"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 1
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Concatenate Code"
+            materialized.columns.at 0 . at 0 . length . should_equal 7500
 
     Test.group prefix+"Table.aggregate should summarize empty table" pending=pending <|
         Test.specify "should be able to count" <|
@@ -273,17 +279,23 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             materialized.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
-            grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
-            materialized.columns.length . should_equal 3
+            materialized.columns.length . should_equal 2
             materialized.columns.at 0 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 0 . at 0 . should_equal Nothing
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
-            materialized.columns.at 2 . name . should_equal "Concatenate Code"
-            materialized.columns.at 2 . at 0 . should_equal Nothing
+
+        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Concatenate "Code"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 1
+            materialized.columns.length . should_equal 1
+            materialized.columns.at 0 . name . should_equal "Concatenate Code"
+            materialized.columns.at 0 . at 0 . should_equal Nothing
 
     Test.group prefix+"Table.aggregate should not summarize empty table when grouped" pending=pending <|
         Test.specify "should be able to count" <|
@@ -368,15 +380,22 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             materialized.columns.at 1 . name . should_equal "Minimum Value"
             materialized.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
-            grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
-            materialized.columns.length . should_equal 4
+            materialized.columns.length . should_equal 3
             materialized.columns.at 0 . name . should_equal "Code"
             materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
-            materialized.columns.at 3 . name . should_equal "Concatenate Code"
+
+        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+            grouped = empty_table.aggregate [Group_By 0, Concatenate "Code"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 0
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 0 . name . should_equal "Code"
+            materialized.columns.at 1 . name . should_equal "Concatenate Code"
 
     Test.group prefix+"Table.aggregate should be able to group on single field" pending=pending <|
         Test.specify "should be able to count" <|
@@ -532,20 +551,29 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             materialized.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
-            grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
-            materialized.columns.length . should_equal 4
+            materialized.columns.length . should_equal 3
+            materialized.columns.at 0 . name . should_equal "Index"
+            idx = find_row [1] materialized
+            idx.is_nothing . should_be_false
+            materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 1 . at idx . should_equal "f5"
+            materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 2 . at idx . should_equal "byo6kn5l3sz"
+
+        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Concatenate "Code"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 10
+            materialized.columns.length . should_equal 2
             materialized.columns.at 0 . name . should_equal "Index"
             idx = find_row [6] materialized
             idx.is_nothing . should_be_false
-            materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
-            materialized.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
-            materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
-            materialized.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
-            materialized.columns.at 3 . name . should_equal "Concatenate Code"
-            materialized.columns.at 3 . at idx . length . should_equal 783
+            materialized.columns.at 1 . name . should_equal "Concatenate Code"
+            materialized.columns.at 1 . at idx . length . should_equal 783
 
     Test.group prefix+"Table.aggregate should be able to group on multiple fields not in left columns" pending=pending <|
         Test.specify "should be able to count" <|
@@ -711,21 +739,31 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             materialized.columns.at 5 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
 
-        Test.specify "should be able to get shortest, longest and concatenated values" (pending=if test_selection.text.not then "Not supported.") <|
-            grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing", Concatenate "Code"]
+        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
-            materialized.columns.length . should_equal 5
+            materialized.columns.length . should_equal 4
+            materialized.columns.at 0 . name . should_equal "Index"
+            materialized.columns.at 1 . name . should_equal "Flag"
+            idx = find_row [1, "False"] materialized
+            idx.is_nothing . should_be_false
+            materialized.columns.at 2 . name . should_equal "Shortest TextWithNothing"
+            materialized.columns.at 2 . at idx . should_equal "f5"
+            materialized.columns.at 3 . name . should_equal "Longest TextWithNothing"
+            materialized.columns.at 3 . at idx . should_equal "byo6kn5l3sz"
+
+        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+            grouped = table.aggregate [Group_By "Index", Group_By "Flag", Concatenate "Code"]
+            materialized = materialize grouped
+            grouped.row_count . should_equal 20
+            materialized.columns.length . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
             idx = find_row [6, "False"] materialized
             idx.is_nothing . should_be_false
-            materialized.columns.at 2 . name . should_equal "Shortest TextWithNothing"
-            materialized.columns.at 2 . at idx . should_equal "kmqxqkl6qx"
-            materialized.columns.at 3 . name . should_equal "Longest TextWithNothing"
-            materialized.columns.at 3 . at idx . should_equal "kmqxqkl6qx"
-            materialized.columns.at 4 . name . should_equal "Concatenate Code"
-            materialized.columns.at 4 . at idx . length . should_equal 381
+            materialized.columns.at 2 . name . should_equal "Concatenate Code"
+            materialized.columns.at 2 . at idx . length . should_equal 381
 
     problem_pending = case pending.is_nothing of
         False -> pending
