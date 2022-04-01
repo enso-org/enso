@@ -62,7 +62,7 @@ pub struct ShaderData {
     geometry_material : Material,
     surface_material  : Material,
     program           : Option<WebGlProgram>,
-    shader            : Option<builder::Shader>,
+    code              : Option<builder::ShaderCode>,
     dirty             : Dirty,
     logger            : Logger,
     stats             : Stats,
@@ -94,15 +94,15 @@ impl {
     /// Creates new shader with attached callback.
     pub fn new<OnMut:callback::NoArgs>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_shader_count();
-        let context           = default();
+        let context = default();
         let geometry_material = default();
-        let surface_material  = default();
-        let program           = default();
-        let shader            = default();
-        let dirty_logger      = Logger::new_sub(&logger,"dirty");
-        let dirty             = Dirty::new(dirty_logger,Box::new(on_mut));
-        let stats             = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,shader,dirty,logger,stats}
+        let surface_material = default();
+        let program = default();
+        let code = default();
+        let dirty_logger = Logger::new_sub(&logger,"dirty");
+        let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
+        let stats = stats.clone_ref();
+        Self {context,geometry_material,surface_material,program,code,dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -145,12 +145,12 @@ impl {
                     let vertex_code = self.geometry_material.code().clone();
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
-                    let shader = shader_builder.build();
-                    let program = compile_program(context,&shader.vertex,&shader.fragment);
+                    let code = shader_builder.build();
+                    let program = compile_program(context,&code.vertex,&code.fragment);
                     match program {
                         Ok(program) => {
                             self.program = Some(program);
-                            self.shader = Some(shader);
+                            self.code = Some(code);
                         }
                         Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
                         Err(ContextLossOrError::ContextLoss) => {}
@@ -170,8 +170,8 @@ impl {
     }
 
     /// Get the generated shader, if it was already generated.
-    pub fn shader(&self) -> Option<builder::Shader> {
-        self.shader.clone()
+    pub fn code(&self) -> Option<builder::ShaderCode> {
+        self.code.clone()
     }
 }}
 

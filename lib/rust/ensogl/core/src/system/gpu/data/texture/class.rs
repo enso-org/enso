@@ -89,7 +89,6 @@ impl Parameters {
 /// Specifies how values are interpolated if the texture is rendered at a resolution that is
 /// lower than its native resolution.
 #[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
 pub struct MagFilter(GlEnum);
 
 impl Deref for MagFilter {
@@ -99,6 +98,7 @@ impl Deref for MagFilter {
     }
 }
 
+#[allow(missing_docs)]
 impl MagFilter {
     pub const LINEAR: MagFilter = MagFilter(Context::LINEAR);
     pub const NEAREST: MagFilter = MagFilter(Context::NEAREST);
@@ -116,7 +116,6 @@ impl Default for MagFilter {
 /// Specifies how values are interpolated if the texture is rendered at a resolution that is
 /// lower than its native resolution.
 #[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
 pub struct MinFilter(GlEnum);
 
 impl Deref for MinFilter {
@@ -126,6 +125,7 @@ impl Deref for MinFilter {
     }
 }
 
+#[allow(missing_docs)]
 impl MinFilter {
     pub const LINEAR: MinFilter = MinFilter(Context::LINEAR);
     pub const NEAREST: MinFilter = MinFilter(Context::NEAREST);
@@ -146,7 +146,6 @@ impl Default for MinFilter {
 ///
 /// Specifies what happens if a texture is sampled out of bounds.
 #[derive(Copy, Clone, Debug)]
-#[allow(missing_docs)]
 pub struct Wrap(GlEnum);
 
 impl Deref for Wrap {
@@ -156,6 +155,7 @@ impl Deref for Wrap {
     }
 }
 
+#[allow(missing_docs)]
 impl Wrap {
     pub const REPEAT: Wrap = Wrap(Context::REPEAT);
     pub const CLAMP_TO_EDGE: Wrap = Wrap(Context::CLAMP_TO_EDGE);

@@ -10,12 +10,12 @@ use std::collections::BTreeMap;
 
 
 
-// ==============
-// === Shader ===
-// ==============
+// ==================
+// === ShaderCode ===
+// ==================
 
 #[derive(Clone, Debug)]
-pub struct Shader {
+pub struct ShaderCode {
     pub vertex:   String,
     pub fragment: String,
 }
@@ -370,10 +370,10 @@ impl ShaderBuilder {
         }
     }
 
-    pub fn build(&self) -> Shader {
+    pub fn build(&self) -> ShaderCode {
         let vertex = self.vertex.to_code();
         let fragment = self.fragment.to_code();
-        Shader { vertex, fragment }
+        ShaderCode { vertex, fragment }
     }
 }
 

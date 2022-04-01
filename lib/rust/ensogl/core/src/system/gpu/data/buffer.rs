@@ -227,6 +227,9 @@ impl<T:Storable> {
             for col in 0..cols {
                 let lloc = loc + col as u32;
                 let off  = col * col_byte_size;
+                // Please note that for performance reasons, vertex attrib 0 should always be
+                // enabled as an array. For more details see
+                // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
                 gl.context.enable_vertex_attrib_array(lloc);
                 if is_integer {
                     gl.context.vertex_attrib_i_pointer_with_i32(lloc,rows,item_type,stride,off);

@@ -79,7 +79,7 @@ pub fn main() {
             let _keep_alive = &navigator;
             i += 1;
             if i == 5 {
-                let shader = sprite.symbol.shader().shader().unwrap();
+                let shader = sprite.symbol.shader().code().unwrap();
                 DEBUG!("\n\nVERTEX:\n{shader.vertex}");
                 DEBUG!("\n\nFRAGMENT:\n{shader.fragment}");
             }

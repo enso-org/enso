@@ -44,15 +44,21 @@ use web_sys::WebGl2RenderingContext;
 /// This process is pretty complex and touches many places of your program, including WebGL error
 /// handling, shaders and programs compilation and linking, WebGL-related variables null-checkers,
 /// and many others. To learn more, see https://www.khronos.org/webgl/wiki/HandlingContextLost.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Context {
+    rc: Rc<ContextData>,
+}
+
+/// Internal data of [`Context`].
+#[derive(Debug, Deref)]
+pub struct ContextData {
     native: WebGl2RenderingContext,
 }
 
-impl Deref for Context {
-    type Target = WebGl2RenderingContext;
-    fn deref(&self) -> &Self::Target {
-        &self.native
+impl Context {
+    fn from_native(native: WebGl2RenderingContext) -> Self {
+        let rc = Rc::new(ContextData { native });
+        Self { rc }
     }
 }
 
@@ -117,7 +123,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
     match opt_context {
         None => Err(UnsupportedStandard("WebGL 2.0")),
         Some(native) => {
-            let context = Context { native };
+            let context = Context::from_native(native);
             type Handler = web::JsEventHandler;
             display.set_context(Some(&context));
             let lost: Handler = Closure::new(f_!(display.set_context(None)));
@@ -137,6 +143,7 @@ pub fn init_webgl_2_context<D: Display + 'static>(
 
 macro_rules! define_constants {
     ($($name:ident),*$(,)?) => {
+        #[allow(missing_docs)]
         impl Context {
             $(pub const $name: GlEnum = GlEnum(WebGl2RenderingContext::$name);)*
         }
