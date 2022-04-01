@@ -76,4 +76,3 @@ public class Percentile extends Aggregator {
     return null;
   }
 }
-

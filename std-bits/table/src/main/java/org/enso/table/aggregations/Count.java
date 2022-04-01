@@ -22,4 +22,3 @@ public class Count extends Aggregator {
     return indexes.size();
   }
 }
-

@@ -57,4 +57,3 @@ public class StandardDeviation extends Aggregator {
             Math.sqrt(current.total_sqr / current.count - Math.pow(current.total / current.count, 2));
   }
 }
-

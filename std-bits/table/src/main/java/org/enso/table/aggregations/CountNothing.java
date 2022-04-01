@@ -27,4 +27,3 @@ public class CountNothing extends Aggregator {
     return count;
   }
 }
-
