@@ -9,7 +9,7 @@ import java.util.List;
 /***
  * Aggregate Column computing the mean value in a group.
  */
-public class Mean extends AggregateColumn {
+public class Mean extends Aggregator {
   private static class Calculation {
     public long count;
     public double total;

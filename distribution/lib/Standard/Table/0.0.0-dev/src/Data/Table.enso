@@ -486,14 +486,35 @@ type Table
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
 
-    ## Prototype Group By function
+    ## ALIAS group, summarize
+
+       Aggregates the rows in a table using any `Group_By` entries in columns.
+       The columns argument specifies which additional aggregations to perform and to return.
+
+       Arguments:
+       - columns: Vector of `Aggregate_Column` specifying the aggregated table.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column name is not in the input table, a `Missing_Input_Columns`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an Input_Indices_Already_Matched.
+         - If there are no valid columns in the output table, a `No_Output_Columns`.
+         - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
+         - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
+         - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
+         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If  fails, an `Invalid_Aggregation_Method`.
+         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
+
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
 
         on_problems.attach_problems_before validated.problems <|
-            java_columns = validated.key_columns.map .java_column
-            index = this.java_table.indexFromColumns java_columns.to_array
+            java_key_columns = validated.key_columns.map .java_column
+            index = this.java_table.indexFromColumns java_key_columns.to_array
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 

@@ -8,7 +8,7 @@ import java.util.List;
 /***
  * Aggregate Column finding the first value in a group.
  */
-public class First extends AggregateColumn {
+public class First extends Aggregator {
   private final Storage storage;
   private final boolean ignoreNothing;
 

@@ -9,7 +9,7 @@ import java.util.*;
 /***
  * Aggregate Column computing a percentile value in a group.
  */
-public class Percentile extends AggregateColumn {
+public class Percentile extends Aggregator {
   private final Storage storage;
   private final double percentile;
 

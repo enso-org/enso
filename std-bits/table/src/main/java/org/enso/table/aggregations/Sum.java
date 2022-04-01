@@ -9,7 +9,7 @@ import java.util.List;
 /***
  * Aggregate Column computing the total value in a group.
  */
-public class Sum extends AggregateColumn {
+public class Sum extends Aggregator {
   private final Storage storage;
 
   public Sum(String name, Column column) {

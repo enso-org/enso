@@ -74,7 +74,7 @@ Invalid_Aggregation.to_display_text : Text
 Invalid_Aggregation.to_display_text =
     "The "+this.column+" could not be calculated at "+this.row.to_text+" : "+this.message
 
-## Indicates that an floating point number was used in a grouping.
+## Indicates that a floating point number was used in a grouping.
 type Floating_Point_Grouping (column:Text) (row:Integer)
 
 Floating_Point_Grouping.to_display_text : Text
@@ -86,11 +86,11 @@ type Unquoted_Delimiter (column:Text) (row:Integer)
 
 Unquoted_Delimiter.to_display_text : Text
 Unquoted_Delimiter.to_display_text =
-    "The "+this.column+" at row "+this.row.to_text+" contained an unquoted delimiter."
+    "The "+this.column+" at row "+this.row.to_text+" contains the delimiter and there is no specified quote character."
 
 ## Warning when additional warnings occurred.
 type Additional_Warnings (count:Integer)
 
 Additional_Warnings.to_display_text : Text
 Additional_Warnings.to_display_text =
-    "There were additionally "+this.count.to_text+" additional issues."
+    "There were "+this.count.to_text+" additional issues."

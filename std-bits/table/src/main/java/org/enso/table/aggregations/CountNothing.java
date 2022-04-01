@@ -8,7 +8,7 @@ import java.util.List;
 /***
  * Aggregate Column counting the number of (not-)null entries in a group.
  */
-public class CountNothing extends AggregateColumn {
+public class CountNothing extends Aggregator {
   private final Storage storage;
   private final boolean isNothing;
 

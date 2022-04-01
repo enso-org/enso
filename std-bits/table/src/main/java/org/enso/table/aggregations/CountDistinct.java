@@ -13,7 +13,7 @@ import java.util.Set;
 /***
  * Aggregate Column counting the number of distinct items in a group.
  */
-public class CountDistinct extends AggregateColumn {
+public class CountDistinct extends Aggregator {
   private final Storage[] storage;
   private final boolean ignoreEmpty;
 

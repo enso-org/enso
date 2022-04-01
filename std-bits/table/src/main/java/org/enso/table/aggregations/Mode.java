@@ -11,7 +11,7 @@ import java.util.Map;
 /***
  * Aggregate Column computing the most common value in a group (ignoring Nothing).
  */
-public class Mode extends AggregateColumn {
+public class Mode extends Aggregator {
   private final Storage storage;
 
   public Mode(String name, Column column) {

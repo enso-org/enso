@@ -1,6 +1,6 @@
 package org.enso.table.data.index;
 
-import org.enso.table.aggregations.AggregateColumn;
+import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
@@ -45,7 +45,7 @@ public class MultiValueIndex {
     }
   }
 
-  public Table makeTable(AggregateColumn[] columns) {
+  public Table makeTable(Aggregator[] columns) {
     final int length = columns.length;
     final int size = locs.size();
 

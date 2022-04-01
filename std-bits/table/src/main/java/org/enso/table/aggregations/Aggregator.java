@@ -10,12 +10,12 @@ import java.util.stream.Collectors;
 /***
  * Interface used to define aggregate columns.
  */
-public abstract class AggregateColumn {
+public abstract class Aggregator {
   private final String name;
   private final int type;
   private AggregatedProblems problems;
 
-  protected AggregateColumn(String name, int type) {
+  protected Aggregator(String name, int type) {
     this.name = name;
     this.type = type;
     this.problems = null;

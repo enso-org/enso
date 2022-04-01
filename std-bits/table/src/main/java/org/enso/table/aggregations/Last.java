@@ -5,7 +5,7 @@ import org.enso.table.data.table.Column;
 
 import java.util.List;
 
-public class Last extends AggregateColumn {
+public class Last extends Aggregator {
   private final Storage storage;
   private final boolean ignoreNothing;
 

@@ -9,7 +9,7 @@ import java.util.List;
 /***
  * Aggregate Column counting the number of (not-)null entries in a group.
  */
-public class CountEmpty extends AggregateColumn {
+public class CountEmpty extends Aggregator {
   private final Storage storage;
   private final boolean isEmpty;
 
