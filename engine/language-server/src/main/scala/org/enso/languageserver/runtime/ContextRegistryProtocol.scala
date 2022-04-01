@@ -1,13 +1,13 @@
 package org.enso.languageserver.runtime
 
 import java.util.UUID
-
 import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.libraries.LibraryComponentGroup
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
 import org.enso.logger.masking.ToLogString
@@ -105,6 +105,12 @@ object ContextRegistryProtocol {
     * @param contextId execution context identifier
     */
   case class RecomputeContextResponse(contextId: ContextId)
+
+  case class GetComponentGroupsRequest(clientId: ClientId, contextId: ContextId)
+
+  case class GetComponentGroupsResponse(
+    componentGroups: Seq[LibraryComponentGroup]
+  )
 
   /** A notification about updated expressions of execution context.
     *
