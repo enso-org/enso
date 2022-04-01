@@ -838,30 +838,24 @@ impl AreaModel {
     fn clip_line_to_width(&self, content: String, mut line_style: StyleIterator, width: f32) -> String {
         // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
         let ellipsis = '\u{2026}';
-        // FIXME: handle kerning (unless it can only reduce width, then maybe we're ok; but still
-        // we can map with Pen)
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        let mut clip_at = None;
-        content.char_indices().for_each(|(i, ch)| {
-            if clip_at.is_none() {
-                // TODO: make sure to not lose last char
-                let next = Some(ch);
-                let style = line_style.next().unwrap_or_default();
-                let font_size = style.size.raw;
-                let char_info = next.as_ref().map(|t| pen::CharInfo::new(*t, font_size));
-                let info = pen.advance(char_info);
-                // FIXME: make sure to *not* include kerning in case of ellipsis
-                let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
-                if info.offset + width_of_ellipsis >= width {
-                    clip_at = Some(i);
-                } else if info.offset + char_info.map(|t| t.size).unwrap_or(0.0) >= width {
-                    clip_at = Some(i);
-                }
+        // FIXME: handle width of ellipsis
+        let clip_at = content.char_indices().find_map(|(i, ch)| {
+            let style = line_style.next().unwrap_or_default();
+            let font_size = style.size.raw;
+            let char_info = pen::CharInfo::new(ch, font_size);
+            let info = pen.advance(Some(char_info));
+            let last_offset = info.offset + char_info.size;
+            if last_offset >= width {
+                Some(i)
+            } else {
+                None
             }
         });
         match clip_at {
             None => content,
-            Some(i) => content[..i].to_string() + "\u{2026}",
+            // TODO: is there easier way to make a String from &str + char?
+            Some(i) => format!("{}{}", content[..i].to_string(), ellipsis),
         }
     }
 
