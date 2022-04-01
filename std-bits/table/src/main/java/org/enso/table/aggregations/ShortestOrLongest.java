@@ -10,11 +10,11 @@ import java.util.List;
 /***
  * Aggregate Column finding the longest or shortest string in a group.
  */
-public class MinOrMaxLength extends AggregateColumn {
+public class ShortestOrLongest extends AggregateColumn {
   private final Storage storage;
   private final int minOrMax;
 
-  public MinOrMaxLength(String name, Column column, int minOrMax) {
+  public ShortestOrLongest(String name, Column column, int minOrMax) {
     super(name, Storage.Type.STRING);
     this.storage = column.getStorage();
     this.minOrMax = minOrMax;

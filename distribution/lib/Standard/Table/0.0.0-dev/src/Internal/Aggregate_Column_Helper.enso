@@ -10,7 +10,22 @@ import Standard.Table.Internal.Table_Helpers
 
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
-polyglot java import org.enso.table.data.table.aggregate.AggregateColumnDefinition
+polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateColumn
+polyglot java import org.enso.table.aggregations.Count as CountColumn
+polyglot java import org.enso.table.aggregations.CountDistinct as CountDistinctColumn
+polyglot java import org.enso.table.aggregations.CountEmpty as CountEmptyColumn
+polyglot java import org.enso.table.aggregations.CountNothing as CountNothingColumn
+polyglot java import org.enso.table.aggregations.First as FirstColumn
+polyglot java import org.enso.table.aggregations.GroupBy as GroupByColumn
+polyglot java import org.enso.table.aggregations.Last as LastColumn
+polyglot java import org.enso.table.aggregations.Mean as MeanColumn
+polyglot java import org.enso.table.aggregations.MinOrMax as MinOrMaxColumn
+polyglot java import org.enso.table.aggregations.Mode as ModeColumn
+polyglot java import org.enso.table.aggregations.Percentile as PercentileColumn
+polyglot java import org.enso.table.aggregations.ShortestOrLongest as ShortestOrLongestColumn
+polyglot java import org.enso.table.aggregations.StandardDeviation as StandardDeviationColumn
+polyglot java import org.enso.table.aggregations.Sum as SumColumn
+
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
@@ -153,28 +168,28 @@ type Internal_Missing_Column_Error
 java_aggregator : Aggregate_Column->AggregateColumnDefinition
 java_aggregator name column =
     case column of
-        Group_By c _ -> AggregateColumnDefinition.GroupBy name c.java_column
-        Count _ -> AggregateColumnDefinition.Count name
+        Group_By c _ -> GroupByColumn.new name c.java_column
+        Count _ -> CountColumn.new name
         Count_Distinct columns _ ignore_nothing ->
             resolved = columns.map .java_column
-            AggregateColumnDefinition.CountDistinct name resolved.to_array ignore_nothing
-        Count_Not_Nothing c _ -> AggregateColumnDefinition.CountNothing name c.java_column False
-        Count_Nothing c _ -> AggregateColumnDefinition.CountNothing name c.java_column True
-        Count_Not_Empty c _ -> AggregateColumnDefinition.CountEmpty name c.java_column False
-        Count_Empty c _ -> AggregateColumnDefinition.CountEmpty name c.java_column True
-        Sum c _ -> AggregateColumnDefinition.Sum name c.java_column
-        Average c _ -> AggregateColumnDefinition.Mean name c.java_column
-        Standard_Deviation c _ p -> AggregateColumnDefinition.StDev name c.java_column p
-        Median c _ -> AggregateColumnDefinition.Percentile name c.java_column 0.5
-        Percentile p c _ -> AggregateColumnDefinition.Percentile name c.java_column p
-        Mode c _ -> AggregateColumnDefinition.Mode name c.java_column
-        First c _ ignore_nothing _ -> AggregateColumnDefinition.First name c.java_column ignore_nothing
-        Last c _ ignore_nothing _ -> AggregateColumnDefinition.Last name c.java_column ignore_nothing
-        Maximum c _ -> AggregateColumnDefinition.MinOrMax name c.java_column 1
-        Minimum c _ -> AggregateColumnDefinition.MinOrMax name c.java_column -1
-        Shortest c _ -> AggregateColumnDefinition.MinOrMaxLength name c.java_column -1
-        Longest c _ -> AggregateColumnDefinition.MinOrMaxLength name c.java_column 1
-        Concatenate c _ join prefix suffix quote -> AggregateColumnDefinition.Concatenate name c.java_column join prefix suffix quote
+            CountDistinctColumn.new name resolved.to_array ignore_nothing
+        Count_Not_Nothing c _ -> CountNothingColumn.new name c.java_column False
+        Count_Nothing c _ -> CountNothingColumn.new name c.java_column True
+        Count_Not_Empty c _ -> CountEmptyColumn.new name c.java_column False
+        Count_Empty c _ -> CountEmptyColumn.new name c.java_column True
+        Sum c _ -> SumColumn.new name c.java_column
+        Average c _ -> MeanColumn.new name c.java_column
+        Standard_Deviation c _ p -> StDevColumn.new name c.java_column p
+        Median c _ -> PercentileColumn.new name c.java_column 0.5
+        Percentile p c _ -> PercentileColumn.new name c.java_column p
+        Mode c _ -> ModeColumn.new name c.java_column
+        First c _ ignore_nothing _ -> FirstColumn.new name c.java_column ignore_nothing
+        Last c _ ignore_nothing _ -> LastColumn.new name c.java_column ignore_nothing
+        Maximum c _ -> MinOrMaxColumn.new name c.java_column 1
+        Minimum c _ -> MinOrMaxColumn.new name c.java_column -1
+        Shortest c _ -> ShortestOrLongestColumn.new name c.java_column -1
+        Longest c _ -> ShortestOrLongestColumn.new name c.java_column 1
+        Concatenate c _ join prefix suffix quote -> ConcatenateColumn.new name c.java_column join prefix suffix quote
         _ -> Error.throw "Unsupported aggregation."
 
 ## PRIVATE
@@ -190,5 +205,5 @@ parse_aggregated_problems problems =
                     if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName p.getRow else
                         "Unknown Error"
 
-       if problems.getCount == problems_array.length then parsed else
+        if problems.getCount == problems_array.length then parsed else
             parsed + [Additional_Warnings (problems.getCount - problems_array.count)]
