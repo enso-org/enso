@@ -116,7 +116,6 @@ impl component::Frp<Model> for Frp {
             // look fishy
             let lv_padding = style.get_number(ensogl_hardcoded_theme::application::searcher::padding);
 
-            init <- source::<()>();
 
             size_and_lv_padding <- all(&input.resize, &lv_padding);
             // TODO[LATER]: looks like a common pattern (also in LV); is there a helper in FRP?
@@ -126,6 +125,7 @@ impl component::Frp<Model> for Frp {
 
             // === Header ===
 
+            init <- source::<()>();
             header_text_size <- all(&header_text_size,&init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
