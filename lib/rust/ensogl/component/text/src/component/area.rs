@@ -837,8 +837,7 @@ impl AreaModel {
     // TODO: rename clip->truncate? also mention ellipsis in name
     fn clip_line_to_width(&self, content: String, mut line_style: StyleIterator, width: f32) -> String {
         // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
-        // FIXME: real width of ellipsis
-        let width_of_ellipsis = 5.0;
+        let ellipsis = '\u{2026}';
         // FIXME: handle kerning (unless it can only reduce width, then maybe we're ok; but still
         // we can map with Pen)
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
@@ -848,10 +847,11 @@ impl AreaModel {
                 // TODO: make sure to not lose last char
                 let next = Some(ch);
                 let style = line_style.next().unwrap_or_default();
-                let chr_size = style.size.raw;
-                let char_info = next.as_ref().map(|t| pen::CharInfo::new(*t, chr_size));
+                let font_size = style.size.raw;
+                let char_info = next.as_ref().map(|t| pen::CharInfo::new(*t, font_size));
                 let info = pen.advance(char_info);
                 // FIXME: make sure to *not* include kerning in case of ellipsis
+                let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
                 if info.offset + width_of_ellipsis >= width {
                     clip_at = Some(i);
                 } else if info.offset + char_info.map(|t| t.size).unwrap_or(0.0) >= width {
