@@ -73,7 +73,7 @@ make_internal_generator_dialect =
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
     text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, here.agg_count_distinct_including_nulls]
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
@@ -118,10 +118,6 @@ agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
 ## PRIVATE
 agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
     Sql.code "COUNT(CASE WHEN (" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '') THEN 1 END)"
-
-## PRIVATE
-agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINCT_INCLUDE_NULL" arg->
-    Sql.code "(COUNT(DISTINCT " ++ arg.paren ++ Sql.code ") + CASE WHEN COUNT(CASE WHEN " ++ arg.paren ++ Sql.code " IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END)"
 
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->

@@ -17,15 +17,10 @@ make_expression aggregate =
     case aggregate of
         Group_By c _ -> c.expression
         Count _ -> IR.Operation "COUNT_ROWS" []
-        Count_Distinct columns _ ignore_nothing -> case columns.length > 1 of
-            True ->
-                ## TODO
-                Error.throw (Illegal_State_Error "Multi column distinct is not implemented yet.")
-            False ->
-                column = columns.first
-                case ignore_nothing of
-                    True -> IR.Operation "COUNT_DISTINCT" [column.expression]
-                    False -> IR.Operation "COUNT_DISTINCT_INCLUDE_NULL" [column.expression]
+        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error "Count_Distinct must have at least one column.") else
+            case ignore_nothing of
+                True -> IR.Operation "COUNT_DISTINCT" (columns.map .expression)
+                False -> IR.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
         Count_Not_Nothing c _ -> IR.Operation "COUNT" [c.expression]
         Count_Nothing c _ -> IR.Operation "COUNT_IS_NULL" [c.expression]
         Count_Not_Empty c _ -> IR.Operation "COUNT_NOT_EMPTY" [c.expression]
