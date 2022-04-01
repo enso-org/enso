@@ -3,7 +3,6 @@ package org.enso.table.aggregations;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.Problem;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;

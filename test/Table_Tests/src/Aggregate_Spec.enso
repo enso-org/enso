@@ -747,75 +747,84 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
 
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
-            problems = [Floating_Point_Grouping "GroupBy" 2]
+            problems = [Floating_Point_Grouping "GroupBy" [2]]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if totaling on a non number" <|
             action = table.aggregate [Sum "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Sum Text" 0 "Cannot convert to a number."]
+            problems = [Invalid_Aggregation "Sum Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Sum Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if averaging on a non number" <|
             action = table.aggregate [Average "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Average Text" 0 "Cannot convert to a number."]
+            problems = [Invalid_Aggregation "Average Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Average Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if calculating standard deviation on a non number" <|
             action = table.aggregate [Standard_Deviation "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Standard Deviation Text" 0 "Cannot convert to a number."]
+            problems = [Invalid_Aggregation "Standard Deviation Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Standard Deviation Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if median on a non number" <|
             action = table.aggregate [Median "Text"] on_problems=_
-            problems = [Invalid_Aggregation "Median Text" 0 "Cannot convert to a number."]
+            problems = [Invalid_Aggregation "Median Text" [0] "Cannot convert to a number."]
             tester = expect_column_names ["Median Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying shortest on a non text" <|
             action = table.aggregate [Shortest "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Shortest Index" 0 "Not a text value."]
+            problems = [Invalid_Aggregation "Shortest Index" [0] "Not a text value."]
             tester = expect_column_names ["Shortest Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying count empties on a non text" <|
             action = table.aggregate [Count_Empty "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Count Empty Index" 0 "Not a text value."]
+            problems = [Invalid_Aggregation "Count Empty Index" [0] "Not a text value."]
             tester = expect_column_names ["Count Empty Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying concatenate on a non text" <|
             action = table.aggregate [Concatenate "Index"] on_problems=_
-            problems = [Invalid_Aggregation "Concatenate Index" 0 "Not a text value."]
+            problems = [Invalid_Aggregation "Concatenate Index" [0] "Not a text value."]
             tester = expect_column_names ["Concatenate Index"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if trying concatenate unquoted delimiters" <|
             column = Concatenate "Text" separator=","
             action = table.aggregate [column] on_problems=_
-            problems = [Unquoted_Delimiter "Concatenate Text" 1]
+            problems = [Unquoted_Delimiter "Concatenate Text" [1]]
             tester = expect_column_names ["Concatenate Text"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should warn if can't compare value for Min or Max" <|
             action = table.aggregate [Maximum "Mixed"] on_problems=_
-            problems = [Invalid_Aggregation "Maximum Mixed" 1 "Cannot compare values."]
+            problems = [Invalid_Aggregation "Maximum Mixed" [1] "Cannot compare values."]
             tester = expect_column_names ["Maximum Mixed"]
             Problems.test_problem_handling action problems tester
 
-    Test.group prefix+"Table.aggregate should limits warnings when issues computing aggregation" pending=aggregate_pending <|
+    Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=aggregate_pending <|
         table =
             col1 = ["Key", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]]
             col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
-            Table.new [col1, col2]
+            col3 = ["Float", col2.second.map x->(1.5*x)]
+            Table.new [col1, col2, col3]
 
-        Test.specify "should include warning additional warnings with correct count" <|
-            column = Concatenate "Value" separator=","
+        Test.specify "should merge Invalid Aggregation warnings" <|
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
             problems = Warning.get_all new_table . map .value
-            problems.any p->(p==(Additional_Warnings 5)) . should_be_true
+            problems.length . should_equal 1
+            problems.at 0 . is_an Invalid_Aggregation . should_be_true
+            problems.at 0 . rows . length . should_equal 15
+
+        Test.specify "should merge Floating Point Grouping warnings" <|
+            new_table = table.aggregate [Group_By "Float", Count Nothing]
+            problems = Warning.get_all new_table . map .value
+            problems.length . should_equal 1
+            problems.at 0 . is_an Floating_Point_Grouping . should_be_true
+            problems.at 0 . rows . length . should_equal 9
 
 main = Test.Suite.run_main here.spec
