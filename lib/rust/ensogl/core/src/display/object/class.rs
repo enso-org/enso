@@ -667,6 +667,12 @@ impl<Host> CloneRef for Instance<Host> {
     }
 }
 
+impl<Host> From<&Self> for Instance<Host> {
+    fn from(ref_: &Self) -> Self {
+        ref_.clone_ref()
+    }
+}
+
 impl<Host> Deref for Instance<Host> {
     type Target = Rc<Model<Host>>;
     fn deref(&self) -> &Self::Target {
