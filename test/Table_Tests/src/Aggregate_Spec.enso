@@ -7,6 +7,7 @@ from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_I
 
 import Standard.Test
 import Standard.Test.Problems
+import Standard.Base.Error.Problem_Behavior
 
 type Test_Selection problem_handling=True advanced_stats=True text=True first_last=True std_dev=True multi_distinct=True aggregation_problems=True
 
@@ -34,6 +35,9 @@ spec =
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
 aggregate_spec prefix table empty_table materialize test_selection=here.all_tests pending=Nothing =
+    expect_column_names names table =
+        table.columns . map .name . should_equal names frames_to_skip=2
+
     find_row key table (columns=Nothing) =
         table_columns = if columns.is_nothing then table.columns else columns.map x->(table.columns.at x)
         0.up_to table.row_count . find i->
@@ -676,9 +680,6 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             col2 = ["Value", [1, 2, 3]]
             Table.new [col1, col2]
 
-        expect_column_names names table =
-            table.columns . map .name . should_equal names frames_to_skip=2
-
         Test.specify "should raise a warning when there are no output columns" <|
             action = table.aggregate [] on_problems=_
             problems = [No_Output_Columns]
@@ -743,9 +744,6 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             col3 = ["Text", ["A", ",", "C"]]
             col4 = ["Mixed", ["A", 1, "C"]]
             Table.new [col1, col2, col3, col4]
-
-        expect_column_names names table =
-            table.columns . map .name . should_equal names frames_to_skip=2
 
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
@@ -814,11 +812,10 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
             Table.new [col1, col2]
 
-        Test.specify "should include warning count" <|
+        Test.specify "should include warning additional warnings with correct count" <|
             column = Concatenate "Value" separator=","
-            action = table.aggregate [Group_By "Key", column] on_problems=_
-            problems = [Unquoted_Delimiter "Concatenate Text" 1]
-            tester = expect_column_names ["Key", "Concatenate Value"]
-            Problems.test_problem_handling action problems tester
+            new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
+            problems = Warning.get_all new_table . map .value
+            problems.any p->(p==(Additional_Warnings 5)) . should_be_true
 
 main = Test.Suite.run_main here.spec
