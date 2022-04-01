@@ -834,25 +834,27 @@ impl AreaModel {
     }
 
     // FIXME: width in pixels explicitly - express in type? in name?
-    // TODO: rename clip->truncate? also mention ellipsis in name
     fn text_truncated_at_width_with_ellipsis(&self, content: String, mut line_style: StyleIterator, width: f32) -> String {
-        // TODO[LATER]: handle kerning with ellipsis (though maybe we can ignore?)
         let ellipsis = '\u{2026}';
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-        // FIXME: handle width of ellipsis
-        let clip_at = content.char_indices().find_map(|(i, ch)| {
+        let mut number_of_bytes_fitting_with_ellipsis = 0;
+        let truncate_at = content.char_indices().find_map(|(i, ch)| {
             let style = line_style.next().unwrap_or_default();
             let font_size = style.size.raw;
             let char_info = pen::CharInfo::new(ch, font_size);
             let info = pen.advance(Some(char_info));
-            let last_offset = info.offset + char_info.size;
-            if last_offset >= width {
-                Some(i)
-            } else {
-                None
+            let next_offset = info.offset + char_info.size;
+            if next_offset > width {
+                return Some(number_of_bytes_fitting_with_ellipsis);
             }
+            let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
+            // TODO: account for kerning between `ch` and `ellipsis`
+            if next_offset + width_of_ellipsis <= width {
+                number_of_bytes_fitting_with_ellipsis = i + ch.len_utf8();
+            }
+            None
         });
-        match clip_at {
+        match truncate_at {
             None => content,
             // TODO: is there easier way to make a String from &str + char?
             Some(i) => format!("{}{}", content[..i].to_string(), ellipsis),
