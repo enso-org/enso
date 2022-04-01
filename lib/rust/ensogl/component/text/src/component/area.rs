@@ -889,6 +889,17 @@ impl AreaModel {
         let end = self.buffer.snap_location(selection.end);
         selection.with_start(start).with_end(end)
     }
+
+    fn set_font(&mut self, font_name: &str) {
+        // FIXME: symbols(), -> layer.add_exclusive(&symbol) (see add_to_scene_layer()); or call
+        // separately from the callee, as is done now?
+
+        let app = &self.app;
+        let scene = &app.display.default_scene;
+        let fonts = scene.extension::<typeface::font::Registry>();
+        let font = fonts.load(font_name);
+        self.glyph_system = typeface::glyph::System::new(&scene, font);
+    }
 }
 
 impl display::Object for AreaModel {
