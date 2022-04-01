@@ -17,13 +17,12 @@ public class Last extends Aggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes) {
-    Object current = null;
-    for (int row: indexes) {
-      Object value = storage.getItemBoxed(row);
+    for (int i = indexes.size() - 1; i >= 0; i--) {
+      Object value = storage.getItemBoxed(indexes.get(i));
       if (!ignoreNothing || value != null) {
-        current = value;
+        return value;
       }
     }
-    return current;
+    return null;
   }
 }

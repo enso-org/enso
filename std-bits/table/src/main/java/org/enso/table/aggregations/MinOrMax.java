@@ -7,16 +7,22 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 import java.util.List;
 
 /***
- * Aggregate Column finding the minimum or maximum entry in a group.
+ * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a group.
  */
 public class MinOrMax extends Aggregator {
   private final Storage storage;
   private final int minOrMax;
 
+  /**
+   * Constructs a MinOrMax Aggregator
+   * @param name output column name
+   * @param column input column
+   * @param minOrMax <0 for minimum, >0 for maximum
+   */
   public MinOrMax(String name, Column column, int minOrMax) {
     super(name, Storage.Type.OBJECT);
     this.storage = column.getStorage();
-    this.minOrMax = minOrMax;
+    this.minOrMax = Integer.signum(minOrMax);
   }
 
   @Override
@@ -26,7 +32,7 @@ public class MinOrMax extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         try {
-          if (current == null || Compare(current, value) == minOrMax) {
+          if (current == null || Integer.signum(Compare(current, value)) == minOrMax) {
             current = value;
           }
         } catch (ClassCastException e) {

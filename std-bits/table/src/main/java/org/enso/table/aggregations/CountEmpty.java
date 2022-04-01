@@ -7,7 +7,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 import java.util.List;
 
 /***
- * Aggregate Column counting the number of (not-)null entries in a group.
+ * Aggregate Column counting the number of (non-)empty entries in a group.
  */
 public class CountEmpty extends Aggregator {
   private final Storage storage;

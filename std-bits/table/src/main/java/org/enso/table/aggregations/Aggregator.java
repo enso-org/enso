@@ -3,6 +3,7 @@ package org.enso.table.aggregations;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.Problem;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -70,8 +71,10 @@ public abstract class Aggregator {
     } else if (value instanceof Byte) {
       return ((Byte)value).longValue();
     } else if (value instanceof Float && ((Float)value) % 1 == 0) {
+      // Only return if an integer stored as a float ( % 1 == 0)
       return ((Float)value).longValue();
     } else if (value instanceof Double && ((Double)value) % 1 == 0) {
+      // Only return if an integer stored as a double ( % 1 == 0)
       return ((Double)value).longValue();
     }
 
