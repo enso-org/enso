@@ -861,8 +861,7 @@ impl AreaModel {
         });
         match clip {
             None => content,
-            // FIXME: use unicode ellipsis char instead of three dots
-            Some(i) => content[..i].to_string() + "...",
+            Some(i) => content[..i].to_string() + "\u{2026}",
         }
     }
 
