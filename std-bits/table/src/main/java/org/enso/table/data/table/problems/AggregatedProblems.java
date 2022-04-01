@@ -23,7 +23,7 @@ public class AggregatedProblems {
   public Problem[] getProblems() {
     if (count == 0) {
       return new Problem[0];
-    } else if (count == problems.length) {
+    } else if (count >= problems.length) {
       return problems;
     }
 

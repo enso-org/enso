@@ -24,21 +24,21 @@ public class Sum extends AggregateColumn {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (current == null) {
-          current = value;
+          current = 0L;
+        }
+
+        Long lCurrent = CastToLong(current);
+        Long lValue = CastToLong(value);
+        if (lCurrent != null && lValue != null) {
+          current = lCurrent + lValue;
         } else {
-          Long lCurrent = CastToLong(current);
-          Long lValue = CastToLong(value);
-          if (lCurrent != null && lValue != null) {
-            current = lCurrent + lValue;
+          Double dCurrent = CastToDouble(current);
+          Double dValue = CastToDouble(value);
+          if (dCurrent != null && dValue != null) {
+            current = dCurrent + dValue;
           } else {
-            Double dCurrent = CastToDouble(current);
-            Double dValue = CastToDouble(value);
-            if (dCurrent != null && dValue != null) {
-              current = dCurrent + dValue;
-            } else {
-              this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot Total Values."));
-              return null;
-            }
+            this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot Total Values."));
+            return null;
           }
         }
       }

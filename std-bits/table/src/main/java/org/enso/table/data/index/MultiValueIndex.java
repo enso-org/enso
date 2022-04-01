@@ -73,12 +73,13 @@ public class MultiValueIndex {
     AggregatedProblems[] problems = new AggregatedProblems[1 + length];
     problems[0] = this.problems;
     IntStream.range(0, length).forEach(i -> problems[i+1] = columns[i].getProblems());
+    AggregatedProblems merged = AggregatedProblems.merge(problems);
 
     return new Table(
         IntStream.range(0, length)
             .mapToObj(i -> new Column(columns[i].getName(), storage[i].seal()))
             .toArray(Column[]::new),
-        AggregatedProblems.merge(problems));
+        merged);
   }
 
   private static Builder getBuilderForType(int type, int size) {

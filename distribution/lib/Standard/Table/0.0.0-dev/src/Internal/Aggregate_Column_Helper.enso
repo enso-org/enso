@@ -206,4 +206,4 @@ parse_aggregated_problems problems =
                         "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings (problems.getCount - problems_array.count)]
+            parsed + [Additional_Warnings (problems.getCount - problems_array.length)]
