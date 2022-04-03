@@ -62,7 +62,7 @@ pub struct ShaderData {
     geometry_material : Material,
     surface_material  : Material,
     program           : Option<WebGlProgram>,
-    code              : Option<builder::ShaderCode>,
+    code              : Option<shader::Code>,
     dirty             : Dirty,
     logger            : Logger,
     stats             : Stats,
@@ -170,7 +170,7 @@ impl {
     }
 
     /// Get the generated shader, if it was already generated.
-    pub fn code(&self) -> Option<builder::ShaderCode> {
+    pub fn code(&self) -> Option<shader::Code> {
         self.code.clone()
     }
 }}

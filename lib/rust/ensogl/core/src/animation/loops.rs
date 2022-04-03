@@ -14,24 +14,26 @@ use web::Closure;
 // ================
 
 /// Note: the `start` field will be computed on first run. We cannot compute it upfront, as other
-/// time functions, like `performance.now()` can output nor precise results. The exact results
+/// time functions, like `performance.now()` can output not precise results. The exact results
 /// differ across browsers and browser versions. We have even observed that `performance.now()` can
 /// sometimes provide a bigger value than time provided to `requestAnimationFrame` callback later,
 /// which resulted in a negative frame time.
 #[derive(Clone, Copy, Debug, Default)]
+#[allow(missing_docs)]
 pub struct TimeInfo {
-    /// Start time of the animation loop.
-    pub start: f32,
-    /// The last frame time.
-    pub frame: f32,
-    /// The time which passed since the animation loop was started.
-    pub local: f32,
+    pub animation_loop_start:         f32,
+    pub previous_frame:               f32,
+    pub since_animation_loop_started: f32,
 }
 
 impl TimeInfo {
     /// Constructor.
     pub fn new() -> Self {
         default()
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.animation_loop_start != 0.0
     }
 }
 
@@ -95,7 +97,8 @@ impl<Callback> RawLoopData<Callback> {
         Self { callback, on_frame, handle_id }
     }
 
-    /// Run the animation frame.
+    /// Run the animation frame. The time fill be converted to [`f32`] because of performance
+    /// reasons. See https://hugotunius.se/2017/12/04/rust-f64-vs-f32.html to learn more.
     fn run(&mut self, current_time_ms: f64)
     where Callback: FnMut(f32) {
         let callback = &mut self.callback;
@@ -158,11 +161,13 @@ where
 {
     move |current_time: f32| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
-        let time_info = time_info_ref.get();
-        let start = if time_info.start == 0.0 { current_time } else { time_info.start };
-        let frame = current_time - start - time_info.local;
-        let local = current_time - start;
-        let time_info = TimeInfo { start, frame, local };
+        let prev_time = time_info_ref.get();
+        let animation_loop_start =
+            if prev_time.is_initialized() { prev_time.animation_loop_start } else { current_time };
+        let since_animation_loop_started = current_time - animation_loop_start;
+        let previous_frame = since_animation_loop_started - prev_time.since_animation_loop_started;
+        let time_info =
+            TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
         time_info_ref.set(time_info);
         callback(time_info);
     }
@@ -206,16 +211,17 @@ impl<Callback: FnOnce<(TimeInfo,)>> FnOnce<(TimeInfo,)> for FixedFrameRateSample
 impl<Callback: FnMut<(TimeInfo,)>> FnMut<(TimeInfo,)> for FixedFrameRateSampler<Callback> {
     extern "rust-call" fn call_mut(&mut self, args: (TimeInfo,)) -> Self::Output {
         let time = args.0;
-        self.time_buffer += time.frame;
+        self.time_buffer += time.previous_frame;
         loop {
             if self.time_buffer < 0.0 {
                 break;
             } else {
                 self.time_buffer -= self.frame_time;
-                let start = time.start;
-                let frame = self.frame_time;
-                let local = self.local_time;
-                let time2 = TimeInfo { start, frame, local };
+                let animation_loop_start = time.animation_loop_start;
+                let previous_frame = self.frame_time;
+                let since_animation_loop_started = self.local_time;
+                let time2 =
+                    TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
                 self.local_time += self.frame_time;
                 self.callback.call_mut((time2,));
             }

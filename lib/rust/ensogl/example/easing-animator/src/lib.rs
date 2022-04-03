@@ -266,9 +266,9 @@ impl Example {
         let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
             left_canvas.clear();
             right_canvas.clear();
-            sampler1.render(time_info.frame);
-            sampler2.render(time_info.frame);
-            sampler3.render(time_info.frame);
+            sampler1.render(time_info.previous_frame);
+            sampler2.render(time_info.previous_frame);
+            sampler3.render(time_info.previous_frame);
         }) as Box<dyn FnMut(animation::TimeInfo)>);
         Self { _animator }
     }

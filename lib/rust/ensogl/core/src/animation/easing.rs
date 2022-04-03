@@ -422,7 +422,7 @@ where
     let animation_loop = easing.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
         if data.active.get() {
-            data.step(time.local)
+            data.step(time.since_animation_loop_started)
         } else if let Some(animation_loop) = animation_loop.upgrade() {
             animation_loop.set(None);
         }

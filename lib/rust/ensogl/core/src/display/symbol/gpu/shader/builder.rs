@@ -3,22 +3,11 @@
 
 use crate::prelude::*;
 
+use crate::system::gpu::shader;
 use crate::system::gpu::shader::glsl;
 
 use code_builder::HasCodeRepr;
 use std::collections::BTreeMap;
-
-
-
-// ==================
-// === ShaderCode ===
-// ==================
-
-#[derive(Clone, Debug)]
-pub struct ShaderCode {
-    pub vertex:   String,
-    pub fragment: String,
-}
 
 
 
@@ -370,10 +359,10 @@ impl ShaderBuilder {
         }
     }
 
-    pub fn build(&self) -> ShaderCode {
+    pub fn build(&self) -> shader::Code {
         let vertex = self.vertex.to_code();
         let fragment = self.fragment.to_code();
-        ShaderCode { vertex, fragment }
+        shader::Code { vertex, fragment }
     }
 }
 

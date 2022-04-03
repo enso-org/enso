@@ -1074,10 +1074,10 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, t: animation::TimeInfo) {
-        if self.context.borrow().is_some() {
+    pub fn update(&self, time: animation::TimeInfo) {
+        if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                self.frp.frame_time_source.emit(t.local);
+                self.frp.frame_time_source.emit(time.since_animation_loop_started);
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
                 self.update_camera(self);
@@ -1086,6 +1086,7 @@ impl Scene {
                 self.update_shape();
                 self.update_symbols();
                 self.handle_mouse_over_and_out_events();
+                context.shader_compiler.run(time);
             })
         }
     }

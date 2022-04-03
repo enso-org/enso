@@ -1,9 +1,12 @@
 //! This module provides an abstraction for the rendering context, such as WebGL or OpenGL one.
 
+pub mod extension;
+
 use crate::prelude::*;
 use web::traits::*;
 
 use crate::system::gpu::data::GlEnum;
+use crate::system::gpu::shader;
 use crate::system::web;
 
 use web::Closure;
@@ -50,14 +53,26 @@ pub struct Context {
 }
 
 /// Internal data of [`Context`].
-#[derive(Debug, Deref)]
+#[derive(Debug)]
+#[allow(missing_docs)]
 pub struct ContextData {
-    native: WebGl2RenderingContext,
+    native:              WebGl2RenderingContext,
+    pub extensions:      Extensions,
+    pub shader_compiler: shader::Compiler,
+}
+
+impl Deref for ContextData {
+    type Target = WebGl2RenderingContext;
+    fn deref(&self) -> &Self::Target {
+        &self.native
+    }
 }
 
 impl Context {
     fn from_native(native: WebGl2RenderingContext) -> Self {
-        let rc = Rc::new(ContextData { native });
+        let extensions = Extensions::init(&native);
+        let shader_compiler = shader::Compiler::new(&native);
+        let rc = Rc::new(ContextData { native, extensions, shader_compiler });
         Self { rc }
     }
 }
@@ -78,9 +93,30 @@ pub struct ContextLostHandler {
 
 
 
-// ======================
-// === ContextHandler ===
-// ======================
+// ==================
+// === Extensions ===
+// ==================
+
+/// Set of all extensions that we try to enable after acquiring the context.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct Extensions {
+    pub khr_parallel_shader_compile: Option<extension::KhrParallelShaderCompile>,
+}
+
+impl Extensions {
+    /// Constructor.
+    fn init(context: &WebGl2RenderingContext) -> Self {
+        let khr_parallel_shader_compile = extension::KhrParallelShaderCompile::init(context);
+        Self { khr_parallel_shader_compile }
+    }
+}
+
+
+
+// ===============
+// === Display ===
+// ===============
 
 /// Abstraction for entities which contain [`DeviceContextHandler`] and are able to handle context
 /// loss. In most cases, these are top-level entities, such as a scene.

@@ -794,7 +794,7 @@ where
     let data = simulator.data.clone_ref();
     let animation_loop = simulator.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
-        let delta_seconds = time.frame / 1000.0;
+        let delta_seconds = time.previous_frame / 1000.0;
         if !data.step(delta_seconds) {
             if let Some(animation_loop) = animation_loop.upgrade() {
                 animation_loop.set(None)

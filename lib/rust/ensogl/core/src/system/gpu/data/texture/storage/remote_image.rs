@@ -103,10 +103,10 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
             let internal_format = Self::gl_internal_format();
             let format = Self::gl_format().into();
             let elem_type = Self::gl_elem_type();
-            context.bind_texture(target, Some(&gl_texture));
+            context.bind_texture(*target, Some(&gl_texture));
             context
                 .tex_image_2d_with_u32_and_u32_and_html_image_element(
-                    target,
+                    *target,
                     level,
                     internal_format,
                     format,

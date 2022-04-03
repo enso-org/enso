@@ -6,12 +6,71 @@ use enso_web::traits::*;
 
 use crate::system::gpu::Context;
 
+use enso_shapely::define_singleton_enum;
 use enso_web as web;
 use js_sys::Float32Array;
+use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
 
+pub mod compiler;
+pub use compiler::Compiler;
+
+
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Sources<Vertex, Fragment> {
+    pub vertex:   Vertex,
+    pub fragment: Fragment,
+}
+
+pub type Code = Sources<String, String>;
+pub type CompiledCode = Sources<Shader<Vertex>, Shader<Fragment>>;
+
+
+
+define_singleton_enum! {
+    Type {
+        Vertex, Fragment
+    }
+}
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Shader<T> {
+    tp:     PhantomData<T>,
+    native: WebGlShader,
+}
+
+impl<T> From<WebGlShader> for Shader<T> {
+    fn from(native: WebGlShader) -> Self {
+        let tp = default();
+        Self { tp, native }
+    }
+}
+
+impl<T> AsRef<WebGlShader> for Shader<T> {
+    fn as_ref(&self) -> &WebGlShader {
+        &self.native
+    }
+}
+
+impl<T> Deref for Shader<T> {
+    type Target = WebGlShader;
+    fn deref(&self) -> &Self::Target {
+        &self.native
+    }
+}
+
+impl ToGlEnum for Type {
+    fn to_gl_enum(&self) -> GlEnum {
+        match self {
+            Self::Vertex => GlEnum(WebGl2RenderingContext::VERTEX_SHADER),
+            Self::Fragment => GlEnum(WebGl2RenderingContext::FRAGMENT_SHADER),
+        }
+    }
+}
 
 // ==============
 // === Export ===
@@ -32,16 +91,17 @@ pub mod types {
     pub use glsl::traits::*;
     pub use glsl::Glsl;
 }
+use crate::display::GlEnum;
+use crate::display::ToGlEnum;
 pub use types::*;
-
 
 
 // =============
 // === Types ===
 // =============
 
-pub type Shader = WebGlShader;
-pub type Program = WebGlProgram;
+// pub type Shader = WebGlShader;
+// pub type Program = WebGlProgram;
 
 
 
@@ -124,7 +184,7 @@ pub trait CompilationTarget {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError>;
 }
 
-impl CompilationTarget for Shader {
+impl CompilationTarget for WebGlShader {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::COMPILE_STATUS;
         let status_ok = ctx.get_shader_parameter(self, *status).as_bool().unwrap_or(false);
@@ -134,7 +194,7 @@ impl CompilationTarget for Shader {
     }
 }
 
-impl CompilationTarget for Program {
+impl CompilationTarget for WebGlProgram {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
         let status = Context::LINK_STATUS;
         let status_ok = ctx.get_program_parameter(self, *status).as_bool().unwrap_or(false);
@@ -154,15 +214,15 @@ fn unwrap_error(opt_err: Option<String>) -> String {
 // === Compile / Link ===
 // ======================
 
-pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<WebGlShader, SingleTargetError> {
     compile_shader(ctx, *Context::VERTEX_SHADER, src)
 }
 
-pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<WebGlShader, SingleTargetError> {
     compile_shader(ctx, *Context::FRAGMENT_SHADER, src)
 }
 
-pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<Shader, SingleTargetError> {
+pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<WebGlShader, SingleTargetError> {
     let target = ErrorTarget::Shader;
     let shader = ctx.create_shader(tp).ok_or(SingleTargetError::Create { target })?;
     ctx.shader_source(&shader, src);
@@ -206,9 +266,9 @@ pub enum ContextLossOrError {
 /// Link the provided vertex and fragment shaders into a program.
 pub fn link_program(
     ctx: &Context,
-    vert_shader: &Shader,
-    frag_shader: &Shader,
-) -> Result<Program, ContextLossOrError> {
+    vert_shader: &WebGlShader,
+    frag_shader: &WebGlShader,
+) -> Result<WebGlProgram, ContextLossOrError> {
     let target = ErrorTarget::Program;
     match ctx.create_program() {
         None => Err(if ctx.is_context_lost() {
@@ -230,7 +290,7 @@ pub fn compile_program(
     ctx: &Context,
     vert_src: &str,
     frag_src: &str,
-) -> Result<Program, ContextLossOrError> {
+) -> Result<WebGlProgram, ContextLossOrError> {
     let vert_shader = compile_vertex_shader(ctx, vert_src);
     let frag_shader = compile_fragment_shader(ctx, frag_src);
     match (vert_shader, frag_shader) {
