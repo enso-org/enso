@@ -18,9 +18,19 @@ use crate::system::web::traits::*;
 use enso_logger::DefaultDebugLogger as Logger;
 
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Default)]
 pub struct ProgramSlot {
     program: Rc<RefCell<Option<WebGlProgram>>>,
+}
+
+impl ProgramSlot {
+    pub fn get(&self) -> Option<WebGlProgram> {
+        self.program.borrow().clone()
+    }
+
+    pub fn set(&self, program: WebGlProgram) {
+        *self.program.borrow_mut() = Some(program);
+    }
 }
 
 #[derive(Debug, Clone, CloneRef)]
@@ -50,18 +60,20 @@ impl WeakJobHandler {
     }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Job<T> {
-    input:        T,
-    handler:      WeakJobHandler,
-    program_slot: ProgramSlot,
+    #[derivative(Debug = "ignore")]
+    on_ready: Box<dyn Fn(WebGlProgram)>,
+    input:    T,
+    handler:  WeakJobHandler,
 }
 
 impl<T> Job<T> {
     fn replace_input<S>(self, input: S) -> Job<S> {
         let handler = self.handler;
-        let program_slot = self.program_slot;
-        Job { input, handler, program_slot }
+        let on_ready = self.on_ready;
+        Job { input, handler, on_ready }
     }
 }
 
@@ -76,6 +88,14 @@ pub struct Compiler {
 impl Compiler {
     pub fn new(context: &WebGl2RenderingContext) -> Self {
         Self { rc: Rc::new(RefCell::new(CompilerData::new(context))) }
+    }
+
+    pub fn submit<F: 'static + Fn(WebGlProgram)>(
+        &self,
+        input: shader::Code,
+        on_ready: F,
+    ) -> JobHandler {
+        self.rc.borrow_mut().submit(input, on_ready)
     }
 
     pub fn run(&self, time: animation::TimeInfo) {
@@ -102,16 +122,21 @@ impl CompilerData {
         Self { context, compile_jobs, link_jobs, performance, logger }
     }
 
-    fn submit(&mut self, input: shader::Code, program_slot: &ProgramSlot) -> JobHandler {
+    fn submit<F: 'static + Fn(WebGlProgram)>(
+        &mut self,
+        input: shader::Code,
+        on_ready: F,
+    ) -> JobHandler {
         let strong_handler = JobHandler::new();
         let handler = strong_handler.downgrade();
-        let program_slot = program_slot.clone_ref();
-        let job = Job { input, handler, program_slot };
+        let on_ready = Box::new(on_ready);
+        let job = Job { input, handler, on_ready };
         self.compile_jobs.push(job);
         strong_handler
     }
 
     fn run(&mut self, time: animation::TimeInfo) {
+        // FIXME: hardcoded values - these should be discovered.
         let desired_fps = 60.0;
         let max_frame_time_ms = 1000.0 / desired_fps;
         loop {
@@ -124,10 +149,9 @@ impl CompilerData {
                     let current_frame_time =
                         now - time.animation_loop_start - time.since_animation_loop_started;
                     if current_frame_time > max_frame_time_ms {
-                        debug!(
-                            self.logger,
-                            "Not all shaders compiled. To be continued in the next frame."
-                        );
+                        let msg1 = "Shaders compilation takes more than the available frame time.";
+                        let msg2 = "To be continued in the next frame.";
+                        debug!(self.logger, "{msg1} {msg2}");
                         break;
                     }
                 }
@@ -188,6 +212,7 @@ impl CompilerData {
                     if !status.as_bool().unwrap_or(false) {
                         Err(ProgramLinkingError(job.input))?
                     }
+                    (job.on_ready)(program);
                 } else {
                     debug!(self.logger, "Job handler dropped, skipping.");
                 }
@@ -219,9 +244,16 @@ define_singleton_enum! {
 
 impl Error {
     pub fn blocking_display(&self) -> String {
+        // FIXME:
+        let fatal = |msg| {
+            format!(
+                "This is a browser error. Please report it here ... and give us this ... {}",
+                msg
+            )
+        };
         match self {
-            Self::ShaderCreationError => "Unable to create a new shader.".into(),
-            Self::ProgramLinkingError => "Unable to create a new program shader.".into(),
+            Self::ShaderCreationError => fatal("WebGL was unable to create a new shader."),
+            Self::ProgramLinkingError => fatal("WebGl was unable to create a new program shader."),
             _ => todo!(), /* Self::ProgramLinkingError(shaders) => {
                            *     panic!()
                            *     // let code: String = src.into();

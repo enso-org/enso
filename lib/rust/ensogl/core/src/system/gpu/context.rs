@@ -162,8 +162,14 @@ pub fn init_webgl_2_context<D: Display + 'static>(
             let context = Context::from_native(native);
             type Handler = web::JsEventHandler;
             display.set_context(Some(&context));
-            let lost: Handler = Closure::new(f_!(display.set_context(None)));
-            let restored: Handler = Closure::new(f_!(display.set_context(Some(&context))));
+            let lost: Handler = Closure::new(f_!([display]
+                WARNING!("Lost the WebGL context.");
+                display.set_context(None)
+            ));
+            let restored: Handler = Closure::new(f_!([display]
+                WARNING!("Trying to restore the WebGL context.");
+                display.set_context(Some(&context))
+            ));
             let on_lost = web::add_event_listener(hdc, "webglcontextlost", lost);
             let on_restored = web::add_event_listener(hdc, "webglcontextrestored", restored);
             Ok(ContextLostHandler { on_lost, on_restored })

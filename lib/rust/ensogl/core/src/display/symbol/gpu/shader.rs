@@ -13,6 +13,8 @@ use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
 use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
+use crate::system::gpu::shader::compiler as shader_compiler;
+use crate::system::gpu::shader::compiler::ProgramSlot;
 use crate::system::gpu::Context;
 
 use enso_shapely::shared;
@@ -61,7 +63,8 @@ pub struct ShaderData {
     context           : Option<Context>,
     geometry_material : Material,
     surface_material  : Material,
-    program           : Option<WebGlProgram>,
+    program           : ProgramSlot,
+    shader_compiler_job   : Option<shader_compiler::JobHandler>,
     code              : Option<shader::Code>,
     dirty             : Dirty,
     logger            : Logger,
@@ -78,7 +81,7 @@ impl {
     }
 
     pub fn program(&self) -> Option<WebGlProgram> {
-        self.program.clone()
+        self.program.get()
     }
 
     pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
@@ -98,15 +101,16 @@ impl {
         let geometry_material = default();
         let surface_material = default();
         let program = default();
+        let shader_compiler_job = default();
         let code = default();
         let dirty_logger = Logger::new_sub(&logger,"dirty");
         let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
         let stats = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,code,dirty,logger,stats}
+        Self {context,geometry_material,surface_material,program,shader_compiler_job,code,dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self, bindings:&[VarBinding]) {
+    pub fn update<F: 'static + Fn()>(&mut self, bindings:&[VarBinding], on_ready:F) {
         debug!(self.logger, "Updating.", || {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
@@ -146,15 +150,22 @@ impl {
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
                     let code = shader_builder.build();
-                    let program = compile_program(context,&code.vertex,&code.fragment);
-                    match program {
-                        Ok(program) => {
-                            self.program = Some(program);
-                            self.code = Some(code);
-                        }
-                        Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
-                        Err(ContextLossOrError::ContextLoss) => {}
-                    }
+                    let program = self.program.clone_ref();
+                    let handler = context.shader_compiler.submit(code, move |p| {
+                        program.set(p);
+                        on_ready();
+                    });
+                    self.shader_compiler_job = Some(handler);
+                    // FIXME: setting self.code?
+                    // let program = compile_program(context,&code.vertex,&code.fragment);
+                    // match program {
+                    //     Ok(program) => {
+                    //         self.program.set(program);
+                    //         // self.code = Some(code);
+                    //     }
+                    //     Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
+                    //     Err(ContextLossOrError::ContextLoss) => {}
+                    // }
 
                     self.dirty.unset_all();
                 }

@@ -419,8 +419,13 @@ impl Symbol {
                 }
                 if self.shader_dirty.check() {
                     let var_bindings = self.discover_variable_bindings(global_variables);
-                    self.shader.update(&var_bindings);
-                    self.init_variable_bindings(&var_bindings, global_variables);
+                    // FIXME: Mem leak
+                    let this = self.clone_ref();
+                    let global_variables = global_variables.clone_ref();
+                    let bindings = var_bindings.clone(); // FIXME perf
+                    self.shader.update(&bindings, move || {
+                        this.init_variable_bindings(&var_bindings, &global_variables);
+                    });
                     self.shader_dirty.unset();
                 }
             })
