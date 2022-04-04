@@ -126,6 +126,7 @@ fn init(app: &Application) {
     component_group_view.set_entries(provider);
     // component_group_view.set_header_text("Input / Output very long name".to_string());
     component_group_view.set_header_text("Input / Output".to_string());
+    component_group_view.set_background_color(color::Rgba(0.0, 1.0, 0.0, 1.0));
     app.display.add_child(&component_group_view);
 
     std::mem::forget(component_group_view);

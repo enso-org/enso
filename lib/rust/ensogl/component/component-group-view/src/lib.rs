@@ -85,6 +85,7 @@ ensogl_core::define_endpoints_2! {
     Input {
         set_header_text(String),
         set_entries(entry::AnyModelProvider<entry::Label>),
+        set_background_color(Rgba),
         // TODO: or `set_size(Vector2)` ??
         resize(Vector2<f32>),
     }
@@ -104,7 +105,6 @@ impl component::Frp<Model> for Frp {
             // look fishy
             let lv_padding = style.get_number(ensogl_hardcoded_theme::application::searcher::padding);
 
-
             size_and_lv_padding <- all(&input.resize, &lv_padding);
             // TODO[LATER]: looks like a common pattern (also in LV); is there a helper in FRP?
             // eval input.resize((size) model.resize(*size));
@@ -117,13 +117,15 @@ impl component::Frp<Model> for Frp {
             header_text_size <- all(&header_text_size,&init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
+            eval input.set_background_color((c)
+                model.header_background.color.set(c.into()));
 
 
             // === Entries ===
 
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
-            model.entries.set_custom_background_color(Some(Rgba(0.0, 1.0, 0.0, 1.0)));
+            model.entries.set_custom_background_color <+ input.set_background_color.some();
 
             model.entries.set_entries <+ input.set_entries;
         }
