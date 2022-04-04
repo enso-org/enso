@@ -624,7 +624,8 @@ impl LayerModel {
         self.sublayers.borrow().all()
     }
 
-    fn add_sublayer(&self, layer: &Layer) {
+    /// TODO
+    pub fn add_sublayer(&self, layer: &Layer) {
         let ix = self.sublayers.borrow_mut().layers.insert(layer.downgrade());
         self.sublayers.borrow_mut().layer_placement.insert(layer.id(), ix);
         layer.add_parent(&self.sublayers);

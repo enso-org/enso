@@ -22,8 +22,11 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::control::callback;
 use ensogl_core::control::io::mouse;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::Layer;
+use ensogl_core::display::shape::*;
 use ensogl_scrollbar as scrollbar;
 use ensogl_scrollbar::Scrollbar;
 
@@ -59,6 +62,17 @@ ensogl_core::define_endpoints! {
 }
 
 
+mod mask {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let shape = Plane();
+            let shape = shape.fill(color::Rgba::new(1.0,1.0,1.0,1.0));
+            shape.into()
+        }
+    }
+}
+
 
 // ===================
 // === Scroll Area ===
@@ -75,6 +89,9 @@ pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
     pub content:           display::object::Instance,
+    mask:                  mask::View,
+    mask_layer:            Layer,
+    content_layer:         display::scene::Layer,
     display_object:        display::object::Instance,
     h_scrollbar:           Scrollbar,
     v_scrollbar:           Scrollbar,
@@ -106,6 +123,18 @@ impl ScrollArea {
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
 
+        let mask = mask::View::new(&logger);
+        display_object.add_child(&mask);
+
+        let content_layer = Layer::new(logger.sub("ContentLayer"));
+        let mask_layer = Layer::new(logger.sub("MaskLayer"));
+        content_layer.set_mask(&mask_layer);
+        scene.layers.main.add_sublayer(&mask_layer);
+        scene.layers.main.add_sublayer(&content_layer);
+
+        content_layer.add_exclusive(&content);
+        mask_layer.add_exclusive(&mask);
+
         let h_scrollbar = Scrollbar::new(app);
         display_object.add_child(&h_scrollbar);
 
@@ -127,11 +156,12 @@ impl ScrollArea {
             h_scrollbar.set_length     <+ frp.resize.map(|size| size.x);
             v_scrollbar.set_length     <+ frp.resize.map(|size| size.y);
 
-            eval frp.resize([h_scrollbar,v_scrollbar](size) {
+            eval frp.resize([h_scrollbar,v_scrollbar,mask](size) {
                 h_scrollbar.set_position_y(-size.y+scrollbar::WIDTH/2.0);
                 v_scrollbar.set_position_x(size.x-scrollbar::WIDTH/2.0);
                 h_scrollbar.set_position_x(size.x/2.0);
                 v_scrollbar.set_position_y(-size.y/2.0);
+                mask.size.set(*size * 0.5);
             });
 
 
@@ -172,6 +202,16 @@ impl ScrollArea {
         let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);
 
 
-        ScrollArea { content, display_object, h_scrollbar, v_scrollbar, scroll_handler_handle, frp }
+        ScrollArea {
+            content,
+            display_object,
+            mask,
+            mask_layer,
+            content_layer,
+            h_scrollbar,
+            v_scrollbar,
+            scroll_handler_handle,
+            frp,
+        }
     }
 }
