@@ -36,6 +36,20 @@ impl Block {
 }
 
 
+// ==================
+// === Mark Data ===
+// ==================
+
+/// A `Mark` contains the data required to render a mark that indicates a labeled point in time.
+#[derive(Clone, Debug)]
+pub struct Mark {
+    /// X coordinate of the mark.
+    pub position: f64,
+    /// The label to be displayed with the mark.
+    pub label:    String,
+}
+
+
 
 // ==================
 // === Graph Data ===
@@ -47,6 +61,8 @@ impl Block {
 pub struct Graph {
     /// Collection of all blocks making up the flame graph.
     pub blocks: Vec<Block>,
+    /// Collection of marks that can be shown in the flame graph.
+    pub marks:  Vec<Mark>,
 }
 
 impl Graph {
@@ -100,7 +116,8 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             builder.visit_interval(*child, 0);
         }
         let Self { blocks, .. } = builder;
-        Graph { blocks }
+        let marks = Vec::default();
+        Graph { blocks, marks }
     }
 }
 
@@ -146,7 +163,8 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
             builder.visit_measurement(*child);
         }
         let Self { blocks, .. } = builder;
-        Graph { blocks }
+        let marks = Vec::default();
+        Graph { blocks, marks }
     }
 }
 
@@ -194,7 +212,8 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
         callgraph.visit_interval(*child, next_row);
     }
     let CallgraphBuilder { blocks, .. } = callgraph;
-    Graph { blocks }
+    let marks = Vec::default();
+    Graph { blocks, marks }
 }
 
 
@@ -226,7 +245,8 @@ impl From<FlamegraphBuilder> for Graph {
         for (label, frame) in &builder.root.children {
             frame.visit(&mut blocks, &mut time, 0, label.to_string());
         }
-        Self { blocks }
+        let marks = Vec::default();
+        Self { blocks, marks }
     }
 }
 
