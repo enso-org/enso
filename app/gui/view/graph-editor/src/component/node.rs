@@ -21,6 +21,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -385,12 +386,11 @@ ensogl::define_endpoints_2! {
 ///    complex logically (the events are emitted from node to graph, then processed there and
 ///    emitted back to the right node).
 ///
-/// Currently, the solution "C" (most optimal) is implemented here.
+/// Currently, the solution "C" (nearest to optimal) is implemented here.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub model: Rc<NodeModel>,
-    pub frp:   Frp,
+    widget: gui::Widget<NodeModel, Frp>,
 }
 
 impl AsRef<Node> for Node {
@@ -399,10 +399,17 @@ impl AsRef<Node> for Node {
     }
 }
 
+impl AsRef<gui::Widget<NodeModel, Frp>> for Node {
+    fn as_ref(&self) -> &gui::Widget<NodeModel, Frp> {
+        &self.widget
+    }
+}
+
+
 impl Deref for Node {
-    type Target = Frp;
+    type Target = gui::Widget<NodeModel, Frp>;
     fn deref(&self) -> &Self::Target {
-        &self.frp
+        &self.widget
     }
 }
 
@@ -610,21 +617,22 @@ impl NodeModel {
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
-        self.backdrop.mod_position(|t| t.x = width / 2.0);
-        self.background.mod_position(|t| t.x = width / 2.0);
-        self.drag_area.mod_position(|t| t.x = width / 2.0);
-        self.error_indicator.set_position_x(width / 2.0);
-        self.vcs_indicator.set_position_x(width / 2.0);
+        let x_offset_to_node_center = x_offset_to_node_center(width);
+        self.backdrop.set_position_x(x_offset_to_node_center);
+        self.background.set_position_x(x_offset_to_node_center);
+        self.drag_area.set_position_x(x_offset_to_node_center);
+        self.error_indicator.set_position_x(x_offset_to_node_center);
+        self.vcs_indicator.set_position_x(x_offset_to_node_center);
 
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
-            t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
+            t.x = x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
-        let visualization_pos = Vector2(width / 2.0, VISUALIZATION_OFFSET_Y);
-        self.error_visualization.set_position_xy(visualization_pos);
-        self.visualization.set_position_xy(visualization_pos);
+        let visualization_offset = visualization_offset(width);
+        self.error_visualization.set_position_xy(visualization_offset);
+        self.visualization.set_position_xy(visualization_offset);
 
         size
     }
@@ -750,14 +758,6 @@ impl Node {
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
             eval new_size ((t) model.output.frp.set_size.emit(t));
-
-
-            // === Bounding Box ===
-            bounding_box_input <- all2(&new_size,&position);
-            out.bounding_box <+ bounding_box_input.map(|(size,position)| {
-                let position = position - Vector2::new(0.0,size.y / 2.0);
-                BoundingBox::from_position_and_size(position,*size)
-            });
 
 
             // === Action Bar ===
@@ -934,6 +934,16 @@ impl Node {
                 <+ visualization_visible.not().and(&no_error_set);
 
 
+            // === Bounding Box ===
+
+            let visualization_size = &model.visualization.frp.size;
+            // Visualization can be enabled and not visible when the node has an error.
+            visualization_enabled_and_visible <- visualization_enabled && visualization_visible;
+            bbox_input <- all4(
+                &position,&new_size,&visualization_enabled_and_visible,visualization_size);
+            out.bounding_box <+ bbox_input.map(|(a,b,c,d)| bounding_box(*a,*b,*c,*d));
+
+
             // === VCS Handling ===
 
             model.vcs_indicator.frp.set_status <+ input.set_vcs_status;
@@ -946,7 +956,9 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        Self { model, frp }
+        let display_object = model.display_object.clone_ref();
+        let widget = gui::Widget::new(app, frp, model, display_object);
+        Node { widget }
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
@@ -966,7 +978,41 @@ impl Node {
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.deref().display_object()
+    }
+}
+
+
+// === Positioning ===
+
+fn x_offset_to_node_center(node_width: f32) -> f32 {
+    node_width / 2.0
+}
+
+/// Calculate a position where to render the [`visualization::Container`] of a node, relative to
+/// the node's origin.
+fn visualization_offset(node_width: f32) -> Vector2 {
+    Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
+}
+
+fn bounding_box(
+    node_position: Vector2,
+    node_size: Vector2,
+    visualization_enabled_and_visible: bool,
+    visualization_size: Vector2,
+) -> BoundingBox {
+    let x_offset_to_node_center = x_offset_to_node_center(node_size.x);
+    let node_bbox_pos = node_position + Vector2(x_offset_to_node_center, 0.0) - node_size / 2.0;
+    let node_bbox = BoundingBox::from_position_and_size(node_bbox_pos, node_size);
+    if visualization_enabled_and_visible {
+        let visualization_offset = visualization_offset(node_size.x);
+        let visualization_pos = node_position + visualization_offset;
+        let visualization_bbox_pos = visualization_pos - visualization_size / 2.0;
+        let visualization_bbox =
+            BoundingBox::from_position_and_size(visualization_bbox_pos, visualization_size);
+        node_bbox.concat_ref(visualization_bbox)
+    } else {
+        node_bbox
     }
 }
 
