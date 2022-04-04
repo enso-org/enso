@@ -19,13 +19,9 @@ public class Mutable {
    */
   public Mutable(Builtins builtins, Language language, ModuleScope scope) {
     array = null;
+    ref = null;
     this.builtins = builtins;
 
-    ref = new AtomConstructor("Ref", scope).initializeFields();
-    scope.registerConstructor(ref);
-    scope.registerMethod(ref, "new", NewRefMethodGen.makeFunction(language));
-    scope.registerMethod(ref, "get", GetRefMethodGen.makeFunction(language));
-    scope.registerMethod(ref, "put", PutRefMethodGen.makeFunction(language));
   }
 
   /** @return the Array constructor. */
@@ -35,6 +31,6 @@ public class Mutable {
 
   /** @return the Ref constructor. */
   public AtomConstructor ref() {
-    return ref;
+    return builtins.getBuiltinType("Ref");
   }
 }
