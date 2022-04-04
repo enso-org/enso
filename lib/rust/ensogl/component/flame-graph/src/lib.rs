@@ -30,7 +30,7 @@ use ensogl_core::display::shape::StyleWatchFrp;
 use mark::Mark;
 
 pub use block::Block;
-
+use mark::Mark;
 
 
 // ========================
@@ -97,7 +97,22 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     component
 }
 
-const MIN_INTERVAL_TIME_MS: f64 = 0.0;
+/// Instantiate a `Block` shape for the given block data from the profiler.
+fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark {
+    let component = app.new_view::<Mark>();
+    let x = mark.position as f32;
+    let y = 0.0;
+    let pos = Vector2::new(x, y as f32);
+
+    let label = format!("{} ({:.1}ms)", mark.label, mark.position);
+
+    component.set_content.emit(label);
+    component.set_position_xy(pos);
+
+    component
+}
+
+const MIN_INTERVALL_TIME: f64 = 0.0;
 const X_SCALE: f64 = 1.0;
 
 impl FlameGraph {
@@ -123,7 +138,6 @@ impl FlameGraph {
         });
         let blocks = blocks_zero_aligned.map(|block| shape_from_block(block, app)).collect_vec();
         blocks.iter().for_each(|item| display_object.add_child(item));
-
 
         let blocks_marks_aligned = marks.into_iter().map(|mut mark| {
             mark.position -= origin_x as f64;
