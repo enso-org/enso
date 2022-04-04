@@ -3,7 +3,6 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
-import Standard.Table.Internal.Aggregate_Column_Aggregator
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Problem_Builder
 
@@ -28,9 +27,10 @@ spec = Test.group "Aggregate Columns" <|
             overridden -> overridden
         name . should_equal expected_name
 
-        acc = Aggregate_Column_Aggregator.new resolved
-        folded_value = 0.up_to table.row_count . fold acc.initial acc.accumulator
-        result = acc.finalizer folded_value
+        result =
+            acc = Aggregate_Column_Helper.java_aggregator "Name" resolved
+            indexes = Vector.new table.row_count v->v
+            acc.aggregate indexes.to_array
 
         if epsilon != False then ((result - expected_result).abs < epsilon).should_be_true else
             result.should_equal expected_result

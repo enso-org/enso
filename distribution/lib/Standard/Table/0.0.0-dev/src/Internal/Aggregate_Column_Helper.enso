@@ -8,7 +8,28 @@ import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+
+polyglot java import org.enso.table.aggregations.Aggregator
+polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
+polyglot java import org.enso.table.aggregations.Count as CountAggregator
+polyglot java import org.enso.table.aggregations.CountDistinct as CountDistinctAggregator
+polyglot java import org.enso.table.aggregations.CountEmpty as CountEmptyAggregator
+polyglot java import org.enso.table.aggregations.CountNothing as CountNothingAggregator
+polyglot java import org.enso.table.aggregations.First as FirstAggregator
+polyglot java import org.enso.table.aggregations.GroupBy as GroupByAggregator
+polyglot java import org.enso.table.aggregations.Last as LastAggregator
+polyglot java import org.enso.table.aggregations.Mean as MeanAggregator
+polyglot java import org.enso.table.aggregations.MinOrMax as MinOrMaxAggregator
+polyglot java import org.enso.table.aggregations.Mode as ModeAggregator
+polyglot java import org.enso.table.aggregations.Percentile as PercentileAggregator
+polyglot java import org.enso.table.aggregations.ShortestOrLongest as ShortestOrLongestAggregator
+polyglot java import org.enso.table.aggregations.StandardDeviation as StandardDeviationAggregator
+polyglot java import org.enso.table.aggregations.Sum as SumAggregator
+
+polyglot java import org.enso.table.data.table.problems.InvalidAggregation
+polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 
 ## Result type for aggregate_columns validation
    - key_columns: Vector of Columns from the table to group by
@@ -142,3 +163,54 @@ resolve_aggregate table problem_builder aggregate_column =
 ## PRIVATE
    A marker for missing columns during resolution.
 type Internal_Missing_Column_Error
+
+## PRIVATE
+   Creates a Java Aggregator for the Aggregate_Column
+java_aggregator : Aggregate_Column->Aggregator
+java_aggregator name column =
+    case column of
+        Group_By c _ -> GroupByAggregator.new name c.java_column
+        Count _ -> CountAggregator.new name
+        Count_Distinct columns _ ignore_nothing ->
+            resolved = columns.map .java_column
+            CountDistinctAggregator.new name resolved.to_array ignore_nothing
+        Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
+        Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
+        Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False
+        Count_Empty c _ -> CountEmptyAggregator.new name c.java_column True
+        Sum c _ -> SumAggregator.new name c.java_column
+        Average c _ -> MeanAggregator.new name c.java_column
+        Standard_Deviation c _ p -> StandardDeviationAggregator.new name c.java_column p
+        Median c _ -> PercentileAggregator.new name c.java_column 0.5
+        Percentile p c _ -> PercentileAggregator.new name c.java_column p
+        Mode c _ -> ModeAggregator.new name c.java_column
+        First c _ ignore_nothing _ ->
+            ## TODO [JD] add support for Order By clause
+               https://www.pivotaltracker.com/story/show/181414668
+            FirstAggregator.new name c.java_column ignore_nothing
+        Last c _ ignore_nothing _ ->
+            ## TODO [JD] add support for Order By clause
+               https://www.pivotaltracker.com/story/show/181414668
+            LastAggregator.new name c.java_column ignore_nothing
+        Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1
+        Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1
+        Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
+        Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
+        Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
+        _ -> Error.throw (Invalid_Aggregation name -1 "Unsupported aggregation")
+
+## PRIVATE
+   Convert Java aggregated problems to Enso Vector of equivalents
+parse_aggregated_problems : Any->Vector
+parse_aggregated_problems problems =
+    if problems.is_nothing then [] else
+        problems_array = problems.getProblems
+        parsed = Vector.new problems_array.length i->
+            p = problems_array.at i
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation p.getColumnName (Vector.Vector p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping p.getColumnName (Vector.Vector p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter p.getColumnName (Vector.Vector p.getRows) else
+                        Invalid_Aggregation Nothing -1 "Unknown Error"
+
+        if problems.getCount == problems_array.length then parsed else
+            parsed + [Additional_Warnings (problems.getCount - problems_array.length)]
