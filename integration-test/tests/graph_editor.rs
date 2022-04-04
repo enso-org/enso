@@ -346,6 +346,7 @@ async fn mouse_oriented_node_placement() {
             );
             let added_node = self.graph_editor.node_added.next_event();
             self.scene.mouse.click_on_background();
+            enso_web::simulate_sleep((enso_shortcuts::DOUBLE_EVENT_TIME_MS + 10.0) as f64);
             self.check_searcher_opening_place(added_node);
         }
     }
@@ -373,11 +374,11 @@ async fn mouse_oriented_node_placement() {
     let far_away_expect = far_away;
     create_case(&below, far_away, far_away_expect).run();
 
-    let under_below = below.position().xy() + Vector2(30.0, -15.0);
+    let under_below = below.position().xy() + Vector2(30.0, -25.0);
     let under_below_expect = below.position().xy() + Vector2(0.0, -gap_y - node_view::HEIGHT);
     create_case(&below, under_below, under_below_expect).run();
 
-    let under_above = above.position().xy() + Vector2(30.0, 15.0);
+    let under_above = above.position().xy() + Vector2(30.0, -25.0);
     let under_above_expect = Vector2(
         below.position().x - gap_x - min_spacing,
         above.position().y - gap_y - node_view::HEIGHT,
