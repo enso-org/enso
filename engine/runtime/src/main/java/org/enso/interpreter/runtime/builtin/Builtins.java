@@ -70,6 +70,9 @@ public class Builtins {
   }
 
   private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
+  // TODO Consider dropping the map and just assigning to a single variable since builtin types
+  //      should be unique
+  private HashMap<String, AtomConstructor> builtinTypes;
 
   private final AtomConstructor any;
   private final AtomConstructor debug;
@@ -88,7 +91,6 @@ public class Builtins {
   private final Mutable mutable;
   private final Number number;
   private final Ordering ordering;
-  private final AtomConstructor polyglot;
   private final Resource resource;
   private final System system;
   private final Text text;
@@ -104,6 +106,7 @@ public class Builtins {
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
     builtinNodes = new HashMap<>();
+    builtinTypes = new HashMap<>();
 
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
@@ -119,7 +122,7 @@ public class Builtins {
     error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     meta = new Meta(language, scope);
-    mutable = new Mutable(language, scope);
+    mutable = new Mutable(this, language, scope);
     nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
@@ -130,9 +133,6 @@ public class Builtins {
                 new ArgumentDefinition(0, "payload", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(
                     1, "internal_original_exception", ArgumentDefinition.ExecutionMode.EXECUTE));
-    // TODO remove once @Builtin_Type is handled
-    polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
-    scope.registerConstructor(polyglot);
     resource = new Resource(language, scope);
     system = new System(language, scope);
     text = new Text(language, scope);
@@ -149,7 +149,6 @@ public class Builtins {
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
-    AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
@@ -167,8 +166,6 @@ public class Builtins {
     scope.registerConstructor(debug);
     scope.registerConstructor(projectDescription);
     scope.registerConstructor(runtime);
-
-    scope.registerConstructor(java);
     scope.registerConstructor(thread);
 
     scope.registerConstructor(unsafe);
@@ -208,14 +205,11 @@ public class Builtins {
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_display_text", AnyToDisplayTextMethodGen.makeFunction(language));
 
-    scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
-    scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));
-
     scope.registerMethod(
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
-    readAllBuiltinNodes();
+    readAllBuiltinNodes(scope);
   }
 
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
@@ -257,35 +251,43 @@ public class Builtins {
   }
 
   @CompilerDirectives.TruffleBoundary
-  public void readAllBuiltinNodes() {
-    try {
-      Reflections reflections = new Reflections("org.enso.interpreter.node.expression.builtin");
-      Set<String> subtypes = reflections.get(Scanners.SubTypes.of(Scanners.TypesAnnotated.with(NodeInfo.class)));
-      subtypes.stream().forEach(className -> {
-        try {
-          Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
-          NodeInfo info = clazz.getDeclaredAnnotation(NodeInfo.class);
-          String[] name = info.shortName().split("\\.");
-          if (name.length == 2 && !name[0].isEmpty()) {
+  public void readAllBuiltinNodes(ModuleScope scope) {
+    Reflections reflections = new Reflections("org.enso.interpreter.node.expression.builtin");
+    Set<String> subtypes = reflections.get(Scanners.SubTypes.of(Scanners.TypesAnnotated.with(NodeInfo.class)));
+    subtypes.stream().forEach(className -> {
+      try {
+        Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
+        NodeInfo info = clazz.getDeclaredAnnotation(NodeInfo.class);
+        String[] name = info.shortName().split("\\.");
+        if (name.length == 2 && !name[0].isEmpty()) {
+          scope.getLocalConstructor(name[0]).ifPresentOrElse(constr -> {
             Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(name[0]);
             if (atomNodes == null) {
               atomNodes = new HashMap<>();
+              // TODO: move away from String Map once Builtins are gone
+              builtinNodes.put(constr.getName(), atomNodes);
+            }
+            atomNodes.put(name[1], clazz);
+          }, () -> {
+            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(name[0]);
+            if (atomNodes == null) {
+              atomNodes = new HashMap<>();
+              // TODO: move away from String Map once Builtins are gone
               builtinNodes.put(name[0], atomNodes);
             }
             atomNodes.put(name[1], clazz);
-          }
-        } catch (Exception e) {
-          e.printStackTrace();
+          });
         }
-        // todo: handle gracefully other cases
-      });
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+      } catch (Exception e) {
+        throw new CompilerError(e.getMessage());
+      }
+      // todo: handle gracefully other cases
+    });
   }
 
-  public Optional<Function> getBuiltinFunction(String atomName, String methodName, Language language) {
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(atomName);
+  public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {
+    // TODO: move away from String mapping once Builtins is gone
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(atom.getName());
     if (atomNodes == null)
       return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
@@ -298,6 +300,17 @@ public class Builtins {
       e.printStackTrace();
       return Optional.empty();
     }
+  }
+
+  public void registerBuiltinType(AtomConstructor atom) {
+    if (builtinTypes.containsKey(atom.getName())) {
+      throw new CompilerError("Builtin type '" + atom.getName() + "' already registered");
+    }
+    builtinTypes.put(atom.getName(), atom);
+  }
+
+  public AtomConstructor getBuiltinType(String name) {
+    return builtinTypes.get(name);
   }
 
   /**
@@ -381,7 +394,7 @@ public class Builtins {
 
   /** @return the container for polyglot-related builtins. */
   public AtomConstructor polyglot() {
-    return polyglot;
+    return builtinTypes.get("Polyglot");
   }
 
   /** @return the {@code Caught_Panic} atom constructor */

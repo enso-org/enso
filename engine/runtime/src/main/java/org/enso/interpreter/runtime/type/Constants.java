@@ -4,7 +4,7 @@ package org.enso.interpreter.runtime.type;
 public class Constants {
 
   public static final String ANY = "Standard.Builtins.Main.Any";
-  public static final String ARRAY = "Standard.Builtins.Main.Array";
+  public static final String ARRAY = "Standard.Data.Main.Array";
   public static final String BOOLEAN = "Standard.Builtins.Main.Boolean";
   public static final String DECIMAL = "Standard.Builtins.Main.Decimal";
   public static final String ERROR = "Standard.Builtins.Main.Error";

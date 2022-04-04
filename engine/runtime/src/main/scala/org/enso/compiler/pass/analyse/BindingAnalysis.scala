@@ -6,12 +6,8 @@ import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
-import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
+import org.enso.compiler.pass.resolve.{MethodDefinitions, ModuleAnnotations, Patterns}
 
 import scala.annotation.unused
 
@@ -48,7 +44,11 @@ case object BindingAnalysis extends IRPass {
   ): IR.Module = {
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
-        BindingsMap.Cons(cons.name.name, cons.arguments.length)
+        // FIXME: move to a different pass
+        val isBuiltinType = cons
+          .getMetadata(ModuleAnnotations)
+          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
+        BindingsMap.Cons(cons.name.name, cons.arguments.length, isBuiltinType)
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>

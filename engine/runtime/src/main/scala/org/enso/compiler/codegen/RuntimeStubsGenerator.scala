@@ -2,13 +2,14 @@ package org.enso.compiler.codegen
 
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 
 /** Generates stubs of runtime representations of atom constructors, to allow
   * [[IrToTruffle the code generator]] to refer to constructors that are not
   * fully generated yet.
   */
-class RuntimeStubsGenerator() {
+class RuntimeStubsGenerator(builtins: Builtins) {
 
   /** Runs the stage on the given module.
     *
@@ -23,7 +24,12 @@ class RuntimeStubsGenerator() {
     )
     localBindings.types.foreach { tp =>
       val constructor = new AtomConstructor(tp.name, scope)
-      scope.registerConstructor(constructor)
+      if (tp.builtinType) {
+        scope.registerBuiltinConstructor(constructor)
+        builtins.registerBuiltinType(constructor)
+      } else {
+        scope.registerConstructor(constructor)
+      }
     }
   }
 }
