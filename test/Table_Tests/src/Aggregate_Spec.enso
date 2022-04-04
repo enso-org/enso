@@ -3,14 +3,15 @@ from Standard.Base import all
 import Standard.Table
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
-from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 import Standard.Test
 import Standard.Test.Problems
+import Standard.Base.Error.Problem_Behavior
 
-type Test_Selection problem_handling=True advanced_stats=True text=True first_last=True std_dev=True multi_distinct=True
+type Test_Selection problem_handling=True advanced_stats=True text=True first_last=True std_dev=True multi_distinct=True aggregation_problems=True
 
-all_tests = Test_Selection True True True True
+all_tests = Test_Selection True True True True True
 
 spec =
     file_contents = (Enso_Project.data / "data.csv") . read
@@ -34,6 +35,9 @@ spec =
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
 aggregate_spec prefix table empty_table materialize test_selection=here.all_tests pending=Nothing =
+    expect_column_names names table =
+        table.columns . map .name . should_equal names frames_to_skip=2
+
     find_row key table (columns=Nothing) =
         table_columns = if columns.is_nothing then table.columns else columns.map x->(table.columns.at x)
         0.up_to table.row_count . find i->
@@ -676,9 +680,6 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             col2 = ["Value", [1, 2, 3]]
             Table.new [col1, col2]
 
-        expect_column_names names table =
-            table.columns . map .name . should_equal names frames_to_skip=2
-
         Test.specify "should raise a warning when there are no output columns" <|
             action = table.aggregate [] on_problems=_
             problems = [No_Output_Columns]
@@ -732,5 +733,98 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             problems = [Column_Indexes_Out_Of_Range [-100], No_Output_Columns]
             tester = expect_column_names []
             Problems.test_problem_handling action problems tester
+
+    aggregate_pending = case pending.is_nothing of
+        False -> pending
+        True -> if test_selection.aggregation_problems.not then "Not supported."
+    Test.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=aggregate_pending <|
+        table =
+            col1 = ["Index", [1, 2, 3]]
+            col2 = ["Value", [1, 2, 3.1]]
+            col3 = ["Text", ["A", ",", "C"]]
+            col4 = ["Mixed", ["A", 1, "C"]]
+            Table.new [col1, col2, col3, col4]
+
+        Test.specify "should warn if grouping on a floating point" <|
+            action = table.aggregate [Group_By 1] on_problems=_
+            problems = [Floating_Point_Grouping "GroupBy" [2]]
+            tester = expect_column_names ["Value"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if totaling on a non number" <|
+            action = table.aggregate [Sum "Text"] on_problems=_
+            problems = [Invalid_Aggregation "Sum Text" [0] "Cannot convert to a number."]
+            tester = expect_column_names ["Sum Text"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if averaging on a non number" <|
+            action = table.aggregate [Average "Text"] on_problems=_
+            problems = [Invalid_Aggregation "Average Text" [0] "Cannot convert to a number."]
+            tester = expect_column_names ["Average Text"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if calculating standard deviation on a non number" <|
+            action = table.aggregate [Standard_Deviation "Text"] on_problems=_
+            problems = [Invalid_Aggregation "Standard Deviation Text" [0] "Cannot convert to a number."]
+            tester = expect_column_names ["Standard Deviation Text"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if median on a non number" <|
+            action = table.aggregate [Median "Text"] on_problems=_
+            problems = [Invalid_Aggregation "Median Text" [0] "Cannot convert to a number."]
+            tester = expect_column_names ["Median Text"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if trying shortest on a non text" <|
+            action = table.aggregate [Shortest "Index"] on_problems=_
+            problems = [Invalid_Aggregation "Shortest Index" [0] "Not a text value."]
+            tester = expect_column_names ["Shortest Index"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if trying count empties on a non text" <|
+            action = table.aggregate [Count_Empty "Index"] on_problems=_
+            problems = [Invalid_Aggregation "Count Empty Index" [0] "Not a text value."]
+            tester = expect_column_names ["Count Empty Index"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if trying concatenate on a non text" <|
+            action = table.aggregate [Concatenate "Index"] on_problems=_
+            problems = [Invalid_Aggregation "Concatenate Index" [0] "Not a text value."]
+            tester = expect_column_names ["Concatenate Index"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if trying concatenate unquoted delimiters" <|
+            column = Concatenate "Text" separator=","
+            action = table.aggregate [column] on_problems=_
+            problems = [Unquoted_Delimiter "Concatenate Text" [1]]
+            tester = expect_column_names ["Concatenate Text"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should warn if can't compare value for Min or Max" <|
+            action = table.aggregate [Maximum "Mixed"] on_problems=_
+            problems = [Invalid_Aggregation "Maximum Mixed" [1] "Cannot compare values."]
+            tester = expect_column_names ["Maximum Mixed"]
+            Problems.test_problem_handling action problems tester
+
+    Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=aggregate_pending <|
+        table =
+            col1 = ["Key", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]]
+            col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
+            col3 = ["Float", col2.second.map x->(1.5*x)]
+            Table.new [col1, col2, col3]
+
+        Test.specify "should merge Invalid Aggregation warnings" <|
+            new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
+            problems = Warning.get_all new_table . map .value
+            problems.length . should_equal 1
+            problems.at 0 . is_an Invalid_Aggregation . should_be_true
+            problems.at 0 . rows . length . should_equal 15
+
+        Test.specify "should merge Floating Point Grouping warnings" <|
+            new_table = table.aggregate [Group_By "Float", Count Nothing]
+            problems = Warning.get_all new_table . map .value
+            problems.length . should_equal 1
+            problems.at 0 . is_an Floating_Point_Grouping . should_be_true
+            problems.at 0 . rows . length . should_equal 9
 
 main = Test.Suite.run_main here.spec

@@ -71,6 +71,10 @@ public class NumericBuilder extends TypedBuilder {
       data[currentSize++] = Double.doubleToRawLongBits((Double) o);
     } else if (!isDouble && o instanceof Long) {
       data[currentSize++] = (Long) o;
+    } else if (!isDouble && o instanceof Integer) {
+      data[currentSize++] = ((Integer) o).longValue();
+    } else if (!isDouble && o instanceof Byte) {
+      data[currentSize++] = ((Byte) o).longValue();
     } else if (isDouble && o instanceof BigDecimal) {
       data[currentSize++] = Double.doubleToRawLongBits(((BigDecimal) o).doubleValue());
     } else {

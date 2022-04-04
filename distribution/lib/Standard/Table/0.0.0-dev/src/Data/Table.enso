@@ -9,7 +9,6 @@ import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Aggregate_Column_Aggregator
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -487,49 +486,47 @@ type Table
         this.take_end (this.length - 1) . rename_columns (Column_Mapping.By_Position new_names) on_problems=on_problems
 
 
-    ## Prototype Group By function
+    ## ALIAS group, summarize
+
+       Aggregates the rows in a table using any `Group_By` entries in columns.
+       The columns argument specifies which additional aggregations to perform and to return.
+
+       Arguments:
+       - columns: Vector of `Aggregate_Column` specifying the aggregated table.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         The following problems can occur:
+         - If a column name is not in the input table, a `Missing_Input_Columns`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If there are no valid columns in the output table, a `No_Output_Columns`.
+         - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
+         - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
+         - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
+         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
+         - If there are more than 10 issues with a single column, an `Additional_Warnings`.
+
+       > Example
+         Group by the Key column, count the rows
+
+              table.aggregate [Group_By "Key", Count Nothing]
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
 
-        make_key = if (validated.key_columns.length == 0) then _->(Group_By_Key.key [1]) else
-            i->(Group_By_Key.key (validated.key_columns.map v->(v.at i)))
-
-        new_table = validated.valid_columns.map c->[c.first, Vector.new_builder]
-        aggregators = validated.valid_columns.map c->(Aggregate_Column_Aggregator.new c.second)
-        add_row _ =
-            idx = new_table.at 0 . at 1 . length
-            0.up_to (aggregators.length) . each i->
-                new_table.at i . at 1 . append ((aggregators.at i).initial)
-            idx
-
-        # Fold
-        aggregate map i =
-            key = make_key i
-            row_index = map.get_or_else key (add_row Nothing)
-
-            # Accumulate
-            0.up_to (validated.valid_columns.length) . each j->
-                accumulator = aggregators.at j . accumulator
-                array = new_table.at j . at 1 . to_array
-                current = array . at row_index
-                new = accumulator current i
-                array . set_at row_index new
-
-            map.insert key row_index
-
         on_problems.attach_problems_before validated.problems <|
-            # Build Table
-            if ((validated.key_columns.length == 0) && (this.row_count == 0)) then (add_row Nothing) else
-                0.up_to this.row_count . fold Map.empty aggregate
+            java_key_columns = validated.key_columns.map .java_column
+            index = this.java_table.indexFromColumns java_key_columns.to_array
 
-            # Now Finalise and make a table
-            finalise builder index =
-                aggregator = aggregators.at index
-                Vector.new builder.length i->(aggregator.finalizer (builder.to_array.at i))
+            new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
-            here.new (new_table.map_with_index i->c->[c.first, finalise c.second i])
+            java_table = index.makeTable new_columns.to_array
+            new_table = Table java_table
 
+            on_problems.attach_problems_after new_table <|
+                problems = java_table.getProblems
+                Aggregate_Column_Helper.parse_aggregated_problems problems
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
