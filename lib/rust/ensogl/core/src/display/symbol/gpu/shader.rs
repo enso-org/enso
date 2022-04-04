@@ -11,7 +11,6 @@ use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
-use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::compiler as shader_compiler;
 use crate::system::gpu::shader::compiler::ProgramSlot;

@@ -11,6 +11,8 @@ use crate::system::web;
 
 use web::Closure;
 use web_sys::WebGl2RenderingContext;
+use web_sys::WebGlProgram;
+use web_sys::WebGlShader;
 
 
 
@@ -56,13 +58,12 @@ pub struct Context {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ContextData {
-    native:              WebGl2RenderingContext,
-    pub extensions:      Extensions,
+    native:              NativeContextWithExtensions,
     pub shader_compiler: shader::Compiler,
 }
 
 impl Deref for ContextData {
-    type Target = WebGl2RenderingContext;
+    type Target = NativeContextWithExtensions;
     fn deref(&self) -> &Self::Target {
         &self.native
     }
@@ -70,10 +71,35 @@ impl Deref for ContextData {
 
 impl Context {
     fn from_native(native: WebGl2RenderingContext) -> Self {
-        let extensions = Extensions::init(&native);
+        Self { rc: Rc::new(ContextData::from_native(native)) }
+    }
+}
+
+impl ContextData {
+    fn from_native(native: WebGl2RenderingContext) -> Self {
+        let native = NativeContextWithExtensions::from_native(native);
         let shader_compiler = shader::Compiler::new(&native);
-        let rc = Rc::new(ContextData { native, extensions, shader_compiler });
-        Self { rc }
+        Self { native, shader_compiler }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NativeContextWithExtensions {
+    native:         WebGl2RenderingContext,
+    pub extensions: Extensions,
+}
+
+impl Deref for NativeContextWithExtensions {
+    type Target = WebGl2RenderingContext;
+    fn deref(&self) -> &Self::Target {
+        &self.native
+    }
+}
+
+impl NativeContextWithExtensions {
+    fn from_native(native: WebGl2RenderingContext) -> Self {
+        let extensions = Extensions::init(&native);
+        Self { native, extensions }
     }
 }
 
@@ -97,14 +123,25 @@ pub struct ContextLostHandler {
 // === Extensions ===
 // ==================
 
-/// Set of all extensions that we try to enable after acquiring the context.
-#[derive(Debug)]
-#[allow(missing_docs)]
+#[derive(Debug, Clone, Deref)]
 pub struct Extensions {
-    pub khr_parallel_shader_compile: Option<extension::KhrParallelShaderCompile>,
+    rc: Rc<ExtensionsData>,
 }
 
 impl Extensions {
+    fn init(context: &WebGl2RenderingContext) -> Self {
+        Self { rc: Rc::new(ExtensionsData::init(context)) }
+    }
+}
+
+/// Set of all extensions that we try to enable after acquiring the context.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ExtensionsData {
+    pub khr_parallel_shader_compile: Option<extension::KhrParallelShaderCompile>,
+}
+
+impl ExtensionsData {
     /// Constructor.
     fn init(context: &WebGl2RenderingContext) -> Self {
         let khr_parallel_shader_compile = extension::KhrParallelShaderCompile::init(context);

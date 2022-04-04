@@ -18,6 +18,11 @@ pub mod compiler;
 pub use compiler::Compiler;
 
 
+pub mod traits {
+    pub use super::BlockingCheckStatus;
+    pub use super::BlockingGetErrorLog;
+}
+
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Sources<Vertex, Fragment> {
@@ -40,15 +45,17 @@ define_singleton_enum! {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Shader<T> {
     tp:     PhantomData<T>,
+    code:   String,
     native: WebGlShader,
 }
 
-impl<T> From<WebGlShader> for Shader<T> {
-    fn from(native: WebGlShader) -> Self {
+impl<T> Shader<T> {
+    pub fn new(code: String, native: WebGlShader) -> Self {
         let tp = default();
-        Self { tp, native }
+        Self { tp, code, native }
     }
 }
+
 
 impl<T> AsRef<WebGlShader> for Shader<T> {
     fn as_ref(&self) -> &WebGlShader {
@@ -175,6 +182,7 @@ impl Display for CompilationError {
     }
 }
 
+
 /// Abstraction for [`Shader`] and [`Program`] error handling.
 pub trait CompilationTarget {
     /// Check whether the target was assembled correctly. In the context of [`Shader`], it checks if
@@ -183,6 +191,8 @@ pub trait CompilationTarget {
     /// information of why, see: https://www.khronos.org/webgl/wiki/HandlingContextLost.
     fn check(&self, ctx: &Context) -> Result<(), CompilationError>;
 }
+
+
 
 impl CompilationTarget for WebGlShader {
     fn check(&self, ctx: &Context) -> Result<(), CompilationError> {
@@ -204,34 +214,45 @@ impl CompilationTarget for WebGlProgram {
     }
 }
 
+
+// ===============================
+// === WebGlContext Extensions ===
+// ===============================
+
+pub trait BlockingCheckStatus<T> {
+    fn blocking_check_status(&self, target: &T) -> Option<String>;
+}
+
+impl<T> BlockingCheckStatus<Shader<T>> for WebGl2RenderingContext {
+    fn blocking_check_status(&self, target: &Shader<T>) -> Option<String> {
+        let status = Context::COMPILE_STATUS;
+        let ok = self.get_shader_parameter(target, *status).as_bool().unwrap_or(false);
+        (!ok).then_some(unwrap_error(self.get_shader_info_log(target)))
+    }
+}
+
+impl BlockingCheckStatus<WebGlProgram> for WebGl2RenderingContext {
+    fn blocking_check_status(&self, target: &WebGlProgram) -> Option<String> {
+        let status = Context::LINK_STATUS;
+        let ok = self.get_program_parameter(target, *status).as_bool().unwrap_or(false);
+        (!ok).then_some(unwrap_error(self.get_program_info_log(target)))
+    }
+}
+
 fn unwrap_error(opt_err: Option<String>) -> String {
     opt_err.unwrap_or_else(|| "Unknown error.".into())
 }
 
 
 
-// ======================
-// === Compile / Link ===
-// ======================
-
-pub fn compile_vertex_shader(ctx: &Context, src: &str) -> Result<WebGlShader, SingleTargetError> {
-    compile_shader(ctx, *Context::VERTEX_SHADER, src)
+pub trait BlockingGetErrorLog {
+    fn blocking_format_error_log<T>(&self, shader: &Shader<T>) -> Option<String>;
 }
 
-pub fn compile_fragment_shader(ctx: &Context, src: &str) -> Result<WebGlShader, SingleTargetError> {
-    compile_shader(ctx, *Context::FRAGMENT_SHADER, src)
-}
-
-pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<WebGlShader, SingleTargetError> {
-    let target = ErrorTarget::Shader;
-    let shader = ctx.create_shader(tp).ok_or(SingleTargetError::Create { target })?;
-    ctx.shader_source(&shader, src);
-    ctx.compile_shader(&shader);
-    match shader.check(ctx) {
-        Ok(_) => Ok(shader),
-        Err(CompilationError(message)) => {
-            let code: String = src.into();
-            let lines = code.split('\n').collect::<Vec<&str>>();
+impl BlockingGetErrorLog for WebGl2RenderingContext {
+    fn blocking_format_error_log<T>(&self, shader: &Shader<T>) -> Option<String> {
+        self.blocking_check_status(shader).map(|message| {
+            let lines = shader.code.split('\n').collect::<Vec<&str>>();
             let lines_num = lines.len();
             let lines_str_len = (lines_num as f32).log10().ceil() as usize;
             let lines_enum = lines.into_iter().enumerate();
@@ -246,73 +267,13 @@ pub fn compile_shader(ctx: &Context, tp: u32, src: &str) -> Result<WebGlShader, 
                 let preview_radius = 5;
                 let preview_line_start = std::cmp::max(0, line_num - preview_radius);
                 let preview_line_end = std::cmp::min(lines_num, line_num + preview_radius);
-                lines_with_num[preview_line_start..preview_line_end].join("\n")
+                let preview = lines_with_num[preview_line_start..preview_line_end].join("\n");
+                format!("...\n{}\n...", preview)
             } else {
                 code_with_num
             };
-            Err(SingleTargetError::Compile { target, message, preview_code })
-        }
-    }
-}
-
-/// Structure representing one of two states – an error, or lack of values because of a lost
-/// context.
-#[derive(Debug)]
-pub enum ContextLossOrError {
-    ContextLoss,
-    Error(Error),
-}
-
-/// Link the provided vertex and fragment shaders into a program.
-pub fn link_program(
-    ctx: &Context,
-    vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader,
-) -> Result<WebGlProgram, ContextLossOrError> {
-    let target = ErrorTarget::Program;
-    match ctx.create_program() {
-        None => Err(if ctx.is_context_lost() {
-            ContextLossOrError::ContextLoss
-        } else {
-            ContextLossOrError::Error(Error::Create { target })
-        }),
-        Some(program) => {
-            ctx.attach_shader(&program, vert_shader);
-            ctx.attach_shader(&program, frag_shader);
-            ctx.link_program(&program);
-            Ok(program)
-        }
-    }
-}
-
-/// Compile the provided vertex and fragment shader sources and then link them into a program.
-pub fn compile_program(
-    ctx: &Context,
-    vert_src: &str,
-    frag_src: &str,
-) -> Result<WebGlProgram, ContextLossOrError> {
-    let vert_shader = compile_vertex_shader(ctx, vert_src);
-    let frag_shader = compile_fragment_shader(ctx, frag_src);
-    match (vert_shader, frag_shader) {
-        (Ok(vert_shader), Ok(frag_shader)) => link_program(ctx, &vert_shader, &frag_shader),
-        (vert_shader, frag_shader) => {
-            let vertex = vert_shader.err();
-            let fragment = frag_shader.err();
-
-            // FIXME: this should be taken from config and refactored to a function
-            let path = &["enso", "debug", "shader"];
-            let shader_dbg = web::Reflect::get_nested_object_or_create(&web::window, path);
-            let shader_dbg = shader_dbg.unwrap();
-            let len = web::Object::keys(&shader_dbg).length();
-            let debug_var_name = format!("shader_{}", len);
-            let shader_tgt_dbg = web::Object::new();
-            web::Reflect::set(&shader_dbg, &(&debug_var_name).into(), &shader_tgt_dbg).ok();
-            web::Reflect::set(&shader_tgt_dbg, &"vertex".into(), &vert_src.into()).ok();
-            web::Reflect::set(&shader_tgt_dbg, &"fragment".into(), &frag_src.into()).ok();
-
-            let js_path = format!("window.{}.{}", path.join("."), debug_var_name);
-            Err(ContextLossOrError::Error(Error::Compile { js_path, vertex, fragment }))
-        }
+            format!("{}\n{}", message, preview_code)
+        })
     }
 }
 

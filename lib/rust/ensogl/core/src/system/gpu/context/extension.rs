@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 use crate::system::gpu::data::GlEnum;
 use crate::system::gpu::Context;
 use web_sys::WebGl2RenderingContext;
@@ -28,8 +30,12 @@ impl KhrParallelShaderCompile {
     }
 
     /// Asynchronously check if the job is ready.
-    pub fn is_ready(&self, context: &Context, program: &WebGlProgram) -> Option<bool> {
+    pub fn is_ready(&self, context: &WebGl2RenderingContext, program: &WebGlProgram) -> bool {
         let param = self.completion_status_khr;
-        context.get_program_parameter(program, *param).as_bool()
+        context.get_program_parameter(program, *param).as_bool().unwrap_or_else(|| {
+            // FIXME: log info about how to report it
+            WARNING!("context.getProgramParameter returned non bool value for KHR Parallel Shader Compile status check. This should never happen, however, it should not cause visual artifacts. Reverting to non-parallel mode.");
+            true
+        })
     }
 }
