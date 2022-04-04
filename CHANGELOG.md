@@ -2,6 +2,11 @@
 
 #### Visual Environment
 
+- [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
+  screen are now placed below all the selected nodes when more than one node is
+  selected.][3361] (Previously, they were placed below the first node that was
+  selected.) This makes it easier to achieve a compact, vertical layout of the
+  graph.
 - [Nodes created near existing nodes via the <kbd>TAB</kbd> key or by dropping a
   connection are now repositioned and aligned to existing nodes.][3301] This is
   to make the resulting graph prettier and avoid overlapping. In such cases,
@@ -24,6 +29,10 @@
 - [Node connections can be dropped by pressing the Esc key while dragging
   them.][3231]
 - [Added support of source maps for JS-based visualizations.][3208]
+- [Fixed the alignment of newly created nodes to existing nodes with
+  visualizations enabled.][3361] When applicable, new nodes are now placed below
+  visualizations. (Previously, they were placed to the left of the
+  visualizations.)
 - [Fixed histograms coloring and added a color legend.][3153]
 - [Fixed broken node whose expression contains non-ASCII characters.][3166]
 - [Fixed developer console warnings about views being created but not
@@ -81,6 +90,8 @@
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
 - [Added warning handling to `Table.aggregate`][3349]
+- [Improved performance of `Table.aggregate` and full warnings implementation]
+  [3364]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -127,6 +138,8 @@
 [3344]: https://github.com/enso-org/enso/pull/3344
 [3346]: https://github.com/enso-org/enso/pull/3346
 [3349]: https://github.com/enso-org/enso/pull/3349
+[3361]: https://github.com/enso-org/enso/pull/3361
+[3364]: https://github.com/enso-org/enso/pull/3364
 
 #### Enso Compiler
 

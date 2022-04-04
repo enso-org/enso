@@ -25,8 +25,10 @@ use enso_frp::future::EventOutputExt;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_gui::Ide;
+use enso_web::Closure;
 use enso_web::HtmlDivElement;
 use ensogl::application::test_utils::ApplicationExt;
+use std::pin::Pin;
 
 
 
@@ -35,6 +37,7 @@ pub mod prelude {
     pub use crate::IntegrationTest;
     pub use crate::IntegrationTestOnNewProject;
 
+    pub use crate::wait_a_frame;
     pub use enso_frp::future::EventOutputExt;
     pub use enso_gui::prelude::*;
     pub use wasm_bindgen_test::wasm_bindgen_test;
@@ -126,4 +129,55 @@ impl IntegrationTestOnNewProject {
     pub fn graph_editor(&self) -> enso_gui::view::graph_editor::GraphEditor {
         self.project_view().graph().clone_ref()
     }
+}
+
+
+
+// ==================
+// === WaitAFrame ===
+// ==================
+
+/// A future that resolves after one frame.
+#[derive(Default, Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub struct WaitAFrame {
+    frame_passed: Rc<Cell<bool>>,
+    closure:      Option<Closure<dyn FnMut(f64)>>,
+}
+
+impl Future for WaitAFrame {
+    type Output = ();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn poll(
+        self: Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        std::task::Poll::Ready(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn poll(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        if self.frame_passed.get() {
+            std::task::Poll::Ready(())
+        } else {
+            let waker = cx.waker().clone();
+            let frame_passed = self.frame_passed.clone_ref();
+            let closure = Closure::once(move |_| {
+                frame_passed.set(true);
+                waker.wake()
+            });
+            enso_web::window.request_animation_frame_with_closure_or_panic(&closure);
+            self.closure = Some(closure);
+            std::task::Poll::Pending
+        }
+    }
+}
+
+/// Return a future that resolves after one frame.
+pub fn wait_a_frame() -> impl Future<Output = ()> {
+    WaitAFrame::default()
 }
