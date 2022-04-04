@@ -170,7 +170,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
     let method = |editor: &GraphEditor| {
-        let port = node_1.model.output_port_shape().expect("No output port");
+        let port = node_1.model().output_port_shape().expect("No output port");
         port.events.mouse_over.emit(());
         editor.start_node_creation_from_port();
     };
@@ -336,7 +336,7 @@ async fn mouse_oriented_node_placement() {
         }
 
         fn check_edge_drop(&self) {
-            let port = self.source_node.view.model.output_port_shape().unwrap();
+            let port = self.source_node.view.model().output_port_shape().unwrap();
             port.events.mouse_down.emit(PrimaryButton);
             port.events.mouse_up.emit(PrimaryButton);
             self.scene.mouse.frp.position.emit(self.mouse_position);
@@ -346,6 +346,7 @@ async fn mouse_oriented_node_placement() {
             );
             let added_node = self.graph_editor.node_added.next_event();
             self.scene.mouse.click_on_background();
+            enso_web::simulate_sleep((enso_shortcuts::DOUBLE_EVENT_TIME_MS + 10.0) as f64);
             self.check_searcher_opening_place(added_node);
         }
     }
@@ -373,11 +374,11 @@ async fn mouse_oriented_node_placement() {
     let far_away_expect = far_away;
     create_case(&below, far_away, far_away_expect).run();
 
-    let under_below = below.position().xy() + Vector2(30.0, -15.0);
+    let under_below = below.position().xy() + Vector2(30.0, -25.0);
     let under_below_expect = below.position().xy() + Vector2(0.0, -gap_y - node_view::HEIGHT);
     create_case(&below, under_below, under_below_expect).run();
 
-    let under_above = above.position().xy() + Vector2(30.0, 15.0);
+    let under_above = above.position().xy() + Vector2(30.0, -25.0);
     let under_above_expect = Vector2(
         below.position().x - gap_x - min_spacing,
         above.position().y - gap_y - node_view::HEIGHT,
