@@ -1372,7 +1372,6 @@ name = "ensogl-example-component-group"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-text",
  "ensogl-component-group-view",
  "ensogl-core",
  "ensogl-hardcoded-theme",

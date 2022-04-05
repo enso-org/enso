@@ -25,14 +25,10 @@ pub mod prelude {
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::application;
-use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
-use ensogl_core::DEPRECATED_Animation;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
 use ensogl_hardcoded_theme as theme;
@@ -97,7 +93,6 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         // FIXME: should have separate style for CGV header text size most probably
         let header_text_size = style.get_number(theme::widget::list_view::text::size);
-        // let background = &model.background.events;
         frp::extend! { network
             // FIXME: taken from list_view::Model::padding(); this itself and calculations around it
             // look fishy
