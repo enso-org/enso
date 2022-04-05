@@ -18,7 +18,7 @@ spec =
     table = Table.from_csv file_contents
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
-    here.aggregate_spec "[In-Memory] " table empty_table materialize test_selection=(Test_Selection first_last=False)
+    here.aggregate_spec "[In-Memory] " table empty_table materialize
 
 ## Runs the common aggregate tests.
 

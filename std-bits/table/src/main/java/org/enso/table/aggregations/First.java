@@ -22,7 +22,7 @@ public class First extends Aggregator {
   public First(String name, Column column, Column[] ordering, boolean ignoreNothing) {
     super(name, Storage.Type.OBJECT);
     this.storage = column.getStorage();
-    this.ordering = ordering == null ? new Storage[0] : Arrays.stream(ordering).toArray(Storage[]::new);
+    this.ordering = ordering == null ? new Storage[0] : Arrays.stream(ordering).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreNothing = ignoreNothing;
   }
 
