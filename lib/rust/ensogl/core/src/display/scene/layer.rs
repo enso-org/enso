@@ -624,11 +624,17 @@ impl LayerModel {
         self.sublayers.borrow().all()
     }
 
-    /// TODO
+    /// Attach a `layer` as a sublayer.
     pub fn add_sublayer(&self, layer: &Layer) {
         let ix = self.sublayers.borrow_mut().layers.insert(layer.downgrade());
         self.sublayers.borrow_mut().layer_placement.insert(layer.id(), ix);
         layer.add_parent(&self.sublayers);
+    }
+
+    /// Remove previously attached sublayer.
+    pub fn remove_sublayer(&self, layer: &Layer) {
+        self.sublayers.borrow_mut().remove(layer.id());
+        layer.remove_parent(&self.sublayers);
     }
 
     fn remove_all_sublayers(&self) {
@@ -869,6 +875,7 @@ impl SublayersModel {
     fn remove(&mut self, layer_id: LayerId) {
         if let Some(ix) = self.layer_ix(layer_id) {
             self.layers.remove(ix);
+            self.layer_placement.remove(&layer_id);
         }
     }
 

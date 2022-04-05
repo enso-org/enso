@@ -16,6 +16,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -24,9 +25,9 @@ use ensogl_core::control::callback;
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::object::InstanceWithSublayers;
+use ensogl_core::display::object::MaskingSublayers;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene::Layer;
-use ensogl_core::display::shape::*;
 use ensogl_scrollbar as scrollbar;
 use ensogl_scrollbar::Scrollbar;
 
@@ -62,6 +63,11 @@ ensogl_core::define_endpoints! {
 }
 
 
+// ===================
+// === Scroll Area ===
+// ===================
+
+/// A mask for clipping the scroll area content.
 mod mask {
     use super::*;
     ensogl_core::define_shape_system! {
@@ -72,11 +78,6 @@ mod mask {
         }
     }
 }
-
-
-// ===================
-// === Scroll Area ===
-// ===================
 
 /// This struct provides a scroll area component. It displays two scrollbars, for horizontal and
 /// vertical scrolling. Content can be added to the `content` attribute. The content size has to be
@@ -89,10 +90,7 @@ pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
     pub content:           display::object::Instance,
-    mask:                  mask::View,
-    mask_layer:            Layer,
-    content_layer:         display::scene::Layer,
-    display_object:        display::object::Instance,
+    display_object:        InstanceWithSublayers<MaskingSublayers>,
     h_scrollbar:           Scrollbar,
     v_scrollbar:           Scrollbar,
     scroll_handler_handle: callback::Handle,
@@ -109,7 +107,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &*self.display_object
     }
 }
 
@@ -119,6 +117,9 @@ impl ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
         let display_object = display::object::Instance::new(&logger);
+        let camera = scene.layers.main.camera();
+        let sublayers = MaskingSublayers::new(&logger, &camera);
+        let display_object = InstanceWithSublayers::new(display_object, sublayers);
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
@@ -126,14 +127,8 @@ impl ScrollArea {
         let mask = mask::View::new(&logger);
         display_object.add_child(&mask);
 
-        let content_layer = Layer::new(logger.sub("ContentLayer"));
-        let mask_layer = Layer::new(logger.sub("MaskLayer"));
-        content_layer.set_mask(&mask_layer);
-        scene.layers.main.add_sublayer(&mask_layer);
-        scene.layers.main.add_sublayer(&content_layer);
-
-        content_layer.add_exclusive(&content);
-        mask_layer.add_exclusive(&mask);
+        display_object.sublayers.content.add_exclusive(&content);
+        display_object.sublayers.mask.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
         display_object.add_child(&h_scrollbar);
@@ -161,7 +156,9 @@ impl ScrollArea {
                 v_scrollbar.set_position_x(size.x-scrollbar::WIDTH/2.0);
                 h_scrollbar.set_position_x(size.x/2.0);
                 v_scrollbar.set_position_y(-size.y/2.0);
-                mask.size.set(*size * 0.5);
+                mask.size.set(*size);
+                mask.set_position_x(size.x / 2.0);
+                mask.set_position_y(-size.y / 2.0);
             });
 
 
@@ -186,7 +183,7 @@ impl ScrollArea {
         frp::extend! { network
             hovering <- all_with(&mouse.frp.position,&frp.resize,
                 f!([scene,display_object](&pos,&size) {
-                    let local_pos = scene.screen_to_object_space(&display_object,pos);
+                    let local_pos = scene.screen_to_object_space(&*display_object,pos);
                     (0.0..=size.x).contains(&local_pos.x) && (-size.y..=0.0).contains(&local_pos.y)
                 }));
             hovering <- hovering.sampler();
@@ -202,16 +199,6 @@ impl ScrollArea {
         let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);
 
 
-        ScrollArea {
-            content,
-            display_object,
-            mask,
-            mask_layer,
-            content_layer,
-            h_scrollbar,
-            v_scrollbar,
-            scroll_handler_handle,
-            frp,
-        }
+        ScrollArea { content, display_object, h_scrollbar, v_scrollbar, scroll_handler_handle, frp }
     }
 }

@@ -25,6 +25,7 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::Circle;
 use ensogl_core::display::shape::PixelDistance;
@@ -66,6 +67,9 @@ fn init(app: &Application) {
     let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));
 
+    let navigator = Navigator::new(scene, &scene.camera());
+    navigator.settings().disable_wheel_panning();
+    std::mem::forget(navigator);
 
     // === Background ===
 

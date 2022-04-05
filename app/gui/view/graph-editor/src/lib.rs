@@ -2538,8 +2538,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
         enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
 
-        eval_ disable_navigator ( model.navigator.disable() );
-        eval_ enable_navigator  ( model.navigator.enable()  );
+        eval_ disable_navigator ( model.navigator.settings().disable() );
+        eval_ enable_navigator  ( model.navigator.settings().enable()  );
 
         out.source.navigator_active <+ inputs.set_navigator_disabled
                                     || out.some_visualisation_selected;
@@ -3610,8 +3610,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         limit_max_zoom <- frp.set_debug_mode.on_false();
         unlimit_max_zoom <- frp.set_debug_mode.on_true();
-        eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
-        eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
+        eval_ limit_max_zoom (model.navigator.settings().set_max_zoom(Some(MAX_ZOOM)));
+        eval_ unlimit_max_zoom (model.navigator.settings().set_max_zoom(None));
     }
 
     // Init defaults
