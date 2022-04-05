@@ -791,14 +791,13 @@ impl AreaModel {
         let truncation_width = self.truncation_width.borrow();
         let content =
             self.text_truncated_with_ellipsis(content, line_style.iter(), *truncation_width);
-        let glyph_system_borrowed = self.glyph_system.borrow();
         let mut line_style_iter = line_style.iter();
-        let mut pen = pen::Pen::new(&glyph_system_borrowed.font);
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || glyph_system_borrowed.new_glyph());
+        line.resize_with(content.chars().count(), || self.glyph_system.borrow().new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
@@ -823,7 +822,7 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style_iter.drop(chr_bytes - 1.bytes());
-                    let glyph_info = glyph_system_borrowed.font.glyph_info(chr);
+                    let glyph_info = self.glyph_system.borrow().font.glyph_info(chr);
                     let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
