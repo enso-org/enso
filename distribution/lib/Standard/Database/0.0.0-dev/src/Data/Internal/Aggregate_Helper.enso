@@ -48,9 +48,11 @@ make_expression aggregate =
         Standard_Deviation c _ population -> case population of
             True -> IR.Operation "STDDEV_POP" [c.expression]
             False -> IR.Operation "STDDEV_SAMP" [c.expression]
-        Concatenate c _ _ _ _ _ ->
-            # TODO!
-            IR.Operation "CONCAT" [c.expression]
+        Concatenate c _ separator prefix suffix quote_char ->
+            base_args = [c.expression, IR.Constant Sql_Type.text separator, IR.Constant Sql_Type.text prefix, IR.Constant Sql_Type.text suffix]
+            case quote_char.is_empty of
+                True -> IR.Operation "CONCAT" base_args
+                False -> IR.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[IR.Constant Sql_Type.text quote_char]
         Sum c _ -> IR.Operation "SUM" [c.expression]
         Average c _ -> IR.Operation "AVG" [c.expression]
         Median c _ -> IR.Operation "MEDIAN" [c.expression]

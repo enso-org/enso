@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 
 ## PRIVATE
@@ -70,7 +71,7 @@ make_internal_generator_dialect =
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]+here.concat_ops
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
     stats = [here.agg_stddev_pop, here.agg_stddev_samp]
     my_mappings = text + counts + stats
@@ -152,3 +153,12 @@ window_aggregate window_type ignore_null args =
             Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
 
         Sql.code window_type+"(" ++ result_expr ++ Sql.code ")" ++ filter_clause ++ Sql.code " OVER (ORDER BY " ++ Sql.join "," order_exprs ++ Sql.code ")"
+
+## PRIVATE
+concat_ops =
+    make_raw_concat_expr expr separator =
+        Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
+    make_contains_expr expr substring =
+        Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]

@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
-import Standard.Database.Data.Dialect.Sqlite
+import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 
 ## PRIVATE
@@ -72,7 +72,7 @@ make_internal_generator_dialect =
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]+here.concat_ops
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -168,3 +168,12 @@ agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
          Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS LAST"
      Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+
+## PRIVATE
+concat_ops =
+    make_raw_concat_expr expr separator =
+        Sql.code "array_to_string(array_agg(" ++ expr ++ Sql.code "), " ++ separator ++ Sql.code ")"
+    make_contains_expr expr substring =
+        Sql.code "position(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
