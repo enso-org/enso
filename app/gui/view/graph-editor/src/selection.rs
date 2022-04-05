@@ -234,7 +234,7 @@ fn get_nodes_in_bounding_box(bounding_box: &BoundingBox, nodes: &Nodes) -> Vec<N
     nodes_raw
         .iter()
         .filter_map(|(id, node)| {
-            bounding_box.intersects(&node.view.frp.output.bounding_box.value()).as_some(*id)
+            bounding_box.intersects(&node.view.bounding_box.value()).as_some(*id)
         })
         .collect()
 }

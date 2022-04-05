@@ -676,7 +676,6 @@ impl Area {
 
                     eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
 
-
                     // === Hover ===
 
                     hovered <- bool(&mouse_out,&mouse_over);

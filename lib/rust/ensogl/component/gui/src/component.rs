@@ -1,10 +1,9 @@
-//! UI component consisting of an FRP and a Model.
+//! UI Component being and [`application::View`] - the visible GUI element which also registers
+//! itself in application and listens for shortcuts.
 //!
-//! Enforces correct ownership of components: Model must not own Frp. Both need to be owned via
-//! `Rc` by the parent struct, which itself acts as a smart-pointer to the FRP.
-//!
-//! Requires both the Frp component, and the Model to implement a trait each, which provide
-//! functionality for constructing / initialising the components.
+//! The [`ComponentView`] is essentially a [`Widget`] where both the FRP and the Model implement a
+//! trait each, which provide  functionality for constructing / initialising the component as an
+//! [`application::View`].
 
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
@@ -16,6 +15,7 @@ use ensogl_core::application::frp::API;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::gui::Widget;
 
 
 
@@ -23,9 +23,9 @@ use ensogl_core::display;
 // === Model ===
 // =============
 
-/// Model that can be used in a Component. Requires a constructor that takes an application and
-/// returns `Self`. The model will be created with this constructor when constructing the
-/// `Component`.
+/// Model that can be used in a [`ComponentView`]. Requires a constructor that takes an application
+/// and returns `Self`. The model will be created with this constructor when constructing the
+/// [`ComponentView`].
 pub trait Model {
     /// Identifier of the Model. Used for initializing the component logger and
     /// to provide the label for the `command::View` implementation.
@@ -41,8 +41,8 @@ pub trait Model {
 // === FRP ===
 // ===========
 
-/// Frp that can be used in a Component. The FRP requires an initializer that will be called during
-/// the construction of the component. `Default` is usually implemented when using
+/// Frp that can be used in a [`ComponentView`]. The FRP requires an initializer that will be called
+/// during the construction of the component. `Default` is usually implemented when using
 /// the `ensogl_core::define_endpoints!` macro to create an FRP API.
 pub trait Frp<Model>: Default + API {
     /// Frp initializer. Should set up the logic for processing inputs and generating outputs
@@ -67,65 +67,66 @@ pub trait Frp<Model>: Default + API {
 // === Component ===
 // =================
 
-/// Base struct for UI components in EnsoGL. Contains the Data/Shape model and the FPR exposing its
-/// behaviour.
+/// Base struct for visual components in EnsoGL which are [`application::View`].
 #[derive(CloneRef, Debug, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct Component<Model, Frp> {
-    /// Public FRP api of the Component.
-    frp:     Rc<Frp>,
-    model:   Rc<Model>,
-    logger:  Logger,
-    /// Reference to the application the Component belongs to. Generally required for implementing
-    /// `application::View` and initialising the `Model` and `Frp` and thus provided by the
-    /// `Component`.
-    pub app: Application,
+pub struct ComponentView<Model: 'static, Frp: 'static> {
+    widget: Widget<Model, Frp>,
+    logger: Logger,
 }
 
-impl<M: Model, F: Frp<M>> Component<M, F> {
+impl<M, F> ComponentView<M, F>
+where
+    M: Model + display::Object + 'static,
+    F: Frp<M> + 'static,
+{
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let app = app.clone_ref();
         let logger = Logger::new(M::label());
-        let model = Rc::new(M::new(&app, &logger));
+        let model = Rc::new(M::new(app, &logger));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        F::init(frp.private(), &app, &model, &style);
-        let frp = Rc::new(frp);
-        Self { frp, model, app, logger }
+        F::init(frp.private(), app, &model, &style);
+        let display_object = model.display_object().clone_ref();
+        let widget = Widget::new(app, frp, model, display_object);
+        Self { widget, logger }
     }
 }
 
-impl<M: display::Object, F> display::Object for Component<M, F> {
+impl<M: 'static, F: 'static> display::Object for ComponentView<M, F> {
     fn display_object(&self) -> &display::object::Instance {
-        self.model.display_object()
+        self.widget.display_object()
     }
 }
 
-impl<M, F: Frp<M>> Deref for Component<M, F> {
+impl<M, F: Frp<M>> Deref for ComponentView<M, F> {
     type Target = F::Public;
     fn deref(&self) -> &Self::Target {
-        self.frp.public()
+        self.widget.frp().public()
     }
 }
 
-impl<M, F: FrpNetworkProvider> FrpNetworkProvider for Component<M, F> {
+impl<M: 'static, F: FrpNetworkProvider + 'static> FrpNetworkProvider for ComponentView<M, F> {
     fn network(&self) -> &frp::Network {
-        self.frp.network()
+        self.widget.frp().network()
     }
 }
 
-impl<M: Model, F: Frp<M> + FrpNetworkProvider> application::View for Component<M, F> {
+impl<M, F> application::View for ComponentView<M, F>
+where
+    M: Model + display::Object + 'static,
+    F: Frp<M> + FrpNetworkProvider + 'static,
+{
     fn label() -> &'static str {
         M::label()
     }
 
     fn new(app: &Application) -> Self {
-        Component::new(app)
+        ComponentView::new(app)
     }
 
     fn app(&self) -> &Application {
-        &self.app
+        self.widget.app()
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {

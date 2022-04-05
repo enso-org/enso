@@ -21,6 +21,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -385,12 +386,11 @@ ensogl::define_endpoints_2! {
 ///    complex logically (the events are emitted from node to graph, then processed there and
 ///    emitted back to the right node).
 ///
-/// Currently, the solution "C" (most optimal) is implemented here.
+/// Currently, the solution "C" (nearest to optimal) is implemented here.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub model: Rc<NodeModel>,
-    pub frp:   Frp,
+    widget: gui::Widget<NodeModel, Frp>,
 }
 
 impl AsRef<Node> for Node {
@@ -399,10 +399,17 @@ impl AsRef<Node> for Node {
     }
 }
 
+impl AsRef<gui::Widget<NodeModel, Frp>> for Node {
+    fn as_ref(&self) -> &gui::Widget<NodeModel, Frp> {
+        &self.widget
+    }
+}
+
+
 impl Deref for Node {
-    type Target = Frp;
+    type Target = gui::Widget<NodeModel, Frp>;
     fn deref(&self) -> &Self::Target {
-        &self.frp
+        &self.widget
     }
 }
 
@@ -949,7 +956,9 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        Self { model, frp }
+        let display_object = model.display_object.clone_ref();
+        let widget = gui::Widget::new(app, frp, model, display_object);
+        Node { widget }
     }
 
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
@@ -969,7 +978,7 @@ impl Node {
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.deref().display_object()
     }
 }
 

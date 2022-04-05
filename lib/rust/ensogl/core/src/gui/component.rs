@@ -3,6 +3,7 @@
 use crate::display::object::traits::*;
 use crate::prelude::*;
 
+use crate::application::Application;
 use crate::display;
 use crate::display::scene;
 use crate::display::scene::layer::WeakLayer;
@@ -11,6 +12,7 @@ use crate::display::scene::ShapeRegistry;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
+
 
 
 // ==============
@@ -165,5 +167,123 @@ impl<T: display::Object> display::Object for ShapeViewModel<T> {
 impl<T: display::Object> display::Object for ShapeView<T> {
     fn display_object(&self) -> &display::object::Instance {
         self.shape.display_object()
+    }
+}
+
+
+
+// ==============
+// === Widget ===
+// ==============
+
+// === WidgetData ===
+
+// We use type bounds here, because Drop implementation requires them
+#[derive(Debug)]
+struct WidgetData<Model: 'static, Frp: 'static> {
+    app:            Application,
+    display_object: display::object::Instance,
+    frp:            std::mem::ManuallyDrop<Frp>,
+    model:          std::mem::ManuallyDrop<Rc<Model>>,
+}
+
+impl<Model: 'static, Frp: 'static> WidgetData<Model, Frp> {
+    pub fn new(
+        app: &Application,
+        frp: Frp,
+        model: Rc<Model>,
+        display_object: display::object::Instance,
+    ) -> Self {
+        Self {
+            app: app.clone_ref(),
+            display_object,
+            frp: std::mem::ManuallyDrop::new(frp),
+            model: std::mem::ManuallyDrop::new(model),
+        }
+    }
+}
+
+impl<Model: 'static, Frp: 'static> Drop for WidgetData<Model, Frp> {
+    fn drop(&mut self) {
+        self.display_object.unset_parent();
+        // Taking the value from `ManuallyDrop` requires us to not use it anymore.
+        // This is clearly the case, because the structure will be soon dropped anyway.
+        #[allow(unsafe_code)]
+        unsafe {
+            let frp = std::mem::ManuallyDrop::take(&mut self.frp);
+            let model = std::mem::ManuallyDrop::take(&mut self.model);
+            self.app.display.collect_garbage(frp);
+            self.app.display.collect_garbage(model);
+        }
+    }
+}
+
+
+// === Widget ===
+
+/// The EnsoGL widget abstraction.
+///
+/// The widget is a visible element with FRP logic. The structure contains a FRP network and a
+/// model.
+///
+/// * The `Frp` structure should own `frp::Network` structure handling the widget's logic. It's
+///   recommended to create one with [`crate::application::frp::define_endpoints`] macro.
+/// * The `Model` is any structure containing shapes, properties, subwidgets etc.  manipulated by
+///   the FRP network.
+///
+/// # Dropping Widget
+///
+/// Upon dropping Widget structure, the object will be hidden, but both FRP and Model will
+/// not be dropped at once. Instead, they will be passed to the EnsoGL's garbage collector,
+/// because handling all effects of hiding object and emitting appropriate events  (for example:
+/// the "on_hide" event of [`core::gui::component::ShapeEvents`]) may take a several frames, and
+/// we want to have FRP network alive to handle those effects. Thus, both FRP and model will
+/// be dropped only after all process of object hiding will be handled.
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct Widget<Model: 'static, Frp: 'static> {
+    data: Rc<WidgetData<Model, Frp>>,
+}
+
+impl<Model: 'static, Frp: 'static> Deref for Widget<Model, Frp> {
+    type Target = Frp;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data.frp
+    }
+}
+
+impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
+    /// Create a new widget.
+    pub fn new(
+        app: &Application,
+        frp: Frp,
+        model: Rc<Model>,
+        display_object: display::object::Instance,
+    ) -> Self {
+        Self { data: Rc::new(WidgetData::new(app, frp, model, display_object)) }
+    }
+
+    /// Get the FRP structure. It is also a result of deref-ing the widget.
+    pub fn frp(&self) -> &Frp {
+        &self.data.frp
+    }
+
+    /// Get the Model structure.
+    pub fn model(&self) -> &Model {
+        &self.data.model
+    }
+
+    /// Reference to the application the Widget belongs to. It's required for handling model and
+    /// FRP garbage collection, but also may be helpful when, for example, implementing
+    /// `application::View`.
+    pub fn app(&self) -> &Application {
+        &self.data.app
+    }
+}
+
+impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
+    fn display_object(&self) -> &display::object::Instance<Scene> {
+        &self.data.display_object
     }
 }
