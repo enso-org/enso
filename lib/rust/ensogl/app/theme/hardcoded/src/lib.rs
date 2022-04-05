@@ -371,6 +371,17 @@ define_themes! { [light:0, dark:1]
         default_x_gap_between_nodes     = 48.0  , 48.0;
         default_y_gap_between_nodes     = 32.0  , 32.0;
         minimal_x_spacing_for_new_nodes = 150.0 , 150.0;
+        // Area around every existing node where attempts to place a new node may trigger a node
+        // alignment mechanism.
+        //
+        // The specific conditions when the alignment mechanism is triggered, as well as the
+        // algorithm used to perform the alignment, are governed by the Graph Editor.
+        alignment_area_around_node {
+            above_node           = 7.0  , 7.0;
+            below_node           = 50.0 , 50.0;
+            to_the_left_of_node  = 5.0  , 5.0;
+            to_the_right_of_node = 5.0  , 5.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)

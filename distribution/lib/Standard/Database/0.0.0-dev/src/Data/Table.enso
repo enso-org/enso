@@ -10,6 +10,7 @@ import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 
 import Standard.Table.Data.Aggregate_Column
+import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Database.Data.Column as Column_Module import Column, Aggregate_Column_Builder
 from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
@@ -644,19 +645,17 @@ type Table
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =
-        ## TODO handle errors here and turn them into warnings where applicable
-        _ = on_problems
-        resolved_aggregates = columns.map (_.resolve_columns this)
-        # TODO handling duplicate names etc. is to be done as part of https://www.pivotaltracker.com/story/show/181420794
-        # Grouping Key
-        is_a_key c = case c of
-            Aggregate_Column.Group_By _ _ -> True
-            _ -> False
-        key_columns = resolved_aggregates.filter is_a_key . map .column
-        key_expressions = key_columns.map .expression
-        new_ctx = this.context.set_groups key_expressions
-        new_columns = resolved_aggregates.map (Aggregate_Helper.make_aggregate_column this)
-        this.updated_context_and_columns new_ctx new_columns
+        validated = Aggregate_Column_Helper.prepare_aggregate_columns columns this
+        on_problems.attach_problems_before validated.problems <|
+            key_columns = validated.key_columns
+            resolved_aggregates = validated.valid_columns
+            key_expressions = key_columns.map .expression
+            new_ctx = this.context.set_groups key_expressions
+            new_columns = resolved_aggregates.map p->
+                agg = p.second
+                new_name = p.first
+                Aggregate_Helper.make_aggregate_column this agg new_name
+            this.updated_context_and_columns new_ctx new_columns
 
     ## UNSTABLE
 
@@ -688,11 +687,14 @@ type Table
 
     ## Returns the amount of rows in this table.
     row_count : Integer
-    row_count =
+    row_count = if this.internal_columns.is_empty then 0 else
         expr = IR.Operation "COUNT_ROWS" []
         column_name = "row_count"
-        virtual_column = IR.Internal_Column "1" Sql.Sql_Type.integer (IR.Constant Sql.Sql_Type.integer 1)
-        setup = this.context.as_subquery this.name [[virtual_column]]
+        ## We need to keep some column in the subquery which will determine if
+           the query is performing regular selection or aggregation. To avoid
+           computing too much we do not pass all the columns but only the first
+           one.
+        setup = this.context.as_subquery this.name [[this.internal_columns.first]]
         new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
         sql = this.connection.dialect.generate_sql query

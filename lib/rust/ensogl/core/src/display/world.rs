@@ -14,6 +14,7 @@ use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
+use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
@@ -187,6 +188,7 @@ pub struct WorldData {
     stats_draw_handle:    callback::Handle,
     pub on:               Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+    garbage_collector:    garbage::Collector,
 }
 
 impl WorldData {
@@ -201,6 +203,7 @@ impl WorldData {
         let default_scene = Scene::new(&logger, &stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
+        let garbage_collector = default();
 
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
@@ -216,6 +219,7 @@ impl WorldData {
             debug_hotkeys_handle,
             stats_monitor,
             stats_draw_handle,
+            garbage_collector,
         }
         .init()
     }
@@ -259,10 +263,13 @@ impl WorldData {
 
     fn init_composer(&self) {
         let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let garbage_collector = &self.garbage_collector;
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(move |v| {
-            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
-        });
+        pixel_read_pass.set_callback(f!([garbage_collector](v) {
+            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            garbage_collector.pixel_updated();
+        }));
+        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");
@@ -293,9 +300,18 @@ impl WorldData {
         self.uniforms.time.set(time.local);
         self.scene_dirty.unset_all();
         self.default_scene.update(time);
+        self.garbage_collector.mouse_events_handled();
         self.default_scene.render();
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
+    }
+
+    /// Pass object for garbage collection.
+    ///
+    /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
+    /// structure with static timeline may be put. For details, see docs of [`garbage::Collector`].
+    pub fn collect_garbage<T: 'static>(&self, object: T) {
+        self.garbage_collector.collect(object);
     }
 }
 

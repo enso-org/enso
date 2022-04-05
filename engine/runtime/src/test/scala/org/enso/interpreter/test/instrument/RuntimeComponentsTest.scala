@@ -1,10 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.editions.LibraryName
@@ -23,17 +18,28 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
+import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
+import scala.concurrent.duration._
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeComponentsTest
     extends AnyFlatSpec
+    with TimeLimitedTests
     with Matchers
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  override val timeLimit = 5.minutes
 
   final val ContextPathSeparator: String = File.pathSeparator
 
@@ -48,6 +54,9 @@ class RuntimeComponentsTest
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val editionHome: File =
+      Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
+    val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -70,7 +79,7 @@ class RuntimeComponentsTest
         root            = tmpDir.toFile,
         name            = packageName,
         namespace       = "Enso_Test",
-        edition         = Some(TestEdition.edition),
+        edition         = Some(edition),
         componentGroups = componentGroups
       )
     }
