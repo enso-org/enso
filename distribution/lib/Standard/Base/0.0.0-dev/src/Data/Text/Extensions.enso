@@ -67,7 +67,7 @@ Text.length =
      meaning in most text-processing applications.
 
    > Example
-   Reverse the text "Hello, world!".
+     Reverse the text "Hello, world!".
 
        "Hello, world!".reverse
 Text.reverse : Text
