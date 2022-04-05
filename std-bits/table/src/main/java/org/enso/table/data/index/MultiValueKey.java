@@ -79,12 +79,12 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     // NULLs
     if (thisValue == null) {
       if (thatValue != null) {
-        return -1;
+        return 1;
       }
       return 0;
     }
     if (thatValue == null) {
-      return 1;
+      return -1;
     }
 
     // Booleans
