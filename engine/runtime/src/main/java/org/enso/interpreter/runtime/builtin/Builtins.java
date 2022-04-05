@@ -109,7 +109,7 @@ public class Builtins {
     builtinTypes = new HashMap<>();
 
     any = new AtomConstructor("Any", scope).initializeFields();
-    bool = new Bool(language, scope);
+    bool = new Bool(this, language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     dataflowError = new DataflowError(language, scope);
     Warning.initWarningMethods(language, scope);

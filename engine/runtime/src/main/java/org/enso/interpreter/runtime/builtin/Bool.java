@@ -10,6 +10,7 @@ public class Bool {
   private final AtomConstructor tru;
   private final AtomConstructor fls;
   private final AtomConstructor bool;
+  private final Builtins builtins;
 
   /**
    * Creates and registers all the boolean constructors.
@@ -17,8 +18,12 @@ public class Bool {
    * @param language the current language instance.
    * @param scope the scope to register constructors and methods in.
    */
-  public Bool(Language language, ModuleScope scope) {
-    bool = new AtomConstructor("Boolean", scope).initializeFields();
+  public Bool(Builtins builtins, Language language, ModuleScope scope) {
+    this.builtins = builtins;
+    tru = null;
+    fls = null;
+    bool = null;
+    /*bool = new AtomConstructor("Boolean", scope).initializeFields();
     scope.registerConstructor(bool);
     scope.registerMethod(bool, "if_then_else", IfThenElseMethodGen.makeFunction(language));
     scope.registerMethod(bool, "if_then", IfThenMethodGen.makeFunction(language));
@@ -31,21 +36,21 @@ public class Bool {
     tru = new AtomConstructor("True", scope).initializeFields();
     scope.registerConstructor(tru);
     fls = new AtomConstructor("False", scope).initializeFields();
-    scope.registerConstructor(fls);
+    scope.registerConstructor(fls);*/
   }
 
   /** @return the atom constructor for {@code True}. */
   public AtomConstructor getTrue() {
-    return tru;
+    return builtins.getBuiltinType("True");
   }
 
   /** @return the atom constructor for {@code False}. */
   public AtomConstructor getFalse() {
-    return fls;
+    return builtins.getBuiltinType("False");
   }
 
   /** @return the atom constructor for {@code Boolean}. */
   public AtomConstructor getBool() {
-    return bool;
+    return builtins.getBuiltinType("Boolean");
   }
 }

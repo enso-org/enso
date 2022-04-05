@@ -1,6 +1,6 @@
 package org.enso.compiler.codegen
 
-import com.oracle.truffle.api.Truffle
+import com.oracle.truffle.api.{RootCallTarget, Truffle}
 import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
@@ -36,6 +36,7 @@ import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
 import org.enso.compiler.core.IR.Name.Special
+import org.enso.interpreter.runtime.builtin.Bool
 import org.enso.pkg.QualifiedName
 
 import scala.collection.{immutable, mutable}
@@ -855,6 +856,9 @@ class IrToTruffle(
     // (array: AtomConstructor, branch: RootCallTarget) -> BranchNode
     // and related eta-expansion appear to crash Graal (not a joke).
     private val branchNodeFactories: Map[(QualifiedName, String), BranchNodeFactory] = immutable.HashMap[(QualifiedName, String), BranchNodeFactory](
+      (QualifiedName(List("Standard", "Base"), "Boolean"), "True") -> { case (_: AtomConstructor, target: RootCallTarget) => BooleanBranchNode.build(true, target)},
+      (QualifiedName(List("Standard", "Base"), "Boolean"), "False") -> { case (_: AtomConstructor, target: RootCallTarget) => BooleanBranchNode.build(false, target)},
+      (QualifiedName(List("Standard", "Base"), "Boolean"), "Boolean") -> { case (bool: AtomConstructor, target: RootCallTarget) => BooleanConstructorBranchNode.build(bool.asInstanceOf[Bool], target)},
       (QualifiedName(List("Standard", "Base"), "Polyglot"), "Polyglot") -> PolyglotBranchNode.build _,
       (QualifiedName(List("Standard", "Base", "Data"), "Array"), "Array") -> ArrayBranchNode.build _,
     )

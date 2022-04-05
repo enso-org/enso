@@ -1,5 +1,6 @@
 from Standard.Builtins import all
 from Standard.Builtins export Nil, Cons
+from Standard.Base.Data.Boolean import all
 
 ## The basic cons-list type.
 

@@ -29,6 +29,7 @@ class ConstructorsTest extends InterpreterTest {
     "work with recursion" in {
       val testCode =
         """from Standard.Builtins import all
+          |from Standard.Base import all
           |
           |main =
           |    genList = i -> if i == 0 then Nil else Cons i (genList (i - 1))

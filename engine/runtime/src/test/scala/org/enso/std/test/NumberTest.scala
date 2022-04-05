@@ -11,6 +11,7 @@ class NumberTest extends InterpreterTest {
     "support equality comparisons" in {
       val code =
         """from Standard.Builtins import all
+          |from Standard.Base import all
           |
           |main =
           |    IO.println 7==5
@@ -22,7 +23,7 @@ class NumberTest extends InterpreterTest {
 
     "support a recursive sum case" in {
       val code =
-        """
+        """from Standard.Base import all
           |main = sumTo ->
           |    summator = acc -> current ->
           |        if current == 0 then acc else summator acc+current current-1

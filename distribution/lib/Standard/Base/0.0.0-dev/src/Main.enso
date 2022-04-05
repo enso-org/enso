@@ -1,3 +1,4 @@
+import project.Data.Boolean
 import project.Data.Any.Extensions
 import project.Data.Array
 import project.Data.Interval
@@ -29,7 +30,7 @@ import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
-from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
+from Standard.Builtins import Nothing, Number, Integer, Any, Cons, Arithmetic_Error
 
 export project.Data.Interval
 export project.Data.Json
@@ -47,6 +48,7 @@ export project.System.File
 export project.Data.Text.Regex.Mode as Regex_Mode
 export project.Warning
 
+from project.Data.Boolean export all
 from project.Data.Array export Array
 from project.Data.Any.Extensions export all
 from project.Data.List export Nil, Cons
