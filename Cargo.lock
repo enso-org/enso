@@ -1281,7 +1281,6 @@ dependencies = [
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
- "ensogl-shadow",
  "ensogl-text",
 ]
 

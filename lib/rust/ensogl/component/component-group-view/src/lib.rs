@@ -39,7 +39,6 @@ use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::ListView;
 use ensogl_list_view::entry;
-use ensogl_shadow as shadow;
 use ensogl_text as text;
 
 
