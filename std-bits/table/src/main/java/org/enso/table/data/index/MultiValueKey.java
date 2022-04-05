@@ -1,5 +1,8 @@
 package org.enso.table.data.index;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 
 public class MultiValueKey implements Comparable<MultiValueKey> {
@@ -136,7 +139,33 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
       return ((String)thisValue).compareTo((String)thatValue);
     }
 
-    // DateTimes - not supported in table yet
+    // DateTimes
+    if (thisValue instanceof LocalDate) {
+      LocalDate thisDate = (LocalDate)thisValue;
+      if (thatValue instanceof LocalDate) {
+        return thisDate.compareTo((LocalDate)thatValue);
+      }
+      if (thatValue instanceof LocalDateTime) {
+        return thisDate.atStartOfDay().compareTo((LocalDateTime)thatValue);
+      }
+    }
+    if (thisValue instanceof LocalDateTime) {
+      LocalDateTime thisDateTime = (LocalDateTime)thisValue;
+      if (thatValue instanceof LocalDate) {
+        return thisDateTime.compareTo(((LocalDate)thatValue).atStartOfDay());
+      }
+      if (thatValue instanceof LocalDateTime) {
+        return thisDateTime.compareTo((LocalDateTime)thatValue);
+      }
+    }
+
+    // TimeOfDay
+    if (thisValue instanceof LocalTime) {
+      LocalTime thisTime = (LocalTime)thisValue;
+      if (thatValue instanceof LocalTime) {
+        return thisTime.compareTo((LocalTime)thatValue);
+      }
+    }
 
     // Give Up!
     throw new ClassCastException("Incomparable keys.");
