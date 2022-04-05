@@ -1,23 +1,22 @@
 use crate::prelude::*;
-
-use crate::display::GlEnum;
-use crate::display::ToGlEnum;
-use enso_shapely::define_singleton_enum;
-use web_sys::WebGl2RenderingContext;
-use web_sys::WebGlProgram;
-use web_sys::WebGlShader;
+use crate::system::gpu::context::native::traits::*;
+use crate::system::web::traits::*;
 
 use crate::animation;
-use crate::system::gpu::context::native::traits::*;
+use crate::display::GlEnum;
+use crate::display::ToGlEnum;
 use crate::system::gpu::context::NativeContextWithExtensions;
 use crate::system::gpu::shader;
 use crate::system::gpu::shader::Fragment;
 use crate::system::gpu::shader::Shader;
 use crate::system::gpu::shader::Vertex;
 use crate::system::web;
-use crate::system::web::traits::*;
 
 use enso_logger::DefaultDebugLogger as Logger;
+use enso_shapely::define_singleton_enum;
+use web_sys::WebGl2RenderingContext;
+use web_sys::WebGlProgram;
+use web_sys::WebGlShader;
 
 
 

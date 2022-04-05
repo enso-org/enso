@@ -1,7 +1,10 @@
 /// Extensions for the native [`WebGl2RenderingContext`] implementation.
 use crate::system::gpu::shader::Shader;
+
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
+
+
 
 pub mod traits {
     pub use super::BlockingCheckStatus;

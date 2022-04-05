@@ -1,8 +1,5 @@
 //! This module provides an abstraction for the rendering context, such as WebGL or OpenGL one.
 
-pub mod extension;
-pub mod native;
-
 use crate::prelude::*;
 use web::traits::*;
 
@@ -14,6 +11,14 @@ use web::Closure;
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod extension;
+pub mod native;
 
 
 

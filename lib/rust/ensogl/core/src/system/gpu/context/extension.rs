@@ -3,6 +3,7 @@ use crate::prelude::*;
 
 use crate::system::gpu::data::GlEnum;
 use crate::system::gpu::Context;
+
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
 

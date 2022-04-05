@@ -2,10 +2,10 @@
 use enso_prelude::*;
 use enso_web::traits::*;
 
-use crate::system::gpu::Context;
-
 use crate::display::GlEnum;
 use crate::display::ToGlEnum;
+use crate::system::gpu::Context;
+
 use enso_shapely::define_singleton_enum;
 use enso_web as web;
 use js_sys::Float32Array;
@@ -14,14 +14,16 @@ use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod compiler;
-pub use compiler::Compiler;
-
-
-
-pub use types::*;
-
 pub mod glsl;
+
+pub use compiler::Compiler;
+pub use types::*;
 
 
 
