@@ -575,14 +575,14 @@ pub struct AreaModel {
     //            be replaced with proper object management.
     camera: Rc<CloneRefCell<display::camera::Camera2d>>,
 
-    logger:         Logger,
-    frp_endpoints:  FrpEndpoints,
-    buffer:         buffer::View,
-    display_object: display::object::Instance,
-    glyph_system:   Rc<RefCell<glyph::System>>,
-    lines:          Lines,
-    single_line:    Rc<Cell<bool>>,
-    selection_map:  Rc<RefCell<SelectionMap>>,
+    logger:           Logger,
+    frp_endpoints:    FrpEndpoints,
+    buffer:           buffer::View,
+    display_object:   display::object::Instance,
+    glyph_system:     Rc<RefCell<glyph::System>>,
+    lines:            Lines,
+    single_line:      Rc<Cell<bool>>,
+    selection_map:    Rc<RefCell<SelectionMap>>,
     // TODO[MC]: pass via FRP as argument to redraw() instead?
     truncation_width: Rc<RefCell<Option<f32>>>,
 }
@@ -789,7 +789,8 @@ impl AreaModel {
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
         let truncation_width = self.truncation_width.borrow();
-        let content = self.text_truncated_with_ellipsis(content, line_style.iter(), *truncation_width);
+        let content =
+            self.text_truncated_with_ellipsis(content, line_style.iter(), *truncation_width);
         let mut line_style_iter = line_style.iter();
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
@@ -850,7 +851,12 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
-    fn text_truncated_with_ellipsis(&self, content: String, mut line_style: StyleIterator, truncation_width: Option<f32>) -> String {
+    fn text_truncated_with_ellipsis(
+        &self,
+        content: String,
+        mut line_style: StyleIterator,
+        truncation_width: Option<f32>,
+    ) -> String {
         if let Some(width) = truncation_width {
             let ellipsis = '\u{2026}';
             let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);

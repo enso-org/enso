@@ -1,4 +1,3 @@
-
 #![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
@@ -33,8 +32,8 @@ use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
-use ensogl_list_view::ListView;
 use ensogl_list_view::entry;
+use ensogl_list_view::ListView;
 use ensogl_text as text;
 
 
@@ -175,14 +174,19 @@ impl component::Model for Model {
 
 impl Model {
     fn resize(&self, size: Vector2, lv_padding: f32) {
-
         // === Header ===
 
         let half_height = size.y / 2.0;
         let top_left = Vector2(-size.x / 2.0, half_height);
         let header_label_height = self.header.height.value(); // TODO: pass via FRP?
         let header_padding = HEADER_PADDING + lv_padding / 2.0;
-        self.header.set_position_xy(top_left + Vector2(header_padding, -HEADER_HEIGHT/2.0 + header_label_height/2.0 - lv_padding / 2.0));
+        self.header.set_position_xy(
+            top_left
+                + Vector2(
+                    header_padding,
+                    -HEADER_HEIGHT / 2.0 + header_label_height / 2.0 - lv_padding / 2.0,
+                ),
+        );
         self.header.set_truncation_width(size.x - 2.0 * header_padding);
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
         self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
@@ -202,4 +206,3 @@ impl Model {
 // =================
 
 pub type View = Component<Model, Frp>;
-
