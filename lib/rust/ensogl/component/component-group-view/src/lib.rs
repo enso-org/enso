@@ -62,7 +62,6 @@ pub mod header_background {
         (style:Style,color:Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
-            // TODO: padding?
             let color = Var::<Rgba>::from(color);
             let shape = Rect((&sprite_width,&sprite_height)).fill(color);
             shape.into()
@@ -151,11 +150,7 @@ impl component::Model for Model {
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
-        // let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
-        // let label = default();
-        // let text = default();
-
         let entries = ListView::new(app);
         let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
@@ -163,28 +158,17 @@ impl component::Model for Model {
         display_object.add_child(&entries);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
-        // let background = background::View::new(&logger);
-        // display_object.add_child(&background);
-        // scene.layers.tooltip.add_exclusive(&background);
 
         // TODO: this is based on code in list_view::entry::List::new(); is it right?
-        // let label_layer = app.display.default_scene.layers.label.id();
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
         ensogl_core::shapes_order_dependencies! {
             app.display.default_scene => {
-                // TODO: how to hide list_view text "below" header_background, but keep the header
-                // text above header_background?
                 list_view::selection -> header_background;
-                // header_background -> text;
-                //background            -> list_view::selection;
-                //list_view::background -> background;
             }
         }
 
-        // let app = app.clone_ref();
-        // Model { app, background, label, display_object, text }
         Model { display_object, header, header_background, entries }
     }
 }
@@ -192,20 +176,20 @@ impl component::Model for Model {
 impl Model {
     fn resize(&self, size: Vector2, lv_padding: f32) {
 
-        // NOTE: Currently assuming that the widget's origin is at its center (global default).
-        // FIXME: what origin we want? what origin does ListView use? IMO a corner makes sense,
-        // though not sure if top-left or bottom-left is better. Alternatively, center is as good
-        // as anything else.
+        // === Header ===
+
         let half_height = size.y / 2.0;
         let top_left = Vector2(-size.x / 2.0, half_height);
-        // FIXME: what's the origin of text::Area? assuming left-center
-        let header_height = self.header.height.value(); // TODO: pass via FRP?
+        let header_label_height = self.header.height.value(); // TODO: pass via FRP?
         let header_padding = HEADER_PADDING + lv_padding / 2.0;
-        self.header.set_position_xy(top_left + Vector2(header_padding, -HEADER_HEIGHT/2.0 + header_height/2.0 - lv_padding / 2.0));
+        self.header.set_position_xy(top_left + Vector2(header_padding, -HEADER_HEIGHT/2.0 + header_label_height/2.0 - lv_padding / 2.0));
         self.header.set_truncation_width(size.x - 2.0 * header_padding);
         self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
         self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
-        // TODO: what's the origin of ListView? assuming center
+
+
+        // === Entries ===
+
         self.entries.set_position_y(-HEADER_HEIGHT / 2.0);
         self.entries.resize(size - Vector2(0.0, HEADER_HEIGHT));
     }
