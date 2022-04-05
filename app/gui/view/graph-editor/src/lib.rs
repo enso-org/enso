@@ -3756,7 +3756,11 @@ mod graph_editor_tests {
         test_magnet_alignment_when_adding_node(move_mouse_and_add_node_by_shortcut);
     }
 
-    fn move_mouse_and_add_node_by_shortcut(scene: &Scene, editor: &GraphEditor, mouse_pos: Vector2) {
+    fn move_mouse_and_add_node_by_shortcut(
+        scene: &Scene,
+        editor: &GraphEditor,
+        mouse_pos: Vector2,
+    ) {
         scene.mouse.frp.position.emit(mouse_pos);
         press_add_node_shortcut(editor);
     }
@@ -3766,7 +3770,11 @@ mod graph_editor_tests {
         test_magnet_alignment_when_adding_node(move_camera_and_click_add_node_button);
     }
 
-    fn move_camera_and_click_add_node_button(scene: &Scene, editor: &GraphEditor, camera_pos: Vector2) {
+    fn move_camera_and_click_add_node_button(
+        scene: &Scene,
+        editor: &GraphEditor,
+        camera_pos: Vector2,
+    ) {
         let camera = &scene.camera();
         camera.set_position_xy(camera_pos);
         camera.update(scene);
@@ -3776,9 +3784,10 @@ mod graph_editor_tests {
     fn test_magnet_alignment_when_adding_node(add_node_at: impl Fn(&Scene, &GraphEditor, Vector2)) {
         let (app, graph_editor) = init();
         let scene = &app.display.default_scene;
-        let add_node_at = |editor: &GraphEditor, pos: Vector2| add_node_at(&scene, editor, pos);
+        let add_node_at = |editor: &GraphEditor, pos: Vector2| add_node_at(scene, editor, pos);
 
-        // Create two nodes, with the 2nd one positioned below and far to the right from the 1st one.
+        // Create two nodes, with the 2nd one positioned below and far to the right from the 1st
+        // one.
         let (_, node_1) = graph_editor.add_node_by_api_at_pos(Vector2(0.0, 0.0));
         let (_, node_2) = graph_editor.add_node_by_api_at_pos(Vector2(800.0, -100.0));
 
@@ -3787,16 +3796,31 @@ mod graph_editor_tests {
         // algorithm repositions the node such that it is aligned with existing nodes.
         let aligned_pos = Vector2(node_1.position().x, node_2.position().y);
         let displacement = Vector2(7.0, 8.0);
-        test_node_added_with_displacement_gets_aligned(&graph_editor, aligned_pos, displacement, add_node_at);
+        test_node_added_with_displacement_gets_aligned(
+            &graph_editor,
+            aligned_pos,
+            displacement,
+            add_node_at,
+        );
 
         // Create fourth node, placing it roughly to the right of the 1st node and above the 2nd
         // one, but slightly displaced from a position aligned to them both. Verify that the magnet
         // algorithm repositions the node such that it is aligned with existing nodes.
         let aligned_pos = Vector2(node_2.position().x, node_1.position().y);
-        test_node_added_with_displacement_gets_aligned(&graph_editor, aligned_pos, displacement, add_node_at);
+        test_node_added_with_displacement_gets_aligned(
+            &graph_editor,
+            aligned_pos,
+            displacement,
+            add_node_at,
+        );
     }
 
-    fn test_node_added_with_displacement_gets_aligned(graph_editor: &GraphEditor, aligned_pos: Vector2, displacement: Vector2, add_node_at: impl Fn(&GraphEditor, Vector2)) {
+    fn test_node_added_with_displacement_gets_aligned(
+        graph_editor: &GraphEditor,
+        aligned_pos: Vector2,
+        displacement: Vector2,
+        add_node_at: impl Fn(&GraphEditor, Vector2),
+    ) {
         let unaligned_pos = aligned_pos + displacement;
         let add_node_unaligned = |editor: &GraphEditor| add_node_at(editor, unaligned_pos);
         let (_, node) = graph_editor.add_node_by(&add_node_unaligned);
@@ -3826,7 +3850,9 @@ mod graph_editor_tests {
         // Create 4th node by clicking (+) button when camera is roughly centered at the 1st node.
         let small_displacement = Vector2(8.0, 9.0);
         let pos_near_node_1 = node_1.position().xy() + small_displacement;
-        let add_node = |editor: &GraphEditor| move_camera_and_click_add_node_button(scene, editor, pos_near_node_1);
+        let add_node = |editor: &GraphEditor| {
+            move_camera_and_click_add_node_button(scene, editor, pos_near_node_1)
+        };
         let (_, node_4) = graph_editor.add_node_by(&add_node);
         let aligned_pos = Vector2(node_1.position().x, node_3.position().y);
         assert_eq!(node_4.position().xy(), aligned_pos);
