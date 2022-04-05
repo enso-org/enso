@@ -96,7 +96,7 @@
 - [Added warning handling to `Table.aggregate`][3349]
 - [Improved performance of `Table.aggregate` and full warnings implementation]
   [3364]
-- [Implemented `Text.reverse`][3377]
+- [Implemented `Text.reverse`][3377, 3381]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -147,6 +147,7 @@
 [3364]: https://github.com/enso-org/enso/pull/3364
 [3377]: https://github.com/enso-org/enso/pull/3377
 [3366]: https://github.com/enso-org/enso/pull/3366
+[3381]: https://github.com/enso-org/enso/pull/3381
 
 #### Enso Compiler
 
