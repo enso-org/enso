@@ -145,6 +145,7 @@
 [3361]: https://github.com/enso-org/enso/pull/3361
 [3364]: https://github.com/enso-org/enso/pull/3364
 [3366]: https://github.com/enso-org/enso/pull/3366
+[3379]: https://github.com/enso-org/enso/pull/3379
 
 #### Enso Compiler
 
