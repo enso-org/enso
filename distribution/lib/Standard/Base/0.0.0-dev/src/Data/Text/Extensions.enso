@@ -69,7 +69,7 @@ Text.length =
    > Example
      Reverse the text "Hello, world!".
 
-       "Hello, world!".reverse
+         "Hello, world!".reverse
 Text.reverse : Text
 Text.reverse =
     reverseStringBuilder = StringBuilder.new this.length
