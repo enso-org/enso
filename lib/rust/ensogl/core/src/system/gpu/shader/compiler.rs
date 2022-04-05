@@ -292,10 +292,12 @@ impl CompilerData {
         match jobs(self).pop() {
             None => Ok(()),
             Some(job) => {
-                debug!(self.logger, "Running {label} job.");
+                span!(WARN, "lol");
+                debug!(self.logger, "Running {label} jobxx.");
                 if job.handler.exists() {
                     f(self, job)
                 } else {
+                    span!(WARN, "tol");
                     debug!(self.logger, "Job handler dropped, skipping.");
                     Ok(())
                 }
