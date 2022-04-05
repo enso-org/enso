@@ -946,18 +946,16 @@ case class DocParserDef() extends Parser[Doc] {
           current.indent > currentIndent &&
           current.isInstanceOf[Section.Raw]
         ) {
-          var stackOfCodeSections: List[Section] = List[Section]()
+          val codeIndent                         = current.indent
+          var stackOfCodeSections: List[Section] = List(current)
           while (
-            section.stack.nonEmpty && current.indent > currentIndent && current
-              .isInstanceOf[Section.Raw] && section.stack.head
-              .isInstanceOf[Section.Raw]
+            section.stack.nonEmpty &&
+            section.stack.head.indent >= codeIndent &&
+            section.stack.head.isInstanceOf[Section.Raw]
           ) {
-            stackOfCodeSections = stackOfCodeSections :+ current
-            if (section.stack.head.isInstanceOf[Section.Raw]) {
-              current = section.pop().get
-            }
+            current = section.pop().get
+            stackOfCodeSections :+= current
           }
-          stackOfCodeSections = stackOfCodeSections :+ current
           val codeLines = stackOfCodeSections.flatMap {
             _.repr
               .build()
