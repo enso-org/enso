@@ -34,6 +34,7 @@ pub struct Glyph {
     context:     Context,
     font:        Font,
     color:       Attribute<Vector4<f32>>,
+    bold_weight: Attribute<f32>,
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
 }
@@ -47,6 +48,10 @@ impl Glyph {
     pub fn set_color(&self, color: impl Into<Rgba>) {
         self.color.set(color.into().into())
     }
+
+    pub fn bold_weight(&self) -> f32 { self.bold_weight.get().into() }
+
+    pub fn set_bold_weight(&self, weight:f32) { self.bold_weight.set(weight) }
 
     /// Change the displayed character.
     pub fn set_char(&self, ch: char) {
@@ -91,6 +96,7 @@ pub struct System {
     sprite_system: SpriteSystem,
     pub font:      Font,
     color:         Buffer<Vector4<f32>>,
+    bold_weight:   Buffer<f32>,
     atlas_index:   Buffer<f32>,
     atlas:         Uniform<Texture>,
 }
@@ -120,6 +126,7 @@ impl System {
             font,
             atlas: symbol.variables().add_or_panic("atlas", texture),
             color: mesh.instance_scope().add_buffer("color"),
+            bold_weight: mesh.instance_scope().add_buffer("bold_weight"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
         }
     }
@@ -171,6 +178,7 @@ impl System {
         material.add_input("z_zoom_1", 1.0);
         material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
+        material.add_input("bold_weight", 0.0);
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more
         // FIXME intelligent. For example, we could allow defining output shader fragments,
