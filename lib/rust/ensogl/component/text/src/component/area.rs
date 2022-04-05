@@ -323,7 +323,7 @@ impl Area {
             eval input.single_line((t) m.single_line.set(*t));
 
 
-            // === Width Truncation ===
+            // === Truncation Width ===
 
             eval input.set_truncation_width((t) {
                 m.set_truncation_width(*t);
@@ -582,9 +582,8 @@ pub struct AreaModel {
     glyph_system:     Rc<RefCell<glyph::System>>,
     lines:            Lines,
     single_line:      Rc<Cell<bool>>,
-    selection_map:    Rc<RefCell<SelectionMap>>,
-    // TODO[MC]: pass via FRP as argument to redraw() instead?
     truncation_width: Rc<RefCell<Option<f32>>>,
+    selection_map:    Rc<RefCell<SelectionMap>>,
 }
 
 impl AreaModel {
