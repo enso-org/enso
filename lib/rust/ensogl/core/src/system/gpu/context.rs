@@ -1,6 +1,7 @@
 //! This module provides an abstraction for the rendering context, such as WebGL or OpenGL one.
 
 pub mod extension;
+pub mod native;
 
 use crate::prelude::*;
 use web::traits::*;

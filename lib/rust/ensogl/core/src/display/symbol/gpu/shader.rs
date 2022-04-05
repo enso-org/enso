@@ -13,7 +13,7 @@ use crate::display::symbol::material::VarDecl;
 use crate::display::symbol::shader;
 use crate::display::symbol::ScopeType;
 use crate::system::gpu::shader::compiler as shader_compiler;
-use crate::system::gpu::shader::compiler::ProgramSlot;
+// use crate::system::gpu::shader::compiler::ProgramSlot;
 use crate::system::gpu::Context;
 
 use enso_shapely::shared;
@@ -62,7 +62,7 @@ pub struct ShaderData {
     context           : Option<Context>,
     geometry_material : Material,
     surface_material  : Material,
-    program           : ProgramSlot,
+    program           : Rc<RefCell<Option<shader::Program>>>,
     shader_compiler_job   : Option<shader_compiler::JobHandler>,
     code              : Option<shader::Code>,
     dirty             : Dirty,
@@ -80,7 +80,7 @@ impl {
     }
 
     pub fn program(&self) -> Option<WebGlProgram> {
-        self.program.get()
+        self.program.borrow().as_ref().map(|t| t.native.clone())
     }
 
     pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
@@ -151,7 +151,7 @@ impl {
                     let code = shader_builder.build();
                     let program = self.program.clone_ref();
                     let handler = context.shader_compiler.submit(code, move |p| {
-                        program.set(p);
+                        *program.borrow_mut() = Some(p);
                         on_ready();
                     });
                     self.shader_compiler_job = Some(handler);
