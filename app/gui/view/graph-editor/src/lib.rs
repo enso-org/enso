@@ -1076,6 +1076,13 @@ impl Nodes {
         self.recompute_grid(default());
     }
 
+    /// Calculate a Magnet Alignment grid used for nodes alignment.
+    ///
+    /// A grid consists of:
+    ///  - Horizontal lines through each node's Y coordinate.
+    ///  - Vertical lines through each node's X coordinate.
+    ///
+    ///  `blacklist` nodes are excluded from the calculation.
     fn recompute_grid(&self, blacklist: HashSet<NodeId>) {
         let mut sorted_xs = Vec::new();
         let mut sorted_ys = Vec::new();
@@ -1091,9 +1098,21 @@ impl Nodes {
         *self.grid.borrow_mut() = Grid { sorted_xs, sorted_ys };
     }
 
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Same as [`check_grid_magnet_with_threshold`], but with default threshold.
     pub fn check_grid_magnet(&self, position: Vector2<f32>) -> Vector2<Option<f32>> {
-        self.grid.borrow().close_to(position, SNAP_DISTANCE_THRESHOLD)
+        self.check_grid_magnet_with_threshold(position, SNAP_DISTANCE_THRESHOLD)
+    }
+
+    /// Return the nearest point in a Magnet Alignment grid. Returns `None` if the nearest point's
+    /// coordinate is further than a `threshold`.
+    ///
+    /// See [`recompute_grid`] docs for grid description.
+    pub fn check_grid_magnet_with_threshold(
+        &self,
+        position: Vector2<f32>,
+        threshold: f32,
+    ) -> Vector2<Option<f32>> {
+        self.grid.borrow().close_to(position, threshold)
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -3635,17 +3654,21 @@ mod graph_editor_tests {
 
     #[test]
     fn test_adding_node_by_shortcut() {
-        let add_node = |editor: &GraphEditor| editor.start_node_creation();
-        test_adding_node(add_node);
+        test_adding_node(press_add_node_shortcut);
+    }
+
+    fn press_add_node_shortcut(editor: &GraphEditor) {
+        editor.start_node_creation();
     }
 
     #[test]
     fn test_adding_node_by_adding_node_button() {
-        let add_node = |editor: &GraphEditor| {
-            let adding_node_button = &editor.model.add_node_button;
-            adding_node_button.click();
-        };
-        test_adding_node(add_node);
+        test_adding_node(click_add_node_button);
+    }
+
+    fn click_add_node_button(editor: &GraphEditor) {
+        let adding_node_button = &editor.model.add_node_button;
+        adding_node_button.click();
     }
 
     fn test_adding_node(add_node: impl Fn(&GraphEditor)) {
@@ -3728,6 +3751,113 @@ mod graph_editor_tests {
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
 
+    #[test]
+    fn test_magnet_alignment_when_adding_node_by_shortcut() {
+        test_magnet_alignment_when_adding_node(move_mouse_and_add_node_by_shortcut);
+    }
+
+    fn move_mouse_and_add_node_by_shortcut(
+        scene: &Scene,
+        editor: &GraphEditor,
+        mouse_pos: Vector2,
+    ) {
+        scene.mouse.frp.position.emit(mouse_pos);
+        press_add_node_shortcut(editor);
+    }
+
+    #[test]
+    fn test_magnet_alignment_when_adding_node_by_add_node_button() {
+        test_magnet_alignment_when_adding_node(move_camera_and_click_add_node_button);
+    }
+
+    fn move_camera_and_click_add_node_button(
+        scene: &Scene,
+        editor: &GraphEditor,
+        camera_pos: Vector2,
+    ) {
+        let camera = &scene.camera();
+        camera.set_position_xy(camera_pos);
+        camera.update(scene);
+        click_add_node_button(editor);
+    }
+
+    fn test_magnet_alignment_when_adding_node(add_node_at: impl Fn(&Scene, &GraphEditor, Vector2)) {
+        let (app, graph_editor) = init();
+        let scene = &app.display.default_scene;
+        let add_node_at = |editor: &GraphEditor, pos: Vector2| add_node_at(scene, editor, pos);
+
+        // Create two nodes, with the 2nd one positioned below and far to the right from the 1st
+        // one.
+        let (_, node_1) = graph_editor.add_node_by_api_at_pos(Vector2(0.0, 0.0));
+        let (_, node_2) = graph_editor.add_node_by_api_at_pos(Vector2(800.0, -100.0));
+
+        // Create third node, placing it roughly below the 1st one and to the left of the 2nd one,
+        // but slightly displaced from a position aligned to them both. Verify that the magnet
+        // algorithm repositions the node such that it is aligned with existing nodes.
+        let aligned_pos = Vector2(node_1.position().x, node_2.position().y);
+        let displacement = Vector2(7.0, 8.0);
+        test_node_added_with_displacement_gets_aligned(
+            &graph_editor,
+            aligned_pos,
+            displacement,
+            add_node_at,
+        );
+
+        // Create fourth node, placing it roughly to the right of the 1st node and above the 2nd
+        // one, but slightly displaced from a position aligned to them both. Verify that the magnet
+        // algorithm repositions the node such that it is aligned with existing nodes.
+        let aligned_pos = Vector2(node_2.position().x, node_1.position().y);
+        test_node_added_with_displacement_gets_aligned(
+            &graph_editor,
+            aligned_pos,
+            displacement,
+            add_node_at,
+        );
+    }
+
+    fn test_node_added_with_displacement_gets_aligned(
+        graph_editor: &GraphEditor,
+        aligned_pos: Vector2,
+        displacement: Vector2,
+        add_node_at: impl Fn(&GraphEditor, Vector2),
+    ) {
+        let unaligned_pos = aligned_pos + displacement;
+        let add_node_unaligned = |editor: &GraphEditor| add_node_at(editor, unaligned_pos);
+        let (_, node) = graph_editor.add_node_by(&add_node_unaligned);
+        graph_editor.stop_editing();
+        assert_eq!(node.position().xy(), aligned_pos);
+    }
+
+    #[test]
+    fn test_magnet_alignment_when_no_space_for_node_added_with_add_node_button() {
+        let (app, graph_editor) = init();
+        let scene = &app.display.default_scene;
+
+        // Create 1st node.
+        let (node_1_id, node_1) = graph_editor.add_node_by_api();
+        graph_editor.stop_editing();
+
+        // Create 2nd node below the 1st one and move it slightly to the right.
+        graph_editor.nodes().select(node_1_id);
+        let (node_2_id, node_2) = graph_editor.add_node_by(&press_add_node_shortcut);
+        node_2.mod_position_x(|x| x + 16.0);
+
+        // Create 3rd node below the 2nd one and move it slightly down and far to the right.
+        graph_editor.nodes().select(node_2_id);
+        let (_, node_3) = graph_editor.add_node_by(&press_add_node_shortcut);
+        node_2.mod_position_xy(|pos| pos + Vector2(800.0, -7.0));
+
+        // Create 4th node by clicking (+) button when camera is roughly centered at the 1st node.
+        let small_displacement = Vector2(8.0, 9.0);
+        let pos_near_node_1 = node_1.position().xy() + small_displacement;
+        let add_node = |editor: &GraphEditor| {
+            move_camera_and_click_add_node_button(scene, editor, pos_near_node_1)
+        };
+        let (_, node_4) = graph_editor.add_node_by(&add_node);
+        let aligned_pos = Vector2(node_1.position().x, node_3.position().y);
+        assert_eq!(node_4.position().xy(), aligned_pos);
+    }
+
 
     // === Test utilities ===
 
@@ -3751,6 +3881,13 @@ mod graph_editor_tests {
         fn add_node_by_api(&self) -> (NodeId, Node) {
             let add_node = |editor: &GraphEditor| editor.add_node();
             self.add_node_by(&add_node)
+        }
+
+        fn add_node_by_api_at_pos(&self, position: Vector2) -> (NodeId, Node) {
+            let (node_id, node) = self.add_node_by_api();
+            self.stop_editing();
+            node.set_position_xy(position);
+            (node_id, node)
         }
 
         fn assert(&self, case: Case) {
