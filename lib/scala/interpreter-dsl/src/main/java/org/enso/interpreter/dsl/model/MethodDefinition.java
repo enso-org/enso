@@ -14,6 +14,7 @@ public class MethodDefinition {
   private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
   public static final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
   public static final String META_PATH = "META-INF" + "/" + NODE_PKG.replace('.', '/');
+  public static final String META_BUILTIN_EXTENSION = ".builtin";
 
   private final String packageName;
   private final String originalClassName;

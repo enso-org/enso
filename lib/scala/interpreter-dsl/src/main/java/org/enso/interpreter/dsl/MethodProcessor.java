@@ -101,7 +101,7 @@ public class MethodProcessor extends AbstractProcessor {
       }
       FileObject res = processingEnv.getFiler().createResource(
               StandardLocation.CLASS_OUTPUT, "",
-              MethodDefinition.META_PATH + "/" + tpe + "/" + methodDefinition.getClassName() + ".builtin", element
+              MethodDefinition.META_PATH + "/" + tpe + "/" + methodDefinition.getClassName() + MethodDefinition.META_BUILTIN_EXTENSION, element
       );
     String fullClassName = methodDefinition.getPackageName() + "." + methodDefinition.getClassName();
     res.openWriter().append(methodDefinition.getDeclaredName() + ":" + fullClassName+"\n").close();

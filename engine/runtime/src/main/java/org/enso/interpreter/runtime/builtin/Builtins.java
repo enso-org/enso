@@ -329,7 +329,7 @@ public class Builtins {
   }
 
   private Stream<Path> acceptFiles(Path path) {
-    if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(".builtin")) {
+    if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(MethodDefinition.META_BUILTIN_EXTENSION)) {
       return Stream.of(path);
     } else if (Files.isDirectory(path)) {
       try {
