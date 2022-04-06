@@ -8,6 +8,8 @@ import Standard.Table.Internal.Problem_Builder
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Table_Helpers
 
+import Standard.Base.Data.Ordering.Comparator
+
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.aggregations.Aggregator
@@ -184,14 +186,14 @@ java_aggregator name column =
         Median c _ -> PercentileAggregator.new name c.java_column 0.5
         Percentile p c _ -> PercentileAggregator.new name c.java_column p
         Mode c _ -> ModeAggregator.new name c.java_column
-        First c _ ignore_nothing _ ->
-            ## TODO [JD] add support for Order By clause
-               https://www.pivotaltracker.com/story/show/181414668
-            FirstAggregator.new name c.java_column ignore_nothing
-        Last c _ ignore_nothing _ ->
-            ## TODO [JD] add support for Order By clause
-               https://www.pivotaltracker.com/story/show/181414668
-            LastAggregator.new name c.java_column ignore_nothing
+        First c _ ignore_nothing ordering ->
+            if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
+                ordering_array = ordering.map .java_column
+                FirstAggregator.new name c.java_column ignore_nothing ordering_array.to_array (Comparator.new)
+        Last c _ ignore_nothing ordering ->
+            if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
+                ordering_array = ordering.map .java_column
+                LastAggregator.new name c.java_column ignore_nothing ordering_array.to_array (Comparator.new)
         Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1
         Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1

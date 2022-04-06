@@ -1,15 +1,22 @@
 package org.enso.table.data.index;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
-public class MultiValueKey {
+public class MultiValueKey implements Comparable<MultiValueKey> {
   private final Object[] values;
+  private final Comparator<Object> objectComparator;
   private final int hashCodeValue;
   private final boolean allNull;
   private final boolean floatValue;
 
   public MultiValueKey(Object[] values) {
+    this(values, null);
+  }
+
+  public MultiValueKey(Object[] values, Comparator<Object> objectComparator){
     this.values = values;
+    this.objectComparator = objectComparator;
 
     boolean allNull = true;
     boolean floatValue = false;
@@ -18,7 +25,7 @@ public class MultiValueKey {
     int h = 0;
     for (Object value: this.values) {
       if (value != null) {
-        Object folded = FoldObject(value);
+        Object folded = foldObject(value);
         floatValue = floatValue || (folded instanceof Double);
         h ^= folded.hashCode();
         allNull = false;
@@ -52,7 +59,7 @@ public class MultiValueKey {
 
   public boolean hasFloatValues() { return floatValue; }
 
-  protected static Object FoldObject(Object value) {
+  protected static Object foldObject(Object value) {
     if (value instanceof Long) {
       return value;
     } else if (value instanceof Integer) {
@@ -70,5 +77,25 @@ public class MultiValueKey {
     }
 
     return value;
+  }
+
+  @Override
+  public int compareTo(MultiValueKey that) {
+    if (objectComparator == null || that == null) {
+      throw new NullPointerException();
+    }
+
+    if (that.values.length != values.length) {
+      throw new ClassCastException("Incomparable keys.");
+    }
+
+    for (int i = 0; i < values.length; i++) {
+      int comparison = objectComparator.compare(values[i], that.values[i]);
+      if (comparison != 0) {
+        return comparison;
+      }
+    }
+
+    return 0;
   }
 }
