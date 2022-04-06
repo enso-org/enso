@@ -9,6 +9,7 @@ from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database import all
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Table import No_Such_Column_Error, Order_Rule
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 spec =
     int = Sql_Type.integer
@@ -58,7 +59,7 @@ spec =
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.columns.length . should_equal 0
-            empty.to_sql . should_fail_with Illegal_State_Error
+            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error
 
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|

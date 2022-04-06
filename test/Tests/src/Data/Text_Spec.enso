@@ -496,6 +496,17 @@ spec =
             str.at -6 . should_fail_with Index_Out_Of_Bounds_Error
             str.at 5 . should_fail_with Index_Out_Of_Bounds_Error
 
+        Test.specify "should be able to reverse characters" <|
+            "Hello World!".reverse . should_equal "!dlroW olleH"
+
+            "".reverse . should_equal ""
+            'e\u{301}'.reverse . should_equal 'e\u{301}'
+            'e\u{301}\u00E9'.reverse . should_equal '\u00E9e\u{301}'
+            'e\u{321}\u{360}'.reverse . should_equal 'e\u{321}\u{360}'
+            'Iñtërnâtiônàlizætiøn☃💩'.reverse . should_equal '💩☃nøitæzilànôitânrëtñI'
+            'ほげほげ'.reverse . should_equal 'げほげほ'
+            '\u{10000}'.reverse . should_equal '\u{10000}'
+
         Test.specify "should allow to iterate over characters" <|
             str = kshi + accent_1 + accent_2 + 'abc'
             builder = Vector.new_builder

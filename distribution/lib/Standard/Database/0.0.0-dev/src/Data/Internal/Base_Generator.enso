@@ -4,6 +4,7 @@ import Standard.Database.Data.Sql
 import Standard.Database.Data.Internal.IR
 
 from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 type Internal_Dialect
 
@@ -50,7 +51,7 @@ make_binary_op name =
                 op = Sql.code " "+name+" "
                 (arguments.at 0)++op++(arguments.at 1) . paren
             False ->
-                Error.throw ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -65,7 +66,7 @@ make_unary_op name =
             True ->
                 (Sql.code name+" ")++(arguments.at 0) . paren
             False ->
-                Error.throw ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -79,8 +80,24 @@ make_unary_op name =
 lift_unary_op : Text -> (Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
-        False -> Error.throw ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0)
+    [name, generator]
+
+## PRIVATE
+
+   A helper function to create a binary operation from a function.
+
+   Arguments:
+   - name: Name of the operation, used for error reporting.
+   - function: A function taking exactly two arguments: the generated SQL code
+     for the argument of the operation, and returning the generated SQL code for
+     the whole operation.
+lift_binary_op : Text -> (Sql.Builder -> Sql.Builder -> Sql.Builder) -> [Text, (Vector Sql.Builder -> Sql.Builder)]
+lift_binary_op name function =
+    generator = arguments -> case arguments.length == 2 of
+        False -> Error.throw <| Illegal_State_Error ("Invalid amount of arguments for operation " + name + ".")
+        True -> function (arguments.at 0) (arguments.at 1)
     [name, generator]
 
 ## PRIVATE
@@ -151,14 +168,21 @@ base_dialect =
     logic = [bin "AND", bin "OR", unary "NOT"]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">="]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], here.count_distinct]
+    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], ["COUNT_DISTINCT", here.count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.count_distinct_include_null]]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
     Internal_Dialect base_map here.wrap_in_quotes
 
 ## PRIVATE
-count_distinct = here.lift_unary_op "COUNT_DISTINCT" arg->
-    Sql.code "COUNT(DISTINCT " ++ arg.paren ++ Sql.code ")"
+count_distinct args =
+    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
+
+## PRIVATE
+count_distinct_include_null args =
+    count = here.count_distinct args
+    are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
+    all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ Sql.join " AND " are_nulls ++ Sql.code " THEN 1 END) > 0 THEN 1 ELSE 0 END"
+    count ++ Sql.code " + " ++ all_nulls_case
 
 ## PRIVATE
 
@@ -174,7 +198,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+kind+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error kind)
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
@@ -290,4 +314,4 @@ generate_query dialect query = case query of
         (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
     IR.Insert table_name pairs ->
         here.generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Illegal_State_Error "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation_Error "Unsupported query type."

@@ -192,6 +192,55 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
 
       build(comment) shouldEqual expected
     }
+
+    "build example 6" in {
+      val comment =
+        """ UNSTABLE
+          |
+          | Creates a new table from a vector of column names and a vector of vectors
+          | specifying row contents.
+          |
+          | Arguments:
+          | - header: A list of texts specifying the column names
+          | - rows: A vector of vectors, specifying the contents of each table row. The
+          |   length of each element of `rows` must be equal in length to `header`.
+          |
+          | > Example
+          |   Create a table with 3 columns, named `foo`, `bar`, and `baz`, containing
+          |   `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`, respectively.
+          |
+          |       import Standard.Table
+          |
+          |       example_from_rows =
+          |           header = [ 'foo' , 'bar' , 'baz' ]
+          |           row_1 =  [ 1     , True  , 'a'   ]
+          |           row_2 =  [ 2     , False , 'b'   ]
+          |           row_3 =  [ 3     , True  , 'c'   ]
+          |           Table.from_rows header [row_1, row_2, row_3]
+          |
+          | Icon: table-from-rows
+          | Aliases: foo, bar baz, redshift®
+          |""".stripMargin.linesIterator.mkString("\n")
+      val expected = Seq(
+        DocSection.Tag("UNSTABLE", ""),
+        DocSection.Paragraph(
+          "Creates a new table from a vector of column names and a vector of vectors specifying row contents. "
+        ),
+        DocSection.Keyed(
+          "Arguments",
+          " <ul><li>header: A list of texts specifying the column names</li><li>rows: A vector of vectors, specifying the contents of each table row. The    length of each element of <code>rows</code> must be equal in length to <code>header</code>.</li></ul> "
+        ),
+        DocSection.Marked(
+          DocSection.Mark.Example(),
+          Some("Example"),
+          " Create a table with 3 columns, named <code>foo</code>, <code>bar</code>, and <code>baz</code>, containing <code>[1, 2, 3]</code>, <code>[True, False, True]</code>, and <code>['a', 'b', 'c']</code>, respectively. <pre><code>import Standard.Table</code><br /><code>example_from_rows =</code><br /><code>    header = [ 'foo' , 'bar' , 'baz' ]</code><br /><code>    row_1 =  [ 1     , True  , 'a'   ]</code><br /><code>    row_2 =  [ 2     , False , 'b'   ]</code><br /><code>    row_3 =  [ 3     , True  , 'c'   ]</code><br /><code>    Table.from_rows header [row_1, row_2, row_3]</code><br /></pre>"
+        ),
+        DocSection.Keyed("Icon", "table-from-rows"),
+        DocSection.Keyed("Aliases", "foo, bar baz, redshift®")
+      )
+
+      build(comment) shouldEqual expected
+    }
   }
 }
 object DocSectionsBuilderTest {
