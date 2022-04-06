@@ -28,6 +28,8 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
+use ensogl_core::profiler::log_rpc_event;
+use ensogl_core::profiler::Metadata;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
@@ -172,7 +174,9 @@ fn work(n: u32) {
 #[profile(Objective)]
 async fn start_project() {
     wake_dragon().await;
+    log_rpc_event("Dragon Awake");
     feed_troll();
+    log_rpc_event("Troll Fed");
     ride_rainbow();
 }
 #[profile(Objective)]

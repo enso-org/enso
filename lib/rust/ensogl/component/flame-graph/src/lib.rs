@@ -32,6 +32,9 @@ use mark::Mark;
 pub use block::Block;
 use mark::Mark;
 
+pub use block::Block;
+
+
 
 // ========================
 // === Layout Constants ===
@@ -94,6 +97,15 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     component.set_content.emit(label);
     component.set_position_xy(pos);
 
+    let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+
+    let color: color::Rgba = match block.kind {
+        Kind::Active => style.get_color("flame_graph_block_color_active").value(),
+        Kind::Paused => style.get_color("flame_graph_block_color_paused").value(),
+    };
+    let color: color::Lcha = color.into();
+    component.set_color(color);
+
     component
 }
 
@@ -102,7 +114,7 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     let component = app.new_view::<Mark>();
     let x = mark.position as f32;
     let y = 0.0;
-    let pos = Vector2::new(x, y as f32);
+    let pos = Vector2::new(x, y);
 
     let label = format!("{} ({:.1}ms)", mark.label, mark.position);
 
