@@ -9,8 +9,14 @@ import java.util.function.BiFunction;
 public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
 
-  public static ObjectComparator getInstance(BiFunction<Object, Object, Integer> fallbackComparator) {
-    if(INSTANCE == null) {
+  /***
+   * A singleton instance of an ObjectComparator
+   * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be passed to allow calling back from Java.
+   * @return Comparator object
+   */
+  public static ObjectComparator getInstance(
+      BiFunction<Object, Object, Integer> fallbackComparator) {
+    if (INSTANCE == null) {
       INSTANCE = new ObjectComparator(fallbackComparator);
     }
 
@@ -20,7 +26,10 @@ public class ObjectComparator implements Comparator<Object> {
   private final BiFunction<Object, Object, Integer> fallbackComparator;
 
   public ObjectComparator() {
-    this((a, b) -> { throw new ClassCastException("Incomparable keys."); });
+    this(
+        (a, b) -> {
+          throw new ClassCastException("Incomparable keys.");
+        });
   }
 
   public ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator) {
@@ -42,8 +51,8 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Booleans
     if (thisValue instanceof Boolean && thatValue instanceof Boolean) {
-      boolean thisBool = (Boolean)thisValue;
-      boolean thatBool = (Boolean)thatValue;
+      boolean thisBool = (Boolean) thisValue;
+      boolean thatBool = (Boolean) thatValue;
       if (thisBool == thatBool) {
         return 0;
       }
@@ -52,12 +61,12 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Long this
     if (thisValue instanceof Long) {
-      Long thisLong = (Long)thisValue;
+      Long thisLong = (Long) thisValue;
       if (thatValue instanceof Long) {
-        return thisLong.compareTo((Long)thatValue);
+        return thisLong.compareTo((Long) thatValue);
       }
       if (thatValue instanceof Double) {
-        Double thatDouble = (Double)thatValue;
+        Double thatDouble = (Double) thatValue;
         if (thisLong > thatDouble) {
           return 1;
         }
@@ -70,12 +79,12 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Double this
     if (thisValue instanceof Double) {
-      Double thisDouble = (Double)thisValue;
+      Double thisDouble = (Double) thisValue;
       if (thatValue instanceof Double) {
-        return thisDouble.compareTo((Double)thatValue);
+        return thisDouble.compareTo((Double) thatValue);
       }
       if (thatValue instanceof Long) {
-        Long thatLong = (Long)thatValue;
+        Long thatLong = (Long) thatValue;
         if (thisDouble > thatLong) {
           return 1;
         }
@@ -88,34 +97,34 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String && thatValue instanceof String) {
-      return Text_Utils.compare_normalized((String)thisValue, (String)thatValue);
+      return Text_Utils.compare_normalized((String) thisValue, (String) thatValue);
     }
 
     // DateTimes
     if (thisValue instanceof LocalDate) {
-      LocalDate thisDate = (LocalDate)thisValue;
+      LocalDate thisDate = (LocalDate) thisValue;
       if (thatValue instanceof LocalDate) {
-        return thisDate.compareTo((LocalDate)thatValue);
+        return thisDate.compareTo((LocalDate) thatValue);
       }
       if (thatValue instanceof LocalDateTime) {
-        return thisDate.atStartOfDay().compareTo((LocalDateTime)thatValue);
+        return thisDate.atStartOfDay().compareTo((LocalDateTime) thatValue);
       }
     }
     if (thisValue instanceof LocalDateTime) {
-      LocalDateTime thisDateTime = (LocalDateTime)thisValue;
+      LocalDateTime thisDateTime = (LocalDateTime) thisValue;
       if (thatValue instanceof LocalDate) {
-        return thisDateTime.compareTo(((LocalDate)thatValue).atStartOfDay());
+        return thisDateTime.compareTo(((LocalDate) thatValue).atStartOfDay());
       }
       if (thatValue instanceof LocalDateTime) {
-        return thisDateTime.compareTo((LocalDateTime)thatValue);
+        return thisDateTime.compareTo((LocalDateTime) thatValue);
       }
     }
 
     // TimeOfDay
     if (thisValue instanceof LocalTime) {
-      LocalTime thisTime = (LocalTime)thisValue;
+      LocalTime thisTime = (LocalTime) thisValue;
       if (thatValue instanceof LocalTime) {
-        return thisTime.compareTo((LocalTime)thatValue);
+        return thisTime.compareTo((LocalTime) thatValue);
       }
     }
 
