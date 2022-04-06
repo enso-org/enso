@@ -1,18 +1,22 @@
 package org.enso.table.data.index;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class MultiValueKey implements Comparable<MultiValueKey> {
   private final Object[] values;
+  private final Comparator<Object> objectComparator;
   private final int hashCodeValue;
   private final boolean allNull;
   private final boolean floatValue;
 
   public MultiValueKey(Object[] values) {
+    this(values, null);
+  }
+
+  public MultiValueKey(Object[] values, Comparator<Object> objectComparator){
     this.values = values;
+    this.objectComparator = objectComparator;
 
     boolean allNull = true;
     boolean floatValue = false;
@@ -75,105 +79,9 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     return value;
   }
 
-  public static int compareObjects(Object thisValue, Object thatValue) throws ClassCastException {
-    // NULLs
-    if (thisValue == null) {
-      if (thatValue != null) {
-        return 1;
-      }
-      return 0;
-    }
-    if (thatValue == null) {
-      return -1;
-    }
-
-    // Booleans
-    if (thisValue instanceof Boolean && thatValue instanceof Boolean) {
-      boolean thisBool = (Boolean)thisValue;
-      boolean thatBool = (Boolean)thatValue;
-      if (thisBool == thatBool) {
-        return 0;
-      }
-      return thisBool ? 1 : -1;
-    }
-
-    // Long this
-    if (thisValue instanceof Long) {
-      Long thisLong = (Long)thisValue;
-      if (thatValue instanceof Long) {
-        return thisLong.compareTo((Long)thatValue);
-      }
-      if (thatValue instanceof Double) {
-        Double thatDouble = (Double)thatValue;
-        if (thisLong > thatDouble) {
-          return 1;
-        }
-        if (thisLong < thatDouble) {
-          return -1;
-        }
-        return 0;
-      }
-    }
-
-    // Double this
-    if (thisValue instanceof Double) {
-      Double thisDouble = (Double)thisValue;
-      if (thatValue instanceof Double) {
-        return thisDouble.compareTo((Double)thatValue);
-      }
-      if (thatValue instanceof Long) {
-        Long thatLong = (Long)thatValue;
-        if (thisDouble > thatLong) {
-          return 1;
-        }
-        if (thisDouble < thatLong) {
-          return -1;
-        }
-        return 0;
-      }
-    }
-
-    // Text
-    if (thisValue instanceof String && thatValue instanceof String) {
-      // Needs to use ICU comparisons
-      return ((String)thisValue).compareTo((String)thatValue);
-    }
-
-    // DateTimes
-    if (thisValue instanceof LocalDate) {
-      LocalDate thisDate = (LocalDate)thisValue;
-      if (thatValue instanceof LocalDate) {
-        return thisDate.compareTo((LocalDate)thatValue);
-      }
-      if (thatValue instanceof LocalDateTime) {
-        return thisDate.atStartOfDay().compareTo((LocalDateTime)thatValue);
-      }
-    }
-    if (thisValue instanceof LocalDateTime) {
-      LocalDateTime thisDateTime = (LocalDateTime)thisValue;
-      if (thatValue instanceof LocalDate) {
-        return thisDateTime.compareTo(((LocalDate)thatValue).atStartOfDay());
-      }
-      if (thatValue instanceof LocalDateTime) {
-        return thisDateTime.compareTo((LocalDateTime)thatValue);
-      }
-    }
-
-    // TimeOfDay
-    if (thisValue instanceof LocalTime) {
-      LocalTime thisTime = (LocalTime)thisValue;
-      if (thatValue instanceof LocalTime) {
-        return thisTime.compareTo((LocalTime)thatValue);
-      }
-    }
-
-    // Give Up!
-    throw new ClassCastException("Incomparable keys.");
-  }
-
   @Override
   public int compareTo(MultiValueKey that) {
-    if (that == null) {
+    if (objectComparator == null || that == null) {
       throw new NullPointerException();
     }
 
@@ -182,7 +90,7 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     }
 
     for (int i = 0; i < values.length; i++) {
-      int comparison = compareObjects(values[i], that.values[i]);
+      int comparison = objectComparator.compare(values[i], that.values[i]);
       if (comparison != 0) {
         return comparison;
       }
