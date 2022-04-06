@@ -816,13 +816,13 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 0 . to_vector . should_equal ["1,0ABC"]
 
         Test.specify "should work with empty separator but non-empty quote" <|
-            table = table_builder [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
+            table = table_builder [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
             result = table.aggregate [(Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             materialized.columns.length . should_equal 1
             materialized.columns.at 0 . name . should_equal "Concatenate A"
-            materialized.columns.at 0 . to_vector . should_equal ["1,0A''''BC"]
+            materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
 
     Test.group "Table.aggregate Count_Distinct" <|
         Test.specify "should correctly count null values" <|
