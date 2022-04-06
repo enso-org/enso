@@ -1,17 +1,21 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.util.*;
+import java.util.stream.Stream;
 
-import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
@@ -21,10 +25,6 @@ import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDa
 import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.generic.GetMemberMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.generic.IsLanguageInstalledMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
-import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.GetCwdMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.GetFileMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.GetUserHomeMethodGen;
@@ -51,9 +51,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.pkg.QualifiedName;
-
-import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
@@ -209,7 +206,7 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
-    readAllBuiltinNodes(scope);
+    readBuiltinsMetadata(scope);
   }
 
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
@@ -250,39 +247,98 @@ public class Builtins {
     }
   }
 
-  @CompilerDirectives.TruffleBoundary
-  public void readAllBuiltinNodes(ModuleScope scope) {
-    Reflections reflections = new Reflections("org.enso.interpreter.node.expression.builtin");
-    Set<String> subtypes = reflections.get(Scanners.SubTypes.of(Scanners.TypesAnnotated.with(NodeInfo.class)));
-    subtypes.stream().forEach(className -> {
+  private void readBuiltinsMetadata(ModuleScope scope) {
+    ClassLoader classLoader = getClass().getClassLoader();
+    FileSystem fs = null;
+    Stream<Path> builtinMetaPath;
+    try {
+      URI resource = classLoader.getResource(MethodDefinition.META_PATH).toURI();
+      fs = initFileSystem(resource);
+      builtinMetaPath = Files.walk(Paths.get(resource)).flatMap(p -> acceptFiles(p));
+    } catch (Exception ioe) {
+      ioe.printStackTrace();
+      builtinMetaPath = Stream.empty();
+    }
+    builtinMetaPath.forEach(metaPath -> {
+      List<String> lines;
       try {
-        Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
-        NodeInfo info = clazz.getDeclaredAnnotation(NodeInfo.class);
-        String[] name = info.shortName().split("\\.");
-        if (name.length == 2 && !name[0].isEmpty()) {
-          scope.getLocalConstructor(name[0]).ifPresentOrElse(constr -> {
-            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(name[0]);
-            if (atomNodes == null) {
-              atomNodes = new HashMap<>();
-              // TODO: move away from String Map once Builtins are gone
-              builtinNodes.put(constr.getName(), atomNodes);
-            }
-            atomNodes.put(name[1], clazz);
-          }, () -> {
-            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(name[0]);
-            if (atomNodes == null) {
-              atomNodes = new HashMap<>();
-              // TODO: move away from String Map once Builtins are gone
-              builtinNodes.put(name[0], atomNodes);
-            }
-            atomNodes.put(name[1], clazz);
-          });
-        }
-      } catch (Exception e) {
-        throw new CompilerError(e.getMessage());
+        lines = Files.readAllLines(metaPath, StandardCharsets.UTF_8);
+      } catch (IOException e) {
+        e.printStackTrace();
+        lines = new ArrayList<>();
       }
-      // todo: handle gracefully other cases
+      lines.forEach(line -> {
+          String[] builtinMeta = line.split(":");
+          if (builtinMeta.length != 2) {
+            throw new CompilerError("Invalid builtin metadata in " + metaPath + ": " + line);
+          }
+          String[] builtinName = builtinMeta[0].split("\\.");
+          if (builtinName.length != 2) {
+            throw new CompilerError("Invalid builtin metadata in " + metaPath + ": " + line);
+          }
+          try {
+            Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
+            String builtinMethodOwner = builtinName[0];
+            String builtinMethodName = builtinName[1];
+            scope.getLocalConstructor(builtinMethodOwner).ifPresentOrElse(constr -> {
+              Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+              if (atomNodes == null) {
+                atomNodes = new HashMap<>();
+                // TODO: move away from String Map once Builtins are gone
+                builtinNodes.put(constr.getName(), atomNodes);
+              }
+              atomNodes.put(builtinMethodName, clazz);
+            }, () -> {
+              Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+              if (atomNodes == null) {
+                atomNodes = new HashMap<>();
+                // TODO: move away from String Map once Builtins are gone
+                builtinNodes.put(builtinMethodOwner, atomNodes);
+              }
+              atomNodes.put(builtinMethodName, clazz);
+            });
+          } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+          }
+      });
     });
+    if (fs != null) {
+      try {
+        fs.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private FileSystem initFileSystem(URI uri) throws IOException
+  {
+    // Returning null ensures that we use the default one and at the same time we don't attempt
+    // to close it.
+    try {
+      FileSystems.getFileSystem(uri);
+      return null;
+    } catch (IllegalArgumentException iae) {
+      // file: schema doesn't like non-/ path but that's fine, it means the default file system is already setup
+      return null;
+    } catch (FileSystemNotFoundException e)  {
+      Map<String, String> env = new HashMap<>();
+      env.put("create", "true");
+      return FileSystems.newFileSystem(uri, env);
+    }
+  }
+
+  private Stream<Path> acceptFiles(Path path) {
+    if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(".builtin")) {
+      return Stream.of(path);
+    } else if (Files.isDirectory(path)) {
+      try {
+        return Files.walk(path).flatMap(p -> {if (p != path) return acceptFiles(p); else return Stream.empty();});
+      } catch (IOException ioe) {
+        ioe.printStackTrace();
+      }
+    }
+    return Stream.empty();
   }
 
   public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {

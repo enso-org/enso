@@ -11,6 +11,8 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+import javax.tools.FileObject;
+import javax.tools.StandardLocation;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
@@ -61,6 +63,7 @@ public class MethodProcessor extends AbstractProcessor {
         }
         try {
           generateCode(def);
+          registerBuiltinMethod(def, element);
         } catch (IOException e) {
           e.printStackTrace();
         }
@@ -90,6 +93,19 @@ public class MethodProcessor extends AbstractProcessor {
           "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.type.TypesGen");
+
+  private void registerBuiltinMethod(MethodDefinition methodDefinition, Element element) throws IOException {
+      String tpe = methodDefinition.getType().toLowerCase();
+      if (tpe.isEmpty()) {
+        throw new InternalError("Type of the BuiltinMethod cannot be empty");
+      }
+      FileObject res = processingEnv.getFiler().createResource(
+              StandardLocation.CLASS_OUTPUT, "",
+              MethodDefinition.META_PATH + "/" + tpe + "/" + methodDefinition.getClassName() + ".builtin", element
+      );
+    String fullClassName = methodDefinition.getPackageName() + "." + methodDefinition.getClassName();
+    res.openWriter().append(methodDefinition.getDeclaredName() + ":" + fullClassName+"\n").close();
+  }
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =

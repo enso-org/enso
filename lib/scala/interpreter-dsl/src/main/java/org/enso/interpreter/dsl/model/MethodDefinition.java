@@ -12,6 +12,8 @@ import java.util.*;
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
   private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
+  public static final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+  public static final String META_PATH = "META-INF" + "/" + NODE_PKG.replace('.', '/');
 
   private final String packageName;
   private final String originalClassName;
@@ -136,6 +138,11 @@ public class MethodDefinition {
   /** @return the language-level name of this method. */
   public String getDeclaredName() {
     return annotation.type() + "." + annotation.name();
+  }
+
+  /** @return the language-level owner type of this method. */
+  public String getType() {
+    return annotation.type();
   }
 
   /** @return get the description of this method. */

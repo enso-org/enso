@@ -10,7 +10,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.Context;
 
-@BuiltinMethod(type = "", name = "<run_thread>")
+@BuiltinMethod(type = "Special", name = "<run_thread>")
 public abstract class RunThreadNode extends Node {
   static RunThreadNode build() {
     return RunThreadNodeGen.create();
