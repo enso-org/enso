@@ -260,7 +260,7 @@ ensogl_core::define_endpoints! {
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_color_all         (color::Rgba),
-        set_bold_weight_bytes (buffer::Range<Bytes,f32>),
+        set_bold_bytes        (buffer::Range<Bytes>,style::Bold),
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
