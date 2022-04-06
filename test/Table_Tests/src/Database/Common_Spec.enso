@@ -376,30 +376,6 @@ spec prefix connection pending=Nothing =
             t2.at  "Count Not Nothing price" . to_vector . should_equal [11]
             t2.at  "Count Nothing price" . to_vector . should_equal [5]
 
-        Test.specify "should allow to count distinct values" <|
-            aggregates = [Count_Distinct "quantity", Count_Distinct "price" (ignore_nothing=True), Count_Distinct "price" (ignore_nothing=False)]
-
-            t1 = determinize_by "name" (t.aggregate [Group_By "name"]+aggregates . to_dataframe)
-            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
-            # t1.at  "Count Distinct quantity" . to_vector . should_equal [2, 1, 3, 0]
-            # TODO
-
-            t2 = t.aggregate aggregates . to_dataframe
-            t2 . at "Count Distinct quantity" . to_vector . should_equal [10]
-            t2 . at "Count Distinct price" . to_vector . should_equal [7]
-            #t2 . at "Count Distinct price 2" . to_vector . should_equal [8]
-
-        Test.specify "should allow to count distinct values over multiple fields" pending="TODO" <|
-            aggregates = [Count_Distinct ["price", "quantity"]]
-
-            t1 = determinize_by "name" (t.aggregate [Group_By "name"]+aggregates . to_dataframe)
-            t1.at  "name" . to_vector . should_equal ["bar", "baz", "foo", "quux", "zzzz"]
-            # t1.at  "Count Distinct quantity" . to_vector . should_equal [2, 1, 3, 0]
-            # TODO
-
-            t2 = t.aggregate aggregates . to_dataframe
-            t2 . at "Count Distinct price quantity" . to_vector . should_equal [13]
-
         Test.specify "should allow simple arithmetic aggregations" <|
             aggregates = [Sum "price" Nothing, Sum "quantity" Nothing, Average "price" Nothing]
             ## TODO can check the datatypes
