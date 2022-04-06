@@ -18,6 +18,7 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 
@@ -510,7 +511,7 @@ type Table
                 chosen_nulls = if my_nulls.is_nothing then missing_last else my_nulls
                 [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
             Order_Rule _ _ _ _ ->
-                Error.throw <| Illegal_State_Error "Custom comparators are not supported in Database"
+                Error.throw <| Unsupported_Database_Operation_Error "Custom comparators are not supported in Database"
         elems = Helpers.unify_vector_singleton by . map to_ir
         new_ctx = this.context.set_orders elems
         this.updated_context new_ctx
@@ -651,11 +652,15 @@ type Table
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = this.context.set_groups key_expressions
-            new_columns = resolved_aggregates.map p->
+            results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                Aggregate_Helper.make_aggregate_column this agg new_name
-            this.updated_context_and_columns new_ctx new_columns
+                Aggregate_Helper.make_aggregate_column this agg new_name . catch
+            partitioned = results.partition (_.is_an Internal_Column)
+            new_columns = partitioned.first
+            problems = partitioned.second
+            on_problems.attach_problems_before problems <|
+                this.updated_context_and_columns new_ctx new_columns
 
     ## UNSTABLE
 
@@ -744,7 +749,7 @@ type Table
     to_sql =
         cols = this.internal_columns.map (c -> [c.name, c.expression])
         case cols.is_empty of
-            True -> Error.throw <| Illegal_State_Error "Cannot generate SQL for a table with no columns."
+            True -> Error.throw <| Unsupported_Database_Operation_Error "Cannot generate SQL for a table with no columns."
             False ->
                 query = IR.Select cols this.context
                 this.connection.dialect.generate_sql query
