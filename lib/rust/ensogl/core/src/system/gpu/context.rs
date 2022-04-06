@@ -9,8 +9,6 @@ use crate::system::web;
 
 use web::Closure;
 use web_sys::WebGl2RenderingContext;
-use web_sys::WebGlProgram;
-use web_sys::WebGlShader;
 
 
 // ==============
@@ -61,18 +59,12 @@ pub struct Context {
 }
 
 /// Internal data of [`Context`].
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct ContextData {
-    native:              NativeContextWithExtensions,
+    #[deref]
+    native:              native::ContextWithExtensions,
     pub shader_compiler: shader::Compiler,
-}
-
-impl Deref for ContextData {
-    type Target = NativeContextWithExtensions;
-    fn deref(&self) -> &Self::Target {
-        &self.native
-    }
 }
 
 impl Context {
@@ -83,29 +75,9 @@ impl Context {
 
 impl ContextData {
     fn from_native(native: WebGl2RenderingContext) -> Self {
-        let native = NativeContextWithExtensions::from_native(native);
+        let native = native::ContextWithExtensions::from_native(native);
         let shader_compiler = shader::Compiler::new(&native);
         Self { native, shader_compiler }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct NativeContextWithExtensions {
-    native:         WebGl2RenderingContext,
-    pub extensions: Extensions,
-}
-
-impl Deref for NativeContextWithExtensions {
-    type Target = WebGl2RenderingContext;
-    fn deref(&self) -> &Self::Target {
-        &self.native
-    }
-}
-
-impl NativeContextWithExtensions {
-    fn from_native(native: WebGl2RenderingContext) -> Self {
-        let extensions = Extensions::init(&native);
-        Self { native, extensions }
     }
 }
 
@@ -129,6 +101,7 @@ pub struct ContextLostHandler {
 // === Extensions ===
 // ==================
 
+/// Set of all extensions that we try to enable after acquiring the context.
 #[derive(Debug, Clone, Deref)]
 pub struct Extensions {
     rc: Rc<ExtensionsData>,
@@ -140,7 +113,7 @@ impl Extensions {
     }
 }
 
-/// Set of all extensions that we try to enable after acquiring the context.
+/// Internal representation of [`Extensions`].
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ExtensionsData {

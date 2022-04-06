@@ -32,6 +32,8 @@ impl TimeInfo {
         default()
     }
 
+    /// Check whether the time info was initialized. See the documentation of the struct to learn
+    /// more.
     pub fn is_initialized(&self) -> bool {
         self.animation_loop_start != 0.0
     }

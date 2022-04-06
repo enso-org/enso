@@ -1,8 +1,8 @@
-/// WebGL extensions management.
+//! WebGL extensions management.
+
 use crate::prelude::*;
 
 use crate::system::gpu::data::GlEnum;
-use crate::system::gpu::Context;
 
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
@@ -16,7 +16,7 @@ use web_sys::WebGlProgram;
 /// The `KHR_parallel_shader_compile` extension is used to poll shader compilation status without
 /// blocking. To learn more, see:
 /// [https://www.khronos.org/registry/webgl/extensions/KHR_parallel_shader_compile]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
 pub struct KhrParallelShaderCompile {
     pub completion_status_khr: GlEnum,

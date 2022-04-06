@@ -1,11 +1,27 @@
+//! Asynchronous interface to WebGL GLSL shader program compilation.
+//!
+//! # Performance
+//!
+//! In order to maximize parallelism and avoid blocking, follows
+//! [best practices](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices).
+//!
+//! In particular, these items from that document are implemented here:
+//! - "Compile Shaders and Link Programs in parallel"
+//! - "Prefer KHR_parallel_shader_compile"
+//! - "Don't check shader compile status unless linking fails"
+//!
+//! # Context loss
+//!
+//! The compiler handles [context loss](https://www.khronos.org/webgl/wiki/HandlingContextLost) and
+//! does not report compilation errors when the context is not available.
+
 use crate::prelude::*;
 use crate::system::gpu::context::native::traits::*;
 use crate::system::web::traits::*;
 
 use crate::animation;
-use crate::display::GlEnum;
 use crate::display::ToGlEnum;
-use crate::system::gpu::context::NativeContextWithExtensions;
+use crate::system::gpu::context::native;
 use crate::system::gpu::shader;
 use crate::system::gpu::shader::Fragment;
 use crate::system::gpu::shader::Shader;
@@ -13,10 +29,7 @@ use crate::system::gpu::shader::Vertex;
 use crate::system::web;
 
 use enso_logger::DefaultDebugLogger as Logger;
-use enso_shapely::define_singleton_enum;
 use web_sys::WebGl2RenderingContext;
-use web_sys::WebGlProgram;
-use web_sys::WebGlShader;
 
 
 
@@ -45,7 +58,7 @@ const MAX_FRAME_TIME_MS: f32 = 1000.0 / MIN_FPS;
 #[derivative(Debug)]
 pub struct Job<T> {
     #[derivative(Debug = "ignore")]
-    on_ready: Box<dyn Fn(shader::Program)>,
+    on_ready: Box<dyn FnOnce(shader::Program)>,
     input:    T,
     handler:  WeakJobHandler,
 }
@@ -89,7 +102,7 @@ impl WeakJobHandler {
 // === Compiler ===
 // ================
 
-/// Compiler job queues.
+/// Compiler job queues. See the documentation of [`Compiler`] to learn more.
 #[derive(Debug, Default)]
 pub struct Jobs {
     compile:              Vec<Job<shader::Code>>,
@@ -98,7 +111,7 @@ pub struct Jobs {
     link_check:           Vec<Job<shader::Program>>,
 }
 
-/// The compiler works in the following way:
+/// Compiles and links GL shader programs, asynchronously. The compiler works in the following way:
 /// 1. A new shader code is submitted with the [`submit`] method. A new job is created in the
 ///    [`Jobs::compile`] queue and the job handler is returned to the user.
 ///
@@ -128,7 +141,7 @@ pub struct Compiler {
 #[derive(Debug)]
 struct CompilerData {
     dirty:       bool,
-    context:     NativeContextWithExtensions,
+    context:     native::ContextWithExtensions,
     jobs:        Jobs,
     performance: web::Performance,
     logger:      Logger,
@@ -136,7 +149,7 @@ struct CompilerData {
 
 impl Compiler {
     /// Constructor.
-    pub fn new(context: &NativeContextWithExtensions) -> Self {
+    pub fn new(context: &native::ContextWithExtensions) -> Self {
         Self { rc: Rc::new(RefCell::new(CompilerData::new(context))) }
     }
 
@@ -156,7 +169,7 @@ impl Compiler {
 }
 
 impl CompilerData {
-    fn new(context: &NativeContextWithExtensions) -> Self {
+    fn new(context: &native::ContextWithExtensions) -> Self {
         let dirty = false;
         let context = context.clone();
         let jobs = default();
@@ -165,7 +178,7 @@ impl CompilerData {
         Self { dirty, context, jobs, performance, logger }
     }
 
-    fn submit<F: 'static + Fn(shader::Program)>(
+    fn submit<F: 'static + FnOnce(shader::Program)>(
         &mut self,
         input: shader::Code,
         on_ready: F,
@@ -179,6 +192,7 @@ impl CompilerData {
         strong_handler
     }
 
+    #[profile(Debug)]
     fn run(&mut self, time: animation::TimeInfo) {
         if self.dirty {
             self.run_khr_completion_check_jobs();
@@ -211,6 +225,7 @@ impl CompilerData {
         }
     }
 
+    #[profile(Detail)]
     fn run_step(&mut self) -> Result<(), Error> {
         match () {
             _ if !self.jobs.compile.is_empty() => self.run_next_compile_job()?,
@@ -225,6 +240,7 @@ impl CompilerData {
         Ok(())
     }
 
+    #[profile(Detail)]
     fn run_khr_completion_check_jobs(&mut self) {
         debug!(self.logger, "Running KHR parallel shader compilation check job.");
         let khr = self.context.extensions.khr_parallel_shader_compile.as_ref().unwrap();
@@ -275,7 +291,7 @@ impl CompilerData {
             let param = WebGl2RenderingContext::LINK_STATUS;
             let status = this.context.get_program_parameter(&*program, param);
             if !status.as_bool().unwrap_or(false) {
-                Err(Error::ProgramLinkingError(program.shader))?
+                return Err(Error::ProgramLinkingError(program.shader));
             } else {
                 (job.on_ready)(program);
             }
@@ -292,12 +308,10 @@ impl CompilerData {
         match jobs(self).pop() {
             None => Ok(()),
             Some(job) => {
-                span!(WARN, "lol");
-                debug!(self.logger, "Running {label} jobxx.");
+                debug!(self.logger, "Running {label} job.");
                 if job.handler.exists() {
                     f(self, job)
                 } else {
-                    span!(WARN, "tol");
                     debug!(self.logger, "Job handler dropped, skipping.");
                     Ok(())
                 }
@@ -324,7 +338,9 @@ impl CompilerData {
 // === Error ===
 // =============
 
+/// Compilation error types.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     ShaderCreationError,
     ProgramCreationError,
@@ -332,26 +348,22 @@ pub enum Error {
 }
 
 impl Error {
+    /// Report the error. This function uses GPU blocking API and thus will cause a significant
+    /// performance hit.  Use it only when necessary.
     pub fn blocking_report(self, context: &WebGl2RenderingContext) -> String {
-        let fatal = |msg| {
-            format!(
-                "This is a browser error. Please report it here ... and give us this ... {}",
-                msg
-            )
-        };
         match self {
-            Self::ShaderCreationError => fatal("WebGL was unable to create a new shader."),
-            Self::ProgramCreationError => fatal("WebGl was unable to create a new program shader."),
+            Self::ShaderCreationError => "WebGL was unable to create a new shader.".into(),
+            Self::ProgramCreationError => "WebGl was unable to create a new program shader.".into(),
             Self::ProgramLinkingError(shader) => {
                 let unwrap_error = |name: &str, err: Option<String>| {
                     let header = format!("----- {} Shader -----", name);
-                    err.map(|t| format!("\n\n{}\n\n{}", header, t)).unwrap_or("".into())
+                    err.map(|t| format!("\n\n{}\n\n{}", header, t)).unwrap_or_else(|| "".into())
                 };
 
                 let vertex = &shader.vertex;
                 let fragment = &shader.fragment;
-                let vertex_log = context.blocking_format_error_log(&vertex);
-                let fragment_log = context.blocking_format_error_log(&fragment);
+                let vertex_log = context.blocking_format_error_log(vertex);
+                let fragment_log = context.blocking_format_error_log(fragment);
                 let vertex_error = unwrap_error("Vertex", vertex_log);
                 let fragment_error = unwrap_error("Fragment", fragment_log);
 

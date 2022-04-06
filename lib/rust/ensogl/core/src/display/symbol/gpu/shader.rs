@@ -3,17 +3,16 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
-use crate::system::gpu::shader::*;
 
 use crate::control::callback;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
-use crate::display::symbol::shader;
 use crate::display::symbol::ScopeType;
+use crate::system::gpu::shader;
 use crate::system::gpu::shader::compiler as shader_compiler;
-// use crate::system::gpu::shader::compiler::ProgramSlot;
+use crate::system::gpu::shader::glsl;
 use crate::system::gpu::Context;
 
 use enso_shapely::shared;
@@ -59,15 +58,14 @@ shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.
 #[derive(Debug)]
 pub struct ShaderData {
-    context           : Option<Context>,
-    geometry_material : Material,
-    surface_material  : Material,
-    program           : Rc<RefCell<Option<shader::Program>>>,
-    shader_compiler_job   : Option<shader_compiler::JobHandler>,
-    code              : Option<shader::Code>,
-    dirty             : Dirty,
-    logger            : Logger,
-    stats             : Stats,
+    context             : Option<Context>,
+    geometry_material   : Material,
+    surface_material    : Material,
+    program             : Rc<RefCell<Option<shader::Program>>>,
+    shader_compiler_job : Option<shader_compiler::JobHandler>,
+    dirty               : Dirty,
+    logger              : Logger,
+    stats               : Stats,
 }
 
 impl {
@@ -79,7 +77,11 @@ impl {
         self.context = context.cloned();
     }
 
-    pub fn program(&self) -> Option<WebGlProgram> {
+    pub fn program(&self) -> Option<shader::Program> {
+        self.program.borrow().clone()
+    }
+
+    pub fn native_program(&self) -> Option<WebGlProgram> {
         self.program.borrow().as_ref().map(|t| t.native.clone())
     }
 
@@ -101,11 +103,10 @@ impl {
         let surface_material = default();
         let program = default();
         let shader_compiler_job = default();
-        let code = default();
         let dirty_logger = Logger::new_sub(&logger,"dirty");
         let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
         let stats = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,shader_compiler_job,code,dirty,logger,stats}
+        Self {context,geometry_material,surface_material,program,shader_compiler_job,dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -116,8 +117,8 @@ impl {
 
                     self.stats.inc_shader_compile_count();
 
-                    let mut shader_cfg     = shader::builder::ShaderConfig::new();
-                    let mut shader_builder = shader::builder::ShaderBuilder::new();
+                    let mut shader_cfg     = builder::ShaderConfig::new();
+                    let mut shader_builder = builder::ShaderBuilder::new();
 
                     for binding in bindings {
                         let name = &binding.name;
@@ -149,23 +150,14 @@ impl {
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
                     let code = shader_builder.build();
+
+                    *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
                     let handler = context.shader_compiler.submit(code, move |p| {
                         *program.borrow_mut() = Some(p);
                         on_ready();
                     });
                     self.shader_compiler_job = Some(handler);
-                    // FIXME: setting self.code?
-                    // let program = compile_program(context,&code.vertex,&code.fragment);
-                    // match program {
-                    //     Ok(program) => {
-                    //         self.program.set(program);
-                    //         // self.code = Some(code);
-                    //     }
-                    //     Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
-                    //     Err(ContextLossOrError::ContextLoss) => {}
-                    // }
-
                     self.dirty.unset_all();
                 }
             }
@@ -177,11 +169,6 @@ impl {
         let geometry_material_inputs = self.geometry_material.inputs().clone();
         let surface_material_inputs  = self.surface_material.inputs().clone();
         geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
-    }
-
-    /// Get the generated shader, if it was already generated.
-    pub fn code(&self) -> Option<shader::Code> {
-        self.code.clone()
     }
 }}
 

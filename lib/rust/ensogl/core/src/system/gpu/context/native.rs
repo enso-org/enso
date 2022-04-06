@@ -1,4 +1,8 @@
-/// Extensions for the native [`WebGl2RenderingContext`] implementation.
+//! Extensions for the native [`WebGl2RenderingContext`] implementation.
+
+use crate::prelude::*;
+
+use crate::system::gpu::context::Extensions;
 use crate::system::gpu::shader::Shader;
 
 use web_sys::WebGl2RenderingContext;
@@ -6,10 +10,35 @@ use web_sys::WebGlProgram;
 
 
 
+#[allow(missing_docs)]
 pub mod traits {
     pub use super::BlockingCheckStatus;
     pub use super::BlockingGetErrorLog;
 }
+
+
+// =============================
+// === ContextWithExtensions ===
+// =============================
+
+/// Native WebGL context and supported [`Extensions`].
+#[derive(Clone, Debug, Deref)]
+#[allow(missing_docs)]
+pub struct ContextWithExtensions {
+    #[deref]
+    native:         WebGl2RenderingContext,
+    pub extensions: Extensions,
+}
+
+impl ContextWithExtensions {
+    /// Constructor.
+    pub fn from_native(native: WebGl2RenderingContext) -> Self {
+        let extensions = Extensions::init(&native);
+        Self { native, extensions }
+    }
+}
+
+
 
 // ===========================
 // === BlockingCheckStatus ===

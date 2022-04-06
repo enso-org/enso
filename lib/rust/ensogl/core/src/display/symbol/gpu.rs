@@ -419,7 +419,7 @@ impl Symbol {
                 }
                 if self.shader_dirty.check() {
                     let var_bindings = self.discover_variable_bindings(global_variables);
-                    // FIXME: Mem leak
+                    // FIXME: Potential mem leak
                     let this = self.clone_ref();
                     let global_variables = global_variables.clone_ref();
                     let bindings = var_bindings.clone(); // FIXME perf
@@ -686,7 +686,7 @@ impl Symbol {
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
     fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.program().as_ref() {
+        if let Some(program) = self.shader.native_program().as_ref() {
             context.use_program(Some(program));
             let bindings = self.bindings.borrow();
             if let Some(vao) = bindings.vao.as_ref() {
@@ -699,7 +699,7 @@ impl Symbol {
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
     fn with_program_mut<F: FnOnce(&Self, &WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.program().as_ref() {
+        if let Some(program) = self.shader.native_program().as_ref() {
             context.use_program(Some(program));
             self.with_vao_mut(|this| f(this, program));
             context.use_program(None);

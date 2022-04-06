@@ -1,16 +1,12 @@
-/// Abstractions for GPU shaders and shader programs.
+//! Abstractions for GPU shaders and shader programs.
+
 use enso_prelude::*;
-use enso_web::traits::*;
 
 use crate::display::GlEnum;
 use crate::display::ToGlEnum;
-use crate::system::gpu::Context;
 
 use enso_shapely::define_singleton_enum;
-use enso_web as web;
-use js_sys::Float32Array;
 use web_sys::WebGl2RenderingContext;
-use web_sys::WebGlBuffer;
 use web_sys::WebGlProgram;
 use web_sys::WebGlShader;
 
