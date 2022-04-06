@@ -25,6 +25,8 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_text::style;
+use ensogl_text::traits::*;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
 
@@ -49,18 +51,14 @@ fn init(app: Application) {
     area.hover();
     area.set_cursor_at_end();
 
+    area.set_bold_bytes(ensogl_text::Range::new(37.bytes(), 41.bytes()), style::Bold(true));
+    area.set_bold_bytes(ensogl_text::Range::new(55.bytes(), 56.bytes()), style::Bold(true));
+
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
 
     app.display.default_scene.add_child(&area);
-    let keep = Some(area);
-    app.display
-        .on
-        .before_frame
-        .add(move |_frame| {
-            let _ = &keep;
-        })
-        .forget();
     mem::forget(navigator);
     mem::forget(app);
+    mem::forget(area);
 }

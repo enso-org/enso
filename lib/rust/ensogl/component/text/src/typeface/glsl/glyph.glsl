@@ -26,7 +26,7 @@ highp float msdf_alpha() {
     highp float dpi_dilate       = avg_msdf_unit_px < input_msdf_range*0.49 ? 1.0 : 0.0;
 
     highp vec3  msdf_sample      = texture(input_atlas,tex_coord).rgb;
-    highp float sig_dist         = median(msdf_sample) - 0.5 + ((input_style & 0x1) != 0 ? 0.2 : 0.0);
+    highp float sig_dist         = median(msdf_sample) - 0.5 + ((input_style & 0x1) != 0 ? 0.15 : 0.0);
     highp float sig_dist_px      = sig_dist * avg_msdf_unit_px;
     highp float opacity          = 0.5 + sig_dist_px + dpi_dilate * 0.08;
     opacity = clamp(opacity, 0.0, 1.0);

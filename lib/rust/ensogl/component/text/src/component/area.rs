@@ -496,6 +496,13 @@ impl Area {
             });
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
+
+            // === Style ===
+
+            m.buffer.frp.set_bold_bytes <+ input.set_bold_bytes;
+            eval_ input.set_bold_bytes (m.redraw(false));
+
+
             // === Changes ===
 
             // The `content` event should be fired first, as any listener for `changed` may want to
@@ -831,6 +838,7 @@ impl AreaModel {
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
+                    glyph.set_bold(style.bold.raw);
                     glyph.size.set(size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
