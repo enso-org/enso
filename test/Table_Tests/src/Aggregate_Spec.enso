@@ -18,7 +18,7 @@ spec =
     table = Table.from_csv file_contents
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
-    here.aggregate_spec "[In-Memory] " table empty_table materialize
+    here.aggregate_spec "[In-Memory] " table empty_table Table.new materialize
 
 ## Runs the common aggregate tests.
 
@@ -27,6 +27,8 @@ spec =
    - table: A table using the tested backend containing data from
      `data/data.csv`.
    - empty_table: An empty table using the tested backend.
+   - table_builder: A function used to build a table using the tested backend
+     from a vector of columns represented as pairs of name and vector of values.
    - materialize: A helper function which materializes a table from the tested
      backend as an in-memory table. Used to easily inspect results of a
      particular query/operation.
@@ -34,7 +36,7 @@ spec =
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
-aggregate_spec prefix table empty_table materialize test_selection=here.all_tests pending=Nothing =
+aggregate_spec prefix table empty_table table_builder materialize test_selection=here.all_tests pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
@@ -764,6 +766,67 @@ aggregate_spec prefix table empty_table materialize test_selection=here.all_test
             idx.is_nothing . should_be_false
             materialized.columns.at 2 . name . should_equal "Concatenate Code"
             materialized.columns.at 2 . at idx . length . should_equal 381
+
+    Test.group "Table.aggregate Concat" (pending=if test_selection.text_concat.not then "Not supported.") <|
+        Test.specify "should insert the separator, add prefix and suffix" <|
+            Nothing
+
+        Test.specify "should correctly escape separator and quote characters but only if necessary" <|
+            Nothing
+
+        Test.specify "should correctly handle missing values and empty values with quote character" <|
+            Nothing
+
+        Test.specify "will not be able to distinguish missing values from empty values without quote character" <|
+            Nothing
+
+    Test.group "Table.aggregate Count_Distinct" <|
+        Test.specify "should correctly count null values" <|
+            Nothing
+
+        Test.specify "should correctly count all-null keys in multi-column mode" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
+            Nothing
+
+    Test.group "Table.aggregate should correctly select result types" <|
+        Test.specify " widening to decimals on Average" <|
+            Nothing
+        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            Nothing
+
+    Test.group "Table.aggregate should correctly handle infinities" <|
+        pos_inf = 1/0
+        neg_inf = -1/0
+        Test.specify " widening to decimals on Average" <|
+            Nothing
+        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            Nothing
+
+    Test.group "Table.aggregate should correctly handle NaN" <|
+        nan = 0.log 0
+        Test.specify " widening to decimals on Average" <|
+            Nothing
+        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+            Nothing
+        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+            Nothing
+
+    Test.group "Table.aggregate Mode" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should ignore missing values" <|
+            Nothing
+
+    Test.group "Table.aggregate First and Last" <|
+        Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending=if test_selection.first_last.not then "Not supported.") <|
+            Nothing
 
     problem_pending = case pending.is_nothing of
         False -> pending
