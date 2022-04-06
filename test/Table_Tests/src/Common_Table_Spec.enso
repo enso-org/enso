@@ -26,13 +26,13 @@ from Standard.Table.Data.Position as Position_Module import all
 spec : Text -> (Vector -> Any) -> Boolean -> Text -> Nothing
 spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
     table =
-        col1 = ["foo", Integer, [1,2,3]]
-        col2 = ["bar", Integer, [4,5,6]]
-        col3 = ["Baz", Integer, [7,8,9]]
-        col4 = ["foo_1", Integer, [10,11,12]]
-        col5 = ["foo_2", Integer, [13,14,15]]
-        col6 = ["ab.+123", Integer, [16,17,18]]
-        col7 = ["abcd123", Integer, [19,20,21]]
+        col1 = ["foo", [1,2,3]]
+        col2 = ["bar", [4,5,6]]
+        col3 = ["Baz", [7,8,9]]
+        col4 = ["foo_1", [10,11,12]]
+        col5 = ["foo_2", [13,14,15]]
+        col6 = ["ab.+123", [16,17,18]]
+        col7 = ["abcd123", [19,20,21]]
         table_builder [col1, col2, col3, col4, col5, col6, col7]
 
     expect_column_names names table =
@@ -67,9 +67,9 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
         if supports_case_sensitive_columns then
             Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
-                    col1 = ["foo", Integer, [1,2,3]]
-                    col2 = ["bar", Integer, [4,5,6]]
-                    col3 = ["Bar", Integer, [7,8,9]]
+                    col1 = ["foo", [1,2,3]]
+                    col2 = ["bar", [4,5,6]]
+                    col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
                 expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
 
@@ -122,7 +122,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
             foo = table_2.at "foo"
             weird_column = table_2.at "weird_column"
             bar = table.at "bar"
@@ -177,9 +177,9 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
         if supports_case_sensitive_columns then
             Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
-                    col1 = ["foo", Integer, [1,2,3]]
-                    col2 = ["bar", Integer, [4,5,6]]
-                    col3 = ["Bar", Integer, [7,8,9]]
+                    col1 = ["foo", [1,2,3]]
+                    col2 = ["bar", [4,5,6]]
+                    col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
                 expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
 
@@ -231,7 +231,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
             foo = table_2.at "foo"
             weird_column = table_2.at "weird_column"
             bar = table.at "bar"
@@ -286,9 +286,9 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
         if supports_case_sensitive_columns then
             Test.specify "should correctly handle exact matches matching multiple names due to case insensitivity" <|
                 table =
-                    col1 = ["foo", Integer, [1,2,3]]
-                    col2 = ["bar", Integer, [4,5,6]]
-                    col3 = ["Bar", Integer, [7,8,9]]
+                    col1 = ["foo", [1,2,3]]
+                    col2 = ["bar", [4,5,6]]
+                    col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
                 expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
 
@@ -340,7 +340,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["foo", Integer, [0,0,0]], ["weird_column", Integer, [0,0,0]]]
+            table_2 = table_builder [["foo", [0,0,0]], ["weird_column", [0,0,0]]]
             foo = table_2.at "foo"
             weird_column = table_2.at "weird_column"
             bar = table.at "bar"
@@ -359,13 +359,13 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
 
     Test.group prefix+"Table.sort_columns" pending=pending <|
         table =
-            col1 = ["foo_21", Integer, [1,2,3]]
-            col2 = ["foo_100", Integer, [4,5,6]]
-            col3 = ["foo_1", Integer, [7,8,9]]
-            col4 = ["Foo_2", Integer, [10,11,12]]
-            col5 = ["foo_3", Integer, [13,14,15]]
-            col6 = ["foo_001", Integer, [16,17,18]]
-            col7 = ["bar", Integer, [19,20,21]]
+            col1 = ["foo_21", [1,2,3]]
+            col2 = ["foo_100", [4,5,6]]
+            col3 = ["foo_1", [7,8,9]]
+            col4 = ["Foo_2", [10,11,12]]
+            col5 = ["foo_3", [13,14,15]]
+            col6 = ["foo_001", [16,17,18]]
+            col7 = ["bar", [19,20,21]]
             table_builder [col1, col2, col3, col4, col5, col6, col7]
 
         Test.specify "should work as shown in the doc examples" <|
@@ -387,10 +387,10 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
 
     Test.group prefix+"Table.rename_columns" pending=pending <|
         table =
-            col1 = ["alpha", Integer, [1,2,3]]
-            col2 = ["beta", Integer, [4,5,6]]
-            col3 = ["gamma", Integer, [16,17,18]]
-            col4 = ["delta", Integer, [19,20,21]]
+            col1 = ["alpha", [1,2,3]]
+            col2 = ["beta", [4,5,6]]
+            col3 = ["gamma", [16,17,18]]
+            col4 = ["delta", [19,20,21]]
             table_builder [col1, col2, col3, col4]
 
         Test.specify "should work as shown in the doc examples" <|

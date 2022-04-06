@@ -39,7 +39,7 @@ run_tests connection pending=Nothing =
         Ref.put name_counter ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
-        in_mem_table = Materialized_Table.new <| columns.map description-> [description.at 0, description.at 2]
+        in_mem_table = Materialized_Table.new columns
         table = connection.upload_table name in_mem_table
         tables.append name
         table
