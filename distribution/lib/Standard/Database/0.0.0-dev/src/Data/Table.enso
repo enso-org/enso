@@ -652,12 +652,17 @@ type Table
             resolved_aggregates = validated.valid_columns
             key_expressions = key_columns.map .expression
             new_ctx = this.context.set_groups key_expressions
-            new_columns = resolved_aggregates.map p->
+            results = resolved_aggregates.map p->
                 agg = p.second
                 new_name = p.first
-                ## TODO recover errors, turn them into warnings and remove the offending column from result
-                Aggregate_Helper.make_aggregate_column this agg new_name
-            this.updated_context_and_columns new_ctx new_columns
+                Aggregate_Helper.make_aggregate_column this agg new_name . catch
+            partitioned = results.partition <| case _ of
+                Internal_Column _ _ _ -> True
+                _ -> False
+            new_columns = partitioned.first
+            problems = partitioned.second
+            on_problems.attach_problems_before problems <|
+                this.updated_context_and_columns new_ctx new_columns
 
     ## UNSTABLE
 
