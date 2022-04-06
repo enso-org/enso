@@ -45,6 +45,11 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
         0.up_to table.row_count . find i->
             0.up_to key.length . all j-> (table_columns.at j . at i)==(key.at j)
 
+    resolve_pending enabled_flag pending=Nothing =
+        case pending of
+            Nothing -> if enabled_flag.not then "Not supported."
+            _ -> pending
+
     Test.group prefix+"Table.aggregate should summarize whole table" pending=pending <|
         Test.specify "should be able to count" <|
             grouped = table.aggregate [Count Nothing]
@@ -81,7 +86,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Count Distinct Flag"
             materialized.columns.at 2 . at 0 . should_equal 2
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             ## TODO [RW] add Count_Distinct with overridden ignore_nothing! also need to modify data.csv to include some nulls on index and flag
             grouped = table.aggregate [Count_Distinct (By_Name ["Index", "Flag"])]
             materialized = materialize grouped
@@ -104,7 +109,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Average ValueWithNothing"
             materialized.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = table.aggregate [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -118,7 +123,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Standard Deviation ValueWithNothing_1"
             materialized.columns.at 3 . at 0 . should_equal 58.575554 epsilon=0.000001
 
-        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -136,7 +141,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 5 . name . should_equal "40%-ile ValueWithNothing"
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -146,7 +151,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values with default row order" (pending=if test_selection.first_last_row_order.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -170,7 +175,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
 
-        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.")  <|
+        Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest)  <|
             grouped = table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -180,7 +185,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
 
-        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.")  <|
+        Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat)  <|
             grouped = table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -229,7 +234,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Average ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = empty_table.aggregate [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -239,7 +244,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Standard Deviation ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to create median, mode and percentile values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = empty_table.aggregate [Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -251,7 +256,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "25%-ile Value"
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = empty_table.aggregate [First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -261,7 +266,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get first and last values with default row order" (pending=if test_selection.first_last_row_order.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = empty_table.aggregate [First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -281,7 +286,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+        Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = empty_table.aggregate [Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -291,7 +296,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
-        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+        Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = empty_table.aggregate [Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
@@ -336,7 +341,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Sum Value"
             materialized.columns.at 2 . name . should_equal "Average ValueWithNothing"
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = empty_table.aggregate [Group_By 0, Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -345,7 +350,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Standard Deviation Value"
             materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = empty_table.aggregate [Group_By 0, Median "Index", Mode "Index", Percentile 0.25 "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -355,7 +360,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Mode Index"
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = empty_table.aggregate [Group_By 0, First "Index" (order_by = By_Name ["Hexadecimal", "TextWithNothing"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -364,7 +369,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "First Index"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
 
-        Test.specify "should be able to get first and last values with default row order" (pending=if test_selection.first_last_row_order.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = empty_table.aggregate [Group_By 0, First "Index", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -382,7 +387,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Minimum Value"
             materialized.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
 
-        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+        Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = empty_table.aggregate [Group_By 0, Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -391,7 +396,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 1 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
 
-        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+        Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = empty_table.aggregate [Group_By 0, Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
@@ -443,7 +448,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Count Distinct Flag"
             materialized.columns.at 3 . at idx . should_equal 2
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
             grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"])]
             materialized = materialize grouped
@@ -472,7 +477,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 4 . name . should_equal "Average ValueWithNothing"
             materialized.columns.at 4 . at idx . should_equal 0.646213 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = table.aggregate [Group_By "Index", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -489,7 +494,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 4 . name . should_equal "Standard Deviation ValueWithNothing_1"
             materialized.columns.at 4 . at idx . should_equal 56.677714 epsilon=0.000001
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Group_By "Index", Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -510,7 +515,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 6 . name . should_equal "40%-ile ValueWithNothing"
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing" (order_by = By_Name ["Hexadecimal", "Flag"]), Last "ValueWithNothing" (order_by = By_Name ["Value"])]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -523,7 +528,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal 19.77 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values with default row order" (pending=if test_selection.first_last_row_order.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Index", First "TextWithNothing", Last "Value"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -553,7 +558,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 4 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
-        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+        Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = table.aggregate [Group_By "Index", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -566,7 +571,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 2 . at idx . should_equal "byo6kn5l3sz"
 
-        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+        Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = table.aggregate [Group_By "Index", Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
@@ -624,7 +629,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Count Distinct Flag"
             materialized.columns.at 3 . at idx . should_equal 1
 
-        Test.specify "should be able to count distinct values over multiple columns" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
+        Test.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
             ## TODO probably should use different cols for multi-distinct and also should check ignore_nothing
             grouped = table.aggregate [Group_By "Index", Count_Distinct (By_Name ["Index", "Flag"]), Group_By "Flag"]
             materialized = materialize grouped
@@ -655,7 +660,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 4 . name . should_equal "Average ValueWithNothing"
             materialized.columns.at 4 . at idx . should_equal 4.721858 epsilon=0.000001
 
-        Test.specify "should be able to compute standard deviation of values" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -673,7 +678,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 5 . name . should_equal "Standard Deviation ValueWithNothing_1"
             materialized.columns.at 5 . at idx . should_equal 57.306492 epsilon=0.000001
 
-        Test.specify "should be able to create median values" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
             grouped = table.aggregate [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Group_By "Index", Group_By "Flag", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -695,7 +700,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 7 . name . should_equal "40%-ile ValueWithNothing"
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values" (pending=if test_selection.first_last.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing" (order_by = By_Name ["Hexadecimal", "Flag"]), Last "ValueWithNothing" (order_by = By_Name ["Value"]), Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -709,7 +714,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
             materialized.columns.at 2 . at idx . should_equal 42.17 epsilon=0.000001
 
-        Test.specify "should be able to get first and last values with default row order" (pending=if test_selection.first_last_row_order.not then "Not supported.") <|
+        Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -741,7 +746,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 5 . name . should_equal "Maximum ValueWithNothing"
             materialized.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
 
-        Test.specify "should be able to get shortest and longest text values" (pending=if test_selection.text_shortest_longest.not then "Not supported.") <|
+        Test.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Shortest "TextWithNothing", Longest "TextWithNothing"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -755,7 +760,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 3 . name . should_equal "Longest TextWithNothing"
             materialized.columns.at 3 . at idx . should_equal "byo6kn5l3sz"
 
-        Test.specify "should be able to get concatenated text values" (pending=if test_selection.text_concat.not then "Not supported.") <|
+        Test.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
             grouped = table.aggregate [Group_By "Index", Group_By "Flag", Concatenate "Code"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
@@ -767,7 +772,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 2 . name . should_equal "Concatenate Code"
             materialized.columns.at 2 . at idx . length . should_equal 381
 
-    Test.group "Table.aggregate Concat" (pending=if test_selection.text_concat.not then "Not supported.") <|
+    Test.group prefix+"Table.aggregate Concat" (pending = resolve_pending test_selection.text_concat) <|
         Test.specify "should insert the separator, add prefix and suffix" <|
             table = table_builder [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
             result = table.aggregate [Group_By "A", (Concatenate "B" prefix="[[" suffix="]]" separator="; ")]
@@ -824,58 +829,55 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             materialized.columns.at 0 . name . should_equal "Concatenate A"
             materialized.columns.at 0 . to_vector . should_equal ["'1''0'A''''BC"]
 
-    Test.group "Table.aggregate Count_Distinct" <|
+    Test.group prefix+"Table.aggregate Count_Distinct" pending=pending <|
         Test.specify "should correctly count null values" <|
             Nothing
 
-        Test.specify "should correctly count all-null keys in multi-column mode" (pending=if test_selection.multi_distinct.not then "Not supported.") <|
+        Test.specify "should correctly count all-null keys in multi-column mode" (pending = resolve_pending test_selection.multi_distinct) <|
             Nothing
 
-    Test.group "Table.aggregate should correctly select result types" <|
+    Test.group prefix+"Table.aggregate should correctly select result types" pending=pending <|
         Test.specify " widening to decimals on Average" <|
             Nothing
-        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             Nothing
 
-    Test.group "Table.aggregate should correctly handle infinities" <|
+    Test.group prefix+"Table.aggregate should correctly handle infinities" pending=pending <|
         pos_inf = 1/0
         neg_inf = -1/0
         Test.specify " widening to decimals on Average" <|
             Nothing
-        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             Nothing
 
-    Test.group "Table.aggregate should correctly handle NaN" <|
+    Test.group prefix+"Table.aggregate should correctly handle NaN" pending=pending <|
         nan = 0.log 0
         Test.specify " widening to decimals on Average" <|
             Nothing
-        Test.specify " widening to decimals on Median" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Percentile" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+        Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Standard_Deviation" (pending=if test_selection.std_dev.not then "Not supported.") <|
+        Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             Nothing
 
-    Test.group "Table.aggregate Mode" (pending=if test_selection.advanced_stats.not then "Not supported.") <|
+    Test.group prefix+"Table.aggregate Mode" (pending = resolve_pending test_selection.advanced_stats pending) <|
         Test.specify "should ignore missing values" <|
             Nothing
 
-    Test.group "Table.aggregate First and Last" <|
-        Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending=if test_selection.first_last.not then "Not supported.") <|
+    Test.group prefix+"Table.aggregate First and Last" pending=pending <|
+        Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             Nothing
 
-    problem_pending = case pending.is_nothing of
-        False -> pending
-        True -> if test_selection.problem_handling.not then "Not supported."
-    Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=problem_pending <|
+    Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling pending) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
@@ -935,10 +937,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             tester = expect_column_names []
             Problems.test_problem_handling action problems tester
 
-    aggregate_pending = case pending.is_nothing of
-        False -> pending
-        True -> if test_selection.aggregation_problems.not then "Not supported."
-    Test.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=aggregate_pending <|
+    Test.group prefix+"Table.aggregate should raise warnings when there are issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems pending) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3.1]]
@@ -1007,7 +1006,7 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             tester = expect_column_names ["Maximum Mixed"]
             Problems.test_problem_handling action problems tester
 
-    Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=aggregate_pending <|
+    Test.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems pending) <|
         table =
             col1 = ["Key", ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]]
             col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
