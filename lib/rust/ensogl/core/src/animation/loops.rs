@@ -5,6 +5,7 @@ use crate::system::web::traits::*;
 
 use crate::system::web;
 
+use crate::types::unit2::Milliseconds;
 use web::Closure;
 
 
@@ -21,9 +22,9 @@ use web::Closure;
 #[derive(Clone, Copy, Debug, Default)]
 #[allow(missing_docs)]
 pub struct TimeInfo {
-    pub animation_loop_start:         f32,
-    pub previous_frame:               f32,
-    pub since_animation_loop_started: f32,
+    pub animation_loop_start:         Milliseconds,
+    pub previous_frame:               Milliseconds,
+    pub since_animation_loop_started: Milliseconds,
 }
 
 impl TimeInfo {
@@ -35,7 +36,7 @@ impl TimeInfo {
     /// Check whether the time info was initialized. See the documentation of the struct to learn
     /// more.
     pub fn is_initialized(&self) -> bool {
-        self.animation_loop_start != 0.0
+        self.animation_loop_start != Milliseconds(0.0)
     }
 }
 
@@ -48,7 +49,7 @@ impl TimeInfo {
 // === Types ===
 
 /// Callback for `RawLoop`.
-pub trait RawLoopCallback = FnMut(f32) + 'static;
+pub trait RawLoopCallback = FnMut(Milliseconds) + 'static;
 
 
 // === Definition ===
@@ -153,7 +154,7 @@ where Callback: LoopCallback
 }
 
 /// Callback for an animation frame.
-pub type OnFrame<Callback> = impl FnMut(f32);
+pub type OnFrame<Callback> = impl FnMut(Milliseconds);
 fn on_frame<Callback>(
     mut callback: Callback,
     time_info_ref: Rc<Cell<TimeInfo>>,
@@ -161,7 +162,7 @@ fn on_frame<Callback>(
 where
     Callback: LoopCallback,
 {
-    move |current_time: f32| {
+    move |current_time: Milliseconds| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let prev_time = time_info_ref.get();
         let animation_loop_start =

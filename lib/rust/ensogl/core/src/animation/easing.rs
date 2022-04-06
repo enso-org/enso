@@ -5,7 +5,7 @@ use crate::prelude::*;
 
 use crate::animation;
 use crate::data::function::Fn1;
-
+use crate::types::unit2::Milliseconds;
 use core::f32::consts::PI;
 
 
@@ -216,7 +216,7 @@ where
         Self { duration, start_value, target_value, value, active, tween_fn, callback, on_end }
     }
 
-    fn step(&self, time: f32) {
+    fn step(&self, time: Milliseconds) {
         let sample = (time / self.duration.get()).min(1.0);
         let weight = (self.tween_fn)(sample);
         let value = self.start_value.get() * (1.0 - weight) + self.target_value.get() * weight;
