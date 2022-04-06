@@ -6,7 +6,6 @@
 // === Features ===
 #![allow(incomplete_features)]
 #![feature(negative_impls)]
-#![feature(const_trait_impl)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]

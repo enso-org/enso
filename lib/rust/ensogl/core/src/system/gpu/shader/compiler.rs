@@ -28,7 +28,6 @@ use crate::system::gpu::shader::Shader;
 use crate::system::gpu::shader::Vertex;
 use crate::system::web;
 
-use enso_logger::DefaultDebugLogger as Logger;
 use web_sys::WebGl2RenderingContext;
 
 
@@ -42,7 +41,7 @@ use web_sys::WebGl2RenderingContext;
 /// or linking in this frame. It does not mean, however, that the framerate will not be lower. The
 /// last scheduled shader can take a lot of time to be rendered, causing the FPS to drop
 /// significantly.
-const MIN_FPS: f32 = 30.0;
+const MIN_FPS: f32 = 60.0;
 const MAX_FRAME_TIME_MS: f32 = 1000.0 / MIN_FPS;
 
 
@@ -199,7 +198,7 @@ impl CompilerData {
             while self.dirty {
                 match self.run_step() {
                     Ok(_) => {
-                        if self.dirty {
+                        if !self.dirty {
                             break;
                         }
                         let now = self.performance.now() as f32;

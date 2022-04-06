@@ -2,12 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::system::gpu::context::Extensions;
+use crate::system::gpu::context::extension::Extensions;
 use crate::system::gpu::shader::Shader;
 
 use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
-
 
 
 #[allow(missing_docs)]

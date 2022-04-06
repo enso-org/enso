@@ -9,6 +9,40 @@ use web_sys::WebGlProgram;
 
 
 
+// ==================
+// === Extensions ===
+// ==================
+
+/// Set of all extensions that we try to enable after acquiring the context.
+#[derive(Debug, Clone, Deref)]
+pub struct Extensions {
+    rc: Rc<ExtensionsData>,
+}
+
+impl Extensions {
+    /// Constructor.
+    pub fn init(context: &WebGl2RenderingContext) -> Self {
+        Self { rc: Rc::new(ExtensionsData::init(context)) }
+    }
+}
+
+/// Internal representation of [`Extensions`].
+#[derive(Copy, Clone, Debug)]
+#[allow(missing_docs)]
+pub struct ExtensionsData {
+    pub khr_parallel_shader_compile: Option<KhrParallelShaderCompile>,
+}
+
+impl ExtensionsData {
+    /// Constructor.
+    fn init(context: &WebGl2RenderingContext) -> Self {
+        let khr_parallel_shader_compile = KhrParallelShaderCompile::init(context);
+        Self { khr_parallel_shader_compile }
+    }
+}
+
+
+
 // ================================
 // === KhrParallelShaderCompile ===
 // ================================

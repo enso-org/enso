@@ -97,39 +97,6 @@ pub struct ContextLostHandler {
 
 
 
-// ==================
-// === Extensions ===
-// ==================
-
-/// Set of all extensions that we try to enable after acquiring the context.
-#[derive(Debug, Clone, Deref)]
-pub struct Extensions {
-    rc: Rc<ExtensionsData>,
-}
-
-impl Extensions {
-    fn init(context: &WebGl2RenderingContext) -> Self {
-        Self { rc: Rc::new(ExtensionsData::init(context)) }
-    }
-}
-
-/// Internal representation of [`Extensions`].
-#[derive(Debug)]
-#[allow(missing_docs)]
-pub struct ExtensionsData {
-    pub khr_parallel_shader_compile: Option<extension::KhrParallelShaderCompile>,
-}
-
-impl ExtensionsData {
-    /// Constructor.
-    fn init(context: &WebGl2RenderingContext) -> Self {
-        let khr_parallel_shader_compile = extension::KhrParallelShaderCompile::init(context);
-        Self { khr_parallel_shader_compile }
-    }
-}
-
-
-
 // ===============
 // === Display ===
 // ===============
@@ -199,6 +166,12 @@ pub fn init_webgl_2_context<D: Display + 'static>(
 // === Constants ===
 // =================
 
+/// Type-safe WebGL context constants ([`u32`] values) wrapped in `GlEnum`. The list is copy-pasted
+/// from [`WebGl2RenderingContext`] implementation. It should not change, as it is defined in the
+/// WebGL 2.0 standard.
+///
+/// Please note that the [`TIMEOUT_IGNORED`] const is skipped, as it is the only [`f64`] const and
+/// is not used anywhere.
 macro_rules! define_constants {
     ($($name:ident),*$(,)?) => {
         #[allow(missing_docs)]
@@ -208,8 +181,6 @@ macro_rules! define_constants {
     };
 }
 
-// The [`TIMEOUT_IGNORED`] const is skipped, as it is the only [`f64`] const and is not used
-// anywhere.
 define_constants![
     READ_BUFFER,
     UNPACK_ROW_LENGTH,
