@@ -2,19 +2,34 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
-use ensogl_core::display::world::*;
 
-use super::font;
+use crate::typeface::font;
+
+use const_format::concatcp;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
+use ensogl_core::display::world::*;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use font::Font;
 use font::GlyphRenderInfo;
+
+
+// =================
+// === Constants ===
+// =================
+
+mod style_flag {
+    use const_format::concatcp;
+
+    pub const BOLD: i32 = 1 << 0;
+
+    pub const GLSL_DEFINITIONS: &str = concatcp!("const int STYLE_BOLD = ", BOLD, ";\n");
+}
 
 
 
@@ -50,11 +65,17 @@ impl Glyph {
     }
 
     pub fn is_bold(&self) -> bool {
-        self.style.get() & 0x1 != 0
+        self.style.get() & style_flag::BOLD != 0
     }
 
     pub fn set_bold(&self, value: bool) {
-        self.style.modify(|v| if value { *v = *v | 0x1 } else { *v = *v & !0x1 });
+        self.style.modify(|v| {
+            if value {
+                *v = *v | style_flag::BOLD
+            } else {
+                *v = *v & !style_flag::BOLD
+            }
+        });
     }
 
     /// Change the displayed character.
@@ -166,9 +187,10 @@ impl display::Object for System {
 
 // === Material ===
 #[cfg(target_os = "macos")]
-const FUNCTIONS: &str = include_str!("glsl/glyph_mac.glsl");
+const FUNCTIONS: &str =
+    concatcp!(style_flag::GLSL_DEFINITIONS, include_str!("glsl/glyph_mac.glsl"));
 #[cfg(not(target_os = "macos"))]
-const FUNCTIONS: &str = include_str!("glsl/glyph.glsl");
+const FUNCTIONS: &str = concatcp!(style_flag::GLSL_DEFINITIONS, include_str!("glsl/glyph.glsl"));
 
 const MAIN: &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
 
