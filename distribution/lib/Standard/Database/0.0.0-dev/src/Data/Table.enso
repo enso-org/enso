@@ -656,9 +656,7 @@ type Table
                 agg = p.second
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column this agg new_name . catch
-            partitioned = results.partition <| case _ of
-                Internal_Column _ _ _ -> True
-                _ -> False
+            partitioned = results.partition (_.is_an Internal_Column)
             new_columns = partitioned.first
             problems = partitioned.second
             on_problems.attach_problems_before problems <|
