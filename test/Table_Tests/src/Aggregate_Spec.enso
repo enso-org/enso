@@ -4,6 +4,7 @@ import Standard.Table
 from Standard.Table.Data.Column_Selector import By_Name, By_Index
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 import Standard.Test
 import Standard.Test.Problems
@@ -877,11 +878,36 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
             Nothing
 
+    Test.group prefix+"Table.aggregate" pending=pending <|
+        Test.specify "should work even if no aggregations apart from groupings are specified" <|
+            table = table_builder [["A", [1, 1, 2, 1]], ["B", [3, 2, 2, 3]], ["C", [11, 12, 13, 14]]]
+            grouped = table.aggregate [Group_By "B", Group_By "A"]
+            grouped.row_count . should_equal 3
+            materialized = materialize grouped . sort ["A", "B"]
+            materialized.columns.length . should_equal 2
+            materialized.columns.at 1 . name . should_equal "A"
+            materialized.columns.at 1 . to_vector . should_equal [1, 1, 2]
+            materialized.columns.at 0 . name . should_equal "B"
+            materialized.columns.at 0 . to_vector . should_equal [2, 3, 2]
+
+        if test_selection.first_last && test_selection.first_last_row_order.not then
+            Test.specify "should report a warning and ignore problematic columns if a feature is not supported" <|
+                table = table_builder [["A", [1,2,Nothing,3]]]
+                action = table.aggregate [Sum "A", First "A", Last "A"] on_problems=_
+                tester result =
+                    result.row_count . should_equal 1
+                    materialized = materialize result
+                    materialized.columns.length . should_equal 1
+                    materialized.columns.first.name . should_equal "Sum A"
+                    materialized.columns.first.to_vector . should_equal [6]
+                problems = [Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column."]
+                Problems.test_problem_handling action problems tester
+
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling pending) <|
         table =
             col1 = ["Index", [1, 2, 3]]
             col2 = ["Value", [1, 2, 3]]
-            Table.new [col1, col2]
+            table_builder [col1, col2]
 
         Test.specify "should raise a warning when there are no output columns" <|
             action = table.aggregate [] on_problems=_
