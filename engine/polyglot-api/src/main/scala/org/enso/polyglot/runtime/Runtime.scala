@@ -1078,16 +1078,27 @@ object Runtime {
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
-      * [[RecomputeContextRequest]]
+      * [[RecomputeContextRequest]].
       *
       * @param contextId the context's id.
       */
     final case class RecomputeContextResponse(contextId: ContextId)
         extends ApiResponse
 
+    /** A request sent from the client to the runtime server to get the
+      * component groups loaded in runtime.
+      *
+      * @param contextId the context's id
+      */
     final case class GetComponentGroupsRequest(contextId: ContextId)
         extends ApiRequest
 
+    /** A response sent from the server upon handling the
+      * [[GetComponentGroupsRequest]].
+      *
+      * @param componentGroups the mapping containing the loaded component
+      * groups
+      */
     final case class GetComponentGroupsResponse(
       componentGroups: Map[LibraryName, ComponentGroups]
     ) extends ApiResponse

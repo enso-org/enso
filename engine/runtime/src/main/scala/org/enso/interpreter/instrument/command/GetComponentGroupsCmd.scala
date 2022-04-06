@@ -6,7 +6,7 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A command that gets the component groups of libraries in the scope.
+/** A command that gets the component groups of the libraries in scope.
   *
   * @param maybeRequestId an option with request id
   */

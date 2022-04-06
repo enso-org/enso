@@ -97,8 +97,9 @@ trait PackageRepository {
 
 object PackageRepository {
 
-  type ModuleMap       = collection.concurrent.Map[String, Module]
-  type FrozenModuleMap = Map[String, Module]
+  type ModuleName      = String
+  type ModuleMap       = collection.concurrent.Map[ModuleName, Module]
+  type FrozenModuleMap = Map[ModuleName, Module]
   type ComponentsMap   = Map[LibraryName, ComponentGroups]
 
   /** A trait representing errors reported by this system */

@@ -106,8 +106,17 @@ object ContextRegistryProtocol {
     */
   case class RecomputeContextResponse(contextId: ContextId)
 
+  /** A request to the context registry to get the loaded component groups.
+    *
+    * @param clientId the internal id of the client
+    * @param contextId the execution context identifier
+    */
   case class GetComponentGroupsRequest(clientId: ClientId, contextId: ContextId)
 
+  /** A response to the [[GetComponentGroupsRequest]].
+    *
+    * @param componentGroups the list of loaded component groups.
+    */
   case class GetComponentGroupsResponse(
     componentGroups: Seq[LibraryComponentGroup]
   )

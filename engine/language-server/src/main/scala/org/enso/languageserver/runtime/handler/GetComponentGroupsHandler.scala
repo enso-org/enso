@@ -4,7 +4,11 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.editions.LibraryName
-import org.enso.languageserver.libraries.LibraryComponentGroup
+import org.enso.languageserver.libraries.{
+  ComponentGroupsResolver,
+  ComponentGroupsValidator,
+  LibraryComponentGroup
+}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
@@ -22,12 +26,17 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
-  * @param runtime reference to the runtime connector
+  * @param runtime reference to the runtime connector,
+  * @param componentGroupsResolver resolves dependencies between the component
+  * groups of different packages
+  * @param componentGroupsValidator validates the component groups
   */
 final class GetComponentGroupsHandler(
   runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
-  runtime: ActorRef
+  runtime: ActorRef,
+  componentGroupsResolver: ComponentGroupsResolver,
+  componentGroupsValidator: ComponentGroupsValidator
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -68,7 +77,44 @@ final class GetComponentGroupsHandler(
 
   private def resolveComponentGroups(
     componentGroups: Map[LibraryName, ComponentGroups]
-  ): Seq[LibraryComponentGroup] = ???
+  ): Seq[LibraryComponentGroup] = {
+    val validated = componentGroupsValidator.validate(componentGroups)
+
+    validated.collect { case (_, Left(error)) =>
+      logValidationError(error)
+    }
+
+    val validatedComponents = validated
+      .collect { case (libraryName, Right(componentGroups)) =>
+        libraryName -> componentGroups
+      }
+    componentGroupsResolver.resolveComponentGroups(validatedComponents)
+  }
+
+  private def logValidationError(
+    error: ComponentGroupsValidator.ValidationError
+  ): Unit =
+    error match {
+      case ComponentGroupsValidator.ValidationError
+            .InvalidComponentGroups(libraryName, message) =>
+        logger.warn(
+          s"Validation error. Failed to read library [$libraryName] " +
+          s"component groups (reason: $message)."
+        )
+      case ComponentGroupsValidator.ValidationError
+            .DuplicatedComponentGroup(libraryName, moduleReference) =>
+        logger.warn(
+          s"Validation error. Library [$libraryName] defines duplicate " +
+          s"component group [$moduleReference]."
+        )
+      case ComponentGroupsValidator.ValidationError
+            .ComponentGroupExtendsNothing(libraryName, moduleReference) =>
+        logger.warn(
+          s"Validation error. Library [$libraryName] component group " +
+          s"[$moduleReference] extends nothing."
+        )
+    }
+
 }
 
 object GetComponentGroupsHandler {
@@ -78,11 +124,26 @@ object GetComponentGroupsHandler {
     * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
     * @param runtime reference to the runtime connector
+    * @param componentGroupsResolver resolves dependencies between the component
+    * groups of different packages
+    * @param componentGroupsValidator validates the component groups
     */
   def props(
     runtimeFailureMapper: RuntimeFailureMapper,
     timeout: FiniteDuration,
-    runtime: ActorRef
+    runtime: ActorRef,
+    componentGroupsResolver: ComponentGroupsResolver =
+      new ComponentGroupsResolver,
+    componentGroupsValidator: ComponentGroupsValidator =
+      new ComponentGroupsValidator
   ): Props =
-    Props(new RecomputeContextHandler(runtimeFailureMapper, timeout, runtime))
+    Props(
+      new GetComponentGroupsHandler(
+        runtimeFailureMapper,
+        timeout,
+        runtime,
+        componentGroupsResolver,
+        componentGroupsValidator
+      )
+    )
 }

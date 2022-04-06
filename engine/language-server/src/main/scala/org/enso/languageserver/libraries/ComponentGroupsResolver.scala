@@ -46,7 +46,7 @@ final class ComponentGroupsResolver {
     * @param libraryComponents the associated list of component groups
     * @return the list of component groups with dependencies resolved
     */
-  private def resolveComponentGroups(
+  def resolveComponentGroups(
     libraryComponents: Map[LibraryName, ComponentGroups]
   ): Vector[LibraryComponentGroup] = {
     val newLibraryComponentGroups: View[LibraryComponentGroup] =
