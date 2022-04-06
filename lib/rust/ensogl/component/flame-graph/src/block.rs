@@ -5,11 +5,15 @@ use ensogl_core::prelude::*;
 
 use ensogl::frp;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
+use ensogl_core::data::color::Lcha;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::ComponentView;
 use ensogl_text as text;
+
+use super::BASE_TEXT_SIZE;
 
 
 
@@ -31,11 +35,11 @@ const EMPTY_LABEL: &str = "<No Label>";
 mod background {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style) {
+        (style:Style,color_rgba:Vector4<f32>) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let zoom                 = Var::<f32>::from("1.0/zoom()");
-            let base_color           = style.get_color("flame_graph_block_color");
+            let color = Var::<color::Rgba>::from(color_rgba);
 
             let shape = Rect((&width,&height));
 
@@ -49,7 +53,7 @@ mod background {
 
             let shape = shape - left;
             let shape = shape - right;
-            let shape = shape.fill(base_color);
+            let shape = shape.fill(color);
 
             (shape).into()
         }
@@ -65,7 +69,8 @@ mod background {
 ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
-        set_size(Vector2)
+        set_size(Vector2),
+        set_color(Lcha)
     }
     Output {}
 }
@@ -77,6 +82,7 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
             eval api.input.set_size((size) model.set_size(*size));
+            eval api.input.set_color((color) model.set_color(*color));
 
             is_hovered <- bool(&background.mouse_out, &background.mouse_over);
             eval is_hovered((hovered) model.set_label_visible(*hovered));
@@ -146,6 +152,9 @@ impl Model {
         let text_layer = &self.app.display.default_scene.layers.tooltip_text;
         label.add_to_scene_layer(text_layer);
 
+        label.set_default_text_size(text::Size(
+            BASE_TEXT_SIZE / self.app.display.default_scene.camera().zoom(),
+        ));
         let text_size = label.height.value();
         let text_origin = Vector2(
             TEXT_OFFSET_X - self.background.size.get().x / 2.0,
@@ -155,6 +164,10 @@ impl Model {
         label.set_content(self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned()));
 
         self.label.set(label);
+    }
+
+    fn set_color(&self, color: Lcha) {
+        self.background.color_rgba.set(color::Rgba::from(color).into());
     }
 }
 

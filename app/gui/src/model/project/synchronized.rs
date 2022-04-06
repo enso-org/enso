@@ -457,6 +457,14 @@ impl Project {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
             use engine_protocol::language_server::Notification;
+
+            // Profiler logging
+            if let Event::Notification(notification) = &event {
+                let name: &'static str = notification.into();
+                ensogl::profiler::log_rpc_event(name);
+            }
+
+            // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {

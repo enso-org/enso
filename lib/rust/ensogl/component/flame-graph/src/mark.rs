@@ -1,6 +1,5 @@
 //! A single block component that is used to build up a flame graph.
 
-use enso_frp::stream::ValueProvider;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -10,8 +9,10 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
-use ensogl_gui_component::component::Component;
+use ensogl_gui_component::component::ComponentView;
 use ensogl_text as text;
+
+use super::BASE_TEXT_SIZE;
 
 
 
@@ -109,7 +110,7 @@ pub struct Model {
 
 impl component::Model for Model {
     fn label() -> &'static str {
-        "FlameGraphBlock"
+        "FlameGraphMark"
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
@@ -154,11 +155,11 @@ impl Model {
         let text_layer = &self.app.display.default_scene.layers.tooltip_text;
         label.add_to_scene_layer(text_layer);
         label.set_default_text_size(text::Size(
-            12.0 / self.app.display.default_scene.camera().zoom(),
+            BASE_TEXT_SIZE / self.app.display.default_scene.camera().zoom(),
         ));
 
         label.set_position_x(TEXT_OFFSET_X);
-        label.set_content(self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned()));
+        label.set_content(self.label_text());
         self.label.set(label);
     }
 
@@ -166,6 +167,10 @@ impl Model {
         if let Some(label) = self.label.deref().borrow().as_ref() {
             label.set_position_y(y)
         }
+    }
+
+    fn label_text(&self) -> String {
+        self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned())
     }
 }
 
@@ -182,4 +187,4 @@ impl display::Object for Model {
 // =================
 
 #[allow(missing_docs)]
-pub type Mark = Component<Model, Frp>;
+pub type Mark = ComponentView<Model, Frp>;

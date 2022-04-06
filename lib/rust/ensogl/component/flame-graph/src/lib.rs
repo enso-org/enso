@@ -24,9 +24,13 @@ use ensogl_core::display;
 mod block;
 mod mark;
 
+use enso_profiler_flame_graph::Kind;
+use ensogl_core::data::color;
+use ensogl_core::display::shape::StyleWatchFrp;
+use mark::Mark;
 
 pub use block::Block;
-use mark::Mark;
+
 
 
 // ========================
@@ -35,6 +39,7 @@ use mark::Mark;
 
 const ROW_HEIGHT: f64 = 20.0;
 const ROW_PADDING: f64 = 5.0;
+pub(crate) const BASE_TEXT_SIZE: f32 = 18.0;
 
 
 
@@ -65,6 +70,15 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
     component.set_size.emit(size);
     component.set_position_xy(pos);
 
+    let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+
+    let color: color::Rgba = match block.kind {
+        Kind::Active => style.get_color("flame_graph_block_color_active").value(),
+        Kind::Paused => style.get_color("flame_graph_block_color_paused").value(),
+    };
+    let color: color::Lcha = color.into();
+    component.set_color(color);
+
     component
 }
 
@@ -73,7 +87,7 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     let component = app.new_view::<Mark>();
     let x = mark.position as f32;
     let y = 0.0;
-    let pos = Vector2::new(x, y as f32);
+    let pos = Vector2::new(x, y);
 
     let label = format!("{} ({:.1}ms)", mark.label, mark.position);
 

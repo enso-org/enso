@@ -6,14 +6,24 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
+use crate::Kind::Active;
+use crate::Kind::Paused;
+
 use enso_profiler as profiler;
 use enso_profiler_data as data;
-
 
 
 // ==================
 // === Block Data ===
 // ==================
+
+/// Indicates whether a block indicates an active interval or a paused interval. Paused intervals
+/// are used to represent async tasks that are started and awaited, but that have made no progress.
+#[derive(Copy, Clone, Debug)]
+pub enum Kind {
+    Active,
+    Paused,
+}
 
 /// A `Block` contains the data required to render a single block of a frame graph.
 #[derive(Clone, Debug)]
@@ -26,6 +36,8 @@ pub struct Block {
     pub row:   u32,
     /// The label to be displayed with the block.
     pub label: String,
+    /// Indicates what kind of block this is (active/paused).
+    pub kind:  Kind,
 }
 
 impl Block {
@@ -132,7 +144,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        self.blocks.push(Block { start, end, label, row });
+        self.blocks.push(Block { start, end, label, row, kind: Active });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
@@ -176,17 +188,39 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
         if measurement.intervals.len() >= 2 {
             let row = self.next_row;
             self.next_row += 1;
-            for active in &measurement.intervals {
-                let active = &self.profile[*active];
-                let start = active.interval.start.into_ms();
-                let mut end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
-                // We want to show every wakeup of the task, even if it is momentary.
-                const DURATION_FLOOR_MS: f64 = 0.5;
-                if end < start + DURATION_FLOOR_MS {
-                    end = start + DURATION_FLOOR_MS;
+            for window in measurement.intervals.windows(2) {
+                if let [current, next] = window {
+                    let current = &self.profile[*current];
+                    let next = &self.profile[*next];
+
+                    let current_start = current.interval.start.into_ms();
+                    let current_end =
+                        current.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
+                    let next_start = next.interval.start.into_ms();
+
+                    let active_interval = [current_start, current_end];
+                    let sleep_interval = [current_end, next_start];
+
+                    let label_active = self.profile[current.measurement].label.to_string();
+                    let label_sleep =
+                        format!("{} (inactive)", self.profile[current.measurement].label);
+
+                    self.blocks.push(Block {
+                        start: active_interval[0],
+                        end: active_interval[1],
+                        label: label_active,
+                        row,
+                        kind: Active,
+                    });
+
+                    self.blocks.push(Block {
+                        start: sleep_interval[0],
+                        end: sleep_interval[1],
+                        label: label_sleep,
+                        row,
+                        kind: Paused,
+                    });
                 }
-                let label = self.profile[active.measurement].label.to_string();
-                self.blocks.push(Block { start, end, label, row });
             }
         }
         for child in &measurement.children {
@@ -264,7 +298,7 @@ impl AggregateFrame {
     fn visit(&self, blocks: &mut Vec<Block>, time: &mut f64, row: u32, label: String) {
         let start = *time;
         let end = *time + self.duration;
-        blocks.push(Block { start, end, label, row });
+        blocks.push(Block { start, end, label, row, kind: Active });
         for (label, frame) in &self.children {
             frame.visit(blocks, time, row + 1, label.to_string());
         }
