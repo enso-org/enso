@@ -114,6 +114,7 @@ impl component::Frp<Model> for Frp {
 
             // === Entries ===
 
+            model.entries.set_style_path(theme::application::component_browser::group::mcdbg::HERE.str);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_custom_background_color <+ input.set_background_color.some();
