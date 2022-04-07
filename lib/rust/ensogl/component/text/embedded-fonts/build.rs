@@ -77,6 +77,7 @@ mod deja_vu {
 
     pub const FONTS_TO_EXTRACT: &[&str] = &[
         "DejaVuSans",
+        "DejaVuSans-Bold",
         "DejaVuSans-ExtraLight",
         "DejaVuSansMono",
         "DejaVuSansMono-Bold",
