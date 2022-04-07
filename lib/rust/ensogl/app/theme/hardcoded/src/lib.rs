@@ -188,7 +188,8 @@ define_themes! { [light:0, dark:1]
                     }
                     height = 30.0, 30.0; // TODO
                     padding {
-                        left   = 2.5, 2.5; // TODO
+                        // left   = 2.5, 2.5; // TODO
+                        left   = 16.5, 16.5; // TODO
                         right  = 2.5, 2.5; // TODO
                         bottom = 2.5, 2.5; // TODO
                     }
@@ -199,11 +200,11 @@ define_themes! { [light:0, dark:1]
                         size = 12.0, 12.0;
                     }
                     // TODO: height = 30.0, 30.0; ?
-                    padding {
-                        left   = 2.5, 2.5; // TODO
-                        right  = 2.5, 2.5; // TODO
-                        bottom = 2.5, 2.5; // TODO
-                    }
+                    // TODO: padding {
+                    //     left   = 2.5, 2.5; // TODO
+                    //     right  = 2.5, 2.5; // TODO
+                    //     bottom = 2.5, 2.5; // TODO
+                    // }
                 }
             }
         }

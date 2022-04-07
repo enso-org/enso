@@ -38,15 +38,6 @@ use ensogl_text as text;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-const HEADER_HEIGHT: f32 = entry::HEIGHT;
-const HEADER_PADDING: f32 = entry::PADDING;
-
-
-
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -91,14 +82,10 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         let header_text_size = style.get_number(theme::name::text::size);
         frp::extend! { network
-            // FIXME: taken from list_view::Model::padding(); this itself and calculations around it
-            // look fishy
-            let lv_padding = style.get_number(ensogl_hardcoded_theme::application::searcher::padding);
 
-            size_and_lv_padding <- all(&input.resize, &lv_padding);
-            // TODO[LATER]: looks like a common pattern (also in LV); is there a helper in FRP?
-            // eval input.resize((size) model.resize(*size));
-            eval size_and_lv_padding(((size, lv_padding)) model.resize(*size, *lv_padding));
+            let header_geometry = HeaderGeometry::from_style(style, network);
+            size_and_header_geometry <- all(&input.resize, &header_geometry);
+            eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
 
 
             // === Header ===
@@ -117,10 +104,42 @@ impl component::Frp<Model> for Frp {
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_custom_background_color <+ input.set_background_color.some();
-
             model.entries.set_entries <+ input.set_entries;
         }
         init.emit(());
+    }
+}
+
+
+
+// =======================
+// === Header Geometry ===
+// =======================
+
+#[derive(Debug, Copy, Clone, Default)]
+struct HeaderGeometry {
+    height: f32,
+    padding_left: f32,
+    padding_right: f32,
+    padding_bottom: f32,
+}
+
+impl HeaderGeometry {
+    fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
+        let height = style.get_number(theme::name::height);
+        let padding_left = style.get_number(theme::name::padding::left);
+        let padding_right = style.get_number(theme::name::padding::right);
+        let padding_bottom = style.get_number(theme::name::padding::bottom);
+
+        frp::extend! { network
+            init <- source_();
+            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
+                |_,&height,&padding_left,&padding_right,&padding_bottom|
+                    Self{height,padding_left,padding_right,padding_bottom});
+            theme_sampler <- theme.sampler();
+        }
+        init.emit(());
+        theme_sampler
     }
 }
 
@@ -174,29 +193,33 @@ impl component::Model for Model {
 }
 
 impl Model {
-    fn resize(&self, size: Vector2, lv_padding: f32) {
+    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
+
         // === Header ===
 
         let half_height = size.y / 2.0;
         let top_left = Vector2(-size.x / 2.0, half_height);
-        let header_label_height = self.header.height.value(); // TODO: pass via FRP?
-        let header_padding = HEADER_PADDING + lv_padding / 2.0;
+        let header_label_height = self.header.height.value();
+        let header_height = header_geometry.height;
+        let header_padding_left = header_geometry.padding_left;
+        let header_padding_right = header_geometry.padding_right;
+        let header_padding_bottom = header_geometry.padding_bottom;
         self.header.set_position_xy(
             top_left
                 + Vector2(
-                    header_padding,
-                    -HEADER_HEIGHT / 2.0 + header_label_height / 2.0 - lv_padding / 2.0,
+                    header_padding_left,
+                    (-header_height + header_label_height) / 2.0 - header_padding_bottom,
                 ),
         );
-        self.header.set_truncation_width(size.x - 2.0 * header_padding);
-        self.header_background.size.set(Vector2(size.x, HEADER_HEIGHT));
-        self.header_background.set_position_y(half_height - HEADER_HEIGHT / 2.0);
+        self.header.set_truncation_width(size.x - header_padding_left - header_padding_right);
+        self.header_background.size.set(Vector2(size.x, header_height));
+        self.header_background.set_position_y(half_height - header_height / 2.0);
 
 
         // === Entries ===
 
-        self.entries.set_position_y(-HEADER_HEIGHT / 2.0);
-        self.entries.resize(size - Vector2(0.0, HEADER_HEIGHT));
+        self.entries.set_position_y(-header_height / 2.0);
+        self.entries.resize(size - Vector2(0.0, header_height));
     }
 }
 
