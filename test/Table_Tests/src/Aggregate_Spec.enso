@@ -885,37 +885,78 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             m1.columns.first.name . should_equal "Count Distinct A B"
             m1.columns.first.to_vector . should_equal [3]
 
+    Test.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev pending) <|
+        Test.specify "should correctly handle single elements" <|
+            r1 = table_builder [["X", [1]]] . aggregate [Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 2
+            m1.columns.first.at 0 . should_equal Nothing
+            m1.columns.first.at 0 . should_equal Nothing
+
     Test.group prefix+"Table.aggregate should correctly select result types" pending=pending <|
         Test.specify " widening to decimals on Average" <|
-            Nothing
+            table = table_builder [["G", ["a", "a", "b", "b"]], ["X", [0, 1, 1, Nothing]]]
+            r1 = table.aggregate [Average "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.at 0 . should_equal (2/3) epsilon=0.00001
+
+            r2 = table.aggregate [Group_By "G", Average "X"]
+            r2.row_count.should_equal 2
+            m2 = materialize r2 . sort "G"
+            m2.columns.length . should_equal 2
+            m2.columns.first.to_vector . should_equal ["a", "b"]
+            m2.columns.second.to_vector . should_equal [0.5, 1]
+
         Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
-            Nothing
+            table = table_builder [["X", [-1000, 0, 1, 100000, Nothing]]]
+            r1 = table.aggregate [Median "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.to_vector . should_equal [0.5]
+
         Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
-            Nothing
+            table = table_builder [["X", [1, 2, 3, 4, 5, 6, Nothing]]]
+            r1 = table.aggregate [Percentile 0.3 "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.to_vector . should_equal [2.5]
+
         Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
-            Nothing
+            table = table_builder [["X", [1, 2, 3, 4, Nothing]]]
+            r1 = table.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
+            r1.row_count.should_equal 1
+            r1.print
+            m1 = materialize r1
+            m1.columns.length . should_equal 2
+            m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
+            m1.columns.second.at 0 . should_equal 1.2909944487358 epsilon=0.000001
 
     Test.group prefix+"Table.aggregate should correctly handle infinities" pending=pending <|
         pos_inf = 1/0
         neg_inf = -1/0
-        Test.specify " widening to decimals on Average" <|
+        Test.specify " on Average" <|
             Nothing
-        Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
+        Test.specify " on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
+        Test.specify " on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
+        Test.specify " on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             Nothing
 
     Test.group prefix+"Table.aggregate should correctly handle NaN" pending=pending <|
         nan = 0.log 0
-        Test.specify " widening to decimals on Average" <|
+        Test.specify " on Average" <|
             Nothing
-        Test.specify " widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
+        Test.specify " on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
+        Test.specify " on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             Nothing
-        Test.specify " widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
+        Test.specify " on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             Nothing
 
     Test.group prefix+"Table.aggregate Mode" (pending = resolve_pending test_selection.advanced_stats pending) <|

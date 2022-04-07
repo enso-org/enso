@@ -92,7 +92,7 @@ agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
     sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
     square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
     var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / " ++ n
     Sql.code "SQRT(" ++ var ++ Sql.code ")"
 
@@ -100,7 +100,7 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
     sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
     square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
     var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / (" ++ n ++ Sql.code " - 1)"
     Sql.code "SQRT(" ++ var ++ Sql.code ")"
 
