@@ -157,11 +157,13 @@
 - [Added the ability to decorate values with warnings.][3248]
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
+- [Fixed execution of defaulted arguments of Atom Constructors][3358]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 [3330]: https://github.com/enso-org/enso/pull/3330
+[3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
 
