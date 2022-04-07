@@ -490,14 +490,13 @@ where E::Model: Default
             );
             default_style_path <- init.constant(theme::widget::list_view::HERE.str.to_string());
             style_path <- any(&default_style_path, &frp.set_style_path);
+            eval style_path ((path) model.entries.update_entries_style_prefix(path.into()));
             trace style_path;
             view_and_style <- all(&view_info, &style_path);
             // This should go before handling mouse events to have proper checking of
             eval view_and_style (((view,style_path)) model.update_after_view_change(view, style_path.into()));
             // FIXME[MC]: still map3? or other?
-            // FIXME[MC]: if set_style is changed, reset all entries in the list! they must reload
-            // the style from a new path
-            _new_entries <- frp.set_entries.map3(&view_info, &frp.set_style_path, f!((entries,view,style_path)
+            _new_entries <- frp.set_entries.map3(&view_info, &style_path, f!((entries,view,style_path)
                 model.set_entries(entries.clone_ref(),view,style_path.into())
             ));
         }
