@@ -1710,7 +1710,6 @@ dependencies = [
  "enso-text",
  "enso-types",
  "ensogl-core",
- "ensogl-hardcoded-theme",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen-test",
