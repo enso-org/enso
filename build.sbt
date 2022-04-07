@@ -948,7 +948,6 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -1067,6 +1066,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1224,7 +1224,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(`docs-generator`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1234,11 +1233,11 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(graph)
   .dependsOn(pkg)
-  .dependsOn(searcher)
   .dependsOn(`edition-updater`)
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
 /* Note [Unmanaged Classpath]
@@ -1583,8 +1582,8 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
+      "com.ibm.icu"         % "icu4j"             % icuVersion,
       "com.univocity"       % "univocity-parsers" % "2.9.0",
-      "org.graalvm.sdk"     % "graal-sdk"         % graalVersion % "provided",
       "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
     ),

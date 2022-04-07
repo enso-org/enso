@@ -25,6 +25,7 @@ export Standard.Base.Data.Text.Line_Ending_Style
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
 
 ## UNSTABLE
@@ -57,6 +58,28 @@ Text.length =
     count accum iter = if iter == -1 then accum else
         @Tail_Call count (accum + 1) iterator.next
     count 0 iterator.next
+
+## Returns a new `Text` object with the characters in the reverse order of the input.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Reverse the text "Hello, world!".
+
+         "Hello, world!".reverse
+Text.reverse : Text
+Text.reverse =
+    reverseStringBuilder = StringBuilder.new this.length
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+
+    iterate prev next = if next == -1 then reverseStringBuilder.toString else
+      reverseStringBuilder.append (Text_Utils.substring this next prev)
+      @Tail_Call iterate next iterator.previous
+    iterate iterator.last iterator.previous
 
 ## Applies the provided `function` to each character in `this`.
 

@@ -9,6 +9,7 @@ ensogl = { path = "../lib/rust/ensogl" }
 enso-frp = { path = "../lib/rust/frp" }
 enso-prelude = { path = "../lib/rust/prelude" }
 enso-gui = { path = "../app/gui" }
+enso-shortcuts = { path = "../lib/rust/shortcuts" }
 enso-web = { path = "../lib/rust/web" }
 ordered-float = "2.7.0"
 wasm-bindgen = { version = "0.2.78" }

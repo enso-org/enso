@@ -9,11 +9,14 @@ use ensogl::prelude::*;
 
 use crate::GraphEditorModelWithNetwork;
 use crate::NodeId;
+
 use enso_frp as frp;
 use ensogl::animation::easing::EndStatus::Normal;
 use ensogl::display::Scene;
 use ensogl::Animation;
 use ensogl::Easing;
+
+
 
 /// Describes the "speed" of growth/shrink animation.
 ///
@@ -112,14 +115,14 @@ impl GraphEditorModelWithNetwork {
     /// Move node to the `edited_node` scene layer, so that it is rendered by the separate camera.
     fn move_node_to_edited_node_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model.move_to_edited_node_layer();
+            node.model().move_to_edited_node_layer();
         }
     }
 
     /// Move node to the `main` scene layer, so that it is rendered by the main camera.
     fn move_node_to_main_layer(&self, node_id: NodeId) {
         if let Some(node) = self.nodes.get_cloned(&node_id) {
-            node.model.move_to_main_layer();
+            node.model().move_to_main_layer();
         }
     }
 }

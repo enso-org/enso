@@ -7,7 +7,7 @@
 //!   implementing this without proc macros would be complex and repetitious.
 //! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
-#![cfg_attr(feature = "lineno", feature(proc_macro_span))]
+#![cfg_attr(enso_enable = "proc_macro_span", feature(proc_macro_span))]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -290,13 +290,13 @@ pub fn profile(
     func.into_token_stream().into()
 }
 
-#[cfg(not(feature = "lineno"))]
+#[cfg(not(enso_enable = "proc_macro_span"))]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label<L: fmt::Display>(name: L) -> String {
     format!("{} (?:?)", name)
 }
 
-#[cfg(feature = "lineno")]
+#[cfg(enso_enable = "proc_macro_span")]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label<L: fmt::Display>(name: L) -> String {
     let span = proc_macro::Span::call_site();

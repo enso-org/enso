@@ -1,7 +1,8 @@
 package org.enso.docs.sections
+import org.enso.syntax.text.ast.Doc
 
 /** The base trait for the section. */
-sealed trait Section[A]
+sealed trait Section
 object Section {
 
   /** The documentation tag.
@@ -19,9 +20,9 @@ object Section {
     * }}}
     *
     * @param name the tag name
-    * @param text the tag text
+    * @param body the tag text
     */
-  case class Tag[A](name: String, text: Option[A]) extends Section[A]
+  case class Tag(name: String, body: List[Doc.Elem]) extends Section
 
   /** The paragraph of the text.
     *
@@ -35,7 +36,7 @@ object Section {
     *
     * @param body the elements that make up this paragraph
     */
-  case class Paragraph[A](body: List[A]) extends Section[A]
+  case class Paragraph(body: List[Doc.Elem]) extends Section
 
   /** The section that starts with the key followed by the colon and the body.
     *
@@ -58,7 +59,7 @@ object Section {
     * @param key the section key
     * @param body the elements the make up the body of the section
     */
-  case class Keyed[A](key: String, body: List[A]) extends Section[A]
+  case class Keyed(key: String, body: List[Doc.Elem]) extends Section
 
   /** The section that starts with the mark followed by the header and the body.
     *
@@ -80,8 +81,8 @@ object Section {
     *     This is important.
     * }}}
     */
-  case class Marked[A](mark: Mark, header: Option[String], body: List[A])
-      extends Section[A]
+  case class Marked(mark: Mark, header: Option[String], body: List[Doc.Elem])
+      extends Section
 
   /** The base trait for the section marks. */
   sealed trait Mark

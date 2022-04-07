@@ -141,7 +141,6 @@ trait SuggestionsRepo[F[_]] {
     arguments: Option[Seq[SuggestionArgumentAction]],
     returnType: Option[String],
     documentation: Option[Option[String]],
-    documentationHtml: Option[Option[String]],
     scope: Option[Suggestion.Scope],
     reexport: Option[Option[String]]
   ): F[(Long, Option[Long])]
