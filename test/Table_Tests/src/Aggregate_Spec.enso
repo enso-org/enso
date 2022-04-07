@@ -19,7 +19,7 @@ spec =
     table = Table.from_csv file_contents
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
-    here.aggregate_spec "[In-Memory] " table empty_table Table.new materialize
+    here.aggregate_spec "[In-Memory] " table empty_table Table.new materialize is_database=False
 
 ## Runs the common aggregate tests.
 
@@ -37,7 +37,7 @@ spec =
      skip checks for backends which do not support particular features.
    - pending: An optional mark to disable all test groups. Can be used to
      indicate that some tests are disabled due to missing test setup.
-aggregate_spec prefix table empty_table table_builder materialize test_selection=here.all_tests pending=Nothing =
+aggregate_spec prefix table empty_table table_builder materialize is_database test_selection=here.all_tests pending=Nothing =
     expect_column_names names table =
         table.columns . map .name . should_equal names frames_to_skip=2
 
@@ -1100,5 +1100,10 @@ aggregate_spec prefix table empty_table table_builder materialize test_selection
             problems.length . should_equal 1
             problems.at 0 . is_an Floating_Point_Grouping . should_be_true
             problems.at 0 . rows . length . should_equal 9
+
+    if is_database then
+        Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" pending=pending <|
+            ## TODO
+            Nothing
 
 main = Test.Suite.run_main here.spec

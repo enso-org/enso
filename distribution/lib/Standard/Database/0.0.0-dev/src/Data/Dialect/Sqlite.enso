@@ -165,12 +165,15 @@ concat_ops =
 
 
 ## PRIVATE
-agg_count_distinct args =
-    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
+agg_count_distinct args = case args.length == 1 of
+    True -> Sql.code "COUNT(DISTINCT (" ++ args.first ++ Sql.code "))"
+    False -> Error.throw (Illegal_Argument_Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
-agg_count_distinct_include_null args =
-    count = here.count_distinct args
-    are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
-    all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ Sql.join " AND " are_nulls ++ Sql.code " THEN 1 END) > 0 THEN 1 ELSE 0 END"
-    count ++ Sql.code " + " ++ all_nulls_case
+agg_count_distinct_include_null args = case args.length == 1 of
+    True ->
+        arg = args.first
+        count = Sql.code "COUNT(DISTINCT " ++ arg ++ Sql.code ")"
+        all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ Sql.code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ Sql.code " + " ++ all_nulls_case
+    False -> Error.throw (Illegal_Argument_Error "COUNT_DISTINCT supports only single arguments in SQLite.")
