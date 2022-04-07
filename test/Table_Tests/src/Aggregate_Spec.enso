@@ -892,7 +892,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             m1 = materialize r1
             m1.columns.length . should_equal 2
             m1.columns.first.at 0 . should_equal Nothing
-            m1.columns.first.at 0 . should_equal Nothing
+            m1.columns.second.at 0 . should_equal 0
 
     Test.group prefix+"Table.aggregate should correctly select result types" pending=pending <|
         Test.specify " widening to decimals on Average" <|
@@ -930,7 +930,6 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             table = table_builder [["X", [1, 2, 3, 4, Nothing]]]
             r1 = table.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
-            r1.print
             m1 = materialize r1
             m1.columns.length . should_equal 2
             m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
