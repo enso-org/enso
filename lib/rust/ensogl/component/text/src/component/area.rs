@@ -952,6 +952,7 @@ impl AreaModel {
         self.display_object.remove_child(&old_glyph_system);
         // remove old Glyph structures, as they still refer to the old Glyph System.
         self.lines.rc.take();
+        self.redraw(true);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
