@@ -76,7 +76,7 @@ class BindingAnalysisTest extends CompilerTest {
 
       metadata.types shouldEqual List(
         Cons("Foo", 3, false),
-        Cons("Bar", 0, false),
+        Cons("Bar", 0, true),
         Cons("Baz", 2, false)
       )
       metadata.polyglotSymbols shouldEqual List(
