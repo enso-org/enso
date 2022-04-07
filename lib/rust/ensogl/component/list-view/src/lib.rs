@@ -3,7 +3,7 @@
 //! ListView a displayed list of entries with possibility of selecting one and "choosing" by
 //! clicking or pressing enter - similar to the HTML `<select>`.
 
-#![recursion_limit = "512"]
+#![recursion_limit = "1024"]
 // === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
@@ -330,8 +330,6 @@ where E::Model: Default
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
         let style = StyleWatchFrp::new(&scene.style_sheet);
 
-        model.show_background_shadow(true);
-        model.set_background_corners_radius(background::CORNER_RADIUS_PX);
         let default_background_color = style.get_color(theme::widget::list_view::background);
         model.set_background_color(default_background_color.value().into());
 
@@ -339,8 +337,15 @@ where E::Model: Default
 
             // === Background ===
 
-            eval frp.show_background_shadow ((t) model.show_background_shadow(*t));
-            eval frp.set_background_corners_radius ((px) model.set_background_corners_radius(*px));
+            init <- source_();
+            default_show_background_shadow <- init.constant(true);
+            show_background_shadow <- any(
+                &default_show_background_shadow,&frp.show_background_shadow);
+            eval show_background_shadow ((t) model.show_background_shadow(*t));
+            default_background_corners_radius <- init.constant(background::CORNER_RADIUS_PX);
+            background_corners_radius <- any(
+                &default_background_corners_radius,&frp.set_background_corners_radius);
+            eval background_corners_radius ((px) model.set_background_corners_radius(*px));
             // TODO: use all_with instead?
             background_color_change <- all(
                 &frp.set_custom_background_color, &default_background_color);
@@ -364,6 +369,7 @@ where E::Model: Default
 
 
             // === Selected Entry ===
+
             frp.source.selected_entry <+ frp.select_entry.map(|id| Some(*id));
 
             selection_jump_on_one_up  <- frp.move_selection_up.constant(-1);
@@ -487,6 +493,7 @@ where E::Model: Default
             ));
         }
 
+        init.emit(());
         view_y.set_target_value(MAX_SCROLL);
         view_y.skip();
         frp.scroll_jump(MAX_SCROLL);
