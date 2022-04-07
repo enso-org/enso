@@ -182,27 +182,27 @@ define_themes! { [light:0, dark:1]
         component_browser {
             group {
                 name {
-                    // text {
-                    //     // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
-                    //     // font-size = 12.0, 12.0;
-                    // }
-                    height = 30.0, 30.0;
+                    text {
+                        // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        size = 12.0, 12.0;
+                    }
+                    height = 30.0, 30.0; // TODO
                     padding {
-                        left   = 2.5, 2.5;
-                        right  = 2.5, 2.5;
-                        bottom = 2.5, 2.5;
+                        left   = 2.5, 2.5; // TODO
+                        right  = 2.5, 2.5; // TODO
+                        bottom = 2.5, 2.5; // TODO
                     }
                 }
                 entries {
                     text {
-                    //     // font = "DejaVuSans", "DejaVuSans";
+                        // font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
                     }
                     // TODO: height = 30.0, 30.0; ?
                     padding {
-                        left   = 2.5, 2.5;
-                        right  = 2.5, 2.5;
-                        bottom = 2.5, 2.5;
+                        left   = 2.5, 2.5; // TODO
+                        right  = 2.5, 2.5; // TODO
+                        bottom = 2.5, 2.5; // TODO
                     }
                 }
             }
