@@ -29,6 +29,8 @@ public class FunctionSchema {
     }
   }
 
+  public static final FunctionSchema THUNK = new FunctionSchema();
+
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;

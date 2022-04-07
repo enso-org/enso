@@ -8,7 +8,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -40,20 +39,15 @@ public abstract class ThunkExecutorNode extends Node {
    */
   public abstract Stateful executeThunk(Object thunk, Object state, BaseNode.TailStatus isTail);
 
-  static boolean isThunk(Object th) {
-    return TypesGen.isThunk(th);
-  }
-
-  @Specialization(guards = "!isThunk(thunk)")
-  Stateful doOther(Object thunk, Object state, BaseNode.TailStatus isTail) {
-    return new Stateful(state, thunk);
+  boolean sameCallTarget(DirectCallNode callNode, Function function) {
+    return function.getCallTarget() == callNode.getCallTarget();
   }
 
   @Specialization(
-      guards = "callNode.getCallTarget() == thunk.getCallTarget()",
+      guards = {"thunk.isThunk()", "sameCallTarget(callNode, thunk)"},
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   Stateful doCached(
-      Thunk thunk,
+      Function thunk,
       Object state,
       BaseNode.TailStatus isTail,
       @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
@@ -71,9 +65,9 @@ public abstract class ThunkExecutorNode extends Node {
     }
   }
 
-  @Specialization(replaces = "doCached")
+  @Specialization(replaces = "doCached", guards = "thunk.isThunk()")
   Stateful doUncached(
-      Thunk thunk,
+      Function thunk,
       Object state,
       BaseNode.TailStatus isTail,
       @Cached IndirectCallNode callNode,
@@ -92,5 +86,10 @@ public abstract class ThunkExecutorNode extends Node {
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
+  }
+
+  @Fallback
+  Stateful doOther(Object thunk, Object state, BaseNode.TailStatus isTail) {
+    return new Stateful(state, thunk);
   }
 }
