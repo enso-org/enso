@@ -40,18 +40,20 @@ mod style_flag {
 /// Glyph texture. Contains all letters encoded in MSDF format.
 pub type Texture = gpu::Texture<texture::GpuOnly, texture::Rgb, u8>;
 
-/// A glyph rendered on screen. The displayed character will be stretched to fit the entire size of
-/// underlying sprite.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+/// A glyph rendered on screen.
+///
+/// The underlying sprite's size is automatically adjusted depending on char and font size set.
+#[derive(Clone, CloneRef, Debug)]
 pub struct Glyph {
-    #[shrinkwrap(main_field)]
     sprite:      Sprite,
     context:     Context,
     font:        Font,
+    font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
     style:       Attribute<i32>,
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
+    char:        Rc<Cell<char>>,
 }
 
 impl Glyph {
@@ -72,11 +74,24 @@ impl Glyph {
         self.style.modify(|v| if value { *v |= style_flag::BOLD } else { *v &= !style_flag::BOLD });
     }
 
+    pub fn font_size(&self) -> f32 {
+        self.font_size.get().into()
+    }
+
+    pub fn set_font_size(&self, size: f32) {
+        self.font_size.set(size);
+        let glyph_info = self.font.glyph_info(self.char.get());
+        self.sprite.size.set(glyph_info.scale.scale(size));
+    }
+
     /// Change the displayed character.
     pub fn set_char(&self, ch: char) {
+        self.char.set(ch);
         let glyph_info = self.font.glyph_info(ch);
         self.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
         self.update_msdf_texture();
+        let font_size = self.font_size();
+        self.sprite.size.set(glyph_info.scale.scale(font_size));
     }
 
     // FIXME: How does it work? Replace with better checking.
@@ -114,6 +129,7 @@ pub struct System {
     context:       Context,
     sprite_system: SpriteSystem,
     pub font:      Font,
+    font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     style:         Buffer<i32>,
     atlas_index:   Buffer<f32>,
@@ -144,6 +160,7 @@ impl System {
             sprite_system,
             font,
             atlas: symbol.variables().add_or_panic("atlas", texture),
+            font_size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
             style: mesh.instance_scope().add_buffer("style"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
@@ -156,14 +173,16 @@ impl System {
         let context = self.context.clone();
         let sprite = self.sprite_system.new_instance();
         let instance_id = sprite.instance_id;
+        let font_size = self.font_size.at(instance_id);
         let color = self.color.at(instance_id);
         let style = self.style.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
+        let char = default();
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
-        Glyph { sprite, context, font, color, style, atlas_index, atlas }
+        Glyph { sprite, context, font, font_size, color, style, atlas_index, atlas, char }
     }
 
     /// Get underlying sprite system.
@@ -198,6 +217,7 @@ impl System {
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
         material.add_input("style", 0);
         // FIXME We need to use this output, as we need to declare the same amount of shader

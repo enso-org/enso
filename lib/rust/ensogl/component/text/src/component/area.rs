@@ -842,7 +842,6 @@ impl AreaModel {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
                     let glyph_info = glyph_system.font.glyph_info(chr);
-                    let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
@@ -850,7 +849,7 @@ impl AreaModel {
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
                     glyph.set_bold(style.bold.raw);
-                    glyph.size.set(size);
+                    glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
                         Some(cursor) => {

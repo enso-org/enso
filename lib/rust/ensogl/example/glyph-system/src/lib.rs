@@ -52,11 +52,11 @@ fn init(world: &World) {
             let bold_glyph = glyph_system.new_glyph();
             glyph.set_char(char);
             glyph.set_color(color);
-            glyph.size.set(Vector2(height, height));
+            glyph.set_font_size(height);
 
             bold_glyph.set_char(char);
             bold_glyph.set_color(color);
-            bold_glyph.size.set(Vector2(height, height));
+            bold_glyph.set_font_size(height);
             bold_glyph.set_bold(true);
 
             let x = char_ind as f32 * (height + 4.0);
