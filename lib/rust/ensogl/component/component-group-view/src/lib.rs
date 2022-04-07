@@ -89,7 +89,6 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        // FIXME: should have separate style for CGV header text size most probably
         let header_text_size = style.get_number(theme::name::text::size);
         frp::extend! { network
             // FIXME: taken from list_view::Model::padding(); this itself and calculations around it
