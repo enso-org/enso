@@ -52,6 +52,7 @@ fn init(app: Application) {
     area.hover();
     area.set_cursor_at_end();
 
+    area.set_bold_bytes(ensogl_text::Range::new(7.bytes(), 15.bytes()), style::Bold(true));
     area.set_bold_bytes(ensogl_text::Range::new(37.bytes(), 41.bytes()), style::Bold(true));
     area.set_bold_bytes(ensogl_text::Range::new(55.bytes(), 56.bytes()), style::Bold(true));
 
