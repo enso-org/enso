@@ -180,12 +180,30 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
-            groups {
+            group {
                 name {
-                    // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                    // text {
+                    //     // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                    //     // font-size = 12.0, 12.0;
+                    // }
+                    height = 30.0, 30.0;
+                    padding {
+                        left   = 2.5, 2.5;
+                        right  = 2.5, 2.5;
+                        bottom = 2.5, 2.5;
+                    }
                 }
                 entries {
-                    // font = "DejaVuSans", "DejaVuSans";
+                    // text {
+                    //     // font = "DejaVuSans", "DejaVuSans";
+                    //     // font-size = 12.0, 12.0;
+                    // }
+                    // TODO: height = 30.0, 30.0; ?
+                    padding {
+                        left   = 2.5, 2.5;
+                        right  = 2.5, 2.5;
+                        bottom = 2.5, 2.5;
+                    }
                 }
             }
         }
