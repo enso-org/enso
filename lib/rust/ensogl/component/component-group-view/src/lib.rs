@@ -91,6 +91,7 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         // FIXME: should have separate style for CGV header text size most probably
         let header_text_size = style.get_number(theme::widget::list_view::text::size);
+        use theme::application::component_browser::group::entries as entries_style;
         frp::extend! { network
             // FIXME: taken from list_view::Model::padding(); this itself and calculations around it
             // look fishy
@@ -114,7 +115,7 @@ impl component::Frp<Model> for Frp {
 
             // === Entries ===
 
-            model.entries.set_style_path(theme::application::component_browser::group::mcdbg::HERE.str);
+            model.entries.set_style_prefix(entries_style::HERE.str);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_custom_background_color <+ input.set_background_color.some();
