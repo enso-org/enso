@@ -119,7 +119,8 @@ final class GetComponentGroupsHandler(
 
 object GetComponentGroupsHandler {
 
-  /** Creates configuration object used to create a [[GetComponentGroupsHandler]].
+  /** Creates configuration object used to create a
+    * [[GetComponentGroupsHandler]].
     *
     * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout

@@ -211,7 +211,7 @@ final class ContextRegistry(
                 runtime
               )
             )
-          handler.forward(Api.GetComponentGroupsRequest(contextId))
+          handler.forward(Api.GetComponentGroupsRequest())
         } else {
           sender() ! AccessDenied
         }

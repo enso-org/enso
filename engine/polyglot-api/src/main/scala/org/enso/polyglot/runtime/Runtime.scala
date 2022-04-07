@@ -1087,11 +1087,8 @@ object Runtime {
 
     /** A request sent from the client to the runtime server to get the
       * component groups loaded in runtime.
-      *
-      * @param contextId the context's id
       */
-    final case class GetComponentGroupsRequest(contextId: ContextId)
-        extends ApiRequest
+    final case class GetComponentGroupsRequest() extends ApiRequest
 
     /** A response sent from the server upon handling the
       * [[GetComponentGroupsRequest]].
