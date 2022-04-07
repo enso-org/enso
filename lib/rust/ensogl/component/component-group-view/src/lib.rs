@@ -105,7 +105,7 @@ impl component::Frp<Model> for Frp {
 
             // === Header ===
 
-            init <- source::<()>();
+            init <- source_();
             header_text_size <- all(&header_text_size,&init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
@@ -122,6 +122,7 @@ impl component::Frp<Model> for Frp {
 
             model.entries.set_entries <+ input.set_entries;
         }
+        init.emit(());
     }
 }
 
