@@ -8,6 +8,7 @@ use crate::entry::Entry;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::style;
 
 
 
@@ -128,14 +129,14 @@ where E::Model: Default
     }
 
     /// Update displayed entries to show the given range.
-    pub fn update_entries(&self, mut range: Range<entry::Id>) {
+    pub fn update_entries(&self, mut range: Range<entry::Id>, style_path: style::Path) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
-                    entries.resize_with(range.len(), || self.create_new_entry());
+                    entries.resize_with(range.len(), || self.create_new_entry(&style_path));
                     entries.iter().filter_map(|entry| entry.id.get()).collect()
                 });
             let missing = range.clone().filter(|id| !current_entries.contains(id));
@@ -159,6 +160,7 @@ where E::Model: Default
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
         mut range: Range<entry::Id>,
+        style_path: style::Path
     ) {
         const MAX_SAFE_ENTRIES_COUNT: usize = 1000;
         let provider = provider.into();
@@ -173,7 +175,7 @@ where E::Model: Default
         range.end = range.end.min(provider.entry_count());
         let models = range.clone().map(|id| (id, provider.get(id)));
         let mut entries = self.entries.borrow_mut();
-        entries.resize_with(range.len(), || self.create_new_entry());
+        entries.resize_with(range.len(), || self.create_new_entry(&style_path));
         for (entry, (id, model)) in entries.iter().zip(models) {
             Self::update_entry(&self.logger, entry, id, &model);
         }
@@ -199,7 +201,7 @@ where E::Model: Default
         self.label_layer.set(label_layer);
     }
 
-    fn create_new_entry(&self) -> DisplayedEntry<E> {
+    fn create_new_entry(&self, style_path: &style::Path) -> DisplayedEntry<E> {
         let layers = &self.app.display.default_scene.layers;
         let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
             error!(
@@ -209,7 +211,8 @@ where E::Model: Default
             );
             layers.main.clone_ref()
         });
-        let entry = DisplayedEntry { id: default(), entry: E::new(&self.app) };
+        let entry = E::new(&self.app, &style_path);
+        let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
         entry.entry.set_position_x(entry::PADDING);
         self.add_child(&entry.entry);

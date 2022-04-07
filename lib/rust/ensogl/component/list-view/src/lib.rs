@@ -43,6 +43,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
+use ensogl_core::display::style;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
@@ -177,7 +178,7 @@ impl<E: Entry> Model<E> {
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
-    fn update_after_view_change(&self, view: &View) {
+    fn update_after_view_change(&self, view: &View, style_path: style::Path) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
         let padding_px = self.padding();
         let padding = 2.0 * padding_px + SHAPE_PADDING;
@@ -186,12 +187,12 @@ impl<E: Entry> Model<E> {
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
-        self.entries.update_entries(visible_entries);
+        self.entries.update_entries(visible_entries, style_path);
     }
 
-    fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
+    fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View, style_path: style::Path) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
-        self.entries.update_entries_new_provider(provider, visible_entries);
+        self.entries.update_entries_new_provider(provider, visible_entries, style_path);
     }
 
     fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {
@@ -269,6 +270,7 @@ ensogl_core::define_endpoints! {
         set_entries(entry::AnyModelProvider<E>),
         select_entry(entry::Id),
         chose_entry(entry::Id),
+        set_style_path(String),
         show_background_shadow(bool),
         set_background_corners_radius(f32),
         set_custom_background_color(Option<color::Rgba>),
@@ -486,10 +488,17 @@ where E::Model: Default
             view_info <- all_with(&view_y.value,&frp.size, |y,size|
                 View{position_y:*y,size:*size}
             );
+            default_style_path <- init.constant(theme::widget::list_view::HERE.str.to_string());
+            style_path <- any(&default_style_path, &frp.set_style_path);
+            trace style_path;
+            view_and_style <- all(&view_info, &style_path);
             // This should go before handling mouse events to have proper checking of
-            eval view_info ((view) model.update_after_view_change(view));
-            _new_entries <- frp.set_entries.map2(&view_info, f!((entries,view)
-                model.set_entries(entries.clone_ref(),view)
+            eval view_and_style (((view,style_path)) model.update_after_view_change(view, style_path.into()));
+            // FIXME[MC]: still map3? or other?
+            // FIXME[MC]: if set_style is changed, reset all entries in the list! they must reload
+            // the style from a new path
+            _new_entries <- frp.set_entries.map3(&view_info, &frp.set_style_path, f!((entries,view,style_path)
+                model.set_entries(entries.clone_ref(),view,style_path.into())
             ));
         }
 
