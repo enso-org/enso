@@ -1,4 +1,4 @@
-const highp float BOLD_WEIGHT = 0.15;
+const float BOLD_FATTING = 0.15;
 
 highp float median(highp vec3 v) {
     return max(min(v.x, v.y), min(max(v.x, v.y), v.z));
@@ -28,7 +28,8 @@ highp float msdf_alpha() {
     highp float dpi_dilate       = avg_msdf_unit_px < input_msdf_range*0.49 ? 1.0 : 0.0;
 
     highp vec3  msdf_sample      = texture(input_atlas,tex_coord).rgb;
-    highp float sig_dist         = median(msdf_sample) - 0.5 + ((input_style & STYLE_BOLD) != 0 ? BOLD_WEIGHT : 0.0);
+    highp float bold_fatting     = ((input_style & STYLE_BOLD_FLAG) != 0 ? BOLD_FATTING : 0.0);
+    highp float sig_dist         = median(msdf_sample) - 0.5 + bold_fatting;
     highp float sig_dist_px      = sig_dist * avg_msdf_unit_px;
     highp float opacity          = 0.5 + sig_dist_px + dpi_dilate * 0.08;
     opacity = clamp(opacity, 0.0, 1.0);

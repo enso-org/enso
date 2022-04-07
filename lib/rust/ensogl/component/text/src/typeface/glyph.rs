@@ -28,7 +28,7 @@ mod style_flag {
 
     pub const BOLD: i32 = 1 << 0;
 
-    pub const GLSL_DEFINITIONS: &str = concatcp!("const int STYLE_BOLD = ", BOLD, ";\n");
+    pub const GLSL_DEFINITIONS: &str = concatcp!("const int STYLE_BOLD_FLAG = ", BOLD, ";\n");
 }
 
 
