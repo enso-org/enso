@@ -45,34 +45,7 @@ type Postgresql_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    starts_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation starts_with")
-    ends_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation ends_with")
-    contains arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ", '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]+here.concat_ops
+    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -173,9 +146,7 @@ agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "array_to_string(array_agg(" ++ expr ++ Sql.code "), " ++ separator ++ Sql.code ")"
-    make_contains_expr expr substring =
-        Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
-    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -198,3 +169,20 @@ agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_E
 agg_count_distinct_include_null args =
     ## If we always count as tuples, then even null fields are counted.
     Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code ", 0))"
+
+## PRIVATE
+starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+    res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
+    res.paren
+
+## PRIVATE
+ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+    res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
+    res.paren
+
+## PRIVATE
+make_contains_expr expr substring =
+    Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
+
+## PRIVATE
+contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr

@@ -44,34 +44,7 @@ type Sqlite_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    starts_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation starts_with")
-    ends_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation ends_with")
-    contains arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]+here.concat_ops
+    text = [here.starts_with, here.contains, here.ends_with]+here.concat_ops
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
     stats = [here.agg_stddev_pop, here.agg_stddev_samp]
     my_mappings = text + counts + stats
@@ -158,9 +131,7 @@ window_aggregate window_type ignore_null args =
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    make_contains_expr expr substring =
-        Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
-    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
 
 
@@ -177,3 +148,20 @@ agg_count_distinct_include_null args = case args.length == 1 of
         all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ Sql.code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
         count ++ Sql.code " + " ++ all_nulls_case
     False -> Error.throw (Illegal_Argument_Error "COUNT_DISTINCT supports only single arguments in SQLite.")
+
+## PRIVATE
+starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+    res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+    res.paren
+
+## PRIVATE
+ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+    res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+    res.paren
+
+## PRIVATE
+make_contains_expr expr substring =
+    Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+
+## PRIVATE
+contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr
