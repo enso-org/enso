@@ -179,6 +179,16 @@ define_themes! { [light:0, dark:1]
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
         }
+        component_browser {
+            groups {
+                name {
+                    // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                }
+                entries {
+                    // font = "DejaVuSans", "DejaVuSans";
+                }
+            }
+        }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
