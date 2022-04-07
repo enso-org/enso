@@ -1535,11 +1535,11 @@ interface LibraryComponentGroup {
    */
   library: string;
 
-  /** The module name without the library name prefix.
-   *  E.g. given the `Standard.Base.Data.Vector` module reference,
-   * the `module` field contains `Data.Vector`.
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `group` field contains `Group 1`.
    */
-  module: string;
+  group: string;
 
   color?: string;
 

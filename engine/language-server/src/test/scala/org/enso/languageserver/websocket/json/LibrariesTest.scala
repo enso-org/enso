@@ -7,25 +7,14 @@ import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
+import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.{
   EmptyRepository,
   ExampleRepository,
   LibraryManifest
 }
-import org.enso.pkg.{
-  Component,
-  ComponentGroup,
-  ComponentGroups,
-  Config,
-  Contact,
-  ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference,
-  Package,
-  PackageManager,
-  Shortcut
-}
+import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Files
@@ -255,30 +244,6 @@ class LibrariesTest extends BaseServerTest {
 
     "get the package config" in {
       val client = getInitialisedWsClient()
-      val testComponentGroups = ComponentGroups(
-        newGroups = List(
-          ComponentGroup(
-            module = ModuleName("Foo"),
-            color  = Some("#32a852"),
-            icon   = None,
-            exports = Seq(
-              Component("foo", Some(Shortcut("abc"))),
-              Component("bar", None)
-            )
-          )
-        ),
-        extendedGroups = List(
-          ExtendedComponentGroup(
-            module = ModuleReference(
-              LibraryName("Standard", "Base"),
-              ModuleName("Data")
-            ),
-            exports = List(
-              Component("bar", None)
-            )
-          )
-        )
-      )
 
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -311,7 +276,8 @@ class LibrariesTest extends BaseServerTest {
           .load[Config](packageFile)
           .get
           .copy(
-            componentGroups = Right(testComponentGroups)
+            componentGroups =
+              Right(TestComponentGroups.testLibraryComponentGroups)
           )
       Files.writeString(packageFile, packageConfig.toYaml)
 
@@ -342,7 +308,7 @@ class LibrariesTest extends BaseServerTest {
         .as[LibraryComponentGroups]
         .rightValue shouldEqual LibraryComponentGroups.fromComponentGroups(
         LibraryName("user", "Get_Package_Test_Lib"),
-        testComponentGroups
+        TestComponentGroups.testLibraryComponentGroups
       )
     }
 

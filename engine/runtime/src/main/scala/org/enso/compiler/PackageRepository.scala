@@ -303,7 +303,7 @@ object PackageRepository {
                 (accumulator, componentGroup) =>
                   for {
                     _ <- accumulator
-                    extendedLibraryName = componentGroup.module.libraryName
+                    extendedLibraryName = componentGroup.group.libraryName
                     _ <- ensurePackageIsLoaded(extendedLibraryName)
                     pkgOpt = loadedPackages(extendedLibraryName)
                     _ <- pkgOpt.fold[Either[Error, Unit]](Right(()))(

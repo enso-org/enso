@@ -1,7 +1,7 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.pkg.{ComponentGroup, ComponentGroups, Config, ModuleReference}
+import org.enso.pkg.{ComponentGroup, ComponentGroups, Config, GroupReference}
 
 import scala.collection.mutable
 
@@ -23,15 +23,15 @@ final class ComponentGroupsValidator {
   def validate(
     packages: Iterable[Config]
   ): Iterable[(LibraryName, Either[ValidationError, ComponentGroups])] = {
-    val modulesMap: mutable.Map[ModuleReference, ComponentGroup] = mutable.Map()
+    val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
     val init = packages.map { config =>
       val libraryName = LibraryName(config.namespace, config.name)
       libraryName -> validateInvalidComponentGroups(config)
     }
 
     runValidation(init)(
-      validateDuplicateComponentGroups(modulesMap),
-      validateComponentGroupExtendsNothing(modulesMap)
+      validateDuplicateComponentGroups(groupsMap),
+      validateComponentGroupExtendsNothing(groupsMap)
     )
   }
 
@@ -45,11 +45,11 @@ final class ComponentGroupsValidator {
   ): Map[LibraryName, Either[ValidationError, ComponentGroups]] = {
     val init: Map[LibraryName, Either[ValidationError, ComponentGroups]] =
       componentGroups.map { case (k, v) => k -> Right(v) }
-    val modulesMap: mutable.Map[ModuleReference, ComponentGroup] = mutable.Map()
+    val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
 
     runValidation(init)(
-      validateDuplicateComponentGroups(modulesMap),
-      validateComponentGroupExtendsNothing(modulesMap)
+      validateDuplicateComponentGroups(groupsMap),
+      validateComponentGroupExtendsNothing(groupsMap)
     ).toMap
   }
 
@@ -63,19 +63,19 @@ final class ComponentGroupsValidator {
   }
 
   private def validateDuplicateComponentGroups(
-    modulesMap: mutable.Map[ModuleReference, ComponentGroup]
+    groupsMap: mutable.Map[GroupReference, ComponentGroup]
   ): Validator = { libraryName => componentGroups =>
     componentGroups.newGroups
       .map { componentGroup =>
-        val moduleReference =
-          ModuleReference(libraryName, componentGroup.module)
-        if (modulesMap.contains(moduleReference)) {
+        val groupReference =
+          GroupReference(libraryName, componentGroup.group)
+        if (groupsMap.contains(groupReference)) {
           Left(
             ValidationError
-              .DuplicatedComponentGroup(libraryName, moduleReference)
+              .DuplicatedComponentGroup(libraryName, groupReference)
           )
         } else {
-          modulesMap += moduleReference -> componentGroup
+          groupsMap += groupReference -> componentGroup
           Right(componentGroups)
         }
       }
@@ -84,17 +84,17 @@ final class ComponentGroupsValidator {
   }
 
   private def validateComponentGroupExtendsNothing(
-    modulesMap: mutable.Map[ModuleReference, ComponentGroup]
+    groupsMap: mutable.Map[GroupReference, ComponentGroup]
   ): Validator = { libraryName => componentGroups =>
     componentGroups.extendedGroups
       .map { extendedComponentGroup =>
-        if (modulesMap.contains(extendedComponentGroup.module)) {
+        if (groupsMap.contains(extendedComponentGroup.group)) {
           Right(componentGroups)
         } else {
           Left(
             ValidationError.ComponentGroupExtendsNothing(
               libraryName,
-              extendedComponentGroup.module
+              extendedComponentGroup.group
             )
           )
         }
@@ -124,11 +124,11 @@ object ComponentGroupsValidator {
       * group.
       *
       * @param libraryName the library defining duplicate component group
-      * @param moduleReference the duplicated module reference
+      * @param groupReference the duplicated component group reference
       */
     case class DuplicatedComponentGroup(
       libraryName: LibraryName,
-      moduleReference: ModuleReference
+      groupReference: GroupReference
     ) extends ValidationError
 
     /** An error indicating that the package config has invalid component groups
@@ -146,12 +146,13 @@ object ComponentGroupsValidator {
       * that extends non-existent component group.
       *
       * @param libraryName the library defining problematic component group
-      *                    extension
-      * @param moduleReference the module reference to non-existent module
+      * extension
+      * @param groupReference the group reference to non-existent component
+      * group
       */
     case class ComponentGroupExtendsNothing(
       libraryName: LibraryName,
-      moduleReference: ModuleReference
+      groupReference: GroupReference
     ) extends ValidationError
   }
 }

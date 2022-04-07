@@ -6,18 +6,45 @@ import org.enso.pkg.{
   ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference
+  GroupName,
+  GroupReference,
+  Shortcut
 }
 
 /** An object holding component groups required for tests. */
 object TestComponentGroups {
 
+  val testLibraryComponentGroups: ComponentGroups =
+    ComponentGroups(
+      newGroups = List(
+        ComponentGroup(
+          group = GroupName("Foo"),
+          color = Some("#32a852"),
+          icon  = None,
+          exports = Seq(
+            Component("foo", Some(Shortcut("abc"))),
+            Component("bar", None)
+          )
+        )
+      ),
+      extendedGroups = List(
+        ExtendedComponentGroup(
+          group = GroupReference(
+            LibraryName("Standard", "Base"),
+            GroupName("Data")
+          ),
+          exports = List(
+            Component("bar", None)
+          )
+        )
+      )
+    )
+
   val standardBase: Map[LibraryName, ComponentGroups] = Map(
     LibraryName("Standard", "Base") -> ComponentGroups(
       List(
         ComponentGroup(
-          ModuleName("Input"),
+          GroupName("Input"),
           None,
           None,
           Seq(Component("Standard.Base.File.new", None))
@@ -29,7 +56,7 @@ object TestComponentGroups {
       List(),
       List(
         ExtendedComponentGroup(
-          ModuleReference(LibraryName("Standard", "Base"), ModuleName("Input")),
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
           Seq(Component("Standard.Database.Connection.Database.connect", None))
         )
       )

@@ -9,8 +9,8 @@ import org.enso.pkg.{
   Component,
   ComponentGroups,
   ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference,
+  GroupName,
+  GroupReference,
   Package,
   PackageManager
 }
@@ -67,9 +67,9 @@ class RuntimeComponentsTest
           newGroups = List(),
           extendedGroups = List(
             ExtendedComponentGroup(
-              module = ModuleReference(
+              group = GroupReference(
                 LibraryName("Standard", "Base"),
-                ModuleName("Group2")
+                GroupName("Group2")
               ),
               exports = List(Component("foo", None))
             )

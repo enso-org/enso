@@ -5,7 +5,7 @@ import org.enso.pkg.{
   ComponentGroups,
   Config,
   ExtendedComponentGroup,
-  ModuleReference
+  GroupReference
 }
 
 import scala.collection.immutable.ListMap
@@ -57,12 +57,12 @@ final class ComponentGroupsResolver {
           )
         }
     val newLibraryComponentGroupsMap
-      : Map[ModuleReference, LibraryComponentGroup] =
+      : Map[GroupReference, LibraryComponentGroup] =
       ComponentGroupsResolver
         .groupByKeepFirst(newLibraryComponentGroups) { libraryComponentGroup =>
-          ModuleReference(
+          GroupReference(
             libraryComponentGroup.library,
-            libraryComponentGroup.module
+            libraryComponentGroup.group
           )
         }
 
@@ -72,9 +72,9 @@ final class ComponentGroupsResolver {
           componentGroups.extendedGroups
         }
     val extendedComponentGroupsMap
-      : Map[ModuleReference, Vector[ExtendedComponentGroup]] =
+      : Map[GroupReference, Vector[ExtendedComponentGroup]] =
       ComponentGroupsResolver
-        .groupByKeepOrder(extendedComponentGroups)(_.module)
+        .groupByKeepOrder(extendedComponentGroups)(_.group)
 
     applyExtendedComponentGroups(
       newLibraryComponentGroupsMap,
@@ -92,8 +92,8 @@ final class ComponentGroupsResolver {
     * applied
     */
   private def applyExtendedComponentGroups(
-    libraryComponentGroups: Map[ModuleReference, LibraryComponentGroup],
-    extendedComponentGroups: Map[ModuleReference, Seq[ExtendedComponentGroup]]
+    libraryComponentGroups: Map[GroupReference, LibraryComponentGroup],
+    extendedComponentGroups: Map[GroupReference, Seq[ExtendedComponentGroup]]
   ): Vector[LibraryComponentGroup] =
     libraryComponentGroups.map { case (module, libraryComponentGroup) =>
       extendedComponentGroups

@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries
 
 import io.circe.DecodingFailure
 import org.enso.editions.LibraryName
-import org.enso.pkg.{ComponentGroups, Config, ModuleName, ModuleReference}
+import org.enso.pkg.{ComponentGroups, Config, GroupName, GroupReference}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -66,7 +66,7 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
         libraryName(testPackages(1)) -> Left(
           ValidationError.DuplicatedComponentGroup(
             libraryName(testPackages(1)),
-            ModuleReference(LibraryName("Foo", "Bar"), ModuleName("Mod1"))
+            GroupReference(LibraryName("Foo", "Bar"), GroupName("Mod1"))
           )
         ),
         libraryName(testPackages(2)) -> testPackages(2).componentGroups
@@ -106,7 +106,7 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
         libraryName(testPackages(2)) -> Left(
           ValidationError.ComponentGroupExtendsNothing(
             libraryName(testPackages(2)),
-            ModuleReference(LibraryName("Foo", "Baz"), ModuleName("Mod1"))
+            GroupReference(LibraryName("Foo", "Baz"), GroupName("Mod1"))
           )
         )
       )
