@@ -221,7 +221,7 @@ Caught_Panic.stack_trace =
 Panic.catch : Any -> Any -> (Caught_Panic -> Any) -> Any
 Panic.catch panic_type ~action handler =
     Panic.catch_primitive action caught_panic->
-        case Builtins.Meta.get_polyglot_language panic_type == "java" of
+        case Meta.get_polyglot_language panic_type == "java" of
             False -> case caught_panic.payload.is_a panic_type of
                 True -> handler caught_panic
                 False -> Panic.throw caught_panic

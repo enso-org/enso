@@ -82,7 +82,6 @@ public class Builtins {
   private final Bool bool;
   private final DataflowError dataflowError;
   private final Error error;
-  private final Meta meta;
   private final Module module;
   private final ModuleScope scope;
   private final Mutable mutable;
@@ -118,7 +117,6 @@ public class Builtins {
                 new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
     error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
-    meta = new Meta(language, scope);
     mutable = new Mutable(this, language, scope);
     nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
@@ -254,7 +252,7 @@ public class Builtins {
     try {
       URI resource = classLoader.getResource(MethodDefinition.META_PATH).toURI();
       fs = initFileSystem(resource);
-      builtinMetaPath = Files.walk(Paths.get(resource)).flatMap(p -> acceptFiles(p));
+      builtinMetaPath = Files.walk(Paths.get(resource)).flatMap(p -> acceptMetadataFiles(p));
     } catch (Exception ioe) {
       ioe.printStackTrace();
       builtinMetaPath = Stream.empty();
@@ -328,15 +326,9 @@ public class Builtins {
     }
   }
 
-  private Stream<Path> acceptFiles(Path path) {
+  private Stream<Path> acceptMetadataFiles(Path path) {
     if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(MethodDefinition.META_BUILTIN_EXTENSION)) {
       return Stream.of(path);
-    } else if (Files.isDirectory(path)) {
-      try {
-        return Files.walk(path).flatMap(p -> {if (p != path) return acceptFiles(p); else return Stream.empty();});
-      } catch (IOException ioe) {
-        ioe.printStackTrace();
-      }
     }
     return Stream.empty();
   }

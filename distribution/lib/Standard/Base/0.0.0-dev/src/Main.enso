@@ -72,4 +72,4 @@ from project.Meta.Enso_Project export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
 
-from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering
+from Standard.Builtins export all hiding Less, Equal, Greater, Ordering
