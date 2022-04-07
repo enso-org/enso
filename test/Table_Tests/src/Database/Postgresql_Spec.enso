@@ -40,9 +40,10 @@ run_tests connection pending=Nothing =
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Materialized_Table.new columns
-        table = connection.upload_table name in_mem_table
-        tables.append name
-        table
+        case connection.upload_table name in_mem_table of
+            table ->
+                tables.append name
+                table
     clean_tables table_names =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'

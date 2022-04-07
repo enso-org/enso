@@ -73,7 +73,7 @@ make_internal_generator_dialect =
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
     text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with], here.agg_shortest, here.agg_longest]+here.concat_ops
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
@@ -177,3 +177,24 @@ concat_ops =
         Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
     concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+
+## PRIVATE
+agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error "COUNT_DISTINCT requires at least one argument.")) else
+    case args.length == 1 of
+        True ->
+            ## A single null value will be skipped.
+            Sql.code "COUNT(DISTINCT " ++ args.first ++ Sql.code ")"
+        False ->
+            ## A tuple of nulls is not a null, so it will not be skipped - but
+               we want to ignore all-null columns. So we manually filter them
+               out.
+            count = Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
+            are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
+            all_nulls_filter = Sql.code " FILTER (WHERE NOT (" ++ Sql.join " AND " are_nulls ++ Sql.code "))"
+            (count ++ all_nulls_filter).paren
+
+## PRIVATE
+agg_count_distinct_include_null args =
+    ## If we always count as tuples, then even null fields are counted.
+    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code ", 0))"

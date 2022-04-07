@@ -72,7 +72,7 @@ make_internal_generator_dialect =
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
     text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]+here.concat_ops
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
     stats = [here.agg_stddev_pop, here.agg_stddev_samp]
     my_mappings = text + counts + stats
     Base_Generator.base_dialect . extend_with my_mappings
@@ -162,3 +162,15 @@ concat_ops =
         Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
     concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+
+## PRIVATE
+agg_count_distinct args =
+    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
+
+## PRIVATE
+agg_count_distinct_include_null args =
+    count = here.count_distinct args
+    are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
+    all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ Sql.join " AND " are_nulls ++ Sql.code " THEN 1 END) > 0 THEN 1 ELSE 0 END"
+    count ++ Sql.code " + " ++ all_nulls_case
