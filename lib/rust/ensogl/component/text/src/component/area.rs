@@ -619,7 +619,6 @@ impl AreaModel {
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
 
-        #[cfg(target_arch = "wasm32")]
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
         // refactoring of the architecture some day.
@@ -942,6 +941,7 @@ impl AreaModel {
         selection.with_start(start).with_end(end)
     }
 
+    #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
@@ -954,6 +954,9 @@ impl AreaModel {
         // remove old Glyph structures, as they still refer to the old Glyph System.
         self.lines.rc.take();
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_font(&self, _font_name: &str) {}
 }
 
 impl display::Object for AreaModel {

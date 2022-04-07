@@ -69,13 +69,7 @@ impl Glyph {
     }
 
     pub fn set_bold(&self, value: bool) {
-        self.style.modify(|v| {
-            if value {
-                *v = *v | style_flag::BOLD
-            } else {
-                *v = *v & !style_flag::BOLD
-            }
-        });
+        self.style.modify(|v| if value { *v |= style_flag::BOLD } else { *v &= !style_flag::BOLD });
     }
 
     /// Change the displayed character.
