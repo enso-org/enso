@@ -331,7 +331,6 @@ where E::Model: Default
         let style = StyleWatchFrp::new(&scene.style_sheet);
 
         let default_background_color = style.get_color(theme::widget::list_view::background);
-        model.set_background_color(default_background_color.value().into());
 
         frp::extend! { network
 
@@ -346,6 +345,7 @@ where E::Model: Default
             background_corners_radius <- any(
                 &default_background_corners_radius,&frp.set_background_corners_radius);
             eval background_corners_radius ((px) model.set_background_corners_radius(*px));
+            default_background_color <- all(&default_background_color,&init)._0();
             // TODO: use all_with instead?
             background_color_change <- all(
                 &frp.set_custom_background_color, &default_background_color);
