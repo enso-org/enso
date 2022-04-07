@@ -75,7 +75,7 @@ impl Glyph {
     }
 
     pub fn font_size(&self) -> f32 {
-        self.font_size.get().into()
+        self.font_size.get()
     }
 
     pub fn set_font_size(&self, size: f32) {
