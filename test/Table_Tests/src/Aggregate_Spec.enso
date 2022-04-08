@@ -1078,7 +1078,15 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
     Test.group prefix+"Table.aggregate First and Last" pending=pending <|
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
-            Nothing
+            t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
+            order = By_Name ["G"]
+            r1 = t1.aggregate [First "X" (order_by=order), Last "X" (order_by=order)]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 2
+            first = m1.columns.first.at 0
+            last = m1.columns.second.at 0
+            (first != last).should_be_true
 
     Test.group prefix+"Table.aggregate" pending=pending <|
         Test.specify "should work even if no aggregations apart from groupings are specified" <|
