@@ -6,6 +6,8 @@ import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
+
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,23 @@ public class Text_Utils {
       Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern vertical_space =
       Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
+
+  /***
+   * Utility function to get a Charset for character_set name.
+   * Uses the StandardCharsets if possible.
+   * @param character_set name of the character set
+   * @return Charset object
+   */
+  public static Charset get_charset(String character_set) {
+    switch (character_set) {
+      case "UTF-8": return StandardCharsets.UTF_8;
+      case "UTF-16LE": return StandardCharsets.UTF_16LE;
+      case "UTF-16BE": return StandardCharsets.UTF_16BE;
+      case "US-ASCII": return StandardCharsets.US_ASCII;
+      case "windows-1252": return StandardCharsets.ISO_8859_1;
+      default: return Charset.forName(character_set);
+    }
+  }
 
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
@@ -475,7 +494,7 @@ public class Text_Utils {
   /**
    * Checks if the given string consists only of whitespace characters.
    *
-   * @param str the string to check
+   * @param text the string to check
    * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
    */
   public static boolean is_all_whitespace(String text) {

@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 polyglot java import java.nio.charset.Charset
+polyglot java import java.nio.charset.UnsupportedCharsetException
+polyglot java import org.enso.base.Text_Utils
 
 ## Get all available character sets from Java as Encodings.
    Used to provide auto completion in the UI.
@@ -13,6 +15,13 @@ all_character_sets =
 all_encodings : Vector Encoding
 all_encodings =
     here.all_character_sets . map Encoding
+
+## PRIVATE
+   Convert an Encoding to it's corresponding Java Charset
+to_java_charset : Encoding -> Charset
+to_java_charset e =
+    Panic.catch UnsupportedCharsetException (Text_Utils.get_charset e.character_set) _->
+        Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + e.character_set))
 
 ## Represents a character encoding.
 type Encoding
