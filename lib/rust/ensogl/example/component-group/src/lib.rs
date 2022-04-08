@@ -90,7 +90,7 @@ fn init(app: &Application) {
     theme::builtin::light::enable(&app);
 
     let mock_entries = MockEntries::new(vec![
-        "sample entry with long text overflowing the width".into(),
+        "long sample entry with text overflowing the width".into(),
         "convert".into(),
         "table input".into(),
         "text input".into(),
@@ -103,7 +103,7 @@ fn init(app: &Application) {
 
     let component_group_view = app.new_view::<component_group_view::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
-    let group_name = "Group name with long text overflowing the width";
+    let group_name = "Long group name with text overflowing the width";
     component_group_view.set_header_text(group_name.to_string());
     component_group_view.set_entries(provider);
     component_group_view.set_size(Vector2(150.0, 200.0));
