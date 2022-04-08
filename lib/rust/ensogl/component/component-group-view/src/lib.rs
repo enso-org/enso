@@ -193,7 +193,6 @@ impl component::Model for Model {
 
 impl Model {
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
-
         // === Header Background ===
 
         let header_bg_height = header_geometry.height;
