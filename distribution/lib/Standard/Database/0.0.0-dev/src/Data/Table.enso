@@ -657,6 +657,10 @@ type Table
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column this agg new_name . catch
             partitioned = results.partition (_.is_an Internal_Column)
+            ## When working on join we may encounter further issues with having
+               aggregate columns exposed directly, it may be useful to re-use
+               the `lift_aggregate` method to push the aggregates into a
+               subquery.
             new_columns = partitioned.first
             problems = partitioned.second
             on_problems.attach_problems_before problems <|

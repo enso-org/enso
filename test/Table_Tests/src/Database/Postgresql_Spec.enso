@@ -29,9 +29,9 @@ postgres_specific_spec connection pending =
 
         Test.specify "should return Table information, also for aggregated results" <|
             i = t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
-            i.index . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count_Distinct bools"]
+            i.index . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
-            i.at "SQL Type" . to_vector . should_equal ["varchar", "int8", "bool"]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "BIGINT", "BIGINT"]
 
         Test.specify "should infer standard types correctly" <|
             t.at "strs" . sql_type . is_definitely_text . should_be_true

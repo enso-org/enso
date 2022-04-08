@@ -94,9 +94,11 @@
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
 - [Added warning handling to `Table.aggregate`][3349]
-- [Improved performance of `Table.aggregate` and full warnings implementation]
-  [3364]
+- [Improved performance of `Table.aggregate` and full warnings
+  implementation][3364]
 - [Implemented `Text.reverse`][3377]
+- [Implemented support for most Table aggregations in the Database
+  backend.][3383]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -149,6 +151,7 @@
 [3366]: https://github.com/enso-org/enso/pull/3366
 [3379]: https://github.com/enso-org/enso/pull/3379
 [3381]: https://github.com/enso-org/enso/pull/3381
+[3383]: https://github.com/enso-org/enso/pull/3383
 
 #### Enso Compiler
 
