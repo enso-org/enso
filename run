@@ -14,7 +14,7 @@ let args = process.argv.slice(2)
 let skip_validation = '--skip-version-validation'
 async function init () {
     let skipValidationIndex = args.indexOf(skip_validation)
-    if (skip_validation === -1) {
+    if (skipValidationIndex === -1) {
         cmd.section('Version Validation')
         console.log("Use the `" + skip_validation + "` flag to skip it.")
         console.log("Querying npm for the latest LTS versions.")
