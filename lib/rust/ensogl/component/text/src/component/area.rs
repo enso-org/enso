@@ -859,7 +859,7 @@ impl AreaModel {
         if let Some(width) = truncation_width {
             let ellipsis = '\u{2026}';
             let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-            let mut length_fitting_with_ellipsis = 0.bytes();
+            let mut candidate_truncation_length = 0.bytes();
             let truncate_at = content.char_indices().find_map(|(i, ch)| {
                 let style = line_style.next().unwrap_or_default();
                 let font_size = style.size.raw;
@@ -867,14 +867,13 @@ impl AreaModel {
                 let info = pen.advance(Some(char_info));
                 let next_offset = info.offset + char_info.size;
                 if next_offset > width {
-                    return Some(length_fitting_with_ellipsis);
+                    return Some(candidate_truncation_length);
                 }
                 let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
                 let char_length: Bytes = ch.len_utf8().into();
                 line_style.drop(char_length - 1.bytes());
-                // TODO: account for kerning between `ch` and `ellipsis`
                 if next_offset + width_of_ellipsis <= width {
-                    length_fitting_with_ellipsis = Bytes::from(i) + char_length;
+                    candidate_truncation_length = Bytes::from(i) + char_length;
                 }
                 None
             });
