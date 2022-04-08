@@ -486,7 +486,7 @@ where E::Model: Default
             eval style_prefix ((path) model.entries.update_entries_style_prefix(path.into()));
             view_and_style <- all(&view_info,&style_prefix);
             eval view_and_style (((view,style_prefix))
-                model.update_after_view_change(view, style_prefix.into()));
+                model.update_after_view_change(view,style_prefix.into()));
             _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries,(view,style_prefix))
                 model.set_entries(entries.clone_ref(),view,style_prefix.into()))
             );
