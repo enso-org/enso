@@ -100,7 +100,7 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style,show_shadow:f32,corners_radius_px:f32,color:Vector4) {
+        (style:Style,shadow_alpha:f32,corners_radius_px:f32,color:Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
@@ -109,7 +109,7 @@ pub mod background {
             let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
             let shape         = rect.fill(color);
 
-            let shadow  = shadow::from_shape_with_alpha(rect.into(),&show_shadow,style);
+            let shadow  = shadow::from_shape_with_alpha(rect.into(),&shadow_alpha,style);
 
             (shadow + shape).into()
         }
@@ -158,15 +158,7 @@ impl<E: Entry> Model<E> {
 
     fn show_background_shadow(&self, value: bool) {
         let alpha = if value { 1.0 } else { 0.0 };
-        self.background.show_shadow.set(alpha);
-    }
-
-    fn set_background_corners_radius(&self, px: f32) {
-        self.background.corners_radius_px.set(px);
-    }
-
-    fn set_background_color(&self, color: color::Rgba) {
-        self.background.color.set(color.into());
+        self.background.shadow_alpha.set(alpha);
     }
 
     fn padding(&self) -> f32 {
@@ -351,14 +343,14 @@ where E::Model: Default
             default_background_corners_radius <- init.constant(background::CORNER_RADIUS_PX);
             background_corners_radius <- any(
                 &default_background_corners_radius,&frp.set_background_corners_radius);
-            eval background_corners_radius ((px) model.set_background_corners_radius(*px));
+            eval background_corners_radius ((px) model.background.corners_radius_px.set(*px));
             default_background_color <- all(&default_background_color,&init)._0();
             // TODO: use all_with instead?
             background_color_change <- all(
                 &frp.set_custom_background_color, &default_background_color);
             background_color <- background_color_change.map(
                 |(custom,default)| custom.unwrap_or(*default));
-            eval background_color ((color) model.set_background_color(*color));
+            eval background_color ((color) model.background.color.set(color.into()));
 
 
             // === Mouse Position ===
