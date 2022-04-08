@@ -865,14 +865,14 @@ impl AreaModel {
                 let font_size = style.size.raw;
                 let char_info = pen::CharInfo::new(ch, font_size);
                 let info = pen.advance(Some(char_info));
-                let next_offset = info.offset + char_info.size;
-                if next_offset > width {
+                let next_width = info.offset + char_info.size;
+                if next_width > width {
                     return Some(candidate_truncation_offset);
                 }
                 let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
                 let char_length: Bytes = ch.len_utf8().into();
                 line_style.drop(char_length - 1.bytes());
-                if next_offset + width_of_ellipsis <= width {
+                if next_width + width_of_ellipsis <= width {
                     candidate_truncation_offset = Bytes::from(i) + char_length;
                 }
                 None
