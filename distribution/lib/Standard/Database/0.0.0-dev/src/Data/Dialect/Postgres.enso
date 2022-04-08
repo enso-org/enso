@@ -95,6 +95,12 @@ agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
 ## PRIVATE
 agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
     median = Sql.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+    ## TODO Technically, this check may not be necessary if the input column has
+       type INTEGER, because it is impossible to represent a NaN in that type.
+       However, currently the column type inference is not tested well-enough to
+       rely on this, so leaving an uniform approach regardless of type. This
+       could be revisited when further work on column types takes place.
+       See issue: https://www.pivotaltracker.com/story/show/180854759
     has_nan = Sql.code "bool_or(" ++ arg ++ Sql.code " = double precision 'NaN')"
     Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ median ++ Sql.code " END"
 
@@ -104,6 +110,12 @@ agg_mode = Base_Generator.lift_unary_op "MODE" arg->
 
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     percentile = Sql.code "percentile_cont(" ++ p ++ Sql.code ") WITHIN GROUP (ORDER BY " ++ expr ++ Sql.code ")"
+    ## TODO Technically, this check may not be necessary if the input column has
+       type INTEGER, because it is impossible to represent a NaN in that type.
+       However, currently the column type inference is not tested well-enough to
+       rely on this, so leaving an uniform approach regardless of type. This
+       could be revisited when further work on column types takes place.
+       See issue: https://www.pivotaltracker.com/story/show/180854759
     has_nan = Sql.code "bool_or(" ++ expr ++ Sql.code " = double precision 'NaN')"
     Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ percentile ++ Sql.code " END"
 
