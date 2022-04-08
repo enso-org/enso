@@ -1050,6 +1050,14 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             m1.columns.length . should_equal 1
             Double.isNaN (m1.columns.first.at 0) . should_be_true
 
+        Test.specify "on Mode" (pending = resolve_pending test_selection.advanced_stats) <|
+            t1 = table_builder [["X", [Nothing, nan, nan, nan, nan, 4, 5]]]
+            r1 = t1.aggregate [Mode "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            Double.isNaN (m1.columns.first.at 0) . should_be_true
+
         Test.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
             r1 = t1.aggregate [Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
@@ -1061,7 +1069,12 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
     Test.group prefix+"Table.aggregate Mode" (pending = resolve_pending test_selection.advanced_stats pending) <|
         Test.specify "should ignore missing values" <|
-            Nothing
+            t1 = table_builder [["X", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 2, 2, 1]]]
+            r1 = t1.aggregate [Mode "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.at 0 . should_equal 2
 
     Test.group prefix+"Table.aggregate First and Last" pending=pending <|
         Test.specify "should not return the same value for groups with different values but equal ordering keys" (pending = resolve_pending test_selection.first_last) <|
