@@ -84,6 +84,8 @@ impl component::Frp<Model> for Frp {
         let header_text_font = style.get_text(theme::header::text::font);
         frp::extend! { network
 
+            // === Geometry ===
+
             let header_geometry = HeaderGeometry::from_style(style, network);
             size_and_header_geometry <- all(&input.set_size, &header_geometry);
             eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
@@ -152,6 +154,7 @@ impl HeaderGeometry {
 // === Model ===
 // =============
 
+/// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object:    display::object::Instance,
@@ -196,31 +199,32 @@ impl component::Model for Model {
 
 impl Model {
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
-        // === Header ===
 
-        let half_height = size.y / 2.0;
-        let top_left = Vector2(-size.x / 2.0, half_height);
-        let header_label_height = self.header.height.value();
-        let header_height = header_geometry.height;
+        // === Header Background ===
+
+        let header_bg_height = header_geometry.height;
+        let header_bg_y = (size.y - header_bg_height) / 2.0;
+        self.header_background.size.set(Vector2(size.x, header_bg_height));
+        self.header_background.set_position_y(header_bg_y);
+
+
+        // === Header Text ===
+
         let header_padding_left = header_geometry.padding_left;
-        let header_padding_right = header_geometry.padding_right;
+        let header_text_x = -size.x / 2.0 + header_padding_left;
+        let header_text_height = self.header.height.value();
         let header_padding_bottom = header_geometry.padding_bottom;
-        self.header.set_position_xy(
-            top_left
-                + Vector2(
-                    header_padding_left,
-                    (-header_height + header_label_height) / 2.0 - header_padding_bottom,
-                ),
-        );
+        let header_bg_bottom_y = size.y / 2.0 - header_bg_height;
+        let header_text_y = header_bg_bottom_y + header_text_height + header_padding_bottom;
+        self.header.set_position_xy(Vector2(header_text_x, header_text_y));
+        let header_padding_right = header_geometry.padding_right;
         self.header.set_truncation_width(size.x - header_padding_left - header_padding_right);
-        self.header_background.size.set(Vector2(size.x, header_height));
-        self.header_background.set_position_y(half_height - header_height / 2.0);
 
 
         // === Entries ===
 
-        self.entries.set_position_y(-header_height / 2.0);
-        self.entries.resize(size - Vector2(0.0, header_height));
+        self.entries.resize(size - Vector2(0.0, header_bg_height));
+        self.entries.set_position_y(-header_bg_height / 2.0);
     }
 }
 

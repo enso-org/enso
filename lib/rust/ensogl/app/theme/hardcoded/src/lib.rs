@@ -190,7 +190,7 @@ define_themes! { [light:0, dark:1]
                     padding {
                         left   = 16.5, 16.5;
                         right  = 2.5, 2.5;
-                        bottom = 2.5, 2.5;
+                        bottom = 5.0, 5.0;
                     }
                 }
                 entries {
