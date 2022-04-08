@@ -225,7 +225,7 @@ where E::Model: Default
             );
             layers.main.clone_ref()
         });
-        let entry = E::new(&self.app, &style_prefix);
+        let entry = E::new(&self.app, style_prefix);
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
         entry.entry.set_position_x(entry::PADDING);

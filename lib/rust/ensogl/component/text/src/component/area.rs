@@ -880,8 +880,7 @@ impl AreaModel {
             });
             match truncate_at {
                 None => content,
-                // TODO: is there easier way to make a String from &str + char?
-                Some(i) => format!("{}{}", content[..i.as_usize()].to_string(), ellipsis),
+                Some(i) => content[..i.as_usize()].to_string() + String::from(ellipsis).as_str(),
             }
         } else {
             content

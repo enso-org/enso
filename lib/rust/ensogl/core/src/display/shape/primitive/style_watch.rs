@@ -113,7 +113,7 @@ impl StyleWatchFrp {
         let network = &self.network;
         let (source, current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.text().unwrap_or("".to_string()));
+            value   <- source.map(|t| t.text().unwrap_or_default());
             sampler <- value.sampler();
         }
         source.emit(current);
