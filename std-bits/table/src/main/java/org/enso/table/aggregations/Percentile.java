@@ -66,7 +66,7 @@ public class Percentile extends Aggregator {
 
       if (current <= mid && nextCurrent > mid) {
         double second = entry.getKey();
-        return first + (second - first) * (mid_value - mid);
+        return interpolate(first, second, mid_value - mid);
       }
 
       current = nextCurrent;
@@ -74,5 +74,18 @@ public class Percentile extends Aggregator {
 
     this.addProblem(new InvalidAggregation(this.getName(), -1, "Failed calculating the percentile."));
     return null;
+  }
+
+  double interpolate(double first, double second, double alpha) {
+    if (Double.isInfinite(first) && Double.isInfinite(second)) {
+      if (first == second) return first;
+      else return Double.NaN;
+    }
+
+    // If both are not infinite, then if one of them is infinite, the other must be finite.
+    if (Double.isInfinite(first)) return first;
+    if (Double.isInfinite(second)) return second;
+
+    return first + (second - first) * alpha;
   }
 }

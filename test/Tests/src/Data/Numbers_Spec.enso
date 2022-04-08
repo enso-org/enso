@@ -262,4 +262,22 @@ spec =
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
 
+        Test.specify "should support inexact equality comparisons" <|
+            1.0001 . equals 1.0002 epsilon=0.01 . should_be_true
+            1.0001 . equals 1.0002 epsilon=0.0000001 . should_be_false
+
+            1 . equals 2 . should_be_false
+            1 . equals (0+1) . should_be_true
+
+            inf = 1/0
+            inf . equals inf . should_be_true
+
+            neg_inf = -inf
+            neg_inf . equals neg_inf . should_be_true
+            neg_inf . equals inf . should_be_false
+
+            nan = 0.log 0
+            nan . equals nan . should_be_false
+            nan . equals 0 . should_be_false
+
 main = Test.Suite.run_main here.spec

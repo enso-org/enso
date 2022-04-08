@@ -10,6 +10,8 @@ import Standard.Test
 import Standard.Test.Problems
 import Standard.Base.Error.Problem_Behavior
 
+polyglot java import java.lang.Double
+
 type Test_Selection problem_handling=True advanced_stats=True text_concat=True text_shortest_longest=True first_last=True first_last_row_order=True std_dev=True multi_distinct=True aggregation_problems=True
 
 all_tests = Test_Selection True True True True True True True True True
@@ -935,17 +937,92 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
             m1.columns.second.at 0 . should_equal 1.2909944487358 epsilon=0.000001
 
+    expect_null_or_nan value =
+        matches = case value of
+            Nothing -> True
+            Decimal -> Double.isNaN value
+            _       -> False
+        if matches.not then
+            loc = Meta.get_source_location 2
+            Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+loc+")."
+
     Test.group prefix+"Table.aggregate should correctly handle infinities" pending=pending <|
         pos_inf = 1/0
         neg_inf = -1/0
         Test.specify " on Average" <|
-            Nothing
+            t1 = table_builder [["X", [Nothing, pos_inf, pos_inf, 0]]]
+            r1 = t1.aggregate [Average "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.at 0 . should_equal pos_inf
+
+            t2 = table_builder [["X", [Nothing, pos_inf, neg_inf, 0]]]
+            r2 = t2.aggregate [Average "X"]
+            r2.row_count.should_equal 1
+            m2 = materialize r2
+            m2.columns.length . should_equal 1
+            expect_null_or_nan <| m2.columns.first.at 0
+
         Test.specify " on Median" (pending = resolve_pending test_selection.advanced_stats) <|
-            Nothing
+            t1 = table_builder [["X", [Nothing, neg_inf, pos_inf, 0, pos_inf, pos_inf]]]
+            r1 = t1.aggregate [Median "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.at 0 . should_equal pos_inf
+
+            t2 = table_builder [["X", [pos_inf, pos_inf, neg_inf, neg_inf]]]
+            r2 = t2.aggregate [Median "X"]
+            r2.row_count.should_equal 1
+            m2 = materialize r2
+            m2.columns.length . should_equal 1
+            expect_null_or_nan <| m2.columns.first.at 0
+
+            t3 = table_builder [["X", [pos_inf, pos_inf, Nothing, 0, 10, 20, neg_inf, neg_inf]]]
+            r3 = t3.aggregate [Median "X"]
+            r3.row_count.should_equal 1
+            m3 = materialize r3
+            m3.columns.length . should_equal 1
+            m3.columns.first.at 0 . should_equal 10
+
+            t4 = table_builder [["X", [Nothing, pos_inf, pos_inf, 10, 12]]]
+            r4 = t4.aggregate [Median "X"]
+            r4.row_count.should_equal 1
+            m4 = materialize r4
+            m4.columns.length . should_equal 1
+            m4.columns.first.at 0 . should_equal pos_inf
+
         Test.specify " on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
-            Nothing
+            t1 = table_builder [["X", [Nothing, neg_inf, 2, 3, 4, pos_inf]]]
+            r1 = t1.aggregate [Percentile 0.3 "X"]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 1
+            m1.columns.first.at 0 . should_equal 2.2
+
+            t2 = table_builder [["X", [Nothing, neg_inf, neg_inf, 3, 4, pos_inf]]]
+            r2 = t2.aggregate [Percentile 0.25 "X"]
+            r2.row_count.should_equal 1
+            m2 = materialize r2
+            m2.columns.length . should_equal 1
+            m2.columns.first.at 0 . should_equal neg_inf
+
+            t3 = table_builder [["X", [Nothing, neg_inf, neg_inf, pos_inf, pos_inf, pos_inf]]]
+            r3 = t3.aggregate [Percentile 0.3 "X"]
+            r3.row_count.should_equal 1
+            m3 = materialize r3
+            m3.columns.length . should_equal 1
+            expect_null_or_nan <| m3.columns.first.at 0
+
         Test.specify " on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
-            Nothing
+            t1 = table_builder [["X", [neg_inf, 1]]]
+            r1 = t1.aggregate [Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
+            r1.row_count.should_equal 1
+            m1 = materialize r1
+            m1.columns.length . should_equal 2
+            expect_null_or_nan <| m1.columns.first.at 0
+            expect_null_or_nan <| m1.columns.second.at 0
 
     Test.group prefix+"Table.aggregate should correctly handle NaN" pending=pending <|
         nan = 0.log 0
