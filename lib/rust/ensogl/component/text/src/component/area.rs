@@ -861,8 +861,8 @@ impl AreaModel {
         mut line_style: StyleIterator,
         max_width_px: Option<f32>,
     ) -> String {
-        if let Some(max_width) = max_width_px {
-            let ellipsis = '\u{2026}';
+        const ELLIPSIS: char = '\u{2026}';
+        let truncate_at = max_width_px.and_then(|max_width| {
             let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
             let mut truncation_point = 0.bytes();
             let truncate = content.char_indices().any(|(i, ch)| {
@@ -874,7 +874,7 @@ impl AreaModel {
                 if next_width > max_width {
                     return true;
                 }
-                let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
+                let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size).size;
                 let char_length: Bytes = ch.len_utf8().into();
                 line_style.drop(char_length - 1.bytes());
                 if next_width + width_of_ellipsis <= max_width {
@@ -882,14 +882,11 @@ impl AreaModel {
                 }
                 false
             });
-            if truncate {
-                let truncated_text = content[..truncation_point.as_usize()].to_string();
-                truncated_text + String::from(ellipsis).as_str()
-            } else {
-                content
-            }
-        } else {
-            content
+            truncate.then(|| truncation_point)
+        });
+        match truncate_at {
+            Some(i) => content[..i.as_usize()].to_string() + String::from(ELLIPSIS).as_str(),
+            None => content,
         }
     }
 
