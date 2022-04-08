@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
   Component,
+  ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
   GroupName,
@@ -217,7 +218,7 @@ class RuntimeComponentsTest
     val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 60
+        timeout = 120
       )
     // sanity check
     responses should contain allOf (
@@ -240,16 +241,172 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
+    val expectedBaseComponents = ComponentGroups(
+      List(
+        ComponentGroup(
+          GroupName("Input"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Meta.Enso_Project.root", None),
+            Component("Standard.Base.System.File.new", None),
+            Component("Standard.Base.System.File.read", None)
+          )
+        )
+      ),
+      List()
+    )
     val expectedComponents = Map(
       LibraryName("Enso_Test", "Test") ->
       context.pkg.config.componentGroups
         .getOrElse(fail("Unexpected config value.")),
-      LibraryName("Standard", "Base")     -> ComponentGroups.empty,
+      LibraryName("Standard", "Base")     -> expectedBaseComponents,
       LibraryName("Standard", "Builtins") -> ComponentGroups.empty
     )
     components should contain theSameElementsAs expectedComponents
 
     context.consumeOut shouldEqual List()
   }
+
+  it should "load component groups of standard library" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+
+    val code =
+      """from Standard.Base import all
+        |import Standard.Visualization
+        |
+        |main = "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveOne shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val responses =
+      context.receiveAllUntil(
+        context.executionComplete(contextId),
+        timeout = 120
+      )
+    // sanity check
+    responses should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    // check LibraryLoaded notifications
+    val contentRootNotifications = responses.collect {
+      case Api.Response(
+            None,
+            Api.LibraryLoaded(namespace, name, version, _)
+          ) =>
+        (namespace, name, version)
+    }
+
+    contentRootNotifications should contain theSameElementsAs Seq(
+      ("Standard", "Base", TestEdition.testLibraryVersion.toString),
+      ("Standard", "Test", TestEdition.testLibraryVersion.toString),
+      ("Standard", "Database", TestEdition.testLibraryVersion.toString),
+      ("Standard", "Table", TestEdition.testLibraryVersion.toString),
+      ("Standard", "Visualization", TestEdition.testLibraryVersion.toString),
+      ("Standard", "Geo", TestEdition.testLibraryVersion.toString)
+    )
+
+    // check the registered component groups
+    val components = context.languageContext.getPackageRepository.getComponents
+    val expectedComponents = Map(
+      LibraryName("Enso_Test", "Test") ->
+      context.pkg.config.componentGroups
+        .getOrElse(fail("Unexpected config value.")),
+      LibraryName("Standard", "Base") ->
+      RuntimeComponentsTest.standardBaseComponents,
+      LibraryName("Standard", "Test") -> ComponentGroups.empty,
+      LibraryName("Standard", "Database") ->
+      RuntimeComponentsTest.standardDatabaseComponents,
+      LibraryName("Standard", "Visualization") -> ComponentGroups.empty,
+      LibraryName("Standard", "Geo")           -> ComponentGroups.empty,
+      LibraryName("Standard", "Table") ->
+      RuntimeComponentsTest.standardTableComponents,
+      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+    )
+    components should contain theSameElementsAs expectedComponents
+
+    context.consumeOut shouldEqual List()
+  }
+
+}
+object RuntimeComponentsTest {
+
+  val standardBaseComponents: ComponentGroups =
+    ComponentGroups(
+      List(
+        ComponentGroup(
+          GroupName("Input"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Meta.Enso_Project.root", None),
+            Component("Standard.Base.System.File.new", None),
+            Component("Standard.Base.System.File.read", None)
+          )
+        )
+      ),
+      List()
+    )
+
+  val standardDatabaseComponents: ComponentGroups =
+    ComponentGroups(
+      List(),
+      List(
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+          Seq(
+            Component("Standard.Database.Connection.Database.connect", None)
+          )
+        )
+      )
+    )
+
+  val standardTableComponents: ComponentGroups =
+    ComponentGroups(
+      List(),
+      List(
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+          Seq(
+            Component("Standard.Table.Io.Csv.from_csv", None),
+            Component("Standard.Table.Io.Spreadsheet.from_xlsx", None),
+            Component("Standard.Table.Io.Spreadsheet.from_xls", None)
+          )
+        )
+      )
+    )
 
 }

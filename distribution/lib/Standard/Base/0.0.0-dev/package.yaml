@@ -8,3 +8,10 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+component-groups:
+  new:
+    - Input:
+        exports:
+          - Standard.Base.Meta.Enso_Project.root
+          - Standard.Base.System.File.new
+          - Standard.Base.System.File.read

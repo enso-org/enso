@@ -8,3 +8,8 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+component-groups:
+  extends:
+    - Standard.Base.Input:
+        exports:
+          - Standard.Database.Connection.Database.connect

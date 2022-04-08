@@ -8,3 +8,10 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+component-groups:
+  extends:
+    - Standard.Base.Input:
+        exports:
+          - Standard.Table.Io.Csv.from_csv
+          - Standard.Table.Io.Spreadsheet.from_xlsx
+          - Standard.Table.Io.Spreadsheet.from_xls
