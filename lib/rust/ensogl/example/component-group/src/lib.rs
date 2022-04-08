@@ -90,7 +90,7 @@ fn init(app: &Application) {
     theme::builtin::light::enable(&app);
 
     let mock_entries = MockEntries::new(vec![
-        "very long entry that should get trimmed because it overflows any anticipated width of component group view".into(),
+        "sample entry that should get trimmed because it is very long".into(),
         "convert".into(),
         "table input".into(),
         "text input".into(),
