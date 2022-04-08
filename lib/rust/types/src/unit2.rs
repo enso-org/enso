@@ -1,11 +1,35 @@
 use std::marker::PhantomData;
-use std::ops::Deref;
 
 
 mod ops {
     pub use crate::algebra::*;
     pub use std::ops::*;
 }
+
+pub mod traits {
+    pub use super::DurationNumberOps;
+    pub use super::DurationOps;
+}
+
+
+
+// =====================
+// === UncheckedInto ===
+// =====================
+
+impl<T> const UncheckedInto<T> for T {
+    fn unchecked_into(self) -> T {
+        self
+    }
+}
+
+impl<V, R> const UncheckedInto<UnitData<V, R>> for R {
+    fn unchecked_into(self) -> UnitData<V, R> {
+        UnitData::unchecked_from(self)
+    }
+}
+
+
 
 // ================
 // === UnitData ===
@@ -17,15 +41,21 @@ pub trait Variant {
 
 pub type Unit<V> = UnitData<V, <V as Variant>::Repr>;
 
-pub struct UnitData<V, R = f32> {
+pub struct UnitData<V, R> {
     repr:    R,
     variant: PhantomData<V>,
 }
 
 impl<V, R> UnitData<V, R> {
-    pub const fn new(repr: R) -> Self {
+    pub const fn unchecked_from(repr: R) -> Self {
         let variant = PhantomData;
         Self { repr, variant }
+    }
+}
+
+impl<V, R: Copy> UnitData<V, R> {
+    pub const fn unchecked_raw(self) -> R {
+        self.repr
     }
 }
 
@@ -53,9 +83,10 @@ impl<V, R> !IsNotUnit for UnitData<V, R> {}
 
 impl<V, R: Default> Default for UnitData<V, R> {
     fn default() -> Self {
-        UnitData::new(Default::default())
+        UnitData::unchecked_from(Default::default())
     }
 }
+
 
 
 // =======================
@@ -80,22 +111,9 @@ impl<V, R: std::fmt::Display> std::fmt::Display for UnitData<V, R> {
 // === Deref / AsRef ===
 // =====================
 
-impl<V, R> Deref for UnitData<V, R> {
-    type Target = R;
-    fn deref(&self) -> &Self::Target {
-        &self.repr
-    }
-}
-
 impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
     fn as_ref(&self) -> &UnitData<V, R> {
         &self
-    }
-}
-
-impl<V, R> AsRef<R> for UnitData<V, R> {
-    fn as_ref(&self) -> &R {
-        &self.repr
     }
 }
 
@@ -114,6 +132,24 @@ impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
 
 
 
+// ===========
+// === Ord ===
+// ===========
+
+impl<V, R: Ord> Ord for UnitData<V, R> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.repr.cmp(&other.repr)
+    }
+}
+
+impl<V, R: PartialOrd> PartialOrd for UnitData<V, R> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.repr.partial_cmp(&other.repr)
+    }
+}
+
+
+
 // ============
 // === From ===
 // ============
@@ -123,14 +159,6 @@ where R: Copy
 {
     fn from(t: &UnitData<V, R>) -> Self {
         *t
-    }
-}
-
-impl<V, R, T> From<T> for UnitData<V, R>
-where T: IsNotUnit + Into<R>
-{
-    fn from(t: T) -> Self {
-        Self::new(t.into())
     }
 }
 
@@ -151,6 +179,8 @@ macro_rules! gen_ops {
             type Output;
         }
 
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
         impl<V, R> const ops::$trait<UnitData<V, R>> for f32
         where
             R: Copy,
@@ -159,34 +189,77 @@ macro_rules! gen_ops {
         {
             type Output = UnitData<<V as $rev_trait<f32>>::Output, <f32 as ops::$trait<R>>::Output>;
             fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
-                UnitData::new(self.$op(rhs.repr))
+                UnitData::unchecked_from(self.$op(rhs.repr))
             }
         }
 
         impl<V, R, T> const ops::$trait<T> for UnitData<V, R>
         where
-            V: $trait<T>,
+            UnitData<V, R>: $trait<T>,
             R: ~const ops::$trait<T> + Copy,
             T: IsNotUnit,
+            <R as ops::$trait<T>>::Output:
+                ~const UncheckedInto<<UnitData<V, R> as $trait<T>>::Output>,
         {
-            type Output = UnitData<<V as $trait<T>>::Output, <R as ops::$trait<T>>::Output>;
+            type Output = <UnitData<V, R> as $trait<T>>::Output;
             fn $op(self, rhs: T) -> Self::Output {
-                UnitData::new(self.repr.$op(rhs))
+                self.repr.$op(rhs).unchecked_into()
             }
         }
 
         impl<V1, V2, R1, R2> const ops::$trait<UnitData<V2, R2>> for UnitData<V1, R1>
         where
-            V1: $trait<V2>,
+            UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
             R1: ~const ops::$trait<R2> + Copy,
             R2: Copy,
+            <R1 as ops::$trait<R2>>::Output:
+                ~const UncheckedInto<<UnitData<V1, R1> as $trait<UnitData<V2, R2>>>::Output>,
         {
-            type Output = UnitData<<V1 as $trait<V2>>::Output, <R1 as ops::$trait<R2>>::Output>;
+            type Output = <UnitData<V1, R1> as $trait<UnitData<V2, R2>>>::Output;
             fn $op(self, rhs: UnitData<V2, R2>) -> Self::Output {
-                UnitData::new(self.repr.$op(rhs.repr))
+                self.repr.$op(rhs.repr).unchecked_into()
             }
         }
     };
+}
+
+macro_rules! gen_ops_mut {
+    ($rev_trait:ident, $trait:ident, $trait_mut:ident, $op:ident) => {
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f32
+        where
+            f32: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
+        impl<V, R, T> const ops::$trait_mut<T> for UnitData<V, R>
+        where
+            T: IsNotUnit,
+            R: ~const ops::$trait_mut<T>,
+            UnitData<V, R>: $trait<T>,
+        {
+            fn $op(&mut self, rhs: T) {
+                self.repr.$op(rhs)
+            }
+        }
+        impl<V1, V2, R1, R2> const ops::$trait_mut<UnitData<V2, R2>> for UnitData<V1, R1>
+        where
+            R1: ~const ops::$trait_mut<R2>,
+            R2: Copy,
+            UnitData<V1, R1>: $trait<UnitData<V2, R2>>,
+        {
+            fn $op(&mut self, rhs: UnitData<V2, R2>) {
+                self.repr.$op(rhs.repr)
+            }
+        }
+    };
+}
+
+pub trait UncheckedInto<T> {
+    fn unchecked_into(self) -> T;
 }
 
 gen_ops!(RevAdd, Add, add);
@@ -196,7 +269,29 @@ gen_ops!(RevDiv, Div, div);
 gen_ops!(SaturatingRevAdd, SaturatingAdd, saturating_add);
 gen_ops!(SaturatingRevSub, SaturatingSub, saturating_sub);
 gen_ops!(SaturatingRevMul, SaturatingMul, saturating_mul);
+gen_ops_mut!(RevAdd, Add, AddAssign, add_assign);
+gen_ops_mut!(RevSub, Sub, SubAssign, sub_assign);
+gen_ops_mut!(RevMul, Mul, MulAssign, mul_assign);
+gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
 
+
+
+// ==============================
+// === Unit Definition Macros ===
+// ==============================
+
+#[macro_export]
+macro_rules! define_single_op_switch {
+    (f32 $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {f32 $op $rhs = $out}
+    };
+    (f64 $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {f64 $op $rhs = $out}
+    };
+    ($lhs:ident $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_op! {$lhs $op $rhs = $out}
+    };
+}
 
 #[macro_export]
 macro_rules! define_single_op {
@@ -235,7 +330,7 @@ macro_rules! define_single_op {
 macro_rules! define_ops {
     ($($lhs:ident $op:tt $rhs:ident = $out:ident),* $(,)?) => {
         $(
-            $crate::define_single_op!{ $lhs $op $rhs = $out }
+            $crate::define_single_op_switch!{ $lhs $op $rhs = $out }
         )*
     };
 }
@@ -274,22 +369,9 @@ macro_rules! define_single_rev_op {
 }
 
 #[macro_export]
-macro_rules! define_rev_ops {
-    ($($lhs:ident $op:tt $rhs:ident = $out:ident),* $(,)?) => {
-        $(
-            $crate::define_single_rev_op!{ $lhs $op $rhs = $out }
-        )*
-    };
-}
-
-
-#[macro_export]
 macro_rules! define {
     ($name:ident = $variant:ident ($tp:ident)) => {
         pub type $name = Unit<$variant>;
-        pub fn $name(val: $tp) -> $name {
-            $name::new(val)
-        }
         pub struct $variant;
         impl Variant for $variant {
             type Repr = $tp;
@@ -299,23 +381,68 @@ macro_rules! define {
 
 
 
-// ======================
-// === Standard Units ===
-// ======================
+// ================
+// === Duration ===
+// ================
 
-// === Milliseconds ===
+define!(Duration = DURATION(f32));
+define_ops![
+    Duration [+,-] Duration = Duration,
+    Duration [*,/] f32 = Duration,
+    Duration / Duration = f32,
+    f32 * Duration = Duration,
+];
 
-define!(Milliseconds = MILLISECONDS(f32));
-define_ops![MILLISECONDS [+,-] MILLISECONDS = MILLISECONDS, MILLISECONDS [*,/] f32 = MILLISECONDS];
+pub trait DurationOps {
+    fn ms(t: f32) -> Duration;
+    fn s(t: f32) -> Duration;
+    fn min(t: f32) -> Duration;
+    fn h(t: f32) -> Duration;
+    fn as_ms(&self) -> f32;
+    fn as_s(&self) -> f32;
+    fn as_min(&self) -> f32;
+    fn as_h(&self) -> f32;
+}
 
+impl const DurationOps for Duration {
+    fn ms(t: f32) -> Duration {
+        Self::unchecked_from(t)
+    }
+    fn s(t: f32) -> Duration {
+        Self::ms(t * 1000.0)
+    }
+    fn min(t: f32) -> Duration {
+        Self::s(t * 60.0)
+    }
+    fn h(t: f32) -> Duration {
+        Self::min(t * 60.0)
+    }
 
-// === Meters ===
+    fn as_ms(&self) -> f32 {
+        self.unchecked_raw()
+    }
+    fn as_s(&self) -> f32 {
+        self.as_ms() / 1000.0
+    }
+    fn as_min(&self) -> f32 {
+        self.as_s() / 60.0
+    }
+    fn as_h(&self) -> f32 {
+        self.as_min() / 60.0
+    }
+}
 
-define!(Meters = METERS(f32));
-define_ops![METERS [+,-,*,/] f32 = METERS, METERS * METERS = SQUARE_METERS];
+pub trait DurationNumberOps {
+    fn ms(self) -> Duration;
+    fn s(self) -> Duration;
+}
 
+impl const DurationNumberOps for f32 {
+    fn ms(self) -> Duration {
+        Duration::ms(self)
+    }
 
-// === SquareMeters ===
-
-define!(SquareMeters = SQUARE_METERS(f32));
-define_ops![SQUARE_METERS [+,-,*,/] f32 = SQUARE_METERS, SQUARE_METERS / METERS = METERS];
+    fn s(self) -> Duration {
+        Duration::s(self)
+    }
+}

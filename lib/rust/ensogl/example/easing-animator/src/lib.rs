@@ -23,6 +23,7 @@
 use ensogl_core::animation::easing::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
+use ensogl_core::types::unit2::Duration;
 
 use ensogl_core::animation;
 use ensogl_core::system::web;
@@ -203,7 +204,7 @@ impl Sampler {
         let animation_cb = Box::new(move |t| prop.set(t)) as Box<dyn Fn(SpriteData)>;
         let easing_animator = Animator::new(start, end, easing_function2, animation_cb, ());
         let time = 0.0;
-        easing_animator.set_duration(2000.0);
+        easing_animator.set_duration(2.0.s());
         Self {
             color,
             time,
@@ -266,9 +267,9 @@ impl Example {
         let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
             left_canvas.clear();
             right_canvas.clear();
-            sampler1.render(time_info.previous_frame);
-            sampler2.render(time_info.previous_frame);
-            sampler3.render(time_info.previous_frame);
+            sampler1.render(time_info.previous_frame.unchecked_raw());
+            sampler2.render(time_info.previous_frame.unchecked_raw());
+            sampler3.render(time_info.previous_frame.unchecked_raw());
         }) as Box<dyn FnMut(animation::TimeInfo)>);
         Self { _animator }
     }

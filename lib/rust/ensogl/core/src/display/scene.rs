@@ -1076,7 +1076,7 @@ impl Scene {
     pub fn update(&self, time: animation::TimeInfo) {
         if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                self.frp.frame_time_source.emit(time.since_animation_loop_started);
+                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
                 self.update_camera(self);

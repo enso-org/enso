@@ -9,10 +9,10 @@ use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
 use crate::frp;
+use crate::types::unit2::Duration;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::DEPRECATED_Tween;
-
 
 
 // =================
@@ -277,7 +277,7 @@ impl Cursor {
         let host_attached_weight = DEPRECATED_Tween::new(network);
         let port_selection_layer_weight = Animation::<f32>::new(network);
 
-        host_attached_weight.set_duration(300.0);
+        host_attached_weight.set_duration(300.0.ms());
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
         color_alpha.set_target_value(DEFAULT_COLOR.alpha);
         radius.set_target_value(DEFAULT_RADIUS);

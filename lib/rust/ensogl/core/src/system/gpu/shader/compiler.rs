@@ -27,6 +27,7 @@ use crate::system::gpu::shader::Fragment;
 use crate::system::gpu::shader::Shader;
 use crate::system::gpu::shader::Vertex;
 use crate::system::web;
+use crate::types::unit2::Duration;
 
 use web_sys::WebGl2RenderingContext;
 
@@ -42,7 +43,7 @@ use web_sys::WebGl2RenderingContext;
 /// last scheduled shader can take a lot of time to be rendered, causing the FPS to drop
 /// significantly.
 const MIN_FPS: f32 = 60.0;
-const MAX_FRAME_TIME_MS: f32 = 1000.0 / MIN_FPS;
+const MAX_FRAME_TIME_MS: Duration = (1000.0 / MIN_FPS).ms();
 
 
 
@@ -201,7 +202,7 @@ impl CompilerData {
                         if !self.dirty {
                             break;
                         }
-                        let now = self.performance.now() as f32;
+                        let now = (self.performance.now() as f32).ms();
                         let current_frame_time =
                             now - time.animation_loop_start - time.since_animation_loop_started;
                         if current_frame_time > MAX_FRAME_TIME_MS {

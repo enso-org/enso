@@ -291,7 +291,7 @@ impl WorldData {
             self.on.prev_frame_stats.run_all(&stats);
         }
         self.on.before_frame.run_all(time);
-        self.uniforms.time.set(time.since_animation_loop_started);
+        self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
         self.default_scene.update(time);
         self.default_scene.render();

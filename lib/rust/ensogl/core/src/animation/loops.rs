@@ -5,7 +5,7 @@ use crate::system::web::traits::*;
 
 use crate::system::web;
 
-use crate::types::unit2::Milliseconds;
+use crate::types::unit2::Duration;
 use web::Closure;
 
 
@@ -22,9 +22,9 @@ use web::Closure;
 #[derive(Clone, Copy, Debug, Default)]
 #[allow(missing_docs)]
 pub struct TimeInfo {
-    pub animation_loop_start:         Milliseconds,
-    pub previous_frame:               Milliseconds,
-    pub since_animation_loop_started: Milliseconds,
+    pub animation_loop_start:         Duration,
+    pub previous_frame:               Duration,
+    pub since_animation_loop_started: Duration,
 }
 
 impl TimeInfo {
@@ -36,7 +36,7 @@ impl TimeInfo {
     /// Check whether the time info was initialized. See the documentation of the struct to learn
     /// more.
     pub fn is_initialized(&self) -> bool {
-        self.animation_loop_start != Milliseconds(0.0)
+        self.animation_loop_start != 0.0.ms()
     }
 }
 
@@ -49,7 +49,7 @@ impl TimeInfo {
 // === Types ===
 
 /// Callback for `RawLoop`.
-pub trait RawLoopCallback = FnMut(Milliseconds) + 'static;
+pub trait RawLoopCallback = FnMut(Duration) + 'static;
 
 
 // === Definition ===
@@ -72,7 +72,7 @@ where Callback: RawLoopCallback
     pub fn new(callback: Callback) -> Self {
         let data = Rc::new(RefCell::new(RawLoopData::new(callback)));
         let weak_data = Rc::downgrade(&data);
-        let on_frame = move |time| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
+        let on_frame = move |time: f64| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
         data.borrow_mut().on_frame = Some(Closure::new(on_frame));
         let handle_id = web::window.request_animation_frame_with_closure_or_panic(
             data.borrow_mut().on_frame.as_ref().unwrap(),
@@ -103,10 +103,10 @@ impl<Callback> RawLoopData<Callback> {
     /// Run the animation frame. The time fill be converted to [`f32`] because of performance
     /// reasons. See https://hugotunius.se/2017/12/04/rust-f64-vs-f32.html to learn more.
     fn run(&mut self, current_time_ms: f64)
-    where Callback: FnMut(f32) {
+    where Callback: FnMut(Duration) {
         let callback = &mut self.callback;
         self.handle_id = self.on_frame.as_ref().map_or(default(), |on_frame| {
-            callback(current_time_ms as f32);
+            callback((current_time_ms as f32).ms());
             web::window.request_animation_frame_with_closure_or_panic(on_frame)
         })
     }
@@ -154,7 +154,7 @@ where Callback: LoopCallback
 }
 
 /// Callback for an animation frame.
-pub type OnFrame<Callback> = impl FnMut(Milliseconds);
+pub type OnFrame<Callback> = impl FnMut(Duration);
 fn on_frame<Callback>(
     mut callback: Callback,
     time_info_ref: Rc<Cell<TimeInfo>>,
@@ -162,7 +162,7 @@ fn on_frame<Callback>(
 where
     Callback: LoopCallback,
 {
-    move |current_time: Milliseconds| {
+    move |current_time: Duration| {
         let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "@on_frame");
         let prev_time = time_info_ref.get();
         let animation_loop_start =
@@ -187,9 +187,9 @@ where
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct FixedFrameRateSampler<Callback> {
-    frame_time:  f32,
-    local_time:  f32,
-    time_buffer: f32,
+    frame_time:  Duration,
+    local_time:  Duration,
+    time_buffer: Duration,
     #[derivative(Debug = "ignore")]
     callback:    Callback,
 }
@@ -197,7 +197,7 @@ pub struct FixedFrameRateSampler<Callback> {
 impl<Callback> FixedFrameRateSampler<Callback> {
     /// Constructor.
     pub fn new(frame_rate: f32, callback: Callback) -> Self {
-        let frame_time = 1000.0 / frame_rate;
+        let frame_time = (1000.0 / frame_rate).ms();
         let local_time = default();
         let time_buffer = default();
         Self { frame_time, local_time, time_buffer, callback }
@@ -216,7 +216,7 @@ impl<Callback: FnMut<(TimeInfo,)>> FnMut<(TimeInfo,)> for FixedFrameRateSampler<
         let time = args.0;
         self.time_buffer += time.previous_frame;
         loop {
-            if self.time_buffer < 0.0 {
+            if self.time_buffer < 0.0.ms() {
                 break;
             } else {
                 self.time_buffer -= self.frame_time;
