@@ -129,7 +129,7 @@ where E::Model: Default
     }
 
     /// Update displayed entries to show the given range.
-    pub fn update_entries(&self, mut range: Range<entry::Id>, style_prefix: style::Path) {
+    pub fn update_entries(&self, mut range: Range<entry::Id>, style_prefix: style::Path, width_px: f32) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
@@ -152,6 +152,9 @@ where E::Model: Default
                 }
             });
             self.entries_range.set(range);
+        }
+        for entry in self.entries.borrow().iter() {
+            entry.entry.resize(width_px);
         }
     }
 

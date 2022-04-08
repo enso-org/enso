@@ -66,6 +66,9 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// Update content with new model.
     fn update(&self, model: &Self::Model);
 
+    /// Resize the entry's view to fit a new width.
+    fn resize(&self, width_px: f32);
+
     /// Set the layer of all [`text::Area`] components inside. The [`text::Area`] component is
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
     /// in [`text::Area::add_to_scene_layer`] method.
@@ -120,6 +123,10 @@ impl Entry for Label {
 
     fn update(&self, model: &Self::Model) {
         self.label.set_content(model);
+    }
+
+    fn resize(&self, width_px: f32) {
+        self.label.set_truncation_width(width_px);
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {
@@ -178,6 +185,10 @@ impl Entry for GlyphHighlightedLabel {
     fn update(&self, model: &Self::Model) {
         self.inner.update(&model.label);
         self.highlight.emit(&model.highlighted);
+    }
+
+    fn resize(&self, width_px: f32) {
+        self.inner.resize(width_px);
     }
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {

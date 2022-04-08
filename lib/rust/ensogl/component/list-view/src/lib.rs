@@ -175,11 +175,12 @@ impl<E: Entry> Model<E> {
         let padding_px = self.padding();
         let padding = 2.0 * padding_px + SHAPE_PADDING;
         let padding = Vector2(padding, padding);
+        let entry_width = view.size.x - padding.x;
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
-        self.entries.update_entries(visible_entries, style_prefix);
+        self.entries.update_entries(visible_entries, style_prefix, entry_width);
     }
 
     fn set_entries(
