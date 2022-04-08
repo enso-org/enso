@@ -960,9 +960,6 @@ impl AreaModel {
     }
 
     fn set_font(&self, font_name: &str) {
-        // FIXME: symbols(), -> layer.add_exclusive(&symbol) (see add_to_scene_layer()); or call
-        // separately from the callee, as is done now?
-
         let app = &self.app;
         let scene = &app.display.default_scene;
         let fonts = scene.extension::<typeface::font::Registry>();

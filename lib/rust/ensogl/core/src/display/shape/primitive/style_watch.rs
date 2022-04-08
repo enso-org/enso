@@ -108,7 +108,7 @@ impl StyleWatchFrp {
         sampler
     }
 
-    /// Queries style sheet value for a text. Returns empty string if not found.
+    /// Queries the style sheet for a text. Returns empty string if not found.
     pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<String> {
         let network = &self.network;
         let (source, current) = self.get_internal(path);
