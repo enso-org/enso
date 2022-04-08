@@ -30,7 +30,7 @@ use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::Component;
-use ensogl_hardcoded_theme::application::component_browser::group as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry;
 use ensogl_list_view::ListView;
