@@ -29,7 +29,9 @@ public abstract class TypeToDisplayTextNode extends Node {
       @CachedLibrary(limit = "5") InteropLibrary objects,
       @CachedLibrary(limit = "5") InteropLibrary displays,
       @CachedLibrary(limit = "5") InteropLibrary strings) {
-    if (TypesGen.isLong(value)) {
+    if (value == null) {
+      return "null";
+    } else if (TypesGen.isLong(value)) {
       return value + " (Integer)";
     } else if (TypesGen.isEnsoBigInteger(value)) {
       return "Integer";
@@ -60,7 +62,7 @@ public abstract class TypeToDisplayTextNode extends Node {
         return strings.asString(displays.toDisplayString(objects.getMetaObject(value)));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(
-            "Receiver declares a meta object, but does not it return it.");
+            "Receiver declares a meta object, but does not return it.");
       }
     } else {
       return "a polyglot object";

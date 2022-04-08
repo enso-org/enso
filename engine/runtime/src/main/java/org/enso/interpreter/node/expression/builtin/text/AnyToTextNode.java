@@ -64,7 +64,9 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private String showObject(Object child) throws UnsupportedMessageException {
-    if (child instanceof Boolean) {
+    if (child == null) {
+      return "null";
+    } else if (child instanceof Boolean) {
       return (boolean) child ? "True" : "False";
     } else {
       return strings.asString(displays.toDisplayString(child));
