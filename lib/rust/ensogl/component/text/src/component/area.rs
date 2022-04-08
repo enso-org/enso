@@ -883,7 +883,7 @@ impl AreaModel {
     }
 
     /// Truncate `content` if its length on screen exceeds `max_width_px`. Return the truncated
-    /// string with an ellipsis character appended, or `content` if not truncated.
+    /// string with an ellipsis ("…") character appended, or `content` if not truncated.
     ///
     /// The truncation point is chosen such that the resulting string with ellipsis will fit in
     /// `max_width_px` if possible.
