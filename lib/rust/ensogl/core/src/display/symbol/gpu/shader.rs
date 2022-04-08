@@ -110,7 +110,8 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update<F: 'static + Fn()>(&mut self, bindings:&[VarBinding], on_ready:F) {
+    pub fn update<F: 'static + Fn(&shader::Program)>
+    (&mut self, bindings:&[VarBinding], on_ready:F) {
         debug!(self.logger, "Updating.", || {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
@@ -154,8 +155,8 @@ impl {
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
                     let handler = context.shader_compiler.submit(code, move |p| {
+                        on_ready(&p);
                         *program.borrow_mut() = Some(p);
-                        on_ready();
                     });
                     self.shader_compiler_job = Some(handler);
                     self.dirty.unset_all();

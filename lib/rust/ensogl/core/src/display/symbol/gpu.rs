@@ -8,6 +8,7 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
+use crate::system::gpu;
 use crate::system::gpu::data::buffer::IsBuffer;
 use crate::system::gpu::data::texture::class::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
@@ -307,25 +308,51 @@ newtype_prim! {
 }
 
 /// Symbol is a surface with attached `Shader`.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Symbol {
     pub id:             SymbolId,
     global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
-    surface:            Mesh,
     shader:             Shader,
-    surface_dirty:      GeometryDirty,
     shader_dirty:       ShaderDirty,
-    variables:          UniformScope,
     /// Please note that changing the uniform type to `u32` breaks node ID encoding in GLSL, as the
     /// functions are declared to work on `int`s, not `uint`s. This might be improved one day.
     symbol_id_uniform:  Uniform<i32>,
-    context:            Rc<RefCell<Option<Context>>>,
-    logger:             Logger,
-    bindings:           Rc<RefCell<Bindings>>,
+
     stats:              SymbolStats,
     is_hidden:          Rc<Cell<bool>>,
     global_instance_id: Buffer<i32>,
+    #[deref]
+    data:               SymbolData,
+}
+
+#[derive(Debug, Clone, CloneRef)]
+pub struct SymbolData {
+    logger:        Logger,
+    context:       Rc<RefCell<Option<Context>>>,
+    bindings:      Rc<RefCell<Bindings>>,
+    surface_dirty: GeometryDirty,
+    surface:       Mesh,
+    variables:     UniformScope,
+}
+
+impl SymbolData {
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        logger: Logger,
+        stats: &Stats,
+        on_mut: OnMut,
+    ) -> Self {
+        let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
+        let surface_dirty = GeometryDirty::new(geo_dirt_logger, Box::new(on_mut));
+        let surface_on_mut = Box::new(f!(surface_dirty.set()));
+        let surface_logger = Logger::new_sub(&logger, "surface");
+        let surface = Mesh::new(surface_logger, stats, surface_on_mut);
+        let context = default();
+        let bindings = default();
+        let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
+
+        Self { logger, context, bindings, surface_dirty, surface, variables }
+    }
 }
 
 impl Symbol {
@@ -341,40 +368,29 @@ impl Symbol {
         debug!(init_logger, "Initializing.", || {
             let global_id_provider = global_id_provider.clone_ref();
             let on_mut2 = on_mut.clone();
-            let surface_logger = Logger::new_sub(&logger, "surface");
             let shader_logger = Logger::new_sub(&logger, "shader");
-            let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
             let mat_dirt_logger = Logger::new_sub(&logger, "shader_dirty");
-            let surface_dirty = GeometryDirty::new(geo_dirt_logger, Box::new(on_mut2));
             let shader_dirty = ShaderDirty::new(mat_dirt_logger, Box::new(on_mut));
-            let surface_on_mut = Box::new(f!(surface_dirty.set()));
+
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
             let shader = Shader::new(shader_logger, stats, shader_on_mut);
-            let surface = Mesh::new(surface_logger, stats, surface_on_mut);
-            let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
-            let bindings = default();
-            let stats = SymbolStats::new(stats);
-            let context = default();
-            let symbol_id_uniform = variables.add_or_panic("symbol_id", (*id) as i32);
+
             let display_object = display::object::Instance::new(logger.clone());
             let is_hidden = Rc::new(Cell::new(false));
-
-            let instance_scope = surface.instance_scope();
+            let data = SymbolData::new(logger, stats, on_mut2);
+            let stats = SymbolStats::new(stats);
+            let symbol_id_uniform = data.variables.add_or_panic("symbol_id", (*id) as i32);
+            let instance_scope = data.surface.instance_scope();
             let global_instance_id = instance_scope.add_buffer("global_instance_id");
 
             Self {
                 id,
                 global_id_provider,
                 display_object,
-                surface,
                 shader,
-                surface_dirty,
                 shader_dirty,
-                variables,
                 symbol_id_uniform,
-                context,
-                logger,
-                bindings,
+                data,
                 stats,
                 is_hidden,
                 global_instance_id,
@@ -420,11 +436,11 @@ impl Symbol {
                 if self.shader_dirty.check() {
                     let var_bindings = self.discover_variable_bindings(global_variables);
                     // FIXME: Potential mem leak
-                    let this = self.clone_ref();
+                    let data = self.data.clone_ref();
                     let global_variables = global_variables.clone_ref();
                     let bindings = var_bindings.clone(); // FIXME perf
-                    self.shader.update(&bindings, move || {
-                        this.init_variable_bindings(&var_bindings, &global_variables);
+                    self.shader.update(&bindings, move |program| {
+                        data.init_variable_bindings(&var_bindings, &global_variables, program);
                     });
                     self.shader_dirty.unset();
                 }
@@ -550,13 +566,14 @@ impl Symbol {
 
 // === Private API ===
 
-impl Symbol {
+impl SymbolData {
     /// Creates a new VertexArrayObject, discovers all variable bindings from shader to geometry,
     /// and initializes the VAO with the bindings.
     fn init_variable_bindings(
         &self,
         var_bindings: &[shader::VarBinding],
         global_variables: &UniformScope,
+        program: &gpu::shader::Program,
     ) {
         if let Some(context) = &*self.context.borrow() {
             let max_texture_units = context.get_parameter(*Context::MAX_TEXTURE_IMAGE_UNITS);
@@ -574,7 +591,7 @@ impl Symbol {
             self.bindings.borrow_mut().vao = Some(VertexArrayObject::new(context));
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
-            self.with_program_mut(context, |this, program| {
+            self.with_program_mut(context, program, |this| {
                 for binding in var_bindings {
                     match binding.scope.as_ref() {
                         Some(ScopeType::Mesh(s)) =>
@@ -662,6 +679,28 @@ impl Symbol {
         });
     }
 
+    /// Runs the provided function in a context of active program and active VAO. After the function
+    /// is executed, both program and VAO are bound to None.
+    fn with_program_mut<F: FnOnce(&Self)>(
+        &self,
+        context: &Context,
+        program: &gpu::shader::Program,
+        f: F,
+    ) {
+        context.use_program(Some(&program.native));
+        self.with_vao_mut(|this| f(this));
+        context.use_program(None);
+    }
+
+    fn with_vao_mut<F: FnOnce(&Self) -> T, T>(&self, f: F) -> T {
+        self.bindings.borrow().vao.as_ref().unwrap().bind();
+        let out = f(self);
+        self.bindings.borrow().vao.as_ref().unwrap().unbind();
+        out
+    }
+}
+
+impl Symbol {
     /// For each variable from the shader definition, looks up its position in geometry scopes.
     fn discover_variable_bindings(
         &self,
@@ -694,23 +733,6 @@ impl Symbol {
             }
             context.use_program(None);
         }
-    }
-
-    /// Runs the provided function in a context of active program and active VAO. After the function
-    /// is executed, both program and VAO are bound to None.
-    fn with_program_mut<F: FnOnce(&Self, &WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.native_program().as_ref() {
-            context.use_program(Some(program));
-            self.with_vao_mut(|this| f(this, program));
-            context.use_program(None);
-        }
-    }
-
-    fn with_vao_mut<F: FnOnce(&Self) -> T, T>(&self, f: F) -> T {
-        self.bindings.borrow().vao.as_ref().unwrap().bind();
-        let out = f(self);
-        self.bindings.borrow().vao.as_ref().unwrap().unbind();
-        out
     }
 }
 
