@@ -7,7 +7,6 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style::Path;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 
 
