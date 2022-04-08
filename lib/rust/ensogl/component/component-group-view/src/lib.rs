@@ -50,6 +50,7 @@ pub mod header_background {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        above = [list_view::selection];
         (style:Style,color:Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -176,22 +177,15 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
-        let entries = ListView::new(app);
         let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
-        display_object.add_child(&entries);
+        let entries = ListView::new(app);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
+        display_object.add_child(&entries);
 
-        // TODO: this is based on code in list_view::entry::List::new(); is it right?
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
-
-        ensogl_core::shapes_order_dependencies! {
-            app.display.default_scene => {
-                list_view::selection -> header_background;
-            }
-        }
 
         Model { display_object, header, header_background, entries }
     }
