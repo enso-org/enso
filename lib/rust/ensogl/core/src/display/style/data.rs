@@ -50,9 +50,9 @@ where color::Color<C>: Into<color::Rgba>
     }
 }
 
-impl From<String> for Data {
-    fn from(t: String) -> Data {
-        Data::Text(t)
+impl From<&str> for Data {
+    fn from(t: &str) -> Data {
+        Data::Text(t.to_owned())
     }
 }
 
@@ -69,19 +69,6 @@ impl FromStr for Data {
         }
     }
 }
-// impl TryFrom<String> for Data {
-//     type Error = ();
-//     fn try_from(s: String) -> Result<Self, Self::Error> {
-//         match s.parse::<f32>() {
-//             Ok(t) => Ok(Data::Number(t)),
-//             _ => match s.parse::<color::AnyFormat>() {
-//                 Ok(t) => Ok(Data::Color(t.into())),
-//                 // TODO[MC]: add support for Text(String), via serde_json of e.g. `"DejaVuSans-Bold"`
-//                 _ => Err(()),
-//             },
-//         }
-//     }
-// }
 
 
 // === Impls ===
