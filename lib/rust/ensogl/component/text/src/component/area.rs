@@ -854,9 +854,9 @@ impl AreaModel {
         &self,
         content: String,
         mut line_style: StyleIterator,
-        truncation_width: Option<f32>,
+        max_width_px: Option<f32>,
     ) -> String {
-        if let Some(width) = truncation_width {
+        if let Some(width) = max_width_px {
             let ellipsis = '\u{2026}';
             let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
             let mut candidate_truncation_offset = 0.bytes();
