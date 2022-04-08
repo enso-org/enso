@@ -590,16 +590,16 @@ pub struct AreaModel {
     //            be replaced with proper object management.
     camera: Rc<CloneRefCell<display::camera::Camera2d>>,
 
-    logger:         Logger,
-    frp_endpoints:  FrpEndpoints,
-    buffer:         buffer::View,
-    display_object: display::object::Instance,
+    logger:           Logger,
+    frp_endpoints:    FrpEndpoints,
+    buffer:           buffer::View,
+    display_object:   display::object::Instance,
     #[cfg(target_arch = "wasm32")]
     glyph_system:     Rc<RefCell<glyph::System>>,
-    lines:          Lines,
-    single_line:    Rc<Cell<bool>>,
+    lines:            Lines,
+    single_line:      Rc<Cell<bool>>,
     truncation_width: Rc<RefCell<Option<f32>>>,
-    selection_map:  Rc<RefCell<SelectionMap>>,
+    selection_map:    Rc<RefCell<SelectionMap>>,
 }
 
 impl AreaModel {
@@ -994,8 +994,7 @@ impl AreaModel {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn set_font(&self, _: &str) {
-    }
+    fn set_font(&self, _: &str) {}
 
     #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
