@@ -55,27 +55,26 @@ pub fn entry_point_component_group() {
 
 #[derive(Clone, Debug)]
 struct MockEntries {
-    entries_count: usize,
+    entries: Vec<String>,
 }
 
 impl MockEntries {
-    fn new(entries_count: usize) -> Self {
-        Self { entries_count }
+    fn new(entries: Vec<String>) -> Self {
+        Self { entries }
+    }
+
+    fn get_entry(&self, i: usize) -> Option<String> {
+        self.entries.get(i).map(|s| s.clone())
     }
 }
 
 impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
     fn entry_count(&self) -> usize {
-        self.entries_count
+        self.entries.len()
     }
 
     fn get(&self, id: usize) -> Option<String> {
-        if id >= self.entries_count {
-            None
-        } else {
-            let label = iformat!("Entry {id}");
-            Some(label)
-        }
+        self.get_entry(id)
     }
 }
 
@@ -90,12 +89,23 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
+    let mock_entries = MockEntries::new(vec![
+        "very long entry that should get trimmed because it overflows any anticipated width of component group view".into(),
+        "convert".into(),
+        "table input".into(),
+        "text input".into(),
+        "number input".into(),
+        "table input".into(),
+        "data output".into(),
+        "data input".into(),
+    ]);
+
+
     let component_group_view = app.new_view::<component_group_view::View>();
-    let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
-    component_group_view.set_size(Vector2(150.0, 200.0));
-    component_group_view.set_entries(provider);
-    // component_group_view.set_header_text("Input / Output very long name".to_string());
+    let provider = list_view::entry::AnyModelProvider::new(mock_entries);
     component_group_view.set_header_text("Input / Output".to_string());
+    component_group_view.set_entries(provider);
+    component_group_view.set_size(Vector2(150.0, 200.0));
     component_group_view.set_background_color(color::Rgba(0.0, 1.0, 0.0, 1.0));
     app.display.add_child(&component_group_view);
 
