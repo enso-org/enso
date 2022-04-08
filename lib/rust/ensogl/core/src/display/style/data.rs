@@ -17,6 +17,7 @@ pub enum Data {
     Invalid(String),
     Number(f32),
     Color(color::Rgba),
+    Text(String),
 }
 
 
@@ -54,6 +55,7 @@ impl TryFrom<String> for Data {
             Ok(t) => Ok(Data::Number(t)),
             _ => match s.parse::<color::AnyFormat>() {
                 Ok(t) => Ok(Data::Color(t.into())),
+                // TODO[MC]: add support for Text(String), via serde_json of e.g. `"DejaVuSans-Bold"`
                 _ => Err(()),
             },
         }

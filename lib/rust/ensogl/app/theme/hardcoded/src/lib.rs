@@ -183,7 +183,7 @@ define_themes! { [light:0, dark:1]
             group {
                 name {
                     text {
-                        // font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;
                     }
                     height = 30.0, 30.0; // TODO
@@ -196,7 +196,7 @@ define_themes! { [light:0, dark:1]
                 }
                 entries {
                     text {
-                        // font = "DejaVuSans", "DejaVuSans";
+                        font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
                     }
                     // TODO: height = 30.0, 30.0; ?
