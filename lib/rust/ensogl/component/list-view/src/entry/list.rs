@@ -174,7 +174,7 @@ where E::Model: Default
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
         mut range: Range<entry::Id>,
-        style_prefix: style::Path
+        style_prefix: style::Path,
     ) {
         const MAX_SAFE_ENTRIES_COUNT: usize = 1000;
         let provider = provider.into();

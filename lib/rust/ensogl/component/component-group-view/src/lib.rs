@@ -121,9 +121,9 @@ impl component::Frp<Model> for Frp {
 
 #[derive(Debug, Copy, Clone, Default)]
 struct HeaderGeometry {
-    height: f32,
-    padding_left: f32,
-    padding_right: f32,
+    height:         f32,
+    padding_left:   f32,
+    padding_right:  f32,
     padding_bottom: f32,
 }
 
@@ -196,7 +196,6 @@ impl component::Model for Model {
 
 impl Model {
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
-
         // === Header ===
 
         let half_height = size.y / 2.0;

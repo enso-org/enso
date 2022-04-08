@@ -190,7 +190,12 @@ impl<E: Entry> Model<E> {
         self.entries.update_entries(visible_entries, style_prefix);
     }
 
-    fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View, style_prefix: style::Path) {
+    fn set_entries(
+        &self,
+        provider: entry::AnyModelProvider<E>,
+        view: &View,
+        style_prefix: style::Path,
+    ) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
         self.entries.update_entries_new_provider(provider, visible_entries, style_prefix);
     }
