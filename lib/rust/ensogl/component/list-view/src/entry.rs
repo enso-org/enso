@@ -160,8 +160,8 @@ impl Entry for GlyphHighlightedLabel {
     fn new(app: &Application, style_prefix: &Path) -> Self {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
-        let text_theme = style_prefix.sub("text");
-        let highlight_color = inner.style_watch.get_color(text_theme.sub("highlight"));
+        let text_style = style_prefix.sub("text");
+        let highlight_color = inner.style_watch.get_color(text_style.sub("highlight"));
         let label = &inner.label;
 
         frp::extend! { network

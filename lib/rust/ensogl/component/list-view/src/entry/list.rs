@@ -155,6 +155,8 @@ where E::Model: Default
         }
     }
 
+    /// Update displayed entries to use styles located at the `style_prefix` path in the
+    /// application's style sheet.
     pub fn update_entries_style_prefix(&self, style_prefix: style::Path) {
         let mut entries = self.entries.borrow_mut();
         let provider = self.provider.get();
