@@ -20,7 +20,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "echo" Array.empty "" False False False
@@ -35,7 +34,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_1 "/c") "" False False False
@@ -50,8 +48,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
-          |
           |main = System.create_process "nonexistentcommandxyz" Array.empty "" False False False
           |""".stripMargin
 
@@ -65,7 +61,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "ls" (Array.new_1 "--gibberish") "" False False False
@@ -81,7 +76,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_2 "/c" "exit 7") "" False False False
@@ -97,7 +91,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "read line; echo $line") "" True True True
@@ -114,7 +107,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "" True True True
@@ -132,7 +124,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "wc -c") "" True True True
@@ -149,7 +140,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "42") "" True True True
@@ -166,7 +156,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_2 "/c" "echo 9") "" True True True
@@ -183,7 +172,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "9") "" True True True
@@ -199,7 +187,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_2 "/c" "echo 9") "" True True True
@@ -215,7 +202,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "read line; printf $line") "hello" False False False
@@ -231,7 +217,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "hello" False False False
@@ -247,7 +232,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False True True
@@ -263,7 +247,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_2 "/c" "echo foobar") "" False True True
@@ -279,7 +262,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\x01\x0F\x10'") "" False True True
@@ -295,7 +277,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False False False
@@ -312,7 +293,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "cmd" (Array.new_2 "/c" "echo foobar") "" False False False
@@ -329,7 +309,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False True True
@@ -345,7 +324,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False True True
@@ -361,7 +339,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2") "" False True True
@@ -377,7 +354,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False False False
@@ -393,7 +369,6 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """from Standard.Builtins import all
           |import Standard.Base.Data.Array
-          |from Standard.Base.Data.Boolean import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False False False

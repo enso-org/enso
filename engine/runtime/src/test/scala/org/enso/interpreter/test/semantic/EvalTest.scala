@@ -66,7 +66,6 @@ class EvalTest extends InterpreterTest {
     "work in a recursive setting" in {
       val code =
         """from Standard.Builtins import all
-          |from Standard.Base import all
           |
           |main =
           |    fn = sumTo ->
@@ -81,7 +80,6 @@ class EvalTest extends InterpreterTest {
     "work inside a thunk passed to another function" in {
       val code =
         """from Standard.Builtins import all
-          |from Standard.Base import all
           |
           |main =
           |    fn = sumTo ->
