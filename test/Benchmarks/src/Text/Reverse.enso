@@ -1,0 +1,28 @@
+from Standard.Base import all
+
+import Standard.Test.Bench
+import Standard.Test.Faker
+
+# Benchmarks ##################################################################
+
+main =
+    ## The `Text.reverse` benchmarks check both scenarios where the Texts are
+       short and very long. This is to show any overheads related to string
+       building.
+    bench_reverse suite_prefix character_template =
+        faker = Faker.new
+        ## Warning: this relies on the fact that Faker will treat the accent
+           codepoint `\u{301}` as a separate code unit. We rely on this to add
+           accents randomly to neighboring characters. If the implementation of
+           Faker is changed, this must be modified accordingly.
+        make_alpha_template length = Vector.new length _-> character_template
+
+        very_short_template = make_alpha_template 4
+        very_short_random = faker.string_value very_short_template
+        big_template = make_alpha_template 100000
+        big_random = faker.string_value big_template
+
+        Bench.measure (very_short_random.reverse) suite_prefix+" 4" 10 10
+        Bench.measure (big_random.reverse) suite_prefix+" 100000" 10 10
+
+    bench_reverse "Text.reverse" (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.utf_16)

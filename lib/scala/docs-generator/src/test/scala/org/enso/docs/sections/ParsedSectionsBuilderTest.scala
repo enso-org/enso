@@ -171,6 +171,45 @@ class ParsedSectionsBuilderTest extends AnyWordSpec with Matchers {
       parseSections(comment) shouldEqual expected
     }
 
+    "generate multiple keyed" in {
+      val comment =
+        """ Description
+          |
+          | Icon: my-icon
+          | icon
+          | Aliases: foo, bar baz, redshift®
+          | and other
+          |
+          | Paragraph
+          |""".stripMargin.linesIterator.mkString("\n")
+      val expected = List(
+        Section.Paragraph(
+          List(Doc.Elem.Text("Description"), Doc.Elem.Newline)
+        ),
+        Section.Keyed(
+          "Icon",
+          List(
+            Doc.Elem.Text("my-icon"),
+            Doc.Elem.Newline,
+            Doc.Elem.Text("icon")
+          )
+        ),
+        Section.Keyed(
+          "Aliases",
+          List(
+            Doc.Elem.Text("foo, bar baz, redshift"),
+            Doc.Elem.Text("®"),
+            Doc.Elem.Newline,
+            Doc.Elem.Text("and other"),
+            Doc.Elem.Newline
+          )
+        ),
+        Section.Paragraph(List(Doc.Elem.Text("Paragraph")))
+      )
+
+      parseSections(comment) shouldEqual expected
+    }
+
     "generate marked example" in {
       val comment =
         """ Description

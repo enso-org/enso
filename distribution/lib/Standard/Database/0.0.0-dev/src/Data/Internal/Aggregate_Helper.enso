@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table.Data.Aggregate_Column import all
 import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 make_aggregate_column : Table -> Aggregate_Column -> Text -> IR.Internal_Column
 make_aggregate_column table aggregate new_name =
@@ -11,36 +12,47 @@ make_aggregate_column table aggregate new_name =
     IR.Internal_Column new_name sql_type expression
 
 make_expression : Aggregate_Column -> IR.Expression
-make_expression aggregate = case aggregate of
-    Group_By c _ -> c.expression
-    Count _ -> IR.Operation "COUNT_ROWS" []
-    Count_Distinct columns _ ignore_nothing -> case columns.length > 1 of
-        True ->
-            ## TODO
-            Error.throw (Illegal_State_Error "Multi column distinct is not implemented yet.")
-        False ->
-            column = columns.first
+make_expression aggregate =
+    is_non_empty_vector v = if v.is_nothing then False else v.not_empty
+    case aggregate of
+        Group_By c _ -> c.expression
+        Count _ -> IR.Operation "COUNT_ROWS" []
+        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error "Count_Distinct must have at least one column.") else
             case ignore_nothing of
-                True -> IR.Operation "COUNT_DISTINCT" [column.expression]
-                False -> IR.Operation "COUNT_DISTINCT_INCLUDE_NULL" [column.expression]
-    Count_Not_Nothing c _ -> IR.Operation "COUNT" [c.expression]
-    Count_Nothing c _ -> IR.Operation "COUNT_IS_NULL" [c.expression]
-    Count_Not_Empty c _ -> IR.Operation "COUNT_NOT_EMPTY" [c.expression]
-    Count_Empty c _ -> IR.Operation "COUNT_EMPTY" [c.expression]
-    Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant Sql_Type.double p, c.expression]
-    Mode c _ -> IR.Operation "MODE" [c.expression]
-    First _ _ _ _ -> Error.throw (Illegal_State_Error "Not implemented yet.")
-    Last _ _ _ _ -> Error.throw (Illegal_State_Error "Not implemented yet.")
-    Maximum c _ -> IR.Operation "MAX" [c.expression]
-    Minimum c _ -> IR.Operation "MIN" [c.expression]
-    Shortest c _ -> IR.Operation "MIN" [c.expression]
-    Longest c _ -> IR.Operation "MAX" [c.expression]
-    Standard_Deviation c _ population ->
-        ## TODO!
-        _ = population
-        IR.Operation "STD_DEV" [c.expression]
-    Concatenate c _ _ _ _ _ ->
-        IR.Operation "CONCAT" [c.expression]
-    Sum c _ -> IR.Operation "SUM" [c.expression]
-    Average c _ -> IR.Operation "AVG" [c.expression]
-    Median c _ -> IR.Operation "MEDIAN" [c.expression]
+                True -> IR.Operation "COUNT_DISTINCT" (columns.map .expression)
+                False -> IR.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
+        Count_Not_Nothing c _ -> IR.Operation "COUNT" [c.expression]
+        Count_Nothing c _ -> IR.Operation "COUNT_IS_NULL" [c.expression]
+        Count_Not_Empty c _ -> IR.Operation "COUNT_NOT_EMPTY" [c.expression]
+        Count_Empty c _ -> IR.Operation "COUNT_EMPTY" [c.expression]
+        Percentile p c _ -> IR.Operation "PERCENTILE" [IR.Constant Sql_Type.double p, c.expression]
+        Mode c _ -> IR.Operation "MODE" [c.expression]
+        First c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
+            False -> Error.throw (Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.")
+            True ->
+                order_exprs = order_by.map .expression
+                case ignore_nothing of
+                    False -> IR.Operation "FIRST" [c.expression]+order_exprs
+                    True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_exprs
+        Last c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
+            False -> Error.throw (Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column.")
+            True ->
+                order_exprs = order_by.map .expression
+                case ignore_nothing of
+                    False -> IR.Operation "LAST" [c.expression]+order_exprs
+                    True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_exprs
+        Maximum c _ -> IR.Operation "MAX" [c.expression]
+        Minimum c _ -> IR.Operation "MIN" [c.expression]
+        Shortest c _ -> IR.Operation "SHORTEST" [c.expression]
+        Longest c _ -> IR.Operation "LONGEST" [c.expression]
+        Standard_Deviation c _ population -> case population of
+            True -> IR.Operation "STDDEV_POP" [c.expression]
+            False -> IR.Operation "STDDEV_SAMP" [c.expression]
+        Concatenate c _ separator prefix suffix quote_char ->
+            base_args = [c.expression, IR.Constant Sql_Type.text separator, IR.Constant Sql_Type.text prefix, IR.Constant Sql_Type.text suffix]
+            case quote_char.is_empty of
+                True -> IR.Operation "CONCAT" base_args
+                False -> IR.Operation "CONCAT_QUOTE_IF_NEEDED" base_args+[IR.Constant Sql_Type.text quote_char]
+        Sum c _ -> IR.Operation "SUM" [c.expression]
+        Average c _ -> IR.Operation "AVG" [c.expression]
+        Median c _ -> IR.Operation "MEDIAN" [c.expression]

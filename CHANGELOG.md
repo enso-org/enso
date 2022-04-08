@@ -2,6 +2,10 @@
 
 #### Visual Environment
 
+- [Magnet Alignment algorithm is used while placing new nodes][3366]. When we
+  find an available free space for a new node, the node gets aligned with the
+  surrounding nodes horizontally and vertically. This helps to preserve a nice
+  grid-like layout for all the nodes.
 - [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
   screen are now placed below all the selected nodes when more than one node is
   selected.][3361] (Previously, they were placed below the first node that was
@@ -92,6 +96,7 @@
 - [Added warning handling to `Table.aggregate`][3349]
 - [Improved performance of `Table.aggregate` and full warnings implementation]
   [3364]
+- [Implemented `Text.reverse`][3377]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -140,6 +145,10 @@
 [3349]: https://github.com/enso-org/enso/pull/3349
 [3361]: https://github.com/enso-org/enso/pull/3361
 [3364]: https://github.com/enso-org/enso/pull/3364
+[3377]: https://github.com/enso-org/enso/pull/3377
+[3366]: https://github.com/enso-org/enso/pull/3366
+[3379]: https://github.com/enso-org/enso/pull/3379
+[3381]: https://github.com/enso-org/enso/pull/3381
 
 #### Enso Compiler
 
