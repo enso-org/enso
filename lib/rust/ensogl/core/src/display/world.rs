@@ -19,6 +19,7 @@ use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
+use crate::profiler::log_stats_data;
 use crate::system::web;
 
 use web::prelude::Closure;
@@ -204,9 +205,9 @@ impl WorldData {
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
-
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
+            log_stats_data(*stats)
         }));
 
         Self {

@@ -6,38 +6,40 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use crate::State::Active;
-use crate::State::Paused;
-
 use enso_profiler as profiler;
 use enso_profiler_data as data;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+pub const COLOR_BLOCK_ACTIVE: &str = "flame_graph_block_color_active";
+pub const COLOR_BLOCK_PAUSED: &str = "flame_graph_block_color_paused";
+pub const COLOR_MARK_DEFAULT: &str = "flame_graph_mark_color";
+
+
+type RowNumber = i32;
 
 
 // ==================
 // === Block Data ===
 // ==================
 
-/// Indicates whether a block indicates an active interval or a paused interval. Paused intervals
-/// are used to represent async tasks that are started and awaited, but that have made no progress.
-#[derive(Copy, Clone, Debug)]
-pub enum State {
-    Active,
-    Paused,
-}
-
 /// A `Block` contains the data required to render a single block of a frame graph.
 #[derive(Clone, Debug)]
 pub struct Block {
     /// Start x coordinate of the block.
-    pub start: f64,
+    pub start:       f64,
     /// End x coordinate of the block.
-    pub end:   f64,
+    pub end:         f64,
     /// Row that the block should be placed in.
-    pub row:   u32,
+    pub row:         RowNumber,
     /// The label to be displayed with the block.
-    pub label: String,
-    /// Indicates what state this block represents (active/paused).
-    pub state: State,
+    pub label:       String,
+    /// Indicates the name of the color for lookup in the theme.
+    pub theme_color: &'static str,
 }
 
 impl Block {
@@ -135,7 +137,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
 
 impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
     /// Create a block for an interval; recurse into children.
-    fn visit_interval(&mut self, active: data::IntervalId, row: u32) {
+    fn visit_interval(&mut self, active: data::IntervalId, row: RowNumber) {
         let active = &self.profile[active];
         let start = active.interval.start.into_ms();
         let end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
@@ -144,7 +146,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        self.blocks.push(Block { start, end, label, row, state: Active });
+        self.blocks.push(Block { start, end, label, row, theme_color: COLOR_BLOCK_ACTIVE });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
@@ -161,7 +163,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
 struct RungraphBuilder<'p, Metadata> {
     profile:  &'p data::Profile<Metadata>,
     blocks:   Vec<Block>,
-    next_row: u32,
+    next_row: RowNumber,
 }
 
 impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
@@ -211,7 +213,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: active_interval[1],
                         label: label_active,
                         row,
-                        state: Active,
+                        theme_color: COLOR_BLOCK_ACTIVE,
                     });
 
                     self.blocks.push(Block {
@@ -219,7 +221,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: sleep_interval[1],
                         label: label_sleep,
                         row,
-                        state: Paused,
+                        theme_color: COLOR_BLOCK_PAUSED,
                     });
                 }
             }

@@ -22,6 +22,9 @@ use enso_profiler::profile;
 use enso_profiler_data::Profile;
 use enso_profiler_flame_graph as profiler_flame_graph;
 use enso_profiler_metadata::Metadata;
+use enso_profiler_flame_graph::COLOR_BLOCK_ACTIVE;
+use enso_profiler_flame_graph::COLOR_BLOCK_PAUSED;
+use enso_profiler_flame_graph::COLOR_MARK_DEFAULT;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -33,11 +36,21 @@ use ensogl_core::profiler::Metadata;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
+
+
+// =================
+// === Constants ===
+// =================
+
 /// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
 /// generated and rendered.  The file must be located in the assets subdirectory that is
 /// served by the webserver, i.e. `enso/dist/content` or `app/ide-desktop/lib/content/assets`.
 /// For example use `Some("profile.json"))`.
 const PROFILER_LOG_NAME: Option<&str> = None;
+
+const COLOR_FPS_GOOD: &str = "flame_graph_block_color_fps_good";
+const COLOR_FPS_MEDIUM: &str = "flame_graph_block_color_fps_medium";
+const COLOR_FPS_BAD: &str = "flame_graph_block_color_fps_bad";
 
 
 
@@ -63,19 +76,15 @@ pub async fn main() {
     let profile =
         if let Some(profile) = get_log_data().await { profile } else { create_dummy_data().await };
 
-    let mut measurements = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
+    let measurements = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
 
-    let marks = profile
-        .iter_metadata()
-        .map(|metadata: &enso_profiler_data::Metadata<Metadata>| {
-            let position = metadata.mark.into_ms();
-            let label = metadata.data.to_string();
-            profiler_flame_graph::Mark { position, label }
-        })
-        .collect();
-    measurements.marks = marks;
+    let mut flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
-    let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
+    let marks = make_marks_from_profile(&profile);
+    flame_graph.add_marks(marks.into_iter());
+
+    let performance_blocks = make_rendering_performance_blocks(&profile);
+    flame_graph.add_blocks(performance_blocks.into_iter());
 
     world.add_child(&flame_graph);
     scene.add_child(&flame_graph);
@@ -99,17 +108,66 @@ fn init_theme(scene: &Scene) {
     let theme_manager = theme::Manager::from(&scene.style_sheet);
 
     let theme = theme::Theme::new();
-    theme.set("flame_graph_block_color_active", color::Lcha::blue_green(0.5, 0.8));
-    theme.set("flame_graph_block_color_paused", color::Lcha::blue_green(0.8, 0.0));
-    theme.set("flame_graph_mark_color", color::Lcha::blue_green(0.9, 0.1));
+    theme.set(COLOR_BLOCK_ACTIVE, color::Lcha::blue_green(0.5, 0.8));
+    theme.set(COLOR_BLOCK_PAUSED, color::Lcha::blue_green(0.8, 0.0));
+    theme.set(COLOR_FPS_BAD, color::Lcha::red(0.4, 0.5));
+    theme.set(COLOR_FPS_GOOD, color::Lcha::green(0.8, 0.5));
+    theme.set(COLOR_FPS_MEDIUM, color::Lcha::yellow(0.6, 0.5));
+    theme.set(COLOR_MARK_DEFAULT, color::Lcha::blue_green(0.9, 0.1));
 
     theme_manager.register("theme", theme);
-
     theme_manager.set_enabled(&["theme".to_string()]);
-
-    let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
-    style_watch.get("flame_graph_color");
 }
+
+
+
+// ===========================
+// === Metadata Processing ===
+// ===========================
+
+
+// Create marks for metadata. This will skip `RenderStats` as they are added separately as blocks.
+fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
+    profile
+        .iter_metadata()
+        .filter_map(|metadata: &enso_profiler_data::Metadata<ensogl_core::profiler::Metadata>| {
+            let position = metadata.mark.into_ms();
+            match metadata.data {
+                Metadata::RenderStats(_) => None,
+                _ => {
+                    let label = metadata.data.to_string();
+                    Some(profiler_flame_graph::Mark { position, label })
+                }
+            }
+        })
+        .collect()
+}
+
+fn make_rendering_performance_blocks(
+    profile: &Profile<Metadata>,
+) -> Vec<profiler_flame_graph::Block> {
+    let mut blocks = Vec::default();
+    let render_stats = profile
+        .iter_metadata()
+        .filter(|metadata| matches!(metadata.data, Metadata::RenderStats(_)));
+    for (prev, current) in render_stats.tuple_windows() {
+        if let Metadata::RenderStats(data) = current.data {
+            let start = prev.mark.into_ms();
+            let end = current.mark.into_ms();
+            let row = -1;
+            let label = format!("{:#?}", data);
+            let theme_color = match data.fps {
+                fps if fps > 55.0 => COLOR_FPS_GOOD,
+                fps if fps > 25.0 => COLOR_FPS_MEDIUM,
+                _ => COLOR_FPS_BAD,
+            };
+            let block = profiler_flame_graph::Block { start, end, row, label, theme_color };
+            blocks.push(block);
+        }
+    }
+    blocks
+}
+
 
 
 
