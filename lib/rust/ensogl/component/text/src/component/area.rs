@@ -864,8 +864,8 @@ impl AreaModel {
                 let style = line_style.next().unwrap_or_default();
                 let font_size = style.size.raw;
                 let char_info = pen::CharInfo::new(ch, font_size);
-                let info = pen.advance(Some(char_info));
-                let next_width = info.offset + char_info.size;
+                let pen_info = pen.advance(Some(char_info));
+                let next_width = pen_info.offset + char_info.size;
                 if next_width > width {
                     return Some(candidate_truncation_offset);
                 }
