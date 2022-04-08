@@ -18,6 +18,7 @@ use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::pen;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::StyleIterator;
 
 use enso_frp as frp;
