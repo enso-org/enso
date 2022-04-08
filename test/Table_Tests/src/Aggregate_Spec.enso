@@ -1029,8 +1029,6 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
         Test.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
             r1 = t1.aggregate [Average "X"]
-            t1.print
-            r1.print
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.columns.length . should_equal 1
@@ -1039,8 +1037,6 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
         Test.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
             r1 = t1.aggregate [Median "X"]
-            t1.print
-            r1.print
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.columns.length . should_equal 1
@@ -1049,8 +1045,6 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
         Test.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2, 4, 5]]]
             r1 = t1.aggregate [Percentile 0.3 "X"]
-            t1.print
-            r1.print
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.columns.length . should_equal 1
@@ -1059,8 +1053,6 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
         Test.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
             r1 = t1.aggregate [Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
-            t1.print
-            r1.print
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.columns.length . should_equal 2
