@@ -45,6 +45,7 @@ use ensogl_text as text;
 
 // === Header Background ===
 
+/// The background of the Component Group View's header.
 pub mod header_background {
     use super::*;
 
@@ -70,8 +71,7 @@ ensogl_core::define_endpoints_2! {
         set_header_text(String),
         set_entries(entry::AnyModelProvider<entry::Label>),
         set_background_color(Rgba),
-        // TODO: or `set_size(Vector2)` ??
-        resize(Vector2<f32>),
+        set_size(Vector2),
     }
     Output {}
 }
@@ -85,7 +85,7 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
 
             let header_geometry = HeaderGeometry::from_style(style, network);
-            size_and_header_geometry <- all(&input.resize, &header_geometry);
+            size_and_header_geometry <- all(&input.set_size, &header_geometry);
             eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
 
 
