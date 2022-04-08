@@ -482,15 +482,14 @@ where E::Model: Default
                 View{position_y:*y,size:*size}
             );
             default_style_prefix <- init.constant(list_view_style::HERE.str.to_string());
-            style_prefix <- any(&default_style_prefix, &frp.set_style_prefix);
+            style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
             eval style_prefix ((path) model.entries.update_entries_style_prefix(path.into()));
-            view_and_style <- all(&view_info, &style_prefix);
-            // This should go before handling mouse events to have proper checking of
-            eval view_and_style (((view,style_prefix)) model.update_after_view_change(view, style_prefix.into()));
-            // FIXME[MC]: still map3? or other?
-            _new_entries <- frp.set_entries.map3(&view_info, &style_prefix, f!((entries,view,style_prefix)
-                model.set_entries(entries.clone_ref(),view,style_prefix.into())
-            ));
+            view_and_style <- all(&view_info,&style_prefix);
+            eval view_and_style (((view,style_prefix))
+                model.update_after_view_change(view, style_prefix.into()));
+            _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries,(view,style_prefix))
+                model.set_entries(entries.clone_ref(),view,style_prefix.into()))
+            );
         }
 
         init.emit(());
