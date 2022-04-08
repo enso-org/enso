@@ -1,7 +1,9 @@
+//! An EnsoGL implementation of a Component Group View.
+//!
+//! A Component Group View displays a name of a group of Enso components, and a list of names of
+//! the components belonging to that group.
+
 #![recursion_limit = "512"]
-// === Features ===
-#![feature(option_result_contains)]
-#![feature(trait_alias)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -14,14 +16,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-
-/// Commonly used types and functions.
-pub mod prelude {
-    pub use ensogl_core::prelude::*;
-}
-
-use crate::prelude::*;
+use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
@@ -227,4 +222,5 @@ impl Model {
 // === View ===
 // ============
 
+/// The implementation of the visual component described in the module's documentation.
 pub type View = ComponentView<Model, Frp>;
