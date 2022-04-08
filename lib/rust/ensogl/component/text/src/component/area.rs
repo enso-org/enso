@@ -950,7 +950,7 @@ impl AreaModel {
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
-        // remove old Glyph structures, as they still refer to the old Glyph System.
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.lines.rc.take();
         self.redraw(true);
     }

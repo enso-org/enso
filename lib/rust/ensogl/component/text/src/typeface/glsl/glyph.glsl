@@ -5,8 +5,11 @@ highp float median(highp vec3 v) {
     return max(min(v.x, v.y), min(max(v.x, v.y), v.z));
 }
 
-// To smaple the msdf properly, the boundaries of our uv should be in the middle of msdf cells.
-highp vec2 get_scaled_uv() {
+/// Compute the uv coordinates of the MSDF texture fragment where it should be sampled.
+///
+/// Essentially, it's an input_uv which is a bit transformed to "cut off" the half of the MSDF cell from each side. This
+/// way we have better pixel alignment on low resolutions.
+highp vec2 msdf_fragment_uv() {
     highp vec2 msdf_cell_size = 1.0/input_msdf_size;
     highp vec2 offset         = msdf_cell_size/2.0;
     highp vec2 scale          = 1.0 - msdf_cell_size;
@@ -16,7 +19,7 @@ highp vec2 get_scaled_uv() {
 highp vec2 get_texture_coord() {
     highp vec2 msdf_fragment_size = input_msdf_size / vec2(textureSize(input_atlas, 0));
     highp vec2 offset             = vec2(0.0, input_atlas_index) * msdf_fragment_size;
-    return offset + get_scaled_uv() * msdf_fragment_size;
+    return offset + msdf_fragment_uv() * msdf_fragment_size;
 }
 
 highp float get_fatting() {
