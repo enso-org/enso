@@ -850,36 +850,43 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
+    /// Truncate `content` if its length on screen exceeds `max_width_px`. Return the truncated
+    /// string with an ellipsis character appended, or `content` if not truncated.
+    ///
+    /// The truncation point is chosen such that the resulting string with ellipsis will fit in
+    /// `max_width_px` if possible.
     fn text_truncated_with_ellipsis(
         &self,
         content: String,
         mut line_style: StyleIterator,
         max_width_px: Option<f32>,
     ) -> String {
-        if let Some(width) = max_width_px {
+        if let Some(max_width) = max_width_px {
             let ellipsis = '\u{2026}';
             let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-            let mut candidate_truncation_offset = 0.bytes();
-            let truncate_at = content.char_indices().find_map(|(i, ch)| {
+            let mut truncation_point = 0.bytes();
+            let truncate = content.char_indices().any(|(i, ch)| {
                 let style = line_style.next().unwrap_or_default();
                 let font_size = style.size.raw;
                 let char_info = pen::CharInfo::new(ch, font_size);
                 let pen_info = pen.advance(Some(char_info));
                 let next_width = pen_info.offset + char_info.size;
-                if next_width > width {
-                    return Some(candidate_truncation_offset);
+                if next_width > max_width {
+                    return true;
                 }
                 let width_of_ellipsis = pen::CharInfo::new(ellipsis, font_size).size;
                 let char_length: Bytes = ch.len_utf8().into();
                 line_style.drop(char_length - 1.bytes());
-                if next_width + width_of_ellipsis <= width {
-                    candidate_truncation_offset = Bytes::from(i) + char_length;
+                if next_width + width_of_ellipsis <= max_width {
+                    truncation_point = Bytes::from(i) + char_length;
                 }
-                None
+                false
             });
-            match truncate_at {
-                None => content,
-                Some(i) => content[..i.as_usize()].to_string() + String::from(ellipsis).as_str(),
+            if truncate {
+                let truncated_text = content[..truncation_point.as_usize()].to_string();
+                truncated_text + String::from(ellipsis).as_str()
+            } else {
+                content
             }
         } else {
             content
