@@ -1,6 +1,5 @@
 package org.enso.table.data.index;
 
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
@@ -11,7 +10,6 @@ public class HashIndex extends Index {
   private final Storage items;
   private final Map<Object, List<Integer>> locs;
   private final String name;
-  private Index uniqueIndex = null;
 
   private HashIndex(Storage items, Map<Object, List<Integer>> locs, String name) {
     this.items = items;
@@ -34,6 +32,7 @@ public class HashIndex extends Index {
     return new HashIndex(name, storage, storage.size());
   }
 
+  @Override
   public Object iloc(int i) {
     return items.getItemBoxed(i);
   }

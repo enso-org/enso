@@ -717,8 +717,9 @@ object BindingsMap {
     *
     * @param name the name of the constructor.
     * @param arity the number of fields in the constructor.
+    * @param allFieldsDefaulted whether all fields provide a default value.
     */
-  case class Cons(name: String, arity: Int)
+  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
 
   /** A representation of an imported polyglot symbol.
     *

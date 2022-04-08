@@ -29,7 +29,7 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
-use ensogl_gui_component::component::Component;
+use ensogl_gui_component::component::ComponentView;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry;
@@ -223,8 +223,8 @@ impl Model {
 
 
 
-// =================
-// === Component ===
-// =================
+// ============
+// === View ===
+// ============
 
-pub type View = Component<Model, Frp>;
+pub type View = ComponentView<Model, Frp>;

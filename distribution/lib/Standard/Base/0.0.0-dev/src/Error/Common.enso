@@ -24,3 +24,12 @@ type Illegal_Argument_Error
        - message: the error message explaining why the argument is illegal.
        - cause: (optional) another error that is the cause of this one.
     type Illegal_Argument_Error message cause=Nothing
+
+## PRIVATE
+   Wraps a dataflow error lifted to a panic, making possible to distinguish it
+   from other panics.
+type Wrapped_Dataflow_Error payload
+
+## PRIVATE
+   Throws the original error.
+Wrapped_Dataflow_Error.unwrap = Error.throw this.payload

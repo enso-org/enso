@@ -1038,6 +1038,7 @@ dependencies = [
  "enso-frp",
  "enso-gui",
  "enso-prelude",
+ "enso-shortcuts",
  "enso-web",
  "ensogl",
  "ordered-float 2.10.0",

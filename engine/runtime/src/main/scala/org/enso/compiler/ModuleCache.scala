@@ -479,7 +479,7 @@ object ModuleCache {
   val metadataCharset: Charset   = StandardCharsets.UTF_8
 
   /** The default logging level. */
-  private val logLevel = Level.FINE
+  private val logLevel = Level.FINEST
 
   /** A representation of the cache roots for the module. */
   case class Roots(localCacheRoot: TruffleFile, globalCacheRoot: TruffleFile)

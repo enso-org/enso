@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.ObjectComparator
+
+## ADVANCED
+   Creates a Java Comparator object which can call En
+new : Nothing | (Any->Any->Ordering)
+new custom_comparator=Nothing =
+    comparator_to_java cmp x y = cmp x y . to_sign
+
+    case custom_comparator of
+        Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)
+        _ -> ObjectComparator.new (comparator_to_java custom_comparator)

@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+## Indicates that a requested operation is not supported, for example because a
+   particular database backend does not support it.
+type Unsupported_Database_Operation_Error message
+
+Unsupported_Database_Operation_Error.to_display_text : Text
+Unsupported_Database_Operation_Error.to_display_text =
+    "Unsupported database operation: " + this.message
