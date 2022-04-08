@@ -181,7 +181,7 @@ define_themes! { [light:0, dark:1]
         }
         component_browser {
             group {
-                name {
+                header {
                     text {
                         font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;

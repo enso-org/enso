@@ -80,7 +80,8 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        let header_text_size = style.get_number(theme::name::text::size);
+        let header_text_size = style.get_number(theme::header::text::size);
+        let header_text_font = style.get_text(theme::header::text::font);
         frp::extend! { network
 
             let header_geometry = HeaderGeometry::from_style(style, network);
@@ -91,6 +92,8 @@ impl component::Frp<Model> for Frp {
             // === Header ===
 
             init <- source_();
+            header_text_font <- all(&header_text_font,&init)._0();
+            model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size,&init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
@@ -126,10 +129,10 @@ struct HeaderGeometry {
 
 impl HeaderGeometry {
     fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
-        let height = style.get_number(theme::name::height);
-        let padding_left = style.get_number(theme::name::padding::left);
-        let padding_right = style.get_number(theme::name::padding::right);
-        let padding_bottom = style.get_number(theme::name::padding::bottom);
+        let height = style.get_number(theme::header::height);
+        let padding_left = style.get_number(theme::header::padding::left);
+        let padding_right = style.get_number(theme::header::padding::right);
+        let padding_bottom = style.get_number(theme::header::padding::bottom);
 
         frp::extend! { network
             init <- source_();
@@ -173,7 +176,6 @@ impl component::Model for Model {
         let entries = ListView::new(app);
         let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
-        header.set_font("DejaVuSans-Bold");
         display_object.add_child(&entries);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
