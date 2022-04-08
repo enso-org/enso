@@ -5,6 +5,7 @@ from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
@@ -38,7 +39,7 @@ type Sqlite_Dialect
        Deduces the result type for an aggregation operation.
 
        The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_columns` first.
+       You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
 
@@ -52,29 +53,34 @@ make_internal_generator_dialect =
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_columns` first.
+   You may need to transform it with `resolve_aggregate` first.
 resolve_target_sql_type aggregate = case aggregate of
     Group_By c _ -> c.sql_type
     Count _ -> Sql_Type.integer
-    Count_Distinct _ _ _ -> Sql_Type.integer
+    Count_Distinct columns _ _ ->
+        if columns.length == 1 then Sql_Type.integer else
+            here.unsupported "Count_Distinct on multiple columns"
     Count_Not_Nothing _ _ -> Sql_Type.integer
     Count_Nothing _ _ -> Sql_Type.integer
     Count_Not_Empty _ _ -> Sql_Type.integer
     Count_Empty _ _ -> Sql_Type.integer
-    Percentile _ _ _ -> Sql_Type.real
-    Mode c _ -> c.sql_type
-    First c _ _ _ -> c.sql_type
-    Last c _ _ _ -> c.sql_type
+    Percentile _ _ _ -> here.unsupported "Percentile"
+    Mode _ _ -> here.unsupported "Mode"
+    First _ _ _ _ -> here.unsupported "First"
+    Last _ _ _ _ -> here.unsupported "Last"
     Maximum c _ -> c.sql_type
     Minimum c _ -> c.sql_type
-    Shortest c _ -> c.sql_type
-    Longest c _ -> c.sql_type
+    Shortest _ _ -> here.unsupported "Shortest"
+    Longest _ _ -> here.unsupported "Longest"
     Standard_Deviation _ _ _ -> Sql_Type.real
     Concatenate _ _ _ _ _ _ -> Sql_Type.text
-    ## TODO revise these
     Sum c _ -> c.sql_type
     Average _ _ -> Sql_Type.real
-    Median _ _ -> Sql_Type.real
+    Median _ _ -> here.unsupported "Median"
+
+## PRIVATE
+unsupported name =
+    Error.throw (Unsupported_Database_Operation_Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->

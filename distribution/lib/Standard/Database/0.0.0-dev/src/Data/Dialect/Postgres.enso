@@ -39,7 +39,7 @@ type Postgresql_Dialect
        Deduces the result type for an aggregation operation.
 
        The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_columns` first.
+       You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
 
@@ -56,7 +56,7 @@ make_internal_generator_dialect =
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_columns` first.
+   You may need to transform it with `resolve_aggregate` first.
 resolve_target_sql_type aggregate = case aggregate of
     Group_By c _ -> c.sql_type
     Count _ -> Sql_Type.bigint
@@ -75,7 +75,7 @@ resolve_target_sql_type aggregate = case aggregate of
     Longest c _ -> c.sql_type
     Standard_Deviation _ _ _ -> Sql_Type.double
     Concatenate _ _ _ _ _ _ -> Sql_Type.text
-    ## TODO [RW] revise these
+    ## FIXME [RW] revise these
     Sum _ _ -> Sql_Type.numeric # TODO can also be bigint, real, double
     Average _ _ -> Sql_Type.numeric # TODO can be double sometimes
     Median _ _ -> Sql_Type.numeric # TODO can be double sometimes

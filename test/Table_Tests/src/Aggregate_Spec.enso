@@ -1265,7 +1265,56 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
 
     if is_database then
         Test.group prefix+"Table.aggregate should report unsupported operations but not block other aggregations in warning mode" pending=pending <|
-            ## TODO
-            Nothing
+            expect_sum_and_unsupported_errors error_count result =
+                result.columns.length . should_equal 1
+                result.row_count . should_equal 1
+                result.columns.first.to_vector . should_equal [6]
+                warnings = Warning.get_all result . map .value
+                warnings.length . should_equal error_count
+                warnings.each warning->
+                    warning.should_be_an Unsupported_Database_Operation_Error
+
+            if test_selection.first_last_row_order.not then
+                Test.specify "with First and Last in row order" <|
+                    table = table_builder [["X", [1,2,3]]]
+                    expect_sum_and_unsupported_errors 2 <|
+                        table.aggregate [Sum "X", First "X", Last "X"]
+
+            if test_selection.first_last.not then
+                Test.specify "with First and Last with ordering" <|
+                    table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
+                    order = By_Name ["A"]
+                    expect_sum_and_unsupported_errors 2 <|
+                        table.aggregate [Sum "X", First "X" (order_by=order), Last "X" (order_by=order)]
+
+            if test_selection.advanced_stats.not then
+                Test.specify "with Median, Mode and Percentile" <|
+                    table = table_builder [["X", [1,2,3]]]
+                    expect_sum_and_unsupported_errors 3 <|
+                        table.aggregate [Sum "X", Median "X", Mode "X", Percentile 0.3 "X"]
+
+            if test_selection.std_dev.not then
+                Test.specify "with Standard_Deviation" <|
+                    table = table_builder [["X", [1,2,3]]]
+                    expect_sum_and_unsupported_errors 1 <|
+                        table.aggregate [Sum "X", Standard_Deviation "X"]
+
+            if test_selection.text_shortest_longest.not then
+                Test.specify "with Shortest and Longest" <|
+                    table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
+                    expect_sum_and_unsupported_errors 2 <|
+                        table.aggregate [Sum "X", Shortest "Y", Longest "Y"]
+
+            if test_selection.text_concat.not then
+                Test.specify "with Concatenate" <|
+                    table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
+                    expect_sum_and_unsupported_errors 1 <|
+                        table.aggregate [Sum "X", Concatenate "Y"]
+
+            if test_selection.multi_distinct.not then
+                Test.specify "with Count_Distinct on multiple fields" <|
+                    table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
+                    expect_sum_and_unsupported_errors 1 <|
+                        table.aggregate [Sum "X", Count_Distinct (By_Name ["X", "Y"])]
 
 main = Test.Suite.run_main here.spec

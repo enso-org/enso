@@ -75,7 +75,7 @@ spec =
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     materialize = .to_dataframe
-    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=False selection
+    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection
 
     connection.close
     file.delete

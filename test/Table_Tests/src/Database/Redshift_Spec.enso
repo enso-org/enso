@@ -60,7 +60,7 @@ run_tests connection pending=Nothing =
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     tables.append empty_agg_table.name
     materialize = .to_dataframe
-    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=False selection pending=pending
+    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection pending=pending
 
     clean_tables tables.to_vector
 
