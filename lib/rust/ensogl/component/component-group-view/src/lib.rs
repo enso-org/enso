@@ -109,7 +109,7 @@ impl component::Frp<Model> for Frp {
             model.entries.set_style_prefix(theme::entries::HERE.str);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
-            model.entries.set_custom_background_color <+ input.set_background_color.some();
+            model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
         }
         init.emit(());

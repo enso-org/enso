@@ -270,7 +270,7 @@ ensogl_core::define_endpoints! {
         set_style_prefix(String),
         show_background_shadow(bool),
         set_background_corners_radius(f32),
-        set_custom_background_color(Option<color::Rgba>),
+        set_background_color(color::Rgba),
     }
 
     Output {
@@ -345,11 +345,7 @@ where E::Model: Default
                 &default_background_corners_radius,&frp.set_background_corners_radius);
             eval background_corners_radius ((px) model.background.corners_radius_px.set(*px));
             default_background_color <- all(&default_background_color,&init)._0();
-            // TODO: use all_with instead?
-            background_color_change <- all(
-                &frp.set_custom_background_color, &default_background_color);
-            background_color <- background_color_change.map(
-                |(custom,default)| custom.unwrap_or(*default));
+            background_color <- any(&default_background_color,&frp.set_background_color);
             eval background_color ((color) model.background.color.set(color.into()));
 
 
