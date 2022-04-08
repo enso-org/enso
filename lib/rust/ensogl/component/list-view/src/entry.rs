@@ -62,7 +62,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     type Model: Debug + Default;
 
     /// An Object constructor.
-    fn new(app: &Application, style: &Path) -> Self;
+    fn new(app: &Application, style_prefix: &Path) -> Self;
 
     /// Update content with new model.
     fn update(&self, model: &Self::Model);
@@ -92,23 +92,26 @@ pub struct Label {
 impl Entry for Label {
     type Model = String;
 
-    fn new(app: &Application, theme: &Path) -> Self {
+    fn new(app: &Application, style_prefix: &Path) -> Self {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let text_theme = theme.sub("text");
-        let size = style_watch.get_number(text_theme.sub("size"));
-        let color = style_watch.get_color(text_theme);
+        let text_style = style_prefix.sub("text");
+        let font = style_watch.get_text(text_style.sub("font"));
+        let size = style_watch.get_number(text_style.sub("size"));
+        let color = style_watch.get_color(text_style);
 
         display_object.add_child(&label);
         frp::extend! { network
             init <- source::<()>();
             color <- all(&color,&init)._0();
-            size  <- all(&size,&init)._0();
+            font <- all(&font,&init)._0();
+            size <- all(&size,&init)._0();
 
-            label.set_default_color     <+ color;
+            label.set_default_color <+ color;
+            label.set_font <+ font;
             label.set_default_text_size <+ size.map(|v| text::Size(*v));
             eval size ((size) label.set_position_y(size/2.0));
         }
@@ -154,10 +157,10 @@ pub struct GlyphHighlightedLabel {
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
 
-    fn new(app: &Application, theme: &Path) -> Self {
-        let inner = Label::new(app, theme);
+    fn new(app: &Application, style_prefix: &Path) -> Self {
+        let inner = Label::new(app, style_prefix);
         let network = &inner.network;
-        let text_theme = theme.sub("text");
+        let text_theme = style_prefix.sub("text");
         let highlight_color = inner.style_watch.get_color(text_theme.sub("highlight"));
         let label = &inner.label;
 
