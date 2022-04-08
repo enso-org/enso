@@ -64,7 +64,7 @@ impl MockEntries {
     }
 
     fn get_entry(&self, i: usize) -> Option<String> {
-        self.entries.get(i).map(|s| s.clone())
+        self.entries.get(i).cloned()
     }
 }
 
