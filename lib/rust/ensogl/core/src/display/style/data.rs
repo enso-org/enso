@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::data::color;
 
+use std::str::FromStr;
+
 
 
 // ============
@@ -48,9 +50,15 @@ where color::Color<C>: Into<color::Rgba>
     }
 }
 
-impl TryFrom<String> for Data {
-    type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> {
+impl From<String> for Data {
+    fn from(t: String) -> Data {
+        Data::Text(t)
+    }
+}
+
+impl FromStr for Data {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.parse::<f32>() {
             Ok(t) => Ok(Data::Number(t)),
             _ => match s.parse::<color::AnyFormat>() {
@@ -61,6 +69,19 @@ impl TryFrom<String> for Data {
         }
     }
 }
+// impl TryFrom<String> for Data {
+//     type Error = ();
+//     fn try_from(s: String) -> Result<Self, Self::Error> {
+//         match s.parse::<f32>() {
+//             Ok(t) => Ok(Data::Number(t)),
+//             _ => match s.parse::<color::AnyFormat>() {
+//                 Ok(t) => Ok(Data::Color(t.into())),
+//                 // TODO[MC]: add support for Text(String), via serde_json of e.g. `"DejaVuSans-Bold"`
+//                 _ => Err(()),
+//             },
+//         }
+//     }
+// }
 
 
 // === Impls ===
@@ -71,6 +92,7 @@ impl Display for Data {
             Self::Invalid(s) => write!(f, "{}", s),
             Self::Number(t) => write!(f, "Number({})", t),
             Self::Color(t) => write!(f, "Color({:?})", t),
+            Self::Text(t) => write!(f, "Text({:?})", t),
         }
     }
 }
@@ -168,6 +190,7 @@ pub trait DataMatch {
     fn invalid(&self) -> Option<&String>;
     fn number(&self) -> Option<f32>;
     fn color(&self) -> Option<color::Rgba>;
+    fn text(&self) -> Option<String>;
 
     fn number_or_else(&self, f: impl FnOnce() -> f32) -> f32 {
         self.number().unwrap_or_else(f)
@@ -175,6 +198,10 @@ pub trait DataMatch {
 
     fn color_or_else(&self, f: impl FnOnce() -> color::Rgba) -> color::Rgba {
         self.color().unwrap_or_else(f)
+    }
+
+    fn text_or_else(&self, f: impl FnOnce() -> String) -> String {
+        self.text().unwrap_or_else(f)
     }
 }
 
@@ -197,6 +224,12 @@ impl DataMatch for Data {
             _ => None,
         }
     }
+    fn text(&self) -> Option<String> {
+        match self {
+            Self::Text(t) => Some(t.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl DataMatch for Option<Data> {
@@ -208,5 +241,8 @@ impl DataMatch for Option<Data> {
     }
     fn color(&self) -> Option<color::Rgba> {
         self.as_ref().and_then(|t| t.color())
+    }
+    fn text(&self) -> Option<String> {
+        self.as_ref().and_then(|t| t.text())
     }
 }
