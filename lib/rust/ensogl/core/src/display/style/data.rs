@@ -59,15 +59,16 @@ impl From<&str> for Data {
 impl FromStr for Data {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.parse::<f32>() {
-            Ok(t) => Ok(Data::Number(t)),
-            _ => match s.parse::<color::AnyFormat>() {
-                Ok(t) => Ok(Data::Color(t.into())),
-                // TODO[MC]: add support for Text(String), via serde_json of e.g.
-                // `"DejaVuSans-Bold"`
-                _ => Err(()),
-            },
+        if let Ok(t) = s.parse::<f32>() {
+            return Ok(Data::Number(t));
         }
+        if let Ok(t) = s.parse::<color::AnyFormat>() {
+            return Ok(Data::Color(t.into()));
+        }
+        if s.starts_with('"') && s.ends_with('"') {
+            return Ok(Data::Text(s[1..s.len() - 1].to_string()));
+        }
+        Err(())
     }
 }
 
@@ -232,5 +233,19 @@ impl DataMatch for Option<Data> {
     }
     fn text(&self) -> Option<String> {
         self.as_ref().and_then(|t| t.text())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_str() {
+        assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
+        let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
+        assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
+        assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
+        assert_eq!(Data::from_str("bad-format"), Err(()));
     }
 }
