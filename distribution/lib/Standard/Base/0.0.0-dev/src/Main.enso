@@ -38,6 +38,7 @@ export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
 export project.Data.Ordering.Sort_Order
+export project.Data.Ref
 export project.Data.Vector
 export project.Math
 export project.Meta
@@ -54,7 +55,6 @@ from project.Data.Number.Extensions export all hiding Math, String, Double
 from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair
 from project.Data.Range export Range
-from project.Data.Ref export Ref
 ## TODO [RW] Once autoscoping is implemented or automatic imports for ADTs are
    fixed in the IDE, we should revisit if we want to export ADTs like `Case` by
    default. It may be unnecessary pollution of scope, but until the issues are

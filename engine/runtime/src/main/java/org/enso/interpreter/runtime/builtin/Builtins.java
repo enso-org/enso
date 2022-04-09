@@ -84,7 +84,6 @@ public class Builtins {
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
-  private final Mutable mutable;
   private final Number number;
   private final Ordering ordering;
   private final Resource resource;
@@ -117,7 +116,6 @@ public class Builtins {
                 new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
     error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
-    mutable = new Mutable(this, language, scope);
     nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
@@ -205,8 +203,32 @@ public class Builtins {
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
     readBuiltinsMetadata(scope);
+
+    List<String> builtinConstructors = new ArrayList<>();
+    builtinConstructors.add("Polyglot");
+    builtinConstructors.add("Ref");
+    builtinConstructors.add("Array");
+    initBuiltinTypes(builtinConstructors, scope, language);
   }
 
+  public void initBuiltinTypes(List<String> constrs, ModuleScope scope, Language language) {
+    for (String constr: constrs) {
+      AtomConstructor atom = new AtomConstructor(constr, scope).initializeFields();
+      builtinTypes.put(constr, atom);
+      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr);
+      methods.forEach((methodName, clazz) -> {
+        Optional<Function> fun;
+        try {
+          Method meth = clazz.getMethod("makeFunction", Language.class);
+          fun = Optional.ofNullable((Function) meth.invoke(null, language));
+        } catch (Exception e) {
+          e.printStackTrace();
+          fun = Optional.empty();
+        }
+        fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
+      });
+    }
+  }
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
   public boolean isIrInitialized() {
     return this.module.getIr() != null;
@@ -350,13 +372,6 @@ public class Builtins {
     }
   }
 
-  public void registerBuiltinType(AtomConstructor atom) {
-    if (builtinTypes.containsKey(atom.getName())) {
-      throw new CompilerError("Builtin type '" + atom.getName() + "' already registered");
-    }
-    builtinTypes.put(atom.getName(), atom);
-  }
-
   public AtomConstructor getBuiltinType(String name) {
     return builtinTypes.get(name);
   }
@@ -435,9 +450,14 @@ public class Builtins {
     return system;
   }
 
-  /** @return the container for mutable memory related builtins. */
-  public Mutable mutable() {
-    return mutable;
+  /** @return the Array constructor. */
+  public AtomConstructor array() {
+    return builtinTypes.get("Array");
+  }
+
+  /** @return the Ref constructor. */
+  public AtomConstructor ref() {
+    return builtinTypes.get("Ref");
   }
 
   /** @return the container for polyglot-related builtins. */
@@ -489,7 +509,7 @@ public class Builtins {
       case Constants.ANY:
         return any.newInstance();
       case Constants.ARRAY:
-        return mutable.array().newInstance();
+        return array().newInstance();
       case Constants.BOOLEAN:
         return bool.getBool().newInstance();
       case Constants.DECIMAL:
@@ -509,7 +529,7 @@ public class Builtins {
       case Constants.PANIC:
         return panic.newInstance();
       case Constants.REF:
-        return mutable.ref().newInstance();
+        return ref().newInstance();
       case Constants.TEXT:
         return text.getText().newInstance();
       default:

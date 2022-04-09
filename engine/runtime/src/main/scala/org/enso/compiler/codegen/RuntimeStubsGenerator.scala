@@ -25,8 +25,8 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     localBindings.types.foreach { tp =>
       val constructor = new AtomConstructor(tp.name, scope)
       if (tp.builtinType) {
-        scope.registerBuiltinConstructor(constructor)
-        builtins.registerBuiltinType(constructor)
+        val builtinType = builtins.getBuiltinType(tp.name)
+        scope.registerBuiltinConstructor(builtinType)
       } else {
         scope.registerConstructor(constructor)
       }

@@ -56,5 +56,91 @@ class PolyglotTest extends InterpreterTest {
         "callFunctionAndIncrement"
       )
     }
+
+    "match on Polyglot type when imported everything from stdlib" in {
+      val code =
+        """from Standard.Base import all
+          |from Standard.Builtins import IO, Nothing
+          |polyglot java import java.util.Random
+          |
+          |main =
+          |    random_gen = Random.new
+          |    case random_gen of
+          |        Polyglot -> IO.println "OK"
+          |        _ -> IO.println "FAIL"
+          |""".stripMargin
+      eval(code)
+      val count :: Nil = consumeOut
+      count shouldEqual "OK"
+    }
+
+    "fail to match on Polyglot type when explicitly importing everything from Polyglot module" in {
+      val code =
+        """from Standard.Base.Polyglot import all
+          |from Standard.Builtins import IO, Nothing
+          |polyglot java import java.util.Random
+          |
+          |main =
+          |    random_gen = Random.new
+          |    case random_gen of
+          |        Polyglot -> IO.println "OK"
+          |        _ -> IO.println "FAIL"
+          |""".stripMargin
+      eval(code)
+      val count :: Nil = consumeOut
+      count shouldEqual "FAIL"
+    }
+
+    "fail to match on Polyglot type case when importing Polyglot module" in {
+      val code =
+        """import Standard.Base.Polyglot
+          |from Standard.Builtins import IO, Nothing
+          |polyglot java import java.util.Random
+          |
+          |main =
+          |    random_gen = Random.new
+          |    case random_gen of
+          |        Polyglot -> IO.println "OK"
+          |        _ -> IO.println "FAIL"
+          |""".stripMargin
+      eval(code)
+      val count :: Nil = consumeOut
+      count shouldEqual "FAIL"
+    }
+
+    "match on qualified name of the Polyglot type from Polyglot module" in {
+      val code =
+        """import Standard.Base.Polyglot
+          |from Standard.Builtins import IO, Nothing
+          |polyglot java import java.util.Random
+          |
+          |main =
+          |    random_gen = Random.new
+          |    case random_gen of
+          |        Polyglot.Polyglot -> IO.println "OK"
+          |        _ -> IO.println "FAIL"
+          |""".stripMargin
+      eval(code)
+      val count :: Nil = consumeOut
+      count shouldEqual "OK"
+    }
+
+    "match on qualified name of the Polyglot type from Polyglot module" in {
+      val code =
+        """import Standard.Base.Polyglot
+          |from Standard.Builtins import IO, Nothing
+          |polyglot java import java.util.Random
+          |
+          |main =
+          |    random_gen = Random.new
+          |    case random_gen of
+          |        Polyglot.Polyglot -> IO.println "OK"
+          |        _ -> IO.println "FAIL"
+          |""".stripMargin
+      eval(code)
+      val count :: Nil = consumeOut
+      count shouldEqual "OK"
+    }
+
   }
 }

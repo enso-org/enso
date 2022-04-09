@@ -36,9 +36,8 @@ import org.enso.interpreter.{Constants, Language}
 
 import java.math.BigInteger
 import org.enso.compiler.core.IR.Name.Special
-import org.enso.pkg.QualifiedName
 
-import scala.collection.{immutable, mutable}
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
@@ -193,8 +192,9 @@ class IrToTruffle(
         }
 
         val (assignments, reads) = argumentExpressions.unzip
-
-        atomCons.initializeFields(localScope, assignments.toArray, reads.toArray, argDefs: _*)
+        if (!atomCons.isInitialized) {
+          atomCons.initializeFields(localScope, assignments.toArray, reads.toArray, argDefs: _*)
+        }
       }
 
     // Register the method definitions in scope
@@ -793,10 +793,10 @@ class IrToTruffle(
 
           runtimeConsOpt.map { atomCons =>
             val any = context.getBuiltins.any
-            //val array = context.getBuiltins.mutable().array()
+            val array = context.getBuiltins.array
             val bool = context.getBuiltins.bool
             val number = context.getBuiltins.number
-            //val polyglot = context.getBuiltins.polyglot
+            val polyglot = context.getBuiltins.polyglot
             val text = context.getBuiltins.text
             val branchNode: BranchNode =
               if (atomCons == bool.getTrue) {
@@ -819,9 +819,10 @@ class IrToTruffle(
                 )
               } else if (atomCons == number.getNumber) {
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons.getDefinitionScope.isBuiltin(atomCons)) {
-                val key = (atomCons.getDefinitionScope.getModule.getName, atomCons.getName)
-                branchNodeFactories(key).create(atomCons, branchCodeNode.getCallTarget)
+              } else if (atomCons == polyglot) {
+                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
+              } else if (atomCons == array) {
+                ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == any) {
                 CatchAllBranchNode.build(branchCodeNode.getCallTarget)
               } else {
@@ -847,17 +848,6 @@ class IrToTruffle(
 
       }
     }
-
-    // FIXME: Consider a different key mapping, and going back to reference
-    //        checking from builtins, if too expensive and automatic mapping
-    //        is not necessary.
-    // SAM-type BranchNodeFactory is necessary here because types like
-    // (array: AtomConstructor, branch: RootCallTarget) -> BranchNode
-    // and related eta-expansion appear to crash Graal (not a joke).
-    private val branchNodeFactories: Map[(QualifiedName, String), BranchNodeFactory] = immutable.HashMap[(QualifiedName, String), BranchNodeFactory](
-      (QualifiedName(List("Standard", "Base"), "Polyglot"), "Polyglot") -> PolyglotBranchNode.build _,
-      (QualifiedName(List("Standard", "Base", "Data"), "Array"), "Array") -> ArrayBranchNode.build _,
-    )
 
     /* Note [Pattern Match Fallbacks]
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

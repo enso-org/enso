@@ -52,6 +52,10 @@ public final class AtomConstructor implements TruffleObject {
   }
 
 
+  public boolean isInitialized() {
+    return constructorFunction != null;
+  }
+
   /**
    * Generates a constructor function for this {@link AtomConstructor}.
    * Note that such manually constructed argument definitions must not have default arguments.
