@@ -913,13 +913,13 @@ impl SceneData {
 
     pub fn render(&self) {
         self.renderer.run();
-        /// WebGL `flush` should be called when expecting results such as queries, or at completion
-        /// of a rendering frame. Flush tells the implementation to push all pending commands out
-        /// for execution, flushing them out of the queue, instead of waiting for more commands to
-        /// enqueue before sending for execution.
-        ///
-        /// Not flushing commands can sometimes cause context loss. To learn more, see:
-        /// [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+        // WebGL `flush` should be called when expecting results such as queries, or at completion
+        // of a rendering frame. Flush tells the implementation to push all pending commands out
+        // for execution, flushing them out of the queue, instead of waiting for more commands to
+        // enqueue before sending for execution.
+        //
+        // Not flushing commands can sometimes cause context loss. To learn more, see:
+        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
         if let Some(context) = &*self.context.borrow() {
             context.flush()
         }

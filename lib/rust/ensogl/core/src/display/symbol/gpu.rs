@@ -422,28 +422,6 @@ impl Symbol {
                     let count = self.surface.point_scope().size() as i32;
                     let instance_count = self.surface.instance_scope().size() as i32;
 
-                    // println!("rendering symbol {:?}. count {}, instance count
-                    // {}",self.id,count,instance_count);
-
-                    // FIXME: we should uncomment the following code in some pedantic debug mode. It
-                    //        introduces severe performance overhead (0.8ms -> 3ms per frame)
-                    // because        it requires GPU to sync. However, we
-                    // should maintain a "pedantic mode" in        case
-                    // something goes horribly wrong and we would like to discover what.
-
-                    // // Check if we are ready to render. If we don't assert here we wil only get a
-                    // warning // that won't tell us where things went wrong.
-                    // {
-                    //     let framebuffer_status =
-                    // context.check_framebuffer_status(Context::FRAMEBUFFER);
-                    //     debug_assert_eq!(
-                    //         framebuffer_status,
-                    //         Context::FRAMEBUFFER_COMPLETE,
-                    //         "Framebuffer incomplete (status: {}).",
-                    //         framebuffer_status
-                    //         )
-                    // }
-
                     self.stats.inc_draw_call_count();
                     if instance_count > 0 {
                         context.draw_arrays_instanced(*mode, first, count, instance_count);
