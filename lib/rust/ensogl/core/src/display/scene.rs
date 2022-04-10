@@ -466,6 +466,8 @@ impl Renderer {
         Self { logger, dom, variables, pipeline, composer }
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let composer = context.map(|context| {
             // To learn more about the blending equations used here, please see the following
@@ -815,6 +817,8 @@ impl SceneData {
         self
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
@@ -908,7 +912,17 @@ impl SceneData {
     }
 
     pub fn render(&self) {
-        self.renderer.run()
+        self.renderer.run();
+        /// WebGL `flush` should be called when expecting results such as queries, or at completion
+        /// of a rendering frame. Flush tells the implementation to push all pending commands out
+        /// for execution, flushing them out of the queue, instead of waiting for more commands to
+        /// enqueue before sending for execution.
+        ///
+        /// Not flushing commands can sometimes cause context loss. To learn more, see:
+        /// [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+        if let Some(context) = &*self.context.borrow() {
+            context.flush()
+        }
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {

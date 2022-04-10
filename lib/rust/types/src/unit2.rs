@@ -1,14 +1,22 @@
+//! Utilities for creating custom strongly typed units. For example, unit `Duration` is a wrapper
+//! for [`f32`] and defines time-related utilities.
+//!
+//! Units automatically implement a lot of traits in a generic fashion, so you can for example add
+//! [`Duration`] together, or divide one [`Duration`] by a number or another [`Duration`] and get
+//! [`Duration`] or a number, respectfully. You are allowed to define any combination of operators
+//! and rules of how the result inference should be performed.
+
 use std::marker::PhantomData;
 
+/// Common traits for built-in units.
+pub mod traits {
+    pub use super::DurationNumberOps;
+    pub use super::DurationOps;
+}
 
 mod ops {
     pub use crate::algebra::*;
     pub use std::ops::*;
-}
-
-pub mod traits {
-    pub use super::DurationNumberOps;
-    pub use super::DurationOps;
 }
 
 
@@ -16,6 +24,13 @@ pub mod traits {
 // =====================
 // === UncheckedInto ===
 // =====================
+
+/// Unchecked unit conversion. You should use it only for unit conversion definition, never in
+/// unit-usage code.
+#[allow(missing_docs)]
+pub trait UncheckedInto<T> {
+    fn unchecked_into(self) -> T;
+}
 
 impl<T> const UncheckedInto<T> for T {
     fn unchecked_into(self) -> T {
@@ -25,7 +40,9 @@ impl<T> const UncheckedInto<T> for T {
 
 impl<V, R> const UncheckedInto<UnitData<V, R>> for R {
     fn unchecked_into(self) -> UnitData<V, R> {
-        UnitData::unchecked_from(self)
+        let repr = self;
+        let variant = PhantomData;
+        UnitData { repr, variant }
     }
 }
 
@@ -35,25 +52,34 @@ impl<V, R> const UncheckedInto<UnitData<V, R>> for R {
 // === UnitData ===
 // ================
 
+/// Abstract unit type for the given variant. Variants are marker structs used to distinguish units.
+/// For example, the [`Duration`] unit is defined as (after macro expansion):
+/// ```text
+/// pub type Duration = Unit<DURATION>
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f64
+/// }
+/// ```
+pub type Unit<V> = UnitData<V, <V as Variant>::Repr>;
+
+/// Relation between the unit variant and its internal representation. Read the docs of [`UnitData`]
+/// to learn more about variants.
+#[allow(missing_docs)]
 pub trait Variant {
     type Repr;
 }
 
-pub type Unit<V> = UnitData<V, <V as Variant>::Repr>;
-
+/// Internal representation of every unit.
 pub struct UnitData<V, R> {
     repr:    R,
     variant: PhantomData<V>,
 }
 
-impl<V, R> UnitData<V, R> {
-    pub const fn unchecked_from(repr: R) -> Self {
-        let variant = PhantomData;
-        Self { repr, variant }
-    }
-}
-
 impl<V, R: Copy> UnitData<V, R> {
+    /// Get the underlying value. Please note that this might result in a different value than you
+    /// might expect. For example, if the internal representation of a duration type is a number of
+    /// milliseconds, then `1.second().unchecked_raw()` will return `1000`.
     pub const fn unchecked_raw(self) -> R {
         self.repr
     }
@@ -72,7 +98,8 @@ impl<V, R: Copy> Clone for UnitData<V, R> {
 // === IsNotUnit ===
 // =================
 
-auto trait IsNotUnit {}
+/// Trait used to resolve conflicts when implementing traits fot [`Unit`].
+pub auto trait IsNotUnit {}
 impl<V, R> !IsNotUnit for UnitData<V, R> {}
 
 
@@ -83,7 +110,7 @@ impl<V, R> !IsNotUnit for UnitData<V, R> {}
 
 impl<V, R: Default> Default for UnitData<V, R> {
     fn default() -> Self {
-        UnitData::unchecked_from(Default::default())
+        R::default().unchecked_into()
     }
 }
 
@@ -113,7 +140,7 @@ impl<V, R: std::fmt::Display> std::fmt::Display for UnitData<V, R> {
 
 impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
     fn as_ref(&self) -> &UnitData<V, R> {
-        &self
+        self
     }
 }
 
@@ -164,17 +191,83 @@ where R: Copy
 
 
 
-// ===========
-// === Mul ===
-// ===========
+// ===============
+// === gen_ops ===
+// ===============
 
-
+/// Internal macro for defining operators for the generic [`Unit`] structure. Because Rust disallows
+/// defining trait impls for structs defined in external modules and in order to provide a
+/// configurable default impl, this macro generates local traits controlling the behavior of the
+/// generated impls. For example, the following code:
+///
+/// ```text
+/// gen_ops!(RevAdd, Add, add);
+/// ```
+///
+/// will result in:
+///
+/// ```text
+/// pub trait Add<T> {
+///     type Output;
+/// }
+///
+/// pub trait RevAdd<T> {
+///     type Output;
+/// }
+///
+/// impl<V, R> const ops::Add<UnitData<V, R>> for f32
+/// where V: RevAdd<f32>, ... {
+///     type Output = UnitData<<V as RevAdd<f32>>::Output, <f32 as ops::Add<R>>::Output>;
+///     fn add(self, rhs: UnitData<V, R>) -> Self::Output { ... }
+/// }
+///
+/// impl<V, R, T> const ops::Add<T> for UnitData<V, R>
+/// where UnitData<V, R>: Add<T>, ... {
+///     type Output = <UnitData<V, R> as Add<T>>::Output;
+///     fn add(self, rhs: T) -> Self::Output { ... }
+/// }
+///
+/// impl<V1, V2, R1, R2> const ops::Add<UnitData<V2, R2>> for UnitData<V1, R1>
+/// where UnitData<V1, R1>: Add<UnitData<V2, R2>>, ... {
+///     type Output = <UnitData<V1, R1> as Add<UnitData<V2, R2>>>::Output;
+///     fn add(self, rhs: UnitData<V2, R2>) -> Self::Output { ... }
+/// }
+/// ```
+///
+/// Please note, that all traits in the [`ops`] module are standard Rust traits, while the ones
+/// with no prefix, are custom ones. Having such an implementation and an example unit type
+/// definition:
+///
+/// ```text
+/// pub type Duration = Unit<DURATION>;
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f32;
+/// }
+/// ```
+///
+/// We can allow for adding and dividing two units simply by implementing the following traits:
+///
+/// ```text
+/// impl Add<Duration> for Duration {
+///     type Output = Duration;
+/// }
+///
+/// impl Div<Duration> for Duration {
+///     type Output = f32;
+/// }
+/// ```
+///
+/// This crate provides a nice utility for such trait impl generation. See [`define_ops`] to learn
+/// more.
 macro_rules! gen_ops {
     ($rev_trait:ident, $trait:ident, $op:ident) => {
+        #[allow(missing_docs)]
         pub trait $trait<T> {
             type Output;
         }
 
+        #[allow(missing_docs)]
         pub trait $rev_trait<T> {
             type Output;
         }
@@ -189,7 +282,7 @@ macro_rules! gen_ops {
         {
             type Output = UnitData<<V as $rev_trait<f32>>::Output, <f32 as ops::$trait<R>>::Output>;
             fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
-                UnitData::unchecked_from(self.$op(rhs.repr))
+                self.$op(rhs.repr).unchecked_into()
             }
         }
 
@@ -223,6 +316,7 @@ macro_rules! gen_ops {
     };
 }
 
+/// Internal helper for the [`gen_ops`] macro.
 macro_rules! gen_ops_mut {
     ($rev_trait:ident, $trait:ident, $trait_mut:ident, $op:ident) => {
         impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f32
@@ -258,9 +352,7 @@ macro_rules! gen_ops_mut {
     };
 }
 
-pub trait UncheckedInto<T> {
-    fn unchecked_into(self) -> T;
-}
+
 
 gen_ops!(RevAdd, Add, add);
 gen_ops!(RevSub, Sub, sub);
@@ -280,6 +372,89 @@ gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
 // === Unit Definition Macros ===
 // ==============================
 
+
+// === define ===
+
+/// Utilities for new unit definition. For example, the following definition:
+///
+/// ```text
+/// define!(Duration = DURATION(f32));
+/// ```
+///
+/// will generate the following code:
+///
+/// ````text
+/// pub type Duration = Unit<DURATION>;
+/// pub struct DURATION;
+/// impl Variant for DURATION {
+///     type Repr = f32;
+/// }
+/// ```
+#[macro_export]
+macro_rules! define {
+    ($(#$meta:tt)* $name:ident = $variant:ident ($tp:ident)) => {
+        $(#$meta)*
+        pub type $name = Unit<$variant>;
+
+        $(#$meta)*
+        #[derive(Debug, Clone, Copy)]
+        pub struct $variant;
+
+        impl Variant for $variant {
+            type Repr = $tp;
+        }
+    };
+}
+
+
+// === define_ops ===
+
+/// Utilities for new unit-operations relations definition. For example, the following definition:
+///
+/// ```text
+/// define_ops![
+///     Duration [+,-] Duration = Duration,
+///     Duration [*,/] f32 = Duration,
+///     Duration / Duration = f32,
+///     f32 * Duration = Duration,
+/// ];
+/// ```
+///
+/// will generate the following code:
+///
+/// ```text
+/// impl Add<Duration> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Sub<Duration> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Mul<f32> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Div<f32> for Duration {
+///     type Output = Duration;
+/// }
+/// impl Div<Duration> for Duration {
+///     type Output = f32;
+/// }
+/// impl RevMul<Duration> for f32 {
+///     type Output = Duration;
+/// }
+/// ```
+///
+/// See the documentation of the [`gen_ops`] macro to learn about such traits as [`Add`], [`Mul`],
+/// or [`RevMul`] – these are NOT standard Rust traits.
+#[macro_export]
+macro_rules! define_ops {
+    ($($lhs:ident $op:tt $rhs:ident = $out:ident),* $(,)?) => {
+        $(
+            $crate::define_single_op_switch!{ $lhs $op $rhs = $out }
+        )*
+    };
+}
+
+/// Internal helper for the [`define_ops`] macro.
 #[macro_export]
 macro_rules! define_single_op_switch {
     (f32 $op:tt $rhs:ident = $out:ident) => {
@@ -293,6 +468,7 @@ macro_rules! define_single_op_switch {
     };
 }
 
+/// Internal helper for the [`define_ops`] macro.
 #[macro_export]
 macro_rules! define_single_op {
     ($lhs:ident + $rhs:ident = $out:ident) => {
@@ -326,15 +502,7 @@ macro_rules! define_single_op {
     };
 }
 
-#[macro_export]
-macro_rules! define_ops {
-    ($($lhs:ident $op:tt $rhs:ident = $out:ident),* $(,)?) => {
-        $(
-            $crate::define_single_op_switch!{ $lhs $op $rhs = $out }
-        )*
-    };
-}
-
+/// Internal helper for the [`define_ops`] macro.
 #[macro_export]
 macro_rules! define_single_rev_op {
     ($lhs:ident + $rhs:ident = $out:ident) => {
@@ -368,24 +536,21 @@ macro_rules! define_single_rev_op {
     };
 }
 
-#[macro_export]
-macro_rules! define {
-    ($name:ident = $variant:ident ($tp:ident)) => {
-        pub type $name = Unit<$variant>;
-        pub struct $variant;
-        impl Variant for $variant {
-            type Repr = $tp;
-        }
-    };
-}
-
 
 
 // ================
 // === Duration ===
 // ================
 
-define!(Duration = DURATION(f32));
+define! {
+    /// A span of time. Duration stores milliseconds under the hood, which is a representation
+    /// optimized for real-time rendering and graphics processing.
+    ///
+    /// Conversions between this type and the [`std::time::Duration`] are provided, however, please
+    /// note that [`std::time::Duration`] internal representation is optimized for different cases,
+    /// so losing precision is expected during the conversion.
+    Duration = DURATION(f32)
+}
 define_ops![
     Duration [+,-] Duration = Duration,
     Duration [*,/] f32 = Duration,
@@ -393,6 +558,8 @@ define_ops![
     f32 * Duration = Duration,
 ];
 
+/// Methods for the [`Duration`] unit.
+#[allow(missing_docs)]
 pub trait DurationOps {
     fn ms(t: f32) -> Duration;
     fn s(t: f32) -> Duration;
@@ -406,7 +573,7 @@ pub trait DurationOps {
 
 impl const DurationOps for Duration {
     fn ms(t: f32) -> Duration {
-        Self::unchecked_from(t)
+        t.unchecked_into()
     }
     fn s(t: f32) -> Duration {
         Self::ms(t * 1000.0)
@@ -432,6 +599,8 @@ impl const DurationOps for Duration {
     }
 }
 
+/// Methods of the [`Duration`] unit as extensions for numeric types.
+#[allow(missing_docs)]
 pub trait DurationNumberOps {
     fn ms(self) -> Duration;
     fn s(self) -> Duration;
@@ -444,5 +613,17 @@ impl const DurationNumberOps for f32 {
 
     fn s(self) -> Duration {
         Duration::s(self)
+    }
+}
+
+impl From<std::time::Duration> for Duration {
+    fn from(duration: std::time::Duration) -> Self {
+        (duration.as_millis() as <DURATION as Variant>::Repr).ms()
+    }
+}
+
+impl From<Duration> for std::time::Duration {
+    fn from(duration: Duration) -> Self {
+        std::time::Duration::from_millis(duration.as_ms() as u64)
     }
 }

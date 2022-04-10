@@ -9,7 +9,6 @@ use crate::define_style;
 use crate::display;
 use crate::display::scene::Scene;
 use crate::frp;
-use crate::types::unit2::Duration;
 use crate::Animation;
 use crate::DEPRECATED_Animation;
 use crate::DEPRECATED_Tween;

@@ -1,6 +1,6 @@
-// === Non-Standard Linter Configuration ===
-#![allow(missing_docs)]
+//! GPU representation of symbols, meshes with shaders.
 
+// === Non-Standard Linter Configuration ===
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
@@ -44,6 +44,7 @@ pub mod shader;
 // === Exports ===
 // ===============
 
+/// Popular types.
 pub mod types {
     use super::*;
     pub use geometry::types::*;
@@ -278,19 +279,26 @@ shared2! { GlobalInstanceIdProvider
 
 // === Types ===
 
+/// Attribute scope type. Attributes can be defined in one of the supported scopes and will be
+/// automatically bound to the material definition during shader compilation.
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum ScopeType {
     Mesh(mesh::ScopeType),
     Symbol,
     Global,
 }
 
+/// A dirty flag for the symbols' geometry.
 pub type GeometryDirty = dirty::SharedBool<Box<dyn Fn()>>;
+
+/// A dirty flag for the symbols' shader.
 pub type ShaderDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 
 // === Bindings ====
 
+/// All attributes and uniforms bindings of symbol with the associated Vertex Array Object.
 #[derive(Clone, Debug, Default)]
 pub struct Bindings {
     vao:      Option<VertexArrayObject>,
@@ -307,56 +315,35 @@ newtype_prim! {
     SymbolId(u32);
 }
 
-/// Symbol is a surface with attached `Shader`.
+/// Symbol is a [`Mesh`] with attached [`Shader`].
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Symbol {
+    #[deref]
+    data:         Rc<SymbolData>,
+    shader_dirty: ShaderDirty,
+    shader:       Shader,
+}
+
+/// Internal representation of [`Symbol`]
+#[derive(Debug, Clone)]
+#[allow(missing_docs)]
+pub struct SymbolData {
     pub id:             SymbolId,
     global_id_provider: GlobalInstanceIdProvider,
     display_object:     display::object::Instance,
-    shader:             Shader,
-    shader_dirty:       ShaderDirty,
-    /// Please note that changing the uniform type to `u32` breaks node ID encoding in GLSL, as the
-    /// functions are declared to work on `int`s, not `uint`s. This might be improved one day.
-    symbol_id_uniform:  Uniform<i32>,
-
+    surface:            Mesh,
+    surface_dirty:      GeometryDirty,
+    variables:          UniformScope,
+    context:            RefCell<Option<Context>>,
+    logger:             Logger,
+    bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
     is_hidden:          Rc<Cell<bool>>,
     global_instance_id: Buffer<i32>,
-    #[deref]
-    data:               SymbolData,
-}
-
-#[derive(Debug, Clone, CloneRef)]
-pub struct SymbolData {
-    logger:        Logger,
-    context:       Rc<RefCell<Option<Context>>>,
-    bindings:      Rc<RefCell<Bindings>>,
-    surface_dirty: GeometryDirty,
-    surface:       Mesh,
-    variables:     UniformScope,
-}
-
-impl SymbolData {
-    pub fn new<OnMut: Fn() + Clone + 'static>(
-        logger: Logger,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
-        let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
-        let surface_dirty = GeometryDirty::new(geo_dirt_logger, Box::new(on_mut));
-        let surface_on_mut = Box::new(f!(surface_dirty.set()));
-        let surface_logger = Logger::new_sub(&logger, "surface");
-        let surface = Mesh::new(surface_logger, stats, surface_on_mut);
-        let context = default();
-        let bindings = default();
-        let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
-
-        Self { logger, context, bindings, surface_dirty, surface, variables }
-    }
 }
 
 impl Symbol {
-    /// Create new instance with the provided on-dirty callback.
+    /// Constructor.
     pub fn new<OnMut: Fn() + Clone + 'static>(
         stats: &Stats,
         id: SymbolId,
@@ -366,59 +353,24 @@ impl Symbol {
         let logger = Logger::new(format!("symbol_{}", id));
         let init_logger = logger.clone();
         debug!(init_logger, "Initializing.", || {
-            let global_id_provider = global_id_provider.clone_ref();
             let on_mut2 = on_mut.clone();
+            let shader_dirt_logger = Logger::new_sub(&logger, "shader_dirty");
+            let shader_dirty = ShaderDirty::new(shader_dirt_logger, Box::new(on_mut));
             let shader_logger = Logger::new_sub(&logger, "shader");
-            let mat_dirt_logger = Logger::new_sub(&logger, "shader_dirty");
-            let shader_dirty = ShaderDirty::new(mat_dirt_logger, Box::new(on_mut));
-
             let shader_on_mut = Box::new(f!(shader_dirty.set()));
             let shader = Shader::new(shader_logger, stats, shader_on_mut);
-
-            let display_object = display::object::Instance::new(logger.clone());
-            let is_hidden = Rc::new(Cell::new(false));
-            let data = SymbolData::new(logger, stats, on_mut2);
-            let stats = SymbolStats::new(stats);
-            let symbol_id_uniform = data.variables.add_or_panic("symbol_id", (*id) as i32);
-            let instance_scope = data.surface.instance_scope();
-            let global_instance_id = instance_scope.add_buffer("global_instance_id");
-
-            Self {
-                id,
-                global_id_provider,
-                display_object,
-                shader,
-                shader_dirty,
-                symbol_id_uniform,
-                data,
-                stats,
-                is_hidden,
-                global_instance_id,
-            }
-            .init()
+            let data = Rc::new(SymbolData::new(logger, stats, id, global_id_provider, on_mut2));
+            Self { data, shader_dirty, shader }
         })
     }
 
-    fn init(self) -> Self {
-        let is_hidden = &self.is_hidden;
-        let id = self.id;
-        self.display_object.set_on_hide(f_!(is_hidden.set(true)));
-        self.display_object.set_on_show(f__!(is_hidden.set(false)));
-        self.display_object.set_on_scene_layer_changed(move |_, old_layers, new_layers| {
-            for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.remove_symbol(id)
-            }
-            for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
-                layer.add_symbol(id)
-            }
-        });
-        self
-    }
-
+    /// Create a new instance of this symbol.
     pub fn new_instance(&self) -> SymbolInstance {
         SymbolInstance::new(self)
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         self.surface.set_context(context);
@@ -448,23 +400,8 @@ impl Symbol {
         }
     }
 
-    pub fn lookup_variable<S: Str>(
-        &self,
-        name: S,
-        global_variables: &UniformScope,
-    ) -> Option<ScopeType> {
-        let name = name.as_ref();
-        self.surface.lookup_variable(name).map(ScopeType::Mesh).or_else(|| {
-            if self.variables.contains(name) {
-                Some(ScopeType::Symbol)
-            } else if global_variables.contains(name) {
-                Some(ScopeType::Global)
-            } else {
-                None
-            }
-        })
-    }
-
+    /// Render the symbol. You should never need to call this function directly. Use the rendering
+    /// pipeline instead.
     pub fn render(&self) {
         debug!(self.logger, "Rendering.", || {
             if self.is_hidden() {
@@ -519,6 +456,82 @@ impl Symbol {
     }
 }
 
+impl SymbolData {
+    /// Create new instance with the provided on-dirty callback.
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        logger: Logger,
+        stats: &Stats,
+        id: SymbolId,
+        global_id_provider: &GlobalInstanceIdProvider,
+        on_mut: OnMut,
+    ) -> Self {
+        let global_id_provider = global_id_provider.clone_ref();
+        let surface_logger = Logger::new_sub(&logger, "surface");
+        let geo_dirt_logger = Logger::new_sub(&logger, "surface_dirty");
+        let surface_dirty = GeometryDirty::new(geo_dirt_logger, Box::new(on_mut));
+        let surface_on_mut = Box::new(f!(surface_dirty.set()));
+        let surface = Mesh::new(surface_logger, stats, surface_on_mut);
+        let variables = UniformScope::new(Logger::new_sub(&logger, "uniform_scope"));
+        let bindings = default();
+        let stats = SymbolStats::new(stats);
+        let context = default();
+        let display_object = display::object::Instance::new(logger.clone());
+        let is_hidden = Rc::new(Cell::new(false));
+
+        let instance_scope = surface.instance_scope();
+        let global_instance_id = instance_scope.add_buffer("global_instance_id");
+
+        Self {
+            id,
+            global_id_provider,
+            display_object,
+            surface,
+            surface_dirty,
+            variables,
+            context,
+            bindings,
+            stats,
+            is_hidden,
+            global_instance_id,
+            logger,
+        }
+        .init()
+    }
+
+    fn init(self) -> Self {
+        let is_hidden = &self.is_hidden;
+        let id = self.id;
+        self.display_object.set_on_hide(f_!(is_hidden.set(true)));
+        self.display_object.set_on_show(f__!(is_hidden.set(false)));
+        self.display_object.set_on_scene_layer_changed(move |_, old_layers, new_layers| {
+            for layer in old_layers.iter().filter_map(|t| t.upgrade()) {
+                layer.remove_symbol(id)
+            }
+            for layer in new_layers.iter().filter_map(|t| t.upgrade()) {
+                layer.add_symbol(id)
+            }
+        });
+        self
+    }
+
+
+    /// Lookup variable by name. All mesh scopes, symbol uniform scope, and the global scope will be
+    /// searched.
+    pub fn lookup_variable<S: Str>(
+        &self,
+        name: S,
+        global_variables: &UniformScope,
+    ) -> Option<ScopeType> {
+        let name = name.as_ref();
+        match self.surface.lookup_variable(name) {
+            Some(mesh_scope) => Some(ScopeType::Mesh(mesh_scope)),
+            _ if self.variables.contains(name) => Some(ScopeType::Symbol),
+            _ if global_variables.contains(name) => Some(ScopeType::Global),
+            _ => None,
+        }
+    }
+}
+
 impl From<&Symbol> for SymbolId {
     fn from(t: &Symbol) -> Self {
         t.id
@@ -529,18 +542,22 @@ impl From<&Symbol> for SymbolId {
 // === Visibility ===
 
 impl Symbol {
+    /// Show or hide the symbol.
     pub fn set_hidden(&self, b: bool) {
         self.is_hidden.set(b)
     }
 
+    /// Hide the symbol.
     pub fn hide(&self) {
         self.set_hidden(true)
     }
 
+    /// Show the previously hidden symbol.
     pub fn show(&self) {
         self.set_hidden(false)
     }
 
+    /// Check whether the symbol was hidden.
     pub fn is_hidden(&self) -> bool {
         self.is_hidden.get()
     }
@@ -549,6 +566,7 @@ impl Symbol {
 
 // === Getters ===
 
+#[allow(missing_docs)]
 impl Symbol {
     pub fn surface(&self) -> &Mesh {
         &self.surface
@@ -758,7 +776,9 @@ pub struct SymbolInstance {
     rc: Rc<SymbolInstanceData>,
 }
 
+/// Internal representation of [`SymbolInstance`].
 #[derive(Debug, NoCloneBecauseOfCustomDrop)]
+#[allow(missing_docs)]
 pub struct SymbolInstanceData {
     pub symbol:             Symbol,
     pub instance_id:        attribute::InstanceIndex,

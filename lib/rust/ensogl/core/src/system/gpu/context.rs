@@ -106,6 +106,8 @@ pub struct ContextLostHandler {
 #[allow(missing_docs)]
 pub trait Display: CloneRef {
     fn device_context_handler(&self) -> &DeviceContextHandler;
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>);
 }
 

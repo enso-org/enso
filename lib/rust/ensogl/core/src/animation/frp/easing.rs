@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::animation::easing;
-use crate::types::unit2::Duration;
 
 use enso_frp as frp;
 

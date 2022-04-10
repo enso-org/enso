@@ -246,7 +246,8 @@ impl<T:Storable> {
         }
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.gl = context.map(|ctx| {
             self.resize_dirty.set();
@@ -463,7 +464,8 @@ crate::with_all_prim_types!([[define_any_buffer] []]);
 #[enum_dispatch]
 #[allow(missing_docs)]
 pub trait IsBuffer {
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>);
     fn add_element(&self);
     fn len(&self) -> usize;
@@ -478,7 +480,8 @@ pub trait IsBuffer {
 // This implementation is needed, because `enum_dispatch` library requires variant types to
 // implement the trait, as it invokes trait methods explicitly on variant values.
 //
-// Thus we provide implementation that just redirects calls to methods defined in the Buffer itself.
+// Thus, we provide implementation that just redirects calls to methods defined in the Buffer
+// itself.
 impl<T: Storable> IsBuffer for Buffer<T> {
     fn set_context(&self, context: Option<&Context>) {
         self.set_context(context)

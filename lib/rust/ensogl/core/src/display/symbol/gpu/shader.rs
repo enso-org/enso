@@ -69,7 +69,8 @@ pub struct ShaderData {
 }
 
 impl {
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&mut self, context:Option<&Context>) {
         if context.is_some() {
             self.dirty.set();

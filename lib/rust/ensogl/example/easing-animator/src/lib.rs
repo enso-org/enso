@@ -23,7 +23,6 @@
 use ensogl_core::animation::easing::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
-use ensogl_core::types::unit2::Duration;
 
 use ensogl_core::animation;
 use ensogl_core::system::web;
