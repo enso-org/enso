@@ -36,7 +36,7 @@ pub struct ExtensionsData {
 impl ExtensionsData {
     /// Constructor.
     fn init(context: &WebGl2RenderingContext) -> Self {
-        let khr_parallel_shader_compile = KhrParallelShaderCompile::init(context);
+        let khr_parallel_shader_compile = KhrParallelShaderCompile::try_init(context);
         Self { khr_parallel_shader_compile }
     }
 }
@@ -58,7 +58,7 @@ pub struct KhrParallelShaderCompile {
 
 impl KhrParallelShaderCompile {
     /// Try to obtain the extension.
-    pub fn init(context: &WebGl2RenderingContext) -> Option<Self> {
+    pub fn try_init(context: &WebGl2RenderingContext) -> Option<Self> {
         let ext = context.get_extension("KHR_parallel_shader_compile").ok()??;
         let completion_status_khr = GlEnum(
             js_sys::Reflect::get(&ext, &"COMPLETION_STATUS_KHR".into()).ok()?.as_f64()? as u32,
@@ -66,16 +66,13 @@ impl KhrParallelShaderCompile {
         Some(Self { completion_status_khr })
     }
 
-    /// Asynchronously check if the job is ready.
-    pub fn is_ready(&self, context: &WebGl2RenderingContext, program: &WebGlProgram) -> bool {
-        let param = self.completion_status_khr;
-        context.get_program_parameter(program, *param).as_bool().unwrap_or_else(|| {
-            REPORTABLE_WARNING!(
-                "context.getProgramParameter returned non bool value for KHR \
-                Parallel Shader Compile status check. This should never happen, however, it should \
-                not cause visual artifacts. Reverting to non-parallel mode."
-            );
-            true
-        })
+    /// Asynchronously check if the job is ready. Returns [`None`] if it was impossible to get this
+    /// information. This can happen during context loss or driver failure.
+    pub fn is_ready(
+        &self,
+        context: &WebGl2RenderingContext,
+        program: &WebGlProgram,
+    ) -> Option<bool> {
+        context.get_program_parameter(program, *self.completion_status_khr).as_bool()
     }
 }

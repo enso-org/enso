@@ -111,8 +111,8 @@ impl {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update<F: 'static + Fn(&shader::Program)>
-    (&mut self, bindings:&[VarBinding], on_ready:F) {
+    pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>
+    (&mut self, bindings:Vec<VarBinding>, on_ready:F) {
         debug!(self.logger, "Updating.", || {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
@@ -122,7 +122,7 @@ impl {
                     let mut shader_cfg     = builder::ShaderConfig::new();
                     let mut shader_builder = builder::ShaderBuilder::new();
 
-                    for binding in bindings {
+                    for binding in &bindings {
                         let name = &binding.name;
                         let tp   = &binding.decl.tp;
                         match binding.scope {
@@ -156,14 +156,20 @@ impl {
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
                     let handler = context.shader_compiler.submit(code, move |p| {
-                        on_ready(&p);
+                        on_ready(&bindings,&p);
                         *program.borrow_mut() = Some(p);
                     });
-                    self.shader_compiler_job = Some(handler);
+                    self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
                     self.dirty.unset_all();
                 }
             }
         })
+    }
+
+    fn cancel_previous_shader_compiler_job_and_use_new_one
+    (&mut self, handler: shader_compiler::JobHandler) {
+        // Dropping the previous handler.
+        self.shader_compiler_job = Some(handler);
     }
 
     /// Traverses the shader definition and collects all attribute names.

@@ -100,7 +100,7 @@ impl<Callback> RawLoopData<Callback> {
         Self { callback, on_frame, handle_id }
     }
 
-    /// Run the animation frame. The time fill be converted to [`f32`] because of performance
+    /// Run the animation frame. The time will be converted to [`f32`] because of performance
     /// reasons. See https://hugotunius.se/2017/12/04/rust-f64-vs-f32.html to learn more.
     fn run(&mut self, current_time_ms: f64)
     where Callback: FnMut(Duration) {

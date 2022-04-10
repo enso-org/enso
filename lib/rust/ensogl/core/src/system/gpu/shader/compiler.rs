@@ -21,6 +21,7 @@ use crate::system::web::traits::*;
 
 use crate::animation;
 use crate::display::ToGlEnum;
+use crate::system::gpu::context::extension::KhrParallelShaderCompile;
 use crate::system::gpu::context::native;
 use crate::system::gpu::shader;
 use crate::system::gpu::shader::Fragment;
@@ -38,12 +39,13 @@ use web_sys::WebGl2RenderingContext;
 // =================
 
 /// We do not want the framerate to drop below this value when compiling shaders. Whenever we
-/// discover that it drops below this threshold, no more shaders will be scheduled for compilation
-/// or linking in this frame. It does not mean, however, that the framerate will not be lower. The
-/// last scheduled shader can take a lot of time to be rendered, causing the FPS to drop
-/// significantly.
-const MIN_FPS: f32 = 60.0;
-const MAX_FRAME_TIME_MS: Duration = (1000.0 / MIN_FPS).ms();
+/// discover that it drops below this threshold, no more compiler jobs (compilation or linking) will
+/// be executed this frame. It does not mean, however, that the framerate will not be lower than
+/// this threshold. Every frame at least one job is scheduled, and the last scheduled job can take
+/// significant amount of time, causing the FPS to drop below this threshold. To learn more about
+/// how jobs are scheduled, read the docs of the [`Compiler`].
+const FPS_THRESHOLD: f32 = 60.0;
+const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 
 
 
@@ -54,13 +56,23 @@ const MAX_FRAME_TIME_MS: Duration = (1000.0 / MIN_FPS).ms();
 /// Compiler job. After the job is created it can be either transformed to another job, or, in case
 /// that was the final job, the [`handler`] callback will be called. See the documentation of the
 /// [`Compiler`] to learn more.
-#[derive(Derivative)]
+#[derive(Derivative, Deref)]
 #[derivative(Debug)]
 pub struct Job<T> {
     #[derivative(Debug = "ignore")]
     on_ready: Box<dyn FnOnce(shader::Program)>,
+    #[deref]
     input:    T,
     handler:  WeakJobHandler,
+}
+
+impl<T> Job<T> {
+    fn with_mod_input<S>(self, f: impl FnOnce(T) -> S) -> Job<S> {
+        let on_ready = self.on_ready;
+        let handler = self.handler;
+        let input = f(self.input);
+        Job { on_ready, input, handler }
+    }
 }
 
 /// A handler to a job. After the handler is dropped, the job is invalidated and will no longer be
@@ -90,10 +102,24 @@ impl JobHandler {
 }
 
 impl WeakJobHandler {
-    /// heck whether the handler was dropped.
+    /// Check whether the handler was dropped.
     pub fn exists(&self) -> bool {
         self.weak.upgrade().is_some()
     }
+}
+
+
+
+// ==================
+// === KhrProgram ===
+// ==================
+
+/// A program together with the [`KhrParallelShaderCompile`] extension. Used as one of the
+/// [`Compiler`] jobs to provide nice API.
+#[derive(Debug)]
+struct KhrProgram {
+    khr:     KhrParallelShaderCompile,
+    program: shader::Program,
 }
 
 
@@ -107,7 +133,7 @@ impl WeakJobHandler {
 pub struct Jobs {
     compile:              Vec<Job<shader::Code>>,
     link:                 Vec<Job<shader::CompiledCode>>,
-    khr_completion_check: Vec<Job<shader::Program>>,
+    khr_completion_check: Vec<Job<KhrProgram>>,
     link_check:           Vec<Job<shader::Program>>,
 }
 
@@ -119,7 +145,7 @@ pub struct Jobs {
 /// ```text
 /// on_ever_frame if job queues are not empty {
 ///     Promote ready jobs from [`Jobs::khr_completion_check`] to [`Jobs::link_check`].
-///     Loop while the current frame time is < MAX_FRAME_TIME_MS {
+///     Loop while the current frame time is < FRAME_TIME_THRESHOLD, at least one loop this frame {
 ///         if [`Jobs::compile`] is not empty {
 ///             submit its first job to the GLSL compiler
 ///             move the job to the [`Jobs::link`] queue
@@ -205,7 +231,7 @@ impl CompilerData {
                         let now = (self.performance.now() as f32).ms();
                         let current_frame_time =
                             now - time.animation_loop_start - time.since_animation_loop_started;
-                        if current_frame_time > MAX_FRAME_TIME_MS {
+                        if current_frame_time > FRAME_TIME_THRESHOLD {
                             let msg1 =
                                 "Shaders compilation takes more than the available frame time.";
                             let msg2 = "To be continued in the next frame.";
@@ -243,10 +269,22 @@ impl CompilerData {
     #[profile(Detail)]
     fn run_khr_completion_check_jobs(&mut self) {
         debug!(self.logger, "Running KHR parallel shader compilation check job.");
-        let khr = self.context.extensions.khr_parallel_shader_compile.as_ref().unwrap();
         let jobs = &mut self.jobs.khr_completion_check;
-        let ready_jobs = jobs.drain_filter(|job| khr.is_ready(&*self.context, &*job.input));
-        self.jobs.link_check.extend(ready_jobs);
+        let ready_jobs =
+            jobs.drain_filter(|job| match job.khr.is_ready(&*self.context, &*job.program) {
+                Some(val) => val,
+                None => {
+                    if !self.context.is_context_lost() {
+                        REPORTABLE_WARNING!(
+                            "context.getProgramParameter returned non bool value for KHR Parallel \
+                            Shader Compile status check. This should never happen, however, it \
+                            should not cause visual artifacts. Reverting to non-parallel mode."
+                        );
+                    }
+                    true
+                }
+            });
+        self.jobs.link_check.extend(ready_jobs.map(|job| job.with_mod_input(|t| t.program)));
     }
 
     #[allow(unused_parens)]
@@ -274,11 +312,12 @@ impl CompilerData {
             let input = shader::Program::new(shader, program);
             let handler = job.handler;
             let on_ready = job.on_ready;
-            let validate_job = Job { input, handler, on_ready };
-            if this.context.extensions.khr_parallel_shader_compile.is_some() {
-                this.jobs.khr_completion_check.push(validate_job);
-            } else {
-                this.jobs.link_check.push(validate_job);
+            match this.context.extensions.khr_parallel_shader_compile {
+                Some(khr) => {
+                    let input = KhrProgram { khr, program: input };
+                    this.jobs.khr_completion_check.push(Job { input, handler, on_ready })
+                }
+                None => this.jobs.link_check.push(Job { input, handler, on_ready }),
             }
             Ok(())
         })

@@ -13,6 +13,7 @@ use web_sys::WebGlProgram;
 pub mod traits {
     pub use super::BlockingCheckStatus;
     pub use super::BlockingGetErrorLog;
+    pub use super::ContextOps;
 }
 
 
@@ -39,21 +40,42 @@ impl ContextWithExtensions {
 
 
 
+// ==================
+// === ContextOps ===
+// ==================
+
+/// Extensions to [`WebGl2RenderingContext`].
+pub trait ContextOps {
+    /// Combination of `use_program(Some(program))` and `self.use_program(None)`.
+    fn with_program<T>(&self, program: &WebGlProgram, f: impl FnOnce() -> T) -> T;
+}
+
+impl ContextOps for WebGl2RenderingContext {
+    fn with_program<T>(&self, program: &WebGlProgram, f: impl FnOnce() -> T) -> T {
+        self.use_program(Some(program));
+        let out = f();
+        self.use_program(None);
+        out
+    }
+}
+
+
+
 // ===========================
 // === BlockingCheckStatus ===
 // ===========================
 
 /// Status check for the given WebGL entity. For shaders, it checks the compilation status, for
-/// shader programs, the linking status. This operation is blocking and should be used only when
-/// necessary. To learn more, see:
+/// shader programs, the linking status, and then, returns the compilation/linking logs if any.
+/// This operation is blocking and should be used only when necessary. To learn more, see:
 /// [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#compile_shaders_and_link_programs_in_parallel]
 #[allow(missing_docs)]
 pub trait BlockingCheckStatus<T> {
-    fn blocking_check_status(&self, target: &T) -> Option<String>;
+    fn blocking_get_status_logs(&self, target: &T) -> Option<String>;
 }
 
 impl<T> BlockingCheckStatus<Shader<T>> for WebGl2RenderingContext {
-    fn blocking_check_status(&self, target: &Shader<T>) -> Option<String> {
+    fn blocking_get_status_logs(&self, target: &Shader<T>) -> Option<String> {
         let status = WebGl2RenderingContext::COMPILE_STATUS;
         let ok = self.get_shader_parameter(target, status).as_bool().unwrap_or(false);
         (!ok).then_some(unwrap_error(self.get_shader_info_log(target)))
@@ -61,7 +83,7 @@ impl<T> BlockingCheckStatus<Shader<T>> for WebGl2RenderingContext {
 }
 
 impl BlockingCheckStatus<WebGlProgram> for WebGl2RenderingContext {
-    fn blocking_check_status(&self, target: &WebGlProgram) -> Option<String> {
+    fn blocking_get_status_logs(&self, target: &WebGlProgram) -> Option<String> {
         let status = WebGl2RenderingContext::LINK_STATUS;
         let ok = self.get_program_parameter(target, status).as_bool().unwrap_or(false);
         (!ok).then_some(unwrap_error(self.get_program_info_log(target)))
@@ -89,7 +111,7 @@ pub trait BlockingGetErrorLog {
 
 impl BlockingGetErrorLog for WebGl2RenderingContext {
     fn blocking_format_error_log<T>(&self, shader: &Shader<T>) -> Option<String> {
-        self.blocking_check_status(shader).map(|message| {
+        self.blocking_get_status_logs(shader).map(|message| {
             let lines = shader.code.split('\n').collect::<Vec<&str>>();
             let lines_num = lines.len();
             let lines_str_len = (lines_num as f32).log10().ceil() as usize;

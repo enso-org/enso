@@ -9,6 +9,7 @@ use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::symbol::geometry::primitive::mesh;
 use crate::system::gpu;
+use crate::system::gpu::context::native::ContextOps;
 use crate::system::gpu::data::buffer::IsBuffer;
 use crate::system::gpu::data::texture::class::TextureOps;
 use crate::system::gpu::data::uniform::AnyPrimUniform;
@@ -156,14 +157,6 @@ impl VertexArrayObjectData {
         let context = context.clone();
         let vao = context.create_vertex_array().unwrap();
         Self { context, vao }
-    }
-
-    /// Binds the VAO, evaluates the provided function, and unbinds the VAO.
-    pub fn with<F: FnOnce() -> T, T>(&self, f: F) -> T {
-        self.bind();
-        let out = f();
-        self.unbind();
-        out
     }
 }
 
@@ -324,24 +317,6 @@ pub struct Symbol {
     shader:       Shader,
 }
 
-/// Internal representation of [`Symbol`]
-#[derive(Debug, Clone)]
-#[allow(missing_docs)]
-pub struct SymbolData {
-    pub id:             SymbolId,
-    global_id_provider: GlobalInstanceIdProvider,
-    display_object:     display::object::Instance,
-    surface:            Mesh,
-    surface_dirty:      GeometryDirty,
-    variables:          UniformScope,
-    context:            RefCell<Option<Context>>,
-    logger:             Logger,
-    bindings:           RefCell<Bindings>,
-    stats:              SymbolStats,
-    is_hidden:          Rc<Cell<bool>>,
-    global_instance_id: Buffer<i32>,
-}
-
 impl Symbol {
     /// Constructor.
     pub fn new<OnMut: Fn() + Clone + 'static>(
@@ -387,12 +362,10 @@ impl Symbol {
                 }
                 if self.shader_dirty.check() {
                     let var_bindings = self.discover_variable_bindings(global_variables);
-                    // FIXME: Potential mem leak
                     let data = self.data.clone_ref();
                     let global_variables = global_variables.clone_ref();
-                    let bindings = var_bindings.clone(); // FIXME perf
-                    self.shader.update(&bindings, move |program| {
-                        data.init_variable_bindings(&var_bindings, &global_variables, program);
+                    self.shader.update(var_bindings, move |var_bindings, program| {
+                        data.init_variable_bindings(var_bindings, &global_variables, program)
                     });
                     self.shader_dirty.unset();
                 }
@@ -432,7 +405,120 @@ impl Symbol {
             }
         })
     }
+
+    /// For each variable from the shader definition, looks up its position in geometry scopes.
+    fn discover_variable_bindings(
+        &self,
+        global_variables: &UniformScope,
+    ) -> Vec<shader::VarBinding> {
+        let var_decls = self.shader.collect_variables();
+        var_decls
+            .into_iter()
+            .map(|(var_name, var_decl)| {
+                let target = self.lookup_variable(&var_name, global_variables);
+                if target.is_none() {
+                    warning!(
+                        self.logger,
+                        "Unable to bind variable '{var_name}' to geometry buffer."
+                    );
+                }
+                shader::VarBinding::new(var_name, var_decl, target)
+            })
+            .collect()
+    }
+
+    /// Runs the provided function in a context of active program and active VAO. After the function
+    /// is executed, both program and VAO are bound to None.
+    fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
+        if let Some(program) = self.shader.native_program().as_ref() {
+            context.with_program(program, || self.with_vao(|_| f(program)));
+        }
+    }
 }
+
+
+// === Visibility ===
+
+impl Symbol {
+    /// Show or hide the symbol.
+    pub fn set_hidden(&self, b: bool) {
+        self.is_hidden.set(b)
+    }
+
+    /// Hide the symbol.
+    pub fn hide(&self) {
+        self.set_hidden(true)
+    }
+
+    /// Show the previously hidden symbol.
+    pub fn show(&self) {
+        self.set_hidden(false)
+    }
+
+    /// Check whether the symbol was hidden.
+    pub fn is_hidden(&self) -> bool {
+        self.is_hidden.get()
+    }
+}
+
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl Symbol {
+    pub fn surface(&self) -> &Mesh {
+        &self.surface
+    }
+
+    pub fn shader(&self) -> &Shader {
+        &self.shader
+    }
+
+    pub fn variables(&self) -> &UniformScope {
+        &self.variables
+    }
+}
+
+
+// === Conversions ===
+
+impl display::Object for Symbol {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+}
+
+impl From<&Symbol> for SymbolId {
+    fn from(t: &Symbol) -> Self {
+        t.id
+    }
+}
+
+
+
+// ==================
+// === SymbolData ===
+// ==================
+
+/// Internal representation of [`Symbol`]
+#[derive(Debug, Clone)]
+#[allow(missing_docs)]
+pub struct SymbolData {
+    pub id:             SymbolId,
+    global_id_provider: GlobalInstanceIdProvider,
+    display_object:     display::object::Instance,
+    surface:            Mesh,
+    surface_dirty:      GeometryDirty,
+    variables:          UniformScope,
+    context:            RefCell<Option<Context>>,
+    logger:             Logger,
+    bindings:           RefCell<Bindings>,
+    stats:              SymbolStats,
+    is_hidden:          Rc<Cell<bool>>,
+    global_instance_id: Buffer<i32>,
+}
+
+
 
 impl SymbolData {
     /// Create new instance with the provided on-dirty callback.
@@ -510,55 +596,6 @@ impl SymbolData {
     }
 }
 
-impl From<&Symbol> for SymbolId {
-    fn from(t: &Symbol) -> Self {
-        t.id
-    }
-}
-
-
-// === Visibility ===
-
-impl Symbol {
-    /// Show or hide the symbol.
-    pub fn set_hidden(&self, b: bool) {
-        self.is_hidden.set(b)
-    }
-
-    /// Hide the symbol.
-    pub fn hide(&self) {
-        self.set_hidden(true)
-    }
-
-    /// Show the previously hidden symbol.
-    pub fn show(&self) {
-        self.set_hidden(false)
-    }
-
-    /// Check whether the symbol was hidden.
-    pub fn is_hidden(&self) -> bool {
-        self.is_hidden.get()
-    }
-}
-
-
-// === Getters ===
-
-#[allow(missing_docs)]
-impl Symbol {
-    pub fn surface(&self) -> &Mesh {
-        &self.surface
-    }
-
-    pub fn shader(&self) -> &Shader {
-        &self.shader
-    }
-
-    pub fn variables(&self) -> &UniformScope {
-        &self.variables
-    }
-}
-
 
 // === Private API ===
 
@@ -587,21 +624,23 @@ impl SymbolData {
             self.bindings.borrow_mut().vao = Some(VertexArrayObject::new(context));
             self.bindings.borrow_mut().uniforms = default();
             self.bindings.borrow_mut().textures = default();
-            self.with_program_mut(context, program, |this| {
-                for binding in var_bindings {
-                    match binding.scope.as_ref() {
-                        Some(ScopeType::Mesh(s)) =>
-                            this.init_attribute_binding(context, program, binding, *s),
-                        Some(_) => this.init_uniform_binding(
-                            context,
-                            program,
-                            binding,
-                            &mut texture_unit_iter,
-                            global_variables,
-                        ),
-                        None => {}
+            context.with_program(&program.native, || {
+                self.with_vao(|this| {
+                    for binding in var_bindings {
+                        match binding.scope.as_ref() {
+                            Some(ScopeType::Mesh(scope)) =>
+                                this.init_attribute_binding(context, program, binding, *scope),
+                            Some(_) => this.init_uniform_binding(
+                                context,
+                                program,
+                                binding,
+                                &mut texture_unit_iter,
+                                global_variables,
+                            ),
+                            None => {}
+                        }
                     }
-                }
+                });
             });
         }
     }
@@ -675,69 +714,19 @@ impl SymbolData {
         });
     }
 
-    /// Runs the provided function in a context of active program and active VAO. After the function
-    /// is executed, both program and VAO are bound to None.
-    fn with_program_mut<F: FnOnce(&Self)>(
-        &self,
-        context: &Context,
-        program: &gpu::shader::Program,
-        f: F,
-    ) {
-        context.use_program(Some(&program.native));
-        self.with_vao_mut(|this| f(this));
-        context.use_program(None);
-    }
-
-    fn with_vao_mut<F: FnOnce(&Self) -> T, T>(&self, f: F) -> T {
-        self.bindings.borrow().vao.as_ref().unwrap().bind();
+    fn with_vao<F: FnOnce(&Self) -> T, T>(&self, f: F) -> T {
+        self.with_borrowed_vao_or_warn(|vao| vao.bind());
         let out = f(self);
-        self.bindings.borrow().vao.as_ref().unwrap().unbind();
+        self.with_borrowed_vao_or_warn(|vao| vao.unbind());
         out
     }
-}
 
-impl Symbol {
-    /// For each variable from the shader definition, looks up its position in geometry scopes.
-    fn discover_variable_bindings(
-        &self,
-        global_variables: &UniformScope,
-    ) -> Vec<shader::VarBinding> {
-        let var_decls = self.shader.collect_variables();
-        var_decls
-            .into_iter()
-            .map(|(var_name, var_decl)| {
-                let target = self.lookup_variable(&var_name, global_variables);
-                if target.is_none() {
-                    warning!(
-                        self.logger,
-                        "Unable to bind variable '{var_name}' to geometry buffer."
-                    );
-                }
-                shader::VarBinding::new(var_name, var_decl, target)
-            })
-            .collect()
-    }
-
-    /// Runs the provided function in a context of active program and active VAO. After the function
-    /// is executed, both program and VAO are bound to None.
-    fn with_program<F: FnOnce(&WebGlProgram)>(&self, context: &Context, f: F) {
-        if let Some(program) = self.shader.native_program().as_ref() {
-            context.use_program(Some(program));
-            let bindings = self.bindings.borrow();
-            if let Some(vao) = bindings.vao.as_ref() {
-                vao.with(|| f(program));
-            }
-            context.use_program(None);
+    fn with_borrowed_vao_or_warn<T>(&self, f: impl FnOnce(&VertexArrayObject) -> T) -> Option<T> {
+        let out = self.bindings.borrow().vao.as_ref().map(f);
+        if out.is_none() {
+            error!(self.logger, "Vertex Array Object not found during rendering.");
         }
-    }
-}
-
-
-// === Conversions ===
-
-impl display::Object for Symbol {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        out
     }
 }
 
