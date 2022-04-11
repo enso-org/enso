@@ -87,7 +87,7 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Any import all
           |
           |Any.method =
           |    x = this * this
@@ -126,6 +126,7 @@ class MethodsTest extends InterpreterTest {
     "be callable for any type when defined on Any" in {
       val code =
         """from Standard.Builtins import all
+          |from Standard.Base.Data.Any import all
           |
           |type Foo
           |type Bar

@@ -1,4 +1,4 @@
-import project.Data.Any.Extensions
+import project.Data.Any
 import project.Data.Array
 import project.Data.Interval
 import project.Data.Json
@@ -49,7 +49,7 @@ export project.Data.Text.Regex.Mode as Regex_Mode
 export project.Warning
 
 from project.Data.Array export Array
-from project.Data.Any.Extensions export all
+from project.Data.Any export all
 from project.Data.List export Nil, Cons
 from project.Data.Number.Extensions export all hiding Math, String, Double
 from project.Data.Noise export all hiding Noise

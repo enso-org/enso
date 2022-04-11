@@ -158,36 +158,6 @@ type Debug
     eval : Text -> Any
     eval expression = @Builtin_Method "Debug.eval"
 
-# The type that subsumes all types.
-type Any
-
-    ## Any is the universal top-type, with all other types being subsumed by it.
-
-       If a value of type Any is expected in a given location, _any value_ can
-       be used in that position.
-    @Builtin_Type
-    type Any
-
-    ## PRIVATE
-
-       Executes the provided handler on a dataflow error, or executes as
-       identity on a non-error value.
-
-       Arguments:
-       - handler: The function to call on this if it is an error value.
-    catch_primitive : (Error -> Any) -> Any
-    catch_primitive handler = @Builtin_Method "Any.catch"
-
-    ## Generic conversion of an arbitrary Enso value to a corresponding textual
-       representation.
-
-       > Example
-         Getting a textual representation of the number 7.
-
-             7.to_text
-    to_text : Text
-    to_text = @Builtin_Method "Any.to_text"
-
 ## Dataflow errors.
 type Error
 

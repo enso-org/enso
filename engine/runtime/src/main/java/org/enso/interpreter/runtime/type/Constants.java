@@ -3,7 +3,7 @@ package org.enso.interpreter.runtime.type;
 /** Types defined in the Standard.Builtins module. */
 public class Constants {
 
-  public static final String ANY = "Standard.Builtins.Main.Any";
+  public static final String ANY = "Standard.Base.Data.Any.Any";
   public static final String ARRAY = "Standard.Data.Main.Array";
   public static final String BOOLEAN = "Standard.Builtins.Main.Boolean";
   public static final String DECIMAL = "Standard.Builtins.Main.Decimal";

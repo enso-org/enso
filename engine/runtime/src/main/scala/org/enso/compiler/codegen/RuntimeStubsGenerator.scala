@@ -27,6 +27,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         scope.registerBuiltinConstructor(builtinType)
+        builtinType.setShadowDefinitions(scope)
       } else {
         scope.registerConstructor(constructor)
       }

@@ -11,6 +11,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -32,7 +33,7 @@ import org.enso.pkg.QualifiedName;
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public final class AtomConstructor implements TruffleObject {
+public class AtomConstructor implements TruffleObject {
 
   private final String name;
   private final ModuleScope definitionScope;
@@ -50,7 +51,6 @@ public final class AtomConstructor implements TruffleObject {
     this.name = name;
     this.definitionScope = definitionScope;
   }
-
 
   public boolean isInitialized() {
     return constructorFunction != null;

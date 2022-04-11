@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.BuiltinAtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
@@ -240,6 +241,19 @@ public class ModuleScope implements TruffleObject {
     Function definedHere = getMethodMapFor(atom).get(lowerName);
     if (definedHere != null) {
       return definedHere;
+    }
+
+    if (atom instanceof BuiltinAtomConstructor) {
+      // Unfortunately locally defined extensions get associated with the module rather than a type within a module
+      // BindingsMap would need to be enhanced to resolve to the constructor rather than a module
+      ModuleScope shadowDefinitions = ((BuiltinAtomConstructor) atom).getShadowDefinitions();
+      if (shadowDefinitions != null) {
+        AtomConstructor moduleTypeInStdLib = shadowDefinitions.associatedType;
+        definedHere = getMethodMapFor(moduleTypeInStdLib).get(lowerName);
+        if (definedHere != null) {
+          return definedHere;
+        }
+      }
     }
     return imports.stream()
         .map(scope -> scope.getExportedMethod(atom, name))

@@ -47,6 +47,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.BuiltinAtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
@@ -69,9 +70,8 @@ public class Builtins {
   private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
   // TODO Consider dropping the map and just assigning to a single variable since builtin types
   //      should be unique
-  private HashMap<String, AtomConstructor> builtinTypes;
+  private HashMap<String, BuiltinAtomConstructor> builtinTypes;
 
-  private final AtomConstructor any;
   private final AtomConstructor debug;
   private final AtomConstructor projectDescription;
   private final AtomConstructor function;
@@ -103,7 +103,6 @@ public class Builtins {
     builtinNodes = new HashMap<>();
     builtinTypes = new HashMap<>();
 
-    any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     dataflowError = new DataflowError(language, scope);
@@ -146,7 +145,6 @@ public class Builtins {
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
     scope.registerConstructor(nothing);
-    scope.registerConstructor(any);
     scope.registerConstructor(function);
 
     scope.registerConstructor(cons);
@@ -184,8 +182,6 @@ public class Builtins {
         "primitive_get_attached_stack_trace",
         GetAttachedStackTraceMethodGen.makeFunction(language));
     scope.registerMethod(caughtPanic, "convert_to_dataflow_error", CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
-    scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
-
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "run", RunStateMethodGen.makeFunction(language));
@@ -194,26 +190,25 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
-
-    scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
-    scope.registerMethod(any, "to_display_text", AnyToDisplayTextMethodGen.makeFunction(language));
-
     scope.registerMethod(
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
     readBuiltinsMetadata(scope);
 
+    // FIXME: should be possible to get rid of hardcoded list of builtin types once we have all of them
+    //        stored in metadata files
     List<String> builtinConstructors = new ArrayList<>();
     builtinConstructors.add("Polyglot");
     builtinConstructors.add("Ref");
     builtinConstructors.add("Array");
+    builtinConstructors.add("Any");
     initBuiltinTypes(builtinConstructors, scope, language);
   }
 
   public void initBuiltinTypes(List<String> constrs, ModuleScope scope, Language language) {
     for (String constr: constrs) {
-      AtomConstructor atom = new AtomConstructor(constr, scope).initializeFields();
+      BuiltinAtomConstructor atom = new BuiltinAtomConstructor(constr, scope).initializeFields();
       builtinTypes.put(constr, atom);
       Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr);
       methods.forEach((methodName, clazz) -> {
@@ -372,7 +367,7 @@ public class Builtins {
     }
   }
 
-  public AtomConstructor getBuiltinType(String name) {
+  public BuiltinAtomConstructor getBuiltinType(String name) {
     return builtinTypes.get(name);
   }
 
@@ -428,7 +423,7 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public AtomConstructor any() {
-    return any;
+    return this.getBuiltinType("Any");
   }
 
   /**
@@ -507,7 +502,7 @@ public class Builtins {
   public Atom fromTypeSystem(String typeName) {
     switch (typeName) {
       case Constants.ANY:
-        return any.newInstance();
+        return any().newInstance();
       case Constants.ARRAY:
         return array().newInstance();
       case Constants.BOOLEAN:
