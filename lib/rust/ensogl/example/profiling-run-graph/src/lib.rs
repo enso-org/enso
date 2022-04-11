@@ -1,6 +1,7 @@
 //! Demo scene showing a sample flame graph. Can be used to display a log file, if you have one.
-//! To do so, set the `PROFILER_LOG_DATA` to contain the profiling log via `include_str`, and it
-//! will be used for rendering the visualisation.
+//! To do so, set the `PROFILER_LOG_NAME` to contain the profiling log name and it
+//! will be used for rendering the visualisation. See the docs of `PROFILER_LOG_NAME` for more
+//! information.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -32,9 +33,10 @@ use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
 /// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
-/// generated and rendered. Otherwise use `include_str!` to add a profiler log.
-/// For example use `Some(include_str!("./data.json"))`.
-const PROFILER_LOG_DATA: Option<&str> = Some(include_str!("../../../../../../profile.json"));
+/// generated and rendered.  The file must be located in the assets subdirectory that is
+/// served by the webserver, i.e. `enso/dist/content` or `app/ide-desktop/lib/content/assets`.
+/// For example use `Some("profile.json"))`.
+const PROFILER_LOG_NAME: Option<&str> = None;
 
 
 
@@ -45,7 +47,7 @@ const PROFILER_LOG_DATA: Option<&str> = Some(include_str!("../../../../../../pro
 /// The example entry point.
 #[entry_point]
 #[allow(dead_code)]
-pub fn main() {
+pub async fn main() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
 
@@ -57,7 +59,8 @@ pub fn main() {
 
     init_theme(scene);
 
-    let profile = if let Some(profile) = read_log_data() { profile } else { create_dummy_data() };
+    let profile =
+        if let Some(profile) = get_log_data().await { profile } else { create_dummy_data().await };
 
     let mut measurements = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
 
@@ -108,16 +111,44 @@ fn init_theme(scene: &Scene) {
 }
 
 
+
+// ============================
+// === Profiler Log Reading ===
+// ============================
+
+/// Read the `PROFILER_LOG_NAME` data from a file.
+async fn get_data_raw() -> Option<String> {
+    use wasm_bindgen::JsCast;
+
+    let url = &["assets/", PROFILER_LOG_NAME?].concat();
+    let mut opts = web_sys::RequestInit::new();
+    opts.method("GET");
+    opts.mode(web_sys::RequestMode::Cors);
+    let request = web_sys::Request::new_with_str_and_init(url, &opts).unwrap();
+    request.headers().set("Accept", "application/json").unwrap();
+    let window = web_sys::window().unwrap();
+    let response = window.fetch_with_request(&request);
+    let response = wasm_bindgen_futures::JsFuture::from(response).await.unwrap();
+    assert!(response.is_instance_of::<web_sys::Response>());
+    let response: web_sys::Response = response.dyn_into().unwrap();
+    let data = response.text().unwrap();
+    let data = wasm_bindgen_futures::JsFuture::from(data).await.unwrap();
+    data.as_string()
+}
+
+async fn get_log_data() -> Option<Profile<Metadata>> {
+    let data = get_data_raw().await;
+    data.and_then(|data| data.parse().ok())
+}
+
+
+
 // ==========================
 // === Dummy Computations ===
 // ==========================
 
-fn read_log_data() -> Option<Profile<Metadata>> {
-    PROFILER_LOG_DATA.and_then(|data| data.parse().ok())
-}
-
-fn create_dummy_data() -> Profile<Metadata> {
-    futures::executor::block_on(start_project());
+async fn create_dummy_data() -> Profile<Metadata> {
+    start_project().await;
 
     let log = profiler::internal::take_log();
     let profile: Result<Profile<profiler_data_tools::Metadata>, _> = log.parse();
