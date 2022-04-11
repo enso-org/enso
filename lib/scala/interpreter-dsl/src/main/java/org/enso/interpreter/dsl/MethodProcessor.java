@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
-public class MethodProcessor extends AbstractProcessor {
+public class MethodProcessor extends BuiltinsMetadataProcessor {
 
   /**
    * Processes annotated elements, generating code for each of them.
@@ -32,7 +32,7 @@ public class MethodProcessor extends AbstractProcessor {
    * @return {@code true}
    */
   @Override
-  public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+  public boolean handleProcess(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
@@ -57,13 +57,19 @@ public class MethodProcessor extends AbstractProcessor {
         if (executeMethod == null) continue;
         String pkgName =
             processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+
         MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
         if (!def.validate(processingEnv)) {
           continue;
         }
         try {
           generateCode(def);
-          registerBuiltinMethod(def, element);
+          String tpe = def.getType().toLowerCase();
+          if (tpe.isEmpty()) {
+            throw new InternalError("Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+          }
+          String fullClassName = def.getPackageName() + "." + def.getClassName();
+          registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
         } catch (IOException e) {
           e.printStackTrace();
         }
@@ -93,19 +99,6 @@ public class MethodProcessor extends AbstractProcessor {
           "org.enso.interpreter.runtime.error.WithWarnings",
           "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.type.TypesGen");
-
-  private void registerBuiltinMethod(MethodDefinition methodDefinition, Element element) throws IOException {
-      String tpe = methodDefinition.getType().toLowerCase();
-      if (tpe.isEmpty()) {
-        throw new InternalError("Type of the BuiltinMethod cannot be empty");
-      }
-      FileObject res = processingEnv.getFiler().createResource(
-              StandardLocation.CLASS_OUTPUT, "",
-              MethodDefinition.META_PATH + "/" + tpe + "/" + methodDefinition.getClassName() + MethodDefinition.META_BUILTIN_EXTENSION, element
-      );
-    String fullClassName = methodDefinition.getPackageName() + "." + methodDefinition.getClassName();
-    res.openWriter().append(methodDefinition.getDeclaredName() + ":" + fullClassName+"\n").close();
-  }
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =

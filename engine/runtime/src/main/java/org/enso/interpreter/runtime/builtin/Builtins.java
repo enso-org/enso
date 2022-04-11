@@ -264,58 +264,50 @@ public class Builtins {
 
   private void readBuiltinsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
+    List<String> lines;
     FileSystem fs = null;
-    Stream<Path> builtinMetaPath;
     try {
       URI resource = classLoader.getResource(MethodDefinition.META_PATH).toURI();
       fs = initFileSystem(resource);
-      builtinMetaPath = Files.walk(Paths.get(resource)).flatMap(p -> acceptMetadataFiles(p));
+      lines = Files.readAllLines(Paths.get(resource), StandardCharsets.UTF_8);
     } catch (Exception ioe) {
+      lines = new ArrayList<>();
       ioe.printStackTrace();
-      builtinMetaPath = Stream.empty();
     }
-    builtinMetaPath.forEach(metaPath -> {
-      List<String> lines;
-      try {
-        lines = Files.readAllLines(metaPath, StandardCharsets.UTF_8);
-      } catch (IOException e) {
-        e.printStackTrace();
-        lines = new ArrayList<>();
-      }
-      lines.forEach(line -> {
-          String[] builtinMeta = line.split(":");
-          if (builtinMeta.length != 2) {
-            throw new CompilerError("Invalid builtin metadata in " + metaPath + ": " + line);
-          }
-          String[] builtinName = builtinMeta[0].split("\\.");
-          if (builtinName.length != 2) {
-            throw new CompilerError("Invalid builtin metadata in " + metaPath + ": " + line);
-          }
-          try {
-            Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
-            String builtinMethodOwner = builtinName[0];
-            String builtinMethodName = builtinName[1];
-            scope.getLocalConstructor(builtinMethodOwner).ifPresentOrElse(constr -> {
-              Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
-              if (atomNodes == null) {
-                atomNodes = new HashMap<>();
-                // TODO: move away from String Map once Builtins are gone
-                builtinNodes.put(constr.getName(), atomNodes);
-              }
-              atomNodes.put(builtinMethodName, clazz);
-            }, () -> {
-              Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
-              if (atomNodes == null) {
-                atomNodes = new HashMap<>();
-                // TODO: move away from String Map once Builtins are gone
-                builtinNodes.put(builtinMethodOwner, atomNodes);
-              }
-              atomNodes.put(builtinMethodName, clazz);
-            });
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          }
-      });
+
+    lines.forEach(line -> {
+        String[] builtinMeta = line.split(":");
+        if (builtinMeta.length != 2) {
+          throw new CompilerError("Invalid builtin metadata in: " + line);
+        }
+        String[] builtinName = builtinMeta[0].split("\\.");
+        if (builtinName.length != 2) {
+          throw new CompilerError("Invalid builtin metadata in : " + line);
+        }
+        try {
+          Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
+          String builtinMethodOwner = builtinName[0];
+          String builtinMethodName = builtinName[1];
+          scope.getLocalConstructor(builtinMethodOwner).ifPresentOrElse(constr -> {
+            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+            if (atomNodes == null) {
+              atomNodes = new HashMap<>();
+              // TODO: move away from String Map once Builtins are gone
+              builtinNodes.put(constr.getName(), atomNodes);
+            }
+            atomNodes.put(builtinMethodName, clazz);
+          }, () -> {
+            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+            if (atomNodes == null) {
+              atomNodes = new HashMap<>();
+              // TODO: move away from String Map once Builtins are gone
+              builtinNodes.put(builtinMethodOwner, atomNodes);
+            }
+            atomNodes.put(builtinMethodName, clazz);
+          });
+        } catch (ClassNotFoundException e) {
+          e.printStackTrace();
+        }
     });
     if (fs != null) {
       try {
@@ -341,13 +333,6 @@ public class Builtins {
       env.put("create", "true");
       return FileSystems.newFileSystem(uri, env);
     }
-  }
-
-  private Stream<Path> acceptMetadataFiles(Path path) {
-    if (Files.isRegularFile(path) && path.getFileName().toString().endsWith(MethodDefinition.META_BUILTIN_EXTENSION)) {
-      return Stream.of(path);
-    }
-    return Stream.empty();
   }
 
   public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {
