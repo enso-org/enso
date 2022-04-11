@@ -1183,19 +1183,19 @@ spec =
         Test.specify "should work as in examples" <|
         'aaa'.replace 'aa' 'b' . should_equal 'ba'
         # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
-        "Hello World!".replace "l" "#" mode=First . should_equal "He#lo World!"
+        "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
         #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
                 'aaa'.replace '' 'foo' mode=mode . should_equal 'aaa'
                 ''.replace '' '' mode=mode . should_equal ''
-                'aaa'.replace 'a' '' mode=mode . should_equal ''
+                'a'.replace 'a' '' mode=mode . should_equal ''
                 ''.replace 'a' 'b' mode=mode . should_equal ''
 
             'aba' . replace 'a' '' Matching_Mode.First . should_equal 'ba'
             'aba' . replace 'a' '' Matching_Mode.Last . should_equal 'ab'
-            'aba' . replace 'a' '' . should_equal 'a'
+            'aba' . replace 'a' '' . should_equal 'b'
             'aba' . replace 'c' '' . should_equal 'aba'
 
         Test.specify "should correctly handle case insensitive matches" <|
@@ -1232,8 +1232,8 @@ spec =
             'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last . should_equal 'SŚS\u{301}'
             'ŚS\u{301}S' . replace 's' 'O' Matching_Mode.First . should_equal 'ŚS\u{301}S'
 
-            'SŚS\u{301}' . replace 'ś' 'O' . should_equal 'SOO'
-            'SŚS\u{301}' . replace 's\u{301}' 'O' . should_equal 'SOO'
+            'SŚS\u{301}' . replace 'ś' 'O' . should_equal 'SŚS\u{301}'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' . should_equal 'SŚS\u{301}'
 
             'SŚS\u{301}' . replace 's' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
             'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
@@ -1256,10 +1256,10 @@ spec =
             'aﬃﬃb'.replace 'IF' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
             'aiﬃffz' . replace 'if' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'a--fz'
 
-            'ß'replace 'SS' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
-            'ß'replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
-            'ß'replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
-            'ß'replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'ß'.replace 'SS' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+            'ß'.replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'ß'.replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
 
     Test.group "Text.replace (regex (todo merge with above))" pending="TODO" <|
         Test.specify "should perform simple replacement in Regex mode" <|
