@@ -163,6 +163,12 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
+    // Use the environment-variable API provided by the `enso_profiler_macros` library to implement
+    // the public interface to profiling-level configuration
+    // (see: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
+    if (argv['profiling-level']) {
+        process.env.ENSO_MAX_PROFILING_LEVEL = argv['profiling-level']
+    }
     args.push('--')
     // Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file and line
     // number information to include in generated profile files.
