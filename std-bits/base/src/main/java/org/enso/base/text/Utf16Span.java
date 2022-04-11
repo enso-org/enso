@@ -8,10 +8,10 @@ package org.enso.base.text;
  */
 public class Utf16Span {
 
-  public final long start, end;
+  public final int start, end;
 
   /** Constructs a span of UTF-16 code units. */
-  public Utf16Span(long start, long end) {
+  public Utf16Span(int start, int end) {
     this.start = start;
     this.end = end;
   }

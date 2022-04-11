@@ -1179,35 +1179,117 @@ spec =
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
-    Test.group "Regex replacement" <|
-        Test.specify "should be possible on text" <|
-            result = "ababab".replace "b" "a"
-            result . should_equal "aaaaaa"
+    Test.group "Text.replace" <|
+        Test.specify "should work as in examples" <|
+        'aaa'.replace 'aa' 'b' . should_equal 'ba'
+        # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
+        "Hello World!".replace "l" "#" mode=First . should_equal "He#lo World!"
+        #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
 
-        Test.specify "should be possible on unicode text" <|
+        Test.specify "should correctly handle empty-string edge cases" <|
+            [Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
+                'aaa'.replace '' 'foo' mode=mode . should_equal 'aaa'
+                ''.replace '' '' mode=mode . should_equal ''
+                'aaa'.replace 'a' '' mode=mode . should_equal ''
+                ''.replace 'a' 'b' mode=mode . should_equal ''
+
+            'aba' . replace 'a' '' Matching_Mode.First . should_equal 'ba'
+            'aba' . replace 'a' '' Matching_Mode.Last . should_equal 'ab'
+            'aba' . replace 'a' '' . should_equal 'a'
+            'aba' . replace 'c' '' . should_equal 'aba'
+
+        Test.specify "should correctly handle case insensitive matches" <|
+            'AaąĄ' . replace "A" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal '--ąĄ'
+            'AaąĄ' . replace "A" "-" . should_equal '-aąĄ'
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher True) . should_equal "HeLlo wOrLd"
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher Case_Insensitive) . should_equal "Hey, wOrLd"
+
+            "Iiİı" . replace "i" "-" . should_equal "I-İı"
+            "Iiİı" . replace "I" "-" . should_equal "-iİı"
+            "Iiİı" . replace "İ" "-" . should_equal "Ii-ı"
+            "Iiİı" . replace "ı" "-" . should_equal "Iiİ-"
+
+            "Iiİı" . replace "i" "-" (Text_Matcher Case_Insensitive) . should_equal "--İı"
+            "Iiİı" . replace "I" "-" (Text_Matcher Case_Insensitive) . should_equal "--İı"
+            "Iiİı" . replace "İ" "-" (Text_Matcher Case_Insensitive) . should_equal "Ii-ı"
+            "Iiİı" . replace "ı" "-" (Text_Matcher Case_Insensitive) . should_equal "Iiİ-"
+
+            tr_insensitive = Text_Matcher (Case_Insensitive (Locale.new "tr"))
+            "Iiİı" . replace "i" "-" tr_insensitive . should_equal "I--ı"
+            "Iiİı" . replace "I" "-" tr_insensitive . should_equal "-iİ-"
+            "Iiİı" . replace "İ" "-" tr_insensitive . should_equal "I--ı"
+            "Iiİı" . replace "ı" "-" tr_insensitive . should_equal "-iİ-"
+
+        Test.specify "should correctly handle Unicode edge cases" <|
+            'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'
+            'sśs\u{301}' . replace 's' 'O' Matching_Mode.Last . should_equal 'Ośs\u{301}'
+            'śs\u{301}s' . replace 's' 'O' Matching_Mode.First . should_equal 'śs\u{301}O'
+
+            'sśs\u{301}' . replace 'ś' 'O' . should_equal 'sOO'
+            'sśs\u{301}' . replace 's\u{301}' 'O' . should_equal 'sOO'
+
+            'SŚS\u{301}' . replace 's' 'O' . should_equal 'SŚS\u{301}'
+            'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last . should_equal 'SŚS\u{301}'
+            'ŚS\u{301}S' . replace 's' 'O' Matching_Mode.First . should_equal 'ŚS\u{301}S'
+
+            'SŚS\u{301}' . replace 'ś' 'O' . should_equal 'SOO'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' . should_equal 'SOO'
+
+            'SŚS\u{301}' . replace 's' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
+            'SŚS\u{301}' . replace 's' 'O' Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'OŚS\u{301}'
+            'ŚS\u{301}S' . replace 's' 'O' Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'ŚS\u{301}O'
+
+            'SŚS\u{301}' . replace 'ś' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'SOO'
+            'SŚS\u{301}' . replace 's\u{301}' 'O' matcher=(Text_Matcher Case_Insensitive) . should_equal 'SOO'
+
+            '✨🚀🚧😍😃😍😎😙😉☺' . replace '🚧😍' '|-|:)' . should_equal '✨🚀|-|:)😃😍😎😙😉☺'
+            'Rocket Science' . replace 'Rocket' '🚀' . should_equal '🚀 Science'
+
             "Korean: 건반".replace "건반" "keyboard" . should_equal "Korean: keyboard"
 
-        Test.specify "should be possible in ascii mode" <|
-            result = "İiİ".replace "\w" "a" match_ascii=True
+        Test.specify "will approximate ligature matches" <|
+            # TODO do we want to improve this? highly non-trivial for very rare edge cases
+            # Currently we lack 'resolution' to distinguish the `i` from the ligature.
+            'ﬃﬃ'.replace 'ff' 'aa' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaaa'
+            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaﬃ'
+            'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'ﬃaa'
+            'aﬃﬃb'.replace 'IF' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+            'aiﬃffz' . replace 'if' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'a--fz'
+
+            'ß'replace 'SS' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'ß'replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+            'ß'replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'ß'replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+
+    Test.group "Text.replace (regex (todo merge with above))" pending="TODO" <|
+        Test.specify "should perform simple replacement in Regex mode" <|
+            result = "ababab".replace "b" "a" matcher=Regex_Matcher
+            result . should_equal "aaaaaa"
+
+        Test.specify "in Regex mode should work with Unicode" <|
+            "Korean: 건반".replace "건반" "keyboard" matcher=Regex_Matcher . should_equal "Korean: keyboard"
+
+        Test.specify "in Regex mode should support ascii mode" <|
+            result = "İiİ".replace "\w" "a" matcher=(Regex_Matcher match_ascii=True)
             result . should_equal "İaİ"
 
-        Test.specify "should be possible in case-insensitive mode" <|
-            result = "abaBa".replace "b" "a" case_insensitive=True
+        Test.specify "in Regex mode should support case-insensitivity" <|
+            result = "abaBa".replace "b" "a" matcher=(Regex_Matcher case_sensitive=Case_Insensitive)
             result . should_equal "aaaaa"
 
-        Test.specify "should be possible in dot_matches_newline mode" <|
-            result = 'ab\na'.replace "b." "a" dot_matches_newline=True
+        Test.specify "in Regex mode should support dot_matches_newline mode" <|
+            result = 'ab\na'.replace "b." "a"  matcher=(Regex_Matcher dot_matches_newline=True)
             result . should_equal "aaa"
 
-        Test.specify "should be possible in multiline mode" <|
+        Test.specify "in Regex mode should support multiline mode" <|
             text = """
                 Foo
                 bar
-            result = text.replace '\n' "" multiline=True
+            result = text.replace '\n' ""  matcher=(Regex_Matcher multiline=True)
             result . should_equal "Foobar"
 
-        Test.specify "should be possible in comments mode" <|
-            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" comments=True
+        Test.specify "in Regex mode should allow comments, if configured accordingly" <|
+            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher comments=True)
             result . should_equal "aaa"
 
 main = Test.Suite.run_main here.spec
