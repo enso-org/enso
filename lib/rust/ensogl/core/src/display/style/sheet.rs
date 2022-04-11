@@ -8,8 +8,6 @@ use crate::data::HashMapTree;
 use crate::data::Index;
 use crate::data::OptVec;
 
-use std::str::FromStr;
-
 
 // ==============
 // === Export ===
@@ -242,17 +240,10 @@ where T: Into<Data>
     }
 }
 
-impl FromStr for Value {
-    type Err = <Data as FromStr>::Err;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse().map(Self::Data)
-    }
-}
-
-impl<Err> TryFrom<Result<Value, Err>> for Value {
-    type Error = Err;
-    fn try_from(t: Result<Value, Err>) -> Result<Self, Self::Error> {
-        t
+impl TryFrom<String> for Value {
+    type Error = <Data as TryFrom<String>>::Error;
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        s.try_into().map(Self::Data)
     }
 }
 

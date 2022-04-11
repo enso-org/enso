@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use crate::data::color;
 
-use std::str::FromStr;
-
 
 
 // ============
@@ -19,7 +17,6 @@ pub enum Data {
     Invalid(String),
     Number(f32),
     Color(color::Rgba),
-    Text(String),
 }
 
 
@@ -50,25 +47,16 @@ where color::Color<C>: Into<color::Rgba>
     }
 }
 
-impl From<&str> for Data {
-    fn from(t: &str) -> Data {
-        Data::Text(t.to_owned())
-    }
-}
-
-impl FromStr for Data {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(t) = s.parse::<f32>() {
-            return Ok(Data::Number(t));
+impl TryFrom<String> for Data {
+    type Error = ();
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        match s.parse::<f32>() {
+            Ok(t) => Ok(Data::Number(t)),
+            _ => match s.parse::<color::AnyFormat>() {
+                Ok(t) => Ok(Data::Color(t.into())),
+                _ => Err(()),
+            },
         }
-        if let Ok(t) = s.parse::<color::AnyFormat>() {
-            return Ok(Data::Color(t.into()));
-        }
-        if s.starts_with('"') && s.ends_with('"') {
-            return Ok(Data::Text(s[1..s.len() - 1].to_string()));
-        }
-        Err(())
     }
 }
 
@@ -81,7 +69,6 @@ impl Display for Data {
             Self::Invalid(s) => write!(f, "{}", s),
             Self::Number(t) => write!(f, "Number({})", t),
             Self::Color(t) => write!(f, "Color({:?})", t),
-            Self::Text(t) => write!(f, "Text({:?})", t),
         }
     }
 }
@@ -179,7 +166,6 @@ pub trait DataMatch {
     fn invalid(&self) -> Option<&String>;
     fn number(&self) -> Option<f32>;
     fn color(&self) -> Option<color::Rgba>;
-    fn text(&self) -> Option<String>;
 
     fn number_or_else(&self, f: impl FnOnce() -> f32) -> f32 {
         self.number().unwrap_or_else(f)
@@ -187,10 +173,6 @@ pub trait DataMatch {
 
     fn color_or_else(&self, f: impl FnOnce() -> color::Rgba) -> color::Rgba {
         self.color().unwrap_or_else(f)
-    }
-
-    fn text_or_else(&self, f: impl FnOnce() -> String) -> String {
-        self.text().unwrap_or_else(f)
     }
 }
 
@@ -213,12 +195,6 @@ impl DataMatch for Data {
             _ => None,
         }
     }
-    fn text(&self) -> Option<String> {
-        match self {
-            Self::Text(t) => Some(t.clone()),
-            _ => None,
-        }
-    }
 }
 
 impl DataMatch for Option<Data> {
@@ -230,22 +206,5 @@ impl DataMatch for Option<Data> {
     }
     fn color(&self) -> Option<color::Rgba> {
         self.as_ref().and_then(|t| t.color())
-    }
-    fn text(&self) -> Option<String> {
-        self.as_ref().and_then(|t| t.text())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_str() {
-        assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
-        let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
-        assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
-        assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
-        assert_eq!(Data::from_str("bad-format"), Err(()));
     }
 }

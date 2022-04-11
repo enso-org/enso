@@ -77,7 +77,6 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         let header_text_size = style.get_number(theme::header::text::size);
-        let header_text_font = style.get_text(theme::header::text::font);
         frp::extend! { network
 
             // === Geometry ===
@@ -90,8 +89,6 @@ impl component::Frp<Model> for Frp {
             // === Header ===
 
             init <- source_();
-            header_text_font <- all(&header_text_font, &init)._0();
-            model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
@@ -179,6 +176,7 @@ impl component::Model for Model {
         display_object.add_child(&header);
         display_object.add_child(&entries);
 
+        header.set_font("DejaVuSans-Bold");
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
