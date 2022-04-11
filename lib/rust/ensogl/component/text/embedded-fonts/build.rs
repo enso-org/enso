@@ -78,13 +78,8 @@ mod deja_vu {
     pub const FONTS_TO_EXTRACT: &[&str] = &[
         "DejaVuSans",
         "DejaVuSans-Bold",
-        "DejaVuSans-ExtraLight",
         "DejaVuSansMono",
         "DejaVuSansMono-Bold",
-        "DejaVuSansMono-Oblique",
-        "DejaVuSansCondensed",
-        "DejaVuSerif",
-        "DejaVuSerifCondensed",
     ];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
