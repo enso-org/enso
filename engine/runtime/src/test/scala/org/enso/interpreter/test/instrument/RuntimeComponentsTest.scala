@@ -376,6 +376,22 @@ object RuntimeComponentsTest {
             Component("Standard.Base.System.File.new", None),
             Component("Standard.Base.System.File.read", None)
           )
+        ),
+        ComponentGroup(
+          GroupName("Web"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Network.Http.fetch", None),
+            Component("Standard.Base.Network.Http.get", None),
+            Component("Standard.Base.Network.Http.post", None),
+            Component("Standard.Base.Network.Http.post_form", None),
+            Component("Standard.Base.Network.Http.post_json", None),
+            Component("Standard.Base.Network.Http.put", None),
+            Component("Standard.Base.Network.Http.put_json", None),
+            Component("Standard.Base.Network.Http.head", None),
+            Component("Standard.Base.Network.Http.options", None)
+          )
         )
       ),
       List()
