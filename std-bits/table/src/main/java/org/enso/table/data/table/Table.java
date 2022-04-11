@@ -13,8 +13,10 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.aggregate.AggregateTable;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
@@ -23,6 +25,7 @@ public class Table {
 
   private final Column[] columns;
   private final Index index;
+  private final AggregatedProblems problems;
 
   /**
    * Creates a new table
@@ -30,14 +33,21 @@ public class Table {
    * @param columns the columns contained in this table.
    */
   public Table(Column[] columns) {
-    this(
-        columns,
-        new DefaultIndex((columns == null || columns.length == 0) ? 0 : columns[0].getSize()));
+    this(columns, null, null);
   }
 
   public Table(Column[] columns, Index index) {
+    this(columns, index, null);
+  }
+
+  public Table(Column[] columns, AggregatedProblems problems) {
+    this(columns, null, problems);
+  }
+
+  private Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
-    this.index = index;
+    this.index = index == null ? (new DefaultIndex((columns == null || columns.length == 0) ? 0 : columns[0].getSize())) : index;
+    this.problems = problems;
   }
 
   /** @return the number of rows in this table */
@@ -52,6 +62,13 @@ public class Table {
   /** @return the columns of this table */
   public Column[] getColumns() {
     return columns;
+  }
+
+  /**
+   * @return Attached set of any problems from the Java side
+   */
+  public AggregatedProblems getProblems() {
+    return problems;
   }
 
   /**
@@ -190,6 +207,16 @@ public class Table {
     Column col = getColumnByName(name);
     if (col == null) throw new NoSuchColumnException(name);
     return indexFromColumn(col);
+  }
+
+  /**
+   * Creates an index fpr this table by using values from the specified columns.
+   *
+   * @param columns set of columns to use as an Index
+   * @return a table indexed by the proper column
+   */
+  public MultiValueIndex indexFromColumns(Column[] columns) {
+    return new MultiValueIndex(columns, this.rowCount());
   }
 
   /**

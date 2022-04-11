@@ -100,7 +100,7 @@ class UppercaseNamesTest extends CompilerTest {
         Resolution(
           ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("My_Cons", 3)
+            Cons("My_Cons", 3, false)
           )
         )
       )
@@ -135,7 +135,7 @@ class UppercaseNamesTest extends CompilerTest {
         Resolution(
           ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("My_Cons", 3)
+            Cons("My_Cons", 3, false)
           )
         )
       )

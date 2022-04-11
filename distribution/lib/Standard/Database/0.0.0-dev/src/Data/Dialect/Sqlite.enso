@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
 
 ## PRIVATE
@@ -70,9 +71,10 @@ make_internal_generator_dialect =
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, here.agg_count_distinct_including_nulls]
-    my_mappings = text + counts
+    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]+here.concat_ops
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
+    stats = [here.agg_stddev_pop, here.agg_stddev_samp]
+    my_mappings = text + counts + stats
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
@@ -114,5 +116,49 @@ agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
     Sql.code "COALESCE(SUM((" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '')), 0)"
 
 ## PRIVATE
-agg_count_distinct_including_nulls = Base_Generator.lift_unary_op "COUNT_DISTINCT_INCLUDE_NULL" arg->
-    Sql.code "(COUNT(DISTINCT " ++ arg.paren ++ Sql.code ") + CASE WHEN SUM(" ++ arg.paren ++ Sql.code " IS NULL) > 0 THEN 1 ELSE 0 END)"
+agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
+    sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
+    square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
+    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / " ++ n
+    Sql.code "SQRT(" ++ var ++ Sql.code ")"
+
+## PRIVATE
+agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
+    sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
+    square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
+    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / (" ++ n ++ Sql.code " - 1)"
+    Sql.code "SQRT(" ++ var ++ Sql.code ")"
+
+## PRIVATE
+   This is a prototype that doesn't work correctly. Left for reference for
+   future implementation.
+first_last_aggregators =
+    first_value = "first_value"
+    first = here.window_aggregate first_value ignore_null=False
+    first_not_null = here.window_aggregate first_value ignore_null=True
+    last_value = "last_value"
+    last = here.window_aggregate last_value ignore_null=False
+    last_not_null = here.window_aggregate last_value ignore_null=True
+    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+## PRIVATE
+window_aggregate window_type ignore_null args =
+    if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
+        result_expr = args.head
+        order_exprs = args.tail
+
+        filter_clause = if ignore_null.not then Sql.code "" else
+            Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
+
+        Sql.code window_type+"(" ++ result_expr ++ Sql.code ")" ++ filter_clause ++ Sql.code " OVER (ORDER BY " ++ Sql.join "," order_exprs ++ Sql.code ")"
+
+## PRIVATE
+concat_ops =
+    make_raw_concat_expr expr separator =
+        Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
+    make_contains_expr expr substring =
+        Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]

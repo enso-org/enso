@@ -97,6 +97,19 @@ object Suggestion {
       }
   }
 
+  /** Documentation extractor */
+  object Documentation {
+    def apply(suggestion: Suggestion): Option[String] =
+      suggestion match {
+        case module: Module   => module.documentation
+        case atom: Atom       => atom.documentation
+        case method: Method   => method.documentation
+        case conv: Conversion => conv.documentation
+        case _: Function      => None
+        case _: Local         => None
+      }
+  }
+
   /** An argument of an atom or a function.
     *
     * @param name the argument name

@@ -257,5 +257,18 @@ class NamedArgumentsTest extends InterpreterTest {
 
       eval(code) shouldEqual 10
     }
+
+    "work with constructors when no other arguments passed" in {
+      val code =
+        """
+          |from Standard.Builtins import all
+          |
+          |type My_Tp a=10 b="hello"
+          |
+          |main = IO.println My_Tp
+          |""".stripMargin
+      eval(code)
+      consumeOut should equal(List("(My_Tp 10 'hello')"))
+    }
   }
 }

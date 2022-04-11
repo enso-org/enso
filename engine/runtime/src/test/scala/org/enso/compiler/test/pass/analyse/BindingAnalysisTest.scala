@@ -3,7 +3,12 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{Cons, ModuleMethod, ModuleReference, PolyglotSymbol}
+import org.enso.compiler.data.BindingsMap.{
+  Cons,
+  ModuleMethod,
+  ModuleReference,
+  PolyglotSymbol
+}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -70,9 +75,9 @@ class BindingAnalysisTest extends CompilerTest {
       val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
 
       metadata.types shouldEqual List(
-        Cons("Foo", 3),
-        Cons("Bar", 0),
-        Cons("Baz", 2)
+        Cons("Foo", 3, false),
+        Cons("Bar", 0, true),
+        Cons("Baz", 2, false)
       )
       metadata.polyglotSymbols shouldEqual List(
         PolyglotSymbol("MyClass"),

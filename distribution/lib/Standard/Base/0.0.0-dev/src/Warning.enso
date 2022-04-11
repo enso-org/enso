@@ -133,3 +133,55 @@ map_attached_warnings_helper mapper value frames_to_drop =
                original (unwrapped) warning instance.
             Nothing -> warning.prim_warning
     Prim_Warning.set value prim_mapped_warnings.to_array
+
+## UNSTABLE
+   A helper function which selects warnings matching a predicate and returns a
+   pair whose first element is the original value with the matched warnings
+   removed and the second element is the list of matched warnings.
+
+   Arguments:
+   - value: the value whose warnings are to be filtered.
+   - predicate: a predicate specifying which warnings to detach. The predicate
+     receives the warnings' payloads as its argument.
+
+   > Example
+     Detach warnings of a specific type.
+
+         result = Warning.detach_selected_warnings value (_.is_a Illegal_State_Error)
+         result.first # `value` with the matched warnings removed
+         result.second # the list of matched warnings
+detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
+detach_selected_warnings value predicate =
+    warnings = here.get_all value
+    result = warnings.partition w-> predicate w.value
+    matched = result.first
+    remaining = result.second
+    Pair (here.set remaining value) matched
+
+## UNSTABLE
+   A helper function which gathers warnings matching some predicate and passes
+   them into a function which can aggregate them.
+
+   The merger function will not be called at all if no warnings match the
+   criteria.
+
+   Arguments:
+   - value: the value whose warnings will be transformed.
+   - matcher: a predicate selecting warnings to merge.
+   - merger: a function taking a list of found payloads which should return a
+     list of new warnings that should be attached. It returns a list to not
+     limit it to merging warnings into a single warning.
+
+   > Example
+     Merge `No_Matches_Found` warnings into a single such warning.
+
+         Warning.merge_matched_warnings value (_.is_a No_Matches_Found) warnings->
+             all_criteria = warnings.flat_map .criteria
+             [No_Matches_Found all_criteria]
+merge_matched_warnings : Any -> (Any -> Boolean) -> (Vector -> Vector) -> Any
+merge_matched_warnings value matcher merger =
+    result = here.detach_selected_warnings value matcher
+    if result.second.is_empty then result.first else
+        new_warnings = merger (result.second.map .value)
+        new_warnings.fold result.first acc-> warning->
+            Warning.attach warning acc
