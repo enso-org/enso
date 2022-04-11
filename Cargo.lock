@@ -1140,6 +1140,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-profiler-data-tools"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "serde",
+]
+
+[[package]]
 name = "enso-profiler-flame-graph"
 version = "0.1.0"
 dependencies = [
@@ -1440,6 +1448,7 @@ dependencies = [
  "enso-frp",
  "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-data-tools",
  "enso-profiler-flame-graph",
  "enso-web",
  "ensogl-core",
