@@ -174,13 +174,14 @@ public class Text_Utils {
   }
 
   /**
-   * Converts an array of UTF-8 bytes into a string.
+   * Converts an array of encoded bytes into a string.
    *
    * @param bytes the bytes to convert
+   * @param charset the character set to use to decode the bytes
    * @return the resulting string
    */
-  public static String from_utf_8(byte[] bytes) {
-    return new String(bytes, StandardCharsets.UTF_8);
+  public static String from_bytes(byte[] bytes, Charset charset) {
+    return new String(bytes, charset);
   }
 
   /**
