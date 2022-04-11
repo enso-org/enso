@@ -1,6 +1,5 @@
 //! GPU representation of symbols, meshes with shaders.
 
-// === Non-Standard Linter Configuration ===
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
 

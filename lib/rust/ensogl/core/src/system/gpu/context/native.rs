@@ -9,6 +9,7 @@ use web_sys::WebGl2RenderingContext;
 use web_sys::WebGlProgram;
 
 
+
 #[allow(missing_docs)]
 pub mod traits {
     pub use super::BlockingCheckStatus;

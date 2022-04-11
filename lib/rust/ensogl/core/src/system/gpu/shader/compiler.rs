@@ -47,6 +47,12 @@ use web_sys::WebGl2RenderingContext;
 const FPS_THRESHOLD: f32 = 60.0;
 const FRAME_TIME_THRESHOLD: Duration = (1000.0 / FPS_THRESHOLD).ms();
 
+/// Maximum number of parallel shader compilation jobs. Chromium (and Electron) has limits on the
+/// number of compile/link jobs that can be in flight. If the limits are exceeded, it applies a
+/// crude form of backpressure by blocking until all pending jobs complete. To learn more, see:
+/// https://github.com/enso-org/enso/pull/3378#issuecomment-1090958946
+const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
+
 
 
 // ===========
@@ -224,8 +230,8 @@ impl CompilerData {
             self.run_khr_completion_check_jobs();
             while self.dirty {
                 match self.run_step() {
-                    Ok(_) => {
-                        if !self.dirty {
+                    Ok(made_progress) => {
+                        if !made_progress {
                             break;
                         }
                         let now = (self.performance.now() as f32).ms();
@@ -251,19 +257,43 @@ impl CompilerData {
         }
     }
 
+    /// Runs the next compiler job if there is any left and if it will not cause too many jobs being
+    /// run in parallel. The result [`bool`] indicates if the call to this function did any
+    /// progress.
     #[profile(Detail)]
-    fn run_step(&mut self) -> Result<(), Error> {
-        match () {
-            _ if !self.jobs.compile.is_empty() => self.run_next_compile_job()?,
-            _ if !self.jobs.link.is_empty() => self.run_next_link_job()?,
-            _ if !self.jobs.link_check.is_empty() => self.run_next_link_check_job()?,
-            _ =>
-                if self.jobs.khr_completion_check.is_empty() {
-                    debug!(self.logger, "All shaders compiled.");
-                    self.dirty = false;
-                },
+    fn run_step(&mut self) -> Result<bool, Error> {
+        let did_progress = |_| Ok(true);
+        let no_progress = Ok(false);
+        let jobs = &self.jobs;
+        if self.current_parallel_job_count() < MAX_PARALLEL_COMPILE_JOBS {
+            match () {
+                _ if !jobs.compile.is_empty() => did_progress(self.run_next_compile_job()?),
+                _ if !jobs.link.is_empty() => did_progress(self.run_next_link_job()?),
+                _ if !jobs.link_check.is_empty() => did_progress(self.run_next_link_check_job()?),
+                _ => {
+                    if jobs.khr_completion_check.is_empty() {
+                        debug!(self.logger, "All shaders compiled.");
+                        self.dirty = false;
+                    }
+                    no_progress
+                }
+            }
+        } else if !jobs.link_check.is_empty() {
+            did_progress(self.run_next_link_check_job()?)
+        } else {
+            let msg1 = "Maximum number of parallel shader compiler jobs.";
+            let msg2 = "Skipping spawning new ones.";
+            debug!(self.logger, "{msg1} {msg2}");
+            no_progress
         }
-        Ok(())
+    }
+
+    /// Get the number of shader compilation jobs run in parallel. Please note, that it is
+    /// impossible to get separate values for compilation and linking jobs here, because checking
+    /// it is costly and can prevent the parallelism altogether. To learn more, see:
+    /// https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#dont_check_shader_compile_status_unless_linking_fails
+    fn current_parallel_job_count(&self) -> usize {
+        self.jobs.khr_completion_check.len() + self.jobs.link_check.len()
     }
 
     #[profile(Detail)]
