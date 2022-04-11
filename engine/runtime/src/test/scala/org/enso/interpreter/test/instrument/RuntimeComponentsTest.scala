@@ -460,6 +460,35 @@ object RuntimeComponentsTest {
           Seq(
             Component("Standard.Database.Connection.Database.connect", None)
           )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+          Seq(
+            Component("Standard.Database.Data.Table.Table.at", None),
+            Component("Standard.Database.Data.Table.Table.select", None),
+            Component("Standard.Database.Data.Table.Table.select_columns", None),
+            Component("Standard.Database.Data.Table.Table.rename_columns", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+          Seq(
+            Component("Standard.Database.Data.Table.Table.join", None),
+            Component("Standard.Database.Data.Table.Table.group", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(
+            LibraryName("Standard", "Base"),
+            GroupName("Transform")
+          ),
+          Seq(
+            Component("Standard.Database.Data.Table.Table.remove_columns", None),
+            Component("Standard.Database.Data.Table.Table.reorder_columns", None),
+            Component("Standard.Database.Data.Table.Table.sort_columns", None),
+            Component("Standard.Database.Data.Table.Table.sort", None),
+            Component("Standard.Database.Data.Column.Column.to_table", None)
+          )
         )
       )
     )
