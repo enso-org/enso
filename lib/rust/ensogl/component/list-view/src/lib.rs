@@ -486,6 +486,7 @@ where E::Model: Default
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
             eval style_prefix ((path) model.entries.update_entries_style_prefix(path.into()));
             view_and_style <- all(&view_info,&style_prefix);
+            // This should go before handling mouse events to have proper checking of
             eval view_and_style (((view,style_prefix))
                 model.update_after_view_change(view,style_prefix.into()));
             _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries,(view,style_prefix))
