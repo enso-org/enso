@@ -739,6 +739,35 @@ Text.is_whitespace : Boolean
 Text.is_whitespace =
     Text_Utils.is_all_whitespace this
 
+## Returns a vector containing bytes representing the specified encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.bytes : Encoding -> Vector.Vector Byte
+Text.bytes encoding :
+    byte_array = Text_Utils.get_bytes this (Encoding.utf_8 . to_java_charset)
+    Vector.Vector byte_array
+
+## Returns a vector containing bytes representing the specified encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
+Text.from_bytes bytes encoding :
+    Text_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
@@ -750,9 +779,7 @@ Text.is_whitespace =
 
          "Hello".utf_8
 Text.utf_8 : Vector.Vector Byte
-Text.utf_8 =
-    byte_array = Text_Utils.get_bytes this (Encoding.utf_8 . to_java_charset)
-    Vector.Vector byte_array
+Text.utf_8 = this.bytes Encoding.utf_8
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
@@ -768,11 +795,9 @@ Text.utf_8 =
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector.Vector Byte -> Text
 Text.from_utf_8 bytes =
-    Text_Utils.from_bytes bytes.to_array (Encoding.utf_8 . to_java_charset)
+    here.from_bytes bytes.to_array Encoding.utf_8
 
-## ADVANCED
-
-   Returns a vector containing the UTF-16 characters that encode the input text.
+## Returns a vector containing the UTF-16 characters that encode the input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
@@ -784,9 +809,7 @@ Text.from_utf_8 bytes =
 Text.utf_16 : Vector.Vector Integer
 Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
 
-## ADVANCED
-
-   Takes a vector of UTF-16 characters and returns the text that results from
+## Takes a vector of UTF-16 characters and returns the text that results from
    decoding it as UTF-16.
 
    Arguments:
