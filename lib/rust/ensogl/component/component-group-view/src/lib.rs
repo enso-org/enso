@@ -46,11 +46,11 @@ pub mod header_background {
 
     ensogl_core::define_shape_system! {
         above = [list_view::selection];
-        (style:Style,color:Vector4) {
-            let sprite_width  : Var<Pixels> = "input_size.x".into();
-            let sprite_height : Var<Pixels> = "input_size.y".into();
+        (style:Style, color:Vector4) {
+            let sprite_width: Var<Pixels> = "input_size.x".into();
+            let sprite_height: Var<Pixels> = "input_size.y".into();
             let color = Var::<Rgba>::from(color);
-            let shape = Rect((&sprite_width,&sprite_height)).fill(color);
+            let shape = Rect((&sprite_width, &sprite_height)).fill(color);
             shape.into()
         }
     }
