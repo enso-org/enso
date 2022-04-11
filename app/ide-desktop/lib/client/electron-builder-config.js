@@ -1,12 +1,11 @@
 // This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
 
-
 const utils = require('../../utils')
 
-const dist = utils.require_env("ENSO_BUILD_IDE")
-const gui = utils.require_env("ENSO_BUILD_GUI")
-const icons = utils.require_env("ENSO_BUILD_ICONS")
-const project_manager = utils.require_env("ENSO_BUILD_PROJECT_MANAGER")
+const dist = utils.require_env('ENSO_BUILD_IDE')
+const gui = utils.require_env('ENSO_BUILD_GUI')
+const icons = utils.require_env('ENSO_BUILD_ICONS')
+const project_manager = utils.require_env('ENSO_BUILD_PROJECT_MANAGER')
 
 const build = require('../../build.json')
 
@@ -14,7 +13,7 @@ const config = {
     appId: 'org.enso',
     productName: 'Enso',
     extraMetadata: {
-        version: build.version
+        version: build.version,
     },
     copyright: 'Copyright © 2021 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
@@ -47,8 +46,14 @@ const config = {
         icon: `${icons}/png`,
         category: 'Development',
     },
-    files: ["!**/node_modules/**/*", { from: `${gui}/`, to: '.' }, {from: `${dist}/client`, to: '.'}],
-    extraResources: [{ from: `${project_manager}/`, to: './enso', filter: ['!**.tar.gz', '!**.zip'] }],
+    files: [
+        '!**/node_modules/**/*',
+        { from: `${gui}/`, to: '.' },
+        { from: `${dist}/client`, to: '.' },
+    ],
+    extraResources: [
+        { from: `${project_manager}/`, to: './enso', filter: ['!**.tar.gz', '!**.zip'] },
+    ],
     fileAssociations: [
         {
             ext: 'enso',

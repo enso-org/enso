@@ -1,5 +1,6 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
 const path = require('path')
 const webpack = require('webpack')
 const utils = require('../../utils')
@@ -42,31 +43,32 @@ module.exports = {
     },
     output: {
         path: path.resolve(output_path, 'assets'),
+        publicPath: '/assets/',
         filename: '[name].js',
         libraryTarget: 'umd',
     },
-    node: {
-        fs: 'empty',
-    },
     plugins: [
         new CompressionPlugin(),
-        new CopyWebpackPlugin([
-            path.resolve(thisPath, 'src', 'index.html'),
-            path.resolve(thisPath, 'src', 'run.js'),
-            path.resolve(thisPath, 'src', 'style.css'),
-            path.resolve(thisPath, 'src', 'docsStyle.css'),
-            assets_path,
-            wasm_path,
-        ]),
+        new CopyWebpackPlugin({
+            patterns: [
+                path.resolve(thisPath, 'src', 'index.html'),
+                path.resolve(thisPath, 'src', 'run.js'),
+                path.resolve(thisPath, 'src', 'style.css'),
+                path.resolve(thisPath, 'src', 'docsStyle.css'),
+                assets_path,
+                wasm_path,
+            ],
+            options: {},
+        }),
         new webpack.DefinePlugin({
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
         }),
+        new NodePolyfillPlugin({}),
     ],
     devtool: 'eval-source-map',
     devServer: {
-        publicPath: '/assets/',
         historyApiFallback: {
             index: '/assets/',
         },
@@ -76,6 +78,9 @@ module.exports = {
             wasm_rust_glue$: js_glue_path,
         },
         extensions: ['.ts', '.js'],
+        fallback: {
+            fs: false,
+        },
     },
     performance: {
         hints: false,
@@ -97,11 +102,11 @@ module.exports = {
                 test: /\.html$/i,
                 loader: 'html-loader',
             },
-            {
-                test: [/\.js$/, /\.tsx?$/],
-                enforce: 'pre',
-                loader: sourceMapLoader(IGNORE_SOURCE_MAPS),
-            },
+            // {
+            //     test: [/\.js$/, /\.tsx?$/],
+            //     enforce: 'pre',
+            //     loader: sourceMapLoader(IGNORE_SOURCE_MAPS),
+            // },
         ],
     },
 }

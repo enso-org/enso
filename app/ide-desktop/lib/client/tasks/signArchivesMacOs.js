@@ -18,9 +18,12 @@ const path = require('path')
 const child_process = require('child_process')
 const { engineVersion } = require('../../../build.json')
 
-const dist_var_name = "ENSO_BUILD_IDE"
-const dist = process.env[dist_var_name] ?? (()=>{throw Error(`Missing ${dist_var_name} environment variable.`)})()
-
+const dist_var_name = 'ENSO_BUILD_IDE'
+const dist =
+    process.env[dist_var_name] ??
+    (() => {
+        throw Error(`Missing ${dist_var_name} environment variable.`)
+    })()
 
 // `electron-builder`'s output directory name.
 function contentDirName() {

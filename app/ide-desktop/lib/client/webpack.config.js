@@ -3,7 +3,7 @@ const path = require('path')
 const utils = require('../../utils')
 
 const thisPath = path.resolve(__dirname)
-const dist = path.resolve(utils.require_env("ENSO_BUILD_IDE"), "client")
+const dist = path.resolve(utils.require_env('ENSO_BUILD_IDE'), 'client')
 
 module.exports = {
     entry: {
@@ -16,16 +16,19 @@ module.exports = {
         filename: '[name].js',
     },
     plugins: [
-        new Copy([
-            {
-                from: path.resolve(thisPath, 'package.json'),
-                to: path.join(dist, 'package.json')
-            },
-            {
-                from: path.resolve(thisPath, 'src', 'preload.js'),
-                to: path.join(dist, 'preload.js'),
-            },
-        ]),
+        new Copy({
+            patterns: [
+                {
+                    from: path.resolve(thisPath, 'package.json'),
+                    to: path.join(dist, 'package.json'),
+                },
+                {
+                    from: path.resolve(thisPath, 'src', 'preload.js'),
+                    to: path.join(dist, 'preload.js'),
+                },
+            ],
+            options: {},
+        }),
     ],
     performance: {
         hints: false,

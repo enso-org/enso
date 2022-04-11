@@ -7,9 +7,9 @@ import * as loader_module from 'enso-studio-common/src/loader'
 // @ts-ignore
 import * as html_utils from 'enso-studio-common/src/html_utils'
 // @ts-ignore
-import * as globalConfig from '../../../../gui/config.yaml'
+import globalConfig from '../../../../gui/config.yaml'
 // @ts-ignore
-import {defaultLogServerHost} from '../../../config'
+import { defaultLogServerHost } from '../../../config'
 // @ts-ignore
 import assert from 'assert'
 // @ts-ignore
@@ -20,9 +20,8 @@ import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
 
-import * as semver from "semver"
-import {SemVer, Comparator } from "semver";
-
+import * as semver from 'semver'
+import { SemVer, Comparator } from 'semver'
 
 const authInfo = 'auth-info'
 
@@ -541,7 +540,7 @@ async function checkMinSupportedVersion(config: Config) {
         // const appConfig: any = await fetchApplicationConfig(config.application_config_url)
         // const clientVersion = Versions.ideVersion
         // const minSupportedVersion = appConfig.minimumSupportedVersion
-        const comparator = new Comparator(">=2.0.0-alpha.6")
+        const comparator = new Comparator('>=2.0.0-alpha.6')
         return comparator.test(Versions.ideVersion)
     } catch (e) {
         console.error('Minimum version check failed.', e)
@@ -844,7 +843,8 @@ class Config {
         this.skip_min_version_check = ok(other.skip_min_version_check)
             ? tryAsBoolean(other.skip_min_version_check)
             : this.skip_min_version_check
-        this.preferred_engine_version = semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
+        this.preferred_engine_version =
+            semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
     }
 }
 
