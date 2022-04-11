@@ -67,13 +67,14 @@ public class Text_Utils {
   }
 
   /**
-   * Converts a string into an array of UTF-8 bytes.
+   * Converts a string into an array of bytes using the specified encoding.
    *
    * @param str the string to convert
+   * @param charset the character set to use to encode the string
    * @return the UTF-8 representation of the string.
    */
-  public static byte[] get_bytes(String str) {
-    return str.getBytes(StandardCharsets.UTF_8);
+  public static byte[] get_bytes(String str, Charset charset) {
+    return str.getBytes(charset);
   }
 
   /**

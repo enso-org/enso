@@ -12,6 +12,7 @@ import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Base.Data.Text.Span as Span_Module import Span
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
@@ -749,7 +750,8 @@ Text.is_whitespace =
 
          "Hello".utf_8
 Text.utf_8 : Vector.Vector Byte
-Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
+Text.utf_8 =
+    Vector.Vector (Text_Utils.get_bytes this (Encoding.utf_8 . to_java_charset))
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
