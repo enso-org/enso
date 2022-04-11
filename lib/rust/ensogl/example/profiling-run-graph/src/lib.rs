@@ -19,6 +19,8 @@ use wasm_bindgen::prelude::*;
 use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_profiler_data::Profile;
+use enso_profiler_data_tools as profiler_data_tools;
+use enso_profiler_data_tools::Metadata;
 use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -26,15 +28,13 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
-use ensogl_core::profiler::log_rpc_event;
-use ensogl_core::profiler::Metadata;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
 /// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
 /// generated and rendered. Otherwise use `include_str!` to add a profiler log.
 /// For example use `Some(include_str!("./data.json"))`.
-const PROFILER_LOG_DATA: Option<&str> = None;
+const PROFILER_LOG_DATA: Option<&str> = Some(include_str!("../../../../../../profile.json"));
 
 
 
@@ -63,7 +63,7 @@ pub fn main() {
 
     let marks = profile
         .iter_metadata()
-        .map(|metadata: &enso_profiler_data::Metadata<ensogl_core::profiler::Metadata>| {
+        .map(|metadata: &enso_profiler_data::Metadata<profiler_data_tools::Metadata>| {
             let position = metadata.mark.into_ms();
             let label = metadata.data.to_string();
             profiler_flame_graph::Mark { position, label }
@@ -117,12 +117,10 @@ fn read_log_data() -> Option<Profile<Metadata>> {
 }
 
 fn create_dummy_data() -> Profile<Metadata> {
-    // log_rpc_event("Start");
     futures::executor::block_on(start_project());
-    // log_rpc_event("End");
 
     let log = profiler::internal::take_log();
-    let profile: Result<Profile<Metadata>, _> = log.parse();
+    let profile: Result<Profile<profiler_data_tools::Metadata>, _> = log.parse();
     profile.expect("Failed to deserialize profiling event log.")
 }
 
@@ -144,9 +142,7 @@ fn work(n: u32) {
 #[profile(Objective)]
 async fn start_project() {
     wake_dragon().await;
-    log_rpc_event("Dragon Awake");
     feed_troll();
-    log_rpc_event("Troll Fed");
     ride_rainbow();
 }
 #[profile(Objective)]

@@ -461,7 +461,7 @@ impl Project {
             // Profiler logging
             if let Event::Notification(notification) = &event {
                 let name: &'static str = notification.into();
-                ensogl::profiler::log_rpc_event(name);
+                crate::local_profiler::log_rpc_event(name);
             }
 
             // Event Handling

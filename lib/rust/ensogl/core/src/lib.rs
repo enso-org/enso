@@ -46,7 +46,6 @@ pub mod data;
 pub mod debug;
 pub mod display;
 pub mod gui;
-pub mod profiler;
 pub mod system;
 
 pub use animation::Animation;
