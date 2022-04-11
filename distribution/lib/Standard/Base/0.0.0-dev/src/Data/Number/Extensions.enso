@@ -210,7 +210,7 @@ Integer.up_to n = Range this n
          1.equals 1.0000001 epsilon=0.001
 Number.equals : Number -> Number -> Boolean
 Number.equals that epsilon=0.0 =
-    if this == that then True else (this - that).abs <= epsilon
+    (this == that) || ((this - that).abs <= epsilon)
 
 ## Returns the smaller value of `this` and `that`.
 

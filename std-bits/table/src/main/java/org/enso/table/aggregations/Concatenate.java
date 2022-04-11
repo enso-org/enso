@@ -66,8 +66,7 @@ public class Concatenate extends Aggregator {
     }
 
     String textValue = value.toString();
-    boolean quote_is_defined = !quote.isEmpty();
-    if (quote_is_defined) {
+    if (!quote.isEmpty()) {
       boolean includes_separator = !separator.isEmpty() && textValue.contains(separator);
       boolean includes_quote = textValue.contains(quote);
       boolean needs_quoting = textValue.isEmpty() || includes_separator || includes_quote;

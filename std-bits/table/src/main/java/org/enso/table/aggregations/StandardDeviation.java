@@ -53,8 +53,7 @@ public class StandardDeviation extends Aggregator {
       }
     }
 
-    if (current == null) return null;
-    if (!population && current.count <= 1) return null;
+    if (current == null || (!population && current.count <= 1)) return null;
     return (population ? 1 : Math.sqrt(current.count / (current.count - 1.0)))
         * Math.sqrt(current.total_sqr / current.count - Math.pow(current.total / current.count, 2));
   }
