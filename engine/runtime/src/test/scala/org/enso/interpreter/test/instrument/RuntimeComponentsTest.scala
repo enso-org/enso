@@ -404,6 +404,48 @@ object RuntimeComponentsTest {
             Component("Standard.Base.Data.Text.Regex.escape", None),
             Component("Standard.Base.Data.Text.Regex.from_flags", None)
           )
+        ),
+        ComponentGroup(
+          GroupName("Select"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Data.Vector.Vector.tail", None),
+            Component("Standard.Base.Data.Vector.Vector.filter", None),
+            Component("Standard.Base.Data.Vector.Vector.find", None),
+            Component("Standard.Base.Data.Vector.Vector.at", None),
+            Component("Standard.Base.Data.Vector.Vector.take", None),
+            Component("Standard.Base.Data.Vector.Vector.partition", None),
+            Component("Standard.Base.Data.Vector.Vector.distinct", None)
+          )
+        ),
+        ComponentGroup(
+          GroupName("Join"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Data.Vector.Vector.append", None),
+            Component("Standard.Base.Data.Vector.Vector.prepend", None),
+            Component("Standard.Base.Data.Vector.Vector.zip", None)
+          )
+        ),
+        ComponentGroup(
+          GroupName("Transform"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Data.Vector.Vector.map", None),
+            Component("Standard.Base.Data.Vector.Vector.sort", None),
+            Component("Standard.Base.Data.Vector.Vector.distinct", None)
+          )
+        ),
+        ComponentGroup(
+          GroupName("Output"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.System.File.File.write", None)
+          )
         )
       ),
       List()
@@ -435,6 +477,43 @@ object RuntimeComponentsTest {
             Component("Standard.Table.Io.Csv.from_csv", None),
             Component("Standard.Table.Io.Spreadsheet.from_xlsx", None),
             Component("Standard.Table.Io.Spreadsheet.from_xls", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+          Seq(
+            Component("Standard.Table.Data.Table.Table.at", None),
+            Component("Standard.Table.Data.Table.Table.select", None),
+            Component("Standard.Table.Data.Table.Table.select_columns", None),
+            Component("Standard.Table.Data.Table.Table.rename_columns", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+          Seq(
+            Component("Standard.Table.Data.Table.Table.join", None),
+            Component("Standard.Table.Data.Table.Table.group", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(
+            LibraryName("Standard", "Base"),
+            GroupName("Transform")
+          ),
+          Seq(
+            Component("Standard.Table.Data.Table.Table.remove_columns", None),
+            Component("Standard.Table.Data.Table.Table.reorder_columns", None),
+            Component("Standard.Table.Data.Table.Table.sort_columns", None),
+            Component("Standard.Table.Data.Table.Table.sort", None),
+            Component("Standard.Table.Data.Table.Table.to_csv", None),
+            Component("Standard.Table.Data.Column.Column.to_table", None)
+          )
+        ),
+        ExtendedComponentGroup(
+          GroupReference(LibraryName("Standard", "Base"), GroupName("Output")),
+          Seq(
+            Component("Standard.Table.Data.Table.Table.write_csv", None),
+            Component("Standard.Table.Data.Table.Table.write_xlsx", None)
           )
         )
       )
