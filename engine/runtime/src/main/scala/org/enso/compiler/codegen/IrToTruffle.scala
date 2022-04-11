@@ -795,17 +795,21 @@ class IrToTruffle(
             val any = context.getBuiltins.any
             val array = context.getBuiltins.array
             val bool = context.getBuiltins.bool
+            val builtinTrue = context.getBuiltins.trueAtom
+            val builtinFalse = context.getBuiltins.falseAtom
             val number = context.getBuiltins.number
             val polyglot = context.getBuiltins.polyglot
             val text = context.getBuiltins.text
             val branchNode: BranchNode =
-              if (atomCons == bool.getTrue) {
+              if (atomCons == builtinTrue) {
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
-              } else if (atomCons == bool.getFalse) {
+              } else if (atomCons == builtinFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
-              } else if (atomCons == bool.getBool) {
+              } else if (atomCons == bool) {
                 BooleanConstructorBranchNode.build(
                   bool,
+                  builtinTrue,
+                  builtinFalse,
                   branchCodeNode.getCallTarget
                 )
               } else if (atomCons == text.getText) {

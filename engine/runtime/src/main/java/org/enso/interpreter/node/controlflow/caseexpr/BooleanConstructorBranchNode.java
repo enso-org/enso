@@ -19,11 +19,14 @@ public abstract class BooleanConstructorBranchNode extends BranchNode {
   private final AtomConstructor falseCons;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  BooleanConstructorBranchNode(Bool bool, RootCallTarget branch) {
+  BooleanConstructorBranchNode(AtomConstructor bool,
+                               AtomConstructor trueAtom,
+                               AtomConstructor falseAtom,
+                               RootCallTarget branch) {
     super(branch);
-    this.boolCons = bool.getBool();
-    this.trueCons = bool.getTrue();
-    this.falseCons = bool.getFalse();
+    this.boolCons = bool;
+    this.trueCons = trueAtom;
+    this.falseCons = falseAtom;
   }
 
   /**
@@ -33,8 +36,12 @@ public abstract class BooleanConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static BooleanConstructorBranchNode build(Bool bool, RootCallTarget branch) {
-    return BooleanConstructorBranchNodeGen.create(bool, branch);
+  public static BooleanConstructorBranchNode build(
+          AtomConstructor bool,
+          AtomConstructor trueAtom,
+          AtomConstructor falseAtom,
+          RootCallTarget branch) {
+    return BooleanConstructorBranchNodeGen.create(bool,trueAtom, falseAtom, branch);
   }
 
   @Specialization

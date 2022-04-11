@@ -39,6 +39,6 @@ public abstract class EqualsNode extends Node {
   }
 
   AtomConstructor getBooleanConstructor() {
-    return Context.get(this).getBuiltins().bool().getBool();
+    return Context.get(this).getBuiltins().bool();
   }
 }

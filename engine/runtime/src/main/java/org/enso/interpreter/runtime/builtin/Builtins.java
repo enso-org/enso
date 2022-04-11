@@ -19,7 +19,6 @@ import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
@@ -38,8 +37,6 @@ import org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMetho
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
-import org.enso.interpreter.node.expression.builtin.text.AnyToDisplayTextMethodGen;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
@@ -79,7 +76,6 @@ public class Builtins {
   private final AtomConstructor panic;
   private final AtomConstructor caughtPanic;
 
-  private final Bool bool;
   private final DataflowError dataflowError;
   private final Error error;
   private final Module module;
@@ -103,7 +99,6 @@ public class Builtins {
     builtinNodes = new HashMap<>();
     builtinTypes = new HashMap<>();
 
-    bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
     dataflowError = new DataflowError(language, scope);
     Warning.initWarningMethods(language, scope);
@@ -203,6 +198,9 @@ public class Builtins {
     builtinConstructors.add("Ref");
     builtinConstructors.add("Array");
     builtinConstructors.add("Any");
+    builtinConstructors.add("Boolean");
+    builtinConstructors.add("True");
+    builtinConstructors.add("False");
     initBuiltinTypes(builtinConstructors, scope, language);
   }
 
@@ -211,17 +209,19 @@ public class Builtins {
       BuiltinAtomConstructor atom = new BuiltinAtomConstructor(constr, scope).initializeFields();
       builtinTypes.put(constr, atom);
       Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr);
-      methods.forEach((methodName, clazz) -> {
-        Optional<Function> fun;
-        try {
-          Method meth = clazz.getMethod("makeFunction", Language.class);
-          fun = Optional.ofNullable((Function) meth.invoke(null, language));
-        } catch (Exception e) {
-          e.printStackTrace();
-          fun = Optional.empty();
-        }
-        fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
-      });
+      if (methods != null) {
+        methods.forEach((methodName, clazz) -> {
+          Optional<Function> fun;
+          try {
+            Method meth = clazz.getMethod("makeFunction", Language.class);
+            fun = Optional.ofNullable((Function) meth.invoke(null, language));
+          } catch (Exception e) {
+            e.printStackTrace();
+            fun = Optional.empty();
+          }
+          fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
+        });
+      }
     }
   }
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
@@ -407,10 +407,21 @@ public class Builtins {
     return number;
   }
 
-  /** @return the Boolean part of builtins. */
-  public Bool bool() {
-    return bool;
+  /** @return the Boolean constructor. */
+  public AtomConstructor bool() {
+    return builtinTypes.get("Boolean");
   }
+
+  /** @return the True constructor. */
+  public AtomConstructor trueAtom() {
+    return builtinTypes.get("True");
+  }
+
+  /** @return the False constructor. */
+  public AtomConstructor falseAtom() {
+    return builtinTypes.get("False");
+  }
+
 
   /** @return the builtin Error types container. */
   public Error error() {
@@ -506,7 +517,7 @@ public class Builtins {
       case Constants.ARRAY:
         return array().newInstance();
       case Constants.BOOLEAN:
-        return bool.getBool().newInstance();
+        return bool().newInstance();
       case Constants.DECIMAL:
         return number.getDecimal().newInstance();
       case Constants.ERROR:
