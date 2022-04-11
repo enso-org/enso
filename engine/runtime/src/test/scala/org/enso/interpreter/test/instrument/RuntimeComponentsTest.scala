@@ -382,6 +382,7 @@ object RuntimeComponentsTest {
           None,
           None,
           Seq(
+            Component("Standard.Base.Network.Http.new", None),
             Component("Standard.Base.Network.Http.fetch", None),
             Component("Standard.Base.Network.Http.get", None),
             Component("Standard.Base.Network.Http.post", None),
@@ -391,6 +392,17 @@ object RuntimeComponentsTest {
             Component("Standard.Base.Network.Http.put_json", None),
             Component("Standard.Base.Network.Http.head", None),
             Component("Standard.Base.Network.Http.options", None)
+          )
+        ),
+        ComponentGroup(
+          GroupName("Parse"),
+          None,
+          None,
+          Seq(
+            Component("Standard.Base.Data.Json.parse", None),
+            Component("Standard.Base.Data.Text.Regex.compile", None),
+            Component("Standard.Base.Data.Text.Regex.escape", None),
+            Component("Standard.Base.Data.Text.Regex.from_flags", None)
           )
         )
       ),
@@ -417,6 +429,9 @@ object RuntimeComponentsTest {
         ExtendedComponentGroup(
           GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
           Seq(
+            Component("Standard.Table.Data.Table.new", None),
+            Component("Standard.Table.Data.Table.from_rows", None),
+            Component("Standard.Table.Data.Column.from_vector", None),
             Component("Standard.Table.Io.Csv.from_csv", None),
             Component("Standard.Table.Io.Spreadsheet.from_xlsx", None),
             Component("Standard.Table.Io.Spreadsheet.from_xls", None)
