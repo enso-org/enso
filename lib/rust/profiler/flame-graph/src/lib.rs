@@ -6,8 +6,8 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use crate::Kind::Active;
-use crate::Kind::Paused;
+use crate::State::Active;
+use crate::State::Paused;
 
 use enso_profiler as profiler;
 use enso_profiler_data as data;
@@ -20,7 +20,7 @@ use enso_profiler_data as data;
 /// Indicates whether a block indicates an active interval or a paused interval. Paused intervals
 /// are used to represent async tasks that are started and awaited, but that have made no progress.
 #[derive(Copy, Clone, Debug)]
-pub enum Kind {
+pub enum State {
     Active,
     Paused,
 }
@@ -36,8 +36,8 @@ pub struct Block {
     pub row:   u32,
     /// The label to be displayed with the block.
     pub label: String,
-    /// Indicates what kind of block this is (active/paused).
-    pub kind:  Kind,
+    /// Indicates what state this block represents (active/paused).
+    pub state: State,
 }
 
 impl Block {
@@ -144,7 +144,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        self.blocks.push(Block { start, end, label, row, kind: Active });
+        self.blocks.push(Block { start, end, label, row, state: Active });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
@@ -210,7 +210,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: active_interval[1],
                         label: label_active,
                         row,
-                        kind: Active,
+                        state: Active,
                     });
 
                     self.blocks.push(Block {
@@ -218,7 +218,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: sleep_interval[1],
                         label: label_sleep,
                         row,
-                        kind: Paused,
+                        state: Paused,
                     });
                 }
             }
@@ -298,7 +298,7 @@ impl AggregateFrame {
     fn visit(&self, blocks: &mut Vec<Block>, time: &mut f64, row: u32, label: String) {
         let start = *time;
         let end = *time + self.duration;
-        blocks.push(Block { start, end, label, row, kind: Active });
+        blocks.push(Block { start, end, label, row, state: Active });
         for (label, frame) in &self.children {
             frame.visit(blocks, time, row + 1, label.to_string());
         }

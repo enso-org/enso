@@ -1,4 +1,6 @@
 //! Enso specific metadata logging utilities for use with the profiling framework.
+use crate::prelude::*;
+
 use enso_profiler;
 use serde;
 use serde::Serializer;
@@ -21,8 +23,13 @@ impl Display for Metadata {
     }
 }
 
+thread_local! {
+    /// A common preamble used to start every shader program.
+    static RPC_EVENT_LOGGER: enso_profiler::MetadataLogger<& 'static str> = enso_profiler::MetadataLogger::new("RpcEvent");
+}
+
+
 /// Log an RPC Event to the profiling framework.
 pub fn log_rpc_event(event_name: &'static str) {
-    let event_logger = enso_profiler::MetadataLogger::new("RpcEvent");
-    event_logger.log(event_name);
+    RPC_EVENT_LOGGER.with(|logger| logger.log(event_name));
 }

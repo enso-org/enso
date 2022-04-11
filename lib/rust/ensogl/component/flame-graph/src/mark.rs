@@ -1,4 +1,4 @@
-//! A single block component that is used to build up a flame graph.
+//! A single mark component that is used to build up a flame graph.
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -143,8 +143,8 @@ impl Model {
     fn set_label_visible(&self, visible: bool) {
         if visible {
             self.enable_label();
-        } else if let Some(label) = self.label.take() {
-            label.unset_parent()
+        } else {
+            self.label.take().for_each(|label| label.unset_parent())
         }
     }
 

@@ -24,7 +24,7 @@ use ensogl_core::display;
 mod block;
 mod mark;
 
-use enso_profiler_flame_graph::Kind;
+use enso_profiler_flame_graph::State;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
 use mark::Mark;
@@ -72,9 +72,9 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
 
     let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-    let color: color::Rgba = match block.kind {
-        Kind::Active => style.get_color("flame_graph_block_color_active").value(),
-        Kind::Paused => style.get_color("flame_graph_block_color_paused").value(),
+    let color: color::Rgba = match block.state {
+        State::Active => style.get_color("flame_graph_block_color_active").value(),
+        State::Paused => style.get_color("flame_graph_block_color_paused").value(),
     };
     let color: color::Lcha = color.into();
     component.set_color(color);
@@ -82,7 +82,7 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
     component
 }
 
-/// Instantiate a `Block` shape for the given block data from the profiler.
+/// Instantiate a `Mark` shape for the given block data from the profiler.
 fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark {
     let component = app.new_view::<Mark>();
     let x = mark.position as f32;
@@ -97,7 +97,7 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     component
 }
 
-const MIN_INTERVALL_TIME: f64 = 0.0;
+const MIN_INTERVAL_TIME_MS: f64 = 0.0;
 const X_SCALE: f64 = 1.0;
 
 impl FlameGraph {
@@ -106,7 +106,7 @@ impl FlameGraph {
         let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new(&logger);
 
-        let blocks = data.blocks.into_iter().filter(|block| block.width() > MIN_INTERVALL_TIME);
+        let blocks = data.blocks.into_iter().filter(|block| block.width() > MIN_INTERVAL_TIME_MS);
         let marks = data.marks;
 
         let origin_x =
@@ -127,7 +127,7 @@ impl FlameGraph {
 
         let blocks_marks_aligned = marks.into_iter().map(|mut mark| {
             mark.position -= origin_x as f64;
-            mark.position += X_SCALE;
+            mark.position *= X_SCALE;
             mark
         });
         let marks: Vec<_> =
@@ -141,8 +141,8 @@ impl FlameGraph {
     pub fn blocks(&self) -> &[Block] {
         &self.blocks
     }
-    /// Return a reference to the blocks that make up the flame graph.
 
+    /// Return a reference to the marks that make up the flame graph.
     pub fn marks(&self) -> &[Mark] {
         &self.marks
     }

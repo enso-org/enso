@@ -2419,7 +2419,6 @@ version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "enso-profiler",
- "enso-profiler-data",
  "enso-shapely",
  "enso-web",
  "failure",
