@@ -52,9 +52,18 @@ fn init(app: Application) {
     area.hover();
     area.set_cursor_at_end();
 
-    area.set_bold_bytes(ensogl_text::Range::new(7.bytes(), 15.bytes()), style::Bold(true));
-    area.set_bold_bytes(ensogl_text::Range::new(37.bytes(), 41.bytes()), style::Bold(true));
-    area.set_bold_bytes(ensogl_text::Range::new(55.bytes(), 56.bytes()), style::Bold(true));
+    area.set_highlight_bytes(
+        ensogl_text::Range::new(7.bytes(), 15.bytes()),
+        style::Highlight(0.04),
+    );
+    area.set_highlight_bytes(
+        ensogl_text::Range::new(37.bytes(), 41.bytes()),
+        style::Highlight(0.05),
+    );
+    area.set_highlight_bytes(
+        ensogl_text::Range::new(55.bytes(), 56.bytes()),
+        style::Highlight(0.03),
+    );
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());

@@ -225,6 +225,7 @@ def_style_property!(Size(f32));
 def_style_property!(Bold(bool));
 def_style_property!(Italic(bool));
 def_style_property!(Underline(bool));
+def_style_property!(Highlight(f32));
 
 impl Default for Size {
     fn default() -> Self {
@@ -247,12 +248,19 @@ impl Default for Underline {
     }
 }
 
+impl Default for Highlight {
+    fn default() -> Self {
+        Self::new(0.0)
+    }
+}
+
 define_styles! {
     size      : Size,
     color     : color::Rgba,
     bold      : Bold,
     italics   : Italic,
     underline : Underline,
+    highlight : Highlight,
 }
 
 
