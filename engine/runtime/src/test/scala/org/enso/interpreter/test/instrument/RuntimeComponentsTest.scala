@@ -70,9 +70,9 @@ class RuntimeComponentsTest
             ExtendedComponentGroup(
               group = GroupReference(
                 LibraryName("Standard", "Base"),
-                GroupName("Group2")
+                GroupName("Input")
               ),
-              exports = List(Component("foo", None))
+              exports = List()
             )
           )
         )
@@ -241,26 +241,12 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-    val expectedBaseComponents = ComponentGroups(
-      List(
-        ComponentGroup(
-          GroupName("Input"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Meta.Enso_Project.root", None),
-            Component("Standard.Base.System.File.new", None),
-            Component("Standard.Base.System.File.read", None)
-          )
-        )
-      ),
-      List()
-    )
     val expectedComponents = Map(
       LibraryName("Enso_Test", "Test") ->
       context.pkg.config.componentGroups
         .getOrElse(fail("Unexpected config value.")),
-      LibraryName("Standard", "Base")     -> expectedBaseComponents,
+      LibraryName("Standard", "Base") ->
+      RuntimeComponentsTest.standardBaseComponents,
       LibraryName("Standard", "Builtins") -> ComponentGroups.empty
     )
     components should contain theSameElementsAs expectedComponents
@@ -321,24 +307,6 @@ class RuntimeComponentsTest
       context.executionComplete(contextId)
     )
 
-    // check LibraryLoaded notifications
-    val contentRootNotifications = responses.collect {
-      case Api.Response(
-            None,
-            Api.LibraryLoaded(namespace, name, version, _)
-          ) =>
-        (namespace, name, version)
-    }
-
-    contentRootNotifications should contain theSameElementsAs Seq(
-      ("Standard", "Base", TestEdition.testLibraryVersion.toString),
-      ("Standard", "Test", TestEdition.testLibraryVersion.toString),
-      ("Standard", "Database", TestEdition.testLibraryVersion.toString),
-      ("Standard", "Table", TestEdition.testLibraryVersion.toString),
-      ("Standard", "Visualization", TestEdition.testLibraryVersion.toString),
-      ("Standard", "Geo", TestEdition.testLibraryVersion.toString)
-    )
-
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
     val expectedComponents = Map(
@@ -358,11 +326,48 @@ class RuntimeComponentsTest
     )
     components should contain theSameElementsAs expectedComponents
 
+    // check that component group symbols can be resolved
+    val suggestionSymbols = responses
+      .collect {
+        case Api.Response(
+              None,
+              msg: Api.SuggestionsDatabaseModuleUpdateNotification
+            ) =>
+          msg.updates.toVector.map(_.suggestion)
+      }
+      .flatten
+      .flatMap { suggestion =>
+        for {
+          selfType <- Suggestion.SelfType(suggestion)
+        } yield s"$selfType.${suggestion.name}"
+      }
+      .toSet
+
+    val componentSymbols = components
+      .flatMap { case (_, componentGroups) =>
+        val newComponents = componentGroups.newGroups.flatMap(_.exports)
+        val extendedComponents =
+          componentGroups.extendedGroups.flatMap(_.exports)
+        newComponents ++ extendedComponents
+      }
+      .map(_.name)
+
+    componentSymbols.foreach { component =>
+      suggestionSymbols should contain(component)
+    }
+
     context.consumeOut shouldEqual List()
   }
 
 }
 object RuntimeComponentsTest {
+
+  def getComponentSelfType(suggestion: Suggestion): Option[String] =
+    suggestion match {
+      case symbol: Suggestion.Module => Some(symbol.module)
+      case symbol: Suggestion.Method => Some(symbol.selfType)
+      case _                         => None
+    }
 
   val standardBaseComponents: ComponentGroups =
     ComponentGroups(
@@ -372,7 +377,6 @@ object RuntimeComponentsTest {
           None,
           None,
           Seq(
-            Component("Standard.Base.Meta.Enso_Project.root", None),
             Component("Standard.Base.System.File.new", None),
             Component("Standard.Base.System.File.read", None)
           )
@@ -466,7 +470,10 @@ object RuntimeComponentsTest {
           Seq(
             Component("Standard.Database.Data.Table.Table.at", None),
             Component("Standard.Database.Data.Table.Table.select", None),
-            Component("Standard.Database.Data.Table.Table.select_columns", None),
+            Component(
+              "Standard.Database.Data.Table.Table.select_columns",
+              None
+            ),
             Component("Standard.Database.Data.Table.Table.rename_columns", None)
           )
         ),
@@ -483,8 +490,14 @@ object RuntimeComponentsTest {
             GroupName("Transform")
           ),
           Seq(
-            Component("Standard.Database.Data.Table.Table.remove_columns", None),
-            Component("Standard.Database.Data.Table.Table.reorder_columns", None),
+            Component(
+              "Standard.Database.Data.Table.Table.remove_columns",
+              None
+            ),
+            Component(
+              "Standard.Database.Data.Table.Table.reorder_columns",
+              None
+            ),
             Component("Standard.Database.Data.Table.Table.sort_columns", None),
             Component("Standard.Database.Data.Table.Table.sort", None),
             Component("Standard.Database.Data.Column.Column.to_table", None)

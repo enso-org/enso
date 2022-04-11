@@ -6,3 +6,8 @@ import Standard.Visualization.Id
 from Standard.Visualization.File_Upload export file_uploading
 export Standard.Visualization.Id
 
+## TODO [DB] Needed for symbols of component groups to resolve.
+   Right now there's no resolving mechanism, and this set of imports
+   needs to be maintained. Once it's implemented, the imports can
+   be removed.
+import Standard.Database
