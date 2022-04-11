@@ -90,9 +90,9 @@ impl component::Frp<Model> for Frp {
             // === Header ===
 
             init <- source_();
-            header_text_font <- all(&header_text_font,&init)._0();
+            header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
-            header_text_size <- all(&header_text_size,&init)._0();
+            header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
             eval input.set_background_color((c)
