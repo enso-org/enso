@@ -1,12 +1,10 @@
 package org.enso.table.aggregations;
 
-import javax.swing.JSeparator;
+import java.util.List;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.data.table.problems.UnquotedDelimiter;
-
-import java.util.List;
 
 public class Concatenate extends Aggregator {
   private final Storage storage;
@@ -15,7 +13,8 @@ public class Concatenate extends Aggregator {
   private final String suffix;
   private final String quote;
 
-  public Concatenate(String name, Column column, String separator, String prefix, String suffix, String quote) {
+  public Concatenate(
+      String name, Column column, String separator, String prefix, String suffix, String quote) {
     super(name, Storage.Type.STRING);
     this.storage = column.getStorage();
 
@@ -28,7 +27,7 @@ public class Concatenate extends Aggregator {
   @Override
   public Object aggregate(List<Integer> indexes) {
     StringBuilder current = null;
-    for (int row: indexes) {
+    for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
@@ -54,7 +53,9 @@ public class Concatenate extends Aggregator {
       return null;
     }
 
-    if (prefix != null) { current.insert(0, prefix); }
+    if (prefix != null) {
+      current.insert(0, prefix);
+    }
     current.append(suffix);
     return current.toString();
   }
