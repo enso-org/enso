@@ -128,11 +128,7 @@ where E::Model: Default
     }
 
     /// Update displayed entries to show the given range.
-    pub fn update_entries(
-        &self,
-        mut range: Range<entry::Id>,
-        width_px: f32,
-    ) {
+    pub fn update_entries(&self, mut range: Range<entry::Id>, width_px: f32) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
