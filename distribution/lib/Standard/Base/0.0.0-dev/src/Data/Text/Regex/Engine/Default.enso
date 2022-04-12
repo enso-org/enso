@@ -559,11 +559,8 @@ type Pattern
                 internal_matcher = this.build_matcher input start end
                 internal_matcher.replaceAll replacement
             Mode.Full ->
-                ## TODO this is inconsistent with other modes - will not allow
-                   capture group references in replacement. It should be revised
-                   with: https://www.pivotaltracker.com/story/show/181524498
                 case this.match input mode=Mode.Full of
-                    Match _ _ _ _ -> replacement
+                    Match _ _ _ _ -> this.replace input replacement Mode.First
                     Nothing -> input
             Matching_Mode.Last ->
                 all_matches = this.match input
