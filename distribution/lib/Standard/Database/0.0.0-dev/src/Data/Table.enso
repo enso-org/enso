@@ -657,6 +657,10 @@ type Table
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column this agg new_name . catch
             partitioned = results.partition (_.is_an Internal_Column)
+            ## When working on join we may encounter further issues with having
+               aggregate columns exposed directly, it may be useful to re-use
+               the `lift_aggregate` method to push the aggregates into a
+               subquery.
             new_columns = partitioned.first
             problems = partitioned.second
             on_problems.attach_problems_before problems <|
@@ -761,9 +765,19 @@ type Table
     info : Table
     info =
         cols = this.internal_columns
-        count_columns = cols.map c-> IR.Internal_Column c.name Sql.Sql_Type.integer (IR.Operation "COUNT" [c.expression])
-        count_table = this.updated_columns count_columns . to_dataframe
-        counts = count_table.columns.map c-> c.at 0
+        count_query =
+            ## Performing a subquery is the most robust way to handle both
+               regular columns and aggregates.
+               Naively wrapping each column in a `COUNT(...)` will not
+               always work as aggregates cannot be nested.
+            setup = this.context.as_subquery this.name [this.internal_columns]
+            new_ctx = IR.subquery_as_ctx setup.first
+            new_columns = setup.second.first.map column->
+                [column.name, IR.Operation "COUNT" [column.expression]]
+            query = IR.Select new_columns new_ctx
+            this.connection.dialect.generate_sql query
+        count_table = this.connection.execute_query count_query
+        counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
 

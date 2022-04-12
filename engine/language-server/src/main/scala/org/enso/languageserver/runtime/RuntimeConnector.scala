@@ -2,6 +2,7 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.languageserver.monitoring.EventsMonitor
 import org.enso.languageserver.runtime.RuntimeConnector.{
   Destroy,
   MessageFromRuntime
@@ -15,8 +16,10 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import java.nio.ByteBuffer
 
 /** An actor managing a connection to Enso's runtime server. */
-class RuntimeConnector(handlers: Map[Class[_], ActorRef])
-    extends Actor
+class RuntimeConnector(
+  handlers: Map[Class[_], ActorRef],
+  eventsMonitor: EventsMonitor
+) extends Actor
     with LazyLogging
     with UnhandledLogging
     with Stash {
@@ -34,6 +37,11 @@ class RuntimeConnector(handlers: Map[Class[_], ActorRef])
       unstashAll()
       context.become(initialized(engine, Map()))
     case _ => stash()
+  }
+
+  def registerEvent: PartialFunction[Any, Any] = { case event =>
+    eventsMonitor.registerEvent(event)
+    event
   }
 
   /** Performs communication between runtime and language server.
@@ -62,7 +70,7 @@ class RuntimeConnector(handlers: Map[Class[_], ActorRef])
   def initialized(
     engine: MessageEndpoint,
     senders: Map[Runtime.Api.RequestId, ActorRef]
-  ): Receive = {
+  ): Receive = registerEvent.andThen {
     case Destroy => context.stop(self)
 
     case msg: Runtime.ApiEnvelope =>
@@ -120,13 +128,15 @@ object RuntimeConnector {
   /** Helper for creating instances of the [[RuntimeConnector]] actor.
     *
     * @param lockManagerService a reference to the lock manager service actor
+    * @param monitor events monitor that handles messages between the language
+    * server and the runtime
     * @return a [[Props]] instance for the newly created actor.
     */
-  def props(lockManagerService: ActorRef): Props = {
+  def props(lockManagerService: ActorRef, monitor: EventsMonitor): Props = {
     val lockRequests =
       LockManagerService.handledRequestTypes.map(_ -> lockManagerService)
     val handlers: Map[Class[_], ActorRef] = Map.from(lockRequests)
-    Props(new RuntimeConnector(handlers))
+    Props(new RuntimeConnector(handlers, monitor))
   }
 
   /** Endpoint implementation used to handle connections with the runtime.

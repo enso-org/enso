@@ -203,6 +203,18 @@ defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
 will automatically download the appropriate compiler version along with the
 necessary components.
 
+Please consult the [GUI Contribution Guide](../app/gui/docs/CONTRIBUTING.md) to
+learn details on setting your system up. Quick summary:
+
+```bash
+enso$ rustup toolchain install stable                  # Stable toolchain required for the following tools.
+enso$ cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
+enso$ cargo +stable install cargo-watch                # To enable ./run watch utility
+```
+
+The previous three steps shall be enough to build the IDE via
+`./run build --dev`.
+
 ### Getting Set Up (JVM)
 
 In order to properly build the `runtime` component, the JVM running SBT needs to
@@ -649,7 +661,7 @@ directory of the distribution folder. Distribution paths are printed when you
 run project manager with `-v` verbose logging.
 
 ```bash
-$ ./built-distribution/enso-project-manager-0.2.32-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+$ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
