@@ -1,3 +1,6 @@
+//! # DEPRECATED!!!
+//! THIS MODULE IS DEPRECATED. USE `unit2` INSTEAD.
+//!
 //! Defines utilities for creating custom strongly typed units. For example, unit `Angle` could be a
 //! wrapper for `f32`.
 //!

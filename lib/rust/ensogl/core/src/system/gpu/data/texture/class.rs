@@ -31,15 +31,15 @@ pub struct TextureUnit(u32);
 #[derive(Debug)]
 pub struct TextureBindGuard {
     context: Context,
-    target:  u32,
+    target:  GlEnum,
     unit:    TextureUnit,
 }
 
 impl Drop for TextureBindGuard {
     fn drop(&mut self) {
-        self.context.active_texture(Context::TEXTURE0 + self.unit.to::<u32>());
-        self.context.bind_texture(self.target, None);
-        self.context.active_texture(Context::TEXTURE0);
+        self.context.active_texture(*Context::TEXTURE0 + self.unit.to::<u32>());
+        self.context.bind_texture(*self.target, None);
+        self.context.active_texture(*Context::TEXTURE0);
     }
 }
 
@@ -74,10 +74,10 @@ impl Parameters {
     /// Applies the context parameters in the given context.
     pub fn apply_parameters(self, context: &Context) {
         let target = Context::TEXTURE_2D;
-        context.tex_parameteri(target, Context::TEXTURE_MIN_FILTER, self.min_filter as i32);
-        context.tex_parameteri(target, Context::TEXTURE_MIN_FILTER, self.mag_filter as i32);
-        context.tex_parameteri(target, Context::TEXTURE_WRAP_S, self.wrap_s as i32);
-        context.tex_parameteri(target, Context::TEXTURE_WRAP_T, self.wrap_t as i32);
+        context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.min_filter as i32);
+        context.tex_parameteri(*target, *Context::TEXTURE_MIN_FILTER, *self.mag_filter as i32);
+        context.tex_parameteri(*target, *Context::TEXTURE_WRAP_S, *self.wrap_s as i32);
+        context.tex_parameteri(*target, *Context::TEXTURE_WRAP_T, *self.wrap_t as i32);
     }
 }
 
@@ -89,16 +89,25 @@ impl Parameters {
 /// Specifies how values are interpolated if the texture is rendered at a resolution that is
 /// lower than its native resolution.
 #[derive(Copy, Clone, Debug)]
+pub struct MagFilter(GlEnum);
+
+impl Deref for MagFilter {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
 #[allow(missing_docs)]
-pub enum MagFilter {
-    Linear  = Context::LINEAR as isize,
-    Nearest = Context::NEAREST as isize,
+impl MagFilter {
+    pub const LINEAR: MagFilter = MagFilter(Context::LINEAR);
+    pub const NEAREST: MagFilter = MagFilter(Context::NEAREST);
 }
 
 // Note: The parameters implement our own default, not the WebGL one.
 impl Default for MagFilter {
     fn default() -> Self {
-        Self::Linear
+        Self::LINEAR
     }
 }
 
@@ -107,20 +116,29 @@ impl Default for MagFilter {
 /// Specifies how values are interpolated if the texture is rendered at a resolution that is
 /// lower than its native resolution.
 #[derive(Copy, Clone, Debug)]
+pub struct MinFilter(GlEnum);
+
+impl Deref for MinFilter {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
 #[allow(missing_docs)]
-pub enum MinFilter {
-    Linear               = Context::LINEAR as isize,
-    Nearest              = Context::NEAREST as isize,
-    NearestMipmapNearest = Context::NEAREST_MIPMAP_NEAREST as isize,
-    LinearMipmapNearest  = Context::LINEAR_MIPMAP_NEAREST as isize,
-    NearestMipmapLinear  = Context::NEAREST_MIPMAP_LINEAR as isize,
-    LinearMipmapLinear   = Context::LINEAR_MIPMAP_LINEAR as isize,
+impl MinFilter {
+    pub const LINEAR: MinFilter = MinFilter(Context::LINEAR);
+    pub const NEAREST: MinFilter = MinFilter(Context::NEAREST);
+    pub const NEAREST_MIPMAP_NEAREST: MinFilter = MinFilter(Context::NEAREST_MIPMAP_NEAREST);
+    pub const LINEAR_MIPMAP_NEAREST: MinFilter = MinFilter(Context::LINEAR_MIPMAP_NEAREST);
+    pub const NEAREST_MIPMAP_LINEAR: MinFilter = MinFilter(Context::NEAREST_MIPMAP_LINEAR);
+    pub const LINEAR_MIPMAP_LINEAR: MinFilter = MinFilter(Context::LINEAR_MIPMAP_LINEAR);
 }
 
 // Note: The parameters implement our own default, not the WebGL one.
 impl Default for MinFilter {
     fn default() -> Self {
-        Self::Linear
+        Self::LINEAR
     }
 }
 
@@ -128,17 +146,26 @@ impl Default for MinFilter {
 ///
 /// Specifies what happens if a texture is sampled out of bounds.
 #[derive(Copy, Clone, Debug)]
+pub struct Wrap(GlEnum);
+
+impl Deref for Wrap {
+    type Target = u32;
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
 #[allow(missing_docs)]
-pub enum Wrap {
-    Repeat         = Context::REPEAT as isize,
-    ClampToEdge    = Context::CLAMP_TO_EDGE as isize,
-    MirroredRepeat = Context::MIRRORED_REPEAT as isize,
+impl Wrap {
+    pub const REPEAT: Wrap = Wrap(Context::REPEAT);
+    pub const CLAMP_TO_EDGE: Wrap = Wrap(Context::CLAMP_TO_EDGE);
+    pub const MIRRORED_REPEAT: Wrap = Wrap(Context::MIRRORED_REPEAT);
 }
 
 // Note: The parameters implement our own default, not the WebGL one.
 impl Default for Wrap {
     fn default() -> Self {
-        Self::ClampToEdge
+        Self::CLAMP_TO_EDGE
     }
 }
 
@@ -310,7 +337,7 @@ where
         let internal_format = Self::gl_internal_format();
         let format = Self::gl_format().into();
         let elem_type = Self::gl_elem_type();
-        self.context.bind_texture(target, Some(&self.gl_texture));
+        self.context.bind_texture(*target, Some(&self.gl_texture));
         #[allow(unsafe_code)]
         unsafe {
             // We use unsafe array view which is used immediately, so no allocations should happen
@@ -318,7 +345,7 @@ where
             let view = data.js_buffer_view();
             let result = self.context
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view
-                (target,level,internal_format,width,height,border,format,elem_type,Some(&view));
+                (*target,level,internal_format,width,height,border,format,elem_type,Some(&view));
             result.unwrap();
         }
         self.apply_texture_parameters(&self.context);
@@ -371,9 +398,9 @@ impl<
         self.with_content(|this| {
             let context = context.clone();
             let target = Context::TEXTURE_2D;
-            context.active_texture(Context::TEXTURE0 + unit.to::<u32>());
-            context.bind_texture(target, Some(&this.gl_texture));
-            context.active_texture(Context::TEXTURE0);
+            context.active_texture(*Context::TEXTURE0 + unit.to::<u32>());
+            context.bind_texture(*target, Some(&this.gl_texture));
+            context.active_texture(*Context::TEXTURE0);
             TextureBindGuard { context, target, unit }
         })
     }
