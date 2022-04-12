@@ -1302,6 +1302,8 @@ spec =
 
         Test.specify "in Regex mode should work with Unicode" <|
             "Korean: 건반".replace "건반" "keyboard" matcher=Regex_Matcher . should_equal "Korean: keyboard"
+            'sśs\u{301}'.replace 'ś' '-' matcher=Regex_Matcher . should_equal 's--'
+            'sśs\u{301}'.replace 's\u{301}' '-' matcher=Regex_Matcher . should_equal 's--'
 
         Test.specify "in Regex mode should support various Regex options" <|
             r1 = "İiİ".replace "\w" "a" matcher=(Regex_Matcher match_ascii=True)
