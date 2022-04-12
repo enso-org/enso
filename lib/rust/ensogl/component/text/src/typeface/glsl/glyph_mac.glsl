@@ -1,5 +1,5 @@
-// A factor describing much the bold letters will be dilated, expressed as the fraction of font size.
-const float BOLD_DILATE = 0.04;
+// A factor describing much the bold letters will be fattened, expressed as the fraction of font size.
+const float BOLD_FATTING = 0.04;
 
 highp float median(highp vec3 v) {
     return max(min(v.x, v.y), min(max(v.x, v.y), v.z));
@@ -23,12 +23,12 @@ highp vec2 get_texture_coord() {
     return offset + get_scaled_uv() * msdf_fragment_size;
 }
 
-highp float get_dilate() {
+highp float get_fatting() {
     bool glyph_is_bold            = (input_style & STYLE_BOLD_FLAG) != 0;
     highp vec2  local_to_px_ratio = 1.0 / fwidth(input_local.xy);
     highp float font_size_px      = input_font_size * (local_to_px_ratio.x + local_to_px_ratio.y) / 2.0;
-    highp float relative_dilate = (glyph_is_bold ? BOLD_DILATE : 0.0) + input_dilate;
-    return font_size_px * relative_dilate;
+    highp float fatting           = (glyph_is_bold ? BOLD_FATTING : 0.0) + input_highlight;
+    return font_size_px * fatting;
 }
 
 // FIXME
@@ -47,7 +47,7 @@ highp float msdf_alpha() {
     highp float dpi_dilate  = avg_msdf_unit_px < input_msdf_range*0.49 ? 1.0 : 0.0;
     highp vec3  msdf_sample = texture(input_atlas,tex_coord).rgb;
     highp float sig_dist    = median(msdf_sample) - 0.5;
-    highp float sig_dist_px = sig_dist * avg_msdf_unit_px + get_dilate();
+    highp float sig_dist_px = sig_dist * avg_msdf_unit_px + get_fatting();
     highp float opacity     = 0.5 + sig_dist_px + dpi_dilate * 0.08;
     opacity += 0.6;                      // FIXME: Widen + sharpen
     opacity = clamp(opacity, 0.0, 1.0);

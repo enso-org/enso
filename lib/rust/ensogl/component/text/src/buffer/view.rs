@@ -369,7 +369,7 @@ ensogl_core::define_endpoints! {
         set_default_color          (color::Rgba),
         set_default_text_size      (style::Size),
         set_color_bytes            (buffer::Range<Bytes>, color::Rgba),
-        set_dilate_bytes           (buffer::Range<Bytes>, style::Dilate),
+        set_highlight_bytes        (buffer::Range<Bytes>, style::Highlight),
     }
 
     Output {
@@ -450,7 +450,7 @@ impl View {
             eval input.set_default_color     ((t) m.set_default(*t));
             eval input.set_default_text_size ((t) m.set_default(*t));
             eval input.set_color_bytes       (((range,color)) m.replace(range,*color));
-            eval input.set_dilate_bytes      (((range,value)) m.replace(range,*value));
+            eval input.set_highlight_bytes   (((range,value)) m.replace(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ sel_on_modification;

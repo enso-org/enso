@@ -51,7 +51,7 @@ pub struct Glyph {
     font_size:   Attribute<f32>,
     color:       Attribute<Vector4<f32>>,
     style:       Attribute<i32>,
-    dilate:      Attribute<f32>,
+    highlight:   Attribute<f32>,
     atlas_index: Attribute<f32>,
     atlas:       Uniform<Texture>,
     char:        Rc<Cell<char>>,
@@ -75,12 +75,12 @@ impl Glyph {
         self.style.modify(|v| if value { *v |= style_flag::BOLD } else { *v &= !style_flag::BOLD });
     }
 
-    pub fn dilate(&self) -> f32 {
-        self.dilate.get()
+    pub fn highlight(&self) -> f32 {
+        self.highlight.get()
     }
 
-    pub fn set_dilate(&self, value: f32) {
-        self.dilate.set(value);
+    pub fn set_highlight(&self, value: f32) {
+        self.highlight.set(value);
     }
 
     pub fn font_size(&self) -> f32 {
@@ -141,7 +141,7 @@ pub struct System {
     font_size:     Buffer<f32>,
     color:         Buffer<Vector4<f32>>,
     style:         Buffer<i32>,
-    dilate:        Buffer<f32>,
+    highlight:     Buffer<f32>,
     atlas_index:   Buffer<f32>,
     atlas:         Uniform<Texture>,
 }
@@ -173,7 +173,7 @@ impl System {
             font_size: mesh.instance_scope().add_buffer("font_size"),
             color: mesh.instance_scope().add_buffer("color"),
             style: mesh.instance_scope().add_buffer("style"),
-            dilate: mesh.instance_scope().add_buffer("dilate"),
+            highlight: mesh.instance_scope().add_buffer("highlight"),
             atlas_index: mesh.instance_scope().add_buffer("atlas_index"),
         }
     }
@@ -187,14 +187,25 @@ impl System {
         let font_size = self.font_size.at(instance_id);
         let color = self.color.at(instance_id);
         let style = self.style.at(instance_id);
-        let dilate = self.dilate.at(instance_id);
+        let highlight = self.highlight.at(instance_id);
         let atlas_index = self.atlas_index.at(instance_id);
         let font = self.font.clone_ref();
         let atlas = self.atlas.clone();
         let char = default();
         color.set(Vector4::new(0.0, 0.0, 0.0, 0.0));
         atlas_index.set(0.0);
-        Glyph { sprite, context, font, font_size, color, style, dilate, atlas_index, atlas, char }
+        Glyph {
+            sprite,
+            context,
+            font,
+            font_size,
+            color,
+            style,
+            highlight,
+            atlas_index,
+            atlas,
+            char,
+        }
     }
 
     /// Get underlying sprite system.
@@ -232,7 +243,7 @@ impl System {
         material.add_input("font_size", 10.0);
         material.add_input("color", Vector4::new(0.0, 0.0, 0.0, 1.0));
         material.add_input("style", 0);
-        material.add_input("dilate", 0.0);
+        material.add_input("highlight", 0.0);
         // FIXME We need to use this output, as we need to declare the same amount of shader
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more
         // FIXME intelligent. For example, we could allow defining output shader fragments,
