@@ -795,7 +795,7 @@ Text.utf_8 = this.bytes Encoding.utf_8
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector.Vector Byte -> Text
 Text.from_utf_8 bytes =
-    Text.from_bytes bytes.to_array Encoding.utf_8
+    Text.from_bytes bytes Encoding.utf_8
 
 ## Returns a vector containing the UTF-16 characters that encode the input text.
 
