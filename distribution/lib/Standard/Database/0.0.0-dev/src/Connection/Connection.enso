@@ -65,7 +65,7 @@ type Connection
          meant only for internal use.
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
     execute_query query expected_types=Nothing = here.handle_sql_errors <|
-        Resource.bracket (this.prepare_statement query) .close stmt->
+        this.with_prepared_statement query stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
@@ -97,31 +97,27 @@ type Connection
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
     execute_update query = here.handle_sql_errors <|
-        Resource.bracket (this.prepare_statement query) .close stmt->
-            ## FIXME USE CATCH HERE!
-            result = Panic.recover Any stmt.executeLargeUpdate
-            result.catch err-> case err of
-                Polyglot_Error exc ->
-                    case Java.is_instance exc UnsupportedOperationException of
-                        True ->
-                            stmt.executeUpdate
-                        False -> Error.throw err
-                _ -> Error.throw err
+        this.with_prepared_statement query stmt->
+            Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
+                stmt.executeUpdate
 
     ## PRIVATE
 
-       Prepares the statement by ensuring that it is sanitised.
-
-       Arguments:
-       - query: The query to prepare the SQL statement in.
-    prepare_statement : Text | Sql.Statement -> PreparedStatement
-    prepare_statement query =
-        go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
+       Runs the provided action with a prepared statement, adding contextual
+       information to any thrown SQL errors.
+    with_prepared_statement : Text  | Sql.Statement -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement query action =
+        prepare template holes = Managed_Resource.with this.connection_resource java_connection->
             stmt = java_connection.prepareStatement template
             Panic.catch Any (here.set_statement_values stmt holes) caught_panic->
                 stmt.close
                 Panic.throw caught_panic
             stmt
+
+        go template holes =
+            here.wrap_sql_errors related_query=template <|
+                Resource.bracket (prepare template holes) .close action
+
         case query of
             Text -> go query []
             Sql.Statement _ ->
@@ -140,7 +136,7 @@ type Connection
     fetch_columns table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
         compiled = this.dialect.generate_sql query
-        Resource.bracket (this.prepare_statement compiled) .close stmt->
+        this.with_prepared_statement compiled stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
@@ -363,7 +359,7 @@ type Sql_Error
        Convert the SQL error to a textual representation.
     to_text : Text
     to_text =
-        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        query = if this.related_query.is_nothing.not then " [Query was: " + this.related_query + "]" else ""
         "There was an SQL error: " + this.java_exception.getMessage.to_text + "." + query
 
     ## UNSTABLE
@@ -406,10 +402,10 @@ type Sql_Timeout_Error
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-handle_sql_errors : Any -> Any ! (Sql_Error | Sql_Timeout_Error)
-handle_sql_errors ~action =
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action related_query=Nothing =
     Panic.recover [Sql_Error, Sql_Timeout_Error] <|
-        here.wrap_sql_errors action
+        here.wrap_sql_errors action related_query
 
 ## PRIVATE
 
@@ -437,7 +433,9 @@ default_storage_type storage_type = case storage_type of
     Storage.Integer -> Sql_Type.integer
     Storage.Decimal -> Sql_Type.double
     Storage.Boolean -> Sql_Type.boolean
-    Storage.Any -> Sql_Type.blob
+    ## Support for mixed type columns in Table upload is currently very limited,
+       falling back to treating everything as text.
+    Storage.Any -> Sql_Type.text
 
 ## PRIVATE
    Sets values inside of a prepared statement.

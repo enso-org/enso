@@ -39,10 +39,11 @@ run_tests connection pending=Nothing =
         Ref.put name_counter ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
-        in_mem_table = Materialized_Table.new <| columns.map description-> [description.at 0, description.at 2]
-        table = connection.upload_table name in_mem_table
-        tables.append name
-        table
+        in_mem_table = Materialized_Table.new columns
+        case connection.upload_table name in_mem_table of
+            table ->
+                tables.append name
+                table
     clean_tables table_names =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
@@ -59,7 +60,7 @@ run_tests connection pending=Nothing =
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     tables.append empty_agg_table.name
     materialize = .to_dataframe
-    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table materialize selection pending=pending
+    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection pending=pending
 
     clean_tables tables.to_vector
 
