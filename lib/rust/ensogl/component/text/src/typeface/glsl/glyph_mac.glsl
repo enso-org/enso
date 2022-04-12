@@ -27,7 +27,7 @@ highp float get_fatting() {
     bool glyph_is_bold            = (input_style & STYLE_BOLD_FLAG) != 0;
     highp vec2  local_to_px_ratio = 1.0 / fwidth(input_local.xy);
     highp float font_size_px      = input_font_size * (local_to_px_ratio.x + local_to_px_ratio.y) / 2.0;
-    highp float fatting           = (glyph_is_bold ? BOLD_FATTING : 0.0) + input_highlight;
+    highp float fatting           = (glyph_is_bold ? BOLD_FATTING : 0.0) + input_sdf_bold;
     return font_size_px * fatting;
 }
 

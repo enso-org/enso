@@ -260,7 +260,7 @@ ensogl_core::define_endpoints! {
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_color_all         (color::Rgba),
-        set_highlight_bytes   (buffer::Range<Bytes>,style::Highlight),
+        set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
@@ -510,8 +510,8 @@ impl Area {
 
             // === Style ===
 
-            m.buffer.frp.set_highlight_bytes <+ input.set_highlight_bytes;
-            eval_ input.set_highlight_bytes (m.redraw(false));
+            m.buffer.frp.set_sdf_bold <+ input.set_sdf_bold;
+            eval_ input.set_sdf_bold (m.redraw(false));
 
 
             // === Changes ===
@@ -849,7 +849,7 @@ impl AreaModel {
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
                     glyph.set_bold(style.bold.raw);
-                    glyph.set_highlight(style.highlight.raw);
+                    glyph.set_sdf_bold(style.sdf_bold.raw);
                     glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),

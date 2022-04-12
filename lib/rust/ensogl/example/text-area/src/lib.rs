@@ -57,14 +57,14 @@ fn init(app: Application) {
     area.hover();
     area.set_cursor_at_end();
 
-    area.set_highlight_bytes(Range::new(4.bytes(), 6.bytes()), style::Highlight(0.02));
-    area.set_highlight_bytes(Range::new(7.bytes(), 15.bytes()), style::Highlight(0.04));
-    area.set_highlight_bytes(Range::new(24.bytes(), 26.bytes()), style::Highlight(0.02));
-    area.set_highlight_bytes(Range::new(37.bytes(), 41.bytes()), style::Highlight(0.05));
-    area.set_highlight_bytes(Range::new(55.bytes(), 56.bytes()), style::Highlight(0.03));
+    area.set_sdf_bold(Range::new(4.bytes(), 6.bytes()), style::SdfBold(0.02));
+    area.set_sdf_bold(Range::new(7.bytes(), 15.bytes()), style::SdfBold(0.04));
+    area.set_sdf_bold(Range::new(24.bytes(), 26.bytes()), style::SdfBold(0.02));
+    area.set_sdf_bold(Range::new(37.bytes(), 41.bytes()), style::SdfBold(0.05));
+    area.set_sdf_bold(Range::new(55.bytes(), 56.bytes()), style::SdfBold(0.03));
     let quote_length = Bytes::from(quote.len());
     let text_length = Bytes::from(text.len());
-    area.set_dilate_bytes(Range::new(quote_length, text_length), style::Dilate(0.02));
+    area.set_sdf_bold(Range::new(quote_length, text_length), style::SdfBold(0.02));
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
