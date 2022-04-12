@@ -55,7 +55,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write "Cup"
+            f.write_text "Cup"
             f.with_input_stream stream->
                 stream.read_byte.should_equal 67
                 stream.read_byte.should_equal 117
@@ -68,7 +68,7 @@ spec =
             f = Enso_Project.data / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write "line 1!"
+            f.write_text "line 1!"
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
             f.append '\nline 2!'
@@ -108,3 +108,5 @@ spec =
 
             filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
+
+main = Test.Suite.run_main here.spec

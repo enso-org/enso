@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+import Standard.Base.Data.Text.Encoding as Encoding_Module
 
 import Standard.Test
 
@@ -16,6 +17,10 @@ spec =
         Test.specify "Catches invalid character sets" <|
             invalid = Encoding "NotAValidCharacterSet"
             invalid.to_java_charset . should_fail_with Illegal_Argument_Error
+
+        Test.specify "Can get full set of character sets" <|
+            character_sets = Encoding_Module.all_character_sets
+            character_sets.length . should_not_equal 0
 
     Test.group "UTF_8" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -39,6 +44,5 @@ spec =
 
         Test.specify "should convert an array of codepoints to text" <|
             Text.from_codepoints facepalm_codes . should_equal facepalm
-
 
 main = Test.Suite.run_main here.spec

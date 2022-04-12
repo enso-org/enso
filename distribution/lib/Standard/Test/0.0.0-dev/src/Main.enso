@@ -234,6 +234,28 @@ Any.should_equal that frames_to_skip=0 = case this == that of
         msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         here.fail msg
 
+## Asserts that `this` value is not equal to the expected value.
+
+   Arguments:
+   - that: The value to check `this` for equality with.
+   - frames_to_skip (optional, advanced): used to alter the location which is
+     displayed as the source of this error.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
+Any.should_not_equal : Any -> Integer -> Assertion
+Any.should_not_equal that frames_to_skip=0 = case this != that of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2+frames_to_skip
+        msg = this.to_text + " did equal " + that.to_text + " (at " + loc + ")."
+        here.fail msg
+
 ## Asserts that `this` value is equal to the expected value.
 
    Arguments:

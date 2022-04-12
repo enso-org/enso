@@ -514,7 +514,7 @@ type File
 
              example_delete =
                  file = Examples.data_dir / "my_file"
-                 file.write "hello"
+                 file.write_text "hello"
                  file.delete
     delete : Nothing ! File_Error
     delete =
