@@ -717,9 +717,10 @@ object BindingsMap {
     *
     * @param name the name of the constructor.
     * @param arity the number of fields in the constructor.
+    * @param allFieldsDefaulted whether all fields provide a default value.
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
-  case class Cons(name: String, arity: Int, builtinType: Boolean = false)
+  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean, builtinType: Boolean = false)
 
   /** A representation of an imported polyglot symbol.
     *

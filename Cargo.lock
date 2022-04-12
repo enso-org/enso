@@ -961,6 +961,7 @@ dependencies = [
  "enso-generics",
  "enso-logger",
  "enso-prelude",
+ "enso-profiler",
  "enso-web",
  "keyboard-types",
  "nalgebra 0.26.2",
@@ -1037,6 +1038,7 @@ dependencies = [
  "enso-frp",
  "enso-gui",
  "enso-prelude",
+ "enso-shortcuts",
  "enso-web",
  "ensogl",
  "ordered-float 2.10.0",
@@ -1129,6 +1131,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",
  "serde",
@@ -1354,6 +1357,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-custom-shape-system"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-dom-symbols"
 version = "0.1.0"
 dependencies = [
@@ -1490,6 +1503,7 @@ dependencies = [
 name = "ensogl-example-shape-system"
 version = "0.1.0"
 dependencies = [
+ "enso-profiler",
  "ensogl-core",
  "wasm-bindgen",
 ]
@@ -1540,6 +1554,7 @@ version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-complex-shape-system",
+ "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",

@@ -9,7 +9,6 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Error",
@@ -30,7 +29,6 @@ public class CatchErrorNode extends Node {
 
   Stateful execute(
       VirtualFrame frame, @MonadicState Object state, DataflowError _this, Object handler) {
-    return invokeCallableNode.execute(
-        handler, frame, state, new Object[] {TypesGen.asDataflowError(_this).getPayload()});
+    return invokeCallableNode.execute(handler, frame, state, new Object[] {_this.getPayload()});
   }
 }

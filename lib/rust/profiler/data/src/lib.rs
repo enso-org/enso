@@ -1,6 +1,3 @@
-// === Standard Linter Configuration ===
-#![deny(non_ascii_idents)]
-#![warn(unsafe_code)]
 //! Interface to profile data.
 //!
 //! # Overview
@@ -91,21 +88,31 @@
 //! store_and_retrieve_metadata();
 //! ```
 
+// === Features ===
 #![feature(test)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
 use enso_profiler as profiler;
-
 use std::error;
 use std::fmt;
 
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod aggregate;
 pub mod parse;
 
 
@@ -287,6 +294,8 @@ impl Measurement {
 pub enum Class {
     /// Profiler that is active during the execution of anything else, after early startup.
     OnFrame,
+    /// Profiler that is run when a WebGL context is acquired or lost.
+    SetContext,
     /// Any profiler that doesn't need special treatment.
     Normal,
 }
@@ -423,6 +432,7 @@ impl Label {
     fn classify(&self) -> Class {
         match self.name.as_str() {
             "@on_frame" => Class::OnFrame,
+            "@set_context" => Class::SetContext,
             // Data producer is probably newer than consumer. Forward compatibility isn't necessary.
             name if name.starts_with('@') => panic!("Unrecognized special profiler: {:?}", name),
             _ => Class::Normal,

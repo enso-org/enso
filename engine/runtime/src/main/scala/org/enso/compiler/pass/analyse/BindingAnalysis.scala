@@ -48,7 +48,12 @@ case object BindingAnalysis extends IRPass {
         val isBuiltinType = cons
           .getMetadata(ModuleAnnotations)
           .exists(_.annotations.exists(_.name == "@Builtin_Type"))
-        BindingsMap.Cons(cons.name.name, cons.arguments.length, isBuiltinType)
+        BindingsMap.Cons(
+          cons.name.name,
+          cons.arguments.length,
+          cons.arguments.forall(_.defaultValue.isDefined),
+          isBuiltinType
+        )
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>

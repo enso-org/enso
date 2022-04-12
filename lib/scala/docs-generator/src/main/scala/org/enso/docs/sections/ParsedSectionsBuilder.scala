@@ -4,7 +4,9 @@ import cats.kernel.Monoid
 import cats.syntax.compose._
 import org.enso.syntax.text.ast.Doc
 
-/** Combine the documentation into a list of [[ParsedSection]]s. */
+import scala.collection.mutable
+
+/** Combine the documentation into a list of [[Section]]s. */
 final class ParsedSectionsBuilder {
 
   import ParsedSectionsBuilder._
@@ -14,7 +16,7 @@ final class ParsedSectionsBuilder {
     * @param doc the parsed documentation comment.
     * @return the list of parsed sections.
     */
-  def build(doc: Doc): List[ParsedSection] = {
+  def build(doc: Doc): List[Section] = {
     val tagSections      = doc.tags.map(buildTags)
     val synopsisSections = doc.synopsis.map(buildSynopsis)
     val bodySections     = doc.body.map(buildBody)
@@ -26,9 +28,9 @@ final class ParsedSectionsBuilder {
     * @param tags the tags section
     * @return the list of parsed sections
     */
-  private def buildTags(tags: Doc.Tags): List[ParsedSection] =
+  private def buildTags(tags: Doc.Tags): List[Section] =
     tags.elems.toList.map { tag =>
-      Section.Tag(tag.name, tag.details.map(_.trim).map(Doc.Elem.Text))
+      Section.Tag(tag.name, tag.details.map(_.trim).map(Doc.Elem.Text).toList)
     }
 
   /** Process the synopsis section of the documentation comment.
@@ -36,40 +38,27 @@ final class ParsedSectionsBuilder {
     * @param synopsis the synopsis section
     * @return the list of parsed sections
     */
-  private def buildSynopsis(synopsis: Doc.Synopsis): List[ParsedSection] =
-    (joinSections _ >>> buildSections)(synopsis.elems.toList)
+  private def buildSynopsis(synopsis: Doc.Synopsis): List[Section] =
+    (preprocess >>> buildSections)(synopsis.elems.toList)
 
   /** Process the body section of the documentation comment.
     *
     * @param body the body section
     * @return the list of parsed sections
     */
-  private def buildBody(body: Doc.Body): List[ParsedSection] =
-    (joinSections _ >>> buildSections)(body.elems.toList)
+  private def buildBody(body: Doc.Body): List[Section] =
+    (preprocess >>> buildSections)(body.elems.toList)
 
   /** Process the list of [[Doc.Section]] documentation sections.
     *
     * @param sections the list of parsed documentation sections
     * @return the list of parsed sections
     */
-  private def buildSections(
-    sections: List[Doc.Section]
-  ): List[ParsedSection] =
-    sections.map {
+  private def buildSections(sections: List[Doc.Section]): List[Section] =
+    sections.flatMap {
       case Doc.Section.Raw(_, elems) =>
-        elems match {
-          case Doc.Elem.Text(text) :: t =>
-            val (key, value) = text.span(_ != const.COLON)
-            if (value.nonEmpty) {
-              val line = value.drop(1).stripPrefix(const.SPACE)
-              val body = if (line.isEmpty) t else Doc.Elem.Text(line) :: t
-              Section.Keyed(key, body)
-            } else {
-              Section.Paragraph(elems)
-            }
-          case _ =>
-            Section.Paragraph(elems)
-        }
+        buildRaw(elems)
+
       case Doc.Section.Marked(_, _, typ, elems) =>
         elems match {
           case head :: tail =>
@@ -79,9 +68,9 @@ final class ParsedSectionsBuilder {
               case _ =>
                 None
             }
-            Section.Marked(buildMark(typ), header, tail)
+            List(Section.Marked(buildMark(typ), header, tail))
           case Nil =>
-            Section.Marked(buildMark(typ), None, elems)
+            List(Section.Marked(buildMark(typ), None, elems))
         }
     }
 
@@ -97,6 +86,12 @@ final class ParsedSectionsBuilder {
       case Doc.Section.Marked.Info      => Section.Mark.Info
       case Doc.Section.Marked.Example   => Section.Mark.Example
     }
+
+  /** The preprocessor function that is invoked before building the
+    * resulting list of sections.
+    */
+  private def preprocess: List[Doc.Section] => List[Doc.Section] =
+    joinSections _ >>> filterSections
 
   /** Preprocess the list of documentation sections and join the paragraphs of
     * the same offset with the marked section.
@@ -139,6 +134,65 @@ final class ParsedSectionsBuilder {
     }
 
     (acc.toList ::: result).reverse
+  }
+
+  /** Filter the sections before processing them.
+    *
+    * The function filters out:
+    * - empty sections
+    *
+    * @param sections the list of documentation sections
+    * @return the list of filtered sections
+    */
+  private def filterSections(sections: List[Doc.Section]): List[Doc.Section] =
+    sections
+      .filter {
+        case Doc.Section.Raw(_, List(Doc.Elem.Newline)) => false
+        case _                                          => true
+      }
+
+  /** Builds sections from the [[Doc.Section.Raw]] raw section.
+    *
+    * @param elems the elements of the raw section
+    * @return the resulting list of sections
+    */
+  private def buildRaw(elems: List[Doc.Elem]): List[Section] =
+    elems match {
+      case Doc.Elem.Text(text) :: tail =>
+        val (key, value) = text.span(_ != const.COLON)
+        if (value.nonEmpty) {
+          val line            = value.drop(1).stripPrefix(const.SPACE)
+          val body            = if (line.isEmpty) tail else Doc.Elem.Text(line) :: tail
+          val (keyBody, rest) = splitKeyed(body)
+          Section.Keyed(key, keyBody) :: buildRaw(rest)
+        } else {
+          List(Section.Paragraph(elems))
+        }
+      case Nil =>
+        Nil
+      case elems =>
+        List(Section.Paragraph(elems))
+    }
+
+  private def splitKeyed(
+    elems: List[Doc.Elem]
+  ): (List[Doc.Elem], List[Doc.Elem]) = {
+    @scala.annotation.tailrec
+    def go(
+      elems: List[Doc.Elem],
+      b: mutable.Builder[Doc.Elem, List[Doc.Elem]]
+    ): (List[Doc.Elem], List[Doc.Elem]) =
+      elems match {
+        case Doc.Elem.Newline :: Doc.Elem.Text(text) :: tail
+            if text.contains(const.COLON) =>
+          (b.result(), Doc.Elem.Text(text) :: tail)
+        case elem :: tail =>
+          go(tail, b += elem)
+        case Nil =>
+          (b.result(), Nil)
+      }
+
+    go(elems, List.newBuilder)
   }
 }
 

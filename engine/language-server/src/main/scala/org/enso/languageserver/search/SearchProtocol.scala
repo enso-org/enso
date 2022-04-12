@@ -5,7 +5,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{DocSection, Suggestion}
 import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
@@ -39,6 +39,87 @@ object SearchProtocol {
 
     val Local = "local"
   }
+
+  object DocSectionType {
+
+    val Tag = "tag"
+
+    val Paragraph = "paragraph"
+
+    val Keyed = "keyed"
+
+    val Marked = "marked"
+  }
+
+  object DocSectionMarkType {
+
+    val Important = "Important"
+
+    val Info = "Info"
+
+    val Example = "Example"
+  }
+
+  implicit val docSectionEncoder: Encoder[DocSection] =
+    Encoder.instance[DocSection] {
+      case tag: DocSection.Tag =>
+        Encoder[DocSection.Tag]
+          .apply(tag)
+          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Tag.asJson))
+
+      case paragraph: DocSection.Paragraph =>
+        Encoder[DocSection.Paragraph]
+          .apply(paragraph)
+          .deepMerge(
+            Json.obj(CodecField.Type -> DocSectionType.Paragraph.asJson)
+          )
+
+      case keyed: DocSection.Keyed =>
+        Encoder[DocSection.Keyed]
+          .apply(keyed)
+          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Keyed.asJson))
+
+      case marked: DocSection.Marked =>
+        Encoder[DocSection.Marked]
+          .apply(marked)
+          .deepMerge(Json.obj(CodecField.Type -> DocSectionType.Marked.asJson))
+    }
+
+  implicit val docSectionDecoder: Decoder[DocSection] =
+    Decoder.instance { cursor =>
+      cursor.downField(CodecField.Type).as[String].flatMap {
+        case DocSectionType.Tag =>
+          Decoder[DocSection.Tag].tryDecode(cursor)
+
+        case DocSectionType.Paragraph =>
+          Decoder[DocSection.Paragraph].tryDecode(cursor)
+
+        case DocSectionType.Keyed =>
+          Decoder[DocSection.Keyed].tryDecode(cursor)
+
+        case DocSectionType.Marked =>
+          Decoder[DocSection.Marked].tryDecode(cursor)
+      }
+    }
+
+  implicit val docSectionMarkEncoder: Encoder[DocSection.Mark] =
+    Encoder.instance {
+      case _: DocSection.Mark.Important =>
+        DocSectionMarkType.Important.asJson
+      case _: DocSection.Mark.Info =>
+        DocSectionMarkType.Info.asJson
+      case _: DocSection.Mark.Example =>
+        DocSectionMarkType.Example.asJson
+    }
+
+  implicit val docSectionMarkDecoder: Decoder[DocSection.Mark] =
+    Decoder.instance { cursor =>
+      cursor.as[String].map {
+        case DocSectionMarkType.Important => DocSection.Mark.Important()
+        case DocSectionMarkType.Info      => DocSection.Mark.Info()
+        case DocSectionMarkType.Example   => DocSection.Mark.Example()
+      }
+    }
 
   implicit val suggestionEncoder: Encoder[Suggestion] =
     Encoder.instance[Suggestion] {
@@ -102,6 +183,7 @@ object SearchProtocol {
       conversion.returnType,
       conversion.documentation,
       conversion.documentationHtml,
+      None,
       conversion.reexport
     )
   }

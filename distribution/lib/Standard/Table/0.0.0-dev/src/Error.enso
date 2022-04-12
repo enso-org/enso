@@ -48,7 +48,6 @@ No_Output_Columns.to_display_text : Text
 No_Output_Columns.to_display_text =
     "The result contains no columns."
 
-
 ## Indicates that the provided Column_Selector has duplicate entries.
 type Duplicate_Column_Selectors (duplicate_selectors : [(Text | Integer)])
 
@@ -67,3 +66,31 @@ type Input_Indices_Already_Matched (indices : [Integer])
 Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text =
     "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
+
+## Indicates that an aggregation calculation could not be completed.
+type Invalid_Aggregation (column:Text) (rows:[Integer]) (message:Text)
+
+Invalid_Aggregation.to_display_text : Text
+Invalid_Aggregation.to_display_text =
+    "The "+this.column+" could not be calculated at "+this.row.to_text+" : "+this.message
+
+## Indicates that a floating point number was used in a grouping.
+type Floating_Point_Grouping (column:Text) (rows:[Integer])
+
+Floating_Point_Grouping.to_display_text : Text
+Floating_Point_Grouping.to_display_text =
+    "Grouping on floating points is not recommended within "+this.column+" at row "+this.row.to_text+"."
+
+## Indicates that a text value with a delimiter was included in a concatenation without any quote character
+type Unquoted_Delimiter (column:Text) (rows:[Integer])
+
+Unquoted_Delimiter.to_display_text : Text
+Unquoted_Delimiter.to_display_text =
+    "The "+this.column+" at row "+this.row.to_text+" contains the delimiter and there is no specified quote character."
+
+## Warning when additional warnings occurred.
+type Additional_Warnings (count:Integer)
+
+Additional_Warnings.to_display_text : Text
+Additional_Warnings.to_display_text =
+    "There were "+this.count.to_text+" additional issues."

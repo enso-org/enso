@@ -14,6 +14,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(unsafe_code)]
+#![recursion_limit = "256"]
 
 #[cfg(feature = "futures")]
 pub mod channel;
@@ -437,3 +438,14 @@ impl<T: ?Sized> WeakRef for Weak<T> {
         Weak::upgrade(self)
     }
 }
+
+
+
+// ======================
+// === ImplementsDrop ===
+// ======================
+
+/// Check whether the structure implements custom drop behavior. Used mainly by the
+/// [`NoCloneBecauseOfCustomDrop`] macro.
+#[allow(drop_bounds)]
+pub trait ImplementsDrop: Drop {}
