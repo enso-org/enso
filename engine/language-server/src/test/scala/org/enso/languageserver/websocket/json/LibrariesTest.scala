@@ -5,7 +5,11 @@ import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
-import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
+import org.enso.languageserver.libraries.{
+  LibraryComponentGroup,
+  LibraryComponentGroups,
+  LibraryEntry
+}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
@@ -749,20 +753,20 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "availableComponents" : [ ]
-            }
-          }
-          """)
+      val response = client.expectSomeJson()
+      val components = response.hcursor
+        .downField("result")
+        .downField("availableComponents")
+        .as[List[LibraryComponentGroup]]
+        .rightValue
+
+      components should not be empty
 
       val currentEditionName = buildinfo.Info.currentEdition
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "editions/listDefinedComponents",
-            "id": 0,
+            "id": 1,
             "params": {
               "edition": {
                 "type": "NamedEdition",
@@ -772,14 +776,14 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "availableComponents" : [ ]
-            }
-          }
-          """)
+      val response2 = client.expectSomeJson()
+      val components2 = response2.hcursor
+        .downField("result")
+        .downField("availableComponents")
+        .as[List[LibraryComponentGroup]]
+        .rightValue
+
+      components2 should not be empty
     }
   }
 
