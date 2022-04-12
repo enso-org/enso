@@ -1181,12 +1181,12 @@ spec =
 
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
-        'aaa'.replace 'aa' 'b' . should_equal 'ba'
-        # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
-        "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
-        #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
-        'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
-        'aﬃb'.replace 'f' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+            'aaa'.replace 'aa' 'b' . should_equal 'ba'
+            # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
+            "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
+            #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
+            'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+            'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->
@@ -1251,19 +1251,22 @@ spec =
 
         Test.specify "will approximate ligature matches" <|
             # TODO do we want to improve this? highly non-trivial for very rare edge cases
-            # Currently we lack 'resolution' to distinguish the `i` from the ligature.
+            ## Currently we lack 'resolution' to extract a partial match from
+               the ligature to keep it, probably would need some special
+               mapping.
             'ﬃﬃ'.replace 'ff' 'aa' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaaa'
             'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'aaﬃ'
             'ﬃﬃ'.replace 'ff' 'aa' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'ﬃaa'
             'aﬃﬃb'.replace 'IF' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
             'aiﬃffz' . replace 'if' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'a--fz'
+            'AFFIB'.replace 'ﬃ' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A-B'
 
             'ß'.replace 'SS' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
             'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
             'ß'.replace 'S' 'A' mode=Matching_Mode.First matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
             'ß'.replace 'S' 'A' mode=Matching_Mode.Last matcher=(Text_Matcher Case_Insensitive) . should_equal 'A'
+            'STRASSE'.replace 'ß' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'STRA-E'
 
-    Test.group "Text.replace (regex (todo merge with above))" pending="TODO" <|
         Test.specify "should perform simple replacement in Regex mode" <|
             result = "ababab".replace "b" "a" matcher=Regex_Matcher
             result . should_equal "aaaaaa"

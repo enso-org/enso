@@ -478,7 +478,7 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
           # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
          'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
-         'aﬃb'.replace 'f' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+         'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then this else
     case matcher of
