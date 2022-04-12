@@ -910,7 +910,9 @@ class ContextRegistryTest extends BaseServerTest {
 
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.GetComponentGroupsResponse(TestComponentGroups.standardBase)
+        Api.GetComponentGroupsResponse(
+          TestComponentGroups.standardBase.toVector
+        )
       )
       client.expectJson(json"""
           { "jsonrpc": "2.0",
