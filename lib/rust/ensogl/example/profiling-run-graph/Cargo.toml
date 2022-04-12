@@ -23,3 +23,15 @@ ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 futures = "0.3"
 serde = "1"
 wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
+wasm-bindgen-futures = "0.4"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    'Headers',
+    'Request',
+    'RequestInit',
+    'RequestMode',
+    'Response',
+    'Window',
+]

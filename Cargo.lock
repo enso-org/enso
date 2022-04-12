@@ -1460,6 +1460,8 @@ dependencies = [
  "futures 0.3.21",
  "serde",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

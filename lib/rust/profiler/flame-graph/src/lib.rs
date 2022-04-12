@@ -293,7 +293,7 @@ impl FlamegraphGrapher {
     fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
         let start = self.time;
         let end = self.time + frame.total_duration();
-        self.blocks.push(Block { start, end, label, row });
+        self.blocks.push(Block { start, end, label, row, state: State::Active });
         for (label, frame) in &frame.children {
             self.visit_frame(frame, label.to_string(), row + 1);
         }
