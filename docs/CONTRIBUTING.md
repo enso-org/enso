@@ -661,7 +661,7 @@ directory of the distribution folder. Distribution paths are printed when you
 run project manager with `-v` verbose logging.
 
 ```bash
-$ ./built-distribution/enso-project-manager-0.2.32-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+$ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
