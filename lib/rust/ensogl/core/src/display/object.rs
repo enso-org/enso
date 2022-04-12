@@ -2,8 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::display::camera::Camera2d;
-use crate::display::scene::layer::Layer;
+use super::scene::layer::ForEachSublayer;
 
 
 // ==============
@@ -37,18 +36,32 @@ pub mod traits {
 
 /// A wrapper around [`Instance`] with attached sublayers. It is used for
 /// dynamic creation and managing of additional on-demand sublayers needed for various UI
-/// components.
+/// components. Sublayers are layers attached to other layers by [`Layer::add_sublayer`] method
+/// and used for shapes ordering and masking. See [`Layer`] documentation for more info about
+/// sublayers.
 ///
-/// When the Instance is added to another layer, [`Sublayers::remove_from_layer`] and
-/// [`Sublayers::add_to_layer`] methods of the `sublayers` field will be called with previous and
-/// new layers respectively.
+/// See [`crate::display::scene::layer::MaskingSublayers`] docs for one of the use cases.
 ///
-/// See [`MaskingSublayers`] docs for one of the use cases.
-#[derive(Debug, Clone, CloneRef)]
-pub struct InstanceWithSublayers<S: CloneRef> {
+/// When the [`Instance`] is added to another layer, [`Sublayers::for_each_sublayer`] method of the
+/// `sublayers` field will be used to reattach sublayers to this new layer as well. Thus the
+/// sublayers are following the [`Instance`] at all times.
+#[derive(Debug)]
+pub struct InstanceWithSublayers<S> {
     inner:         Instance,
-    /// Attached sublayers. Should implement [`Sublayers`] trait.
+    /// Attached sublayers. Should implement [`ForEachSublayer`] trait.
     pub sublayers: S,
+}
+
+impl<S: Clone> Clone for InstanceWithSublayers<S> {
+    fn clone(&self) -> Self {
+        Self { inner: self.inner.clone_ref(), sublayers: self.sublayers.clone() }
+    }
+}
+
+impl<S: CloneRef> CloneRef for InstanceWithSublayers<S> {
+    fn clone_ref(&self) -> Self {
+        Self { inner: self.inner.clone_ref(), sublayers: self.sublayers.clone_ref() }
+    }
 }
 
 impl<S: CloneRef> Deref for InstanceWithSublayers<S> {
@@ -58,82 +71,22 @@ impl<S: CloneRef> Deref for InstanceWithSublayers<S> {
     }
 }
 
-impl<S: CloneRef + Sublayers + 'static> InstanceWithSublayers<S> {
+impl<S: CloneRef + ForEachSublayer + 'static> InstanceWithSublayers<S> {
     /// Constructor. Sets a `on_scene_layers_changed` callback for `instance`.
     pub fn new(instance: Instance, sublayers: S) -> Self {
         instance.set_on_scene_layer_changed(f!([sublayers](_, from, to) {
             for layer in from {
                 if let Some(layer) = layer.upgrade() {
-                    sublayers.remove_from_layer(&layer);
+                    sublayers.for_each_sublayer(|sub| layer.remove_sublayer(sub));
                 }
             }
             for layer in to {
                 if let Some(layer) = layer.upgrade() {
-                    sublayers.add_to_layer(&layer);
+                    sublayers.for_each_sublayer(|sub| layer.add_sublayer(sub));
                 }
             }
         }));
         Self { inner: instance, sublayers }
-    }
-}
-
-
-
-// ========================
-// === MaskingSublayers ===
-// ========================
-
-/// Sublayers for easier masking with arbitrary shapes.
-///
-/// One of the examples might be a `ScrollArea` component implementation. To clip the area's content
-/// (so that it is displayed only inside its borders) we use `MaskingSublayers` with two additional
-/// layers: one for the area's content and another one for the masking shape. These sublayers will
-/// automatically follow the main [`Instance`] if it moves between different
-/// layers and will be dropped together with the main object.
-#[derive(Debug, Clone, CloneRef)]
-pub struct MaskingSublayers {
-    /// Contains the objects that needs to be masked.
-    pub content: Layer,
-    /// Contains a masking shape. See docs in [`crate::display::scene::layer`] for information on
-    /// masking.
-    pub mask:    Layer,
-}
-
-impl MaskingSublayers {
-    /// Constructor. The passed `camera` will be used to render created sublayers.
-    pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
-        let content = Layer::new_with_cam(logger.sub("ContentLayer"), camera);
-        let mask = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
-        content.set_mask(&mask);
-        Self { content, mask }
-    }
-}
-
-
-
-// =================
-// === Sublayers ===
-// =================
-
-/// The common API for all `sublayers` in [`InstanceWithSublayers`].
-pub trait Sublayers {
-    /// Called when the object is removed from a layer. Might be called multiple times in a row if
-    /// the object is removed from multiple layers.
-    fn remove_from_layer(&self, from: &Layer);
-    /// Called when the object is added to a layer. Might be called multiple times in a row if the
-    /// object is added to multiple layers.
-    fn add_to_layer(&self, to: &Layer);
-}
-
-impl Sublayers for MaskingSublayers {
-    fn remove_from_layer(&self, from: &Layer) {
-        from.remove_sublayer(&self.content);
-        from.remove_sublayer(&self.mask);
-    }
-
-    fn add_to_layer(&self, to: &Layer) {
-        to.add_sublayer(&self.content);
-        to.add_sublayer(&self.mask);
     }
 }
 
@@ -148,6 +101,7 @@ mod tests {
     use super::*;
 
     use crate::application::Application;
+    use crate::display::scene::layer::MaskingSublayers;
 
     #[test]
     fn test_that_sublayers_are_dropped() {

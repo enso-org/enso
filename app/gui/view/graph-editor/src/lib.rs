@@ -2538,8 +2538,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
         enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
 
-        eval_ disable_navigator ( model.navigator.settings().disable() );
-        eval_ enable_navigator  ( model.navigator.settings().enable()  );
+        eval_ disable_navigator ( model.navigator.disable() );
+        eval_ enable_navigator  ( model.navigator.enable()  );
 
         out.source.navigator_active <+ inputs.set_navigator_disabled
                                     || out.some_visualisation_selected;

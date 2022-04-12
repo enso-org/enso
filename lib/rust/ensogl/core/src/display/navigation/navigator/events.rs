@@ -78,7 +78,7 @@ enum MovementType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct NavigatorEventsProperties {
-    settings:            NavigatorSettings,
+    settings:            Rc<NavigatorSettings>,
     movement_type:       Option<MovementType>,
     last_mouse_position: Vector2<f32>,
     mouse_position:      Vector2<f32>,
@@ -103,7 +103,7 @@ impl NavigatorEventsData {
     fn new(
         pan_callback: Box<dyn FnPanEvent>,
         zoom_callback: Box<dyn FnZoomEvent>,
-        settings: NavigatorSettings,
+        settings: Rc<NavigatorSettings>,
     ) -> Rc<Self> {
         let mouse_position = zero();
         let last_mouse_position = zero();
@@ -204,7 +204,7 @@ impl NavigatorEvents {
         mouse_manager: &MouseManager,
         pan_callback: P,
         zoom_callback: Z,
-        settings: NavigatorSettings,
+        settings: Rc<NavigatorSettings>,
     ) -> Self
     where
         P: FnPanEvent,

@@ -24,7 +24,7 @@ const DEFAULT_MAX_ZOOM: f32 = 100.0;
 /// Default minimum zoom factor (0.15x).
 const MIN_ZOOM: f32 = 0.001;
 /// Default speed for zoom events.
-const DEFAULT_ZOOM_SPEED: f32 = 10.0 / 1000.0;
+const DEFAULT_ZOOM_SPEED: f32 = 0.01;
 /// Default speed for panning events.
 const DEFAULT_PAN_SPEED: f32 = 1.0;
 
@@ -35,23 +35,23 @@ const DEFAULT_PAN_SPEED: f32 = 1.0;
 // =========================
 
 /// Enabling/disabling Navigator and changing its settings.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone)]
 pub struct NavigatorSettings {
-    is_enabled:           Rc<Cell<bool>>,
-    zoom_speed:           SharedSwitch<f32>,
-    pan_speed:            SharedSwitch<f32>,
-    enable_wheel_panning: Rc<Cell<bool>>,
-    max_zoom:             Rc<Cell<Option<f32>>>,
+    is_enabled:           Cell<bool>,
+    zoom_speed:           Cell<Switch<f32>>,
+    pan_speed:            Cell<Switch<f32>>,
+    enable_wheel_panning: Cell<bool>,
+    max_zoom:             Cell<Option<f32>>,
 }
 
 impl Default for NavigatorSettings {
     fn default() -> Self {
         Self {
-            zoom_speed:           Rc::new(Cell::new(Switch::new(DEFAULT_ZOOM_SPEED, true))),
-            pan_speed:            Rc::new(Cell::new(Switch::new(DEFAULT_PAN_SPEED, true))),
-            is_enabled:           Rc::new(Cell::new(true)),
-            enable_wheel_panning: Rc::new(Cell::new(true)),
-            max_zoom:             Rc::new(Cell::new(None)),
+            zoom_speed:           Cell::new(Switch::new(DEFAULT_ZOOM_SPEED, true)),
+            pan_speed:            Cell::new(Switch::new(DEFAULT_PAN_SPEED, true)),
+            is_enabled:           Cell::new(true),
+            enable_wheel_panning: Cell::new(true),
+            max_zoom:             Cell::new(None),
         }
     }
 }
@@ -123,12 +123,12 @@ pub struct NavigatorModel {
     events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
-    settings:        NavigatorSettings,
+    settings:        Rc<NavigatorSettings>,
 }
 
 impl NavigatorModel {
     pub fn new(scene: &Scene, camera: &Camera2d) -> Self {
-        let settings = NavigatorSettings::default();
+        let settings = Rc::new(NavigatorSettings::default());
         let (simulator, resize_callback, events) =
             Self::start_navigator_events(scene, camera, settings.clone_ref());
         Self { events, simulator, resize_callback, settings }
@@ -149,7 +149,7 @@ impl NavigatorModel {
     fn start_navigator_events(
         scene: &Scene,
         camera: &Camera2d,
-        settings: NavigatorSettings,
+        settings: Rc<NavigatorSettings>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
         let distance_to_zoom_factor_of_1 = |camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
@@ -228,6 +228,16 @@ impl NavigatorModel {
         &self.settings
     }
 
+    /// Enable navigator.
+    pub fn enable(&self) {
+        self.settings().enable()
+    }
+
+    /// Disable navigator.
+    pub fn disable(&self) {
+        self.settings().disable()
+    }
+
     /// Emit zoom event. This function could be used in the tests to simulate user interactions.
     pub fn emit_zoom_event(&self, event: ZoomEvent) {
         self.events.emit_zoom_event(event);
@@ -264,8 +274,6 @@ impl Navigator {
 // =============
 // === Utils ===
 // =============
-
-type SharedSwitch<T> = Rc<Cell<Switch<T>>>;
 
 /// Normalize a `point` in (0..dimension.x, 0..dimension.y) to (0..1, 0..1).
 fn normalize_point2(point: Vector2<f32>, dimension: Vector2<f32>) -> Vector2<f32> {

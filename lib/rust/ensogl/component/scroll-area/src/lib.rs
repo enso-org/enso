@@ -25,9 +25,8 @@ use ensogl_core::control::callback;
 use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::object::InstanceWithSublayers;
-use ensogl_core::display::object::MaskingSublayers;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::layer::MaskingSublayers;
 use ensogl_scrollbar as scrollbar;
 use ensogl_scrollbar::Scrollbar;
 
@@ -63,6 +62,7 @@ ensogl_core::define_endpoints! {
 }
 
 
+
 // ===================
 // === Scroll Area ===
 // ===================
@@ -72,9 +72,7 @@ mod mask {
     use super::*;
     ensogl_core::define_shape_system! {
         (style:Style) {
-            let shape = Plane();
-            let shape = shape.fill(color::Rgba::new(1.0,1.0,1.0,1.0));
-            shape.into()
+            Plane().fill(color::Rgba::new(1.0,1.0,1.0,1.0)).into()
         }
     }
 }
@@ -90,7 +88,7 @@ pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
     pub content:           display::object::Instance,
-    display_object:        InstanceWithSublayers<MaskingSublayers>,
+    display_object:        display::object::InstanceWithSublayers<MaskingSublayers>,
     h_scrollbar:           Scrollbar,
     v_scrollbar:           Scrollbar,
     scroll_handler_handle: callback::Handle,
@@ -119,7 +117,7 @@ impl ScrollArea {
         let display_object = display::object::Instance::new(&logger);
         let camera = scene.layers.main.camera();
         let sublayers = MaskingSublayers::new(&logger, &camera);
-        let display_object = InstanceWithSublayers::new(display_object, sublayers);
+        let display_object = display::object::InstanceWithSublayers::new(display_object, sublayers);
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);

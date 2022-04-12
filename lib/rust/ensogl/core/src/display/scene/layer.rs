@@ -887,6 +887,60 @@ impl SublayersModel {
 
 
 
+// ========================
+// === MaskingSublayers ===
+// ========================
+
+/// Sublayers for easier masking with arbitrary shapes.
+///
+/// One of the examples might be a `ScrollArea` component implementation. To clip the area's content
+/// (so that it is displayed only inside its borders) we use `MaskingSublayers` with two additional
+/// layers: one for the area's content and another one for the masking shape. These sublayers will
+/// automatically follow the main [`display::object::Instance`] if it moves between different
+/// layers and will be dropped together with the main object.
+#[derive(Debug, Clone, CloneRef)]
+pub struct MaskingSublayers {
+    /// Contains the objects that needs to be masked.
+    pub content: Layer,
+    /// Contains a masking shape. See docs in [`crate::display::scene::layer`] for information on
+    /// masking.
+    pub mask:    Layer,
+}
+
+impl MaskingSublayers {
+    /// Constructor. The passed `camera` will be used to render created sublayers.
+    pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
+        let content = Layer::new_with_cam(logger.sub("ContentLayer"), camera);
+        let mask = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
+        content.set_mask(&mask);
+        Self { content, mask }
+    }
+}
+
+impl ForEachSublayer for MaskingSublayers {
+    fn for_each_sublayer(&self, f: impl Fn(&Layer)) {
+        f(&self.content);
+        f(&self.mask);
+    }
+}
+
+
+
+// ==========================
+// === ForEachSublayer ===
+// ==========================
+
+/// The common API for all collections of sublayers. This can be used as a more effective
+/// `Iterator<Item=&Layer>`.
+pub trait ForEachSublayer {
+    /// Call `f` on each sublayer in the implementor.
+    ///
+    /// This is similar to calling `for_each` for `Iterator<Item=&Layer>`.
+    fn for_each_sublayer(&self, f: impl Fn(&Layer));
+}
+
+
+
 // ===============
 // === LayerId ===
 // ===============

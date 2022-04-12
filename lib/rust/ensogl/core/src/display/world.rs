@@ -243,7 +243,7 @@ impl WorldData {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             if event.alt_key() && event.ctrl_key() {
                 let key = event.code();
-                if key == "Backquote" || key == "IntlBackslash" {
+                if key == "Backquote" {
                     stats_monitor.toggle()
                 } else if key == "Digit0" {
                     display_mode.set(0)
