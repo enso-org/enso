@@ -57,3 +57,23 @@ macro_rules! ERROR {
         $crate::debug::logging::error($crate::iformat!($($arg)*))
     }
 }
+
+/// A version of [`WARNING`] that informs the user how to report the error.
+#[macro_export]
+macro_rules! REPORTABLE_WARNING {
+    ($($arg:tt)*) => {
+        let user_message = $crate::iformat!($($arg)*);
+        let message = format!("{} {}",user_message, $crate::debug::logging::REPORT_INSTRUCTION);
+        $crate::debug::logging::warn(message)
+    }
+}
+
+/// A version of [`ERROR`] that informs the user how to report the error.
+#[macro_export]
+macro_rules! REPORTABLE_ERROR {
+    ($($arg:tt)*) => {
+        let user_message = $crate::iformat!($($arg)*);
+        let message = format!("{} {}",user_message, $crate::debug::logging::REPORT_INSTRUCTION);
+        $crate::debug::logging::error(message)
+    }
+}

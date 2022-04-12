@@ -6,10 +6,6 @@
 // === Export ===
 // ==============
 
-pub mod context;
 pub mod gpu;
 pub mod js;
 pub mod web;
-
-pub use context::Context;
-pub use context::ContextLostHandler;

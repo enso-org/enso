@@ -64,8 +64,8 @@ impl pass::Definition for SymbolsRenderPass {
         let rgba = texture::Rgba;
         let tex_type = texture::item_type::u8;
         let id_params = texture::Parameters {
-            min_filter: texture::MinFilter::Nearest,
-            mag_filter: texture::MagFilter::Nearest,
+            min_filter: texture::MinFilter::NEAREST,
+            mag_filter: texture::MagFilter::NEAREST,
             ..default()
         };
 
@@ -96,8 +96,8 @@ impl pass::Definition for SymbolsRenderPass {
         framebuffers.composed.bind();
 
         let arr = vec![0.0, 0.0, 0.0, 0.0];
-        instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 0, &arr);
-        instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 1, &arr);
+        instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
+        instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
 
         let mut scissor_stack = default();
         self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
@@ -108,17 +108,17 @@ impl pass::Definition for SymbolsRenderPass {
                 This is an internal bug that may lead to visual artifacts. Please report it."
             );
         }
-        instance.context.bind_framebuffer(Context::FRAMEBUFFER, None);
+        instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
     }
 }
 
 impl SymbolsRenderPass {
     fn enable_scissor_test(&self, instance: &pass::Instance) {
-        instance.context.enable(web_sys::WebGl2RenderingContext::SCISSOR_TEST);
+        instance.context.enable(*Context::SCISSOR_TEST);
     }
 
     fn disable_scissor_test(&self, instance: &pass::Instance) {
-        instance.context.disable(web_sys::WebGl2RenderingContext::SCISSOR_TEST);
+        instance.context.disable(*Context::SCISSOR_TEST);
     }
 
     fn render_layer(
@@ -159,15 +159,15 @@ impl SymbolsRenderPass {
         } else if let Some(mask) = layer_mask {
             framebuffers.mask.bind();
             let arr = vec![0.0, 0.0, 0.0, 0.0];
-            instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 0, &arr);
-            instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 1, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
             self.render_layer(instance, &mask, scissor_stack, was_ever_masked);
 
             let framebuffers = self.framebuffers.as_ref().unwrap();
             framebuffers.layer.bind();
             let arr = vec![0.0, 0.0, 0.0, 0.0];
-            instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 0, &arr);
-            instance.context.clear_bufferfv_with_f32_array(Context::COLOR, 1, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
         }
 
         self.symbol_registry.set_camera(&layer.camera());
