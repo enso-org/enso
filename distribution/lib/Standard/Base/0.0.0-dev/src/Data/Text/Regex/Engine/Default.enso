@@ -559,11 +559,30 @@ type Pattern
                 internal_matcher = this.build_matcher input start end
                 internal_matcher.replaceAll replacement
             Mode.Full ->
+                ## TODO this is inconsistent with other modes - will not allow
+                   capture group references in replacement. It should be revised
+                   with: https://www.pivotaltracker.com/story/show/181524498
                 case this.match input mode=Mode.Full of
                     Match _ _ _ _ -> replacement
                     Nothing -> input
             Matching_Mode.Last ->
-                Error.throw "TODO"
+                all_matches = this.match input
+                all_matches_count = if all_matches.is_nothing then 0 else all_matches.length
+
+                if all_matches_count <= 0 then input else
+                    internal_matcher = this.build_matcher input start end
+                    buffer = StringBuffer.new
+                    last_match_index = all_matches_count - 1
+
+                    go match_index =
+                        internal_matcher.find
+                        case match_index == last_match_index of
+                            True -> internal_matcher.appendReplacement buffer replacement
+                            False -> @Tail_Call go (match_index + 1)
+
+                    go 0
+                    internal_matcher.appendTail buffer
+                    buffer.to_text
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Modes cannot be recursive."
 

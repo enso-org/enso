@@ -5,6 +5,7 @@ import Standard.Test
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
@@ -416,6 +417,37 @@ spec =
             input = "aa ab"
             match = pattern.replace input "REPLACED" mode=Mode.All
             match . should_equal "REPLACEDREPLACEDb"
+
+        Test.specify "should handle capture groups in replacement" <|
+            pattern = engine.compile "(?<capture>[a-z]+)" []
+            pattern.replace "foo bar, baz" "[$1]" mode=Mode.All . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$1]" mode=0 . should_equal "foo bar, baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=1 . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=2 . should_equal "[foo] [bar], baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=3 . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$1]" mode=4 . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[$1]" mode=Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
+
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Mode.All . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=0 . should_equal "foo bar, baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=1 . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=2 . should_equal "[foo] [bar], baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=3 . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=4 . should_equal "[foo] [bar], [baz]"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
+
+        ## TODO this should be revised with:
+           https://www.pivotaltracker.com/story/show/181524498
+        Test.specify "should handle capture groups in replacement in All mode" pending="Regex needs revision." <|
+            pattern = engine.compile "([a-z]+)" []
+            pattern.replace "foo bar, baz" "[$1]" mode=Mode.Full . should_equal "foo bar, baz"
+            pattern.replace "foo" "[$1]" mode=Mode.Full . should_equal "[foo]"
+
+            pattern_2 = engine.compile '<a href="(?<addr>.*?)">(?<name>.*?)</a>' []
+            pattern_2.replace '<a href="url">content</a>' "$2 <- $1" mode=Mode.Full . should_equal "content <- url"
+            pattern_2.replace '<a href="url">content</a>' "${name} <- ${addr}" mode=Mode.Full . should_equal "content <- url"
 
     Test.group "Match.group" <|
         engine = Default_Engine.new
