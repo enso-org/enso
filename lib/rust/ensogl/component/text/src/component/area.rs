@@ -598,7 +598,7 @@ pub struct AreaModel {
     glyph_system:     Rc<RefCell<glyph::System>>,
     lines:            Lines,
     single_line:      Rc<Cell<bool>>,
-    truncation_width: Rc<RefCell<Option<f32>>>,
+    truncation_width: Rc<Cell<Option<f32>>>,
     selection_map:    Rc<RefCell<SelectionMap>>,
 }
 
@@ -819,9 +819,9 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let line_style = self.buffer.sub_style(line_range.start..line_range.end);
-        let truncation_width = self.truncation_width.borrow();
+        let truncation_width = self.truncation_width.get();
         let content =
-            self.text_truncated_with_ellipsis(content, line_style.iter(), *truncation_width);
+            self.text_truncated_with_ellipsis(content, line_style.iter(), truncation_width);
         let mut line_style_iter = line_style.iter();
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
