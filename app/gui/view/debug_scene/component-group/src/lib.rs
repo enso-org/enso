@@ -23,7 +23,7 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ensogl_component_group_view as component_group_view;
+use ide_view_component_group as component_group_view;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;

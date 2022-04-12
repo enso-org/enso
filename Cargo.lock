@@ -720,6 +720,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-interface"
 version = "0.1.0"
 dependencies = [
@@ -921,6 +934,7 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
+ "debug-scene-component-group",
  "debug-scene-interface",
  "debug-scene-visualization",
 ]
@@ -1259,7 +1273,6 @@ name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
  "ensogl-button",
- "ensogl-component-group-view",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -1272,18 +1285,6 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
-]
-
-[[package]]
-name = "ensogl-component-group-view"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text",
 ]
 
 [[package]]
@@ -1366,19 +1367,6 @@ name = "ensogl-example-complex-shape-system"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "ensogl-example-component-group"
-version = "0.1.0"
-dependencies = [
- "enso-frp",
- "ensogl-component-group-view",
- "ensogl-core",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-text-msdf-sys",
  "wasm-bindgen",
 ]
 
@@ -1580,7 +1568,6 @@ version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
  "ensogl-example-complex-shape-system",
- "ensogl-example-component-group",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
  "ensogl-example-drop-manager",
@@ -2260,6 +2247,18 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "welcome-screen",
+]
+
+[[package]]
+name = "ide-view-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text",
 ]
 
 [[package]]

@@ -6,7 +6,6 @@ edition = "2021"
 
 [dependencies]
 ensogl-button = { path = "button" }
-ensogl-component-group-view = { path = "component-group-view" }
 ensogl-drop-down-menu = { path = "drop-down-menu" }
 ensogl-drop-manager = { path = "drop-manager" }
 ensogl-file-browser = { path = "file-browser" }

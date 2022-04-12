@@ -132,7 +132,8 @@ impl HeaderGeometry {
             init <- source_();
             theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
                 |_,&height,&padding_left,&padding_right,&padding_bottom|
-                    Self{height,padding_left,padding_right,padding_bottom});
+                    Self{height,padding_left,padding_right,padding_bottom}
+            );
             theme_sampler <- theme.sampler();
         }
         init.emit(());

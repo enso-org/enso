@@ -1,8 +1,4 @@
-//! A crate consisting all debug scenes.
-//!
-//! Those scenes are designated to test visual components of our application isolated from the
-//! controllers.
-
+#![recursion_limit = "1024"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -20,6 +16,5 @@
 // === Export ===
 // ==============
 
-pub use debug_scene_component_group as component_group;
-pub use debug_scene_interface as interface;
-pub use debug_scene_visualization as visualization;
+pub use ide_view_component_group as component_group_view;
+
