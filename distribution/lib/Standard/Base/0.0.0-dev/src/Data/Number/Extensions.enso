@@ -209,7 +209,8 @@ Integer.up_to n = Range this n
 
          1.equals 1.0000001 epsilon=0.001
 Number.equals : Number -> Number -> Boolean
-Number.equals that epsilon=0.0 = (this - that).abs <= epsilon
+Number.equals that epsilon=0.0 =
+    (this == that) || ((this - that).abs <= epsilon)
 
 ## Returns the smaller value of `this` and `that`.
 
@@ -301,3 +302,23 @@ Parse_Error.to_display_text : Text
 Parse_Error.to_display_text =
     "Could not parse " + this.text.to_text + " as a double."
 
+## A constant holding the floating-point positive infinity.
+Number.positive_infinity : Decimal
+Number.positive_infinity = Double.POSITIVE_INFINITY
+
+## A constant holding the floating-point negative infinity.
+Number.negative_infinity : Decimal
+Number.negative_infinity = Double.NEGATIVE_INFINITY
+
+## A constant holding the floating-point Not-a-Number value.
+Number.nan : Decimal
+Number.nan = Double.NaN
+
+## Checks if the given number is the floating-point Not-a-Number value.
+
+   This is needed, because the NaN value will return `False` even when being
+   compared with itself, so `x == Number.nan` would not work.
+Number.is_nan : Boolean
+Number.is_nan = case this of
+    Decimal -> Double.isNaN this
+    _ -> False

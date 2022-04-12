@@ -64,7 +64,12 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private String showObject(Object child) throws UnsupportedMessageException {
-    if (child instanceof Boolean) {
+    if (child == null) {
+      // TODO [RW] This is a temporary workaround to make it possible to display errors related to
+      // https://www.pivotaltracker.com/story/show/181652974
+      // Most likely it should be removed once that is implemented.
+      return "null";
+    } else if (child instanceof Boolean) {
       return (boolean) child ? "True" : "False";
     } else {
       return strings.asString(displays.toDisplayString(child));

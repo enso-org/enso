@@ -83,7 +83,7 @@ spec =
             contains = b.contains "inf"
             ends.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (\'%\' || ?)) AS "B" FROM "T1" AS "T1"', [["suf", str]]]
             starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (? || \'%\')) AS "B" FROM "T1" AS "T1"', [["pref", str]]]
-            contains.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (\'%\' || ? || \'%\')) AS "B" FROM "T1" AS "T1"', [["inf", str]]]
+            contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "B" FROM "T1" AS "T1"', [["inf", str]]]
 
     Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
