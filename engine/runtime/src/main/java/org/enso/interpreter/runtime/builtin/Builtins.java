@@ -2,13 +2,14 @@ package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
@@ -265,11 +266,8 @@ public class Builtins {
   private void readBuiltinsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
-    FileSystem fs = null;
-    try {
-      URI resource = classLoader.getResource(MethodDefinition.META_PATH).toURI();
-      fs = initFileSystem(resource);
-      lines = Files.readAllLines(Paths.get(resource), StandardCharsets.UTF_8);
+    try (InputStream resource = classLoader.getResourceAsStream(MethodDefinition.META_PATH)) {
+      lines = new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8)).lines().collect(Collectors.toList());
     } catch (Exception ioe) {
       lines = new ArrayList<>();
       ioe.printStackTrace();
@@ -309,30 +307,6 @@ public class Builtins {
           e.printStackTrace();
         }
     });
-    if (fs != null) {
-      try {
-        fs.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  private FileSystem initFileSystem(URI uri) throws IOException
-  {
-    // Returning null ensures that we use the default one and at the same time we don't attempt
-    // to close it.
-    try {
-      FileSystems.getFileSystem(uri);
-      return null;
-    } catch (IllegalArgumentException iae) {
-      // file: schema doesn't like non-/ path but that's fine, it means the default file system is already setup
-      return null;
-    } catch (FileSystemNotFoundException e)  {
-      Map<String, String> env = new HashMap<>();
-      env.put("create", "true");
-      return FileSystems.newFileSystem(uri, env);
-    }
   }
 
   public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {
