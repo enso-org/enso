@@ -107,10 +107,12 @@ use std::error;
 use std::fmt;
 
 
+
 // ==============
 // === Export ===
 // ==============
 
+pub mod aggregate;
 pub mod parse;
 
 
