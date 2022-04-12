@@ -750,8 +750,8 @@ Text.is_whitespace =
 
          "Hello".bytes (Encoding.ascii)
 Text.bytes : Encoding -> Vector.Vector Byte
-Text.bytes encoding :
-    byte_array = Text_Utils.get_bytes this (Encoding.utf_8 . to_java_charset)
+Text.bytes encoding =
+    byte_array = Text_Utils.get_bytes this (encoding . to_java_charset)
     Vector.Vector byte_array
 
 ## Returns a vector containing bytes representing the specified encoding of the
@@ -765,7 +765,7 @@ Text.bytes encoding :
 
          "Hello".bytes (Encoding.ascii)
 Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
-Text.from_bytes bytes encoding :
+Text.from_bytes bytes encoding =
     Text_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the

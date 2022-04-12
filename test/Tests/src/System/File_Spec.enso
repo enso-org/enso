@@ -16,7 +16,7 @@ spec =
             file . should_equal sample_file
 
         Test.specify "should allow reading a file" <|
-            contents = sample_file.read
+            contents = sample_file.read_text
             contents.should .start_with "Cupcake ipsum dolor sit amet."
 
         Test.specify "should allow reading a file to byte vector" <|
@@ -25,7 +25,7 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            successfully_failed = Panic.recover Any file.read . catch e-> case e of
+            successfully_failed = Panic.recover Any file.read_text . catch e-> case e of
                 File.No_Such_File_Error _ -> True
                 _ -> False
             successfully_failed . should_be_true
@@ -70,18 +70,18 @@ spec =
             f.exists.should_be_false
             f.write "line 1!"
             f.exists.should_be_true
-            f.read.should_equal "line 1!"
+            f.read_text.should_equal "line 1!"
             f.append '\nline 2!'
-            f.read.should_equal 'line 1!\nline 2!'
+            f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
-            contents = File.read path_name
+            contents = File.read_text path_name
             contents.should .start_with "Cupcake ipsum dolor sit amet."
             file = sample_file
-            contents_2 = File.read file
+            contents_2 = File.read_text file
             contents_2.should .start_with "Cupcake ipsum dolor sit amet."
 
         resolve files =

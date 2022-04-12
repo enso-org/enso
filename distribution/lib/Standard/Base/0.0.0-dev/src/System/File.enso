@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 
 export Standard.Base.System.File.Option
 
@@ -38,11 +39,12 @@ new path = case path of
    Arguments:
    - path: The path of the file to open and read the contents of. It will
      accept a textual path or a file.
+   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
 
    ? Module or Instance?
      If you have a variable `file` of type `File`, we recommend calling the
-     `.read` method on it directly, rather than using `File.read file`. The
-     latter, however, will still work.
+     `.read_text` method on it directly, rather than using
+     `File.read_text file`. The later, however, will still work.
 
    > Example
      Read the `data.csv` file in the project directory's `data` directory. You
@@ -51,11 +53,45 @@ new path = case path of
          import Standard.Base.System.File
          import Standard.Examples
 
-         example_read = File.read Examples.csv_path
-read : (Text | File) -> Text
-read path = .read <| case path of
-    Text -> (here.new path)
-    File _ -> path
+         example_read = File.read_text Examples.csv_path
+read_text : (Text | File) -> Encoding -> Text
+read_text path (encoding=Encoding.utf_8) =
+    file = case path of
+        Text -> (here.new path)
+        File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.read_text encoding
+
+## ALIAS Write Text File
+
+   Open and write to the file at the provided `path`.
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - contents: The text to write to the file.
+   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+
+   ? Module or Instance?
+     If you have a variable `file` of type `File`, we recommend calling the
+     `.read_text` method on it directly, rather than using
+     `File.read_text file`. The later, however, will still work.
+
+   > Example
+     Read the `data.csv` file in the project directory's `data` directory. You
+     will need to create the file `data.csv` manually in that directory.
+
+         import Standard.Base.System.File
+         import Standard.Examples
+
+         example_read = File.read_text Examples.csv_path
+write_text : (Text | File) -> Text -> Encoding -> Text
+write_text path contents (encoding=Encoding.utf_8) =
+    file = case path of
+        Text -> (here.new path)
+        File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.write_text contents encoding
 
 ## ALIAS Current Directory
 
@@ -212,7 +248,10 @@ type File
         opts = [Option.Read]
         this.with_input_stream opts (_.read_all_bytes)
 
-    ## Reads the whole file into a `Text`, assuming UTF-8 content encoding.
+    ## Reads the whole file into a `Text`, with specified encoding.
+
+       Arguments:
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
 
        > Example
          Read the contents of the file.
@@ -220,10 +259,10 @@ type File
              import Standard.Examples
 
              example_read = Examples.csv.read
-    read : Text ! File_Error
-    read =
+    read_text : Encoding -> Text ! File_Error
+    read_text (encoding=Encoding.utf_8) =
         bytes = this.read_bytes
-        Text.from_utf_8 bytes
+        Text.from_bytes bytes encoding
 
     ## Appends a number of bytes at the end of this file.
 
@@ -276,11 +315,12 @@ type File
 
     ## ALIAS Write Text File
 
-       Writes a UTF-8 encoded `Text` into this file, replacing any existing
-       contents.
+       Writes a `Text` into this file with specified encoding, replacing any
+       existing contents.
 
        Arguments:
-       - contents: The UTF-8 encoded text to write to the file.
+       - contents: The text to write to the file.
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
 
        If the file does not exist, it will be created.
 
@@ -290,8 +330,9 @@ type File
              import Standard.Examples
 
              example_write = Examples.scratch_file.write "hello"
-    write : Text -> Nothing ! File_Error
-    write contents = this.write_bytes contents.utf_8
+    write_text : Text -> Encoding -> Nothing ! File_Error
+    write_text contents (encoding=Encoding.utf_8) =
+        this.write_bytes <| contents.bytes encoding
 
     ## Join two path segments together.
 
@@ -299,7 +340,7 @@ type File
        - subpath: The path to join to the path of `this`.
 
        > Example
-         Concaatenate two file path segments.
+         Concatenate two file path segments.
 
              import Standard.Examples
 

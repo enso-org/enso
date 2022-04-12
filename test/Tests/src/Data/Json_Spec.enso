@@ -76,7 +76,7 @@ spec =
                 Author "Agatha Christie" 1890
             books = [book_1, book_2, book_3]
 
-            json_string = (Enso_Project.data / "books.json").read
+            json_string = (Enso_Project.data / "books.json").read_text
             parsed = Json.parse json_string
             domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
             domain.should_equal books
