@@ -47,6 +47,12 @@
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
 
+#### EnsoGL (rendering engine)
+
+- [You can change font and set letters bold in the <code>text::Area</code>
+  component][3385]. Use the <code>set_font</code> and
+  <code>set_bold_bytes</code> respectively.
+
 #### Enso Standard Library
 
 - [Implemented `Vector.distinct` allowing to remove duplicate elements from a
@@ -152,6 +158,7 @@
 [3379]: https://github.com/enso-org/enso/pull/3379
 [3381]: https://github.com/enso-org/enso/pull/3381
 [3383]: https://github.com/enso-org/enso/pull/3383
+[3385]: https://github.com/enso-org/enso/pull/3385
 [3392]: https://github.com/enso-org/enso/pull/3392
 
 #### Enso Compiler
