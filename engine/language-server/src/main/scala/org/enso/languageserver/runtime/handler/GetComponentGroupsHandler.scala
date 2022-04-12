@@ -64,7 +64,7 @@ final class GetComponentGroupsHandler(
 
     case Api.Response(_, Api.GetComponentGroupsResponse(componentGroups)) =>
       replyTo ! GetComponentGroupsResponse(
-        resolveComponentGroups(componentGroups)
+        resolveComponentGroups(componentGroups.toMap)
       )
       cancellable.cancel()
       context.stop(self)

@@ -78,6 +78,14 @@ object Runtime {
         name  = "recomputeContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.GetComponentGroupsRequest],
+        name  = "getComponentGroupsRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.GetComponentGroupsResponse],
+        name  = "getComponentGroupsResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.OpenFileNotification],
         name  = "openFileNotification"
       ),
@@ -1097,7 +1105,7 @@ object Runtime {
       * groups
       */
     final case class GetComponentGroupsResponse(
-      componentGroups: Map[LibraryName, ComponentGroups]
+      componentGroups: Vector[(LibraryName, ComponentGroups)]
     ) extends ApiResponse
 
     /** An error response signifying a non-existent context.

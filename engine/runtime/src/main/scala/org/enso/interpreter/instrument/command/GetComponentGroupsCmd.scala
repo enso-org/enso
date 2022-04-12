@@ -21,6 +21,6 @@ class GetComponentGroupsCmd(
   ): Future[Unit] = Future {
     val components =
       ctx.executionService.getContext.getPackageRepository.getComponents
-    reply(Api.GetComponentGroupsResponse(components))
+    reply(Api.GetComponentGroupsResponse(components.toVector))
   }
 }
