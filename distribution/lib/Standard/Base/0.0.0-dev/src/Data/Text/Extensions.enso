@@ -479,6 +479,26 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
          'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
          # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
          'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+
+   ! Last Match in Regex Mode
+     Regex always performs the search from the front and matching the last
+     occurrence means selecting the last of the matches while still generating
+     matches from the beginning. This will lead to slightly different behavior
+     for overlapping occurrences of a pattern in Regex mode than in exact text
+     matching mode where the matches are searched for from the back.
+
+   > Example
+     Comparing Matching in Last Mode in Regex and Text mode
+
+         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "ac"
+         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ca"
+
+         "aaa aaa".replace "aa" "c" matcher=Text_Matcher . should_equal "ca ca"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher . should_equal "ca aaa"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "aaa ac"
+         "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then this else
     case matcher of
@@ -505,9 +525,8 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
                             Text_Utils.span_of_case_insensitive this term locale.java_locale True
             Text_Utils.replace_spans this spans_array new_text
         Regex_Matcher _ _ _ _ _ ->
-            # compiled_pattern = matcher.compile term
-            # TODO
-            Error.throw "TODO"
+            compiled_pattern = matcher.compile term
+            compiled_pattern.replace this new_text mode=mode
 
 ## ALIAS Get Words
 
@@ -1288,6 +1307,22 @@ Text.trim where=Location.Both what=_.is_whitespace =
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
+
+   ! Last Match in Regex Mode
+     Regex always performs the search from the front and matching the last
+     occurrence means selecting the last of the matches while still generating
+     matches from the beginning. This will lead to slightly different behavior
+     for overlapping occurrences of a pattern in Regex mode than in exact text
+     matching mode where the matches are searched for from the back.
+
+   > Example
+     Comparing Matching in Last Mode in Regex and Text mode
+
+         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
+         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
+
+         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
+         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
 Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of

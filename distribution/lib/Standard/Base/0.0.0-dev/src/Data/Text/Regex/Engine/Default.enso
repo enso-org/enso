@@ -39,6 +39,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Polyglot.Java as Java_Ext
 from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
@@ -533,7 +534,7 @@ type Pattern
                  pattern = engine.compile "aa []
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
-    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full | Matching_Mode.Last) -> Text
     replace input replacement mode=Mode.All =
         do_replace_mode mode start end = case mode of
             Mode.First ->
@@ -561,6 +562,8 @@ type Pattern
                 case this.match input mode=Mode.Full of
                     Match _ _ _ _ -> replacement
                     Nothing -> input
+            Matching_Mode.Last ->
+                Error.throw "TODO"
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Modes cannot be recursive."
 

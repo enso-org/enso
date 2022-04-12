@@ -1022,6 +1022,13 @@ spec =
             abc.location_of_all "" matcher=regex . should_equal [Span (Range 0 0) abc, Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
             abc.location_of "" matcher=regex mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
 
+        Test.specify "should handle overlapping matches as shown in the examples"
+            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal (Span (Range 1 3) "aaa")
+            "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal (Span (Range 0 2) "aaa")
+
+            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal (Span (Range 5 7) "aaa aaa")
+            "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal (Span (Range 4 6) "aaa aaa")
+
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
             match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
@@ -1182,9 +1189,9 @@ spec =
     Test.group "Text.replace" <|
         Test.specify "should work as in examples" <|
             'aaa'.replace 'aa' 'b' . should_equal 'ba'
-            # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
+            "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
             "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
-            #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
+            '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
             'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
             'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
@@ -1199,6 +1206,11 @@ spec =
             'aba' . replace 'a' '' Matching_Mode.Last . should_equal 'ab'
             'aba' . replace 'a' '' . should_equal 'b'
             'aba' . replace 'c' '' . should_equal 'aba'
+
+        Test.specify "should correctly handle first, all and last matching with overlapping occurrences" <|
+            "aaa aaa".replace "aa" "c" . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last . should_equal "aaa ac"
 
         Test.specify "should correctly handle case-insensitive matches" <|
             'AaąĄ' . replace "A" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal '--ąĄ'
@@ -1268,33 +1280,48 @@ spec =
             'STRASSE'.replace 'ß' '-' matcher=(Text_Matcher Case_Insensitive) . should_equal 'STRA-E'
 
         Test.specify "should perform simple replacement in Regex mode" <|
-            result = "ababab".replace "b" "a" matcher=Regex_Matcher
-            result . should_equal "aaaaaa"
+            "ababab".replace "b" "a" matcher=Regex_Matcher . should_equal "aaaaaa"
+            "ababab".replace "b" "a" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "aaabab"
+            "ababab".replace "b" "a" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ababaa"
+
+            "aaaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "cc"
+            "aaaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "caa"
+            "aaaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aac"
+
+            "aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca"
+            "aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca"
+            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "ac"
+            "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ca"
+
+            "aaa aaa".replace "aa" "c" matcher=Text_Matcher . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "aaa ac"
+            "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
+            "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
 
         Test.specify "in Regex mode should work with Unicode" <|
             "Korean: 건반".replace "건반" "keyboard" matcher=Regex_Matcher . should_equal "Korean: keyboard"
 
-        Test.specify "in Regex mode should support ascii mode" <|
-            result = "İiİ".replace "\w" "a" matcher=(Regex_Matcher match_ascii=True)
-            result . should_equal "İaİ"
+        Test.specify "in Regex mode should support various Regex options" <|
+            r1 = "İiİ".replace "\w" "a" matcher=(Regex_Matcher match_ascii=True)
+            r1 . should_equal "İaİ"
+            r2 = "abaBa".replace "b" "a" matcher=(Regex_Matcher case_sensitive=Case_Insensitive)
+            r2 . should_equal "aaaaa"
+            r3 = 'ab\na'.replace "b." "a"  matcher=(Regex_Matcher dot_matches_newline=True)
+            r3 . should_equal "aaa"
 
-        Test.specify "in Regex mode should support case-insensitivity" <|
-            result = "abaBa".replace "b" "a" matcher=(Regex_Matcher case_sensitive=Case_Insensitive)
-            result . should_equal "aaaaa"
-
-        Test.specify "in Regex mode should support dot_matches_newline mode" <|
-            result = 'ab\na'.replace "b." "a"  matcher=(Regex_Matcher dot_matches_newline=True)
-            result . should_equal "aaa"
-
-        Test.specify "in Regex mode should support multiline mode" <|
             text = """
                 Foo
                 bar
-            result = text.replace '\n' ""  matcher=(Regex_Matcher multiline=True)
-            result . should_equal "Foobar"
+            r4 = text.replace '\n' ""  matcher=(Regex_Matcher multiline=True)
+            r4 . should_equal "Foobar"
 
-        Test.specify "in Regex mode should allow comments, if configured accordingly" <|
-            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher comments=True)
-            result . should_equal "aaa"
+            r5 = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" matcher=(Regex_Matcher comments=True)
+            r5 . should_equal "aaa"
+
+        Test.specify "in Regex mode should allow referring to capture groups in substitutions" <|
+            '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>' '$2 is at $1' matcher=Regex_Matcher . should_equal 'content is at url'
+            '<a href="url">content</a>'.replace '<a href="(?<address>.*?)">(?<text>.*?)</a>' '${text} is at ${address}' matcher=Regex_Matcher . should_equal 'content is at url'
 
 main = Test.Suite.run_main here.spec
