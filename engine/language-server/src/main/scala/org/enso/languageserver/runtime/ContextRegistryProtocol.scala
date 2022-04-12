@@ -1,6 +1,5 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
 import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -12,6 +11,8 @@ import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
 import org.enso.logger.masking.ToLogString
 import org.enso.text.editing.model
+
+import java.util.UUID
 
 object ContextRegistryProtocol {
 
