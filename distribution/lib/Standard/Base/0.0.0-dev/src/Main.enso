@@ -30,7 +30,7 @@ import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
-from Standard.Builtins import Nothing, Number, Integer, Cons, Arithmetic_Error
+from Standard.Builtins import Nothing, Number, Integer, Arithmetic_Error
 
 export project.Data.Interval
 export project.Data.Json

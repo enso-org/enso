@@ -101,7 +101,7 @@ class MethodsTest extends InterpreterTest {
 
     "be dispatched to the proper constructor" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |Nil.sum = acc -> acc
           |Cons.sum = acc -> case this of
@@ -152,7 +152,7 @@ class MethodsTest extends InterpreterTest {
 
     "work as expected when defined across different constructors" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |Nil.sum = 0
           |Cons.sum = case this of

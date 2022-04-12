@@ -1453,21 +1453,6 @@ type Project_Description
 @Builtin_Type
 type Nothing
 
-## Cons lists.
-type List
-
-    ## The type that indicates the end of a cons list.
-    @Builtin_Type
-    type Nil
-
-    ## A cons cell for a cons list.
-
-       Arguments:
-       - head: The element at this position in the list.
-       - tail: The rest of the list.
-    @Builtin_Type
-    type Cons head tail
-
 ## A representation of the relative ordering between two values.
 type Ordering
 

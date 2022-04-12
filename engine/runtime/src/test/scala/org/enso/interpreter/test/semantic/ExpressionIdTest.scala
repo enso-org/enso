@@ -38,13 +38,13 @@ class ExpressionIdTest extends InterpreterTest {
     "be correct in applications and method calls" in
     withIdsInstrumenter { instrumenter =>
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(42, 36)
-      val id2  = meta.addItem(67, 8)
+      val id1  = meta.addItem(38, 36)
+      val id2  = meta.addItem(63, 8)
 
       instrumenter.assertNodeExists(id1, "Cons 5 6")
       instrumenter.assertNodeExists(id2, "Cons 5 6")
@@ -83,7 +83,7 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Data.List import all
           |
           |main =
           |    x = Cons 1 2
@@ -101,10 +101,10 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(115, 109)
-      val id2  = meta.addItem(161, 7)
-      val id3  = meta.addItem(181, 9)
-      val id4  = meta.addItem(218, 5)
+      val id1  = meta.addItem(121, 109)
+      val id2  = meta.addItem(167, 7)
+      val id3  = meta.addItem(187, 9)
+      val id4  = meta.addItem(224, 5)
 
       instrumenter.assertNodeExists(id1, "9")
       instrumenter.assertNodeExists(id2, "3")

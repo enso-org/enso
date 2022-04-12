@@ -106,6 +106,7 @@ class TextTest extends InterpreterTest {
       val code =
         """
           |from Standard.Builtins import all
+          |from Standard.Base.Data.List import Cons
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text

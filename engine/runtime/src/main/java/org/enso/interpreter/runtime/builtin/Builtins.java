@@ -88,6 +88,31 @@ public class Builtins {
   private final Text text;
   private final Special special;
 
+  private class BuiltinTypeConstr {
+    private String tpeName;
+    private String[] paramNames;
+
+    BuiltinTypeConstr(String tpeName) {
+      this.tpeName = tpeName;
+      this.paramNames = new String[0];
+    }
+
+    BuiltinTypeConstr(String tpeName, String... args) {
+      this.tpeName = tpeName;
+      this.paramNames = args;
+    }
+
+
+    public String getTpeName() {
+      return tpeName;
+    }
+
+    public String[] getParamNames() {
+      return paramNames;
+    }
+
+  }
+
   /**
    * Creates an instance with builtin methods installed.
    *
@@ -126,12 +151,6 @@ public class Builtins {
     text = new Text(language, scope);
     special = new Special(language);
 
-    AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
-    AtomConstructor cons =
-        new AtomConstructor("Cons", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
@@ -143,8 +162,6 @@ public class Builtins {
     scope.registerConstructor(nothing);
     scope.registerConstructor(function);
 
-    scope.registerConstructor(cons);
-    scope.registerConstructor(nil);
     scope.registerConstructor(io);
     scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
@@ -194,23 +211,33 @@ public class Builtins {
 
     // FIXME: should be possible to get rid of hardcoded list of builtin types once we have all of them
     //        stored in metadata files
-    List<String> builtinConstructors = new ArrayList<>();
-    builtinConstructors.add("Polyglot");
-    builtinConstructors.add("Ref");
-    builtinConstructors.add("Array");
-    builtinConstructors.add("Any");
-    builtinConstructors.add("Boolean");
-    builtinConstructors.add("True");
-    builtinConstructors.add("False");
+    List<BuiltinTypeConstr> builtinConstructors = new ArrayList<>();
+    builtinConstructors.add(new BuiltinTypeConstr("Polyglot"));
+    builtinConstructors.add(new BuiltinTypeConstr("Ref"));
+    builtinConstructors.add(new BuiltinTypeConstr("Array"));
+    builtinConstructors.add(new BuiltinTypeConstr("Any"));
+    builtinConstructors.add(new BuiltinTypeConstr("Boolean"));
+    builtinConstructors.add(new BuiltinTypeConstr("True"));
+    builtinConstructors.add(new BuiltinTypeConstr("False"));
+    builtinConstructors.add(new BuiltinTypeConstr("Cons", "head", "tail"));
+    builtinConstructors.add(new BuiltinTypeConstr("Nil"));
     initBuiltinTypes(builtinConstructors, scope, language);
   }
 
-  public void initBuiltinTypes(List<String> constrs, ModuleScope scope, Language language) {
-    for (String constr: constrs) {
-      BuiltinAtomConstructor atom = new BuiltinAtomConstructor(constr, scope).initializeFields();
-      builtinTypes.put(constr, atom);
-      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr);
+  public void initBuiltinTypes(List<BuiltinTypeConstr> constrs, ModuleScope scope, Language language) {
+    for (BuiltinTypeConstr constr: constrs) {
+      BuiltinAtomConstructor atom = new BuiltinAtomConstructor(constr.getTpeName(), scope);
+      ArgumentDefinition[] args = new ArgumentDefinition[constr.getParamNames().length];
+      String[] paramNames = constr.getParamNames();
+      for (int i=0; i<paramNames.length; i++) {
+        args[i] = new ArgumentDefinition(i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
+      }
+      atom = atom.initializeFields(args);
+
+      builtinTypes.put(constr.getTpeName(), atom);
+      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr.getTpeName());
       if (methods != null) {
+        BuiltinAtomConstructor finalAtom = atom;
         methods.forEach((methodName, clazz) -> {
           Optional<Function> fun;
           try {
@@ -220,7 +247,7 @@ public class Builtins {
             e.printStackTrace();
             fun = Optional.empty();
           }
-          fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
+          fun.ifPresent(f -> scope.registerMethod(finalAtom, methodName, f));
         });
       }
     }

@@ -75,7 +75,7 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |main =
           |    f = x -> Cons

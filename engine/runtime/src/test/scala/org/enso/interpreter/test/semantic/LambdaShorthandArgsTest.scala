@@ -66,7 +66,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |main =
           |    f = case _ of
