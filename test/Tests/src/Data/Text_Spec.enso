@@ -1201,24 +1201,24 @@ spec =
         Test.specify "should correctly handle case insensitive matches" <|
             'AaąĄ' . replace "A" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal '--ąĄ'
             'AaąĄ' . replace "A" "-" . should_equal '-aąĄ'
-            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher True) . should_equal "HeLlo wOrLd"
-            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher Case_Insensitive) . should_equal "Hey, wOrLd"
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher True) . should_equal 'HeLlO wOrLd'
+            'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher Case_Insensitive) . should_equal 'Hey, wOrLd'
 
             "Iiİı" . replace "i" "-" . should_equal "I-İı"
             "Iiİı" . replace "I" "-" . should_equal "-iİı"
             "Iiİı" . replace "İ" "-" . should_equal "Ii-ı"
             "Iiİı" . replace "ı" "-" . should_equal "Iiİ-"
 
-            "Iiİı" . replace "i" "-" (Text_Matcher Case_Insensitive) . should_equal "--İı"
-            "Iiİı" . replace "I" "-" (Text_Matcher Case_Insensitive) . should_equal "--İı"
-            "Iiİı" . replace "İ" "-" (Text_Matcher Case_Insensitive) . should_equal "Ii-ı"
-            "Iiİı" . replace "ı" "-" (Text_Matcher Case_Insensitive) . should_equal "Iiİ-"
+            "Iiİı" . replace "i" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "--İı"
+            "Iiİı" . replace "I" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "--İı"
+            "Iiİı" . replace "İ" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "Ii-ı"
+            "Iiİı" . replace "ı" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal "Iiİ-"
 
             tr_insensitive = Text_Matcher (Case_Insensitive (Locale.new "tr"))
-            "Iiİı" . replace "i" "-" tr_insensitive . should_equal "I--ı"
-            "Iiİı" . replace "I" "-" tr_insensitive . should_equal "-iİ-"
-            "Iiİı" . replace "İ" "-" tr_insensitive . should_equal "I--ı"
-            "Iiİı" . replace "ı" "-" tr_insensitive . should_equal "-iİ-"
+            "Iiİı" . replace "i" "-" matcher=tr_insensitive . should_equal "I--ı"
+            "Iiİı" . replace "I" "-" matcher=tr_insensitive . should_equal "-iİ-"
+            "Iiİı" . replace "İ" "-" matcher=tr_insensitive . should_equal "I--ı"
+            "Iiİı" . replace "ı" "-" matcher=tr_insensitive . should_equal "-iİ-"
 
         Test.specify "should correctly handle Unicode edge cases" <|
             'sśs\u{301}' . replace 's' 'O' . should_equal 'Ośs\u{301}'

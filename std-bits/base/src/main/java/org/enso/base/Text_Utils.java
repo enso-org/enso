@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
+import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
 import org.enso.base.text.Utf16Span;
 
@@ -443,13 +444,21 @@ public class Text_Utils {
    * @return a minimal {@code GraphemeSpan} which contains all code units from the match
    */
   private static GraphemeSpan findExtendedSpan(CaseFoldedString string, int position, int length) {
-    int firstGrapheme = string.codeUnitToGraphemeIndex(position);
+    Grapheme firstGrapheme = string.findGrapheme(position);
     if (length == 0) {
-      return new GraphemeSpan(firstGrapheme, firstGrapheme);
+      return new GraphemeSpan(
+          firstGrapheme.index,
+          firstGrapheme.index,
+          firstGrapheme.codeunit_start,
+          firstGrapheme.codeunit_start);
     } else {
-      int lastGrapheme = string.codeUnitToGraphemeIndex(position + length - 1);
-      int endGrapheme = lastGrapheme + 1;
-      return new GraphemeSpan(firstGrapheme, endGrapheme);
+      Grapheme lastGrapheme = string.findGrapheme(position + length - 1);
+      int endGraphemeIndex = lastGrapheme.index + 1;
+      return new GraphemeSpan(
+          firstGrapheme.index,
+          endGraphemeIndex,
+          firstGrapheme.codeunit_start,
+          lastGrapheme.codeunit_end);
     }
   }
 
@@ -486,12 +495,12 @@ public class Text_Utils {
     StringBuilder sb = new StringBuilder();
     int current_ix = 0;
     for (Utf16Span span : spans) {
-      if (span.start > current_ix) {
-        sb.append(str, current_ix, span.start);
+      if (span.codeunit_start > current_ix) {
+        sb.append(str, current_ix, span.codeunit_start);
       }
 
       sb.append(newSequence);
-      current_ix = span.end;
+      current_ix = span.codeunit_end;
     }
 
     // Add the remaining part of the string (if any).
