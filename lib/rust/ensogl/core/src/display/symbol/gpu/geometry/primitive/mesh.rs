@@ -6,7 +6,7 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared2;
 use num_enum::IntoPrimitive;
@@ -191,7 +191,8 @@ impl {
         }.clone_ref()
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&self, context:Option<&Context>) {
         macro_rules! set_scope_context { ($($name:ident),*) => {
             $( self.scopes.$name.set_context(context); )*

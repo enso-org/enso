@@ -1,5 +1,5 @@
 //! This module implements physics components to simulate a rubber band dynamics.
-//! The components has the potential to be further developed and extended in the future into a
+//! The components have the potential to be further developed and extended in the future into a
 //! more sophisticated physics simulator.
 
 use crate::prelude::*;
@@ -7,6 +7,7 @@ use crate::prelude::*;
 use crate::animation;
 use crate::data::function::Fn0;
 use crate::data::function::Fn1;
+use crate::types::unit2::Duration;
 
 
 
@@ -254,7 +255,7 @@ impl<T: Value> SimulationData<T> {
     }
 
     /// Runs a simulation step.
-    fn step(&mut self, delta_seconds: f32) {
+    fn step(&mut self, delta_seconds: Duration) {
         if self.active {
             let velocity = self.velocity.magnitude();
             let distance = self.offset_from_target.magnitude();
@@ -268,6 +269,7 @@ impl<T: Value> SimulationData<T> {
             } else {
                 let force = self.spring_force() + self.drag_force();
                 let acceleration = force * (1.0 / self.mass.value);
+                let delta_seconds = delta_seconds.unchecked_raw();
                 self.velocity = self.velocity + acceleration * delta_seconds;
                 self.offset_from_target = self.offset_from_target + self.velocity * delta_seconds;
             }
@@ -419,7 +421,7 @@ impl<T: Value> SimulationDataCell<T> {
     }
 
     /// Runs a simulation step.
-    pub fn step(&self, delta_seconds: f32) {
+    pub fn step(&self, delta_seconds: Duration) {
         let mut data = self.data.get();
         data.step(delta_seconds);
         self.data.set(data);
@@ -598,7 +600,7 @@ where
     }
 
     /// Proceed with the next simulation step for the given time delta.
-    pub fn step(&self, delta_seconds: f32) -> bool {
+    pub fn step(&self, delta_seconds: Duration) -> bool {
         let is_active = self.simulation.active();
         if is_active {
             self.simulation.step(delta_seconds);
@@ -794,7 +796,7 @@ where
     let data = simulator.data.clone_ref();
     let animation_loop = simulator.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
-        let delta_seconds = time.frame / 1000.0;
+        let delta_seconds = time.previous_frame / 1000.0;
         if !data.step(delta_seconds) {
             if let Some(animation_loop) = animation_loop.upgrade() {
                 animation_loop.set(None)
@@ -845,7 +847,7 @@ mod tests {
         let mut data = SimulationData::<f32>::new();
         data.set_value(0.0);
         data.set_target_value(f32::NAN);
-        data.step(1.0);
+        data.step(1.0.ms());
         assert!(data.value().is_nan());
         assert!(!data.active);
     }
@@ -856,7 +858,7 @@ mod tests {
         let mut data = SimulationData::<f32>::new();
         data.set_value(f32::NAN);
         data.set_target_value(0.0);
-        data.step(1.0);
+        data.step(1.0.ms());
         assert_eq!(data.value(), 0.0);
         assert!(!data.active);
     }

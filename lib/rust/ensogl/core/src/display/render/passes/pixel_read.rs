@@ -103,8 +103,8 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let js_array = JsTypedArray::<T>::new_with_length(4);
             let target = Context::PIXEL_PACK_BUFFER;
             let usage = Context::DYNAMIC_READ;
-            context.bind_buffer(target, Some(&buffer));
-            context.buffer_data_with_opt_array_buffer(target, Some(&js_array.buffer()), usage);
+            context.bind_buffer(*target, Some(&buffer));
+            context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
 
             let texture = match variables.get("pass_id").unwrap() {
                 uniform::AnyUniform::Texture(t) => t,
@@ -119,15 +119,19 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let attachment_point = Context::COLOR_ATTACHMENT0;
             let gl_texture = Some(&gl_texture);
             let level = 0;
-            context.bind_framebuffer(target, Some(&framebuffer));
+            context.bind_framebuffer(*target, Some(&framebuffer));
             context.framebuffer_texture_2d(
-                target,
-                attachment_point,
-                texture_target,
+                *target,
+                *attachment_point,
+                *texture_target,
                 gl_texture,
                 level,
             );
-
+            context.bind_framebuffer(*target, None);
+            let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
+            if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
+                WARNING!("Framebuffer incomplete (status: {framebuffer_status}).")
+            }
             let data = PixelReadPassData::new(buffer, framebuffer, format, item_type, js_array);
             self.data = Some(data);
         }
@@ -141,29 +145,33 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let format = data.format.to::<GlEnum>().into();
         let typ = data.item_type.to::<GlEnum>().into();
         let offset = 0;
-        context.bind_framebuffer(Context::FRAMEBUFFER, Some(&data.framebuffer));
-        context.bind_buffer(Context::PIXEL_PACK_BUFFER, Some(&data.buffer));
+        context.bind_framebuffer(*Context::FRAMEBUFFER, Some(&data.framebuffer));
+        context.bind_buffer(*Context::PIXEL_PACK_BUFFER, Some(&data.buffer));
         context
             .read_pixels_with_i32(position.x, position.y, width, height, format, typ, offset)
             .unwrap();
         let condition = Context::SYNC_GPU_COMMANDS_COMPLETE;
         let flags = 0;
-        let sync = context.fence_sync(condition, flags).unwrap();
+        let sync = context.fence_sync(*condition, flags).unwrap();
         self.sync = Some(sync);
         context.flush();
     }
 
     fn check_and_handle_sync(&mut self, context: &Context, sync: &WebGlSync) {
         let data = self.data.as_ref().unwrap();
-        let status = context.get_sync_parameter(sync, Context::SYNC_STATUS);
-        if status == Context::SIGNALED {
+        let status = context.get_sync_parameter(sync, *Context::SYNC_STATUS);
+        if status == *Context::SIGNALED {
             context.delete_sync(Some(sync));
             self.sync = None;
             let target = Context::PIXEL_PACK_BUFFER;
             let offset = 0;
             let buffer_view = data.js_array.to_object();
-            context.bind_buffer(target, Some(&data.buffer));
-            context.get_buffer_sub_data_with_i32_and_array_buffer_view(target, offset, buffer_view);
+            context.bind_buffer(*target, Some(&data.buffer));
+            context.get_buffer_sub_data_with_i32_and_array_buffer_view(
+                *target,
+                offset,
+                buffer_view,
+            );
             if let Some(f) = &self.callback {
                 f(data.js_array.to_vec());
             }

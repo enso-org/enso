@@ -136,7 +136,7 @@ impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
         let data = WorldData::new();
-        let main_loop = MainLoop::new(Box::new(f!([data](t) data.go_to_next_frame_with_time(t))));
+        let main_loop = MainLoop::new(Box::new(f!([data](t) data.run_next_frame(t))));
         Self { main_loop, data }
     }
 }
@@ -291,13 +291,13 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
-    pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
+    pub fn run_next_frame(&self, time: animation::TimeInfo) {
         let previous_frame_stats = self.stats.begin_frame();
         if let Some(stats) = previous_frame_stats {
             self.on.prev_frame_stats.run_all(&stats);
         }
         self.on.before_frame.run_all(time);
-        self.uniforms.time.set(time.local);
+        self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
         self.default_scene.update(time);
         self.garbage_collector.mouse_events_handled();
