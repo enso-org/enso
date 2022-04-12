@@ -28,7 +28,7 @@ spec =
             table  = Table.from_rows header [row_1]
             expect table '{"df_color":["red"],"df_label":["name"],"df_latitude":[11],"df_longitude":[10],"df_radius":[195]}'
 
-        Test.specify "is case insensitive" <|
+        Test.specify "is case-insensitive" <|
             header = ['latitude' , 'LONGITUDE' , 'LaBeL']
             row_1  = [11         , 10          , 09     ]
             row_2  = [21         , 20          , 19     ]

@@ -461,7 +461,7 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
           '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
 
    ! Matching Grapheme Clusters
-     In case insensitive mode, a single character can match multiple characters,
+     In case-insensitive mode, a single character can match multiple characters,
      for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
      `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
      match only a part of some single grapheme cluster, for example in the text
@@ -473,7 +473,7 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
      part of it was matched.
 
    > Example
-     Extended partial matches in case insensitive mode.
+     Extended partial matches in case-insensitive mode.
 
           # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
          'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
@@ -1245,16 +1245,16 @@ Text.trim where=Location.Both what=_.is_whitespace =
      which contains both the start and end indices, allowing to determine the
      length of the match. This is useful not only with regex matches (where a
      regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case insensitive mode, a single character can
+     insensitive matching. In case-insensitive mode, a single character can
      match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
      mode, the length of the match can be shorter or longer than the term that
      was being matched, so it is extremely important to not rely on the length
      of the matched term when analysing the matches as they may have different
      lengths.
 
    > Example
-     Match length differences in case insensitive matching.
+     Match length differences in case-insensitive matching.
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
@@ -1263,7 +1263,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
          match.length == 7
 
    ! Matching Grapheme Clusters
-     In case insensitive mode, a single character can match multiple characters,
+     In case-insensitive mode, a single character can match multiple characters,
      for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
      `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
      match only a part of some single grapheme cluster, for example in the text
@@ -1354,16 +1354,16 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
      which contains both the start and end indices, allowing to determine the
      length of the match. This is useful not only with regex matches (where a
      regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case insensitive mode, a single character can
+     insensitive matching. In case-insensitive mode, a single character can
      match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
      mode, the length of the match can be shorter or longer than the term that
      was being matched, so it is extremely important to not rely on the length
      of the matched term when analysing the matches as they may have different
      lengths.
 
    > Example
-     Match length differences in case insensitive matching.
+     Match length differences in case-insensitive matching.
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
@@ -1372,7 +1372,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
          match . map .length == [7, 6]
 
    ! Matching Grapheme Clusters
-     In case insensitive mode, a single character can match multiple characters,
+     In case-insensitive mode, a single character can match multiple characters,
      for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
      `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
      match only a part of some single grapheme cluster, for example in the text

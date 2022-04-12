@@ -942,7 +942,7 @@ spec =
             abc.location_of "" mode=Matching_Mode.Last . should_equal (Span (Range 3 3) abc)
             abc.location_of_all "" . should_equal [Span (Range 0 0) abc, Span (Range 1 1) abc, Span (Range 2 2) abc, Span (Range 3 3) abc]
 
-        Test.specify "should allow case insensitive matching in location_of" <|
+        Test.specify "should allow case-insensitive matching in location_of" <|
             hello = "Hello WORLD!"
             case_insensitive = Text_Matcher Case_Insensitive.new
             hello.location_of "world" . should_equal Nothing
@@ -1200,7 +1200,7 @@ spec =
             'aba' . replace 'a' '' . should_equal 'b'
             'aba' . replace 'c' '' . should_equal 'aba'
 
-        Test.specify "should correctly handle case insensitive matches" <|
+        Test.specify "should correctly handle case-insensitive matches" <|
             'AaąĄ' . replace "A" "-" matcher=(Text_Matcher Case_Insensitive) . should_equal '--ąĄ'
             'AaąĄ' . replace "A" "-" . should_equal '-aąĄ'
             'HeLlO wOrLd' . replace 'hElLo' 'Hey,' matcher=(Text_Matcher True) . should_equal 'HeLlO wOrLd'
