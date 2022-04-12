@@ -53,7 +53,7 @@ final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
     payload: Class[_]
   ): Array[Byte] = {
     val requestIdEntry = requestId.fold("")(_.toString)
-    val payloadEntry   = payload.getName
+    val payloadEntry   = payload.getSimpleName
     val timeEntry      = clock.instant()
     s"$timeEntry,$direction,$requestIdEntry,$payloadEntry${System.lineSeparator()}"
       .getBytes(StandardCharsets.UTF_8)
@@ -64,7 +64,7 @@ object ApiEventsMonitor {
   /** Create default instance of [[ApiEventsMonitor]]. */
   def apply(): ApiEventsMonitor =
     new ApiEventsMonitor(
-      Files.createTempFile("enso-api-events", ".csv"),
+      Files.createTempFile("enso-api-events-", ".csv"),
       Clock.systemUTC()
     )
 
