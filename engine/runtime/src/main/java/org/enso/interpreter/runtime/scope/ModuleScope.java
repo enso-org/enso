@@ -45,15 +45,6 @@ public class ModuleScope implements TruffleObject {
     constructors.put(constructor.getName(), constructor);
   }
 
-  public void registerBuiltinConstructor(AtomConstructor constructor) {
-    registerConstructor(constructor);
-    builtins.add(constructor);
-  }
-
-  public boolean isBuiltin(AtomConstructor constructor) {
-    return builtins.contains(constructor);
-  }
-
   /** @return the associated type of this module. */
   public AtomConstructor getAssociatedType() {
     return associatedType;
@@ -206,36 +197,6 @@ public class ModuleScope implements TruffleObject {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(lowerName);
     if (definedWithAtom != null) {
       return definedWithAtom;
-    }
-
-    // Additional check for Builtin_Type's
-    // Consider a module Foo.enso in std library::
-    // type Foo
-    //   @Builtin_Type
-    //   type Foo
-    //     length = 0
-    // new size = @Builtin_Method ...
-    //
-    // a) you want to be able to match on it like
-    // ```
-    // case x of
-    //   Foo -> ...
-    // ```
-    // and not
-    // ```
-    // case x of
-    //   Foo.Foo -> ...
-    // ```
-    // and yet you still want to be able to call
-    // `Foo.new`
-    // Enhancing the method definition lookup for Builtin_Types allows you to avoid
-    // introducing additional import statements, especially for atom Builtin_Type.
-    AtomConstructor moduleType = atom.getDefinitionScope().associatedType;
-    if (atom != moduleType && atom.getDefinitionScope().isBuiltin(atom)) {
-      definedWithAtom = atom.getDefinitionScope().getMethodMapFor(moduleType).get(lowerName);
-      if (definedWithAtom != null) {
-        return definedWithAtom;
-      }
     }
 
     Function definedHere = getMethodMapFor(atom).get(lowerName);

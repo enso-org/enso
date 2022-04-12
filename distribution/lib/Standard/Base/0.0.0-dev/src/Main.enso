@@ -32,7 +32,6 @@ import project.Warning
 
 from Standard.Builtins import Nothing, Number, Integer, Cons, Arithmetic_Error
 
-#export project.Data.Boolean
 export project.Data.Interval
 export project.Data.Json
 export project.Data.Locale

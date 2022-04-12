@@ -23,12 +23,12 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       "Non-parsed module used in stubs generator"
     )
     localBindings.types.foreach { tp =>
-      val constructor = new AtomConstructor(tp.name, scope)
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
-        scope.registerBuiltinConstructor(builtinType)
+        scope.registerConstructor(builtinType)
         builtinType.setShadowDefinitions(scope)
       } else {
+        val constructor = new AtomConstructor(tp.name, scope)
         scope.registerConstructor(constructor)
       }
     }
