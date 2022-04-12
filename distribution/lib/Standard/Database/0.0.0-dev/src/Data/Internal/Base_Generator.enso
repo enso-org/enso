@@ -168,21 +168,10 @@ base_dialect =
     logic = [bin "AND", bin "OR", unary "NOT"]
     compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">="]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
-    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"], ["COUNT_DISTINCT", here.count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.count_distinct_include_null]]
+    counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
     Internal_Dialect base_map here.wrap_in_quotes
-
-## PRIVATE
-count_distinct args =
-    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
-
-## PRIVATE
-count_distinct_include_null args =
-    count = here.count_distinct args
-    are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
-    all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ Sql.join " AND " are_nulls ++ Sql.code " THEN 1 END) > 0 THEN 1 ELSE 0 END"
-    count ++ Sql.code " + " ++ all_nulls_case
 
 ## PRIVATE
 
