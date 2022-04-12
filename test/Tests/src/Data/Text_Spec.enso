@@ -1185,6 +1185,8 @@ spec =
         # "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher . should_equal "He### W#r#d!"
         "Hello World!".replace "l" "#" mode=Matching_Mode.First . should_equal "He#lo World!"
         #'"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher . should_equal '(abc) foo (bar) baz'
+        'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+        'aﬃb'.replace 'f' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 
         Test.specify "should correctly handle empty-string edge cases" <|
             [Mode.All, Matching_Mode.First, Matching_Mode.Last] . each mode->

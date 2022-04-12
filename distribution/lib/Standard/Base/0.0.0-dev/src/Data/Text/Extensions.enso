@@ -459,6 +459,26 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
      Replace texts in quotes with parentheses.
 
           '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+
+   ! Matching Grapheme Clusters
+     In case insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+     match only a part of some single grapheme cluster, for example in the text
+     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+     Since we do not have the resolution to distinguish such partial matches, a
+     match which matched just a part of some grapheme cluster is extended and
+     treated as if it matched the whole grapheme cluster. Thus the whole
+     grapheme cluster may be replaced with the replacement text even if just a
+     part of it was matched.
+
+   > Example
+     Extended partial matches in case insensitive mode.
+
+          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
+         'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+         # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
+         'aﬃb'.replace 'f' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
 Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
 Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then this else
     case matcher of
