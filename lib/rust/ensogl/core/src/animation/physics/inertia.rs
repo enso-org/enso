@@ -1,5 +1,5 @@
 //! This module implements physics components to simulate a rubber band dynamics.
-//! The components has the potential to be further developed and extended in the future into a
+//! The components have the potential to be further developed and extended in the future into a
 //! more sophisticated physics simulator.
 
 use crate::prelude::*;
