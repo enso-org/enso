@@ -1,0 +1,44 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+
+import Standard.Test
+
+spec =
+    Test.group "Encoding object" <|
+        Test.specify "Can get standard UTF encodings" <|
+            Encoding.utf_8 . should_equal (Encoding "UTF-8")
+            Encoding.utf_16_le . should_equal (Encoding "UTF-16LE")
+            Encoding.utf_16_be . should_equal (Encoding "UTF-16BE")
+            Encoding.utf_32_le . should_equal (Encoding "UTF-32LE")
+            Encoding.utf_32_be . should_equal (Encoding "UTF-32BE")
+
+        Test.specify "Catches invalid character sets" <|
+            invalid = Encoding "NotAValidCharacterSet"
+            invalid.to_java_charset . should_fail_with Illegal_Argument_Error
+
+    Test.group "UTF_8" <|
+        kshi = '\u0915\u094D\u0937\u093F'
+        kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
+
+        Test.specify "should dump utf-8 bytes to a vector via encoding" <|
+            kshi.bytes Encoding.utf_8 . should_equal kshi_utf_8
+
+        Test.specify "should dump utf-8 bytes to a vector" <|
+            kshi.utf_8.should_equal kshi_utf_8
+
+        Test.specify "should convert an array of bytes to text" <|
+            Text.from_utf_8 kshi_utf_8 . should_equal kshi
+
+    Test.group "codepoints" <|
+        facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
+        facepalm_codes = [129318, 127996, 8205, 9794, 65039]
+
+        Test.specify "should dump utf codepoints to a vector" <|
+            facepalm.codepoints.should_equal facepalm_codes
+
+        Test.specify "should convert an array of codepoints to text" <|
+            Text.from_codepoints facepalm_codes . should_equal facepalm
+
+
+main = Test.Suite.run_main here.spec
