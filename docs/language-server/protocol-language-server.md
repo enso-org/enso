@@ -123,6 +123,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
@@ -3302,6 +3303,37 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when context with the provided id
+  does not exist.
 
 ### `executionContext/expressionUpdates`
 
