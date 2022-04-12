@@ -94,9 +94,11 @@
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
 - [Added warning handling to `Table.aggregate`][3349]
-- [Improved performance of `Table.aggregate` and full warnings implementation]
-  [3364]
+- [Improved performance of `Table.aggregate` and full warnings
+  implementation][3364]
 - [Implemented `Text.reverse`][3377]
+- [Implemented support for most Table aggregations in the Database
+  backend.][3383]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -149,6 +151,8 @@
 [3366]: https://github.com/enso-org/enso/pull/3366
 [3379]: https://github.com/enso-org/enso/pull/3379
 [3381]: https://github.com/enso-org/enso/pull/3381
+[3383]: https://github.com/enso-org/enso/pull/3383
+[3392]: https://github.com/enso-org/enso/pull/3392
 
 #### Enso Compiler
 
@@ -157,11 +161,13 @@
 - [Added the ability to decorate values with warnings.][3248]
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
+- [Fixed execution of defaulted arguments of Atom Constructors][3358]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 [3330]: https://github.com/enso-org/enso/pull/3330
+[3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
 

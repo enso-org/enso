@@ -43,7 +43,7 @@ pub async fn entry_point_render_profile_flamegraph() {
     let data = get_data().await;
     let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
     let mut builder = profiler_flame_graph::FlamegraphBuilder::default();
-    builder.visit_profile(&profile);
+    builder.add_profile(&profile);
     let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), &app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);

@@ -48,7 +48,11 @@ case object BindingAnalysis extends IRPass {
   ): IR.Module = {
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
-        BindingsMap.Cons(cons.name.name, cons.arguments.length)
+        BindingsMap.Cons(
+          cons.name.name,
+          cons.arguments.length,
+          cons.arguments.forall(_.defaultValue.isDefined)
+        )
     }
     val importedPolyglot = ir.imports.collect {
       case poly: IR.Module.Scope.Import.Polyglot =>
