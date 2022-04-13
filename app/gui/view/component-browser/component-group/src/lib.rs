@@ -133,7 +133,7 @@ impl component::Frp<Model> for Frp {
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
-                (t,(size,hdr_geom)) {
+                (t, (size, hdr_geom)) {
                     model.header_text.replace(t.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
