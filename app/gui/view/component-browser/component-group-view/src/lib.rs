@@ -38,14 +38,14 @@ use ensogl_text as text;
 // ==========================
 
 
-// === Header Background ===
+// === Background ===
 
-/// The background of the Component Group View's header.
-pub mod header_background {
+/// The background of the Component Group View.
+pub mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        above = [list_view::selection];
+        below = [list_view::background];
         (style:Style, color:Vector4) {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
@@ -93,11 +93,12 @@ impl component::Frp<Model> for Frp {
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             model.header.set_content <+ input.set_header_text;
             eval input.set_background_color((c)
-                model.header_background.color.set(c.into()));
+                model.background.color.set(c.into()));
 
 
             // === Entries ===
 
+            model.entries.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_background_color <+ input.set_background_color;
@@ -150,10 +151,10 @@ impl HeaderGeometry {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object:    display::object::Instance,
-    header:            text::Area,
-    header_background: header_background::View,
-    entries:           ListView<entry::Label>,
+    display_object: display::object::Instance,
+    header:         text::Area,
+    background:     background::View,
+    entries:        ListView<entry::Label>,
 }
 
 impl display::Object for Model {
@@ -169,10 +170,10 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
-        let header_background = header_background::View::new(&logger);
+        let background = background::View::new(&logger);
         let header = text::Area::new(app);
         let entries = ListView::new(app);
-        display_object.add_child(&header_background);
+        display_object.add_child(&background);
         display_object.add_child(&header);
         display_object.add_child(&entries);
 
@@ -180,18 +181,15 @@ impl component::Model for Model {
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
-        Model { display_object, header, header_background, entries }
+        Model { display_object, header, background, entries }
     }
 }
 
 impl Model {
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
-        // === Header Background ===
+        // === Background ===
 
-        let header_bg_height = header_geometry.height;
-        let header_bg_y = (size.y - header_bg_height) / 2.0;
-        self.header_background.size.set(Vector2(size.x, header_bg_height));
-        self.header_background.set_position_y(header_bg_y);
+        self.background.size.set(size);
 
 
         // === Header Text ===
@@ -200,8 +198,9 @@ impl Model {
         let header_text_x = -size.x / 2.0 + header_padding_left;
         let header_text_height = self.header.height.value();
         let header_padding_bottom = header_geometry.padding_bottom;
-        let header_bg_bottom_y = size.y / 2.0 - header_bg_height;
-        let header_text_y = header_bg_bottom_y + header_text_height + header_padding_bottom;
+        let header_height = header_geometry.height;
+        let header_bottom_y = size.y / 2.0 - header_height;
+        let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         let header_padding_right = header_geometry.padding_right;
         self.header.set_truncation_width(size.x - header_padding_left - header_padding_right);
@@ -209,8 +208,8 @@ impl Model {
 
         // === Entries ===
 
-        self.entries.resize(size - Vector2(0.0, header_bg_height));
-        self.entries.set_position_y(-header_bg_height / 2.0);
+        self.entries.resize(size - Vector2(0.0, header_height));
+        self.entries.set_position_y(-header_height / 2.0);
     }
 }
 
