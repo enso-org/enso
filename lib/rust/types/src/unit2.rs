@@ -152,7 +152,6 @@ impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
 // === Eq ===
 // ==========
 
-impl<V, R: PartialEq> Eq for UnitData<V, R> {}
 impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
     fn eq(&self, other: &Self) -> bool {
         self.repr.eq(&other.repr)
@@ -164,12 +163,6 @@ impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
 // ===========
 // === Ord ===
 // ===========
-
-impl<V, R: Ord> Ord for UnitData<V, R> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.repr.cmp(&other.repr)
-    }
-}
 
 impl<V, R: PartialOrd> PartialOrd for UnitData<V, R> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -354,8 +347,6 @@ macro_rules! gen_ops_mut {
     };
 }
 
-
-
 gen_ops!(RevAdd, Add, add);
 gen_ops!(RevSub, Sub, sub);
 gen_ops!(RevMul, Mul, mul);
@@ -367,6 +358,15 @@ gen_ops_mut!(RevAdd, Add, AddAssign, add_assign);
 gen_ops_mut!(RevSub, Sub, SubAssign, sub_assign);
 gen_ops_mut!(RevMul, Mul, MulAssign, mul_assign);
 gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
+
+impl<V, R: ops::Neg<Output = R>> ops::Neg for UnitData<V, R> {
+    type Output = UnitData<V, R>;
+
+    fn neg(mut self) -> Self::Output {
+        self.repr = self.repr.neg();
+        self
+    }
+}
 
 
 
@@ -615,6 +615,16 @@ impl const DurationNumberOps for f32 {
 
     fn s(self) -> Duration {
         Duration::s(self)
+    }
+}
+
+impl const DurationNumberOps for i64 {
+    fn ms(self) -> Duration {
+        (self as f32).ms()
+    }
+
+    fn s(self) -> Duration {
+        (self as f32).s()
     }
 }
 
