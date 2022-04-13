@@ -1014,7 +1014,7 @@ impl SceneData {
                 shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
             });
 
-            eval self.mouse.frp.position ((_) pointer_position_changed.set(true));
+            eval_ self.mouse.frp.position (pointer_position_changed.set(true));
         }
     }
 

@@ -209,7 +209,8 @@ impl Compiler {
         self.rc.borrow_mut().submit(input, on_ready)
     }
 
-    /// Run the compiler. This should be run on every frame.
+    /// Run the compiler. This should be run on every frame. Returns [`true`] if any new shaders
+    /// finished the compilation process during this call.
     pub fn run(&self, time: animation::TimeInfo) -> bool {
         self.rc.borrow_mut().run(time)
     }
