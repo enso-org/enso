@@ -334,7 +334,8 @@ mod tests {
         // Next frames way too fast.
         step(1210.ms(), &[], -90.ms());
         // Time compression – we don't want to accumulate too much of negative time buffer for
-        // monitors with bigger refresh-rate than assumed.
+        // monitors with bigger refresh-rate than assumed. The total accumulated time buffer would
+        // be -180 here, so we add a frame time to it (100).
         step(1220.ms(), &[], -80.ms());
     }
 }
