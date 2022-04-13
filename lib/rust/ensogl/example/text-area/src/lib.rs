@@ -25,6 +25,8 @@ use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_text::style;
+use ensogl_text::traits::*;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
 
@@ -40,27 +42,35 @@ pub fn entry_point_text_area() {
 }
 
 fn init(app: Application) {
+    use ensogl_text::Bytes;
+    use ensogl_text::Range;
+
     let area = app.new_view::<Area>();
     area.set_position_x(-100.0);
-    area.set_content(
-        "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta",
-    );
+    let quote = "Et Eärello Endorenna utúlien.\nSinome maruvan ar Hildinyar tenn' Ambar-metta\n";
+    let snowman = "\u{2603}";
+    let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
+    let text = quote.to_string() + snowman + zalgo;
+    area.set_content(text.clone() + "\n" + text.as_str());
+    area.set_font("DejaVuSans");
     area.focus();
     area.hover();
     area.set_cursor_at_end();
+
+    area.set_sdf_bold(Range::new(4.bytes(), 6.bytes()), style::SdfBold(0.02));
+    area.set_sdf_bold(Range::new(7.bytes(), 15.bytes()), style::SdfBold(0.04));
+    area.set_sdf_bold(Range::new(24.bytes(), 26.bytes()), style::SdfBold(0.02));
+    area.set_sdf_bold(Range::new(37.bytes(), 41.bytes()), style::SdfBold(0.05));
+    area.set_sdf_bold(Range::new(55.bytes(), 56.bytes()), style::SdfBold(0.03));
+    let quote_length = Bytes::from(quote.len());
+    let text_length = Bytes::from(text.len());
+    area.set_sdf_bold(Range::new(quote_length, text_length), style::SdfBold(0.02));
 
     let scene = &app.display.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());
 
     app.display.default_scene.add_child(&area);
-    let keep = Some(area);
-    app.display
-        .on
-        .before_frame
-        .add(move |_frame| {
-            let _ = &keep;
-        })
-        .forget();
     mem::forget(navigator);
     mem::forget(app);
+    mem::forget(area);
 }

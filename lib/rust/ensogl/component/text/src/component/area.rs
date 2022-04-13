@@ -260,9 +260,15 @@ ensogl_core::define_endpoints! {
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_color_all         (color::Rgba),
+        set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
+        /// Set font in the text area. The name will be looked up in [`typeface::font::Registry`].
+        ///
+        /// Note, that this is a relatively heavy operation - it requires not only redrawing all
+        /// lines, but also re-load internal structures for rendering (like WebGL buffers,
+        /// MSDF texture, etc.).
         set_font              (String),
         set_content           (String),
         set_content_truncated (String, f32),
@@ -488,6 +494,11 @@ impl Area {
             });
 
 
+            // === Font ===
+
+            eval input.set_font ((t) m.set_font(t));
+
+
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
@@ -508,6 +519,12 @@ impl Area {
                 m.redraw(false);
             });
             self.frp.source.selection_color <+ self.frp.set_selection_color;
+
+
+            // === Style ===
+
+            m.buffer.frp.set_sdf_bold <+ input.set_sdf_bold;
+            eval_ input.set_sdf_bold (m.redraw(false));
 
 
             // === Changes ===
@@ -601,20 +618,19 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
+        let display_object = display::object::Instance::new(&logger);
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
             let font = fonts.load("DejaVuSansMono");
-            typeface::glyph::System::new(&scene, font)
+            let glyph_system = typeface::glyph::System::new(&scene, font);
+            display_object.add_child(&glyph_system);
+            Rc::new(RefCell::new(glyph_system))
         };
-        let display_object = display::object::Instance::new(&logger);
         let buffer = default();
         let lines = default();
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
-
-        #[cfg(target_arch = "wasm32")]
-        display_object.add_child(&glyph_system);
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
@@ -629,8 +645,6 @@ impl AreaModel {
         scene.layers.label.add_exclusive(symbol);
 
         let frp_endpoints = frp_endpoints.clone_ref();
-        #[cfg(target_arch = "wasm32")]
-        let glyph_system = Rc::new(RefCell::new(glyph_system));
 
         Self {
             app,
@@ -809,12 +823,13 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        let glyph_system = self.glyph_system.borrow();
+        let mut pen = pen::Pen::new(&glyph_system.font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || self.glyph_system.borrow().new_glyph());
+        line.resize_with(content.chars().count(), || glyph_system.new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
@@ -839,15 +854,16 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = self.glyph_system.borrow().font.glyph_info(chr);
-                    let size = glyph_info.scale.scale(chr_size);
+                    let glyph_info = glyph_system.font.glyph_info(chr);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    glyph.size.set(size);
+                    glyph.set_bold(style.bold.raw);
+                    glyph.set_sdf_bold(style.sdf_bold.raw);
+                    glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
                         Some(cursor) => {
@@ -1018,9 +1034,6 @@ impl AreaModel {
         selection.with_start(start).with_end(end)
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn set_font(&self, _: &str) {}
-
     #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
@@ -1031,7 +1044,13 @@ impl AreaModel {
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
+        self.lines.rc.take();
+        self.redraw(true);
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_font(&self, _font_name: &str) {}
 }
 
 impl display::Object for AreaModel {

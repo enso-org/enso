@@ -272,12 +272,16 @@ Error.should_equal _ frames_to_skip=0 = here.fail_match_on_unexpected_error this
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Decimal.should_equal : Decimal -> Decimal -> Integer -> Assertion
-Decimal.should_equal that (epsilon = 0) (frames_to_skip=0) = case this.equals that epsilon of
-    True -> Success
-    False ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-        Panic.throw (Failure msg)
+Decimal.should_equal that epsilon=0 frames_to_skip=0 =
+    matches = case that of
+        Number -> this.equals that epsilon
+        _ -> False
+    case matches of
+        True -> Success
+        False ->
+            loc = Meta.get_source_location 2+frames_to_skip
+            msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+            Panic.throw (Failure msg)
 
 ## Asserts that the given `Boolean` is `True`
 

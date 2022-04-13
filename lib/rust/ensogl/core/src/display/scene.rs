@@ -25,10 +25,10 @@ use crate::display::symbol::Symbol;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::Context;
+use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
-use crate::system::Context;
-use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
@@ -466,19 +466,21 @@ impl Renderer {
         Self { logger, dom, variables, pipeline, composer }
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let composer = context.map(|context| {
             // To learn more about the blending equations used here, please see the following
             // articles:
             // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
             // - https://www.khronos.org/opengl/wiki/Blending#Colors
-            context.enable(Context::BLEND);
-            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.enable(*Context::BLEND);
+            context.blend_equation_separate(*Context::FUNC_ADD, *Context::FUNC_ADD);
             context.blend_func_separate(
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
             );
 
             let (width, height) = self.view_size();
@@ -815,6 +817,8 @@ impl SceneData {
         self
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
@@ -908,7 +912,17 @@ impl SceneData {
     }
 
     pub fn render(&self) {
-        self.renderer.run()
+        self.renderer.run();
+        // WebGL `flush` should be called when expecting results such as queries, or at completion
+        // of a rendering frame. Flush tells the implementation to push all pending commands out
+        // for execution, flushing them out of the queue, instead of waiting for more commands to
+        // enqueue before sending for execution.
+        //
+        // Not flushing commands can sometimes cause context loss. To learn more, see:
+        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+        if let Some(context) = &*self.context.borrow() {
+            context.flush()
+        }
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
@@ -1030,7 +1044,7 @@ impl Scene {
     }
 
     fn init(&self) {
-        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
+        let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
         match context_loss_handler {
             Err(err) => error!(self.logger, "{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
@@ -1042,8 +1056,8 @@ impl Scene {
     }
 }
 
-impl system::context::Display for Scene {
-    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+impl system::gpu::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
         &self.dom.layers.canvas
     }
 
@@ -1073,10 +1087,10 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, t: animation::TimeInfo) {
-        if self.context.borrow().is_some() {
+    pub fn update(&self, time: animation::TimeInfo) {
+        if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                self.frp.frame_time_source.emit(t.local);
+                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
                 self.update_camera(self);
@@ -1085,6 +1099,7 @@ impl Scene {
                 self.update_shape();
                 self.update_symbols();
                 self.handle_mouse_over_and_out_events();
+                context.shader_compiler.run(time);
             })
         }
     }

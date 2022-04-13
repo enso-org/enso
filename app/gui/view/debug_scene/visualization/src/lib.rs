@@ -133,7 +133,9 @@ fn init(app: &Application) {
         .add(move |time_info: animation::TimeInfo| {
             let _keep_alive = &navigator;
 
-            let data = generate_data((time_info.local / 1000.0).into());
+            let data = generate_data(
+                (time_info.since_animation_loop_started.unchecked_raw() / 1000.0).into(),
+            );
             let data = Rc::new(data);
             let content = serde_json::to_value(data).unwrap();
             let data = Data::from(content);

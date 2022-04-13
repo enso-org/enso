@@ -810,8 +810,6 @@ pub fn set_stack_trace_limit() {}
 static mut START_TIME: Option<Instant> = None;
 static mut TIME_OFFSET: f64 = 0.0;
 
-// FIXME: This is strange design + no one is calling it on init ...
-
 /// Initializes global stats of the program, like its start time. This function should be called
 /// exactly once, as the first operation of a program.
 ///

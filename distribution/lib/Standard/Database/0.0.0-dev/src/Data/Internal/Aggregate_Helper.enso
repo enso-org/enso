@@ -5,12 +5,21 @@ import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
+## PRIVATE
+   Creates an `Internal_Column` that computes the specified statistic.
+   It returns a dataflow error if the given operation is not supported.
+
+   The provided `aggregate` is assumed to contain only already resolved columns.
+   You may need to transform it with `resolve_aggregate` first.
 make_aggregate_column : Table -> Aggregate_Column -> Text -> IR.Internal_Column
 make_aggregate_column table aggregate new_name =
     sql_type = table.connection.dialect.resolve_target_sql_type aggregate
     expression = here.make_expression aggregate
     IR.Internal_Column new_name sql_type expression
 
+## PRIVATE
+   Creates an Internal Representation of the expression that computes a
+   requested statistic.
 make_expression : Aggregate_Column -> IR.Expression
 make_expression aggregate =
     is_non_empty_vector v = if v.is_nothing then False else v.not_empty
