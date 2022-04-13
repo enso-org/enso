@@ -22,16 +22,10 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
         private String tpeName;
         private String paramNames;
 
-        BuiltinTypeConstr(String tpeName) {
-            this.tpeName = tpeName;
-            this.paramNames = "";
-        }
-
         BuiltinTypeConstr(String tpeName, String params) {
             this.tpeName = tpeName;
             this.paramNames = params;
         }
-
 
         public String getTpeName() {
             return tpeName;
@@ -58,11 +52,14 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
     }
 
     @Override
-    protected void storeMetadata(Writer writer) throws IOException {
+    protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
         for (Filer f: builtinTypes.keySet()) {
             for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
                 BuiltinTypeConstr constr = entry.getValue();
                 writer.append(entry.getKey() + ":" + constr.getTpeName() + ":" + constr.getParamNames() + "\n");
+                if (pastEntries.containsKey(entry.getKey())) {
+                    pastEntries.remove(entry.getKey());
+                }
             }
         }
     }

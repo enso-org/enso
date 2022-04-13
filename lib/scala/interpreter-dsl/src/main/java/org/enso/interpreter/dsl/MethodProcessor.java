@@ -80,10 +80,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
     return true;
   }
 
-  protected void storeMetadata(Writer writer) throws IOException {
+  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
     for (Filer f: builtinMethods.keySet()) {
       for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
         writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
       }
     }
   }
