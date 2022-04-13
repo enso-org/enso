@@ -5,7 +5,7 @@ public class ResultWithWarnings<T> {
   public final String warnings;
 
   public ResultWithWarnings(T result) {
-    this(result, "");
+    this(result, null);
   }
 
   public ResultWithWarnings(T result, String warnings) {

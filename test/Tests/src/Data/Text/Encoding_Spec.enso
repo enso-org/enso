@@ -33,19 +33,27 @@ spec =
         test = 'Hello World!'
         test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
+        invalid = 'Hello World!\uFFFD'
+        invalid_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, -56]
+        invalid_ascii_out = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 63]
+
         Test.specify "should dump ASCII bytes to a vector via encoding" <|
             test.bytes Encoding.ascii . should_equal test_ascii
 
         Test.specify "should convert an array of bytes to text" <|
             Text.from_bytes test_ascii Encoding.ascii . should_equal test
 
-    Test.group "Invalid ASCII should raise a warning" <|
-        test = 'Hello World!\uFFFD'
-        test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, -56]
-        action = Text.from_bytes test_ascii Encoding.ascii on_problems=_
-        tester result = result . should_equal test
-        problems = [Encoding_Error "Encoding issues at 12"]
-        Problems.test_problem_handling action problems tester
+        Test.specify "Invalid ASCII should raise a warning when decoding" <|
+            action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
+            tester result = result . should_equal invalid
+            problems = [Encoding_Error "Encoding issues at 12"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "Invalid ASCII should raise a warning when encoding" <|
+            action = invalid.bytes Encoding.ascii on_problems=_
+            tester result = result . should_equal invalid_ascii_out
+            problems = [Encoding_Error "Encoding issues at 12"]
+            Problems.test_problem_handling action problems tester
 
     Test.group "UTF_8" <|
         kshi = '\u0915\u094D\u0937\u093F'

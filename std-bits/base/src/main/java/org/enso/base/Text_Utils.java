@@ -16,6 +16,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -134,7 +135,11 @@ public class Text_Utils {
     }
 
     out.flip();
-    return new ResultWithWarnings<>(out.array());
+    byte[] array = out.array();
+    if (out.limit() != array.length) {
+      array = Arrays.copyOf(array, out.limit());
+    }
+    return new ResultWithWarnings<>(array, warnings == null ? null : warnings.toString());
   }
 
   /**
@@ -293,7 +298,7 @@ public class Text_Utils {
     }
 
     out.flip();
-    return new ResultWithWarnings<>(out.toString(), warnings == null ? "" : warnings.toString());
+    return new ResultWithWarnings<>(out.toString(), warnings == null ? null : warnings.toString());
   }
 
   /**

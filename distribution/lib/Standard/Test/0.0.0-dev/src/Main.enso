@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Builtins
 
-## Creates a new test group, desribing properties of the object
+## Creates a new test group, describing properties of the object
    described by `this`.
 
    Arguments:
@@ -29,7 +29,7 @@ config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
     Suite_Config only_group_regexp
 
-## Creates a new test group, desribing properties of the object
+## Creates a new test group, describing properties of the object
    described by `this`.
 
    Arguments:
@@ -53,7 +53,7 @@ Suite.run ~specs config =
         State.get Suite
     r
 
-## Creates a new test group, desribing properties of the object
+## Creates a new test group, describing properties of the object
    described by `this`.
 
    Arguments:
@@ -143,7 +143,9 @@ Any.should verb argument = verb Verbs this argument
 
          example_fail = Test.fail "Something went wrong."
 fail : Text -> Assertion
-fail message = Panic.throw (Failure message)
+fail message =
+    failure = Failure message
+    Panic.throw <| failure
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -153,7 +155,7 @@ fail message = Panic.throw (Failure message)
      displayed as the source of this error.
 
    > Example
-     Assert that a compuation should return an error of a given type.
+     Assert that a computation should return an error of a given type.
 
          import Standard.Examples
          import Standard.Test
@@ -173,7 +175,7 @@ Any.should_fail_with matcher frames_to_skip=0 =
      displayed as the source of this error.
 
    > Example
-     Assert that a compuation should return an error of a given type.
+     Assert that a computation should return an error of a given type.
 
          import Standard.Examples
          import Standard.Test
@@ -185,7 +187,7 @@ Error.should_fail_with matcher frames_to_skip=0 =
     caught = this.catch x->x
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
-        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + ".")
+        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + "."))
 
 ## Expect a function to fail with the provided panic.
 

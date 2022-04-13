@@ -759,7 +759,7 @@ Text.is_whitespace =
 
          "Hello".bytes (Encoding.ascii)
 Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
-Text.bytes encoding =
+Text.bytes encoding on_problems=Report_Warning =
     result = Text_Utils.get_bytes this (encoding . to_java_charset)
     vector = Vector.Vector result.result
     if result.warnings.is_nothing then vector else
