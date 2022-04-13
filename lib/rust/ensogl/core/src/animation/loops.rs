@@ -39,6 +39,8 @@ impl TimeInfo {
         self.animation_loop_start != 0.ms()
     }
 
+    /// Creates a new [`TimeInfo`] for the next frame with the provided time. The frame time will
+    /// be computed based on the current and the new frame time.
     pub fn new_frame(mut self, since_animation_loop_started: Duration) -> Self {
         self.previous_frame = since_animation_loop_started - self.since_animation_loop_started;
         self.since_animation_loop_started = since_animation_loop_started;
@@ -278,8 +280,8 @@ mod tests {
     #[test]
     fn fixed_frame_rate_sampler_test() {
         let mut count_check = 0;
-        let mut count = Rc::new(Cell::new(0));
-        let mut frame_times = Rc::new(RefCell::new(VecDeque::new()));
+        let count = Rc::new(Cell::new(0));
+        let frame_times = Rc::new(RefCell::new(VecDeque::new()));
         let mut lp = FixedFrameRateSampler::new(10.0, |t| {
             frame_times.borrow_mut().push_back(t);
             count.set(count.get() + 1);
