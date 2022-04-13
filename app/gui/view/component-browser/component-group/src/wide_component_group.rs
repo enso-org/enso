@@ -36,11 +36,11 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        frp::extend! { network
-            model.group.set_size <+ input.set_size;
-            model.group.set_header_text <+ input.set_header_text;
-            model.group.set_entries <+ input.set_entries;
-            model.group.set_background_color <+ input.set_background_color;
+        for group in model.groups.iter() {
+            frp::extend! { network
+                group.set_entries <+ input.set_entries;
+                group.resize <+ input.set_size;
+            }
         }
     }
 }
@@ -55,7 +55,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
-    group: crate::View,
+    groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
 }
 
 impl display::Object for Model {
@@ -71,15 +71,23 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
-        let group = app.new_view::<crate::View>();
-        display_object.add_child(&group);
+        let groups = Rc::new([
+            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
+            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
+            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
+        ]);
+        let mut x = -150.0;
+        for group in groups.iter() {
+            group.set_position_x(x);
+            x += 150.0;
+            display_object.add_child(group);
+        }
 
-        Model { display_object, group }
+        Model { display_object, groups }
     }
 }
 
-impl Model {
-}
+impl Model {}
 
 
 
