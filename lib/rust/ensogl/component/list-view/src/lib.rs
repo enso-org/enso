@@ -99,7 +99,7 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style, shadow_alpha:f32, corners_radius_px:f32, color:Vector4) {
+        (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
