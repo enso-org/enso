@@ -3,7 +3,6 @@
 //! A Component Group is displayed as a header (containing the name of a group of Enso components)
 //! and a list of entries below it (names of the components belonging to that group).
 
-#![recursion_limit = "512"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
