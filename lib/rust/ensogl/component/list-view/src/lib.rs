@@ -167,7 +167,7 @@ impl<E: Entry> Model<E> {
         styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
     }
 
-    fn padding_with_shape_padding(&self) -> f32 {
+    fn doubled_padding_with_shape_padding(&self) -> f32 {
         2.0 * self.padding() + SHAPE_PADDING
     }
 
@@ -175,7 +175,7 @@ impl<E: Entry> Model<E> {
     /// resized.
     fn update_after_view_change(&self, view: &View) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
-        let padding = self.padding_with_shape_padding();
+        let padding = self.doubled_padding_with_shape_padding();
         let padding = Vector2(padding, padding);
         let entry_width = view.size.x - padding.x;
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
@@ -187,7 +187,7 @@ impl<E: Entry> Model<E> {
 
     fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
-        let padding = self.padding_with_shape_padding();
+        let padding = self.doubled_padding_with_shape_padding();
         let entry_width = view.size.x - padding;
         self.entries.update_entries_new_provider(provider, visible_entries, entry_width);
     }
