@@ -6,42 +6,19 @@ layout: style-guide title: Rust Style Guide category: style-guide tags: [style-g
 
 All of the codebase should be formatted by the `rustfmt`. However, the code style is way more than just formatting. In many cases formatting can be automated. According to rustfmt docs: “formatting code is a mostly mechanical task which takes both time and mental effort. By using an automatic formatting tool, a programmer is relieved of this task and can concentrate on more important things.”. While in many cases it is true, if the code author does not take extra effort to make his code pretty by refactoring long lines to variables, moving code to specific modules, or sections, the formatting tool will result in code that is hard to read and hard to write. Thus, it is important to take time to write code in such way that we can be proud of its quality. The following document provides you with a detailed guide regarding the code quality we are looking for.
 
+## Code formatting in macros.
+Unfortunately, `rustfmt` is not working inside of macros. Thus, this code should be manually formated in the same was as `rustfmt` would do it.
+
 ## Submodules and imports.
 
 - **Design your files to be imported as module.**  
   Design names of your libraries, structs, and functions to be imported as modules. For example, prefer an import `use graph;` and it's usage `graph::Node::new()` over `use graph::new_node`. This design minimizes the amount of imports and allows related modules to import shorter names to the scope.
 
-- **Use one import per line.**  
-  Do not use the `use crate::mod_name::{name1, name2, name3}` syntax. For each entity use a separate `use` statement.
-  
 - **Don't use relative imports.**  
-  Do not use `super::` nor `self::` imports. Use absolute imports or imports from local submodules only. 
+  Do not use `super::` nor `self::` imports in files (you can use them in localy defined modules). Use absolute imports or imports from local submodules only.
 
-- **Group related submodule and import statements**  
-  Submodule and import statements should be divided into several groups separated by blank lines. Items in the groups should be sorted alphabetically (do not use group comments in your code):
-  ```rust
-  // Sub-module definitions.
-  pub mod display_object;
-  pub mod geometry;
-  pub mod sprite_system;
-  
-  // Reexports.
-  pub use geometry::*;
-  
-  // Prelude-like imports.
-  use crate::prelude::*;
-  use sprite_system::traits::*;
-  
-  // Local-crate imports.
-  use crate::closure;
-  use crate::data::opt_vec::OptVec;
-  use crate::data::dirty;
-  use crate::system::web::group;
-  
-  // External imports.
-  use nalgebra::Matrix4;
-  use nalgebra::Vector3;
-  ```
+- **Use Enso Formatter to format your imports**  
+  Run the `build/enso-formatter` script to format imports in all files before contributing your PR.
 
 
 ## Sections.
