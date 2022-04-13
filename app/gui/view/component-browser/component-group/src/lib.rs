@@ -144,7 +144,7 @@ impl component::Frp<Model> for Frp {
 
             // === Entries ===
 
-            model.entries.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
+            model.entries.set_background_color(HOVER_COLOR);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_background_color <+ input.set_background_color;
