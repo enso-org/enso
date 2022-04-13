@@ -107,7 +107,7 @@ fn init(app: &Application) {
     component_group_view.set_header_text(group_name.to_string());
     component_group_view.set_entries(provider);
     component_group_view.set_size(Vector2(150.0, 200.0));
-    component_group_view.set_background_color(color::Rgba(0.0, 1.0, 0.0, 1.0));
+    component_group_view.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&component_group_view);
 
     std::mem::forget(component_group_view);
