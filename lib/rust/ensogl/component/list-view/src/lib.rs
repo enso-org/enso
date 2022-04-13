@@ -167,12 +167,15 @@ impl<E: Entry> Model<E> {
         styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
     }
 
+    fn padding_with_shape_padding(&self) -> f32 {
+        2.0 * self.padding() + SHAPE_PADDING
+    }
+
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
     fn update_after_view_change(&self, view: &View) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
-        let padding_px = self.padding();
-        let padding = 2.0 * padding_px + SHAPE_PADDING;
+        let padding = self.padding_with_shape_padding();
         let padding = Vector2(padding, padding);
         let entry_width = view.size.x - padding.x;
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
@@ -184,10 +187,8 @@ impl<E: Entry> Model<E> {
 
     fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
-        let padding_px = self.padding();
-        let padding = 2.0 * padding_px + SHAPE_PADDING;
-        let padding = Vector2(padding, padding);
-        let entry_width = view.size.x - padding.x;
+        let padding = self.padding_with_shape_padding();
+        let entry_width = view.size.x - padding;
         self.entries.update_entries_new_provider(provider, visible_entries, entry_width);
     }
 
