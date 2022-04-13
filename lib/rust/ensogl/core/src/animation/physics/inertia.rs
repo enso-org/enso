@@ -707,7 +707,12 @@ where
         if self.animation_loop.get().is_none() {
             let frame_rate = self.frame_rate.get();
             let step = step(self);
-            let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate, step);
+            let on_too_many_frames_skipped = on_too_many_frames_skipped(self);
+            let animation_loop = animation::Loop::new_with_fixed_frame_rate(
+                frame_rate,
+                step,
+                on_too_many_frames_skipped,
+            );
             self.animation_loop.set(Some(animation_loop));
             self.on_start.call();
         }
@@ -778,9 +783,11 @@ impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
 
 // === Animation Step ===
 
-/// Alias for `FixedFrameRateLoop` with specified step callback.
-pub type FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd> =
-    animation::FixedFrameRateLoop<Step<T, OnStep, OnStart, OnEnd>>;
+/// Alias for [`FixedFrameRateLoop`] with specified step callback.
+pub type FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd> = animation::FixedFrameRateLoop<
+    Step<T, OnStep, OnStart, OnEnd>,
+    OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>,
+>;
 
 /// Callback for an animation step.
 pub type Step<T, OnStep, OnStart, OnEnd> = impl Fn(animation::TimeInfo);
@@ -803,6 +810,21 @@ where
             }
         }
     }
+}
+
+/// Callback for an animation step.
+pub type OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd> = impl Fn();
+
+fn on_too_many_frames_skipped<T, OnStep, OnStart, OnEnd>(
+    simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
+) -> OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>
+where
+    T: Value,
+    OnStep: Callback1<T>,
+    OnStart: Callback0,
+    OnEnd: Callback1<EndStatus>, {
+    let data = simulator.data.clone_ref();
+    move || data.skip()
 }
 
 
