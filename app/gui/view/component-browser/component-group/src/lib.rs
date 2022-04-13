@@ -102,7 +102,7 @@ impl HeaderGeometry {
 
 ensogl_core::define_endpoints_2! {
     Input {
-        set_header_text(String),
+        set_header(String),
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_size(Vector2),
@@ -129,7 +129,7 @@ impl component::Frp<Model> for Frp {
             init <- source_();
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
-            _set_header <- input.set_header_text.map2(&size_and_header_geometry, f!(
+            _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (t,(size,hdr_geom)) {
                     model.header_text.replace(t.clone());
                     model.resize(*size, *hdr_geom);
