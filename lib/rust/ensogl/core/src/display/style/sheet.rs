@@ -1,11 +1,17 @@
 //! This module defines a cascading style sheet registry and related style management utilities.
 
+use crate::control::callback::traits::*;
 use crate::prelude::*;
 
 use crate::control::callback;
 use crate::data::HashMapTree;
 use crate::data::Index;
 use crate::data::OptVec;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub use super::data::data;
 pub use super::data::Data;
@@ -885,7 +891,7 @@ pub struct Sheet {
 }
 
 /// Type of callback registry used in `Sheet`.
-pub type CallbackRegistry = callback::SharedRegistryMut1<Option<Data>>;
+pub type CallbackRegistry = callback::registry::RefMut1<Option<Data>>;
 
 impl Sheet {
     /// Constructor.

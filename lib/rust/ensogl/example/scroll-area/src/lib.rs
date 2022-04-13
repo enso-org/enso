@@ -1,21 +1,24 @@
 //! A debug scene which shows the scroll area.
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -29,7 +32,6 @@ use ensogl_core::display::shape::Rect;
 use ensogl_core::display::shape::ShapeOps;
 use ensogl_core::display::shape::ShapeSystem;
 use ensogl_core::display::Sprite;
-use ensogl_core::system::web;
 use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -41,12 +43,10 @@ use ensogl_text_msdf_sys::run_once_initialized;
 // ===================
 
 /// An entry point.
-#[wasm_bindgen]
-pub fn entry_point_scroll_area() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
+#[entry_point]
+pub fn main() {
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let app = Application::new("root");
         init(&app);
         mem::forget(app);
     });
@@ -63,7 +63,7 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let scene = app.display.scene();
+    let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));
 
 
@@ -74,7 +74,7 @@ fn init(app: &Application) {
     let background_shape = Rect(background_size).corners_radius(5.5.px()).fill(background_color);
     let background_system = ShapeSystem::new(scene, background_shape);
     let background: Sprite = background_system.new_instance();
-    scene.add_child(&background);
+    scene.add_child(&background_system);
     background.size.set(Vector2::new(200.0, 200.0));
     background.set_position_x(100.0);
     background.set_position_y(-100.0);
@@ -94,7 +94,7 @@ fn init(app: &Application) {
 
     let sprite_system = ShapeSystem::new(scene, &Circle(50.px()));
     let sprite: Sprite = sprite_system.new_instance();
-    scroll_area.content.add_child(&sprite);
+    scroll_area.content.add_child(&sprite_system);
     sprite.size.set(Vector2::new(100.0, 100.0));
     sprite.set_position_x(100.0);
     sprite.set_position_y(-100.0);

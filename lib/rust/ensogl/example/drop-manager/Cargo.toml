@@ -2,7 +2,7 @@
 name = "ensogl-example-drop-manager"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -13,5 +13,5 @@ enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-drop-manager = { path = "../../component/drop-manager" }
 enso-prelude = { path = "../../../prelude" }
-wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
 wasm-bindgen-futures = { version = "0.4.8" }

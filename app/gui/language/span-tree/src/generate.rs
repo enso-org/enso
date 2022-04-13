@@ -1,8 +1,7 @@
 //! A module containing code related to SpanTree generation.
-pub mod context;
-pub mod macros;
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
@@ -19,7 +18,14 @@ use ast::Ast;
 use ast::HasRepr;
 use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
-use enso_text::unit::*;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod context;
+pub mod macros;
 
 pub use context::Context;
 
@@ -1023,9 +1029,8 @@ mod test {
         // === Partial application chain - this argument ===
 
         let ast = parser.parse_line_ast("here.foo").unwrap();
-        let invocation_info = CalledMethodInfo {
-            parameters: vec![this_param.clone(), param1.clone(), param2.clone()],
-        };
+        let invocation_info =
+            CalledMethodInfo { parameters: vec![this_param, param1.clone(), param2.clone()] };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
         let mut tree = SpanTree::new(&ast, &ctx).unwrap(): SpanTree;
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
@@ -1056,9 +1061,9 @@ mod test {
 
     fn segment_body_crumbs(
         index: usize,
-        pattern_crumb: &Vec<PatternMatchCrumb>,
+        pattern_crumb: &[PatternMatchCrumb],
     ) -> ast::crumbs::MatchCrumb {
-        let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_crumb.clone() };
+        let val = ast::crumbs::SegmentMatchCrumb::Body { val: pattern_crumb.to_vec() };
         ast::crumbs::MatchCrumb::Segs { val, index }
     }
 

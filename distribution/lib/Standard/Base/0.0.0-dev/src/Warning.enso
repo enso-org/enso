@@ -1,0 +1,187 @@
+from Standard.Base import all
+
+## A representation of a dataflow warning attached to a value.
+type Warning
+    ## PRIVATE
+
+       The constructor to wrap primitive warnings.
+    type Warning prim_warning
+
+    ## UNSTABLE
+
+       Returns the warning value – usually its explanation or other contents.
+    value : Any
+    value = Prim_Warning.get_value this.prim_warning
+
+    ## UNSTABLE
+       ADVANCED
+
+       A stack trace for the original warning creation.
+    origin : Vector.Vector Stack_Trace_Element
+    origin = Prim_Warning.get_origin this.prim_warning
+
+    ## UNSTABLE
+       ADVANCED
+
+       A list of locations where the warning was reassigned in the order of
+       latest-first.
+
+       Warnings are reassigned whenever they interact with specific language
+       elements:
+       - When pattern matching, the warnings of the scrutinee will be reassigned
+         to the `case` expression result.
+       - When calling a method, warnings assigned to `this` will be reassigned to
+         the method return value.
+       - When calling a polyglot function or method, warnings assigned to any
+         arguments will be accumulated in the return value.
+       - The standard library methods reassign warnings such that their dataflow
+         nature is preserved.
+    reassignments : Vector.Vector Stack_Trace_Element
+    reassignments =
+        Vector.Vector (Prim_Warning.get_reassignments this.prim_warning) . map r->
+            loc = case Polyglot.has_source_location r of
+                False -> Nothing
+                True -> Source_Location (Polyglot.get_source_location r)
+            Stack_Trace_Element (Polyglot.get_executable_name r) loc
+
+## UNSTABLE
+
+   Attaches a new warning to the value.
+attach : Any -> Any -> Any
+attach warning value =
+    origin = Runtime.get_stack_trace
+    Prim_Warning.attach value warning (origin.drop_start 1)
+
+## UNSTABLE
+
+   Gets all the warnings attached to the given value. Warnings are returned in the
+   reverse-chronological order with respect to their attachment time.
+get_all : Any -> Vector.Vector Warning
+get_all value =
+    Vector.Vector (Prim_Warning.get_all value) . map Warning
+
+## UNSTABLE
+   ADVANCED
+
+   Sets a new list of warnings for the given value. Any warnings already present
+   in `value` will be lost.
+set warnings value =
+    Prim_Warning.set value (warnings.map .prim_warning).to_array
+
+## UNSTABLE
+   Maps warnings attached to a value.
+
+   Arguments:
+   - mapper: the function to apply to all warnings. If it returns `Some` value,
+     the given warning is replaced with the new value. If it returns `Nothing`
+     the original warning remains unaffected.
+   - value: the value whose warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings to more specific messages. Any other
+     attached warnings are unaffected.
+
+         mapper warning = case warning of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_attached_warnings mapper value
+map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
+map_attached_warnings mapper value =
+    here.map_attached_warnings_helper mapper value 1
+
+## UNSTABLE
+   An utility function which applies the mapping function both to any attached
+   warnings and dataflow errors.
+
+   Arguments:
+   - mapper: the function to apply to all warnings or errors. If it returns
+     `Some` value, the given warning or error is replaced with the new value. If
+     it returns `Nothing` the original warning or error remains unaffected.
+   - value: the value whose errors or warnings should be modified.
+
+   > Example
+     Map all `No_Match_Found` warnings or errors to more specific messages. Any
+     other attached warnings or errors are unaffected.
+
+         mapper error = case error of
+             Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+             _ -> Nothing
+         Warning.map_warnings_and_errors mapper value
+map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any
+map_warnings_and_errors mapper value =
+    mapped_warnings_or_error = here.map_attached_warnings_helper mapper value 1
+    mapped_warnings_or_error.catch error->
+        case mapper error of
+            Maybe.Some new_error -> Error.throw new_error
+            ## If the mapper did not want to affect the error, we return the
+               original dataflow error as-is, to preserve its stacktrace.
+            Nothing -> mapped_warnings_or_error
+
+## PRIVATE
+   Maps warnings attached to a value.
+
+   An internal helper function to avoid repeating the implementation.
+map_attached_warnings_helper : (Any -> Maybe Any) -> Any -> Integer -> Any
+map_attached_warnings_helper mapper value frames_to_drop =
+    warnings = here.get_all value
+    prim_mapped_warnings = warnings.map warning->
+        case mapper warning.value of
+            Maybe.Some new_payload ->
+                new_origin = Runtime.get_stack_trace.drop_start 13+frames_to_drop
+                Prim_Warning.create new_payload new_origin
+            ## If the mapper did not want to affect this warning, we return the
+               original (unwrapped) warning instance.
+            Nothing -> warning.prim_warning
+    Prim_Warning.set value prim_mapped_warnings.to_array
+
+## UNSTABLE
+   A helper function which selects warnings matching a predicate and returns a
+   pair whose first element is the original value with the matched warnings
+   removed and the second element is the list of matched warnings.
+
+   Arguments:
+   - value: the value whose warnings are to be filtered.
+   - predicate: a predicate specifying which warnings to detach. The predicate
+     receives the warnings' payloads as its argument.
+
+   > Example
+     Detach warnings of a specific type.
+
+         result = Warning.detach_selected_warnings value (_.is_a Illegal_State_Error)
+         result.first # `value` with the matched warnings removed
+         result.second # the list of matched warnings
+detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector
+detach_selected_warnings value predicate =
+    warnings = here.get_all value
+    result = warnings.partition w-> predicate w.value
+    matched = result.first
+    remaining = result.second
+    Pair (here.set remaining value) matched
+
+## UNSTABLE
+   A helper function which gathers warnings matching some predicate and passes
+   them into a function which can aggregate them.
+
+   The merger function will not be called at all if no warnings match the
+   criteria.
+
+   Arguments:
+   - value: the value whose warnings will be transformed.
+   - matcher: a predicate selecting warnings to merge.
+   - merger: a function taking a list of found payloads which should return a
+     list of new warnings that should be attached. It returns a list to not
+     limit it to merging warnings into a single warning.
+
+   > Example
+     Merge `No_Matches_Found` warnings into a single such warning.
+
+         Warning.merge_matched_warnings value (_.is_a No_Matches_Found) warnings->
+             all_criteria = warnings.flat_map .criteria
+             [No_Matches_Found all_criteria]
+merge_matched_warnings : Any -> (Any -> Boolean) -> (Vector -> Vector) -> Any
+merge_matched_warnings value matcher merger =
+    result = here.detach_selected_warnings value matcher
+    if result.second.is_empty then result.first else
+        new_warnings = merger (result.second.map .value)
+        new_warnings.fold result.first acc-> warning->
+            Warning.attach warning acc

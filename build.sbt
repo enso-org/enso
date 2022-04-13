@@ -15,13 +15,22 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion  = "2.13.6"
-val rustVersion    = "1.58.0-nightly"
-val graalVersion   = "21.1.0"
-val javaVersion    = "11"
-val ensoVersion    = "0.2.32-SNAPSHOT"  // Note [Engine And Launcher Version]
-val currentEdition = "2021.20-SNAPSHOT" // Note [Default Editions]
-val stdLibVersion  = ensoVersion
+val scalacVersion         = "2.13.7"
+val graalVersion          = "21.3.0"
+val javaVersion           = "11"
+val defaultDevEnsoVersion = "0.0.0-dev"
+val ensoVersion = sys.env.getOrElse(
+  "ENSO_VERSION",
+  defaultDevEnsoVersion
+) // Note [Engine And Launcher Version]
+val currentEdition = sys.env.getOrElse(
+  "ENSO_EDITION",
+  defaultDevEnsoVersion
+) // Note [Default Editions]
+
+// Note [Stdlib Version]
+val stdLibVersion       = defaultDevEnsoVersion
+val targetStdlibVersion = ensoVersion
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,6 +52,16 @@ val stdLibVersion  = ensoVersion
  *
  * In the future we may automate generating this edition number when cutting a
  * release.
+ */
+
+/* Note [Stdlib Version]
+ * ~~~~~~~~~~~~~~~~~~~~~
+ * The `stdlibVersion` variable stores the version at which standard library is
+ * stored within the source tree, which is currently set to a constant of
+ * `0.0.0-dev`.
+ *
+ * When distributions are built, the library versions are updated to match the
+ * current Enso version.
  */
 
 ThisBuild / organization := "org.enso"
@@ -248,7 +267,6 @@ lazy val enso = (project in file("."))
     `library-manager`,
     `library-manager-test`,
     `connected-lock-manager`,
-    `stdlib-version-updater`,
     syntax.jvm,
     testkit
   )
@@ -285,10 +303,10 @@ lazy val enso = (project in file("."))
 def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
-val akkaVersion               = "2.6.6"
-val akkaHTTPVersion           = "10.2.0-RC1"
+val akkaVersion               = "2.6.18"
+val akkaHTTPVersion           = "10.2.7"
 val akkaMockSchedulerVersion  = "0.5.5"
-val logbackClassicVersion     = "1.2.3"
+val logbackClassicVersion     = "1.2.10"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -311,8 +329,8 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.2.0-M3"
-val kittensVersion = "2.1.0"
+val catsVersion    = "2.7.0"
+val kittensVersion = "2.3.2"
 val cats = {
   Seq(
     "org.typelevel" %% "cats-core"   % catsVersion,
@@ -325,22 +343,22 @@ val cats = {
 
 // === Circe ==================================================================
 
-val circeVersion              = "0.14.0-M1"
-val circeYamlVersion          = "0.13.1"
-val enumeratumCirceVersion    = "1.6.1"
-val circeGenericExtrasVersion = "0.13.0"
+val circeVersion              = "0.14.1"
+val circeYamlVersion          = "0.14.1"
+val enumeratumCirceVersion    = "1.7.0"
+val circeGenericExtrasVersion = "0.14.1"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
 // === Commons ================================================================
 
 val commonsCollectionsVersion = "4.4"
-val commonsLangVersion        = "3.10"
-val commonsIoVersion          = "2.7"
+val commonsLangVersion        = "3.12.0"
+val commonsIoVersion          = "2.11.0"
 val commonsTextVersion        = "1.8"
 val commonsMathVersion        = "3.6.1"
-val commonsCompressVersion    = "1.20"
-val commonsCliVersion         = "1.4"
+val commonsCompressVersion    = "1.21"
+val commonsCliVersion         = "1.5.0"
 val commons = Seq(
   "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
   "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
@@ -352,7 +370,7 @@ val commons = Seq(
 
 // === Jackson ================================================================
 
-val jacksonVersion = "2.11.1"
+val jacksonVersion = "2.13.1"
 val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
@@ -361,7 +379,7 @@ val jackson = Seq(
 
 // === JAXB ================================================================
 
-val jaxbVersion = "2.3.3"
+val jaxbVersion = "3.0.1"
 val jaxb = Seq(
   "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark,
   "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion % Benchmark
@@ -369,7 +387,7 @@ val jaxb = Seq(
 
 // === JMH ====================================================================
 
-val jmhVersion = "1.23"
+val jmhVersion = "1.34"
 val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
   "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
@@ -377,7 +395,7 @@ val jmh = Seq(
 
 // === Monocle ================================================================
 
-val monocleVersion = "2.0.5"
+val monocleVersion = "2.1.0"
 val monocle = {
   Seq(
     "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
@@ -399,8 +417,8 @@ val icuVersion = "67.1"
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.1"
-val zioInteropCatsVersion = "2.1.4.0"
+val zioVersion            = "1.0.12"
+val zioInteropCatsVersion = "3.2.9.0"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -408,30 +426,30 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version      = "1.65"
+val bcpkixJdk15Version      = "1.70"
 val bumpVersion             = "0.1.3"
-val declineVersion          = "1.2.0"
+val declineVersion          = "2.2.0"
 val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
-val guavaVersion            = "29.0-jre"
-val jlineVersion            = "3.19.0"
-val kindProjectorVersion    = "0.13.0"
-val mockitoScalaVersion     = "1.14.8"
+val guavaVersion            = "31.0.1-jre"
+val jlineVersion            = "3.21.0"
+val kindProjectorVersion    = "0.13.2"
+val mockitoScalaVersion     = "1.16.49"
 val newtypeVersion          = "0.4.4"
-val pprintVersion           = "0.5.9"
-val pureconfigVersion       = "0.15.0"
-val refinedVersion          = "0.9.14"
-val scalacheckVersion       = "1.14.3"
-val scalacticVersion        = "3.3.0-SNAP2"
-val scalaLoggingVersion     = "3.9.2"
+val pprintVersion           = "0.7.1"
+val pureconfigVersion       = "0.17.1"
+val refinedVersion          = "0.9.27"
+val scalacheckVersion       = "1.15.4"
+val scalacticVersion        = "3.3.0-SNAP3"
+val scalaLoggingVersion     = "3.9.4"
 val scalameterVersion       = "0.19"
-val scalatagsVersion        = "0.9.1"
-val scalatestVersion        = "3.3.0-SNAP2"
+val scalatagsVersion        = "0.11.0"
+val scalatestVersion        = "3.3.0-SNAP3"
 val shapelessVersion        = "2.4.0-M1"
-val slf4jVersion            = "1.7.30"
-val slickVersion            = "3.3.2"
-val sqliteVersion           = "3.36.0.1"
-val tikaVersion             = "1.24.1"
+val slf4jVersion            = "1.7.32"
+val slickVersion            = "3.3.3"
+val sqliteVersion           = "3.36.0.3"
+val tikaVersion             = "2.2.1"
 val typesafeConfigVersion   = "1.4.1"
 
 // ============================================================================
@@ -592,8 +610,10 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
     inConfig(Benchmark)(Defaults.testSettings),
     Benchmark / unmanagedSourceDirectories +=
       baseDirectory.value.getParentFile / "bench" / "scala",
-    libraryDependencies +=
+    libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+      "org.scalatest"     %% "scalatest"  % scalatestVersion  % Test
+    ),
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -744,13 +764,13 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(
-          file           = file,
-          log            = state.value.log,
-          ensoVersion    = ensoVersion,
-          scalacVersion  = scalacVersion,
-          graalVersion   = graalVersion,
-          currentEdition = currentEdition,
-          stdLibVersion  = stdLibVersion
+          file                  = file,
+          log                   = state.value.log,
+          defaultDevEnsoVersion = defaultDevEnsoVersion,
+          ensoVersion           = ensoVersion,
+          scalacVersion         = scalacVersion,
+          graalVersion          = graalVersion,
+          currentEdition        = currentEdition
         )
     }.taskValue
   )
@@ -928,12 +948,11 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7" exclude ("com.google.code.findbugs", "jsr305")
+    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
   )
 
 // ============================================================================
@@ -1047,6 +1066,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1054,14 +1074,12 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
-    Cargo.rustVersion := rustVersion,
     Compile / sourceGenerators += GenerateAST.task
   )
 
 lazy val parser = (project in file("lib/scala/parser"))
   .settings(
     fork := true,
-    Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(Cargo("build --project parser"))
       .value,
@@ -1134,6 +1152,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
+    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
@@ -1205,7 +1224,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .dependsOn(`docs-generator`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1215,11 +1233,11 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(graph)
   .dependsOn(pkg)
-  .dependsOn(searcher)
   .dependsOn(`edition-updater`)
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager`)
   .dependsOn(syntax.jvm)
+  .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
 
 /* Note [Unmanaged Classpath]
@@ -1334,7 +1352,7 @@ lazy val launcher = project
   .settings(
     (Test / test) := (Test / test)
       .dependsOn(buildNativeImage)
-      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
+      .dependsOn(LauncherShimsForTest.prepare())
       .value,
     Test / parallelExecution := false
   )
@@ -1380,6 +1398,7 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
+            editionsRoot   = file("distribution") / "editions",
             ensoVersion    = ensoVersion,
             editionName    = currentEdition,
             libraryVersion = stdLibVersion,
@@ -1472,13 +1491,6 @@ lazy val `connected-lock-manager` = project
   .dependsOn(`polyglot-api`)
   .dependsOn(testkit % Test)
 
-lazy val `stdlib-version-updater` = project
-  .in(file("lib/scala/stdlib-version-updater"))
-  .configs(Test)
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
-
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
   .configs(Test)
@@ -1570,8 +1582,8 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
+      "com.ibm.icu"         % "icu4j"             % icuVersion,
       "com.univocity"       % "univocity-parsers" % "2.9.0",
-      "org.graalvm.sdk"     % "graal-sdk"         % graalVersion % "provided",
       "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
       "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
     ),
@@ -1616,7 +1628,7 @@ lazy val `std-google-api` = project
   .settings(
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      `google-api-polyglot-root` / "std-image.jar",
+      `google-api-polyglot-root` / "std-google-api.jar",
     libraryDependencies ++= Seq(
       "com.google.api-client" % "google-api-client"          % "1.32.1",
       "com.google.apis"       % "google-api-services-sheets" % "v4-rev612-1.25.0"
@@ -1712,11 +1724,15 @@ buildEngineDistribution := {
   val log          = streams.value.log
   val cacheFactory = streams.value.cacheStoreFactory
   DistributionPackage.createEnginePackage(
-    distributionRoot = root,
-    cacheFactory     = cacheFactory,
-    graalVersion     = graalVersion,
-    javaVersion      = javaVersion,
-    stdlibVersion    = stdLibVersion
+    distributionRoot    = root,
+    cacheFactory        = cacheFactory,
+    log                 = log,
+    graalVersion        = graalVersion,
+    javaVersion         = javaVersion,
+    ensoVersion         = ensoVersion,
+    editionName         = currentEdition,
+    sourceStdlibVersion = stdLibVersion,
+    targetStdlibVersion = targetStdlibVersion
   )
   log.info(s"Engine package created at $root")
 }

@@ -1,18 +1,15 @@
-//! This module implements performance monitoring utils.
+//! This module implements the stats monitor view, which can be visible on the screen in debug mode.
 
 use crate::prelude::*;
+use crate::system::web::traits::*;
 
-use crate::debug::stats::Stats;
+use crate::debug::stats::StatsData;
 use crate::system::web;
-use crate::system::web::StyleSetter;
+use crate::system::web::JsValue;
 
-use js_sys::ArrayBuffer;
-use js_sys::WebAssembly::Memory;
+use num_traits::cast::AsPrimitive;
 use std::collections::VecDeque;
 use std::f64;
-use wasm_bindgen;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 
 
@@ -106,7 +103,7 @@ impl Default for Config {
 impl Config {
     /// Translates the configuration to JS values.
     pub fn to_js_config(&self) -> SamplerConfig {
-        let ratio = web::window().device_pixel_ratio();
+        let ratio = web::window.device_pixel_ratio();
         SamplerConfig {
             background_color:      (&self.background_color).into(),
             label_color_ok:        (&self.label_color_ok).into(),
@@ -166,19 +163,19 @@ impl DomData {
     /// Constructor.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        let root = web::create_div();
+        let root = web::document.create_div_or_panic();
         root.set_class_name("performance-monitor");
-        root.set_style_or_panic("position", "absolute");
-        root.set_style_or_panic("z-index", "100");
-        root.set_style_or_panic("left", "8px");
-        root.set_style_or_panic("top", "8px");
-        root.set_style_or_panic("overflow", "hidden");
-        root.set_style_or_panic("border-radius", "6px");
-        root.set_style_or_panic("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
-        web::body().prepend_with_node_1(&root).unwrap();
+        root.set_style_or_warn("position", "absolute");
+        root.set_style_or_warn("z-index", "100");
+        root.set_style_or_warn("left", "8px");
+        root.set_style_or_warn("top", "8px");
+        root.set_style_or_warn("overflow", "hidden");
+        root.set_style_or_warn("border-radius", "6px");
+        root.set_style_or_warn("box-shadow", "0px 0px 20px -4px rgba(0,0,0,0.44)");
+        web::document.body_or_panic().prepend_with_node_1(&root).unwrap();
 
-        let canvas = web::create_canvas();
-        canvas.set_style_or_panic("display", "block");
+        let canvas = web::document.create_canvas_or_panic();
+        canvas.set_style_or_warn("display", "block");
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: web::CanvasRenderingContext2d = context.dyn_into().unwrap();
@@ -199,9 +196,59 @@ impl Drop for DomData {
 // === Monitor ===
 // ===============
 
-/// Implementation of the monitoring panel.
-#[derive(Debug)]
+/// Visual panel showing performance-related statistics.
+#[derive(Debug, Clone, CloneRef)]
 pub struct Monitor {
+    renderer: Rc<RefCell<Renderer>>,
+}
+
+impl Default for Monitor {
+    fn default() -> Self {
+        let mut renderer = Renderer::new();
+        renderer.add::<FrameTime>();
+        renderer.add::<Fps>();
+        renderer.add::<WasmMemory>();
+        renderer.add::<GpuMemoryUsage>();
+        renderer.add::<DrawCallCount>();
+        renderer.add::<DataUploadCount>();
+        renderer.add::<DataUploadSize>();
+        renderer.add::<BufferCount>();
+        renderer.add::<SymbolCount>();
+        renderer.add::<ShaderCount>();
+        renderer.add::<ShaderCompileCount>();
+        renderer.add::<SpriteSystemCount>();
+        renderer.add::<SpriteCount>();
+        Self { renderer: Rc::new(RefCell::new(renderer)) }
+    }
+}
+
+impl Monitor {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Draw the monitor and update its graphs based on the provided stats data.
+    /// Does nothing if the monitor is not visible (see: [`toggle()`]).
+    pub fn sample_and_draw(&self, stats: &StatsData) {
+        self.renderer.borrow_mut().sample_and_draw(stats);
+    }
+
+    /// Toggle the visibility of the monitor.
+    pub fn toggle(&self) {
+        self.renderer.borrow_mut().toggle();
+    }
+}
+
+
+
+// ================
+// === Renderer ===
+// ================
+
+/// Code responsible for drawing [`Monitor`]'s data.
+#[derive(Debug)]
+struct Renderer {
     user_config: Config,
     config:      SamplerConfig,
     width:       f64,
@@ -211,11 +258,8 @@ pub struct Monitor {
     first_draw:  bool,
 }
 
-
-// === Public API ===
-
-impl Default for Monitor {
-    fn default() -> Self {
+impl Renderer {
+    fn new() -> Self {
         let user_config = Config::default();
         let panels = default();
         let width = default();
@@ -227,35 +271,21 @@ impl Default for Monitor {
         out.update_config();
         out
     }
-}
-
-impl Monitor {
-    /// Cnstructor.
-    pub fn new() -> Self {
-        default()
-    }
-
-    /// Modify the Monitor's config and update the view.
-    pub fn mod_config<F: FnOnce(&mut Config)>(&mut self, f: F) {
-        f(&mut self.user_config);
-        self.update_config();
-    }
 
     /// Add new display element.
-    pub fn add<M: Sampler + 'static>(&mut self, monitor: M) -> Panel {
-        let panel = Panel::new(self.config.clone(), monitor);
-        self.panels.push(panel.clone());
+    fn add<S: Sampler + Default + 'static>(&mut self) {
+        let panel = Panel::new(self.config.clone(), S::default());
+        self.panels.push(panel);
         self.resize();
-        panel
     }
 
-    /// Check whether the mointor is visible.
-    pub fn visible(&self) -> bool {
+    /// Check whether the monitor is visible.
+    fn visible(&self) -> bool {
         self.dom.is_some()
     }
 
     /// Show the monitor and add it's DOM to the scene.
-    pub fn show(&mut self) {
+    fn show(&mut self) {
         if !self.visible() {
             self.first_draw = true;
             self.dom = Some(Dom::new());
@@ -264,12 +294,12 @@ impl Monitor {
     }
 
     /// Hides the monitor and remove it's DOM from the scene.
-    pub fn hide(&mut self) {
+    fn hide(&mut self) {
         self.dom = None;
     }
 
     /// Toggle the visibility of the monitor.
-    pub fn toggle(&mut self) {
+    fn toggle(&mut self) {
         if self.visible() {
             self.hide();
         } else {
@@ -277,8 +307,17 @@ impl Monitor {
         }
     }
 
-    /// Draw the Monitor and update all of it's values.
-    pub fn draw(&mut self) {
+    fn sample_and_draw(&mut self, stats: &StatsData) {
+        if self.visible() {
+            for panel in &self.panels {
+                panel.sample_and_postprocess(stats);
+            }
+            self.draw();
+        }
+    }
+
+    /// Draw the widget and update all of the graphs.
+    fn draw(&mut self) {
         if let Some(dom) = self.dom.clone() {
             if self.first_draw {
                 self.first_draw = false;
@@ -289,19 +328,14 @@ impl Monitor {
             self.draw_plots(&dom);
         }
     }
-}
 
-
-// === Private API ===
-
-impl Monitor {
     fn update_config(&mut self) {
         self.config = self.user_config.to_js_config()
     }
 
     fn resize(&mut self) {
         if let Some(dom) = &self.dom {
-            let ratio = web::window().device_pixel_ratio();
+            let ratio = web::window.device_pixel_ratio();
             let width = self.config.labels_width
                 + self.config.results_width
                 + self.config.plots_width
@@ -319,8 +353,8 @@ impl Monitor {
             self.height = height;
             dom.canvas.set_width(u_width);
             dom.canvas.set_height(u_height);
-            dom.canvas.set_style_or_panic("width", format!("{}px", width / ratio));
-            dom.canvas.set_style_or_panic("height", format!("{}px", height / ratio));
+            dom.canvas.set_style_or_warn("width", format!("{}px", width / ratio));
+            dom.canvas.set_style_or_warn("height", format!("{}px", height / ratio));
         }
     }
 
@@ -402,14 +436,10 @@ impl Panel {
         self.rc.borrow_mut().draw(dom)
     }
 
-    /// Start measuring the data.
-    pub fn begin(&self) {
-        self.rc.borrow_mut().begin()
-    }
-
-    /// Stop measuring the data.
-    pub fn end(&self) {
-        self.rc.borrow_mut().end()
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&self, stats: &StatsData) {
+        self.rc.borrow_mut().sample_and_postprocess(stats)
     }
 
     fn first_draw(&self, dom: &Dom) {
@@ -476,17 +506,11 @@ pub trait Sampler: Debug {
     /// Label of the sampler in the monitor window.
     fn label(&self) -> &str;
 
-    /// Function which should be run on the beginning of the code we want to measure.
-    fn begin(&mut self, _time: f64) {}
-
-    /// Function which should be run on the end of the code we want to measure.
-    fn end(&mut self, _time: f64) {}
-
     /// Get the newest value of the sampler. The value will be displayed in the monitor panel.
-    fn value(&self) -> f64;
+    fn value(&self, stats: &StatsData) -> f64;
 
     /// Check whether the newest value is correct, or should be displayed as warning or error.
-    fn check(&self) -> ValueCheck {
+    fn check(&self, _stats: &StatsData) -> ValueCheck {
         ValueCheck::Correct
     }
 
@@ -519,13 +543,6 @@ pub trait Sampler: Debug {
     fn precision(&self) -> usize {
         2
     }
-
-    // === Utils ===
-
-    /// Wrapper for `ValueCheck::from_threshold`.
-    fn check_by_threshold(&self, warn_threshold: f64, err_threshold: f64) -> ValueCheck {
-        ValueCheck::from_threshold(warn_threshold, err_threshold, self.value())
-    }
 }
 
 
@@ -538,11 +555,9 @@ pub trait Sampler: Debug {
 #[derive(Debug)]
 pub struct PanelData {
     label:       String,
-    performance: web::Performance,
     config:      SamplerConfig,
     min_value:   f64,
     max_value:   f64,
-    begin_value: f64,
     value:       f64,
     last_values: VecDeque<f64>,
     norm_value:  f64,
@@ -559,10 +574,8 @@ impl PanelData {
     /// Constructor.
     pub fn new<S: Sampler + 'static>(config: SamplerConfig, sampler: S) -> Self {
         let label = sampler.label().into();
-        let performance = web::performance();
         let min_value = f64::INFINITY;
         let max_value = f64::NEG_INFINITY;
-        let begin_value = default();
         let value = default();
         let last_values = default();
         let norm_value = default();
@@ -572,11 +585,9 @@ impl PanelData {
         let precision = sampler.precision();
         Self {
             label,
-            performance,
             config,
             min_value,
             max_value,
-            begin_value,
             value,
             last_values,
             norm_value,
@@ -592,18 +603,11 @@ impl PanelData {
 // === Begin / End ===
 
 impl PanelData {
-    /// Start measuring the data.
-    pub fn begin(&mut self) {
-        let time = self.performance.now();
-        self.sampler.begin(time);
-    }
-
-    /// Stop measuring the data.
-    pub fn end(&mut self) {
-        let time = self.performance.now();
-        self.sampler.end(time);
-        self.value_check = self.sampler.check();
-        self.value = self.sampler.value();
+    /// Fetch the measured value from stats, using the panel's sampler, then post-process the value
+    /// to make it useful for displaying on a human-readable graph.
+    pub fn sample_and_postprocess(&mut self, stats: &StatsData) {
+        self.value = self.sampler.value(stats);
+        self.value_check = self.sampler.check(stats);
         self.clamp_value();
         self.smooth_value();
         self.normalize_value();
@@ -732,143 +736,6 @@ impl PanelData {
 // === Samplers ====================================================================================
 // =================================================================================================
 
-// =================
-// === FrameTime ===
-// =================
-
-/// Sampler measuring the time for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct FrameTime {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl FrameTime {
-    /// Constructor
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const FRAME_TIME_WARNING_THRESHOLD: f64 = 1000.0 / 55.0;
-const FRAME_TIME_ERROR_THRESHOLD: f64 = 1000.0 / 25.0;
-
-impl Sampler for FrameTime {
-    fn label(&self) -> &str {
-        "Frame time (ms)"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn begin(&mut self, time: f64) {
-        self.begin_time = time;
-    }
-    fn end(&mut self, time: f64) {
-        let end_time = time;
-        self.value = end_time - self.begin_time;
-        self.value_check =
-            self.check_by_threshold(FRAME_TIME_WARNING_THRESHOLD, FRAME_TIME_ERROR_THRESHOLD);
-    }
-}
-
-
-
-// ===========
-// === Fps ===
-// ===========
-
-/// Sampler measuring the frames per second count for a given operation.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Fps {
-    begin_time:  f64,
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl Fps {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const FPS_WARNING_THRESHOLD: f64 = 55.0;
-const FPS_ERROR_THRESHOLD: f64 = 25.0;
-
-impl Sampler for Fps {
-    fn label(&self) -> &str {
-        "Frames per second"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn max_value(&self) -> Option<f64> {
-        Some(60.0)
-    }
-    fn begin(&mut self, time: f64) {
-        if self.begin_time > 0.0 {
-            let end_time = time;
-            self.value = 1000.0 / (end_time - self.begin_time);
-            self.value_check = self.check_by_threshold(FPS_WARNING_THRESHOLD, FPS_ERROR_THRESHOLD);
-        }
-        self.begin_time = time;
-    }
-}
-
-
-
-// ==================
-// === WasmMemory ===
-// ==================
-
-/// Sampler measuring the memory usage of the WebAssembly part of the program.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct WasmMemory {
-    value:       f64,
-    value_check: ValueCheck,
-}
-
-impl WasmMemory {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-const WASM_MEM_WARNING_THRESHOLD: f64 = 50.0;
-const WASM_MEM_ERROR_THRESHOLD: f64 = 100.0;
-
-impl Sampler for WasmMemory {
-    fn label(&self) -> &str {
-        "WASM memory usage (Mb)"
-    }
-    fn value(&self) -> f64 {
-        self.value
-    }
-    fn check(&self) -> ValueCheck {
-        self.value_check
-    }
-    fn min_size(&self) -> Option<f64> {
-        Some(100.0)
-    }
-    fn end(&mut self, _time: f64) {
-        let memory: Memory = wasm_bindgen::memory().dyn_into().unwrap();
-        let buffer: ArrayBuffer = memory.buffer().dyn_into().unwrap();
-        self.value = (buffer.byte_length() as f64) / (1024.0 * 1024.0);
-        self.value_check =
-            self.check_by_threshold(WASM_MEM_WARNING_THRESHOLD, WASM_MEM_ERROR_THRESHOLD);
-    }
-}
-
-
-
 // ======================
 // === Stats Samplers ===
 // ======================
@@ -876,36 +743,46 @@ impl Sampler for WasmMemory {
 /// Utility to generate Samplers for stats parameters. See the usages below this declaration to
 /// discover more.
 macro_rules! stats_sampler {
-    ( $label:tt, $name:ident, $stats_method:ident, $t1:expr, $t2:expr, $precision:expr
-    , $value_divisor:expr) => {
-        /// Sampler implementation.
-        #[derive(Debug, Default)]
-        pub struct $name {
-            stats: Stats,
-        }
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr) => {
+        stats_sampler!(
+            $label,
+            $name,
+            $stats_field,
+            $warn_threshold,
+            $err_threshold,
+            $precision,
+            $value_divisor,
+            None
+        );
+    };
 
-        impl $name {
-            /// Constructor.
-            pub fn new(stats: &Stats) -> Self {
-                Self { stats: stats.clone() }
-            }
-        }
+    ( $label:tt, $name:ident, $stats_field:ident, $warn_threshold:expr, $err_threshold:expr
+    , $precision:expr, $value_divisor:expr, $max_value:expr) => {
+        /// Sampler implementation.
+        #[derive(Copy, Clone, Debug, Default)]
+        pub struct $name {}
 
         impl Sampler for $name {
             fn label(&self) -> &str {
                 $label
             }
-            fn value(&self) -> f64 {
-                self.stats.$stats_method() as f64 / $value_divisor
+            fn value(&self, stats: &StatsData) -> f64 {
+                let raw_value: f64 = stats.$stats_field.as_();
+                raw_value / $value_divisor
             }
             fn min_size(&self) -> Option<f64> {
-                Some($t1)
+                Some($warn_threshold)
             }
             fn precision(&self) -> usize {
                 $precision
             }
-            fn check(&self) -> ValueCheck {
-                self.check_by_threshold($t1, $t2)
+            fn check(&self, stats: &StatsData) -> ValueCheck {
+                let value = self.value(&stats);
+                ValueCheck::from_threshold($warn_threshold, $err_threshold, value)
+            }
+            fn max_value(&self) -> Option<f64> {
+                $max_value
             }
         }
     };
@@ -913,6 +790,9 @@ macro_rules! stats_sampler {
 
 const MB: f64 = (1024 * 1024) as f64;
 
+stats_sampler!("Frames per second", Fps, fps, 55.0, 25.0, 2, 1.0, Some(60.0));
+stats_sampler!("Frame time (ms)", FrameTime, frame_time, 1000.0 / 55.0, 1000.0 / 25.0, 2, 1.0);
+stats_sampler!("WASM memory usage (Mb)", WasmMemory, wasm_memory_usage, 50.0, 100.0, 2, MB);
 stats_sampler!("GPU memory usage (Mb)", GpuMemoryUsage, gpu_memory_usage, 100.0, 500.0, 2, MB);
 stats_sampler!("Draw call count", DrawCallCount, draw_call_count, 100.0, 500.0, 0, 1.0);
 stats_sampler!("Buffer count", BufferCount, buffer_count, 100.0, 500.0, 0, 1.0);
@@ -931,3 +811,162 @@ stats_sampler!(
     0,
     1.0
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use enso_prelude::*;
+
+    use crate::debug::stats::StatsWithTimeProvider;
+    use enso_web::TimeProvider;
+    use std::ops::AddAssign;
+
+    use assert_approx_eq::assert_approx_eq;
+
+
+    // === MockTimeProvider ===
+
+    #[derive(Default, Clone)]
+    struct MockTimeProvider {
+        t: Rc<RefCell<f64>>,
+    }
+
+    impl TimeProvider for MockTimeProvider {
+        fn now(&self) -> f64 {
+            *self.t.borrow()
+        }
+    }
+
+    impl AddAssign<f64> for MockTimeProvider {
+        fn add_assign(&mut self, dt: f64) {
+            *self.t.borrow_mut() += dt;
+        }
+    }
+
+
+    // === TestSampler ===
+
+    struct TestSampler<S> {
+        stats:   StatsWithTimeProvider<MockTimeProvider>,
+        sampler: S,
+        t:       MockTimeProvider,
+    }
+
+    impl<S: Sampler + Default> Default for TestSampler<S> {
+        fn default() -> Self {
+            let t: MockTimeProvider = default();
+            let stats = StatsWithTimeProvider::new(t.clone());
+            let sampler = default();
+            Self { stats, sampler, t }
+        }
+    }
+
+    const STAT_VALUE_COMPARISON_PRECISION: f64 = 0.001;
+
+    macro_rules! test_and_advance_frame {
+        ($test:expr, $expected_value:expr, $expected_check:path
+        ; next: $frame_time:expr, $post_frame_delay:expr) => {
+            let prev_frame_stats = $test.stats.begin_frame();
+            if let Some(prev_frame_stats) = prev_frame_stats {
+                let tested_value = $test.sampler.value(&prev_frame_stats);
+                let tested_check = $test.sampler.check(&prev_frame_stats);
+                assert_approx_eq!(tested_value, $expected_value, STAT_VALUE_COMPARISON_PRECISION);
+                let mismatch_msg = iformat!(
+                    "Stat check was expected to return: " $expected_check;?
+                    ", but got: " tested_check;? " instead.");
+                assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
+            } else {
+                assert!(false,
+                    "Expected previous frame's stats to be returned by begin_frame(), \
+                    but got none.");
+            }
+            $test.t += $frame_time;
+            $test.stats.end_frame();
+            $test.t += $post_frame_delay;
+        };
+
+        ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
+            let prev_frame_stats = $test.stats.begin_frame();
+            let mismatch_msg = iformat!(
+                "Expected no stats to be returned by begin_frame(), but got: "
+                prev_frame_stats;? " instead.");
+            assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);
+            $test.t += $frame_time;
+            $test.stats.end_frame();
+            $test.t += $post_frame_delay;
+        };
+    }
+
+
+    // === Tests ===
+
+    #[test]
+    fn frame_time() {
+        // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
+        // assumption we're trying to be around this FPS.
+
+        let mut test: TestSampler<FrameTime> = default();
+
+        // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
+        // starting next frame.
+        //
+        // Note: we expect no stats data to be returned before the 1st frame was started.
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11ms before
+        // starting next frame.
+        test_and_advance_frame!(test, 10.0, ValueCheck::Correct; next: 5.0, 11.0);
+
+        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 30ms. No extra delay
+        // afterwards before starting next frame.
+        test_and_advance_frame!(test, 5.0, ValueCheck::Correct; next: 30.0, 0.0);
+
+        // Frame 4: simulate a really slow frame (1000ms), crossing the configured error threshold.
+        test_and_advance_frame!(test, 30.0, ValueCheck::Warning; next: 1000.0, 0.0);
+
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
+        let dummy = 0.0;
+        test_and_advance_frame!(test, 1000.0, ValueCheck::Error; next: dummy, dummy);
+    }
+
+    #[test]
+    fn fps() {
+        // Note: 60 FPS means there's 16.6(6) ms budget for 1 frame. The test will be written under
+        // assumption we're trying to be around this FPS.
+
+        let mut test: TestSampler<Fps> = default();
+
+        // Frame 1: simulate we managed to complete the work in 10ms, and then we wait 6ms before
+        // starting next frame.
+        //
+        // Note: we expect no stats data to be returned before the 1st frame was started.
+        test_and_advance_frame!(test, None; next: 10.0, 6.0);
+
+        // Frame 2: simulate we managed to complete the work in 5ms, and then we wait 11.67ms before
+        // starting next frame.
+        //
+        // Note: FPS takes into account delays between frames - for example, if a frame took only
+        // 1ms, but the next frame will not be started immediately (will be started only e.g. 15ms
+        // later), we cannot show FPS only based the 1ms duration of the frame - it would not be
+        // true, as the subsequent delay means less frames per second will be rendered in reality.
+        //
+        // Previous frame+delay was 16.0 ms; we'd fit 62.5 such frames in 1s.
+        test_and_advance_frame!(test, 62.5, ValueCheck::Correct; next: 5.0, 11.67);
+
+        // Frame 3: simulate we went over the budget of 16.6(6) ms, at 20ms. No extra delay
+        // afterwards before starting next frame.
+        // Previous frame+delay was 16.67 ms; we'd fit ~59.988 such frames in 1s.
+        test_and_advance_frame!(test, 59.988, ValueCheck::Correct; next: 20.0, 0.0);
+
+        // Frame 4: simulate a really slow frame (1000ms), crossing the FPS error threshold.
+        // Previous frame+delay was 20.0 ms; we'd fit 50.0 such frames in 1s.
+        test_and_advance_frame!(test, 50.0, ValueCheck::Warning; next: 1000.0, 0.0);
+
+        // For the final test, we're not interested in the next frame, so we're using some dummy
+        // values for it.
+        // Previous frame+delay was 1000.0 ms; we'd fit 1 such frame in 1s.
+        let dummy = 0.0;
+        test_and_advance_frame!(test, 1.0, ValueCheck::Error; next: dummy, dummy);
+    }
+}

@@ -31,8 +31,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
+  - [`DocSection`](#docsection)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
-  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
@@ -62,6 +62,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryVersion`](#libraryversion)
   - [`Contact`](#contact)
   - [`EditionReference`](#editionreference)
+  - [`LibraryComponentGroups`](#librarycomponentgroups)
+  - [`LibraryComponentGroup`](#librarycomponentgroup)
+  - [`LibraryComponent`](#librarycomponent)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -140,7 +143,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
-  - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
   - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
@@ -157,10 +159,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`editions/setProjectParentEdition`](#editionssetprojectparentedition)
   - [`editions/setProjectLocalLibrariesPreference`](#editionssetprojectlocallibrariespreference)
   - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
+  - [`editions/listDefinedComponents`](#editionslistdefinedcomponents)
   - [`library/listLocal`](#librarylistlocal)
   - [`library/create`](#librarycreate)
   - [`library/getMetadata`](#librarygetmetadata)
   - [`library/setMetadata`](#librarysetmetadata)
+  - [`library/getPackage`](#librarygetpackage)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
 - [Errors](#errors-75)
@@ -205,6 +209,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryNotResolved`](#librarynotresolved)
   - [`InvalidLibraryName`](#invalidlibraryname)
   - [`DependencyDiscoveryError`](#dependencydiscoveryerror)
+  - [`InvalidSemverVersion`](#invalidsemverversion)
 
 <!-- /MarkdownTOC -->
 
@@ -448,9 +453,11 @@ interface SuggestionEntryModule {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryAtom {
@@ -475,9 +482,11 @@ interface SuggestionEntryAtom {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryMethod {
@@ -505,9 +514,11 @@ interface SuggestionEntryMethod {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryFunction {
@@ -528,10 +539,6 @@ interface SuggestionEntryFunction {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 
 interface SuggestionEntryLocal {
@@ -549,10 +556,6 @@ interface SuggestionEntryLocal {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 ```
 
@@ -577,11 +580,124 @@ The suggestion entry id of the suggestions database.
 type SuggestionId = number;
 ```
 
-### `SuggestionsDatabaseEntry`
+### `DocSection`
+
+A single section of the documentation.
 
 #### Format
 
+```typescript
+type DocSection = Tag | Paragraph | Keyed | Marked;
+
+/** The documentation tag.
+ *
+ * {{{
+ *   name text
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   UNSTABLE
+ *   DEPRECATED
+ *   ALIAS Length
+ * }}}
+ *
+ */
+interface Tag {
+  /** The tag name. */
+  name: string;
+
+  /** The tag text. */
+  text: HTMLString;
+}
+
+/** The paragraph of the text.
+ *
+ * @example
+ *
+ * {{{
+ *   Arbitrary text in the documentation comment.
+ *
+ *   This is another paragraph.
+ * }}}
+ *
+ */
+interface Paragraph {
+  /** The elements that make up this paragraph. */
+  body: HTMLString;
+}
+
+/** The section that starts with the key followed by the colon and the body.
+ *
+ * {{{
+ *   key: body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   Arguments:
+ *   - one: the first
+ *   - two: the second
+ * }}}
+ *
+ *
+ * {{{
+ *   Icon: table-from-rows
+ * }}}
+ *
+ */
+interface Keyed {
+  /** The section key. */
+  key: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** The section that starts with the mark followed by the header and the body.
+ *
+ * {{{
+ *   mark header
+ *   body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   > Example
+ *     This is how it's done.
+ *         foo = bar baz
+ * }}}
+ *
+ * {{{
+ *   ! Notice
+ *     This is important.
+ * }}}
+ */
+interface Marked {
+  /** The section mark. */
+  mark: Mark;
+
+  /** The section header. */
+  header?: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** Text rendered as HTML (may contain HTML tags). */
+type HTMLString = string;
+
+type Mark = "Important" | "Info" | "Example";
+```
+
+### `SuggestionsDatabaseEntry`
+
 The entry in the suggestions database.
+
+#### Format
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -594,32 +710,6 @@ interface SuggestionsDatabaseEntry {
    * The suggestion entry.
    */
   suggestion: SuggestionEntry;
-}
-```
-
-### `SuggestionsOrderDatabaseEntry`
-
-The entry in the suggestions order database.
-
-#### Format
-
-```typescript
-interface SuggestionsOrderDatabaseEntry {
-  /**
-   * The unique identifier of a suggestion referring to the `id` identifier of
-   * the suggestions database.
-   */
-  suggestionId: SuggestionId;
-
-  /**
-   * The suggestion that goes before this one in the source file.
-   */
-  prevId?: SuggestionId;
-
-  /**
-   * Ths suggestion that goes after this one in the source file.
-   */
-  nextId?: SuggestionId;
 }
 ```
 
@@ -984,17 +1074,44 @@ struct Position {
 
 A representation of a range of text in a text file.
 
+For example, given the function.
+
+```
+0|inc x =
+1|    x + 1
+  ^^^^^^^^^
+  012345678
+```
+
+The range of `inc` is
+
+```typescript
+{
+    start: { line: 0, character: 0},
+    end: { line: 0, character: 3}
+}
+```
+
+The range of `1` is
+
+```typescript
+{
+    start: { line: 1, character: 8},
+    end: { line: 1, character: 9}
+}
+```
+
 #### Format
 
 ```typescript
 interface Range {
   /**
-   * The range's start position.
+   * The range's start position (inclusive).
    */
   start: Position;
 
   /**
-   * The range's end position.
+   * The range's end position (exclusive).
    */
   end: Position;
 }
@@ -1389,6 +1506,63 @@ interface CurrentProjectEdition {}
 // An edition stored under a given name.
 interface NamedEdition {
   editionName: String;
+}
+```
+
+### `LibraryComponentGroups`
+
+The description of component groups provided by the package. Object fields can
+be omitted if the corresponding list is empty.
+
+```typescript
+interface LibraryComponentGroups {
+  /** The list of component groups provided by the package. */
+  newGroups?: LibraryComponentGroup[];
+
+  /** The list of component groups that this package extends.*/
+  extendedGroups?: LibraryComponentGroup[];
+}
+```
+
+### `LibraryComponentGroup`
+
+The component group provided by a library.
+
+```typescript
+interface LibraryComponentGroup {
+  /**
+   * Thf fully qualified module name. A string consisting of a namespace and
+   * a library name separated by the dot <namespace>.<library name>,
+   * i.e. `Standard.Base`.
+   */
+  library: string;
+
+  /** The module name without the library name prefix.
+   *  E.g. given the `Standard.Base.Data.Vector` module reference,
+   * the `module` field contains `Data.Vector`.
+   */
+  module: string;
+
+  color?: string;
+
+  icon?: string;
+
+  /** The list of components provided by this component group. */
+  exports: LibraryComponent[];
+}
+```
+
+### `LibraryComponent`
+
+A single component of a component group.
+
+```typescript
+interface LibraryComponent {
+  /** The component name. */
+  name: string;
+
+  /** The component shortcut. */
+  shortcut?: string;
 }
 ```
 
@@ -3882,49 +4056,6 @@ the type match.
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
 
-### `search/import`
-
-Sent from client to the server to receive the information required for module
-import.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The id of suggestion to import.
-   */
-  id: SuggestionId;
-}
-```
-
-#### Result
-
-```typescript
-{
-  /**
-   * The definition module of the suggestion.
-   */
-  module: String;
-
-  /**
-   * The name of the resolved suggestion.
-   */
-  symbol: String;
-
-  /**
-   * The list of modules that re-export the suggestion. Modules are ordered
-   * from the least to most nested.
-   */
-  exports: Export[];
-}
-```
-
 #### Errors
 
 - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
@@ -4327,6 +4458,33 @@ To get local libraries that are not directly referenced in the edition, use
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
+### `editions/listDefinedComponents`
+
+Lists all the component groups defined in an edition.
+
+#### Parameters
+
+```typescript
+{
+  edition: EditionReference;
+}
+```
+
+#### Result
+
+```typescript
+{
+  availableComponents: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`EditionNotFoundError`](#editionnotfounderror) indicates that the requested
+  edition, or an edition referenced in one of its parents, could not be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `library/listLocal`
 
 Lists all local libraries available in the system.
@@ -4429,6 +4587,8 @@ All returned fields are optional, as they may be missing.
 
 - [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
   with the given name does not exist on the local libraries path.
+- [`InvalidSemverVersion`](#invalidsemverversion) to signal that the provided
+  version string is not a valid semver version.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
@@ -4460,6 +4620,47 @@ null;
 
 - [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
   with the given name does not exist on the local libraries path.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
+### `library/getPackage`
+
+Gets the package config associated with a specific library version.
+
+If the version is `LocalLibraryVersion`, it will try to read the package file of
+the local library and return an empty result if the manifest does not exist.
+
+If the version is `PublishedLibraryVersion`, it will fetch the package config
+from the library repository. A cached package config may also be used, if it is
+available.
+
+All returned fields are optional, as they may be missing.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+  version: LibraryVersion;
+}
+```
+
+#### Results
+
+```typescript
+{
+  license?: String;
+  componentGroups?: LibraryComponentGroups;
+}
+```
+
+#### Errors
+
+- [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
+  with the given name does not exist on the local libraries path.
+- [`InvalidSemverVersion`](#invalidsemverversion) to signal that the provided
+  version string is not a valid semver version.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
@@ -4708,7 +4909,7 @@ Signals that the requested file read was out of bounds for the file's size.
 "error" : {
   "code" : 1009
   "message" : "Read is out of bounds for the file"
-  "data" : {
+  "payload" : {
     "fileLength" : 0
   }
 }
@@ -4811,7 +5012,7 @@ cannot be evaluated. The error contains an optional `data` field of type
 "error" : {
   "code" : 2007,
   "message" : "Evaluation of the visualisation expression failed [i is not defined]"
-  "data" : {
+  "payload" : {
     "kind" : "Error",
     "message" : "i is not defined",
     "path" : null,
@@ -5098,5 +5299,20 @@ dependencies of the requested library.
 "error" : {
   "code" : 8010,
   "message" : "Error occurred while discovering dependencies: <reason>."
+}
+```
+
+### `InvalidSemverVersion`
+
+Signals that the provided version string is not a valid semver version. The
+message contains the invalid version in the payload.
+
+```typescript
+"error" : {
+  "code" : 8011,
+  "message" : "[<invalid-version>] is not a valid semver version.",
+  "payload" : {
+    "version" : "<invalid-version>"
+  }
 }
 ```

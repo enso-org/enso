@@ -82,7 +82,7 @@ impl Path {
     /// Returns the stem of filename, i.e. part of last segment without extension if present.
     pub fn file_stem(&self) -> Option<&str> {
         let name = self.file_name()?;
-        let name_length = name.rfind('.').unwrap_or_else(|| name.len());
+        let name_length = name.rfind('.').unwrap_or(name.len());
         Some(&name[..name_length])
     }
 
@@ -150,6 +150,11 @@ pub enum Notification {
     #[allow(missing_docs)]
     #[serde(rename = "file/rootRemoved")]
     ContentRootRemoved { id: Uuid },
+
+    /// Sent from server to the client to inform about a failure during execution of a
+    /// visualisation.
+    #[serde(rename = "executionContext/visualisationEvaluationFailed")]
+    VisualisationEvaluationFailed(VisualisationEvaluationFailed),
 }
 
 /// Sent from the server to the client to inform about a failure during execution of an execution
@@ -160,6 +165,18 @@ pub enum Notification {
 pub struct ExecutionFailed {
     pub context_id: ContextId,
     pub message:    String,
+}
+
+/// Sent from server to the client to inform about a failure during execution of a visualisation.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualisationEvaluationFailed {
+    pub context_id:       ContextId,
+    pub visualisation_id: Uuid,
+    pub expression_id:    ExpressionId,
+    pub message:          String,
+    pub diagnostic:       Option<Diagnostic>,
 }
 
 

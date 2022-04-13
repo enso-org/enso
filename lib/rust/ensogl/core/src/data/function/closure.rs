@@ -1,4 +1,7 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
+
+
 
 // ===============
 // === Closure ===
@@ -70,7 +73,7 @@ macro_rules! closure {
         ($($larg:ident  : $larg_type:ty),*)
         -> $type:ident
         $body:tt
-    ) => { paste::item! {
+    ) => { paste! {
         #[cfg(not(feature = "no_unboxed_callbacks"))]
         /// Closure type.
         pub type $type<$($param),*> =

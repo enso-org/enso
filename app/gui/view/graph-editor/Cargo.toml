@@ -2,7 +2,7 @@
 name = "ide-view-graph-editor"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -10,13 +10,14 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 analytics = { version = "0.1.0", path = "../../analytics" }
 ast = { version = "0.1.0", path = "../../language/ast/impl" }
+base64 = "0.13"
 bimap = { version = "0.4.0" }
 enso-config = { version = "0.1.0", path = "../../config" }
 enso-frp = { version = "0.1.0", path = "../../../../lib/rust/frp" }
 enso-logger = { path = "../../../../lib/rust/logger"}
-enso-prelude = { path = "../../../../lib/rust/prelude"}
+enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde"] }
 engine-protocol = { version = "0.1.0", path = "../../controller/engine-protocol" }
-enso-shapely = { path = "../../../../lib/rust/shapely/impl"}
+enso-shapely = { path = "../../../../lib/rust/shapely"}
 enso-text = { version = "0.1.0", path = "../../../../lib/rust/text" }
 ensogl = { version = "0.1.0", path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
@@ -30,8 +31,9 @@ js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
+sourcemap = "6.0"
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly", "serde-serialize"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 
 [dependencies.web-sys]
 version = "0.3.4"

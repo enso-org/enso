@@ -14,6 +14,11 @@ use enso_text::Location;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionId as Id;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;

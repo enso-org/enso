@@ -1,6 +1,7 @@
 //! A Wrapper for module which synchronizes opening/closing and all changes with Language Server.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::model::module::Content;
 use crate::model::module::NodeMetadata;
@@ -17,7 +18,6 @@ use double_representation::graph::Id;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
 use engine_protocol::types::Sha3_224;
-use enso_text::unit::*;
 use enso_text::Location;
 use enso_text::Range;
 use enso_text::Text;
@@ -144,6 +144,7 @@ impl Module {
     ///
     /// This function will open the module in Language Server and schedule task which will send
     /// updates about module's change to Language Server.
+    #[profile(Detail)]
     pub async fn open(
         path: Path,
         language_server: Rc<language_server::Connection>,
@@ -250,35 +251,42 @@ impl API for Module {
     ) -> FallibleResult {
         self.model.boxed_update_project_metadata(fun)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 
 // === Synchronizing Language Server ===
 
 impl Module {
-    /// The asynchronous task scheduled during struct creation which listens for all module changes
-    /// and send proper updates to Language Server.
-    async fn runner(
+    /// Returns the asynchronous task which listens for all module changes and sends proper updates
+    /// to Language Server.
+    fn runner(
         self: Rc<Self>,
         initial_ls_content: ContentSummary,
         first_invalidation: impl Future<Output = FallibleResult<ParsedContentSummary>>,
-    ) {
-        let first_invalidation = first_invalidation.await;
-        let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
+    ) -> impl Future<Output = ()> {
         let mut subscriber = self.model.subscribe();
-        let weak = Rc::downgrade(&self);
-        drop(self);
 
-        loop {
-            let notification = subscriber.next().await;
-            let this = weak.upgrade();
-            match (notification, this) {
-                (Some(notification), Some(this)) => {
-                    debug!(this.logger, "Processing a notification: {notification:?}");
-                    let result = this.handle_notification(&ls_content, notification).await;
-                    ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
+        async move {
+            let first_invalidation = first_invalidation.await;
+            let mut ls_content = self.new_ls_content_info(initial_ls_content, first_invalidation);
+            let weak = Rc::downgrade(&self);
+            drop(self);
+
+            loop {
+                let notification = subscriber.next().await;
+                let this = weak.upgrade();
+                match (notification, this) {
+                    (Some(notification), Some(this)) => {
+                        debug!(this.logger, "Processing a notification: {notification:?}");
+                        let result = this.handle_notification(&ls_content, notification).await;
+                        ls_content = this.new_ls_content_info(ls_content.summary().clone(), result)
+                    }
+                    _ => break,
                 }
-                _ => break,
             }
         }
     }
@@ -359,7 +367,7 @@ impl Module {
         debug_assert_eq!(start.column, 0.column());
 
         let edit = TextEdit::from_prefix_postfix_differences(&source, &target);
-        (edit.range.start != edit.range.end)
+        (edit.range.start != edit.range.end || !edit.text.is_empty())
             .as_some_from(|| edit.move_by_lines(start.line.as_usize()))
     }
 
@@ -535,7 +543,7 @@ pub mod test {
             client.expect.apply_text_file_edit(move |edits| {
                 let content_so_far = this.current_ls_content.get();
                 let result = f(edits);
-                let new_content = apply_edits(content_so_far, &edits);
+                let new_content = apply_edits(content_so_far, edits);
                 let actual_old = this.current_ls_version.get();
                 let actual_new =
                     Sha3_224::from_parts(new_content.iter_chunks(..).map(|s| s.as_bytes()));
@@ -715,5 +723,24 @@ pub mod test {
             runner.perhaps_run_until_stalled(&mut fixture);
         };
         Runner::run(test);
+    }
+
+    #[test]
+    fn handle_insertion_edits_bug180558676() {
+        let source = Text::from("from Standard.Base import all\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let target = Text::from("from Standard.Base import all\nimport Standard.Visualization\n\nmain =\n    operator1 = 0.up_to 100 . to_vector . map .noise\n    operator1.sort\n");
+        let edit = Module::edit_for_snipped(
+            &Location { line: 0.into(), column: 0.into() },
+            source,
+            target,
+        );
+        let expected = Some(TextEdit {
+            range: TextRange {
+                start: Position { line: 1, character: 0 },
+                end:   Position { line: 1, character: 0 },
+            },
+            text:  "import Standard.Visualization\n".to_string(),
+        });
+        assert_eq!(edit, expected);
     }
 }

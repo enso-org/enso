@@ -1,11 +1,10 @@
 //! Example visualisation showing the provided data as text.
 
+use crate::component::visualization::*;
 use crate::prelude::*;
-
-pub use crate::component::node::error::Kind;
+use ensogl::system::web::traits::*;
 
 use crate::component::visualization;
-use crate::component::visualization::*;
 use crate::SharedHashMap;
 
 use enso_frp as frp;
@@ -14,11 +13,16 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::AttributeSetter;
-use ensogl::system::web::StyleSetter;
 use ensogl_hardcoded_theme;
 use serde::Deserialize;
 use serde::Serialize;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::component::node::error::Kind;
 
 
 
@@ -29,16 +33,13 @@ use serde::Serialize;
 const PADDING_TEXT: f32 = 10.0;
 /// The Error Visualization preprocessor. See also _Lazy Visualization_ section
 /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-pub const PREPROCESSOR_CODE: &str = r#"
-x ->
-    result = Builtins.Ref.new "{ message: \"\"}"
-    x.catch err->
-        message = err.to_display_text
-        Builtins.Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
-    Builtins.Ref.get result
-"#;
+// NOTE: contents of this const need to be kept in sync with Scala test in
+// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
+pub const PREPROCESSOR_CODE: &str = include_str!("inc/error_preprocessor.enso");
 
 /// The context module for the `PREPROCESSOR_CODE`. See there.
+// NOTE: contents of this const need to be kept in sync with Scala test in
+// RuntimeVisualisationsTest.scala, used to verify the snippet's correctness
 pub const PREPROCESSOR_MODULE: &str = "Standard.Base.Main";
 
 /// Get preprocessor configuration for error visualization.
@@ -163,7 +164,7 @@ impl Model {
     /// Constructor.
     fn new(scene: Scene) -> Self {
         let logger = Logger::new("RawText");
-        let div = web::create_div();
+        let div = web::document.create_div_or_panic();
         let dom = DomSymbol::new(&div);
         let size = Rc::new(Cell::new(Vector2(200.0, 200.0)));
         let displayed = Rc::new(CloneCell::new(Kind::Panic));
@@ -172,15 +173,15 @@ impl Model {
         let styles = StyleWatch::new(&scene.style_sheet);
         let padding_text = format!("{}px", PADDING_TEXT);
 
-        dom.dom().set_attribute_or_warn("class", "visualization scrollable", &logger);
-        dom.dom().set_style_or_warn("overflow-x", "hidden", &logger);
-        dom.dom().set_style_or_warn("overflow-y", "auto", &logger);
-        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook", &logger);
-        dom.dom().set_style_or_warn("font-size", "12px", &logger);
-        dom.dom().set_style_or_warn("border-radius", "14px", &logger);
-        dom.dom().set_style_or_warn("padding-left", &padding_text, &logger);
-        dom.dom().set_style_or_warn("padding-top", &padding_text, &logger);
-        dom.dom().set_style_or_warn("pointer-events", "auto", &logger);
+        dom.dom().set_attribute_or_warn("class", "visualization scrollable");
+        dom.dom().set_style_or_warn("overflow-x", "hidden");
+        dom.dom().set_style_or_warn("overflow-y", "auto");
+        dom.dom().set_style_or_warn("font-family", "DejaVuSansMonoBook");
+        dom.dom().set_style_or_warn("font-size", "12px");
+        dom.dom().set_style_or_warn("border-radius", "14px");
+        dom.dom().set_style_or_warn("padding-left", &padding_text);
+        dom.dom().set_style_or_warn("padding-top", &padding_text);
+        dom.dom().set_style_or_warn("pointer-events", "auto");
 
         scene.dom.layers.back.manage(&dom);
         Model { logger, dom, size, styles, displayed, messages, scene }.init()
@@ -246,7 +247,7 @@ impl Model {
         let green = text_color.green * 255.0;
         let blue = text_color.blue * 255.0;
         let text_color = format!("rgba({},{},{},{})", red, green, blue, text_color.alpha);
-        self.dom.dom().set_style_or_warn("color", text_color, &self.logger);
+        self.dom.dom().set_style_or_warn("color", text_color);
     }
 
     fn set_layer(&self, layer: Layer) {

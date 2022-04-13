@@ -1,42 +1,39 @@
 //! EasingAnimator examples.
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
+use ensogl_core::animation::easing::*;
 use ensogl_core::prelude::*;
+use ensogl_core::system::web::traits::*;
 
 use ensogl_core::animation;
-use ensogl_core::animation::easing::*;
 use ensogl_core::system::web;
-use ensogl_core::system::web::create_element;
-use ensogl_core::system::web::get_element_by_id;
-use ensogl_core::system::web::AttributeSetter;
-use ensogl_core::system::web::NodeInserter;
-use ensogl_core::system::web::StyleSetter;
 use js_sys::Math;
 use nalgebra::Vector2;
 use std::ops::Add;
 use std::ops::Mul;
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::CanvasRenderingContext2d;
-use web_sys::HtmlCanvasElement;
-use web_sys::HtmlElement;
+use wasm_bindgen::prelude::wasm_bindgen;
+use web::CanvasRenderingContext2d;
+use web::HtmlCanvasElement;
 
 
 
@@ -102,16 +99,16 @@ pub struct Canvas {
 impl Canvas {
     /// Constructor.
     pub fn new(container_id: &str) -> Self {
-        let canvas = web::create_canvas();
-        canvas.set_style_or_panic("border", "1px solid black");
+        let canvas = web::document.create_canvas_or_panic();
+        canvas.set_style_or_warn("border", "1px solid black");
         canvas.set_width(256);
         canvas.set_height(256);
 
         let context = canvas.get_context("2d").unwrap().unwrap();
         let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
 
-        let app: HtmlElement = get_element_by_id(container_id).unwrap().dyn_into().unwrap();
-        app.append_or_panic(&canvas);
+        let app = web::document.get_html_element_by_id(container_id).unwrap();
+        app.append_or_warn(&canvas);
 
         Self { canvas, context }
     }
@@ -206,7 +203,7 @@ impl Sampler {
         let animation_cb = Box::new(move |t| prop.set(t)) as Box<dyn Fn(SpriteData)>;
         let easing_animator = Animator::new(start, end, easing_function2, animation_cb, ());
         let time = 0.0;
-        easing_animator.set_duration(2000.0);
+        easing_animator.set_duration(2.0.s());
         Self {
             color,
             time,
@@ -250,16 +247,16 @@ impl Example {
         ease_out: impl CloneableFnEasing,
         ease_in_out: impl CloneableFnEasing,
     ) -> Self {
-        let example = web::create_div();
-        example.set_attribute_or_panic("id", name);
-        example.set_style_or_panic("margin", "10px");
-        let container: HtmlElement = get_element_by_id("examples").unwrap().dyn_into().unwrap();
-        let header: HtmlElement = create_element("center").dyn_into().unwrap();
-        header.set_style_or_panic("background-color", "black");
-        header.set_style_or_panic("color", "white");
+        let example = web::document.create_div_or_panic();
+        example.set_attribute_or_warn("id", name);
+        example.set_style_or_warn("margin", "10px");
+        let container = web::document.get_html_element_by_id("examples").unwrap();
+        let header = web::document.get_html_element_by_id("center").unwrap();
+        header.set_style_or_warn("background-color", "black");
+        header.set_style_or_warn("color", "white");
         header.set_inner_html(name);
-        example.append_or_panic(&header);
-        container.append_or_panic(&example);
+        example.append_or_warn(&header);
+        container.append_or_warn(&example);
         let left_canvas = Canvas::new(name);
         let right_canvas = Canvas::new(name);
         let mut sampler1 = Sampler::new("green", &left_canvas, &right_canvas, ease_in);
@@ -269,9 +266,9 @@ impl Example {
         let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
             left_canvas.clear();
             right_canvas.clear();
-            sampler1.render(time_info.frame);
-            sampler2.render(time_info.frame);
-            sampler3.render(time_info.frame);
+            sampler1.render(time_info.previous_frame.unchecked_raw());
+            sampler2.render(time_info.previous_frame.unchecked_raw());
+            sampler3.render(time_info.previous_frame.unchecked_raw());
         }) as Box<dyn FnMut(animation::TimeInfo)>);
         Self { _animator }
     }
@@ -281,25 +278,25 @@ macro_rules! examples {
     ($($name:ident),*) => {$(
         std::mem::forget(Example::new(
             stringify!($name),
-            paste::expr!{[<$name _in>]()},
-            paste::expr!{[<$name _out>]()},
-            paste::expr!{[<$name _in_out>]()},
+            paste!{[<$name _in>]()},
+            paste!{[<$name _out>]()},
+            paste!{[<$name _in_out>]()},
         ));
     )*};
 }
 
-#[wasm_bindgen]
-#[allow(dead_code)]
 /// Runs EasingAnimator example.
-pub fn entry_point_easing_animator() {
+#[entry_point]
+#[allow(dead_code)]
+pub fn main() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
-    let container = web::create_div();
-    container.set_attribute_or_panic("id", "examples");
-    container.set_style_or_panic("display", "flex");
-    container.set_style_or_panic("flex-wrap", "wrap");
-    container.set_style_or_panic("position", "absolute");
-    container.set_style_or_panic("top", "0px");
-    web::body().append_or_panic(&container);
+    let container = web::document.create_div_or_panic();
+    container.set_attribute_or_warn("id", "examples");
+    container.set_style_or_warn("display", "flex");
+    container.set_style_or_warn("flex-wrap", "wrap");
+    container.set_style_or_warn("position", "absolute");
+    container.set_style_or_warn("top", "0px");
+    web::document.body_or_panic().append_or_warn(&container);
     examples![expo, bounce, circ, quad, cubic, quart, quint, sine, back, elastic];
 }

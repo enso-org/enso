@@ -1,11 +1,9 @@
 package org.enso.languageserver.search
 
-import java.nio.file.Files
-import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
+import org.enso.docs.generator.DocsGenerator
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -17,9 +15,9 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.{ExportedSymbol, ModuleExports, Suggestion}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
 import org.enso.testkit.RetrySpec
@@ -28,6 +26,9 @@ import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import java.nio.file.Files
+import java.util.UUID
 
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
@@ -162,8 +163,8 @@ class SuggestionsHandlerSpec
         // check database entries exist
         val (_, records) = Await.result(repo.getAll, Timeout)
         records.map(
-          _.suggestion
-        ) should contain theSameElementsAs Suggestions.all
+          _.suggestion.name
+        ) should contain theSameElementsAs Suggestions.all.map(_.name)
     }
 
     "apply runtime updates in correct order" taggedAs Retry in withDb {
@@ -415,18 +416,20 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Atom(
-          externalId        = None,
-          module            = moduleName,
-          name              = "Foo",
-          arguments         = Vector(),
-          returnType        = moduleName,
-          documentation     = None,
-          documentationHtml = None
+          externalId            = None,
+          module                = moduleName,
+          name                  = "Foo",
+          arguments             = Vector(),
+          returnType            = moduleName,
+          documentation         = None,
+          documentationHtml     = None,
+          documentationSections = None
         )
         val module = Suggestion.Module(
-          module            = moduleName,
-          documentation     = None,
-          documentationHtml = None
+          module                = moduleName,
+          documentation         = None,
+          documentationHtml     = None,
+          documentationSections = None
         )
 
         val tree = Tree.Root(
@@ -1058,6 +1061,7 @@ class SuggestionsHandlerSpec
         suggestionsRepo,
         fileVersionsRepo
       )
+
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
     handler ! InitializedEvent.TruffleContextInitialized
     runtimeConnector.receiveN(1)
@@ -1065,6 +1069,22 @@ class SuggestionsHandlerSpec
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(buildTestTypeGraph)
     )
+
+    val suggestionsInit = suggestionsRepo.init
+    val versionsInit    = fileVersionsRepo.init
+    suggestionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }
+    versionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }
+
     runtimeConnector.receiveN(1)
     handler ! Api.Response(
       UUID.randomUUID(),
@@ -1184,20 +1204,6 @@ class SuggestionsHandlerSpec
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
-
-    suggestionsRepo.init.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize Suggestions repo")
-    }
-    versionsRepo.init.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize FileVersions repo")
-    }
-
     val handler = newInitializedSuggestionsHandler(
       config,
       router,
@@ -1215,6 +1221,11 @@ class SuggestionsHandlerSpec
 
   object TestSuggestion {
 
+    val htmlDocsGenerator: DocsGenerator =
+      DocsGenerator
+    val docSectionsBuilder: DocSectionsBuilder =
+      DocSectionsBuilder()
+
     val atom: Suggestion.Atom =
       Suggestion.Atom(
         externalId = None,
@@ -1224,21 +1235,23 @@ class SuggestionsHandlerSpec
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType        = "Pair",
-        documentation     = Some("Awesome"),
-        documentationHtml = Some("")
+        returnType            = "Pair",
+        documentation         = Some("Awesome"),
+        documentationHtml     = Some(htmlDocsGenerator.generate("Awesome", "Pair")),
+        documentationSections = Some(docSectionsBuilder.build("Awesome"))
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId        = Some(UUID.randomUUID()),
-        module            = "Test.Main",
-        name              = "main",
-        arguments         = Seq(),
-        selfType          = "Test.Main",
-        returnType        = "IO",
-        documentation     = None,
-        documentationHtml = None
+        externalId            = Some(UUID.randomUUID()),
+        module                = "Test.Main",
+        name                  = "main",
+        arguments             = Seq(),
+        selfType              = "Test.Main",
+        returnType            = "IO",
+        documentation         = None,
+        documentationHtml     = None,
+        documentationSections = None
       )
   }
 

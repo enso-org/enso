@@ -7,9 +7,9 @@ use crate::controller::graph::NewNodeInfo;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
 use crate::model::module::UploadingFile;
-
 use crate::model::undo_redo;
 use crate::model::undo_redo::Repository;
+
 use engine_protocol::binary;
 use engine_protocol::common::error::code;
 use engine_protocol::language_server;
@@ -706,8 +706,8 @@ mod test {
     fn data_dir_attributes() -> FileAttributes {
         let dummy_time = UTCDateTime::parse_from_rfc3339("1996-12-19T16:39:57-08:00").unwrap();
         FileAttributes {
-            creation_time:      dummy_time.clone(),
-            last_access_time:   dummy_time.clone(),
+            creation_time:      dummy_time,
+            last_access_time:   dummy_time,
             last_modified_time: dummy_time,
             kind:               FileSystemObject::Directory {
                 name: DATA_DIR_NAME.to_owned(),

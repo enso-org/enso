@@ -2,7 +2,7 @@
 name = "debug-scene-visualization"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -16,4 +16,4 @@ ide-view = { path = "../.." }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 serde_json = { version = "1.0" }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

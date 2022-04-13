@@ -3,7 +3,6 @@
 //! NOTE: They should be kept in sync with enso's implementation at:
 //! `enso/Syntax/definition/src/main/scala/org/enso/syntax/text/ast/opr/Assoc.scala`
 
-
 use crate::prelude::*;
 
 use lazy_static::lazy_static;
@@ -74,11 +73,11 @@ mod tests {
 
     #[test]
     fn test_applicative() {
-        assert_eq!(is_applicative("<$>"), true);
-        assert_eq!(is_applicative("<*>"), true);
-        assert_eq!(is_applicative("<*"), true);
-        assert_eq!(is_applicative("*>"), true);
-        assert_eq!(is_applicative("="), false);
-        assert_eq!(is_applicative("++"), false);
+        assert!(is_applicative("<$>"));
+        assert!(is_applicative("<*>"));
+        assert!(is_applicative("<*"));
+        assert!(is_applicative("*>"));
+        assert!(!is_applicative("="));
+        assert!(!is_applicative("++"));
     }
 }

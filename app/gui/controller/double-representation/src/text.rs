@@ -1,9 +1,9 @@
 //! A module with functions used to support working with text representation of the language.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use ast::IdMap;
-use enso_text::unit::*;
 
 
 
@@ -51,7 +51,7 @@ pub fn apply_code_change_to_id_map(
     // As above but for the front side.
     let to_trim_front: Bytes = {
         let first_non_white = inserted.find(non_white);
-        first_non_white.unwrap_or_else(|| inserted.len()).into()
+        first_non_white.unwrap_or(inserted.len()).into()
     };
 
     let inserted_non_white = inserted.chars().any(non_white);

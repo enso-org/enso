@@ -1,17 +1,21 @@
 //! This module contains the IDE object implementation.
-pub mod initializer;
-pub mod integration;
 
 use crate::prelude::*;
 
 use crate::controller::project::INITIAL_MODULE_NAME;
-use crate::ide::integration::Integration;
+use crate::presenter::Presenter;
 
 use analytics::AnonymousData;
 use enso_frp as frp;
-use ensogl::application::Application;
 use ensogl::system::web::sleep;
 use std::time::Duration;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod initializer;
 
 pub use initializer::Initializer;
 
@@ -37,26 +41,24 @@ const ALIVE_LOG_INTERVAL_SEC: u64 = 60;
 ///
 /// This structure is a root of all objects in our application. It includes both layers:
 /// Controllers and Views, and an integration between them.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Ide {
-    application: Application,
-    #[allow(dead_code)]
-    /// The integration layer is never directly accessed, but needs to be kept alive to keep
-    /// performing its function.
-    integration: Integration,
-    network:     frp::Network,
+    pub ensogl_app: ensogl::application::Application,
+    pub presenter:  Presenter,
+    network:        frp::Network,
 }
 
 impl Ide {
     /// Constructor.
-    pub async fn new(
-        application: Application,
-        view: ide_view::project::View,
+    pub fn new(
+        ensogl_app: ensogl::application::Application,
+        view: ide_view::root::View,
         controller: controller::Ide,
     ) -> Self {
-        let integration = integration::Integration::new(controller, view);
+        let presenter = Presenter::new(controller, view);
         let network = frp::Network::new("Ide");
-        Ide { application, integration, network }.init()
+        Ide { ensogl_app, presenter, network }.init()
     }
 
     fn init(self) -> Self {
@@ -66,7 +68,7 @@ impl Ide {
 
     fn alive_log_sending_loop(&self) -> impl Future<Output = ()> + 'static {
         let network = &self.network;
-        let scene = self.application.display.scene();
+        let scene = &self.ensogl_app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 
@@ -90,6 +92,16 @@ impl Ide {
         }
     }
 }
+
+/// A reduced version of [`Ide`] structure, representing an application which failed to initialize.
+///
+/// It contains only the view displaying the error. No connection to the backend is maintained.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct FailedIde {
+    pub view: ide_view::root::View,
+}
+
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project: &model::Project) -> FallibleResult<model::module::Path> {

@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 
+
 // ===================
 // === UTCDateTime ===
 // ===================
@@ -49,7 +50,7 @@ impl From<sha3::Sha3_224> for Sha3_224 {
     fn from(hasher: sha3::Sha3_224) -> Self {
         use sha3::Digest;
         let result = hasher.result();
-        let digest = hex::encode(result[..].to_vec());
+        let digest = hex::encode(&result[..]);
         Self(digest)
     }
 }

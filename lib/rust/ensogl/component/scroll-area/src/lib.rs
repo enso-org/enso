@@ -1,16 +1,20 @@
 //! This module provides the [`ScrollArea`] component.
 
+#![recursion_limit = "512"]
+// === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
 use ensogl_core::prelude::*;
 
@@ -95,7 +99,7 @@ impl display::Object for ScrollArea {
 impl ScrollArea {
     /// Create a new scroll area for use in the given application.
     pub fn new(app: &Application) -> ScrollArea {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
         let display_object = display::object::Instance::new(&logger);
 

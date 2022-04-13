@@ -1,5 +1,6 @@
-#![cfg(test)]
 //! Module for support code for writing tests.
+
+#![cfg(test)]
 
 use crate::prelude::*;
 
@@ -16,6 +17,8 @@ use engine_protocol::types::Sha3_224;
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
 use json_rpc::expect_call;
+
+
 
 /// Utilities for mocking IDE components.
 pub mod mock {
@@ -296,15 +299,14 @@ pub mod mock {
             );
             let executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
-            let selected_nodes = Vec::new();
-            let searcher_mode = controller::searcher::Mode::NewNode { position: None };
+            let searcher_mode =
+                controller::searcher::Mode::NewNode { position: None, source_node: None };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),
                 &project,
                 executed_graph.clone_ref(),
                 searcher_mode,
-                selected_nodes,
             )
             .unwrap();
             Fixture {
@@ -389,7 +391,7 @@ pub mod mock {
         pub fn synchronized_module(&self) -> Rc<model::module::Synchronized> {
             let parser = self.data.parser.clone();
             let path = self.data.module_path.clone();
-            let ls = self.project.json_rpc().clone();
+            let ls = self.project.json_rpc();
             let repository = self.project.urm().repository.clone_ref();
             let module_future = model::module::Synchronized::open(path, ls, parser, repository);
             // We can `expect_ready`, because in fact this is synchronous in test conditions.

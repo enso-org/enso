@@ -1,6 +1,7 @@
 #![cfg(target_arch = "wasm32")]
 
 use crate::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use crate::api;
 use crate::api::Ast;
@@ -8,7 +9,6 @@ use crate::from_json_str_without_recursion_limit;
 
 use ast::id_map::JsonIdMap;
 use ast::IdMap;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -84,7 +84,7 @@ impl Client {
     ) -> api::Result<api::ParsedSourceFile<M>> {
         let result = || {
             let json = &parse_with_metadata(program)?;
-            let module = from_json_str_without_recursion_limit(&json)?;
+            let module = from_json_str_without_recursion_limit(json)?;
             Result::Ok(module)
         };
         Ok(result()?)

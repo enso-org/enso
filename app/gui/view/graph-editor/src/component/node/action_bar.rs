@@ -1,5 +1,7 @@
 //! Definition of the `ActionBar` component for the `visualization::Container`.
 
+
+
 mod icon;
 
 use crate::prelude::*;
@@ -134,7 +136,7 @@ struct Model {
 
 impl Model {
     fn new(logger: impl AnyLogger, app: &Application) -> Self {
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new_sub(logger, "ActionBar");
         let display_object = display::object::Instance::new(&logger);
         let hover_area = hover_area::View::new(&logger);

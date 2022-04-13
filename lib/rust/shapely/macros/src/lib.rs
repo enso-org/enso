@@ -2,21 +2,29 @@
 //! directly, but only through `enso-shapely` crate, as it provides utilities
 //! necessary for the generated code to compile.
 
+// === Features ===
 #![feature(bool_to_option)]
 #![feature(exact_size_is_empty)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+
+
 
 extern crate proc_macro;
 
 mod derive_clone_ref;
+mod derive_entry_point;
 mod derive_iterator;
+mod derive_no_clone;
 mod overlappable;
 
 mod prelude {
@@ -83,6 +91,36 @@ pub fn derive_iterator_mut(input: proc_macro::TokenStream) -> proc_macro::TokenS
 #[proc_macro_derive(CloneRef, attributes(clone_ref))]
 pub fn derive_clone_ref(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_clone_ref::derive(input)
+}
+
+/// Makes sure that the structure does not derive [`Clone`] and that it implements custom [`Drop`]
+/// implementation.
+///
+/// For the given input
+/// ```ignore
+/// #[derive(NoCloneBecauseOfCustomDrop)]
+/// struct Test {}
+/// ```
+///
+/// The following output will be generated:
+/// ```ignore
+/// struct Test {}
+/// impl !Clone for Test {}
+//  impl ImplementsDrop for Test {}
+/// ```
+#[proc_macro_derive(NoCloneBecauseOfCustomDrop)]
+pub fn derive_no_clone(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_no_clone::derive(input)
+}
+
+/// Exposes the function as an application entry point. Entry points are alternative application
+/// running modes that you can access by adding `?entry=` to the end of the application URL.
+#[proc_macro_attribute]
+pub fn entry_point(
+    _: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    derive_entry_point::derive(item)
 }
 
 #[allow(missing_docs)]

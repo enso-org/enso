@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+type Illegal_State_Error
+
+    ## UNSTABLE
+
+       A generic error that indicates that a given operation cannot be performed
+       in some specific conditions.
+
+       Arguments:
+       - message: the error message explaining why the operation cannot be
+         performed.
+       - cause: (optional) another error that is the cause of this one.
+    type Illegal_State_Error message cause=Nothing
+
+type Illegal_Argument_Error
+
+    ## UNSTABLE
+
+       A generic error that indicates that the provided argument is not valid
+       for the operation.
+
+       Arguments:
+       - message: the error message explaining why the argument is illegal.
+       - cause: (optional) another error that is the cause of this one.
+    type Illegal_Argument_Error message cause=Nothing
+
+## PRIVATE
+   Wraps a dataflow error lifted to a panic, making possible to distinguish it
+   from other panics.
+type Wrapped_Dataflow_Error payload
+
+## PRIVATE
+   Throws the original error.
+Wrapped_Dataflow_Error.unwrap = Error.throw this.payload

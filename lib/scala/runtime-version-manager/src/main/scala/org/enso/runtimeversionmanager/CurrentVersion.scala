@@ -15,8 +15,17 @@ object CurrentVersion {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
 
+  private val defaultDevEnsoVersion: SemVer =
+    SemVer(Info.defaultDevEnsoVersion).getOrElse {
+      throw new IllegalStateException("Cannot parse the built-in dev version.")
+    }
+
   /** Version of the component. */
   def version: SemVer = currentVersion
+
+  /** Check if the current version is the development one. */
+  def isDevVersion: Boolean =
+    currentVersion == defaultDevEnsoVersion
 
   /** Override launcher version with the provided one.
     *

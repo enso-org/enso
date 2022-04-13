@@ -1,16 +1,19 @@
 //! Example scene showing simple usage of a shape system.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+use ensogl_core::display::shape::*;
+use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
+use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene;
-use ensogl_core::display::shape::*;
 use ensogl_core::display::style::theme;
-use ensogl_core::display::world::*;
-use ensogl_core::system::web;
-use wasm_bindgen::prelude::*;
 
 
 
@@ -52,14 +55,11 @@ mod mask {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_complex_shape_system() {
-    web::forward_panic_hook_to_console();
-    web::set_stack_trace_limit();
-
-    let world = World::new(&web::get_html_element_by_id("root").unwrap());
-    let scene = world.scene();
+pub fn main() {
+    let world = World::new().displayed_in("root");
+    let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
     let logger = Logger::new("ShapeView");
@@ -109,13 +109,14 @@ pub fn entry_point_complex_shape_system() {
     world.add_child(&mask);
 
     world.keep_alive_forever();
-    let scene = world.scene().clone_ref();
+    let scene = world.default_scene.clone_ref();
 
     let mut frame = 0;
     world
-        .on_frame(move |_time| {
+        .on
+        .before_frame
+        .add(move |_time| {
             mask.set_position_x(((frame as f32) / 30.0).sin() * 100.0);
-
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;

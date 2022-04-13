@@ -1,9 +1,14 @@
 //! Tests specific to Ast rather than parser itself but placed here because they depend on parser
 //! to easily generate test input.
+
 // TODO: [mwu]
 //  That means that likely either `parser` should be merged with `ast` or that we should have a
 //  separate `ast_ops` crate that depends on both. Now it is better to tests here than none but
 //  a decision should be made as to which way we want to go.
+
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use parser::prelude::*;
 
@@ -13,6 +18,8 @@ use ast::prefix;
 use ast::test_utils::expect_single_line;
 use ast::HasRepr;
 use wasm_bindgen_test::wasm_bindgen_test;
+
+
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -80,7 +87,7 @@ pub fn flatten_prefix_test() {
     let case = |code: &str, expected_pieces: Vec<&str>| {
         let ast = parser.parse(code.into(), default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
-        let flattened = prefix::Chain::from_ast_non_strict(&ast);
+        let flattened = prefix::Chain::from_ast_non_strict(ast);
         expect_pieces(&flattened, expected_pieces);
         assert_eq!(flattened.repr(), code);
     };
@@ -107,7 +114,7 @@ pub fn flatten_infix_test() {
     let case = |code: &str, target: &str, expected_pieces: Vec<&str>| {
         let ast = parser.parse(code.into(), default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
-        let flattened = opr::Chain::try_new(&ast).unwrap();
+        let flattened = opr::Chain::try_new(ast).unwrap();
         expect_pieces(&flattened, target, expected_pieces);
     };
 

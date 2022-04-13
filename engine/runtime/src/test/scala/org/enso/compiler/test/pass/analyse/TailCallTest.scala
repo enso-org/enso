@@ -96,7 +96,7 @@ class TailCallTest extends CompilerTest {
         |
         |type MyAtom a b c
         |
-        |Foo.from (value : Bar) = undefined
+        |Foo.from (that : Bar) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "mark methods as tail" in {

@@ -1,5 +1,8 @@
 //! Module that contains the logic sor selecting nodes. This includes selecting single nodes
 //! by clicking on them separately, as well as click+drag for selecting with a selection area.
+
+
+
 mod bounding_box;
 
 use ensogl::prelude::*;
@@ -231,7 +234,7 @@ fn get_nodes_in_bounding_box(bounding_box: &BoundingBox, nodes: &Nodes) -> Vec<N
     nodes_raw
         .iter()
         .filter_map(|(id, node)| {
-            bounding_box.intersects(&node.view.frp.bounding_box.value()).as_some(*id)
+            bounding_box.intersects(&node.view.bounding_box.value()).as_some(*id)
         })
         .collect()
 }

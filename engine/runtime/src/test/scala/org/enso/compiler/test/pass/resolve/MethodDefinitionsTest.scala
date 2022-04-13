@@ -62,11 +62,11 @@ class MethodDefinitionsTest extends CompilerTest {
         |
         |Does_Not_Exist.method = 32
         |
-        |Foo.from (value : Bar) = undefined
+        |Foo.from (that : Bar) = undefined
         |
-        |Bar.from (value : Does_Not_Exist) = undefined
+        |Bar.from (that : Does_Not_Exist) = undefined
         |
-        |Does_Not_Exist.from (value : Foo) = undefined
+        |Does_Not_Exist.from (that : Foo) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "attach resolved atoms to the method definitions" in {
@@ -78,7 +78,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )
@@ -114,7 +114,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )
@@ -122,7 +122,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Cons("Bar", 0, true)
           )
         )
       )
@@ -136,7 +136,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Cons("Bar", 0, true)
           )
         )
       )
@@ -150,7 +150,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )

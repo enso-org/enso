@@ -121,7 +121,7 @@ impl ExecutionContext {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
-                    WARNING!("Context {self.id} Became ready");
+                    info!(self.logger, "Context {self.id} Became ready");
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
@@ -340,7 +340,7 @@ pub mod test {
             data: &MockData,
             ls: &mut language_server::MockClient,
         ) {
-            Self::mock_create_destroy_calls(&data, ls);
+            Self::mock_create_destroy_calls(data, ls);
             let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
                 method_pointer:                   data.main_method_pointer(),

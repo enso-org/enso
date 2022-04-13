@@ -243,6 +243,38 @@ type Error
     to_text : Text
     to_text = @Builtin_Method "Error.to_text"
 
+@Builtin_Type
+type Prim_Warning
+    type Prim_Warning
+
+    ## PRIVATE
+    attach : Any -> Any -> Any -> Any
+    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
+
+    ## PRIVATE
+    create : Any -> Any -> Prim_Warning
+    create payload origin = @Builtin_Method "Prim_Warning.create"
+
+    ## PRIVATE
+    get_all : Any -> Array Prim_Warning
+    get_all value = @Builtin_Method "Prim_Warning.get_all"
+
+    ## PRIVATE
+    set : Any -> Array Prim_Warning -> Any
+    set value warnings = @Builtin_Method "Prim_Warning.set"
+
+    ## PRIVATE
+    get_origin : Prim_Warning -> Any
+    get_origin warn = @Builtin_Method "Prim_Warning.get_origin"
+
+    ## PRIVATE
+    get_value : Prim_Warning -> Any
+    get_value warn = @Builtin_Method "Prim_Warning.get_value"
+
+    ## PRIVATE
+    get_reassignments : Prim_Warning -> Any
+    get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"
+
 ## The runtime representation of a syntax error.
 
    Arguments:
@@ -334,6 +366,21 @@ type Invalid_Array_Index_Error array index
 @Builtin_Type
 type Not_Invokable_Error target
 
+## An error that occurs when arguments used in a function call are invalid
+   types for the function.
+
+   Arguments:
+     - arguments: The passed arguments.
+@Builtin_Type
+type Unsupported_Argument_Types arguments
+
+## An error that occurs when the specified module cannot be found.
+
+   Arguments:
+     - name: The module searched for.
+@Builtin_Type
+type Module_Does_Not_Exist name
+
 ## Panics.
 type Panic
 
@@ -341,7 +388,7 @@ type Panic
        program control flow.
 
        Panics "bubble up" through the program until they reach either an
-       invocation of Panic.catch or the program's main method. An unhandled
+       invocation of Panic.recover Any or the program's main method. An unhandled
        panic in main will terminate the program.
 
        ? Dataflow Errors or Panics
@@ -353,31 +400,64 @@ type Panic
     ## Throws a new panic with the provided payload.
 
        Arguments:
-       - payload: The contents of the panic to be thrown.
+       - payload: The contents of the panic to be thrown. If the payload is a
+         `Caught_Panic` or a raw Java exception, instead of throwing a new panic
+         with it as a payload, the original exception is rethrown, preserving
+         its stacktrace.
 
        > Example
          Throwing a panic containing the text "Oh no!".
 
              Panic.throw "Oh no!"
+
+       > Example
+         Use together with `Panic.catch` to catch only specific types of errors
+         and rethrow any others, without affecting their stacktraces.
+
+             Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
 
-    ## Executes the provided action and converts any panic thrown by it into
-       an Error.
+    ## PRIVATE
+       Executes the provided action and if any panic was thrown, calls the
+       provided callback.
 
-       If action executes successfully, the result of Panic.catch is the
-       result of that action. Otherwise, it is the panic that was thrown after
-       conversion to a dataflow error.
+       If action executes successfully, the result of `Panic.catch Any` is the
+       result of that action. Otherwise, it is the result of the provided
+       handler callback, executed with the caught panic as its first argument.
 
        Arguments:
        - action: The code to execute that potentially panics.
+       - handler: The callback to handle any panics.
+    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
-       > Example
-         Handling a panic for a panicking action.
+    ## PRIVATE
 
-             Panic.recover (Panic.throw "Oh no!")
-    recover : Any -> Any
-    recover ~action = @Builtin_Method "Panic.catch"
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
+       You probably want `Panic.get_attached_stack_trace` instead.
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+
+type Caught_Panic
+    ## A wrapper for a caught panic.
+
+       Arguments:
+       - payload: the payload carried by the error.
+       - internal_original_exception (private): the original Java exception that is
+         the source of this panic. Only for internal use. To get the Java exception
+         from polyglot exceptions, match the `payload` on `Polyglot_Error` and
+         extract the Java object from there.
+    @Builtin_Type
+    type Caught_Panic payload internal_original_exception
+
+    ## Converts this caught panic into a dataflow error containing the same
+       payload and stack trace.
+    convert_to_dataflow_error : Error
+    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
 # Function types.
 type Function
@@ -477,6 +557,28 @@ type Polyglot
        - arguments: The arguments to pass to the method given by name.
     invoke : Any -> Text -> Vector -> Any
     invoke target name arguments = @Builtin_Method "Polyglot.invoke"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Checks if `value` defines a source location.
+
+       Source locations are typically exposed by functions, classes, sometimes
+       also other objects to specify their allocation sites.
+    has_source_location : Any -> Boolean
+    has_source_location value = @Builtin_Method "Polyglot.has_source_location"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Gets the source location of `value`.
+
+       Source locations are typically exposed by functions, classes, sometimes
+       also other objects to specify their allocation sites.
+       This method will throw a polyglot exception if
+       `Polyglot.has_source_location value` returns `False`.
+    get_source_location : Any -> Source_Location
+    get_source_location value = @Builtin_Method "Polyglot.get_source_location"
 
 ## Utilities for working with Java polyglot objects.
 type Java
@@ -603,7 +705,7 @@ type Meta
        Arguments:
        - name: The name of the unresolved symbol.
        - scope: The scope in which the symbol name is unresolved.
-    create_unresolved_symbol : Text -> Module_Sope -> Unresolved_Symbol
+    create_unresolved_symbol : Text -> Module_Scope -> Unresolved_Symbol
     create_unresolved_symbol name scope =
         @Builtin_Method "Meta.create_unresolved_symbol"
 
@@ -766,8 +868,8 @@ type Meta
 
        Arguments:
        - value: the value to get the type of.
-   get_qualified_type_name : Any -> Text
-   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+    get_qualified_type_name : Any -> Text
+    get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
 
 ## Utilities for working with primitive arrays.
 type Array
@@ -874,6 +976,10 @@ type Array
        Arguments:
        - index: The index to get the element from.
 
+       ? Safety
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
+
        > Example
          Get the element at index 1.
 
@@ -892,8 +998,8 @@ type Array
        programming style in Enso.
 
        ? Safety
-         If index >= this.length, then this operation will result in an
-         Invalid_Array_Index_Error exception.
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
     set_at : Integer -> Any -> Array
     set_at index value = @Builtin_Method "Array.set_at"
 
@@ -1775,6 +1881,15 @@ type Runtime
     no_inline_with_arg : Any -> Any
     no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
 
+    ## PRIVATE
+
+       Returns a raw representation of the current execution stack trace.
+       You probably want `Runtime.get_stack_trace` instead.
+    primitive_get_stack_trace : Array
+    primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
+
+
+
 ## The runtime's integrated monadic state management.
 type State
 
@@ -1849,8 +1964,14 @@ type System
        - command: The name of the system process.
        - arguments: An array of arguments to the system process.
        - input: The input to pass to the process via standard input.
-    create_process : Text -> Array -> Text -> System_Process_Result
-    create_process command arguments input =
+       - redirect_in: Specifies if the standard input of the program should be
+         redirected to the started process.
+       - redirect_out: Specifies if the standard output of the started process
+         should be redirected to the program's standard output.
+       - redirect_err: Specifies if the standard error output of the started
+         process should be redirected to the program's standard error output.
+    create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
+    create_process command arguments input redirect_in redirect_out redirect_err =
         @Builtin_Method "System.create_process"
 
     ## Exits the Enso program, returning the provided code to the parent

@@ -13,6 +13,11 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use std::borrow::Borrow;
 
+
+// ==============
+// === Export ===
+// ==============
+
 #[cfg(test)]
 pub mod test_utils;
 
@@ -376,7 +381,7 @@ mod tests {
         name: impl Str,
         ast: &Ast,
         expected: Vec<Range<usize>>,
-        actual: &Vec<LocatedName>,
+        actual: &[LocatedName],
     ) {
         let mut checker = IdentifierValidator::new(name, ast, expected);
         checker.validate_identifiers(actual);

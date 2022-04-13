@@ -10,3 +10,19 @@ spec = Test.group "Arrays" <|
         as_vec = json.into (Vector.Vector Number)
         as_vec.should_equal <| Vector.fill 100 0
 
+    Test.specify "should allow accessing elements"
+        arr = [1, 2, 3] . to_array
+        arr.at 0 . should_equal 1
+        arr.at 2 . should_equal 3
+
+    Test.specify "should allow setting elements"
+        arr = [1, 2, 3] . to_array
+        arr.set_at 1 10
+        arr.at 1 . should_equal 10
+        Vector.from_array arr . should_equal [1, 10, 3]
+
+    Test.specify "should panic on out of bounds access"
+        arr = [1, 2, 3] . to_array
+        Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
+        Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
+        Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error

@@ -2,6 +2,8 @@
 //! text editors.
 
 use crate::prelude::*;
+use enso_text::unit::*;
+use ensogl_core::display::shape::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -9,20 +11,21 @@ use crate::buffer::Text;
 use crate::buffer::Transform;
 use crate::component::selection;
 use crate::component::Selection;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
+#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::pen;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use enso_text::unit::*;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
@@ -47,6 +50,7 @@ const LINE_VERTICAL_OFFSET: f32 = 4.0; // Set manually. May depend on font. To b
 
 /// Mapping between selection id, `Selection`, and text location.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct SelectionMap {
     id_map:       HashMap<usize, Selection>,
     location_map: HashMap<usize, HashMap<Column, usize>>,
@@ -64,6 +68,7 @@ pub struct SelectionMap {
 /// The `divs` and `centers` are kept as vectors for performance reasons. Especially, when clicking
 /// inside of the text area, it allows us to binary search the place of the mouse pointer.
 #[derive(Debug)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct Line {
     display_object: display::object::Instance,
     glyphs:         Vec<Glyph>,
@@ -82,6 +87,7 @@ impl Line {
     }
 
     /// Set the division points (offsets between letters). Also updates center points.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn set_divs(&mut self, divs: Vec<f32>) {
         let div_iter = divs.iter();
         let div_iter_skipped = divs.iter().skip(1);
@@ -93,11 +99,13 @@ impl Line {
         self.centers.binary_search_by(|t| t.partial_cmp(&offset).unwrap()).unwrap_both()
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn div_by_column(&self, column: Column) -> f32 {
         let ix = column.as_usize().min(self.divs.len() - 1);
         self.divs[ix]
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn resize_with(&mut self, size: usize, cons: impl Fn() -> Glyph) {
         let display_object = self.display_object().clone_ref();
         self.glyphs.resize_with(size, move || {
@@ -252,9 +260,16 @@ ensogl_core::define_endpoints! {
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_color_all         (color::Rgba),
+        set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
+        /// Set font in the text area. The name will be looked up in [`typeface::font::Registry`].
+        ///
+        /// Note, that this is a relatively heavy operation - it requires not only redrawing all
+        /// lines, but also re-load internal structures for rendering (like WebGL buffers,
+        /// MSDF texture, etc.).
+        set_font              (String),
         set_content           (String),
     }
     Output {
@@ -265,6 +280,7 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        default_color   (color::Rgba),
     }
 }
 
@@ -303,7 +319,7 @@ impl Area {
     fn init(self) -> Self {
         let network = &self.frp.network;
         let model = &self.data;
-        let scene = model.app.display.scene();
+        let scene = &model.app.display.default_scene;
         let mouse = &scene.mouse.frp;
         let input = &self.frp.input;
         let out = &self.frp.output;
@@ -465,9 +481,16 @@ impl Area {
                 input.remove_all_cursors();
             });
 
+            // === Font ===
+
+            eval input.set_font ((t) m.set_font(t));
+
+
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            self.frp.source.default_color <+ self.frp.set_default_color;
+
             eval input.set_default_text_size ((t) {
                 m.buffer.frp.set_default_text_size(*t);
                 m.redraw(true);
@@ -484,10 +507,19 @@ impl Area {
             });
             self.frp.source.selection_color <+ self.frp.set_selection_color;
 
+
+            // === Style ===
+
+            m.buffer.frp.set_sdf_bold <+ input.set_sdf_bold;
+            eval_ input.set_sdf_bold (m.redraw(false));
+
+
             // === Changes ===
 
-            self.frp.source.changed <+ m.buffer.frp.text_change;
+            // The `content` event should be fired first, as any listener for `changed` may want to
+            // read the new content, so it should be up-to-date.
             self.frp.source.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
+            self.frp.source.changed <+ m.buffer.frp.text_change;
         }
         self
     }
@@ -525,9 +557,15 @@ impl Area {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let shapes = &self.data.app.display.scene().shapes;
+        default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        let text_symbol = self.data.glyph_system.borrow().sprite_system().symbol.clone_ref();
+        let shapes = &self.data.app.display.default_scene.shapes;
         let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
@@ -553,7 +591,8 @@ pub struct AreaModel {
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
-    glyph_system:   glyph::System,
+    #[cfg(target_arch = "wasm32")]
+    glyph_system:   Rc<RefCell<glyph::System>>,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
@@ -563,19 +602,22 @@ impl AreaModel {
     /// Constructor.
     pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let fonts = scene.extension::<typeface::font::Registry>();
-        let font = fonts.load("DejaVuSansMono");
-        let glyph_system = typeface::glyph::System::new(&scene, font);
         let display_object = display::object::Instance::new(&logger);
+        #[cfg(target_arch = "wasm32")]
+        let glyph_system = {
+            let fonts = scene.extension::<typeface::font::Registry>();
+            let font = fonts.load("DejaVuSansMono");
+            let glyph_system = typeface::glyph::System::new(&scene, font);
+            display_object.add_child(&glyph_system);
+            Rc::new(RefCell::new(glyph_system))
+        };
         let buffer = default();
         let lines = default();
         let single_line = default();
         let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
-
-        display_object.add_child(&glyph_system);
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
@@ -598,6 +640,7 @@ impl AreaModel {
             frp_endpoints,
             buffer,
             display_object,
+            #[cfg(target_arch = "wasm32")]
             glyph_system,
             lines,
             single_line,
@@ -606,6 +649,10 @@ impl AreaModel {
         .init()
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
+
+    #[cfg(target_arch = "wasm32")]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -698,7 +745,7 @@ impl AreaModel {
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
 
-        let shape = self.app.display.scene().frp.shape.value();
+        let shape = self.app.display.default_scene.frp.shape.value();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
@@ -723,6 +770,7 @@ impl AreaModel {
     }
 
     /// Redraw the text.
+    #[profile(Debug)]
     fn redraw(&self, size_may_change: bool) {
         let lines = self.buffer.view_lines();
         let line_count = lines.len();
@@ -744,6 +792,12 @@ impl AreaModel {
         self.lines.len() as f32 * LINE_HEIGHT
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn redraw_line(&self, _: usize, _: String) -> f32 {
+        0.0
+    }
+
+    #[cfg(target_arch = "wasm32")]
     fn redraw_line(&self, view_line_index: usize, content: String) -> f32 {
         let cursor_map = self
             .selection_map
@@ -756,12 +810,13 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let mut pen = pen::Pen::new(&self.glyph_system.font);
+        let glyph_system = self.glyph_system.borrow();
+        let mut pen = pen::Pen::new(&glyph_system.font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || self.glyph_system.new_glyph());
+        line.resize_with(content.chars().count(), || glyph_system.new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
@@ -786,15 +841,16 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = self.glyph_system.font.glyph_info(chr);
-                    let size = glyph_info.scale.scale(chr_size);
+                    let glyph_info = glyph_system.font.glyph_info(chr);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    glyph.size.set(size);
+                    glyph.set_bold(style.bold.raw);
+                    glyph.set_sdf_bold(style.sdf_bold.raw);
+                    glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
                         Some(cursor) => {
@@ -875,6 +931,7 @@ impl AreaModel {
     }
 
     /// Constrain the selection to values fitting inside of the current text buffer.
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     fn snap_selection(
         &self,
         selection: buffer::selection::Selection,
@@ -883,6 +940,24 @@ impl AreaModel {
         let end = self.buffer.snap_location(selection.end);
         selection.with_start(start).with_end(end)
     }
+
+    #[cfg(target_arch = "wasm32")]
+    fn set_font(&self, font_name: &str) {
+        let app = &self.app;
+        let scene = &app.display.default_scene;
+        let fonts = scene.extension::<typeface::font::Registry>();
+        let font = fonts.load(font_name);
+        let glyph_system = typeface::glyph::System::new(&scene, font);
+        self.display_object.add_child(&glyph_system);
+        let old_glyph_system = self.glyph_system.replace(glyph_system);
+        self.display_object.remove_child(&old_glyph_system);
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
+        self.lines.rc.take();
+        self.redraw(true);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_font(&self, _font_name: &str) {}
 }
 
 impl display::Object for AreaModel {

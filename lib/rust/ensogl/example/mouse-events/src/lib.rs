@@ -1,25 +1,30 @@
 //! Example scene showing simple shape component that logs all its mouse events.
 
+#![recursion_limit = "1024"]
+// === Features ===
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
-#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "1024"]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -27,11 +32,9 @@ use ensogl_core::define_shape_system;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::*;
-use ensogl_core::system::web;
-
-use enso_frp as frp;
 use ensogl_text_msdf_sys::run_once_initialized;
+
+
 
 // ==============
 // === Shapes ===
@@ -103,12 +106,10 @@ impl View {
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Model::new(app);
-        let events = &model.shape.events;
-        let network = &events.network;
+        let network = &frp.network;
         frp::extend! { network
-            // FIXME [mwu] Currently only `mouse_over` and `mouse_out` events are delivered.
-            //             See: https://github.com/enso-org/ide/issues/1477
             trace model.shape.events.mouse_up;
+            trace model.shape.events.mouse_release;
             trace model.shape.events.mouse_down;
             trace model.shape.events.mouse_over;
             trace model.shape.events.mouse_out;
@@ -156,18 +157,16 @@ impl application::View for View {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_mouse_events() {
-    web::forward_panic_hook_to_console();
+pub fn main() {
     run_once_initialized(|| {
-        let app = Application::new(&web::get_html_element_by_id("root").unwrap());
-
+        let app = Application::new("root");
         let shape: View = app.new_view();
         shape.model.shape.size.set(Vector2::new(300.0, 300.0));
         app.display.add_child(&shape);
 
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
 

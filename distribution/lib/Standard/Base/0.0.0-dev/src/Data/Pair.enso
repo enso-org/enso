@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+## A pair of elements.
+type Pair
+
+    ## UNSTABLE
+
+       A simple pair of elements.
+
+       Arguments:
+       - first: The first element.
+       - second: The second element.
+    type Pair first second
+
+    ## UNSTABLE
+
+       Applies the provided function to both elements of the pair.
+
+       > Example
+         Adding one to two elements of the pair.
+
+         (Pair 1 2).map (+1) == (Pair 2 3)
+    map : (Any -> Any) -> Pair
+    map fun =
+        Pair (fun this.first) (fun this.second)

@@ -1,6 +1,7 @@
 //! Code for module-level double representation processing.
 
 use crate::prelude::*;
+use enso_text::unit::*;
 
 use crate::alias_analysis;
 use crate::definition;
@@ -19,7 +20,6 @@ use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
 use engine_protocol::language_server;
-use enso_text::unit::*;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -511,8 +511,6 @@ impl Info {
         parser: &parser::Parser,
         to_add: &QualifiedName,
     ) {
-        let imports = self.iter_imports().collect_vec();
-        DEBUG!("add_module_import: {to_add} in {imports:?}");
         let is_here = to_add == here;
         let import = ImportInfo::from_qualified_name(to_add);
         let already_imported = self.iter_imports().any(|imp| imp == import);
@@ -999,11 +997,11 @@ main = here.method1 10"#;
             repr_after_insertion(Placement::Begin)
         );
         assert_eq!(
-            repr_after_insertion(Placement::After(method1_id.clone())),
+            repr_after_insertion(Placement::After(method1_id)),
             repr_after_insertion(Placement::Before(main_id.clone()))
         );
         assert_eq!(
-            repr_after_insertion(Placement::After(main_id.clone())),
+            repr_after_insertion(Placement::After(main_id)),
             repr_after_insertion(Placement::End)
         );
 

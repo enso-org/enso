@@ -67,8 +67,8 @@ impl Deref for View {
 impl View {
     /// Create Code Editor component.
     pub fn new(app: &Application) -> Self {
-        let scene = app.display.scene();
-        let styles = StyleWatchFrp::new(&app.display.scene().style_sheet);
+        let scene = &app.display.default_scene;
+        let styles = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let frp = Frp::new();
         let network = &frp.network;
         let model = app.new_view::<text::Area>();
@@ -100,8 +100,9 @@ impl View {
             frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
             frp.source.is_visible <+ frp.toggle.map2(&is_visible, |(),b| !b);
 
-            let shape  = app.display.scene().shape();
-            position <- all_with(&height_fraction.value,shape, |height_f,scene_size| {
+            def init = source_();
+            let shape  = app.display.default_scene.shape();
+            position <- all_with3(&height_fraction.value,shape,&init, |height_f,scene_size,_init| {
                 let height = height_f * scene_size.height;
                 let x      = -scene_size.width  / 2.0 + PADDING_LEFT;
                 let y      = -scene_size.height / 2.0 + height;
@@ -112,6 +113,7 @@ impl View {
             let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
             eval color ((color) model.set_default_color(color));
         }
+        init.emit(());
         model.set_default_color(color.value());
 
         Self { model, styles, frp }

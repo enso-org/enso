@@ -1,17 +1,18 @@
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
-use crate::prelude::*;
-
 use crate::data::dirty::traits::*;
+use crate::prelude::*;
 
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
+use crate::display::symbol;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::gpu::shader::Context;
+use crate::system::gpu::Context;
 
 use data::opt_vec::OptVec;
 
@@ -35,14 +36,15 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols:         Rc<RefCell<OptVec<Symbol>>>,
-    symbol_dirty:    SymbolDirty,
-    logger:          Logger,
-    view_projection: Uniform<Matrix4<f32>>,
-    z_zoom_1:        Uniform<f32>,
-    variables:       UniformScope,
-    context:         Rc<RefCell<Option<Context>>>,
-    stats:           Stats,
+    symbols:            Rc<RefCell<OptVec<Symbol>>>,
+    global_id_provider: symbol::GlobalInstanceIdProvider,
+    symbol_dirty:       SymbolDirty,
+    logger:             Logger,
+    view_projection:    Uniform<Matrix4<f32>>,
+    z_zoom_1:           Uniform<f32>,
+    variables:          UniformScope,
+    context:            Rc<RefCell<Option<Context>>>,
+    stats:              Stats,
 }
 
 impl SymbolRegistry {
@@ -63,27 +65,36 @@ impl SymbolRegistry {
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let context = default();
         let stats = stats.clone_ref();
-        Self { symbols, symbol_dirty, logger, view_projection, z_zoom_1, variables, context, stats }
+        let global_id_provider = default();
+        Self {
+            symbols,
+            global_id_provider,
+            symbol_dirty,
+            logger,
+            view_projection,
+            z_zoom_1,
+            variables,
+            context,
+            stats,
+        }
     }
 
     /// Creates a new `Symbol` instance and returns its id.
     pub fn new_get_id(&self) -> SymbolId {
         let symbol_dirty = self.symbol_dirty.clone();
-        let variables = &self.variables;
-        let logger = &self.logger;
         let stats = &self.stats;
         let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
             let id = SymbolId::new(ix as u32);
             let on_mut = move || symbol_dirty.set(id);
-            let logger = Logger::new_sub(logger, format!("symbol_{}", ix));
-            let symbol = Symbol::new(logger, stats, id, variables, on_mut);
+            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
         });
         SymbolId::new(index as u32)
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         for symbol in &*self.symbols.borrow() {
@@ -107,7 +118,7 @@ impl SymbolRegistry {
     pub fn update(&self) {
         debug!(self.logger, "Updating.", || {
             for id in self.symbol_dirty.take().iter() {
-                self.symbols.borrow()[(**id) as usize].update()
+                self.symbols.borrow()[(**id) as usize].update(&self.variables)
             }
             self.symbol_dirty.unset_all();
         })

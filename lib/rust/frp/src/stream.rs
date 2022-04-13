@@ -1,9 +1,10 @@
 //! FRP event stream implementation.
 
-use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
 use crate::prelude::*;
+
+use crate::data::watch;
 
 
 
@@ -647,6 +648,14 @@ where Def: InputBehaviors
 {
     fn label(&self) -> Label {
         self.stream.data.label
+    }
+}
+
+impl<Def: HasOutputStatic> HasLabel for WeakNode<Def>
+where Def: InputBehaviors
+{
+    fn label(&self) -> Label {
+        self.upgrade().map(|node| node.stream.data.label).unwrap_or("<FRP node deleted>")
     }
 }
 

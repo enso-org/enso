@@ -13,6 +13,8 @@ use span_tree::node::InsertionPointType;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
 
+
+
 wasm_bindgen_test_configure!(run_in_browser);
 
 
@@ -28,7 +30,7 @@ fn failure_to_open_project_is_reported() {
     fixture.run_test(async move {
         let project_manager = Rc::new(project_manager::Client::new(transport));
         executor::global::spawn(project_manager.runner());
-        let name = ProjectName(crate::constants::DEFAULT_PROJECT_NAME.to_owned());
+        let name = ProjectName::new_unchecked(crate::constants::DEFAULT_PROJECT_NAME.to_owned());
         let initializer = ide::initializer::WithProjectManager::new(project_manager, name);
         let result = initializer.initialize_project_model().await;
         result.expect_err("Error should have been reported.");

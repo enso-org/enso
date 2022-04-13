@@ -1,15 +1,14 @@
 //! This module defines attributes and related utilities.
 
+use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::gpu::types::*;
 
-use crate::control::callback::CallbackFn;
+use crate::control::callback;
 use crate::data::dirty;
 use crate::data::OptVec;
 use crate::debug::Stats;
 use crate::system::gpu::Context;
-
-use crate::data::dirty::traits::*;
-use crate::system::gpu::types::*;
 
 use enso_shapely::newtype_prim;
 use std::collections::BTreeSet;
@@ -102,7 +101,7 @@ pub struct AttributeScopeData {
 
 impl {
     /// Create a new scope with the provided dirty callback.
-    pub fn new<OnMut:CallbackFn+Clone>
+    pub fn new<OnMut:callback::NoArgs+Clone>
     (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         info!(lgr,"Initializing.",|| {
             let logger          = lgr.clone();
@@ -206,7 +205,8 @@ impl {
         self.size
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.context = context.cloned();
         for buffer in &self.buffers {
@@ -251,5 +251,47 @@ impl<T: Storable> CellGetter for Attribute<T> {
 impl<T: Storable> CellSetter for Attribute<T> {
     fn set(&self, value: Self::Item) {
         self.buffer.set(self.index.into(), value);
+    }
+}
+
+impl<T: Storable + Default> Erase for Attribute<T> {
+    fn erase(&self) {
+        self.set(default())
+    }
+}
+
+
+
+// =============
+// === Erase ===
+// =============
+
+/// Generalization for internally mutable structures which can be erased.
+///
+/// For now, it is placed here, as only [`Attribute`] uses it, but it might be refactored in the
+/// future if it will be usable in more places.
+#[allow(missing_docs)]
+pub trait Erase {
+    fn erase(&self);
+}
+
+/// The provided element will be erased whenever this structure is dropped. Please note that the
+///provided element implements [`CloneRef`] it can still be referenced after this struct is
+/// dropped.
+#[derive(Debug, NoCloneBecauseOfCustomDrop)]
+pub struct EraseOnDrop<T: Erase> {
+    elem: T,
+}
+
+impl<T: Erase> EraseOnDrop<T> {
+    /// Constructor.
+    pub fn new(elem: T) -> Self {
+        Self { elem }
+    }
+}
+
+impl<T: Erase> Drop for EraseOnDrop<T> {
+    fn drop(&mut self) {
+        self.elem.erase()
     }
 }

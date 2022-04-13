@@ -1,6 +1,7 @@
 package org.enso.base;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Regex_Utils {
@@ -51,5 +52,22 @@ public class Regex_Utils {
     }
 
     return names.toArray(new String[0]);
+  }
+
+  /**
+   * Looks for matches of the provided regular expression in the provided text.
+   *
+   * <p>This should behave exactly the same as `Regex.compile regex . find text` in Enso, it is here
+   * only as a temporary workaround, because the Enso function gives wrong results on examples like
+   * `Regex.compile "([0-9]+|[^0-9]+)" . find "1a2c"` where it returns `[1, a, 2]` instead of
+   * `[1, a, 2, c]`.
+   */
+  public static String[] find_all_matches(String regex, String text) {
+    var allMatches = new ArrayList<String>();
+    Matcher m = Pattern.compile(regex).matcher(text);
+    while (m.find()) {
+      allMatches.add(m.group());
+    }
+    return allMatches.toArray(new String[0]);
   }
 }

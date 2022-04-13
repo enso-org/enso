@@ -2,20 +2,20 @@
 //! the required default material parameters.
 
 use crate::prelude::*;
-
-use super::def;
+use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
+use crate::display::symbol;
 use crate::display::symbol::geometry::compound::sprite;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
-use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::buffer::item::Storable;
-use crate::system::gpu::types::*;
+
+use super::def;
 
 
 
@@ -76,7 +76,6 @@ impl ShapeSystem {
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("time", 0.0);
-        material.add_input("symbol_id", 0);
         material.add_input("display_mode", 0);
         material.add_output("id", Vector4::<f32>::zero());
         material
@@ -166,7 +165,7 @@ pub trait DynShapeSystemInstance: ShapeSystemInstance {
     /// The dynamic shape type of this shape system definition.
     type DynamicShape: DynamicShape<System = Self>;
     /// New shape instantiation. Used to bind a shape to a specific scene implementation.
-    fn instantiate(&self, shape: &Self::DynamicShape) -> attribute::InstanceIndex;
+    fn instantiate(&self, shape: &Self::DynamicShape) -> symbol::GlobalInstanceId;
 }
 
 /// Abstraction for every entity which is associated with a shape system (user generated one). For
@@ -191,7 +190,7 @@ pub trait Shape: display::Object + CloneRef + Debug + Sized {
     /// Accessor for the underlying sprite.
     fn sprite(&self) -> &Sprite;
     /// Check if given mouse-event-target means this shape.
-    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         self.sprite().is_this_target(target)
     }
 }
@@ -217,7 +216,7 @@ pub trait DynamicShape: display::Object + CloneRef + Debug + Sized {
     /// The "canvas" size of the shape. It defines the bounding-box for the shape drawing area.
     fn size(&self) -> &DynamicParam<sprite::Size>;
     /// Check if given pointer-event-target means this object.
-    fn is_this_target(&self, target: display::scene::PointerTarget) -> bool {
+    fn is_this_target(&self, target: display::scene::PointerTargetId) -> bool {
         self.sprites().into_iter().any(|sprite| sprite.is_this_target(target))
     }
 }
@@ -372,6 +371,7 @@ macro_rules! _define_shape_system {
         mod shape_system_definition {
             use super::*;
             use $crate::display;
+            use $crate::display::symbol;
             use $crate::display::symbol::geometry::compound::sprite;
             use $crate::display::symbol::geometry::Sprite;
             use $crate::system::gpu;
@@ -575,14 +575,14 @@ macro_rules! _define_shape_system {
             impl display::shape::DynShapeSystemInstance for ShapeSystem {
                 type DynamicShape = DynamicShape;
 
-                fn instantiate(&self, dyn_shape:&Self::DynamicShape)
-                -> gpu::data::attribute::InstanceIndex {
+                fn instantiate(&self, dyn_shape:&Self::DynamicShape) -> symbol::GlobalInstanceId {
                     let sprite = self.shape_system.new_instance();
-                    let id     = sprite.instance_id;
-                    $(let $gpu_param = self.$gpu_param.at(id);)*
+                    let instance_id = sprite.instance_id;
+                    let global_id = sprite.global_instance_id;
+                    $(let $gpu_param = self.$gpu_param.at(instance_id);)*
                     let shape = Shape {sprite, $($gpu_param),*};
                     dyn_shape.add_instance(shape);
-                    id
+                    global_id
                 }
             }
 

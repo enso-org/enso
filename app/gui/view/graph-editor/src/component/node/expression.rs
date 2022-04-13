@@ -1,6 +1,8 @@
-use crate::prelude::*;
+//! FIXME[everyone] Modules should be documented.
 
+use crate::prelude::*;
 use span_tree::traits::*;
+
 use span_tree::SpanTree;
 
 
@@ -10,6 +12,7 @@ use span_tree::SpanTree;
 // ==================
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Expression {
     pub pattern:             Option<String>,
     pub code:                String,

@@ -1,12 +1,12 @@
 //! This file contains benchmarks of the query performance for the HashTree structure.
 
-use enso_data_structures::hash_map_tree::HashMapTree;
 use itertools::*;
 
 use criterion::black_box;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::Criterion;
+use enso_data_structures::hash_map_tree::HashMapTree;
 use std::time::Duration;
 
 
@@ -88,9 +88,7 @@ fn map_in_place(c: &mut Criterion) {
     c.bench_function("Map in Place", |b| {
         b.iter(|| {
             let mut tree = tree.clone();
-            black_box(
-                tree.iter_mut().for_each(black_box(|(_, v): (Vec<&usize>, &mut usize)| *v *= 2)),
-            );
+            tree.iter_mut().for_each(black_box(|(_, v): (Vec<&usize>, &mut usize)| *v *= 2));
         })
     });
 }

@@ -1,8 +1,9 @@
 //! This module contains the shapes and shape related functionality required.
+
 use crate::prelude::*;
+use ensogl_core::display::shape::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 
@@ -194,8 +195,8 @@ pub mod right_overflow {
 
 use enso_frp::Network;
 use ensogl_core::frp::io::Mouse;
+use ensogl_core::gui::component::PointerTarget;
 use ensogl_core::gui::component::ShapeView;
-use ensogl_core::gui::component::ShapeViewEvents;
 
 pub use super::frp::*;
 pub use super::model::*;
@@ -207,7 +208,7 @@ use ensogl_core::display::Scene;
 /// Dragging is ended by a mouse up.
 pub fn shape_is_dragged(
     network: &Network,
-    shape: &ShapeViewEvents,
+    shape: &PointerTarget,
     mouse: &Mouse,
 ) -> enso_frp::Stream<bool> {
     enso_frp::extend! { network
@@ -258,27 +259,27 @@ mod tests {
     fn test_shape_is_dragged() {
         let network = enso_frp::Network::new("TestNetwork");
         let mouse = enso_frp::io::Mouse::default();
-        let shape = ShapeViewEvents::default();
+        let shape = PointerTarget::default();
 
         let is_dragged = shape_is_dragged(&network, &shape, &mouse);
         let _watch = is_dragged.register_watch();
 
 
         // Default is false.
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
 
         // Mouse down over shape activates dragging.
         shape.mouse_over.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), true);
+        assert!(is_dragged.value());
 
         // Release mouse stops dragging.
         mouse.up.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
 
         // Mouse down while not over shape  does not activate dragging.
         shape.mouse_out.emit(());
         mouse.down.emit(Button::from_code(0));
-        assert_eq!(is_dragged.value(), false);
+        assert!(!is_dragged.value());
     }
 }

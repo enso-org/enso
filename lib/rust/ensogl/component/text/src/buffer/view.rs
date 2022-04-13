@@ -1,13 +1,7 @@
 //! View part of the text editor.
 
 use crate::prelude::*;
-
-pub mod movement;
-pub mod selection;
-pub mod word;
-
-pub use movement::*;
-pub use selection::Selection;
+use enso_text::unit::*;
 
 use crate::buffer;
 use crate::buffer::style;
@@ -19,9 +13,20 @@ use crate::buffer::Setter;
 use enso_frp as frp;
 use enso_text::text::BoundsError;
 use enso_text::text::Change;
-use enso_text::unit::*;
 use enso_text::Text;
 use ensogl_core::data::color;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod movement;
+pub mod selection;
+pub mod word;
+
+pub use movement::*;
+pub use selection::Selection;
 
 
 
@@ -363,7 +368,8 @@ ensogl_core::define_endpoints! {
         redo                       (),
         set_default_color          (color::Rgba),
         set_default_text_size      (style::Size),
-        set_color_bytes            (buffer::Range<Bytes>,color::Rgba),
+        set_color_bytes            (buffer::Range<Bytes>, color::Rgba),
+        set_sdf_bold               (buffer::Range<Bytes>, style::SdfBold),
     }
 
     Output {
@@ -444,6 +450,7 @@ impl View {
             eval input.set_default_color     ((t) m.set_default(*t));
             eval input.set_default_text_size ((t) m.set_default(*t));
             eval input.set_color_bytes       (((range,color)) m.replace(range,*color));
+            eval input.set_sdf_bold          (((range,value)) m.replace(range,*value));
             eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ sel_on_modification;

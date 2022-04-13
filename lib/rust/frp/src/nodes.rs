@@ -3,23 +3,26 @@
 //! Please note that the documentation is provided for methods of `Network`, as this is considered
 //! to be the public API. The same documentation applies to node definitions below.
 
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use crate::prelude::*;
-
-use crate::data::watch;
 use crate::network::*;
 use crate::node::*;
+use crate::prelude::*;
+use enso_generics::traits::*;
+
+use crate::data::watch;
 use crate::stream;
 use crate::stream::CallStack;
 use crate::stream::EventOutput;
 use crate::stream::OwnedStream;
 use crate::stream::Stream;
 use crate::stream::ValueProvider;
+
 use enso_generics as generics;
-use enso_generics::traits::*;
+use enso_profiler as profiler;
 
 
 
@@ -51,6 +54,12 @@ impl Network {
     /// Print the incoming events to console and pass them to output.
     pub fn trace<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
         self.register(OwnedTrace::new(label, src))
+    }
+
+    /// Profile the event resolution from this node onwards and log the result in the profiling
+    /// framework.
+    pub fn profile<T: EventOutput>(&self, label: Label, src: &T) -> Stream<Output<T>> {
+        self.register(OwnedProfile::new(label, src))
     }
 
     /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
@@ -694,6 +703,12 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    /// A shortcut for `.map(|v| Some(v.clone()))`.
+    pub fn some<T>(&self, label: Label, src: &T) -> Stream<Option<Output<T>>>
+    where T: EventOutput {
+        self.map(label, src, |value| Some(value.clone()))
+    }
+
     /// Specialized version of `map`.
     pub fn map2<T1, T2, F, T>(&self, label: Label, t1: &T1, t2: &T2, f: F) -> Stream<T>
     where
@@ -886,6 +901,16 @@ impl Network {
     {
         self.register(OwnedAllWith8::new(label, t1, t2, t3, t4, t5, t6, t7, t8, f))
     }
+
+
+    // === Repeat ===
+
+    /// Repeat node listens for input events of type [`usize`] and emits events in number equal to
+    /// the input event value.
+    pub fn repeat<T>(&self, label: Label, src: &T) -> Stream<()>
+    where T: EventOutput<Output = usize> {
+        self.register(OwnedRepeat::new(label, src))
+    }
 }
 
 
@@ -925,6 +950,10 @@ impl DynamicNetwork {
 
     pub fn trace<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
         OwnedTrace::new(label, src).into()
+    }
+
+    pub fn profile<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<Output<T>> {
+        OwnedProfile::new(label, src).into()
     }
 
     pub fn toggle<T: EventOutput>(self, label: Label, src: &T) -> OwnedStream<bool> {
@@ -1563,6 +1592,49 @@ impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedTrace<T> {
         DEBUG!("[FRP] {self.label()}: {event:?}");
         DEBUG!("[FRP] {stack}");
         self.emit_event(stack, event);
+    }
+}
+
+
+
+// ===============
+// === Profile ===
+// ===============
+
+#[derive(Clone, Debug)]
+pub struct ProfileData<T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    src: T,
+}
+pub type OwnedProfile<T> = stream::Node<ProfileData<T>>;
+pub type Profile<T> = stream::WeakNode<ProfileData<T>>;
+
+impl<T: EventOutput> HasOutput for ProfileData<T> {
+    type Output = Output<T>;
+}
+
+impl<T: EventOutput> OwnedProfile<T> {
+    /// Constructor.
+    pub fn new(label: Label, src1: &T) -> Self {
+        let src = src1.clone_ref();
+        let def = ProfileData { src };
+        Self::construct_and_connect(label, src1, def)
+    }
+}
+
+impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        use profiler::internal::Profiler;
+        use profiler::internal::StartState;
+
+        let label = profiler::internal::Label(self.label());
+        let parent = profiler::internal::EventId::implicit();
+        let now = Some(profiler::internal::Timestamp::now());
+        let profiler = profiler::Debug::start(parent, label, now, StartState::Active);
+        self.emit_event(stack, event);
+        profiler.finish();
     }
 }
 
@@ -3831,5 +3903,47 @@ where
 impl<T1, T2, T3, T4, T5, T6, T7, T8, F> Debug for AllWith8Data<T1, T2, T3, T4, T5, T6, T7, T8, F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "AllWith8Data")
+    }
+}
+
+
+
+// ==============
+// === Repeat ===
+// ==============
+
+#[derive(Debug)]
+pub struct RepeatData<T> {
+    #[allow(dead_code)]
+    /// This is not accessed in this implementation but it needs to be kept so the source struct
+    /// stays alive at least as long as this struct.
+    event: T,
+    // behavior: watch::Ref<T2>,
+}
+pub type OwnedRepeat<T> = stream::Node<RepeatData<T>>;
+pub type Repeat<T> = stream::WeakNode<RepeatData<T>>;
+
+impl<T> HasOutput for RepeatData<T> {
+    type Output = ();
+}
+
+impl<T> OwnedRepeat<T>
+where T: EventOutput<Output = usize>
+{
+    /// Constructor.
+    pub fn new(label: Label, src: &T) -> Self {
+        let event = src.clone_ref();
+        let definition = RepeatData { event };
+        Self::construct_and_connect(label, src, definition)
+    }
+}
+
+impl<T> stream::EventConsumer<usize> for OwnedRepeat<T>
+where T: EventOutput<Output = usize>
+{
+    fn on_event(&self, stack: CallStack, event: &Output<T>) {
+        for _ in 0..*event {
+            self.emit_event(stack, &())
+        }
     }
 }

@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+
+
 /// Wrapper for a value that allows asynchronous observation of its updates.
 #[derive(Derivative, CloneRef, Debug, Default)]
 #[clone_ref(bound = "")]
@@ -114,14 +116,14 @@ mod tests {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
 
         let flag = Synchronized::new(false);
-        assert_eq!(*flag.borrow(), false);
+        assert!(!*flag.borrow());
 
         // If condition was already met, be immediately ready.
-        let mut on_false = flag.when(|f| *f == false).boxed_local();
+        let mut on_false = flag.when(|&f| !f).boxed_local();
         assert_eq!(on_false.expect_ready(), Some(()));
 
         // Otherwise not ready.
-        let mut on_true = flag.when(|f| *f == true).boxed_local();
+        let mut on_true = flag.when(|&f| f).boxed_local();
         on_true.expect_pending();
 
         // Faux no-op change. Should not spawn a new task.
@@ -135,7 +137,7 @@ mod tests {
         assert_eq!(on_true.expect_ready(), Some(()));
 
         // After dropping the flag, pending future should complete with None.
-        let mut on_false = flag.when(|f| *f == false).boxed_local();
+        let mut on_false = flag.when(|&f| !f).boxed_local();
         on_false.expect_pending();
         drop(flag);
         assert_eq!(on_false.expect_ready(), None);

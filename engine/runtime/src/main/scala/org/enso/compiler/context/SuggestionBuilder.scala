@@ -8,7 +8,6 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
-import org.enso.docs.generator.DocParserWrapper
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -79,6 +78,27 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               Scope(body.children, body.location)
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
+
+          case IR.Module.Scope.Definition.Method
+                .Conversion(
+                  IR.Name.MethodReference(_, _, _, _, _),
+                  IR.Name.Literal(sourceTypeName, _, _, _, _, _),
+                  IR.Function.Lambda(args, body, _, _, _, _),
+                  _,
+                  _,
+                  _
+                ) if ConversionsEnabled =>
+            val typeSignature = ir.getMetadata(TypeSignatures)
+            val conversion = buildConversion(
+              body.getExternalId,
+              module,
+              args,
+              sourceTypeName,
+              doc,
+              typeSignature,
+              bindings
+            )
+            go(tree += Tree.Node(conversion, Vector()), scope)
 
           case IR.Expression.Binding(
                 name,
@@ -155,19 +175,40 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId        = externalId,
-      module            = module.toString,
-      name              = name.name,
-      arguments         = methodArgs,
-      selfType          = selfType.toString,
-      returnType        = buildReturnType(returnTypeDef),
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
-      reexport          = None
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      selfType      = selfType.toString,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc
     )
   }
 
-  /** Build a function suggestion */
+  /** Build a conversion suggestion. */
+  private def buildConversion(
+    externalId: Option[IR.ExternalId],
+    module: QualifiedName,
+    args: Seq[IR.DefinitionArgument],
+    sourceTypeName: String,
+    doc: Option[String],
+    typeSignature: Option[TypeSignatures.Metadata],
+    bindings: Option[BindingAnalysis.Metadata]
+  ): Suggestion.Conversion = {
+    val typeSig = buildTypeSignatureFromMetadata(typeSignature, bindings)
+    val (methodArgs, returnTypeDef) =
+      buildFunctionArguments(args, typeSig)
+    Suggestion.Conversion(
+      externalId    = externalId,
+      module        = module.toString,
+      arguments     = methodArgs,
+      sourceType    = sourceTypeName,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc
+    )
+  }
+
+  /** Build a function suggestion. */
   private def buildFunction(
     externalId: Option[IR.ExternalId],
     module: QualifiedName,
@@ -217,10 +258,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Suggestion =
     Suggestion.Module(
       module        = module.toString,
-      documentation = doc,
-      documentationHtml =
-        doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
-      reexport = None
+      documentation = doc
     )
 
   /** Build suggestions for an atom definition. */
@@ -242,14 +280,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId        = None,
-      module            = module.toString,
-      name              = name,
-      arguments         = arguments.map(buildArgument),
-      returnType        = module.createChild(name).toString,
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
-      reexport          = None
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      arguments     = arguments.map(buildArgument),
+      returnType    = module.createChild(name).toString,
+      documentation = doc
     )
 
   /** Build getter methods from atom arguments. */
@@ -568,6 +604,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
 }
 
 object SuggestionBuilder {
+
+  /** TODO[DB] enable conversions when they get the runtime support. */
+  private val ConversionsEnabled: Boolean = false
 
   /** Create the suggestion builder.
     *

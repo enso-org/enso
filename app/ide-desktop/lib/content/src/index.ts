@@ -20,9 +20,6 @@ import 'firebase/auth'
 // @ts-ignore
 import semver from 'semver'
 
-// @ts-ignore
-import * as templates from './templates'
-
 // ==================
 // === Global API ===
 // ==================
@@ -102,7 +99,7 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
     let wasm_loader = html_utils.log_group_collapsed(download_info, async () => {
         let wasm_glue_js = await wasm_glue_fetch.text()
         let wasm_glue = Function('let exports = {};' + wasm_glue_js + '; return exports')()
-        let imports = wasm_glue.wasm_imports()
+        let imports = await wasm_glue.wasm_imports()
         console.log('WASM dependencies loaded.')
         console.log('Starting online WASM compilation.')
         let wasm_loader = await wasm_instantiate_streaming(wasm_fetch, imports)
@@ -191,7 +188,7 @@ function printScamWarning() {
         'copy-paste something here, it is a scam and will give them access to your ' +
         'account and data.'
     let msg2 =
-        'See https://github.com/enso-org/enso/tree/develop/gui/docs/security/selfxss.md for more ' +
+        'See https://github.com/enso-org/enso/blob/develop/docs/security/selfxss.md for more ' +
         'information.'
     console.log('%cStop!', headerCSS1)
     console.log('%cYou may be victim of a scam!', headerCSS2)
@@ -917,7 +914,7 @@ function tryAsString(value: any): string {
 }
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
-async function mainEntryPoint(config: Config) {
+async function runEntryPoint(config: Config) {
     // @ts-ignore
     API[globalConfig.windowAppScopeConfigName] = config
 
@@ -937,7 +934,10 @@ async function mainEntryPoint(config: Config) {
     //initCrashHandling()
     style_root()
     printScamWarning()
-    hideLogs()
+    /// Only hide logs in production, but show them when running a development version.
+    if (!Versions.isDevVersion()) {
+        hideLogs()
+    }
     disableContextMenu()
 
     let entryTarget = ok(config.entry) ? config.entry : main_entry_point
@@ -952,24 +952,16 @@ async function mainEntryPoint(config: Config) {
         let fn_name = wasm_entry_point_pfx + entryTarget
         let fn = wasm[fn_name]
         if (fn) {
+            // Loader will be removed by IDE after its initialization.
+            // All other code paths need to call `loader.destroy()`.
             fn()
         } else {
             loader.destroy()
             show_debug_screen(wasm, "Unknown entry point '" + entryTarget + "'. ")
         }
     } else {
+        loader.destroy()
         show_debug_screen(wasm, '')
-    }
-}
-
-async function runEntryPoint(config: Config) {
-    if (ok(config.project)) {
-        await mainEntryPoint(config)
-    } else {
-        await templates.loadTemplatesView((name: string) => {
-            config.project = name
-            mainEntryPoint(config)
-        })
     }
 }
 

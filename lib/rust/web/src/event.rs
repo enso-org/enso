@@ -1,11 +1,16 @@
 //! Utilities for DOM events.
 
-pub mod listener;
-
-use crate::prelude::*;
-
 use js_sys::Function;
+use wasm_bindgen::JsValue;
+use web_sys::Event;
 use web_sys::EventTarget;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod listener;
 
 
 
@@ -27,7 +32,7 @@ pub trait Type {
     /// The event value -- i.e. the Rust type of a value that will be passed as an argument
     /// to the listener.
     /// For example `web_sys::CloseEvent`.
-    type Interface: AsRef<web_sys::Event>;
+    type Interface: AsRef<Event>;
 
     /// The type of the EventTarget object that fires this type of event, e.g. `web_sys::WebSocket`.
     type Target: AsRef<EventTarget> + AsRef<JsValue> + Clone + PartialEq;

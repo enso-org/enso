@@ -1,12 +1,12 @@
 //! A Project Model that synchronizes all its operations with the Language Server.
 
+use crate::model::traits::*;
 use crate::prelude::*;
 
 use crate::model::execution_context;
 use crate::model::execution_context::synchronized::Notification as ExecutionUpdate;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
-use crate::model::traits::*;
 use crate::model::SuggestionDatabase;
 use crate::notification;
 use crate::transport::web::WebSocket;
@@ -22,6 +22,7 @@ use engine_protocol::language_server::ExpressionUpdates;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
+use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
 use parser::Parser;
 
@@ -247,6 +248,7 @@ pub struct Project {
 
 impl Project {
     /// Create a new project model.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -264,7 +266,7 @@ impl Project {
         let module_registry = default();
         let execution_contexts = default();
         let visualization =
-            controller::Visualization::new(language_server, embedded_visualizations);
+            controller::Visualization::new(language_server, embedded_visualizations, &logger);
         let parser = Parser::new_or_panic();
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
@@ -302,6 +304,7 @@ impl Project {
     }
 
     /// Initializes the json and binary connection to Language Server, and creates a Project Model
+    #[profile(Detail)]
     pub async fn new_connected(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -336,6 +339,7 @@ impl Project {
 
     /// Creates a project model by opening a given project in project_manager, and initializing
     /// the received json and binary connections.
+    #[profile(Detail)]
     pub async fn new_opened(
         parent: &Logger,
         project_manager: Rc<dyn project_manager::API>,
@@ -488,6 +492,14 @@ impl Project {
                         content_roots.remove(id);
                     }
                 }
+                Event::Notification(Notification::VisualisationEvaluationFailed(update)) => {
+                    error!(
+                        logger,
+                        "Visualisation evaluation failed in context {update.context_id} \
+                        for visualisation {update.visualisation_id} of expression \
+                        {update.expression_id}. Error: {update.message}"
+                    );
+                }
                 Event::Closed => {
                     error!(logger, "Lost JSON-RPC connection with the Language Server!");
                     let which = model::project::BackendConnection::LanguageServerJson;
@@ -513,6 +525,7 @@ impl Project {
             .acquire_capability(&capability.method, &capability.register_options)
     }
 
+    #[profile(Task)]
     fn load_module(
         &self,
         path: module::Path,
@@ -571,6 +584,7 @@ impl model::project::API for Project {
         self.content_roots.get(id)
     }
 
+    #[profile(Detail)]
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
         async move {
             info!(self.logger, "Obtaining module for {path}");
@@ -581,6 +595,7 @@ impl model::project::API for Project {
         .boxed_local()
     }
 
+    #[profile(Detail)]
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,
@@ -602,7 +617,8 @@ impl model::project::API for Project {
             let referent_name = name.as_str().try_into()?;
             let project_manager = self.project_manager.as_ref().ok_or(ProjectManagerUnavailable)?;
             let project_id = self.properties.borrow().id;
-            project_manager.rename_project(&project_id, &name).await?;
+            let project_name = ProjectName::new_unchecked(name);
+            project_manager.rename_project(&project_id, &project_name).await?;
             self.properties.borrow_mut().name.project = referent_name;
             Ok(())
         }
@@ -742,7 +758,11 @@ mod test {
 
             assert_eq!(path, *module.path());
             assert_eq!(another_path, *another_module.path());
-            assert!(Rc::ptr_eq(&module, &same_module));
+            // We have to downcast module, otherwise we would compare vtable pointers. See
+            // https://rust-lang.github.io/rust-clippy/master/index.html#vtable_address_comparisons
+            let module = module.as_any().downcast_ref::<module::Synchronized>().unwrap();
+            let same_module = same_module.as_any().downcast_ref::<module::Synchronized>().unwrap();
+            assert!(std::ptr::eq(module, same_module));
         });
     }
 

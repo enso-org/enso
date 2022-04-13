@@ -1,8 +1,8 @@
 //! Text selection and cursor implementation.
 
 use crate::prelude::*;
-
 use enso_text::unit::*;
+
 use enso_text::Range;
 
 

@@ -1,0 +1,448 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Internal.IR
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Table as Database_Table
+import Standard.Table.Data.Table as Materialized_Table
+import Standard.Table.Data.Storage
+import Standard.Table.Internal.Java_Exports
+import Standard.Database.Data.Internal.Base_Generator
+from Standard.Database.Data.Sql import Sql_Type
+
+polyglot java import java.lang.UnsupportedOperationException
+polyglot java import java.util.ArrayList
+polyglot java import java.util.Properties
+polyglot java import java.sql.DriverManager
+polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.Types
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.database.JDBCProxy
+
+type Connection
+
+    ## PRIVATE
+
+       A Database connection using a JDBC driver.
+
+       Arguments:
+       - connection_resource: the resource managing the underlying JDBC
+         connection.
+       - dialect: the dialect associated with the database we are connected to.
+
+       Allows accessing tables from a database.
+    type Connection connection_resource dialect
+
+    ## UNSTABLE
+
+       Accesses a table within the database, returning an object that can be
+       used to create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
+    access_table : Text -> Database_Table
+    access_table name = here.handle_sql_errors <|
+        columns = this.fetch_columns name
+        Database_Table.make_table this name columns
+
+    ## Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close =
+        Managed_Resource.finalize this.connection_resource
+
+    ## ADVANCED
+
+       Executes a raw query and returns the result as an in-memory Table.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
+       - expected_types: an optional array of expected types of each column;
+         meant only for internal use.
+    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
+    execute_query query expected_types=Nothing = here.handle_sql_errors <|
+        this.with_prepared_statement query stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
+            column_types = if expected_types.is_nothing.not then expected_types else
+                Vector.new ncols ix->
+                    typeid = metadata.getColumnType ix+1
+                    name = metadata.getColumnTypeName ix+1
+                    Sql_Type typeid name
+            column_builders = column_types.map typ->
+                here.create_builder typ
+            go has_next = if has_next.not then Nothing else
+                column_builders.map_with_index ix-> builder->
+                    builder.fetch_and_append rs ix+1
+                @Tail_Call go rs.next
+            go rs.next
+            columns = column_builders.zip column_names builder-> name->
+                builder.make_column name
+            Materialized_Table.from_columns columns
+
+    ## ADVANCED
+
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
+    execute_update : Text | Sql.Statement -> Integer
+    execute_update query = here.handle_sql_errors <|
+        this.with_prepared_statement query stmt->
+            Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
+                stmt.executeUpdate
+
+    ## PRIVATE
+
+       Runs the provided action with a prepared statement, adding contextual
+       information to any thrown SQL errors.
+    with_prepared_statement : Text  | Sql.Statement -> (PreparedStatement -> Any) -> Any
+    with_prepared_statement query action =
+        prepare template holes = Managed_Resource.with this.connection_resource java_connection->
+            stmt = java_connection.prepareStatement template
+            Panic.catch Any (here.set_statement_values stmt holes) caught_panic->
+                stmt.close
+                Panic.throw caught_panic
+            stmt
+
+        go template holes =
+            here.wrap_sql_errors related_query=template <|
+                Resource.bracket (prepare template holes) .close action
+
+        case query of
+            Text -> go query []
+            Sql.Statement _ ->
+                compiled = query.prepare
+                go compiled.first compiled.second
+
+    ## PRIVATE
+
+       A helper function that fetches column names and sql types associated with
+       them for a table in the database.
+
+       Arguments:
+       - table_name: The name of the table to fetch the column metadata for.
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns : Text -> Vector Any
+    fetch_columns table_name =
+        query = IR.Select_All (IR.make_ctx_from table_name)
+        compiled = this.dialect.generate_sql query
+        this.with_prepared_statement compiled stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typeid = metadata.getColumnType ix+1
+                typename = metadata.getColumnTypeName ix+1
+                [name, Sql_Type typeid typename]
+            Vector.new ncols resolve_column
+
+    ## PRIVATE
+       UNSTABLE
+       This is a prototype function used in our test suites. It may change.
+
+       It creates a new table in the database with the given name (will fail if
+       the table already existed), inserts the contents of the provided
+       in-memory table and returns a handle to the newly created table.
+
+       Arguments:
+       - name: The name of the table to create.
+       - table: An In-Memory table specifying the contents to upload. Schema of
+         the created database table is based on the column types of this table.
+       - temporary: Specifies whether the table should be marked as temporary. A
+         temporary table will be dropped after the connection closes and will
+         usually not be visible to other connections.
+       - batch_size: Specifies how many rows should be uploaded in a single
+         batch.
+    upload_table : Text -> Materialized_Table -> Boolean -> Integer -> Database_Table
+    upload_table name table temporary=True batch_size=1000 = Panic.recover Illegal_State_Error <| here.handle_sql_errors <|
+        column_types = table.columns.map col-> here.default_storage_type col.storage_type
+        column_names = table.columns.map .name
+        col_makers = column_names.zip column_types name-> typ->
+            Base_Generator.wrap_in_quotes name ++ Sql.code " " ++ Sql.code typ.name
+        create_prefix = if temporary then "CREATE TEMPORARY TABLE " else "CREATE TABLE "
+        create_sql = (Sql.code create_prefix ++ Base_Generator.wrap_in_quotes name ++ Sql.code " (" ++ (Sql.join ", " col_makers) ++ Sql.code ")").build
+        Panic.rethrow <| this.execute_update create_sql
+        db_table = Panic.rethrow <| this.access_table name
+
+        pairs = db_table.internal_columns.map col->
+            [col.name, IR.Constant col.sql_type Nothing]
+        db_types = pairs.map p-> p.second.sql_type
+        insert_query = this.dialect.generate_sql <| IR.Insert name pairs
+        insert_template = insert_query.prepare.first
+        Managed_Resource.with this.connection_resource java_connection->
+            default_autocommit = java_connection.getAutoCommit
+            java_connection.setAutoCommit False
+            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+                    num_rows = table.row_count
+                    columns = table.columns
+                    check_rows updates_array expected_size =
+                        updates = Vector.Vector updates_array
+                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                            updates.each affected_rows->
+                                if affected_rows != 1 then
+                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                    0.up_to num_rows . each row_id->
+                        values = columns.map col-> col.at row_id
+                        holes = values.zip db_types
+                        here.set_statement_values stmt holes
+                        stmt.addBatch
+                        if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
+                    if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                java_connection.commit
+        db_table
+
+
+## PRIVATE
+
+   Creates a builder for a column based on a provided SQL type, trying to infer
+   the best type for the builder.
+
+   Arguments:
+   - sql_type: The SQL type of the column to create a builder for.
+create_builder : Sql_Type -> Builder
+create_builder sql_type =
+    initial_size = 10
+    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
+        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
+            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
+                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
+
+type Builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Inferred java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Double java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Long java_builder
+
+    ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
+    type Builder_Boolean java_builder
+
+    ## PRIVATE
+
+       Fetches the value of ith column from the current row of the result set
+       and appends it to the builder.
+
+       Arguments:
+       - rs: the Java ResultSet from which the value will be fetched.
+       - i: the index of the column to fetch from (starting from 1 as is the
+         ResultSet convention).
+    fetch_and_append : ResultSet -> Integer -> Nothing
+    fetch_and_append rs i = case this of
+        Builder_Inferred _ ->
+            obj = rs.getObject i
+            this.java_builder.append obj
+        Builder_Boolean _ ->
+            bool = rs.getBoolean i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendBoolean bool
+        Builder_Long _ ->
+            long = rs.getLong i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendLong long
+        Builder_Double _ ->
+            double = rs.getDouble i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendDouble double
+
+    ## PRIVATE
+
+       Seals the builder and returns a built Java-column.
+
+       Argument:
+       - name: The name of the column.
+    make_column : Text -> Java_Exports.Column
+    make_column name =
+        storage = this.java_builder.seal
+        Java_Exports.make_column name storage
+
+## An error indicating that a supported dialect could not be deduced for the
+   provided URL.
+
+   Argument:
+   - url: The URL for which the dialect could not be deduced.
+type Unsupported_Dialect url
+
+## Pretty print the error about unsupported SQL dialects.
+Unsupported_Dialect.to_display_text : Text
+Unsupported_Dialect.to_display_text =
+    "Could not infer the SQL dialect for the database at " + this.url + "."
+
+## PRIVATE
+
+   Creates a JDBC connection based on a URL and optionally username and
+   password.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
+create_jdbc_connection : Text -> Vector -> Connection
+create_jdbc_connection url properties = here.handle_sql_errors <|
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
+    ## This is a workaround for the Redshift driver - it looks for an ini file
+       by looking at the jar file location, which is not available in the Graal
+       class loader. This block may be removed when migrated to a Graal version
+       with https://github.com/oracle/graal/issues/3744 fixed.
+    if url.starts_with 'jdbc:redshift:' && (java_props.getProperty 'IniFile' . is_nothing) then
+        path = Enso_Project.data/'empty.ini' . absolute . path
+        java_props.setProperty 'IniFile' path
+    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
+    java_connection = JDBCProxy.getConnection url java_props
+    resource = Managed_Resource.register java_connection here.close_connection
+    Connection resource dialect
+
+## PRIVATE
+
+   This cannot be a closure due to limitations of Managed_Resource.
+
+   Arguments:
+   - connection: The connection to close.
+close_connection : Connection -> Nothing
+close_connection connection =
+    connection.close
+
+type Sql_Error
+
+    ## UNSTABLE
+
+       Indicates an error with executing a query, update or connecting to the
+       database.
+
+       Arguments:
+       - java_exception: The underlying exception.
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Error java_exception related_query=Nothing
+
+    ## UNSTABLE
+
+       Convert the SQL error to a textual representation.
+    to_text : Text
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + this.related_query + "]" else ""
+        "There was an SQL error: " + this.java_exception.getMessage.to_text + "." + query
+
+    ## UNSTABLE
+
+       Pretty print the SQL error.
+    to_display_text : Text
+    to_display_text = this.to_text
+
+type Sql_Timeout_Error
+
+    ## UNSTABLE
+
+       Indicates that an operation has timed out.
+
+       Arguments:
+       - java_exception: The underlying exception.
+       - related_query (optional): A string representation of a query that this
+         error is related to.
+    type Sql_Timeout_Error java_exception related_query=Nothing
+
+    ## UNSTABLE
+
+       Convert the timeout error to a textual representation.
+    to_text : Text
+    to_text =
+        query = if this.related_query.is_nothing.not then " [Query was: " + query + "]" else ""
+        "The SQL connection timed out: " + this.java_exception.getMessage + "." + query
+
+    ## UNSTABLE
+
+       Pretty print the timeout error.
+    to_display_text : Text
+    to_display_text = this.to_text
+
+## PRIVATE
+
+   Executes `action` and returns its result, catching any panics and if they are
+   coming from JDBC, wraps them with our own error types and returns as regular
+   data-flow errors.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+handle_sql_errors ~action related_query=Nothing =
+    Panic.recover [Sql_Error, Sql_Timeout_Error] <|
+        here.wrap_sql_errors action related_query
+
+## PRIVATE
+
+   Executes `action` and returns its result, converting any SQL exceptions into
+   Enso panics.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
+   - related_query: A related query that is currently being run, to enrich the
+     error metadata.
+wrap_sql_errors : Any -> (Text | Nothing) -> Any ! (Sql_Error | Sql_Timeout_Error)
+wrap_sql_errors ~action related_query=Nothing =
+    Panic.catch SQLException action caught_panic->
+        exc = caught_panic.payload.cause
+        case Java.is_instance exc SQLTimeoutException of
+            True -> Panic.throw (Sql_Timeout_Error exc related_query)
+            False -> Panic.throw (Sql_Error exc related_query)
+
+## PRIVATE
+   Returns the default database type corresponding to an in-memory storage
+   type.
+default_storage_type : Storage.Type -> Sql_Type
+default_storage_type storage_type = case storage_type of
+    Storage.Text -> Sql_Type.text
+    Storage.Integer -> Sql_Type.integer
+    Storage.Decimal -> Sql_Type.double
+    Storage.Boolean -> Sql_Type.boolean
+    ## Support for mixed type columns in Table upload is currently very limited,
+       falling back to treating everything as text.
+    Storage.Any -> Sql_Type.text
+
+## PRIVATE
+   Sets values inside of a prepared statement.
+set_statement_values : PreparedStatement -> Vector (Pair Any Sql_Type) -> Nothing
+set_statement_values stmt holes =
+    holes.map_with_index ix-> obj->
+        position = ix + 1
+        case obj.first of
+            Nothing -> stmt.setNull position obj.second.typeid
+            _ -> stmt.setObject position obj.first

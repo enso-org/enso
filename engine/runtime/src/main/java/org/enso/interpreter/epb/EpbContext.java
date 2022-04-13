@@ -2,6 +2,8 @@ package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 /**
@@ -9,6 +11,10 @@ import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
  * polyglot execution.
  */
 public class EpbContext {
+
+  private static final TruffleLanguage.ContextReference<EpbContext> REFERENCE =
+      TruffleLanguage.ContextReference.create(EpbLanguage.class);
+
   private static final String INNER_OPTION = "isEpbInner";
   private final boolean isInner;
   private final TruffleLanguage.Env env;
@@ -36,6 +42,15 @@ public class EpbContext {
           new GuardedTruffleContext(
               env.newContextBuilder().config(INNER_OPTION, "yes").build(), true);
     }
+  }
+
+  /**
+   * @param node the location of context access. Pass {@code null} if not in a node.
+   * @return the proper context instance for the current {@link
+   *     com.oracle.truffle.api.TruffleContext}.
+   */
+  public static EpbContext get(Node node) {
+    return REFERENCE.get(node);
   }
 
   /**

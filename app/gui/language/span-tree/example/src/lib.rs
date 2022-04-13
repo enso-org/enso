@@ -1,16 +1,20 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use enso_prelude::*;
 use wasm_bindgen::prelude::*;
-
-use enso_web as web;
-
 use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
 use enso_text::traits::*;
+use span_tree::*;
+
+use enso_web as web;
 use span_tree::builder::Builder;
 use span_tree::node;
 use span_tree::node::InsertionPointType;
-use span_tree::*;
 use uuid::Uuid;
+
 
 
 #[wasm_bindgen]

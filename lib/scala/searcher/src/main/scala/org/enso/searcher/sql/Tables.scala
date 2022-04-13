@@ -57,7 +57,6 @@ case class SuggestionRow(
   scopeEndLine: Int,
   scopeEndOffset: Int,
   documentation: Option[String],
-  documentationHtml: Option[String],
   reexport: Option[String]
 )
 
@@ -83,11 +82,12 @@ case class ModuleVersionRow(module: String, digest: Array[Byte])
 /** The type of a suggestion. */
 object SuggestionKind {
 
-  val MODULE: Byte   = 0
-  val ATOM: Byte     = 1
-  val METHOD: Byte   = 2
-  val FUNCTION: Byte = 3
-  val LOCAL: Byte    = 4
+  val MODULE: Byte     = 0
+  val ATOM: Byte       = 1
+  val METHOD: Byte     = 2
+  val FUNCTION: Byte   = 3
+  val LOCAL: Byte      = 4
+  val CONVERSION: Byte = 5
 
   /** Create a database suggestion kind.
     *
@@ -96,11 +96,12 @@ object SuggestionKind {
     */
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
-      case Suggestion.Kind.Module   => MODULE
-      case Suggestion.Kind.Atom     => ATOM
-      case Suggestion.Kind.Method   => METHOD
-      case Suggestion.Kind.Function => FUNCTION
-      case Suggestion.Kind.Local    => LOCAL
+      case Suggestion.Kind.Module     => MODULE
+      case Suggestion.Kind.Atom       => ATOM
+      case Suggestion.Kind.Method     => METHOD
+      case Suggestion.Kind.Conversion => CONVERSION
+      case Suggestion.Kind.Function   => FUNCTION
+      case Suggestion.Kind.Local      => LOCAL
     }
 }
 
@@ -171,9 +172,8 @@ final class SuggestionsTable(tag: Tag)
     column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
-  def documentation     = column[Option[String]]("documentation")
-  def documentationHtml = column[Option[String]]("documentation_html")
-  def reexport          = column[Option[String]]("reexport")
+  def documentation = column[Option[String]]("documentation")
+  def reexport      = column[Option[String]]("reexport")
 
   def * =
     (
@@ -190,7 +190,6 @@ final class SuggestionsTable(tag: Tag)
       scopeEndLine,
       scopeEndOffset,
       documentation,
-      documentationHtml,
       reexport
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
@@ -264,5 +263,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 5
+  val CurrentVersion: Long = 6
 }

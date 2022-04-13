@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -16,10 +17,10 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
-import org.yaml.snakeyaml.scanner.Constant;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -41,6 +42,7 @@ import org.yaml.snakeyaml.scanner.Constant;
   AtomConstructor.class,
   Thunk.class,
   DataflowError.class,
+  UnresolvedConversion.class,
   UnresolvedSymbol.class,
   Array.class,
   EnsoBigInteger.class,
@@ -48,7 +50,8 @@ import org.yaml.snakeyaml.scanner.Constant;
   ModuleScope.class,
   Ref.class,
   PanicException.class,
-  PanicSentinel.class
+  PanicSentinel.class,
+  Warning.class
 })
 public class Types {
 
@@ -96,7 +99,7 @@ public class Types {
    */
   public static void extractArguments(Object[] arguments) throws ArityException {
     if (arguments.length != 0) {
-      throw ArityException.create(0, arguments.length);
+      throw ArityException.create(0, 0, arguments.length);
     }
   }
 
@@ -125,7 +128,7 @@ public class Types {
       return Constants.THUNK;
     } else if (TypesGen.isDataflowError(value)) {
       return Constants.ERROR;
-    } else if (TypesGen.isUnresolvedSymbol(value)) {
+    } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
       return Constants.MANAGED_RESOURCE;
@@ -163,7 +166,7 @@ public class Types {
   public static <A> A extractArguments(Object[] arguments, Class<A> cls)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 1) {
-      throw ArityException.create(1, arguments.length);
+      throw ArityException.create(1, 1, arguments.length);
     }
 
     if (!(cls.isInstance(arguments[0]))) {
@@ -189,7 +192,7 @@ public class Types {
   public static <A, B> Pair<A, B> extractArguments(Object[] arguments, Class<A> cls1, Class<B> cls2)
       throws ArityException, UnsupportedTypeException {
     if (arguments.length != 2) {
-      throw ArityException.create(2, arguments.length);
+      throw ArityException.create(2, 2, arguments.length);
     }
     if (!(cls1.isInstance(arguments[0]))) {
       throw UnsupportedTypeException.create(

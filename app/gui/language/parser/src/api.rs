@@ -1,19 +1,24 @@
 //! A module containing structures and traits used in parser API.
 
 use crate::prelude::*;
-
-use ast::HasIdMap;
-use ast::HasRepr;
-
 use enso_text::traits::*;
 use enso_text::unit::*;
+
+use ast::id_map::JsonIdMap;
+use ast::HasIdMap;
+use ast::HasRepr;
 use enso_text::Range;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 
-use ast::id_map::JsonIdMap;
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ast::Ast;
+
 
 
 // ================
@@ -183,13 +188,14 @@ fn to_json_single_line(val: &impl Serialize) -> std::result::Result<String, serd
 impl<M: Metadata> ParsedSourceFile<M> {
     /// Serialize to the SourceFile structure,
     pub fn serialize(&self) -> std::result::Result<SourceFile, serde_json::Error> {
+        let code = self.ast.repr();
         let before_tag = "\n".repeat(NEWLINES_BEFORE_TAG);
         let before_idmap = "\n";
-        let before_metadata = "\n";
-        let code = self.ast.repr();
         let json_id_map = JsonIdMap::from_id_map(&self.ast.id_map(), &code);
         let id_map = to_json_single_line(&json_id_map)?;
+        let before_metadata = "\n";
         let metadata = to_json_single_line(&self.metadata)?;
+
         let id_map_start = code.len() + before_tag.len() + METADATA_TAG.len() + before_idmap.len();
         let id_map_start_bytes = Bytes::from(id_map_start);
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
@@ -288,7 +294,7 @@ mod test {
 {expected_metadata}"#
         );
 
-        assert_eq!(serialized.content, expected_content.to_string());
+        assert_eq!(serialized.content, expected_content);
         assert_eq!(serialized.code_slice(), "main = 2 + 2");
         assert_eq!(serialized.id_map_slice(), expected_id_map.as_str());
         assert_eq!(serialized.metadata_slice(), expected_metadata.as_str());

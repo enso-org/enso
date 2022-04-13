@@ -1,0 +1,209 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Aggregate_Column import all
+from Standard.Database.Data.Sql import Sql_Type
+import Standard.Database.Data.Dialect
+import Standard.Database.Data.Dialect.Helpers
+import Standard.Database.Data.Internal.Base_Generator
+
+## PRIVATE
+
+   The dialect of PostgreSQL databases.
+postgresql : Dialect
+postgresql =
+    Postgresql_Dialect here.make_internal_generator_dialect
+
+
+## PRIVATE
+
+   The dialect of PostgreSQL databases.
+type Postgresql_Dialect
+    ## PRIVATE
+
+       The dialect of PostgreSQL databases.
+    type Postgresql_Dialect internal_generator_dialect
+
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name = "postgresql"
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> Sql.Statement
+    generate_sql query =
+        Base_Generator.generate_query this.internal_generator_dialect query . build
+
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_aggregate` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+
+## PRIVATE
+make_internal_generator_dialect =
+    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
+
+    stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
+    stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
+    stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
+    my_mappings = text + counts + stats + here.first_last_aggregators
+    Base_Generator.base_dialect . extend_with my_mappings
+
+## PRIVATE
+   The provided aggregate is assumed to contain only already resolved columns.
+   You may need to transform it with `resolve_aggregate` first.
+resolve_target_sql_type aggregate = case aggregate of
+    Group_By c _ -> c.sql_type
+    Count _ -> Sql_Type.bigint
+    Count_Distinct _ _ _ -> Sql_Type.bigint
+    Count_Not_Nothing _ _ -> Sql_Type.bigint
+    Count_Nothing _ _ -> Sql_Type.bigint
+    Count_Not_Empty _ _ -> Sql_Type.bigint
+    Count_Empty _ _ -> Sql_Type.bigint
+    Percentile _ _ _ -> Sql_Type.double
+    Mode c _ -> c.sql_type
+    First c _ _ _ -> c.sql_type
+    Last c _ _ _ -> c.sql_type
+    Maximum c _ -> c.sql_type
+    Minimum c _ -> c.sql_type
+    Shortest c _ -> c.sql_type
+    Longest c _ -> c.sql_type
+    Standard_Deviation _ _ _ -> Sql_Type.double
+    Concatenate _ _ _ _ _ _ -> Sql_Type.text
+    Sum c _ ->
+        if (c.sql_type == Sql_Type.integer) || (c.sql_type == Sql_Type.smallint) then Sql_Type.bigint else
+            if c.sql_type == Sql_Type.bigint then Sql_Type.numeric else
+                c.sql_type
+    Average c _ ->
+        if c.sql_type.is_definitely_integer then Sql_Type.numeric else
+            if c.sql_type.is_definitely_double then Sql_Type.double else
+                c.sql_type
+    Median _ _ -> Sql_Type.double
+
+## PRIVATE
+agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
+    Sql.code "COUNT(CASE WHEN " ++ arg.paren ++ Sql.code " IS NULL THEN 1 END)"
+
+## PRIVATE
+agg_count_empty = Base_Generator.lift_unary_op "COUNT_EMPTY" arg->
+    Sql.code "COUNT(CASE WHEN (" ++ arg.paren ++ Sql.code " IS NULL) OR (" ++ arg.paren ++ Sql.code " = '') THEN 1 END)"
+
+## PRIVATE
+agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
+    Sql.code "COUNT(CASE WHEN (" ++ arg.paren ++ Sql.code " IS NOT NULL) AND (" ++ arg.paren ++ Sql.code " != '') THEN 1 END)"
+
+## PRIVATE
+agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
+    median = Sql.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+    ## TODO Technically, this check may not be necessary if the input column has
+       type INTEGER, because it is impossible to represent a NaN in that type.
+       However, currently the column type inference is not tested well-enough to
+       rely on this, so leaving an uniform approach regardless of type. This
+       could be revisited when further work on column types takes place.
+       See issue: https://www.pivotaltracker.com/story/show/180854759
+    has_nan = Sql.code "bool_or(" ++ arg ++ Sql.code " = double precision 'NaN')"
+    Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ median ++ Sql.code " END"
+
+## PRIVATE
+agg_mode = Base_Generator.lift_unary_op "MODE" arg->
+    Sql.code "mode() WITHIN GROUP (ORDER BY " ++ arg ++ Sql.code ")"
+
+agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
+    percentile = Sql.code "percentile_cont(" ++ p ++ Sql.code ") WITHIN GROUP (ORDER BY " ++ expr ++ Sql.code ")"
+    ## TODO Technically, this check may not be necessary if the input column has
+       type INTEGER, because it is impossible to represent a NaN in that type.
+       However, currently the column type inference is not tested well-enough to
+       rely on this, so leaving an uniform approach regardless of type. This
+       could be revisited when further work on column types takes place.
+       See issue: https://www.pivotaltracker.com/story/show/180854759
+    has_nan = Sql.code "bool_or(" ++ expr ++ Sql.code " = double precision 'NaN')"
+    Sql.code "CASE WHEN " ++ has_nan ++ Sql.code " THEN 'NaN' ELSE " ++ percentile ++ Sql.code " END"
+
+## PRIVATE
+   These are written in a not most-efficient way, but a way that makes them
+   compatible with other group-by aggregations out-of-the-box. In the future, we
+   may want to consider some alternative solutions.
+first_last_aggregators =
+    first = here.make_first_aggregator reverse=False ignore_null=False
+    first_not_null = here.make_first_aggregator reverse=False ignore_null=True
+    last = here.make_first_aggregator reverse=True ignore_null=False
+    last_not_null = here.make_first_aggregator reverse=True ignore_null=True
+    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+make_first_aggregator reverse ignore_null args =
+    if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
+        result_expr = args.head
+        order_exprs = args.tail
+
+        filter_clause = if ignore_null.not then Sql.code "" else
+            Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
+        modified_order_exprs =
+            order_exprs.map expr-> expr ++ Sql.code " ASC NULLS LAST"
+        order_clause =
+            Sql.code " ORDER BY " ++ Sql.join "," modified_order_exprs
+        index_expr = case reverse of
+            True -> if ignore_null.not then Sql.code "COUNT(*)" else
+                Sql.code "COUNT(" ++ result_expr ++ Sql.code ")"
+            False -> Sql.code "1"
+
+        Sql.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ Sql.code ")" ++ filter_clause ++ Sql.code ")[" ++ index_expr ++ Sql.code "]"
+
+agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
+     order_clause =
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") ASC NULLS LAST"
+     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+
+agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
+     order_clause =
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS LAST"
+     Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
+
+## PRIVATE
+concat_ops =
+    make_raw_concat_expr expr separator =
+        Sql.code "string_agg(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
+    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+
+## PRIVATE
+agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error "COUNT_DISTINCT requires at least one argument.")) else
+    case args.length == 1 of
+        True ->
+            ## A single null value will be skipped.
+            Sql.code "COUNT(DISTINCT " ++ args.first ++ Sql.code ")"
+        False ->
+            ## A tuple of nulls is not a null, so it will not be skipped - but
+               we want to ignore all-null columns. So we manually filter them
+               out.
+            count = Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code "))"
+            are_nulls = args.map arg-> arg.paren ++ Sql.code " IS NULL"
+            all_nulls_filter = Sql.code " FILTER (WHERE NOT (" ++ Sql.join " AND " are_nulls ++ Sql.code "))"
+            (count ++ all_nulls_filter).paren
+
+## PRIVATE
+agg_count_distinct_include_null args =
+    ## If we always count as tuples, then even null fields are counted.
+    Sql.code "COUNT(DISTINCT (" ++ Sql.join ", " args ++ Sql.code ", 0))"
+
+## PRIVATE
+starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+    res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
+    res.paren
+
+## PRIVATE
+ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+    res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
+    res.paren
+
+## PRIVATE
+make_contains_expr expr substring =
+    Sql.code "position(" ++ substring ++ Sql.code " in " ++ expr ++ Sql.code ") > 0"
+
+## PRIVATE
+contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr

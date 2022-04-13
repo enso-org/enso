@@ -3,12 +3,14 @@ package org.enso.interpreter.test.instrument
 import org.enso.compiler.pass.resolve.VectorLiterals
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
+import org.enso.docs.generator.DocsGenerator
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
+import org.scalatest.concurrent.{TimeLimitedTests, TimeLimits}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -18,19 +20,27 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import scala.concurrent.duration._
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeStdlibTest
     extends AnyFlatSpec
+    with TimeLimitedTests
+    with TimeLimits
     with Matchers
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  override val timeLimit = 5.minutes
 
   final val ContextPathSeparator: String = File.pathSeparator
 
   var context: TestContext = _
 
   class TestContext(packageName: String) {
+
+    val docsGenerator = new DocsGenerator
 
     val messageQueue: LinkedBlockingQueue[Api.Response] =
       new LinkedBlockingQueue()
@@ -39,12 +49,20 @@ class RuntimeStdlibTest
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val editionHome: File =
+      Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
+    val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
+      PackageManager.Default.create(
+        tmpDir.toFile,
+        packageName,
+        "Enso_Test",
+        edition = Some(edition)
+      )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -138,11 +156,18 @@ class RuntimeStdlibTest
 
     val metadata = new Metadata
 
+    val imports = context.edition.libraries.keys
+      .filter(_.name != "Base")
+      .map(lib => s"import ${lib.namespace}.${lib.name}")
+      .mkString(System.lineSeparator())
+
     val code =
-      """from Standard.Base import all
-        |
-        |main = IO.println "Hello World!"
-        |""".stripMargin.linesIterator.mkString("\n")
+      s"""from Standard.Base import all
+         |
+         |$imports
+         |
+         |main = IO.println "Hello World!"
+         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -175,7 +200,7 @@ class RuntimeStdlibTest
     val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 60
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
@@ -206,9 +231,10 @@ class RuntimeStdlibTest
             )
           ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
-        xs.toVector.head.suggestion.module shouldEqual VectorLiterals.vectorModuleName
+        xs.toVector.map(_.suggestion.module)
     }
     stdlibSuggestions.nonEmpty shouldBe true
+    stdlibSuggestions.flatten should contain(VectorLiterals.vectorModuleName)
 
     // check that builtins are indexed
     val builtinsSuggestions = responses.collect {
@@ -235,10 +261,32 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    val libraryVersion = buildinfo.Info.stdLibVersion
-    contentRootNotifications should contain(
-      ("Standard", "Base", libraryVersion)
-    )
+    val expectedLibraries = context.edition.libraries.keys.map { lib =>
+      (lib.namespace, lib.name, TestEdition.testLibraryVersion.toString)
+    }
+    contentRootNotifications should contain theSameElementsAs expectedLibraries
+
+    // check documentation generation
+    failAfter(30.seconds) {
+      responses.collect {
+        case Api.Response(
+              None,
+              Api.SuggestionsDatabaseModuleUpdateNotification(
+                _,
+                _,
+                _,
+                _,
+                updates
+              )
+            ) =>
+          updates.toVector.foreach { update =>
+            val docstring = Suggestion.Documentation(update.suggestion)
+            docstring.foreach(
+              context.docsGenerator.generate(_, update.suggestion.name)
+            )
+          }
+      }
+    }
 
     context.consumeOut shouldEqual List("Hello World!")
   }

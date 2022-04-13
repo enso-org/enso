@@ -5,13 +5,7 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.Optional;
-import java.util.UUID;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -34,11 +28,19 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import scala.jdk.javaapi.OptionConverters;
 
+import java.io.*;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
  */
 public class Context {
+
+  private static final TruffleLanguage.ContextReference<Context> REFERENCE =
+      TruffleLanguage.ContextReference.create(Language.class);
 
   private final Language language;
   private final Env environment;
@@ -61,6 +63,7 @@ public class Context {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
+  private final AtomicLong clock = new AtomicLong();
 
   /**
    * Creates a new Enso context.
@@ -85,7 +88,7 @@ public class Context {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager();
+    this.threadManager = new ThreadManager(environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled =
         environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
@@ -111,17 +114,17 @@ public class Context {
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
     Optional<Package<TruffleFile>> projectPackage =
-        projectRoot.flatMap(
-            file -> {
-              var result = packageManager.fromDirectory(file);
-              if (result.isEmpty()) {
-                var projectName = file.getName();
-                throw new ProjectLoadingFailure(projectName);
-              }
-              return ScalaConversions.asJava(result);
-            });
+        projectRoot.map(
+            file ->
+                packageManager
+                    .loadPackage(file)
+                    .fold(
+                        err -> {
+                          throw new ProjectLoadingFailure(file.getName(), err);
+                        },
+                        res -> res));
 
-    var languageHome =
+    Optional<String> languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
@@ -139,6 +142,19 @@ public class Context {
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
+  }
+
+  /**
+   * @param node the location of context access. Pass {@code null} if not in a node.
+   * @return the proper context instance for the current {@link
+   *     com.oracle.truffle.api.TruffleContext}.
+   */
+  public static Context get(Node node) {
+    return REFERENCE.get(node);
+  }
+
+  public static TruffleLanguage.ContextReference<Context> getReference() {
+    return REFERENCE;
   }
 
   /** Performs eventual cleanup before the context is disposed of. */
@@ -438,5 +454,13 @@ public class Context {
    */
   public TruffleLogger getLogger(Class<?> klass) {
     return TruffleLogger.getLogger(LanguageInfo.ID, klass);
+  }
+
+  /** Returns the current clock value and atomically increments the counter by one.
+   *
+   * The counter is used to track the creation time of warnings.
+   */
+  public long clockTick() {
+    return clock.getAndIncrement();
   }
 }

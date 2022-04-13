@@ -4,17 +4,29 @@
 //! this parser: one for local parser which binds scala parser compiled to WebAssembly to the Rust
 //! crate. The second is calling a Parser running remotely using WebSockets.
 
+// === Features ===
 #![feature(trait_alias)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod api;
+
+
+
 mod jsclient;
 pub mod test_utils;
 mod wsclient;
@@ -32,6 +44,8 @@ use std::panic;
 pub mod prelude {
     pub use ast::traits::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 }
 
 
@@ -90,6 +104,7 @@ impl Parser {
     ///
     /// If metadata deserialization fails, error is ignored and default value for metadata is used.
     /// Other errors are returned through `Result`.
+    #[profile(Detail)]
     pub fn parse_with_metadata<M: api::Metadata>(
         &self,
         program: String,

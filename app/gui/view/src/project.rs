@@ -1,8 +1,12 @@
 //! The main view of single project opened in IDE.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
+use ensogl::system::web::traits::*;
 
 use crate::code_editor;
+use crate::debug_mode_popup;
+use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
@@ -10,7 +14,6 @@ use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::open_dialog::OpenDialog;
 use crate::searcher;
-use crate::status_bar;
 
 use enso_config::ARGS;
 use enso_frp as frp;
@@ -18,12 +21,12 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::shape::*;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
+use ide_view_graph_editor::NodeSource;
 
 
 
@@ -31,10 +34,28 @@ use ensogl_hardcoded_theme::Theme;
 // === FRP ===
 // ===========
 
+/// The parameters of the displayed searcher.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SearcherParams {
+    /// The node being an Expression Input.
+    pub input:       NodeId,
+    /// The node being a source for the edited node data - usually it's output shall be a this port
+    /// for inserted expression.
+    pub source_node: Option<NodeSource>,
+}
+
+impl SearcherParams {
+    fn new_for_new_node(node_id: NodeId, source_node: Option<NodeSource>) -> Self {
+        Self { input: node_id, source_node }
+    }
+
+    fn new_for_edited_node(node_id: NodeId) -> Self {
+        Self { input: node_id, source_node: None }
+    }
+}
+
 ensogl::define_endpoints! {
     Input {
-        /// Open the searcher.
-        open_searcher(),
         /// Open the Open File or Project Dialog.
         show_open_dialog(),
         /// Close the searcher without taking any actions
@@ -53,21 +74,25 @@ ensogl::define_endpoints! {
         show_prompt(),
         /// Disable the prompt. It will be hidden if currently visible.
         disable_prompt(),
+        // Enable Debug Mode of Graph Editor.
+        enable_debug_mode(),
+        // Disable Debug Mode of Graph Editor.
+        disable_debug_mode(),
     }
 
     Output {
-        searcher_opened                     (NodeId),
-        adding_new_node                     (bool),
-        searcher_input                      (Option<NodeId>),
-        is_searcher_opened                  (bool),
-        old_expression_of_edited_node       (Expression),
-        editing_aborted                     (NodeId),
-        editing_committed                   (NodeId, Option<searcher::entry::Id>),
-        open_dialog_shown                   (bool),
-        code_editor_shown                   (bool),
-        style                               (Theme),
-        fullscreen_visualization_shown      (bool),
-        drop_files_enabled                  (bool),
+        searcher                       (Option<SearcherParams>),
+        is_searcher_opened             (bool),
+        adding_new_node                (bool),
+        old_expression_of_edited_node  (Expression),
+        editing_aborted                (NodeId),
+        editing_committed              (NodeId, Option<searcher::entry::Id>),
+        open_dialog_shown              (bool),
+        code_editor_shown              (bool),
+        style                          (Theme),
+        fullscreen_visualization_shown (bool),
+        drop_files_enabled             (bool),
+        debug_mode                     (bool),
     }
 }
 
@@ -111,25 +136,25 @@ struct Model {
     graph_editor:           Rc<GraphEditor>,
     searcher:               searcher::View,
     code_editor:            code_editor::View,
-    status_bar:             status_bar::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
     prompt:                 ensogl_text::Area,
     open_dialog:            Rc<OpenDialog>,
+    debug_mode_popup:       debug_mode_popup::View,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let logger = Logger::new("project::View");
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let searcher = app.new_view::<searcher::View>();
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
-        let status_bar = status_bar::View::new(app);
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new(&logger);
         let prompt = ensogl_text::Area::new(app);
+        let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
@@ -138,6 +163,7 @@ impl Model {
         });
         let window_control_buttons = Immutable(window_control_buttons);
         let open_dialog = Rc::new(OpenDialog::new(app));
+
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add_exclusive(&prompt_background);
@@ -147,8 +173,8 @@ impl Model {
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&status_bar);
         display_object.add_child(&prompt_background);
+        display_object.add_child(&debug_mode_popup);
         display_object.remove_child(&searcher);
 
         let app = app.clone_ref();
@@ -161,11 +187,11 @@ impl Model {
             graph_editor,
             searcher,
             code_editor,
-            status_bar,
             fullscreen_vis,
             prompt_background,
             prompt,
             open_dialog,
+            debug_mode_popup,
         }
     }
 
@@ -188,7 +214,7 @@ impl Model {
     }
 
     fn set_html_style(&self, style: &'static str) {
-        web::with_element_by_id_or_warn(&self.logger, "root", |root| root.set_class_name(style));
+        web::document.with_element_by_id_or_warn("root", |root| root.set_class_name(style));
     }
 
     fn searcher_left_top_position_when_under_node_at(position: Vector2<f32>) -> Vector2<f32> {
@@ -198,7 +224,7 @@ impl Model {
     }
 
     fn searcher_left_top_position_when_under_node(&self, node_id: NodeId) -> Vector2<f32> {
-        if let Some(node) = self.graph_editor.model.nodes.get_cloned_ref(&node_id) {
+        if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             Self::searcher_left_top_position_when_under_node_at(node.position().xy())
         } else {
             error!(self.logger, "Trying to show searcher under nonexisting node");
@@ -209,14 +235,14 @@ impl Model {
     /// Update Searcher View - its visibility and position - when edited node changed.
     fn update_searcher_view(
         &self,
-        edited_node: Option<NodeId>,
+        searcher_parameters: Option<SearcherParams>,
         is_searcher_empty: bool,
         searcher_left_top_position: &DEPRECATED_Animation<Vector2<f32>>,
     ) {
-        match edited_node {
-            Some(id) if !is_searcher_empty => {
+        match searcher_parameters {
+            Some(SearcherParams { input, .. }) if !is_searcher_empty => {
                 self.searcher.show();
-                let new_position = self.searcher_left_top_position_when_under_node(id);
+                let new_position = self.searcher_left_top_position_when_under_node(input);
                 searcher_left_top_position.set_target_value(new_position);
             }
             _ => {
@@ -225,25 +251,11 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) -> NodeId {
-        let graph_editor_inputs = &self.graph_editor.frp.input;
-        let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned()
-        {
-            self.graph_editor.add_node_below(selected)
-        } else {
-            graph_editor_inputs.add_node_at_cursor.emit(());
-            self.graph_editor.frp.output.node_added.value()
-        };
-        graph_editor_inputs.set_node_expression.emit(&(node_id, Expression::default()));
-        graph_editor_inputs.edit_node.emit(&node_id);
-        node_id
-    }
-
     fn show_fullscreen_visualization(&self, node_id: NodeId) {
-        let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
+        let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
         if let Some(node) = node {
             let visualization =
-                node.view.model.visualization.fullscreen_visualization().clone_ref();
+                node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
@@ -358,7 +370,7 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
-        let scene = app.display.scene().clone_ref();
+        let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
         let frp = Frp::new();
         let searcher = &model.searcher.frp;
@@ -390,10 +402,39 @@ impl View {
         }
 
         let shape = scene.shape().clone_ref();
+
         frp::extend! { network
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
             // === Searcher Position and Size ===
+
+            let main_cam = app.display.default_scene.layers.main.camera();
+            let searcher_cam = app.display.default_scene.layers.node_searcher.camera();
+            let main_cam_frp = &main_cam.frp();
+            // We want to:
+            // 1. Preserve the zoom factor of the searcher.
+            // 2. Keep it directly below edited node at all times.
+            // We do that by placing `node_searcher` camera in a position calculated by the
+            // following equations:
+            // ```
+            // xy = main_cam.xy * main_cam.zoom
+            // move_to_edited_node = edited_node.xy - edited_node.xy * main_cam.zoom
+            // searcher_cam.z = const
+            // searcher_cam.xy = xy + move_to_edited_node
+            // ```
+            // To understand the `move_to_edited_node` equation, consider the following example:
+            // If edited_node.x = 100, zoom = 0.1, then the node is positioned at
+            // x = 100 * 0.1 = 10 in searcher_cam-space. To compensate for that, we need to move
+            // searcher (or rather searcher_cam) by 90 units, so that the node is at x = 100 both
+            // in searcher_cam- and in main_cam-space.
+            searcher_cam_pos <- all_with3
+                (&main_cam_frp.position, &main_cam_frp.zoom, &searcher_left_top_position.value,
+                |&main_cam_pos, &zoom, &searcher_pos| {
+                    let preserve_zoom = (main_cam_pos * zoom).xy();
+                    let move_to_edited_node = searcher_pos * (1.0 - zoom);
+                    preserve_zoom + move_to_edited_node
+                });
+            eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
                 let x = lt.x + size.x / 2.0;
@@ -411,29 +452,65 @@ impl View {
             });
 
 
+            // === Closing Searcher
+
+            frp.source.is_searcher_opened <+ frp.searcher.map(|s| s.is_some());
+            last_searcher <- frp.searcher.filter_map(|&s| s);
+
+            finished_with_searcher <- graph.node_editing_finished.gate(&frp.is_searcher_opened);
+            frp.source.searcher <+ frp.close_searcher.constant(None);
+            frp.source.searcher <+ searcher.editing_committed.constant(None);
+            frp.source.searcher <+ finished_with_searcher.constant(None);
+
+            committed_in_searcher <-
+                searcher.editing_committed.map2(&last_searcher, |&entry, &s| (s.input, entry));
+            aborted_in_searcher <- frp.close_searcher.map2(&last_searcher, |(), &s| s.input);
+            frp.source.editing_committed <+ committed_in_searcher;
+            frp.source.editing_committed <+ finished_with_searcher.map(|id| (*id,None));
+            frp.source.editing_aborted <+ aborted_in_searcher;
+
+            committed_in_searcher_event <- committed_in_searcher.constant(());
+            aborted_in_searcher_event <- aborted_in_searcher.constant(());
+            graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
+
+
+            // === Adding Node ===
+
+            node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
+            searcher_for_adding <- node_added_by_user.map(
+                |&(node, src, _)| SearcherParams::new_for_new_node(node, src)
+            );
+            frp.source.adding_new_node <+ searcher_for_adding.to_true();
+            new_node_edited <- graph.node_editing_started.gate(&frp.adding_new_node);
+            frp.source.searcher <+ searcher_for_adding.sample(&new_node_edited).map(|&s| Some(s));
+
+            adding_committed <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
+            adding_aborted <- frp.editing_aborted.gate(&frp.adding_new_node);
+            adding_finished <- any(adding_committed,adding_aborted);
+            frp.source.adding_new_node <+ adding_finished.constant(false);
+            frp.source.searcher <+ adding_finished.constant(None);
+
+            eval adding_committed ([graph](node) {
+                graph.deselect_all_nodes();
+                graph.select_node(node);
+            });
+            eval adding_aborted  ((node) graph.remove_node(node));
+
+
             // === Editing ===
 
-            // The order of instructions below is important to properly distinguish between
-            // committing and aborting node editing.
+            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
+            frp.source.searcher <+ existing_node_edited.map(
+                |&node| Some(SearcherParams::new_for_edited_node(node))
+            );
 
-            frp.source.editing_committed <+ searcher.editing_committed
-                .map2(&graph.output.node_being_edited, |entry,id| (*id,*entry))
-                .filter_map(|(id,entry)| Some(((*id)?, *entry)));
 
-            // This node is true when received "abort_node_editing" signal, and should get false
-            // once processing of "node_being_edited" event from graph is performed.
-            editing_aborted              <- any(...);
-            editing_aborted              <+ frp.close_searcher.constant(true);
-            editing_commited_in_searcher <- searcher.editing_committed.constant(());
-            should_finish_editing_if_any <- any(frp.close_searcher,editing_commited_in_searcher
-                ,frp.open_searcher,frp.show_open_dialog);
-            should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
-            eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
+            // === Searcher Position and Visibility ===
 
-            visibility_conditions <- all(&graph.output.node_being_edited,&searcher.is_empty);
+            visibility_conditions <- all(&frp.searcher,&searcher.is_empty);
             _eval                 <- visibility_conditions.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position]((node_id,is_searcher_empty),is_visible) {
-                    model.update_searcher_view(*node_id,*is_searcher_empty,&searcher_left_top_position);
+                f!([model,searcher_left_top_position]((searcher,is_searcher_empty),is_visible) {
+                    model.update_searcher_view(*searcher,*is_searcher_empty,&searcher_left_top_position);
                     if !is_visible {
                         // Do not animate
                         searcher_left_top_position.skip();
@@ -441,38 +518,14 @@ impl View {
                 })
             );
 
-            _eval <- graph.output.node_position_set.map2(&graph.output.node_being_edited,
-                f!([searcher_left_top_position]((node_id,position),edited_node_id) {
-                    if edited_node_id.contains(node_id) {
-                        let new = Model::searcher_left_top_position_when_under_node_at(*position);
+            _eval <- graph.output.node_position_set.map2(&frp.searcher,
+                f!([searcher_left_top_position](&(node_id, position), &searcher) {
+                    if searcher.map_or(false, |s| s.input == node_id) {
+                        let new = Model::searcher_left_top_position_when_under_node_at(position);
                         searcher_left_top_position.set_target_value(new);
                     }
                 })
             );
-            let editing_finished         =  graph.output.node_editing_finished.clone_ref();
-            editing_finished_no_entry    <- editing_finished.gate_not(&editing_aborted);
-            frp.source.editing_committed <+ editing_finished_no_entry.map(|id| (*id,None));
-            frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
-            editing_aborted              <+ graph.output.node_editing_finished.constant(false);
-
-            frp.source.searcher_input     <+ graph.output.node_being_edited;
-            frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
-
-
-            // === Adding Node ===
-
-            frp.source.adding_new_node <+ frp.open_searcher.constant(true);
-            frp.source.searcher_opened <+ frp.open_searcher.map(f!((_) model.add_node_and_edit()));
-
-            adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
-            adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
-            frp.source.adding_new_node <+ any(&adding_committed,&adding_aborted).constant(false);
-
-            eval adding_committed ([graph](node) {
-                graph.deselect_all_nodes();
-                graph.select_node(node);
-            });
-            eval adding_aborted  ((node) graph.remove_node(node));
 
 
             // === Opening Open File or Project Dialog ===
@@ -536,7 +589,7 @@ impl View {
             let prompt_size            = styles.get_number(prompt_size_path);
             prompt_size                <- all(&prompt_size,&init)._0();
 
-            disable_after_opening_searcher <- frp.is_searcher_opened.filter(|v| *v).constant(());
+            disable_after_opening_searcher <- frp.searcher.filter_map(|s| s.map(|_| ()));
             disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
             disabled                       <- disable.constant(true);
             show_prompt                    <- frp.show_prompt.gate_not(&disabled);
@@ -571,6 +624,14 @@ impl View {
 
             frp.source.drop_files_enabled <+ init.constant(true);
             frp.source.drop_files_enabled <+ frp.open_dialog_shown.map(|v| !v);
+
+            // === Debug Mode ===
+
+            frp.source.debug_mode <+ bool(&frp.disable_debug_mode, &frp.enable_debug_mode);
+            graph.set_debug_mode <+ frp.source.debug_mode;
+
+            model.debug_mode_popup.enabled <+ frp.enable_debug_mode;
+            model.debug_mode_popup.disabled <+ frp.disable_debug_mode;
         }
         init.emit(());
         std::mem::forget(prompt_visibility);
@@ -588,24 +649,19 @@ impl View {
         &self.model.searcher
     }
 
-    /// Searcher 2.0 FRP.
-    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> {
-        self.model.searcher.new_frp()
-    }
-
     /// Code Editor View.
     pub fn code_editor(&self) -> &code_editor::View {
         &self.model.code_editor
     }
 
-    /// Status Bar View.
-    pub fn status_bar(&self) -> &status_bar::View {
-        &self.model.status_bar
-    }
-
     /// Open File or Project Dialog
     pub fn open_dialog(&self) -> &OpenDialog {
         &self.model.open_dialog
+    }
+
+    /// Debug Mode Popup
+    pub fn debug_mode_popup(&self) -> &debug_mode_popup::View {
+        &self.model.debug_mode_popup
     }
 }
 
@@ -637,7 +693,6 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[
-            (Press, "!is_searcher_opened", "tab", "open_searcher"),
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
@@ -648,6 +703,8 @@ impl application::View for View {
             (Press, "", "cmd s", "save_module"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
+            (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
+            (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
         ])
             .iter()
             .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

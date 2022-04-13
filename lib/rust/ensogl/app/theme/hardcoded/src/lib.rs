@@ -1,12 +1,15 @@
 //! Builtin themes definition and compile-time generated theme paths (allowing catching improper
 //! theme usage during IDE compilation time).
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+// === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
@@ -368,6 +371,17 @@ define_themes! { [light:0, dark:1]
         default_x_gap_between_nodes     = 48.0  , 48.0;
         default_y_gap_between_nodes     = 32.0  , 32.0;
         minimal_x_spacing_for_new_nodes = 150.0 , 150.0;
+        // Area around every existing node where attempts to place a new node may trigger a node
+        // alignment mechanism.
+        //
+        // The specific conditions when the alignment mechanism is triggered, as well as the
+        // algorithm used to perform the alignment, are governed by the Graph Editor.
+        alignment_area_around_node {
+            above_node           = 15.0  , 15.0;
+            below_node           = 50.0 , 50.0;
+            to_the_left_of_node  = 25.0  , 25.0;
+            to_the_right_of_node = 25.0  , 25.0;
+        }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
             // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
@@ -484,6 +498,21 @@ define_themes! { [light:0, dark:1]
             text       = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 size = 20.0, 20.0;
+            }
+        }
+        add_node_button {
+            margin = 14.0, 14.0;
+            size = 60.0, 60.0;
+            background = Rgba(1.0, 1.0, 1.0, 1.0), Rgba(0.0, 0.0, 0.0, 1.0);
+            color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
+
+            hover {
+                background = Rgba(0.9, 0.9, 1.0, 1.0), Rgba(0.9, 0.9, 1.0, 1.0);
+                color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
+            }
+            click {
+                background = Rgba(0.62, 0.62, 1.0, 1.0), Rgba(0.62, 0.62, 1.0, 1.0);
+                color = Rgba(0.0, 0.451, 0.859, 1.0), Rgba(0.0, 0.451, 0.859, 1.0);
             }
         }
     }

@@ -545,7 +545,7 @@ mod tests {
         let b = Ast::var("b");
         let c = Ast::var("c");
         let a_plus_b = Ast::infix(a.clone(), "+", b.clone());
-        let a_plus_b_plus_c = Ast::infix(a_plus_b.clone(), "+", c.clone());
+        let a_plus_b_plus_c = Ast::infix(a_plus_b, "+", c.clone());
         let chain = Chain::try_new(&a_plus_b_plus_c).unwrap();
         expect_at(&chain.target, &a);
         expect_at(&chain.args[0].operand, &b);
@@ -560,7 +560,7 @@ mod tests {
         let b = Ast::var("b");
         let c = Ast::var("c");
         let b_comma_c = Ast::infix(b.clone(), ",", c.clone());
-        let a_comma_b_comma_c = Ast::infix(a.clone(), ",", b_comma_c.clone());
+        let a_comma_b_comma_c = Ast::infix(a.clone(), ",", b_comma_c);
         let chain = Chain::try_new(&a_comma_b_comma_c).unwrap();
         expect_at(&chain.target, &c);
         expect_at(&chain.args[0].operand, &b);

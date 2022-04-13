@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -61,9 +60,8 @@ public abstract class HostValueToEnsoNode extends Node {
   @Specialization(guards = {"o != null", "nulls.isNull(o)"})
   Atom doNull(
       Object o,
-      @CachedLibrary(limit = "3") InteropLibrary nulls,
-      @CachedContext(Language.class) Context ctx) {
-    return ctx.getBuiltins().nothing().newInstance();
+      @CachedLibrary(limit = "3") InteropLibrary nulls) {
+    return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
   @Fallback

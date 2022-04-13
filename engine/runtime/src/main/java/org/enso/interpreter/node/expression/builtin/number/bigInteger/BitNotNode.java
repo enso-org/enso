@@ -3,8 +3,8 @@ package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -25,7 +25,7 @@ public abstract class BitNotNode extends Node {
 
   @Fallback
   Object doOther(Object _this) {
-    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Builtins builtins = Context.get(this).getBuiltins();
     Atom integer = builtins.number().getInteger().newInstance();
     throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
   }

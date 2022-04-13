@@ -2,7 +2,7 @@
 name = "ensogl-drop-manager"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 enso-web = { path = "../../../web" }
@@ -10,7 +10,7 @@ enso-frp = { path = "../../../frp" }
 enso-logger = { path = "../../../logger"}
 enso-prelude = { path = "../../../prelude"}
 js-sys = { version = "0.3.28" }
-wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 wasm-bindgen-futures = { version = "0.4.8" }
 
 [dependencies.web-sys]

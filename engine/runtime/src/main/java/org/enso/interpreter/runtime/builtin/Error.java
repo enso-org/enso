@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.error.displaytext.*;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -18,6 +19,7 @@ public class Error {
   private final AtomConstructor inexhaustivePatternMatchError;
   private final AtomConstructor uninitializedState;
   private final AtomConstructor noSuchMethodError;
+  private final AtomConstructor noSuchConversionError;
   private final AtomConstructor polyglotError;
   private final AtomConstructor moduleNotInPackageError;
   private final AtomConstructor arithmeticError;
@@ -26,6 +28,7 @@ public class Error {
   private final AtomConstructor unsupportedArgumentsError;
   private final AtomConstructor moduleDoesNotExistError;
   private final AtomConstructor notInvokableError;
+  private final AtomConstructor invalidConversionTargetError;
 
   private final Atom arithmeticErrorShiftTooBig;
   private final Atom arithmeticErrorDivideByZero;
@@ -67,6 +70,19 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "symbol", ArgumentDefinition.ExecutionMode.EXECUTE));
+
+    noSuchConversionError =
+        new AtomConstructor("No_Such_Conversion_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(2, "conversion", ArgumentDefinition.ExecutionMode.EXECUTE));
+
+    invalidConversionTargetError =
+        new AtomConstructor("Invalid_Conversion_Target_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE));
+
     polyglotError =
         new AtomConstructor("Polyglot_Error", scope)
             .initializeFields(
@@ -87,8 +103,9 @@ public class Error {
     arityError =
         new AtomConstructor("Arity_Error", scope)
             .initializeFields(
-                new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(0, "expected_min", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "expected_max", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(2, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     unsupportedArgumentsError =
         new AtomConstructor("Unsupported_Argument_Types", scope)
@@ -130,6 +147,19 @@ public class Error {
         noSuchMethodError,
         "to_display_text",
         NoSuchMethodErrorToDisplayTextMethodGen.makeFunction(language));
+
+    scope.registerConstructor(noSuchConversionError);
+    scope.registerMethod(
+        noSuchConversionError,
+        "to_display_text",
+        NoSuchConversionErrorToDisplayTextMethodGen.makeFunction(language));
+
+    scope.registerConstructor(invalidConversionTargetError);
+    scope.registerMethod(
+        invalidConversionTargetError,
+        "to_display_text",
+        InvalidConversionTargetErrorToDisplayTextMethodGen.makeFunction(language));
+
     scope.registerConstructor(polyglotError);
     scope.registerMethod(
         polyglotError,
@@ -203,6 +233,15 @@ public class Error {
     return noSuchMethodError.newInstance(target, symbol);
   }
 
+  public Atom makeNoSuchConversionError(
+      Object target, Object that, UnresolvedConversion conversion) {
+    return noSuchConversionError.newInstance(target, that, conversion);
+  }
+
+  public Atom makeInvalidConversionTargetError(Object target) {
+    return invalidConversionTargetError.newInstance(target);
+  }
+
   /**
    * Creates an instance of the runtime representation of a {@code Type_Error}.
    *
@@ -255,12 +294,13 @@ public class Error {
   }
 
   /**
-   * @param expected the expected arity
+   * @param expected_min the minimum expected arity
+   * @param expected_max the maximum expected arity
    * @param actual the actual arity
    * @return an error informing about the arity being mismatched
    */
-  public Atom makeArityError(long expected, long actual) {
-    return arityError.newInstance(expected, actual);
+  public Atom makeArityError(long expected_min, long expected_max, long actual) {
+    return arityError.newInstance(expected_min, expected_max, actual);
   }
 
   /**

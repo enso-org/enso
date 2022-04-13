@@ -1,6 +1,7 @@
 //! This module provides a view for project's name which can be used to edit it.
 
 use crate::prelude::*;
+use ensogl::display::shape::*;
 
 use crate::component::breadcrumbs::breadcrumb;
 use crate::component::breadcrumbs::GLYPH_WIDTH;
@@ -14,7 +15,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::ObjectOps;
-use ensogl::display::shape::*;
 use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
@@ -134,7 +134,7 @@ impl ProjectNameModel {
     /// Constructor.
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let logger = Logger::new("ProjectName");
         let display_object = display::object::Instance::new(&logger);
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -251,7 +251,7 @@ impl ProjectName {
         let frp = Frp::new();
         let model = Rc::new(ProjectNameModel::new(app));
         let network = &frp.network;
-        let scene = app.display.scene();
+        let scene = &app.display.default_scene;
         let text = &model.text_field.frp;
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -265,9 +265,10 @@ impl ProjectName {
 
             // === Mouse IO ===
 
+            mouse_down <- model.view.events.mouse_down.constant(());
             frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
                                           &model.view.events.mouse_over);
-            frp.source.mouse_down <+ model.view.events.mouse_down;
+            frp.source.mouse_down <+ model.view.events.mouse_down.constant(());
 
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
@@ -280,7 +281,7 @@ impl ProjectName {
             );
             on_deselect <- not_selected.gate(&not_selected).constant(());
 
-            edit_click    <- model.view.events.mouse_down.gate(&frp.ide_text_edit_mode);
+            edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
             eval_ start_editing ({
                 text.set_focus(true);

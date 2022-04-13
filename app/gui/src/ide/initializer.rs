@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::config;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
+use crate::FailedIde;
 
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::ProjectName;
@@ -49,7 +50,6 @@ pub struct Initializer {
     logger: Logger,
 }
 
-
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
@@ -59,48 +59,84 @@ impl Initializer {
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
     /// and forget them to keep them alive.
+    #[profile(Task)]
     pub fn start_and_forget(self) {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
-            info!(self.logger, "Starting IDE with the following config: {self.config:?}");
-
-            let application = Application::new(&web::get_html_element_by_id("root").unwrap());
-            let view = application.new_view::<ide_view::project::View>();
-            let status_bar = view.status_bar().clone_ref();
-            application.display.add_child(&view);
-            // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
-            //      issues to user, such information should be properly passed
-            //      in case of setup failure.
-            let result: FallibleResult<Ide> = (async {
-                let controller = self.initialize_ide_controller().await?;
-                Ok(Ide::new(application, view.clone_ref(), controller).await)
-            })
-            .await;
-
-            match result {
-                Ok(ide) => {
-                    info!(self.logger, "Setup done.");
-                    std::mem::forget(ide);
-                }
-                Err(err) => {
-                    let message = iformat!("Failed to initialize application: {err}");
-                    error!(self.logger, "{message}");
-                    status_bar.add_event(ide_view::status_bar::event::Label::new(message));
-                    std::mem::forget(view);
-                }
-            }
-
-            web::get_element_by_id("loader")
-                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()))
-                .ok();
+            let ide = self.start().await;
+            web::document
+                .get_element_by_id("loader")
+                .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
+            std::mem::forget(ide);
         });
         std::mem::forget(executor);
+    }
+
+    /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
+    #[profile(Task)]
+    pub async fn start(self) -> Result<Ide, FailedIde> {
+        info!(self.logger, "Starting IDE with the following config: {self.config:?}");
+
+        let ensogl_app = ensogl::application::Application::new("root");
+        Initializer::register_views(&ensogl_app);
+        let view = ensogl_app.new_view::<ide_view::root::View>();
+
+        // IDE was opened with `project` argument, we should skip the Welcome Screen.
+        // We are doing it early, because Controllers initialization
+        // takes some time and Welcome Screen might be visible for a brief moment while
+        // controllers are not ready.
+        if self.config.project_name.is_some() {
+            view.switch_view_to_project();
+        }
+
+        let status_bar = view.status_bar().clone_ref();
+        ensogl_app.display.add_child(&view);
+        // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
+        //      issues to user, such information should be properly passed
+        //      in case of setup failure.
+        match self.initialize_ide_controller().await {
+            Ok(controller) => {
+                let ide = Ide::new(ensogl_app, view.clone_ref(), controller);
+                info!(self.logger, "Setup done.");
+                Ok(ide)
+            }
+            Err(error) => {
+                let message = format!("Failed to initialize application: {error}");
+                error!(self.logger, "{message}");
+                status_bar.add_event(ide_view::status_bar::event::Label::new(message));
+                Err(FailedIde { view })
+            }
+        }
+    }
+
+    fn register_views(app: &Application) {
+        app.views.register::<ide_view::root::View>();
+        app.views.register::<ide_view::graph_editor::GraphEditor>();
+        app.views.register::<ide_view::graph_editor::component::breadcrumbs::ProjectName>();
+        app.views.register::<ide_view::code_editor::View>();
+        app.views.register::<ide_view::project::View>();
+        app.views.register::<ide_view::searcher::View>();
+        app.views.register::<ide_view::welcome_screen::View>();
+        app.views.register::<ensogl_component::text::Area>();
+        app.views.register::<ensogl_component::selector::NumberPicker>();
+        app.views.register::<ensogl_component::selector::NumberRangePicker>();
+
+        // As long as .label() of a View is the same, shortcuts and commands are currently also
+        // expected to be the same, so it should not be important which concrete type parameter of
+        // ListView we use below.
+        type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
+        app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
+
+        if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+            app.views.register::<ide_view::window_control_buttons::View>();
+        }
     }
 
     /// Initialize and return a new Ide Controller.
     ///
     /// This will setup all required connections to backend properly, according to the
     /// configuration.
+    #[profile(Task)]
     pub async fn initialize_ide_controller(&self) -> FallibleResult<controller::Ide> {
         use crate::config::BackendService::*;
         match &self.config.backend {
@@ -133,6 +169,7 @@ impl Initializer {
 
     /// Create and configure a new project manager client and register it within the global
     /// executor.
+    #[profile(Task)]
     pub async fn setup_project_manager(
         &self,
         endpoint: &str,
@@ -188,8 +225,8 @@ impl WithProjectManager {
         use project_manager::MissingComponentAction::Install;
         info!(self.logger, "Creating a new project named '{self.project_name}'.");
         let version = Some(enso_config::engine_version_supported.to_owned());
-        let ProjectName(name) = &self.project_name;
-        let response = self.project_manager.create_project(name, &version, &Install);
+        let name = &self.project_name;
+        let response = self.project_manager.create_project(name, &None, &version, &Install);
         Ok(response.await?.project_id)
     }
 
@@ -247,7 +284,7 @@ mod test {
     async fn get_project_or_create_new() {
         let logger = Logger::new("test");
         let mock_client = project_manager::MockClient::default();
-        let project_name = ProjectName::new("TestProject");
+        let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
             name:           project_name.clone(),
             id:             uuid::Uuid::new_v4(),

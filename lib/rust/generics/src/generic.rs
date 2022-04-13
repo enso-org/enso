@@ -1,9 +1,17 @@
 //! Generic representation of data types. Refer to the crate documentation to learn more.
 
 // This crate defines many helper traits and uses this flag on purpose.
+
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use super::hlist;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub use nalgebra::base::dimension::*;
 
 

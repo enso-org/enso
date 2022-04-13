@@ -10,10 +10,25 @@ T.compare_to that = if this == that then Ordering.Equal else
 
 type My_Error a
 
+type Foo vec
+
+compare_tco a b = case a.vec.length == b.vec.length of
+    False -> a.vec.length . compare_to b.vec.length
+    True ->
+        go ix = if ix > a.vec.length then Ordering.Equal else
+            cmp = (a.vec.at ix) . compare_to (b.vec.at ix)
+            case cmp of
+                Ordering.Equal -> @Tail_Call go ix+1
+                _ -> cmp
+        go 0
+
 foreign js generate_js_array = """
     return [1, 2, 3, 4, 5]
 
 spec = Test.group "Vectors" <|
+
+    Test.specify "text bytes" <|
+        "Lore".utf_8 . should_equal [76, 111, 114, 101]
 
     Test.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
@@ -26,7 +41,22 @@ spec = Test.group "Vectors" <|
         built . should_equal [1, 2, 3, 4, 5]
 
     Test.specify "should allow accessing elements" <|
+        [1,2,3].at 0 . should_equal 1
         [1,2,3].at 2 . should_equal 3
+
+    Test.specify "should allow to store dataflow errors and raise them on access" <|
+        vec = [Error.throw (My_Error "foo"), "bar"]
+        vec.at 1 . should_equal "bar"
+        vec.at 0 . should_fail_with My_Error
+
+    Test.specify "should allow accessing elements with negative indices" <|
+        [1,2,3].at -1 . should_equal 3
+        [1,2,3].at -2 . should_equal 2
+        [1,2,3].at -3 . should_equal 1
+
+    Test.specify "should return a dataflow error when accessing elements out of bounds" <|
+        [1,2,3].at -4 . should_fail_with Vector.Index_Out_Of_Bounds_Error
+        [1,2,3].at 3 . should_fail_with Vector.Index_Out_Of_Bounds_Error
 
     Test.specify "should have a well-defined length" <|
         [1,2,3].length . should_equal 3
@@ -77,9 +107,27 @@ spec = Test.group "Vectors" <|
 
     Test.specify "should filter elements" <|
         vec = [1, 2, 3, 4, 5]
-        vec.filter (ix -> ix > 3) . should_equal [4, 5]
-        vec.filter (ix -> ix == 1) . should_equal [1]
-        vec.filter (ix -> ix < 0) . should_equal []
+        vec.filter (x -> x > 3) . should_equal [4, 5]
+        vec.filter (x -> x == 1) . should_equal [1]
+        vec.filter (x -> x < 0) . should_equal []
+        vec.filter (x -> if x == 2 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+
+    Test.specify "should filter elements with indices" <|
+        [0, 10, 2, 2].filter_with_index (==) . should_equal [0, 2]
+        ([1, 2, 3, 4].filter_with_index ix-> _-> ix < 2) . should_equal [1, 2]
+        ([1, 2, 3, 4].filter_with_index ix-> _-> if ix == 1 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+
+    Test.specify "should partition elements" <|
+        [1, 2, 3, 4, 5].partition (x -> x % 2 == 0) . should_equal <| Pair [2, 4] [1, 3, 5]
+        ([1, 2, 3, 4].partition x-> if x == 1 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+
+    Test.specify "should partition elements with indices" <|
+        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> ix % 2 == 0) == (Pair ["a", "c"] ["b", "d"])
+        ["a", "b", "c", "d"].partition_with_index (ix -> _ -> if ix % 2 == 0 then Error.throw <| My_Error "foo" else True) . should_fail_with My_Error
+
+    Test.specify "should allow to join a vector of text elements to form a single text" <|
+        ["a", "b", "c"].join . should_equal "abc"
+        ["a", "b", "c"].join ";" "{" "}" . should_equal "{a;b;c}"
 
     Test.specify "should allow mapping an operation, returning a new vector" <|
         vec = [1, 2, 3, 4]
@@ -91,6 +139,16 @@ spec = Test.group "Vectors" <|
         vec = [1, 2, 0, 3]
         mapped = vec.flat_map n-> Vector.fill n n
         mapped.should_equal [1, 2, 2, 3, 3, 3]
+
+    Test.specify "should allow to flatten a nested vector" <|
+        [[1, 2, 3], [4, 10], [], [0], [0]] . flatten . should_equal [1, 2, 3, 4, 10, 0, 0]
+        [].flatten . should_equal []
+        [[]].flatten . should_equal []
+        [[], []].flatten . should_equal []
+        [[1]].flatten . should_equal [1]
+        [[[1], [2, 3]], [[4]]].flatten . should_equal [[1], [2, 3], [4]]
+        [["a", 2], [], [[[3]]], [T 1 2, 44]].flatten . should_equal ["a", 2, [[3]], T 1 2, 44]
+        (["polyglot", " ", "array"].map .utf_8).flatten . should_equal "polyglot array".utf_8
 
     Test.specify "should allow applying a function to each element" <|
         vec = [1, 2, 3, 4]
@@ -105,6 +163,18 @@ spec = Test.group "Vectors" <|
         [].to_text.should_equal "[]"
         [1,2,3].to_text.should_equal "[1, 2, 3]"
         [Nothing].to_text.should_equal "[Nothing]"
+        ['a'].to_text . should_equal "['a']"
+
+    Test.specify "should allow to generate a short text representation for display" <|
+        [].short_display_text max_entries=3 . should_equal "[]"
+        [1].short_display_text max_entries=3 . should_equal "[1]"
+        [1, 2].short_display_text max_entries=3 . should_equal "[1, 2]"
+        [1, 2, 3].short_display_text max_entries=3 . should_equal "[1, 2, 3]"
+        [1, 2, 3, 4].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 1 more element]"
+        [1, 2, 3, 4, 5, 6].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
+        (0.up_to 100).to_vector.short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
+
+        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument_Error
 
     Test.specify "should define equality" <|
         [1,2,3]==[1,2] . should_be_false
@@ -119,6 +189,7 @@ spec = Test.group "Vectors" <|
         vec = [1, 2, 3, 4, 5, 6]
         first_four = [1, 2, 3, 4]
         last_four = [3, 4, 5, 6]
+        vec.take 2 4 . should_equal [3, 4]
         vec.drop_start 2 . should_equal last_four
         vec.drop_end 2 . should_equal first_four
         vec.take_start 4 . should_equal first_four
@@ -200,6 +271,11 @@ spec = Test.group "Vectors" <|
         small_expected = [383, 28, 7, 2, -3, -90, -392]
         small_vec.sort (by = l -> r -> r.compare_to l) . should_equal small_expected
 
+    Test.specify "should allow tail-recursive comparators in sort" <|
+         v = [Foo [4,2,2], Foo [1,2,3], Foo [1,2,4]]
+         r = [Foo [1,2,3], Foo [1,2,4], Foo [4,2,2]]
+         v.sort by=here.compare_tco . should_equal r
+
     Test.specify "should be able to use a custom comparator and projection" <|
         small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
         small_expected = [T -1 10, T 1 8, T 1 3, T -1 1, T -20 0, T 4 0]
@@ -253,3 +329,26 @@ spec = Test.group "Vectors" <|
     Test.specify "should append elements" <|
         [1, 2].append 3 . should_equal [1, 2, 3]
 
+    Test.specify "should return a vector containing only unique elements" <|
+        [1, 3, 1, 2, 2, 1].distinct . should_equal [1, 3, 2]
+        ["a", "a", "a"].distinct . should_equal ["a"]
+        [1, 1.0, 2, 2.0].distinct . should_equal [1, 2]
+        [].distinct . should_equal []
+
+    Test.specify "should throw a clean error for incomparable types" <|
+        ["a", 2].distinct . should_fail_with Vector.Incomparable_Values_Error
+        [2, "a", Integer, "a", 2].distinct . should_fail_with Vector.Incomparable_Values_Error
+        [Pair 1 2, Pair 3 4].distinct . should_fail_with Vector.Incomparable_Values_Error
+
+    Test.specify "should correctly handle distinct with custom types like Atoms that implement compare_to" <|
+        [T 1 2, T 3 3, T 1 2].distinct . should_equal [T 1 2, T 3 3]
+
+    Test.specify "should return a vector containing only unique elements up to some criteria" <|
+        [Pair 1 "a", Pair 2 "b", Pair 1 "c"] . distinct (on = _.first) . should_equal [Pair 1 "a", Pair 2 "b"]
+
+    Test.specify "should be able to sort a polyglot vector" <|
+        input = "beta".utf_8
+        expected = "abet".utf_8
+        input.sort . should_equal expected
+
+main = Test.Suite.run_main here.spec

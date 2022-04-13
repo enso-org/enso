@@ -2,16 +2,16 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
@@ -128,14 +128,19 @@ public class Array implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, UnresolvedSymbol symbol) {
+    static Function doResolve(UnresolvedSymbol symbol) {
+      Context context = getContext();
       return symbol.resolveFor(
           context.getBuiltins().mutable().array(), context.getBuiltins().any());
     }
 
+    static Context getContext() {
+      return Context.get(null);
+    }
+
     @Specialization(
         guards = {
-          "!context.isInlineCachingDisabled()",
+          "!getContext().isInlineCachingDisabled()",
           "cachedSymbol == symbol",
           "function != null"
         },
@@ -143,19 +148,70 @@ public class Array implements TruffleObject {
     static Function resolveCached(
         Array _this,
         UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(context, cachedSymbol)") Function function) {
+        @Cached("doResolve(cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        Array _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
+        Array _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, symbol);
+      Function function = doResolve(symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
+    }
+  }
+
+  @ExportMessage
+  static boolean canConvertFrom(Array receiver) {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetConversionFunction {
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+      Context context = getContext();
+      return conversion.resolveFor(
+          target, context.getBuiltins().mutable().array(), context.getBuiltins().any());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
+    }
+
+    @Specialization(
+        guards = {
+          "!getContext().isInlineCachingDisabled()",
+          "cachedConversion == conversion",
+          "cachedTarget == target",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        Array _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @Cached("conversion") UnresolvedConversion cachedConversion,
+        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        Array _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion)
+        throws MethodDispatchLibrary.NoSuchConversionException {
+      Function function = doResolve(target, conversion);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchConversionException();
       }
       return function;
     }

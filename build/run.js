@@ -1,11 +1,9 @@
 const child_process = require('child_process')
 const cmd = require('./cmd')
 const fs = require('fs').promises
-const fse = require('fs-extra')
 const fss = require('fs')
 const unzipper = require('unzipper')
 const glob = require('glob')
-const ncp = require('ncp').ncp
 const os = require('os')
 const path = require('path')
 const paths = require('./paths')
@@ -46,20 +44,9 @@ let targetArgs = undefined
 async function gzip(input, output) {
     const gzip = zlib.createGzip()
     const source = fss.createReadStream(input)
+    await fs.mkdir(path.dirname(output), { recursive: true })
     const destination = fss.createWriteStream(output)
     await pipe(source, gzip, destination)
-}
-
-/// Copy files and directories.
-async function copy(src, tgt) {
-    return new Promise((resolve, reject) => {
-        ncp(src, tgt, err => {
-            if (err) {
-                reject(`${err}`)
-            }
-            resolve()
-        })
-    })
 }
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
@@ -87,16 +74,16 @@ async function build_project_manager() {
 }
 
 /// Run the local project manager binary.
-function run_project_manager() {
+function run_project_manager(options = {}) {
     const bin_path = paths.get_project_manager_path(paths.dist.bin)
     console.log(`Starting the project manager from "${bin_path}".`)
-    child_process.execFile(bin_path, [], (error, stdout, stderr) => {
+    return child_process.execFile(bin_path, [], options, (error, stdout, stderr) => {
+        console.log(`Project manager finished.`)
         console.error(stderr)
-        if (error) {
+        if (error && !error.killed) {
             throw error
         }
         console.log(stdout)
-        console.log(`Project manager running.`)
     })
 }
 
@@ -128,7 +115,13 @@ commands.clean.rust = async function () {
 
 commands.check = command(`Fast check if project builds (only Rust target)`)
 commands.check.rust = async function () {
-    await run_cargo('cargo', ['check'])
+    await run_cargo('cargo', [
+        'check',
+        '--workspace',
+        ' -p',
+        'enso-integration-test',
+        '--all-targets',
+    ])
 }
 
 // === Build ===
@@ -146,6 +139,12 @@ commands.build.js = async function () {
     await run('npm', ['run', 'build'])
 }
 
+// We build WASM binaries from Rust code using `wasm-pack`. Intermediate temporary directory is used
+// before final copy to the Webpack's `dist` location because of two reasons:
+// 1. Webpack triggers recompilation on file changes, and we don't want to bother it until the final
+// binaries are ready to use.
+// 2. `wasm-pack` clears its output directory before compilation, which breaks Webpack because of
+// missing files.
 commands.build.rust = async function (argv) {
     let crate = argv.crate || DEFAULT_CRATE
     let crate_sfx = crate ? ` '${crate}'` : ``
@@ -155,39 +154,74 @@ commands.build.rust = async function (argv) {
         '--target',
         'web',
         '--out-dir',
-        paths.dist.wasm.root,
+        paths.wasm.root,
         '--out-name',
         'ide',
         crate,
     ]
+
     if (argv.dev) {
         args.push('--dev')
     }
+    // Use the environment-variable API provided by the `enso_profiler_macros` library to implement
+    // the public interface to profiling-level configuration
+    // (see: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
+    if (argv['profiling-level']) {
+        process.env.ENSO_MAX_PROFILING_LEVEL = argv['profiling-level']
+    }
+    args.push('--')
+    // Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file and line
+    // number information to include in generated profile files.
+    //
+    // The IntelliJ Rust plugin does not support the `proc_macro_span` Rust feature; using it causes
+    // JetBrains IDEs to become entirely unaware of the items produced by `#[profile]`.
+    // (See: https://github.com/intellij-rust/intellij-rust/issues/8655)
+    //
+    // In order to have line number information in actual usage, but keep everything understandable
+    // by JetBrains IDEs, we need IntelliJ/CLion to build crates differently from how they are
+    // built for the application to be run. This is accomplished by gating the use of the unstable
+    // functionality by a `cfg` flag. A `cfg` flag is disabled by default, so when a Rust IDE builds
+    // crates internally in order to determine macro expansions, it will do so without line numbers.
+    // When this script is used to build the application, it is not for the purpose of IDE macro
+    // expansion, so we can safely enable line numbers.
+    //
+    // The reason we don't use a Cargo feature for this is because this script can build different
+    // crates, and we'd like to enable this feature when building any crate that depends on the
+    // `profiler` crates. We cannot do something like '--feature=enso_profiler/line-numbers' without
+    // causing build to fail when building a crate that doesn't have `enso_profiler` in its
+    // dependency tree.
+    process.env.ENSO_ENABLE_PROC_MACRO_SPAN = 1
     await run_cargo('wasm-pack', args)
-    await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
-    await fs.rename(paths.dist.wasm.mainRaw, paths.dist.wasm.main)
+    await patch_file(paths.wasm.glue, js_workaround_patcher)
+    await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
     if (!argv.dev) {
-        // TODO: Enable after updating wasm-pack
-        // https://github.com/rustwasm/wasm-pack/issues/696
-        // console.log('Optimizing the WASM binary.')
-        // await cmd.run('npx',['wasm-opt','-O3','-o',paths.dist.wasm.mainOpt,paths.dist.wasm.main])
         console.log('Minimizing the WASM binary.')
-        await gzip(paths.dist.wasm.main, paths.dist.wasm.mainOptGz) // TODO main -> mainOpt
+        await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        console.log('Checking the resulting WASM size.')
-        let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 4.6
-        let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
-        if (size > limit) {
-            throw `Output file size exceeds the limit (${size}MB > ${limit}MB).`
-        }
+        const limitMb = 4.67
+        await checkWasmSize(paths.wasm.mainGz, limitMb)
+    }
+    // Copy WASM files from temporary directory to Webpack's `dist` directory.
+    await fs.cp(paths.wasm.root, paths.dist.wasm.root, { recursive: true })
+}
+
+// Check if compressed WASM binary exceeds the size limit.
+async function checkWasmSize(path, limitMb) {
+    console.log('Checking the resulting WASM size.')
+    let stats = fss.statSync(path)
+    let size = Math.round((100 * stats.size) / 1024 / 1024) / 100
+    if (size > limitMb) {
+        throw `Output file size exceeds the limit (${size}MB > ${limitMb}MB).`
     }
 }
 
 /// Workaround fix by wdanilo, see: https://github.com/rustwasm/wasm-pack/issues/790
 function js_workaround_patcher(code) {
-    code = code.replace(/if \(\(typeof URL.*}\);/gs, 'return imports')
-    code = code.replace(/if \(typeof module.*let result/gs, 'let result')
+    code = code.replace(/if \(typeof input === 'string'.*return wasm;/gs, 'return imports')
+    code = code.replace(
+        /if \(typeof input === 'undefined'.*const imports = {};/gs,
+        'const imports = {};'
+    )
     code = code.replace(/export default init;/gs, 'export default init')
     code += '\nexport function after_load(w,m) { wasm = w; init.__wbindgen_wasm_module = m;}'
     return code
@@ -230,7 +264,7 @@ commands.test = command(`Run test suites`)
 commands.test.rust = async function (argv) {
     if (argv.native) {
         console.log(`Running Rust test suite.`)
-        await run_cargo('cargo', ['test'])
+        await run_cargo('cargo', ['test', '--workspace'])
     }
 
     if (argv.wasm) {
@@ -244,7 +278,36 @@ commands.test.rust = async function (argv) {
             '--headless',
             '--chrome',
         ]
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 60
         await run_cargo('cargo', args)
+    }
+}
+
+// === Integration Test ===
+
+commands['integration-test'] = command('Run integration test suite')
+commands['integration-test'].rust = async function (argv) {
+    let pm_process = null
+    if (argv.backend !== 'false') {
+        let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
+        pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
+    }
+    try {
+        console.log(`Running Rust WASM test suite.`)
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 300
+        let args = [
+            'test',
+            '--headless',
+            '--chrome',
+            'integration-test',
+            '--profile=integration-test',
+        ]
+        await run_cargo('wasm-pack', args)
+    } finally {
+        console.log(`Shutting down Project Manager`)
+        if (pm_process !== null) {
+            pm_process.kill()
+        }
     }
 }
 
@@ -252,7 +315,16 @@ commands.test.rust = async function (argv) {
 
 commands.lint = command(`Lint the codebase`)
 commands.lint.rust = async function () {
-    await run_cargo('cargo', ['clippy', '--', '-D', 'warnings'])
+    await run_cargo('cargo', [
+        'clippy',
+        '--workspace',
+        '-p',
+        'enso-integration-test',
+        '--all-targets',
+        '--',
+        '-D',
+        'warnings',
+    ])
     await run_cargo('cargo', ['fmt', '--', '--check'])
 }
 
@@ -306,12 +378,15 @@ commands.watch.common = async function (argv) {
             build_args.push(`--crate=${argv.crate}`)
         }
         build_args = build_args.join(' ')
-        const target =
+        const shellCommand =
             '"' +
             `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
             cargoArgs.join(' ') +
             '"'
-        let args = ['watch', '-s', `${target}`]
+        // We ignore changes in README.md because `wasm-pack` copies it, which triggers `cargo watch`
+        // because of this bug: https://github.com/notify-rs/notify/issues/259
+        const ignore = ['--ignore', 'README.md']
+        let args = new Array().concat('watch', ignore, '-s', `${shellCommand}`)
         return cmd.run('cargo', args)
     })
     const js_process = cmd.with_cwd(paths.ide_desktop.root, async () => {
@@ -511,18 +586,33 @@ async function updateBuildVersion(argv) {
 }
 
 async function installJsDeps() {
-    let initialized = fss.existsSync(paths.dist.init)
-    if (!initialized) {
-        console.log('Downloading binary assets.')
-        await downloadJsAssets()
+    let initialized = isInitialized()
+    let isCI = process.env.hasOwnProperty('CI')
+    // We update JS dependencies on CI every time to ensure that incremental build is always possible.
+    // Otherwise adding new dependency will require a clean build on CI.
+    if (!initialized || isCI) {
         console.log('Installing application dependencies.')
         await cmd.with_cwd(paths.ide_desktop.root, async () => {
             await cmd.run('npm', ['run', 'install'])
         })
-        await fs.mkdir(paths.dist.root, { recursive: true })
-        let handle = await fs.open(paths.dist.init, 'w')
-        await handle.close()
     }
+    if (!initialized) {
+        console.log('Downloading binary assets.')
+        await downloadJsAssets()
+        markAsInitialized()
+    }
+}
+
+// Return true if markAsInitialized was run in the past, otherwise return false.
+function isInitialized() {
+    return fss.existsSync(paths.dist.init)
+}
+
+// Create an empty file at paths.dist.init to signal that the initialization was done.
+async function markAsInitialized() {
+    await fs.mkdir(paths.dist.root, { recursive: true })
+    let handle = await fs.open(paths.dist.init, 'w')
+    await handle.close()
 }
 
 async function downloadJsAssets() {
@@ -546,8 +636,8 @@ async function downloadJsAssets() {
 
     const assetsArchive = await unzipper.Open.file(path.join(workdir, ideAssetsMainZip))
     await assetsArchive.extract({ path: workdir })
-    await fse.copy(unzippedAssets, jsLibAssets)
-    await fse.remove(workdir)
+    await fs.cp(unzippedAssets, jsLibAssets, { recursive: true })
+    await fs.rm(workdir, { recursive: true, force: true })
 }
 
 async function runCommand(command, argv) {

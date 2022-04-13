@@ -10,10 +10,14 @@
 //! sbt "runner/run --server --root-id 6f7d58dd-8ee8-44cf-9ab7-9f0454033641 --path $HOME/ensotmp --rpc-port 30616"
 //! ```
 
-use enso_gui::prelude::*;
+// === Non-Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use engine_protocol::language_server::*;
 use engine_protocol::types::*;
+use enso_gui::prelude::*;
+
 use enso_gui::model::execution_context::Visualization;
 use enso_gui::model::module;
 use enso_gui::transport::web::WebSocket;
@@ -21,6 +25,8 @@ use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+
 
 /// The endpoint at which the Language Server should be accepting WS connections.
 const SERVER_ENDPOINT: &str = "ws://localhost:30616";
@@ -188,7 +194,7 @@ async fn ls_text_protocol_test() {
         client.delete_file(&move_path).await.expect("Couldn't delete file");
         let file = client.file_exists(&move_path).await;
         let file = file.expect("Couldn't check if file exists.");
-        assert_eq!(file.exists, false);
+        assert!(!file.exists);
     }
 
     client.move_file(&new_path, &move_path).await.expect("Couldn't move file");
@@ -248,7 +254,7 @@ async fn file_events() {
         client.delete_file(&path).await.expect("Couldn't delete file");
         let file = client.file_exists(&path).await;
         let file = file.expect("Couldn't check if file exists.");
-        assert_eq!(file.exists, false);
+        assert!(!file.exists);
     }
 
     let path = Path { root_id, segments: vec![] };

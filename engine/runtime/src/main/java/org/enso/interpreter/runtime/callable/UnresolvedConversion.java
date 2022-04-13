@@ -1,0 +1,98 @@
+package org.enso.interpreter.runtime.callable;
+
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.callable.InteropConversionCallNode;
+import org.enso.interpreter.node.callable.InteropMethodCallNode;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
+
+/** Simple runtime value representing a yet-unresolved by-name symbol. */
+@ExportLibrary(InteropLibrary.class)
+public class UnresolvedConversion implements TruffleObject {
+  private final ModuleScope scope;
+
+  /**
+   * Creates a new unresolved conversion.
+   *
+   * @param scope the scope in which this conversion was created
+   */
+  private UnresolvedConversion(ModuleScope scope) {
+    this.scope = scope;
+  }
+
+  /** @return the scope this symbol was used in. */
+  public ModuleScope getScope() {
+    return scope;
+  }
+
+  /**
+   * Resolves the symbol for a given hierarchy of constructors.
+   *
+   * <p>The constructors are checked in the first to last order, and the first match for this symbol
+   * is returned. This is useful for certain subtyping relations, such as "any constructor is a
+   * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
+   *
+   * @param constructors the constructors hierarchy for which this symbol should be resolved
+   * @return the resolved function definition, or null if not found
+   */
+  public Function resolveFor(AtomConstructor into, AtomConstructor... constructors) {
+    for (AtomConstructor constructor : constructors) {
+      Function candidate = scope.lookupConversionDefinition(constructor, into);
+      if (candidate != null) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public String toString() { return "UnresolvedConversion"; }
+
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    return this.toString();
+  }
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @param name the name that is unresolved
+   * @param scope the scope in which the lookup will occur
+   * @return a node representing an unresolved symbol {@code name} in {@code scope}
+   */
+  public static UnresolvedConversion build(ModuleScope scope) {
+    return new UnresolvedConversion(scope);
+  }
+
+  /**
+   * Marks this object as executable through the interop library.
+   *
+   * @return always true
+   */
+  @ExportMessage
+  public boolean isExecutable() {
+    return true;
+  }
+
+  /** Implements the logic of executing {@link UnresolvedConversion} through the interop library. */
+  @ExportMessage
+  @ImportStatic(Constants.CacheSizes.class)
+  public static class Execute {
+    @Specialization
+    static Object doDispatch(
+        UnresolvedConversion conversion,
+        Object[] arguments,
+        @Cached InteropConversionCallNode interopConversionCallNode)
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      return interopConversionCallNode.execute(conversion, EmptyMap.create(), arguments);
+    }
+  }
+}

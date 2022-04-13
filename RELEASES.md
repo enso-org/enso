@@ -7,6 +7,20 @@
   any libraries ([#1981](https://github.com/enso-org/enso/pull/1981)).
   Additionally, made the `library/preinstall` endpoint able to install any
   transitive dependencies of the library.
+- Updated the Scala compiler and dependencies
+  ([#3214](https://github.com/enso-org/enso/pull/3214)).
+- Updated to
+  [GraalVM 21.3.0](https://github.com/graalvm/graalvm-ce-builds/releases/tag/vm-21.3.0)
+  ([#3258](https://github.com/enso-org/enso/pull/3258)).
+- Extended language server API to allow accessing the package definition, and to
+  get the available component groups
+  [#3286](https://github.com/enso-org/enso/pull/3286).
+
+## Interpreter/Runtime
+
+- Added support for overloaded conversions. This allows the `from` method to be
+  implemented with several overloads.
+  ([#3227](https://github.com/enso-org/enso/pull/3227))
 
 ## Enso 0.2.31 (2021-10-01)
 

@@ -1,6 +1,9 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -8,6 +11,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 /**
@@ -31,7 +38,9 @@ public class DataflowError extends AbstractTruffleException {
    * @return a new dataflow error
    */
   public static DataflowError withoutTrace(Object payload, Node location) {
-    return new DataflowError(payload, location);
+    DataflowError result = new DataflowError(payload, location);
+    TruffleStackTrace.fillIn(result);
+    return result;
   }
 
   /**
@@ -92,5 +101,57 @@ public class DataflowError extends AbstractTruffleException {
   @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
+  }
+
+  @ExportMessage
+  boolean hasSpecialConversion() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetConversionFunction {
+
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
+      Context context = getContext();
+      return conversion.resolveFor(target, context.getBuiltins().dataflowError().constructor());
+    }
+
+    static Context getContext() {
+      return Context.get(null);
+    }
+
+    @Specialization(
+            guards = {
+                    "!getContext().isInlineCachingDisabled()",
+                    "cachedTarget == target",
+                    "cachedConversion == conversion",
+                    "function != null"
+            },
+            limit = "CACHE_SIZE")
+    static Function resolveCached(
+            DataflowError _this,
+            AtomConstructor target,
+            UnresolvedConversion conversion,
+            @Cached("conversion") UnresolvedConversion cachedConversion,
+            @Cached("target") AtomConstructor cachedTarget,
+            @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+            DataflowError _this,
+            AtomConstructor target,
+            UnresolvedConversion conversion)
+            throws MethodDispatchLibrary.NoSuchConversionException {
+      Function function = doResolve(target, conversion);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchConversionException();
+      }
+      return function;
+    }
   }
 }

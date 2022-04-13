@@ -1,7 +1,12 @@
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
+use std::io::prelude::*;
+
 use std::env;
 use std::fs::OpenOptions;
 use std::io;
-use std::io::prelude::*;
 use std::path::PathBuf;
 use std::process::exit;
 use std::process::Command;
@@ -41,7 +46,7 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
     let parent_directory = current_exe_path.parent().expect(missing_directory_message);
     let log_name = ".launcher_version_log";
     let log_path = parent_directory.join(log_name);
-    append_to_log(log_path, version.as_ref().to_string()).expect("Cannot write to log.");
+    append_to_log(log_path, version.as_ref()).expect("Cannot write to log.");
 
     let override_args = [
         String::from("--internal-emulate-version"),

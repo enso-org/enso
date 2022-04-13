@@ -1,8 +1,9 @@
+use std::io::prelude::*;
+
 use enso_flexer::Definition;
 use enso_flexer::State;
 use lexer_definition::lexer::EnsoLexer;
 use std::fs::File;
-use std::io::prelude::*;
 
 
 

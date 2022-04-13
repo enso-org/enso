@@ -2,7 +2,7 @@
 name = "parser"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
 [lib]
@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 ast = { path = "../ast/impl" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde", "serde_json"] }
+enso-profiler = { path = "../../../../lib/rust/profiler" }
 enso-text = { path = "../../../../lib/rust/text" }
 console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }
@@ -21,7 +22,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["unbounded_depth"] }
 shrinkwraprs = { version = "0.2.1" }
 uuid = { version = "0.8", features = ["serde", "v5", "wasm-bindgen"] }
-wasm-bindgen = { version = "=0.2.58" }
+wasm-bindgen = { version = "0.2.78" }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }

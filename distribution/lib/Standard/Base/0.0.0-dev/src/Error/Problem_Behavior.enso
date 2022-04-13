@@ -1,0 +1,120 @@
+from Standard.Base import all
+
+import Standard.Base.Warning
+
+## Specifies how to handle problems.
+type Problem_Behavior
+    ## UNSTABLE
+       Ignore the problem and attempt to complete the operation
+    type Ignore
+
+    ## UNSTABLE
+       Report the problem as a warning and attempt to complete the operation
+    type Report_Warning
+
+    ## UNSTABLE
+       Report the problem as a dataflow error and abort the operation
+    type Report_Error
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning.
+       If it is set to Report_Error, the problem is returned in the form of a
+       dataflow error. If the value already contained any dataflow error, that
+       error takes precedence.
+    attach_problem_after : Any -> Any -> Any
+    attach_problem_after decorated_value ~problem = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            Warning.attach problem decorated_value
+        Report_Error ->
+            case decorated_value of
+                _ -> Error.throw problem
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches a problem to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problem
+       attached as a warning.
+       If it is set to Report_Error, the problem is returned in the form of
+       a dataflow error. The problem takes precedence over any errors that may
+       have been contained in the value - in such case the `decorated_value` is
+       not computed at all.
+    attach_problem_before : Any -> Any -> Any
+    attach_problem_before problem ~decorated_value = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            Warning.attach problem decorated_value
+        Report_Error ->
+            Error.throw problem
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. The problem takes precedence over any errors that
+       may have been contained in the value - in this case the `decorated_value`
+       is not computed at all.
+
+       > Example
+         Perform pre-flight checks and then compute the actual result only if needed.
+
+             problems = preflight_checks
+             problem_behavior.attach_problems_before problems <|
+                 expensive_computation
+
+    attach_problems_before : Vector -> Any -> Any
+    attach_problems_before problems ~decorated_value = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
+        Report_Error ->
+            if problems.is_empty then decorated_value else
+                Error.throw problems.first
+
+    ## ADVANCED
+       UNSTABLE
+       Attaches problems to the given value according to the expected problem
+       behavior.
+
+       If the problem behavior is set to Ignore, the value is returned as-is.
+       If it is set to Report_Warning, the value is returned with the problems
+       attached as warnings.
+       If it is set to Report_Error, the first problem is returned in the form
+       of a dataflow error. If the value already contained any dataflow error,
+       that error takes precedence.
+
+       > Example
+         First compute a result and then, only if the computation has succeeded,
+         perform any postprocessing checks which may raise warnings/errors.
+
+             result = compute_result
+             problem_behavior.attach_problems_after result <|
+                 perform_post_process_checks_and_return_problems
+    attach_problems_after : Any -> Vector -> Any
+    attach_problems_after decorated_value ~problems = case this of
+        Ignore ->
+            decorated_value
+        Report_Warning ->
+            problems.fold decorated_value acc-> problem->
+                Warning.attach problem acc
+        Report_Error -> case decorated_value of
+            _ -> if problems.is_empty then decorated_value else
+                Error.throw problems.first

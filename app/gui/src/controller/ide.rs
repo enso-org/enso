@@ -3,17 +3,23 @@
 //! The IDE controller expose functionality bound to the application as a whole, not to specific
 //! component or opened project.
 
-pub mod desktop;
-pub mod plain;
-
 use crate::prelude::*;
 
 use crate::notification;
 
-pub use engine_protocol::project_manager::ProjectMetadata;
-pub use engine_protocol::project_manager::ProjectName;
 use mockall::automock;
 use parser::Parser;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod desktop;
+pub mod plain;
+
+pub use engine_protocol::project_manager::ProjectMetadata;
+pub use engine_protocol::project_manager::ProjectName;
 
 
 
@@ -106,6 +112,14 @@ pub enum Notification {
 // === API ===
 // ===========
 
+// === Errors ===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "Project with name \"{}\" not found.", 0)]
+struct ProjectNotFound(String);
+
+
 // === Managing API ===
 
 /// The API of all project management operations.
@@ -114,13 +128,33 @@ pub enum Notification {
 /// [`API::manage_projects`]).
 pub trait ManagingProjectAPI {
     /// Create a new unnamed project and open it in the IDE.
-    fn create_new_project(&self) -> BoxFuture<FallibleResult>;
+    ///
+    /// `template` is an optional project template name. Available template names are defined in
+    /// `lib/scala/pkg/src/main/scala/org/enso/pkg/Template.scala`.
+    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult>;
 
     /// Return a list of existing projects.
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;
 
-    /// Open the project with given id and name.
+    /// Open the project with given UUID.
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult>;
+
+    /// Open project by name. It makes two calls to the Project Manager: one for listing projects
+    /// and then for the project opening.
+    fn open_project_by_name(&self, name: String) -> BoxFuture<FallibleResult> {
+        async move {
+            let projects = self.list_projects().await?;
+            let mut projects = projects.into_iter();
+            let project = projects.find(|project| project.name.as_ref() == name);
+            let uuid = project.map(|project| project.id);
+            if let Some(uuid) = uuid {
+                self.open_project(uuid).await
+            } else {
+                Err(ProjectNotFound(name).into())
+            }
+        }
+        .boxed_local()
+    }
 }
 
 

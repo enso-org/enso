@@ -1,4 +1,4 @@
-name: Engine CI
+name: Engine CI (legacy)
 
 on:
   push:
@@ -8,13 +8,13 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 21.1.0
+  graalVersion: 21.3.0
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-11-08
+  rustToolchain: nightly-2021-11-29
   # Some moderately recent version of Node.JS is needed to run the library download tests.
   nodeVersion: 14.17.2
 
@@ -122,11 +122,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
-
-      - name: Verify the Stdlib Version
-        run: |
-          sleep 1
-          sbt --no-colors "stdlib-version-updater/run check"
 
       # Compile
       - name: Build Enso
@@ -283,7 +278,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --no-ir-caches --run test/Image_Tests
@@ -309,7 +303,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso --ir-caches --run test/Image_Tests
@@ -320,7 +313,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --no-ir-caches --run test/Image_Tests
@@ -346,7 +338,6 @@ jobs:
         run: |
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Table_Tests
-          $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Visualization_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests

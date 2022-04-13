@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
-  DefaultScalaModule,
-  ScalaObjectMapper
+  ClassTagExtensions,
+  DefaultScalaModule
 }
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.{ModuleExports, Suggestion}
@@ -197,14 +197,6 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.VerifyModulesIndexResponse],
         name  = "verifyModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ImportSuggestionRequest],
-        name  = "importSuggestionRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ImportSuggestionResponse],
-        name  = "importSuggestionResponse"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphRequest],
@@ -610,7 +602,6 @@ object Runtime {
         * @param arguments the arguments to update
         * @param returnType the return type to update
         * @param documentation the documentation string to update
-        * @param documentationHtml the HTML documentation to update
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
@@ -619,7 +610,6 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
-        documentationHtml: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
@@ -628,17 +618,14 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           "Modify(" +
-          s"externalId=$externalId," +
-          s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
-          s"returnType=$returnType" +
-          s"documentation=" +
+          s"externalId=$externalId" +
+          s",arguments=${arguments.map(_.map(_.toLogString(shouldMask)))}" +
+          s",returnType=$returnType" +
+          s",documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
-          s"documentationHtml=" +
-          (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
-           else documentationHtml) +
           s",scope=$scope" +
-          s"reexport=$reexport" +
+          s",reexport=$reexport" +
           ")"
       }
     }
@@ -1382,31 +1369,6 @@ object Runtime {
     final case class VerifyModulesIndexResponse(remove: Seq[String])
         extends ApiResponse
 
-    /** A request to return info needed to import the suggestion.
-      *
-      * @param suggestion the suggestion to import
-      */
-    final case class ImportSuggestionRequest(suggestion: Suggestion)
-        extends ApiRequest
-        with ToLogString {
-
-      /** @inheritdoc */
-      override def toLogString(shouldMask: Boolean): String =
-        s"ImportSuggestionRequest(suggestion=${suggestion.toLogString(shouldMask)})"
-    }
-
-    /** The result of the import request.
-      *
-      * @param module the definition module of the symbol
-      * @param symbol the resolved symbol
-      * @param exports the list of exports of the symbol
-      */
-    final case class ImportSuggestionResponse(
-      module: String,
-      symbol: String,
-      exports: Seq[Export]
-    ) extends ApiResponse
-
     /** A request for the type hierarchy graph. */
     final case class GetTypeGraphRequest() extends ApiRequest
 
@@ -1522,7 +1484,7 @@ object Runtime {
 
     private lazy val mapper = {
       val factory = new CBORFactory()
-      val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
+      val mapper  = new ObjectMapper(factory) with ClassTagExtensions
       mapper.registerModule(DefaultScalaModule)
     }
 

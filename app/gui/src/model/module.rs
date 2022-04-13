@@ -1,12 +1,5 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
 
-pub mod plain;
-pub mod synchronized;
-
-pub use double_representation::module::Id;
-pub use double_representation::module::QualifiedName;
-pub use double_representation::tp::QualifiedName as TypeQualifiedName;
-
 use crate::prelude::*;
 
 use crate::controller::FilePath;
@@ -23,6 +16,18 @@ use parser::api::SourceFile;
 use parser::Parser;
 use serde::Deserialize;
 use serde::Serialize;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod plain;
+pub mod synchronized;
+
+pub use double_representation::module::Id;
+pub use double_representation::module::QualifiedName;
+pub use double_representation::tp::QualifiedName as TypeQualifiedName;
 
 
 
@@ -587,6 +592,9 @@ pub trait API: Debug + model::undo_redo::Aware {
     fn info(&self) -> double_representation::module::Info {
         double_representation::module::Info::from(self.ast())
     }
+
+    /// Returns self as any. Used for casting down the [`Module`] object.
+    fn as_any(&self) -> &dyn Any;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.
@@ -618,6 +626,7 @@ pub type Module = Rc<dyn API>;
 pub type Plain = plain::Module;
 /// Module Model which synchronizes all changes with Language Server.
 pub type Synchronized = synchronized::Module;
+
 
 
 // ============

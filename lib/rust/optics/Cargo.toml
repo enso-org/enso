@@ -2,7 +2,7 @@
 name    = "enso-optics"
 version = "0.2.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
-edition = "2018"
+edition = "2021"
 
 description  = "An implementation of functional optics."
 readme       = "README.md"

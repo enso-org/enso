@@ -1,0 +1,52 @@
+from Standard.Base import all
+
+import Standard.Base.Error.Extensions as Errors
+import Standard.Table.Data.Aggregate_Column
+import Standard.Database.Data.Sql
+import Standard.Database.Data.Dialect.Postgres
+import Standard.Database.Data.Dialect.Redshift
+import Standard.Database.Data.Dialect.Sqlite as Sqlite_Module
+
+## PRIVATE
+
+   Represents a specific SQL dialect.
+
+   It encapsulates dialect-specific code generation details allowing us to
+   support differing SQL dialects.
+type Dialect
+    ## PRIVATE
+       This is a fake constructor to make the compiler accept this type
+       definition. It can and should be removed once interface definitions are
+       allowed.
+    type Dialect
+    ## PRIVATE
+       Name of the dialect.
+    name : Text
+    name = Errors.unimplemented "This is an interface only."
+
+
+    ## PRIVATE
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : Query -> Sql.Statement
+    generate_sql = Errors.unimplemented "This is an interface only."
+
+    ## PRIVATE
+       Deduces the result type for an aggregation operation.
+
+       The provided aggregate is assumed to contain only already resolved columns.
+       You may need to transform it with `resolve_aggregate` first.
+    resolve_target_sql_type : Aggregate_Column -> Sql_Type
+    resolve_target_sql_type = Errors.unimplemented "This is an interface only."
+
+## PRIVATE
+
+   A vector of SQL dialects supported by the Database library.
+supported_dialects : Vector Dialect
+supported_dialects = [Postgres.postgresql, Sqlite_Module.sqlite, Redshift.redshift]
+
+## PRIVATE
+
+   The dialect of SQLite databases.
+sqlite : Dialect
+sqlite = Sqlite_Module.sqlite

@@ -2,7 +2,7 @@
 name = "ensogl-example-sprite-system-benchmark"
 version = "0.1.0"
 authors = ["Enso Team <contact@enso.org>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -11,4 +11,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 nalgebra = { version = "0.26.1" }
-wasm-bindgen = { version = "=0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }

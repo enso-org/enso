@@ -47,6 +47,7 @@ broken and require further investigation.
 | <kbd>alt</kbd>+<kbd>F4</kbd>                                | Close the application (MacOS, Windows, Linux)                                                                                                                                                                                                        |
 | <kbd>ctrl</kbd>+<kbd>w</kbd>                                | Close the application (Windows, Linux)                                                                                                                                                                                                               |
 | :warning: <kbd>ctrl</kbd>+<kbd>p</kbd>                      | Toggle profiling mode                                                                                                                                                                                                                                |
+| <kbd>escape</kbd>                                           | Cancel current action. For example, drop currently dragged connection.                                                                                                                                                                               |
 
 #### Navigation
 
@@ -119,6 +120,7 @@ broken and require further investigation.
 
 | Shortcut                                                           | Action                                                                                                                         |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>d</kbd>                  | Toggle Debug Mode. All actions below are only possible when it is activated.                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>i</kbd> | Open the developer console.                                                                                                    |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>shift</kbd> + <kbd>r</kbd> | Reload the visual interface.                                                                                                   |
 | <kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>0 - 10</kbd>               | Switch between debug rendering modes (0 is the normal mode).                                                                   |

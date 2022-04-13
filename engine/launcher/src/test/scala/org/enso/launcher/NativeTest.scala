@@ -129,25 +129,15 @@ trait NativeTest
     args: Seq[String],
     pathOverride: String
   ): RunResult = {
-    val pathName = if (isWindows) "Path" else "PATH" // Note [Windows Path]
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
-      Seq(pathName -> pathOverride)
+      Seq(NativeTest.PATH -> pathOverride)
     )
   }
 }
 
-/* Note [Windows Path]
- * ~~~~~~~~~~~~~~~~~~~
- * On Windows, the environment variables are usually treated as case-insensitive
- * but not all the time. When launching a process with an added environment
- * variable called `PATH`, that process actually has two variables in its
- * environment - the original `Path` and the overriden `PATH`. This can be seen
- * when querying `System.getenv()` - the returned map contains both `Path` and
- * `PATH` with their respective values. However, `System.getenv("PATH")` uses
- * some platform specific logic, and even if both variables are present in the
- * environment, it actually returns the value corresponding to `Path`. This is
- * likely the expected behaviour on Windows. So to successfully override the
- * system path on Windows, we need to override `Path`, not `PATH` like on
- * Unix-based systems.
- */
+object NativeTest {
+
+  /** The `PATH` environment variable. */
+  private val PATH: String = "PATH"
+}
