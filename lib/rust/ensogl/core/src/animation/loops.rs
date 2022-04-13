@@ -225,8 +225,9 @@ impl<Callback: FnMut<(TimeInfo,)>> FnMut<(TimeInfo,)> for FixedFrameRateSampler<
     extern "rust-call" fn call_mut(&mut self, args: (TimeInfo,)) -> Self::Output {
         let mut time = args.0;
         self.time_buffer += time.since_animation_loop_started - self.local_time;
-
-        while self.time_buffer > self.frame_time * 1.5 {
+        
+        let sub_frame_interpolation_threshold = 1.5;
+        while self.time_buffer > self.frame_time * sub_frame_interpolation_threshold {
             self.local_time += self.frame_time;
             self.time_buffer -= self.frame_time;
 
