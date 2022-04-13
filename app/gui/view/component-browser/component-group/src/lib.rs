@@ -2,9 +2,9 @@
 //! of the component group.
 //!
 //! The widget is defined by the [`View`].
-///
-/// To learn more about component groups, see the [Component Browser Design
-/// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//!
+//! To learn more about component groups, see the [Component Browser Design
+//! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
