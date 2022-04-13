@@ -1,5 +1,5 @@
 [package]
-name = "enso-profiler-data-tools"
+name = "enso-profiler-metadata"
 version = "0.1.0"
 edition = "2021"
 

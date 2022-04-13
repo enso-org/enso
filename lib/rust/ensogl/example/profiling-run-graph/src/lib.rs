@@ -20,9 +20,8 @@ use wasm_bindgen::prelude::*;
 use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_profiler_data::Profile;
-use enso_profiler_data_tools as profiler_data_tools;
-use enso_profiler_data_tools::Metadata;
 use enso_profiler_flame_graph as profiler_flame_graph;
+use enso_profiler_metadata::Metadata;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -66,7 +65,7 @@ pub async fn main() {
 
     let marks = profile
         .iter_metadata()
-        .map(|metadata: &enso_profiler_data::Metadata<profiler_data_tools::Metadata>| {
+        .map(|metadata: &enso_profiler_data::Metadata<Metadata>| {
             let position = metadata.mark.into_ms();
             let label = metadata.data.to_string();
             profiler_flame_graph::Mark { position, label }
@@ -151,7 +150,7 @@ async fn create_dummy_data() -> Profile<Metadata> {
     start_project().await;
 
     let log = profiler::internal::take_log();
-    let profile: Result<Profile<profiler_data_tools::Metadata>, _> = log.parse();
+    let profile: Result<Profile<Metadata>, _> = log.parse();
     profile.expect("Failed to deserialize profiling event log.")
 }
 

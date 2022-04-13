@@ -1141,14 +1141,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-profiler-data-tools"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "serde",
-]
-
-[[package]]
 name = "enso-profiler-flame-graph"
 version = "0.1.0"
 dependencies = [
@@ -1165,6 +1157,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "enso-profiler-metadata"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "serde",
 ]
 
 [[package]]
@@ -1449,8 +1449,8 @@ dependencies = [
  "enso-frp",
  "enso-profiler",
  "enso-profiler-data",
- "enso-profiler-data-tools",
  "enso-profiler-flame-graph",
+ "enso-profiler-metadata",
  "enso-web",
  "ensogl-core",
  "ensogl-flame-graph",

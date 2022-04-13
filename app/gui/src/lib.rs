@@ -68,7 +68,6 @@ pub mod constants;
 pub mod controller;
 pub mod executor;
 pub mod ide;
-mod local_profiler;
 pub mod model;
 pub mod notification;
 pub mod presenter;

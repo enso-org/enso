@@ -222,6 +222,15 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                     });
                 }
             }
+            let last = measurement.intervals.last().unwrap(); // There are at least two intervals.
+            let last = &self.profile[*last];
+            self.blocks.push(Block {
+                start: last.interval.start.into_ms(),
+                end: last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
+                label: self.profile[last.measurement].label.to_string(),
+                row,
+                state: Active,
+            });
         }
         for child in &measurement.children {
             self.visit_measurement(*child);
