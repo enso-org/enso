@@ -152,7 +152,6 @@ impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
 // === Eq ===
 // ==========
 
-impl<V, R: PartialEq> Eq for UnitData<V, R> {}
 impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
     fn eq(&self, other: &Self) -> bool {
         self.repr.eq(&other.repr)
@@ -164,12 +163,6 @@ impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
 // ===========
 // === Ord ===
 // ===========
-
-impl<V, R: Ord> Ord for UnitData<V, R> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.repr.cmp(&other.repr)
-    }
-}
 
 impl<V, R: PartialOrd> PartialOrd for UnitData<V, R> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
