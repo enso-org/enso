@@ -184,7 +184,11 @@ impl<E: Entry> Model<E> {
 
     fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
-        self.entries.update_entries_new_provider(provider, visible_entries);
+        let padding_px = self.padding();
+        let padding = 2.0 * padding_px + SHAPE_PADDING;
+        let padding = Vector2(padding, padding);
+        let entry_width = view.size.x - padding.x;
+        self.entries.update_entries_new_provider(provider, visible_entries, entry_width);
     }
 
     fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {

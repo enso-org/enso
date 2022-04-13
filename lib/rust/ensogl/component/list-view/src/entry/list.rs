@@ -162,6 +162,7 @@ where E::Model: Default
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
         mut range: Range<entry::Id>,
+        max_width_px: f32,
     ) {
         const MAX_SAFE_ENTRIES_COUNT: usize = 1000;
         let provider = provider.into();
@@ -176,7 +177,12 @@ where E::Model: Default
         range.end = range.end.min(provider.entry_count());
         let models = range.clone().map(|id| (id, provider.get(id)));
         let mut entries = self.entries.borrow_mut();
-        entries.resize_with(range.len(), || self.create_new_entry());
+        let create_new_entry_with_max_width = || {
+            let entry = self.create_new_entry();
+            entry.entry.resize(max_width_px);
+            entry
+        };
+        entries.resize_with(range.len(), create_new_entry_with_max_width);
         for (entry, (id, model)) in entries.iter().zip(models) {
             Self::update_entry(&self.logger, entry, id, &model);
         }
