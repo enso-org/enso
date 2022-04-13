@@ -132,7 +132,7 @@ impl component::Frp<Model> for Frp {
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (t,(size,hdr_geom)) {
                     model.header_text.replace(t.clone());
-                    model.resize(*size, *hdr_geom);
+                    model.update_header_width(*size, *hdr_geom);
                 })
             );
             eval input.set_background_color((c)
@@ -213,15 +213,20 @@ impl Model {
         let header_bottom_y = size.y / 2.0 - header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
-        let header_padding_right = header_geometry.padding_right;
-        let max_text_width = size.x - header_padding_left - header_padding_right;
-        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+        self.update_header_width(size, header_geometry);
 
 
         // === Entries ===
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
+    }
+
+    fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
+        let header_padding_left = header_geometry.padding_left;
+        let header_padding_right = header_geometry.padding_right;
+        let max_text_width = size.x - header_padding_left - header_padding_right;
+        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
     }
 }
 
