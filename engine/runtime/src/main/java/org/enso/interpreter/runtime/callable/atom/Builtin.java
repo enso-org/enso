@@ -1,24 +1,21 @@
 package org.enso.interpreter.runtime.callable.atom;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.library.ExportLibrary;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A representation of an Atom constructor for BuiltinType. */
-public class BuiltinAtomConstructor extends AtomConstructor {
+public class Builtin extends AtomConstructor {
 
     private ModuleScope shadowDefinitions;
     /**
      * Creates a new Atom constructor for a given name for a BuiltinType. The constructor is not valid until {@link
-     * BuiltinAtomConstructor#initializeFields(ArgumentDefinition...)} is called.
+     * Builtin#initializeFields(ArgumentDefinition...)} is called.
      *
      * @param name            the name of the Atom constructor
      * @param definitionScope the scope in which this constructor was defined (builtin scope)
      */
-    public BuiltinAtomConstructor(String name, ModuleScope definitionScope) {
+    public Builtin(String name, ModuleScope definitionScope) {
         super(name, definitionScope);
     }
 
@@ -37,7 +34,7 @@ public class BuiltinAtomConstructor extends AtomConstructor {
         return this.shadowDefinitions;
     }
 
-    public BuiltinAtomConstructor initializeFields(ArgumentDefinition... args) {
-      return (BuiltinAtomConstructor)super.initializeFields(args);
+    public Builtin initializeFields(ArgumentDefinition... args) {
+      return (Builtin)super.initializeFields(args);
     }
 }

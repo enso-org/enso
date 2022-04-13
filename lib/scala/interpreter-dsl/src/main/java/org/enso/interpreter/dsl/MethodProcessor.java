@@ -11,10 +11,9 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
-import javax.tools.FileObject;
-import javax.tools.StandardLocation;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,6 +22,8 @@ import java.util.stream.Collectors;
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor {
+
+  private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
 
   /**
    * Processes annotated elements, generating code for each of them.
@@ -77,6 +78,14 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
     }
 
     return true;
+  }
+
+  protected void storeMetadata(Writer writer) throws IOException {
+    for (Filer f: builtinMethods.keySet()) {
+      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+      }
+    }
   }
 
   private final List<String> necessaryImports =
@@ -398,6 +407,24 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
       }
       return true;
     }
+  }
+
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName) {
+    Map<String, String> methods = builtinMethods.get(f);
+    if (methods == null) {
+      methods = new HashMap<>();
+      builtinMethods.put(f, methods);
+    }
+    methods.put(name, clazzName);
+  }
+
+  @Override
+  protected String metadataPath() {
+    return MethodDefinition.META_PATH;
+  }
+
+  protected void cleanup() {
+    builtinMethods.clear();
   }
 
   private String warningCheck(MethodDefinition.ArgumentDefinition arg) {

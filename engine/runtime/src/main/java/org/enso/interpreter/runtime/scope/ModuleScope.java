@@ -1,15 +1,13 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.google.common.base.Joiner;
 import com.oracle.truffle.api.CompilerDirectives;
 
 import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.BuiltinAtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.Builtin;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
@@ -204,10 +202,10 @@ public class ModuleScope implements TruffleObject {
       return definedHere;
     }
 
-    if (atom instanceof BuiltinAtomConstructor) {
+    if (atom instanceof Builtin) {
       // Unfortunately locally defined extensions get associated with the module rather than a type within a module
       // BindingsMap would need to be enhanced to resolve to the constructor rather than a module
-      ModuleScope shadowDefinitions = ((BuiltinAtomConstructor) atom).getShadowDefinitions();
+      ModuleScope shadowDefinitions = ((Builtin) atom).getShadowDefinitions();
       if (shadowDefinitions != null) {
         AtomConstructor moduleTypeInStdLib = shadowDefinitions.associatedType;
         definedHere = getMethodMapFor(moduleTypeInStdLib).get(lowerName);

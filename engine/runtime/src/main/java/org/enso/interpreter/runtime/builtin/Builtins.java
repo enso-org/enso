@@ -16,6 +16,7 @@ import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
@@ -45,7 +46,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.BuiltinAtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.Builtin;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
@@ -68,7 +69,7 @@ public class Builtins {
   private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
   // TODO Consider dropping the map and just assigning to a single variable since builtin types
   //      should be unique
-  private HashMap<String, BuiltinAtomConstructor> builtinTypes;
+  private HashMap<String, Builtin> builtinTypes;
 
   private final AtomConstructor debug;
   private final AtomConstructor projectDescription;
@@ -87,31 +88,6 @@ public class Builtins {
   private final System system;
   private final Text text;
   private final Special special;
-
-  private class BuiltinTypeConstr {
-    private String tpeName;
-    private String[] paramNames;
-
-    BuiltinTypeConstr(String tpeName) {
-      this.tpeName = tpeName;
-      this.paramNames = new String[0];
-    }
-
-    BuiltinTypeConstr(String tpeName, String... args) {
-      this.tpeName = tpeName;
-      this.paramNames = args;
-    }
-
-
-    public String getTpeName() {
-      return tpeName;
-    }
-
-    public String[] getParamNames() {
-      return paramNames;
-    }
-
-  }
 
   /**
    * Creates an instance with builtin methods installed.
@@ -208,36 +184,16 @@ public class Builtins {
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
     readBuiltinsMetadata(scope);
-
-    // FIXME: should be possible to get rid of hardcoded list of builtin types once we have all of them
-    //        stored in metadata files
-    List<BuiltinTypeConstr> builtinConstructors = new ArrayList<>();
-    builtinConstructors.add(new BuiltinTypeConstr("Polyglot"));
-    builtinConstructors.add(new BuiltinTypeConstr("Ref"));
-    builtinConstructors.add(new BuiltinTypeConstr("Array"));
-    builtinConstructors.add(new BuiltinTypeConstr("Any"));
-    builtinConstructors.add(new BuiltinTypeConstr("Boolean"));
-    builtinConstructors.add(new BuiltinTypeConstr("True"));
-    builtinConstructors.add(new BuiltinTypeConstr("False"));
-    builtinConstructors.add(new BuiltinTypeConstr("Cons", "head", "tail"));
-    builtinConstructors.add(new BuiltinTypeConstr("Nil"));
-    initBuiltinTypes(builtinConstructors, scope, language);
+    assignMethodsToBuiltins(readBuiltinTypesMetadata(scope), scope, language);
   }
 
-  public void initBuiltinTypes(List<BuiltinTypeConstr> constrs, ModuleScope scope, Language language) {
-    for (BuiltinTypeConstr constr: constrs) {
-      BuiltinAtomConstructor atom = new BuiltinAtomConstructor(constr.getTpeName(), scope);
-      ArgumentDefinition[] args = new ArgumentDefinition[constr.getParamNames().length];
-      String[] paramNames = constr.getParamNames();
-      for (int i=0; i<paramNames.length; i++) {
-        args[i] = new ArgumentDefinition(i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
-      }
-      atom = atom.initializeFields(args);
-
-      builtinTypes.put(constr.getTpeName(), atom);
-      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(constr.getTpeName());
+  public void assignMethodsToBuiltins(List<Builtin> builtins, ModuleScope scope, Language language) {
+    for (Builtin atom: builtins) {
+      String tpeName = atom.getName();
+      builtinTypes.put(tpeName, atom);
+      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(tpeName);
       if (methods != null) {
-        BuiltinAtomConstructor finalAtom = atom;
+        Builtin finalAtom = atom;
         methods.forEach((methodName, clazz) -> {
           Optional<Function> fun;
           try {
@@ -289,6 +245,46 @@ public class Builtins {
       e.printStackTrace();
     }
   }
+
+  private List<Builtin> readBuiltinTypesMetadata(ModuleScope scope) {
+    ClassLoader classLoader = getClass().getClassLoader();
+    List<String> lines;
+    try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
+      lines = new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8)).lines().collect(Collectors.toList());
+    } catch (Exception ioe) {
+      lines = new ArrayList<>();
+      ioe.printStackTrace();
+    }
+
+    return lines.stream().map(line -> {
+      String[] builtinMeta = line.split(":");
+      if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+        throw new CompilerError("Invalid builtin metadata in: " + line + " " + builtinMeta.length);
+      }
+
+      String fullName = builtinMeta[1];
+      Builtin builtin = null;
+      try {
+        Class<Builtin> clazz = (Class<Builtin>) Class.forName(fullName);
+        builtin = clazz.getDeclaredConstructor(ModuleScope.class).newInstance(scope);
+        if (builtinMeta.length == 2) {
+          builtin = builtin.initializeFields();
+        } else {
+          // there are some type params
+          String[] paramNames = builtinMeta[2].split(",");
+          ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
+          for (int i = 0; i < paramNames.length; i++) {
+            args[i] = new ArgumentDefinition(i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
+          }
+          builtin = builtin.initializeFields(args);
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      return builtin;
+    }).filter(b -> b != null).collect(Collectors.toList());
+  }
+
 
   private void readBuiltinsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
@@ -353,7 +349,7 @@ public class Builtins {
     }
   }
 
-  public BuiltinAtomConstructor getBuiltinType(String name) {
+  public Builtin getBuiltinType(String name) {
     return builtinTypes.get(name);
   }
 
