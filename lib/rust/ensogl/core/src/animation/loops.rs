@@ -291,12 +291,12 @@ mod tests {
             since_animation_loop_started: 0.ms(),
         };
 
-        let mut step = |frame_time: Duration, ts: &[Duration], offset: Duration| {
+        let mut step = |frame_time: Duration, sub_frames: &[Duration], offset: Duration| {
             let time2 = time.new_frame(frame_time);
             lp(time2);
-            for t in ts {
+            for sub_frame in sub_frames {
                 count_check += 1;
-                time = time.new_frame(*t);
+                time = time.new_frame(*sub_frame);
                 assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
             }
             count_check += 1;
