@@ -940,13 +940,13 @@ impl AreaModel {
         font_size: style::Size,
         max_width_px: f32,
     ) -> String {
-        let lines = text.split_inclusive("\n");
+        let lines = text.split_inclusive('\n');
         /// Return the length of a trailing Unix (`\n`) or MS-DOS (`\r\n`) style line ending in
         /// `s`, or 0 if not found.
         fn length_of_trailing_line_ending(s: &str) -> usize {
             if s.ends_with("\r\n") {
                 2
-            } else if s.ends_with("\n") {
+            } else if s.ends_with('\n') {
                 1
             } else {
                 0
