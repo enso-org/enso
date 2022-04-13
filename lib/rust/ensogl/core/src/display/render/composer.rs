@@ -67,9 +67,9 @@ impl {
     }
 
     /// Run all the registered passes in this composer.
-    pub fn run(&mut self) {
+    pub fn run(&mut self, was_updated:bool) {
         for pass in &mut self.passes {
-            pass.run();
+            pass.run(was_updated);
         }
     }
 }}
@@ -118,7 +118,7 @@ impl ComposerPass {
     }
 
     /// Run the pass.
-    pub fn run(&mut self) {
-        self.pass.run(&self.instance);
+    pub fn run(&mut self, requires_refresh: bool) {
+        self.pass.run(&self.instance, requires_refresh);
     }
 }

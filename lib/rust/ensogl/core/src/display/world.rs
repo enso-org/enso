@@ -299,9 +299,10 @@ impl WorldData {
         self.on.before_frame.run_all(time);
         self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        self.default_scene.update(time);
+        let scene_updated = self.default_scene.update(time);
+        // DEBUG!("scene_updated: {scene_updated:?}");
         self.garbage_collector.mouse_events_handled();
-        self.default_scene.render();
+        self.default_scene.render(scene_updated);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
     }

@@ -131,6 +131,13 @@ struct KhrProgram {
 
 
 
+#[derive(Clone, Copy, Debug)]
+pub enum Progress {
+    StepProgress,
+    NewShaderReady,
+}
+
+
 // ================
 // === Compiler ===
 // ================
@@ -196,7 +203,7 @@ impl Compiler {
     }
 
     /// Run the compiler. This should be run on every frame.
-    pub fn run(&self, time: animation::TimeInfo) {
+    pub fn run(&self, time: animation::TimeInfo) -> bool {
         self.rc.borrow_mut().run(time)
     }
 }
@@ -226,14 +233,17 @@ impl CompilerData {
     }
 
     #[profile(Debug)]
-    fn run(&mut self, time: animation::TimeInfo) {
+    fn run(&mut self, time: animation::TimeInfo) -> bool {
+        let mut any_new_shaders_ready = false;
         if self.dirty {
             self.run_khr_completion_check_jobs();
             while self.dirty {
                 match self.run_step() {
-                    Ok(made_progress) => {
-                        if !made_progress {
-                            break;
+                    Ok(progress) => {
+                        match progress {
+                            None => break,
+                            Some(Progress::NewShaderReady) => any_new_shaders_ready = true,
+                            Some(Progress::StepProgress) => {}
                         }
                         let now = (self.performance.now() as f32).ms();
                         let current_frame_time =
@@ -256,21 +266,25 @@ impl CompilerData {
                 }
             }
         }
+        any_new_shaders_ready
     }
 
     /// Runs the next compiler job if there is any left and if it will not cause too many jobs being
     /// run in parallel. The result [`bool`] indicates if the call to this function did any
     /// progress.
     #[profile(Detail)]
-    fn run_step(&mut self) -> Result<bool, Error> {
-        let ok_progress = |_| Ok(true);
-        let no_progress = Ok(false);
+    fn run_step(&mut self) -> Result<Option<Progress>, Error> {
+        let ok_progress = |_| Ok(Some(Progress::StepProgress));
+        let no_progress = Ok(None);
         let jobs = &self.jobs;
         let max_jobs = self.current_parallel_job_count() >= MAX_PARALLEL_COMPILE_JOBS;
         match () {
             _ if !max_jobs && !jobs.compile.is_empty() => ok_progress(self.run_next_compile_job()?),
             _ if !jobs.link.is_empty() => ok_progress(self.run_next_link_job()?),
-            _ if !jobs.link_check.is_empty() => ok_progress(self.run_next_link_check_job()?),
+            _ if !jobs.link_check.is_empty() => {
+                self.run_next_link_check_job()?;
+                Ok(Some(Progress::NewShaderReady))
+            }
             _ => {
                 if max_jobs {
                     if !jobs.compile.is_empty() {

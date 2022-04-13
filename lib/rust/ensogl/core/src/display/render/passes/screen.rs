@@ -27,7 +27,9 @@ impl ScreenRenderPass {
 }
 
 impl pass::Definition for ScreenRenderPass {
-    fn run(&mut self, _: &pass::Instance) {
-        self.screen.render();
+    fn run(&mut self, _: &pass::Instance, requires_refresh: bool) {
+        if requires_refresh {
+            self.screen.render();
+        }
     }
 }

@@ -522,10 +522,10 @@ impl Renderer {
     }
 
     /// Run the renderer.
-    pub fn run(&self) {
+    pub fn run(&self, was_updated: bool) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
             debug!(self.logger, "Running.", || {
-                composer.run();
+                composer.run(was_updated);
             })
         }
     }
@@ -843,7 +843,7 @@ impl SceneData {
         &self.symbols
     }
 
-    fn update_shape(&self) {
+    fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
             self.resize_canvas(screen);
@@ -852,17 +852,24 @@ impl SceneData {
             });
             self.renderer.resize_composer();
             self.dirty.shape.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_symbols(&self) {
+    fn update_symbols(&self) -> bool {
         if self.dirty.symbols.check_all() {
             self.symbols.update();
             self.dirty.symbols.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_camera(&self, scene: &Scene) {
+    fn update_camera(&self, scene: &Scene) -> bool {
+        let mut was_dirty = false;
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
@@ -871,6 +878,7 @@ impl SceneData {
         let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
+            was_dirty = true;
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(&camera);
             self.dom.layers.front.update_view_projection(&camera);
@@ -878,19 +886,26 @@ impl SceneData {
         }
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
+            was_dirty = true;
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
             self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
         }
         let node_searcher_camera = self.layers.node_searcher.camera();
         let node_searcher_camera_changed = node_searcher_camera.update(scene);
         if node_searcher_camera_changed {
+            was_dirty = true;
             self.dom.layers.node_searcher.update_view_projection(&node_searcher_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
+        let sublayer_was_dirty = Rc::new(Cell::new(false));
         self.layers.iter_sublayers_and_masks_nested(|layer| {
-            layer.camera().update(scene);
+            let dirty = layer.camera().update(scene);
+            sublayer_was_dirty.set(sublayer_was_dirty.get() || dirty);
         });
+        was_dirty = was_dirty || sublayer_was_dirty.get();
+
+        was_dirty
     }
 
     /// Resize the underlying canvas. This function should rather not be called
@@ -911,8 +926,8 @@ impl SceneData {
         });
     }
 
-    pub fn render(&self) {
-        self.renderer.run();
+    pub fn render(&self, was_updated: bool) {
+        self.renderer.run(was_updated);
         // WebGL `flush` should be called when expecting results such as queries, or at completion
         // of a rendering frame. Flush tells the implementation to push all pending commands out
         // for execution, flushing them out of the queue, instead of waiting for more commands to
@@ -1087,20 +1102,24 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, time: animation::TimeInfo) {
+    pub fn update(&self, time: animation::TimeInfo) -> bool {
         if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
+                let mut was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                self.update_camera(self);
+                was_dirty = was_dirty || self.update_camera(self);
                 self.display_object.update(self);
-                self.layers.update();
-                self.update_shape();
-                self.update_symbols();
+                was_dirty = was_dirty || self.layers.update();
+                was_dirty = was_dirty || self.update_shape();
+                was_dirty = was_dirty || self.update_symbols();
                 self.handle_mouse_over_and_out_events();
-                context.shader_compiler.run(time);
+                was_dirty = was_dirty || context.shader_compiler.run(time);
+                was_dirty
             })
+        } else {
+            false
         }
     }
 }

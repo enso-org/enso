@@ -180,7 +180,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
-    fn run(&mut self, instance: &pass::Instance) {
+    fn run(&mut self, instance: &pass::Instance, requires_refresh: bool) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
         } else {
@@ -190,10 +190,12 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
                 self.check_and_handle_sync(&instance.context, &sync);
             }
             if self.sync.is_none() {
+                // if requires_refresh {
                 self.run_not_synced(&instance.context);
                 if let Some(callback) = &self.sync_callback {
                     callback()
                 }
+                // }
             }
         }
     }
