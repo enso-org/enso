@@ -33,6 +33,14 @@ use ensogl_text as text;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const HEADER_FONT: &str = "DejaVuSans-Bold";
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -186,7 +194,7 @@ impl component::Model for Model {
         display_object.add_child(&header);
         display_object.add_child(&entries);
 
-        header.set_font("DejaVuSans-Bold");
+        header.set_font(HEADER_FONT);
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
