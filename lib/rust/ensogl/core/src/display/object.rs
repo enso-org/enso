@@ -45,17 +45,11 @@ pub mod traits {
 /// When the [`Instance`] is added to another layer, [`Sublayers::for_each_sublayer`] method of the
 /// `sublayers` field will be used to reattach sublayers to this new layer as well. Thus the
 /// sublayers are following the [`Instance`] at all times.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InstanceWithSublayers<S> {
     inner:         Instance,
     /// Attached sublayers. Should implement [`ForEachSublayer`] trait.
     pub sublayers: S,
-}
-
-impl<S: Clone> Clone for InstanceWithSublayers<S> {
-    fn clone(&self) -> Self {
-        Self { inner: self.inner.clone_ref(), sublayers: self.sublayers.clone() }
-    }
 }
 
 impl<S: CloneRef> CloneRef for InstanceWithSublayers<S> {
