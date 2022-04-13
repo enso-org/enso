@@ -493,14 +493,6 @@ impl Area {
 
             // === Font ===
 
-            eval input.set_font ((t) {
-                m.set_font(t);
-                m.redraw(true);
-            });
-
-
-            // === Font ===
-
             eval input.set_font ((t) m.set_font(t));
 
 
