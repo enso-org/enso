@@ -3,7 +3,7 @@
 //! ListView a displayed list of entries with possibility of selecting one and "choosing" by
 //! clicking or pressing enter - similar to the HTML `<select>`.
 
-#![recursion_limit = "1024"]
+#![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
