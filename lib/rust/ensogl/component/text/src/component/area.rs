@@ -271,6 +271,11 @@ ensogl_core::define_endpoints! {
         /// MSDF texture, etc.).
         set_font              (String),
         set_content           (String),
+        /// Set content, truncating the trailing characters on every line to fit a width in pixels
+        /// when rendered with current font and font size. The truncated substrings are replaced
+        /// with an ellipsis character ("…").
+        ///
+        /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
         set_content_truncated (String, f32),
     }
     Output {
@@ -927,9 +932,9 @@ impl AreaModel {
         }
     }
 
-    /// Truncate every line of `text` that exceeds `max_width_px` when rendered using the current
-    /// font at `font_size`. Return `text` with every truncated substring replaced with an ellipsis
-    /// character ("…").
+    /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
+    /// rendered using the current font at `font_size`. Return `text` with every truncated
+    /// substring replaced with an ellipsis character ("…").
     ///
     /// The truncation point of every line is chosen such that the truncated string with ellipsis
     /// will fit in `max_width_px` if possible. Unix (`\n`) and MS-DOS (`\r\n`) style line endings
