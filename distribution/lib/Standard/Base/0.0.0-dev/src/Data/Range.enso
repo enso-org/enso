@@ -18,9 +18,9 @@ type Range
        > Example
          Create a range of even numbers from 0 to 10 (exclusive).
 
-             0.up_to 10 . step 2
-    step : Integer -> Range
-    step new_step =
+             0.up_to 10 . with_step 2
+    with_step : Integer -> Range
+    with_step new_step =
         if new_step == 0 then here.throw_zero_step_error else
             Range this.start this.end new_step
 
@@ -46,7 +46,7 @@ type Range
     length : Number
     length = case this.last of
         Nothing -> 0
-        last -> ((last - this.start) / this.step) + 1
+        last -> ((last - this.start) . div this.step) + 1
 
     ## Checks if this range is empty.
 
@@ -118,7 +118,7 @@ type Range
          In the following example, we'll compute the sum of all even integers
          less than 100.
 
-             0.up_to 100 . step 2 . fold 0 (+)
+             0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold init function =
         go end_condition acc current end =
