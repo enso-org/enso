@@ -189,10 +189,10 @@ Text.characters =
    - comments: Enables or disables the comments mode for the regular expression.
      In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
+       character class or when preceded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
      - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
+       preceded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
    - extra_opts: Specifies additional options in a vector. This allows options
@@ -746,20 +746,31 @@ Text.is_whitespace =
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
+   Arguments:
+   - encoding: The text encoding to encode this with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
    > Example
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
-Text.bytes : Encoding -> Vector.Vector Byte
+Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
 Text.bytes encoding =
-    byte_array = Text_Utils.get_bytes this (encoding . to_java_charset)
-    Vector.Vector byte_array
+    result = Text_Utils.get_bytes this (encoding . to_java_charset)
+    vector = Vector.Vector result.result
+    if result.warnings.is_nothing then vector else
+        on_problems.attach_problems_after vector [Encoding_Error result.warnings]
 
 ## Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
 
    Arguments:
    - bytes: The vector of UTF-8 bytes.
+   - encoding: The text encoding to decode the bytes with. Defaults to UTF-8.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -782,12 +793,20 @@ Text.from_bytes bytes encoding on_problems=Report_Warning =
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
+   Arguments:
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
    > Example
      Get the UTF-8 bytes of the text "Hello".
 
          "Hello".utf_8
-Text.utf_8 : Vector.Vector Byte
-Text.utf_8 = this.bytes Encoding.utf_8
+Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
+Text.utf_8 on_problems=Report_Warning =
+    this.bytes Encoding.utf_8 on_problems
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 

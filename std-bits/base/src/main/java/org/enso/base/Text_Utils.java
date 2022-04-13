@@ -12,6 +12,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
-import org.enso.base.text.StringFromBytes;
+import org.enso.base.text.ResultWithWarnings;
 import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
@@ -73,6 +74,15 @@ public class Text_Utils {
     return string.substring(from);
   }
 
+  private static ByteBuffer resize(ByteBuffer old) {
+    int n = old.capacity();
+    int new_n = 2*n + 1;
+    ByteBuffer o = ByteBuffer.allocate(new_n);
+    old.flip();
+    o.put(old);
+    return o;
+  }
+
   /**
    * Converts a string into an array of bytes using the specified encoding.
    *
@@ -80,8 +90,51 @@ public class Text_Utils {
    * @param charset the character set to use to encode the string
    * @return the UTF-8 representation of the string.
    */
-  public static byte[] get_bytes(String str, Charset charset) {
-    return str.getBytes(charset);
+  public static ResultWithWarnings<byte[]> get_bytes(String str, Charset charset) {
+    if (str.isEmpty()) {
+      return new ResultWithWarnings<>(new byte[0]);
+    }
+
+    CharsetEncoder encoder = charset.newEncoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .reset();
+
+    CharBuffer in = CharBuffer.wrap(str.toCharArray());
+    ByteBuffer out = ByteBuffer.allocate(
+        (int)(in.remaining() * encoder.averageBytesPerChar()));
+
+    StringBuilder warnings = null;
+    while (in.hasRemaining()) {
+      CoderResult cr = encoder.encode(in, out, true);
+      if (cr.isMalformed() || cr.isUnmappable()) {
+        // Get current position for error reporting
+        int position = in.position();
+
+        if (out.remaining() < encoder.replacement().length) {
+          out = resize(out);
+        }
+        out.put(encoder.replacement());
+        in.position(in.position() + cr.length());
+
+        if (warnings == null) {
+          warnings = new StringBuilder();
+          warnings.append("Encoding issues at ");
+        } else {
+          warnings.append(", ");
+        }
+        warnings.append(position);
+      } else if (cr.isUnderflow()) {
+        // Finished
+        encoder.flush(out);
+        break;
+      } else if (cr.isOverflow()) {
+        out = resize(out);
+      }
+    }
+
+    out.flip();
+    return new ResultWithWarnings<>(out.array());
   }
 
   /**
@@ -196,14 +249,15 @@ public class Text_Utils {
    * @param charset the character set to use to decode the bytes
    * @return the resulting string
    */
-  public static StringFromBytes from_bytes(byte[] bytes, Charset charset) {
+  public static ResultWithWarnings<String> from_bytes(byte[] bytes, Charset charset) {
     if (bytes.length == 0) {
-      return new StringFromBytes("");
+      return new ResultWithWarnings<>("");
     }
 
     CharsetDecoder decoder = charset.newDecoder()
         .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT);
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .reset();
 
     ByteBuffer in = ByteBuffer.wrap(bytes);
     CharBuffer out = CharBuffer.allocate(
@@ -239,7 +293,7 @@ public class Text_Utils {
     }
 
     out.flip();
-    return new StringFromBytes(out.toString(), warnings == null ? "" : warnings.toString());
+    return new ResultWithWarnings<>(out.toString(), warnings == null ? "" : warnings.toString());
   }
 
   /**
