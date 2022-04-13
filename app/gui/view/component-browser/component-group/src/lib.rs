@@ -1,7 +1,7 @@
-//! The implementation of a Component Group view.
+//! This module defines a widget for displaying a list of entries of a component group and the name
+//! of the component group.
 //!
-//! A Component Group is displayed as a header (containing the name of a group of Enso components)
-//! and a list of entries below it (names of the components belonging to that group).
+//! The widget is defined by the [`View`].
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -44,7 +44,7 @@ const HEADER_FONT: &str = "DejaVuSans-Bold";
 
 // === Background ===
 
-/// The background of the Component Group View.
+/// The background of the [`View`].
 pub mod background {
     use super::*;
 
@@ -236,5 +236,10 @@ impl Model {
 // === View ===
 // ============
 
-/// The implementation of the visual component described in the module's documentation.
+/// A widget for displaying the entries and name of a component group.
+///
+/// The widget is rendered as a header label, a list of entries below it, and a colored background.
+///
+/// To learn more about component groups, see the [Component Browser Design
+/// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type View = component::ComponentView<Model, Frp>;
