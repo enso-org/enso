@@ -19,7 +19,7 @@ use web::Closure;
 /// differ across browsers and browser versions. We have even observed that `performance.now()` can
 /// sometimes provide a bigger value than time provided to `requestAnimationFrame` callback later,
 /// which resulted in a negative frame time.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct TimeInfo {
     pub animation_loop_start:         Duration,
