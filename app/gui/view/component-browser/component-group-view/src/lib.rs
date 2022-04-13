@@ -27,7 +27,6 @@ use ensogl_gui_component::component;
 use ensogl_gui_component::component::ComponentView;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
-use ensogl_list_view::entry;
 use ensogl_list_view::ListView;
 use ensogl_text as text;
 
@@ -107,7 +106,7 @@ impl HeaderGeometry {
 ensogl_core::define_endpoints_2! {
     Input {
         set_header_text(String),
-        set_entries(entry::AnyModelProvider<entry::Label>),
+        set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_size(Vector2),
     }
@@ -168,7 +167,7 @@ pub struct Model {
     header:         text::Area,
     header_text:    Rc<RefCell<String>>,
     background:     background::View,
-    entries:        ListView<entry::Label>,
+    entries:        ListView<list_view::entry::Label>,
 }
 
 impl display::Object for Model {
