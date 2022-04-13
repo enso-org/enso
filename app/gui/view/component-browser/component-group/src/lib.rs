@@ -178,7 +178,7 @@ impl display::Object for Model {
 
 impl component::Model for Model {
     fn label() -> &'static str {
-        "ComponentGroupView"
+        "ComponentGroup"
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
