@@ -134,8 +134,10 @@ impl Entry for Label {
     }
 
     fn resize(&self, max_width_px: f32) {
-        self.max_width_px.set(max_width_px);
-        self.update_label_content();
+        if self.max_width_px.get() != max_width_px {
+            self.max_width_px.set(max_width_px);
+            self.update_label_content();
+        }
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {
