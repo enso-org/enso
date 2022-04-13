@@ -24,10 +24,8 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
-use ensogl_gui_component::component::ComponentView;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
-use ensogl_list_view::ListView;
 use ensogl_text as text;
 
 
@@ -167,7 +165,7 @@ pub struct Model {
     header:         text::Area,
     header_text:    Rc<RefCell<String>>,
     background:     background::View,
-    entries:        ListView<list_view::entry::Label>,
+    entries:        list_view::ListView<list_view::entry::Label>,
 }
 
 impl display::Object for Model {
@@ -186,7 +184,7 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
-        let entries = ListView::new(app);
+        let entries = list_view::ListView::new(app);
         display_object.add_child(&background);
         display_object.add_child(&header);
         display_object.add_child(&entries);
@@ -235,4 +233,4 @@ impl Model {
 // ============
 
 /// The implementation of the visual component described in the module's documentation.
-pub type View = ComponentView<Model, Frp>;
+pub type View = component::ComponentView<Model, Frp>;
