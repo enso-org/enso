@@ -18,8 +18,6 @@ use crate::typeface::glyph;
 use crate::typeface::glyph::Glyph;
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
 use crate::typeface::pen;
-#[cfg_attr(not(target_arch = "wasm32"), allow(unused_imports))]
-use crate::StyleIterator;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -267,7 +265,7 @@ ensogl_core::define_endpoints! {
         set_default_text_size (style::Size),
         set_font              (String),
         set_content           (String),
-        set_truncation_width  (Option<f32>),
+        set_content_truncated (String, f32),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -330,14 +328,6 @@ impl Area {
             // === Multi / Single Line ===
 
             eval input.single_line((t) m.single_line.set(*t));
-
-
-            // === Truncation Width ===
-
-            eval input.set_truncation_width((t) {
-                m.set_truncation_width(*t);
-                m.redraw(true);
-            });
 
 
             // === Hover ===
@@ -485,6 +475,9 @@ impl Area {
                 input.insert(s);
                 input.remove_all_cursors();
             });
+            input.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
+                m.text_truncated_with_ellipsis(text.clone(), m.default_font_size(), *max_width_px)
+            }));
 
 
             // === Font ===
@@ -590,16 +583,15 @@ pub struct AreaModel {
     //            be replaced with proper object management.
     camera: Rc<CloneRefCell<display::camera::Camera2d>>,
 
-    logger:           Logger,
-    frp_endpoints:    FrpEndpoints,
-    buffer:           buffer::View,
-    display_object:   display::object::Instance,
+    logger:         Logger,
+    frp_endpoints:  FrpEndpoints,
+    buffer:         buffer::View,
+    display_object: display::object::Instance,
     #[cfg(target_arch = "wasm32")]
-    glyph_system:     Rc<RefCell<glyph::System>>,
-    lines:            Lines,
-    single_line:      Rc<Cell<bool>>,
-    truncation_width: Rc<Cell<Option<f32>>>,
-    selection_map:    Rc<RefCell<SelectionMap>>,
+    glyph_system:   Rc<RefCell<glyph::System>>,
+    lines:          Lines,
+    single_line:    Rc<Cell<bool>>,
+    selection_map:  Rc<RefCell<SelectionMap>>,
 }
 
 impl AreaModel {
@@ -609,7 +601,6 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
-        let truncation_width = default();
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
@@ -653,7 +644,6 @@ impl AreaModel {
             lines,
             single_line,
             selection_map,
-            truncation_width,
         }
         .init()
     }
@@ -818,11 +808,7 @@ impl AreaModel {
         let line = &mut self.lines.rc.borrow_mut()[view_line_index];
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        let line_style = self.buffer.sub_style(line_range.start..line_range.end);
-        let truncation_width = self.truncation_width.get();
-        let content =
-            self.text_truncated_with_ellipsis(content, line_style.iter(), truncation_width);
-        let mut line_style_iter = line_style.iter();
+        let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
         let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
         let mut divs = vec![];
         let mut column = 0.column();
@@ -832,7 +818,7 @@ impl AreaModel {
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
-            let style = line_style_iter.next().unwrap_or_default();
+            let style = line_style.next().unwrap_or_default();
             let chr_size = style.size.raw;
             let char_info = next.as_ref().map(|t| pen::CharInfo::new(t.1, chr_size));
             let info = pen.advance(char_info);
@@ -852,7 +838,7 @@ impl AreaModel {
             match opt_glyph.zip(info.char) {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
-                    line_style_iter.drop(chr_bytes - 1.bytes());
+                    line_style.drop(chr_bytes - 1.bytes());
                     let glyph_info = self.glyph_system.borrow().font.glyph_info(chr);
                     let size = glyph_info.scale.scale(chr_size);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
@@ -882,45 +868,84 @@ impl AreaModel {
         last_offset - cursor_offset
     }
 
-    /// Truncate `content` if its length on screen exceeds `max_width_px`. Return the truncated
-    /// string with an ellipsis ("…") character appended, or `content` if not truncated.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn line_truncated_with_ellipsis(&self, line: &str, _: style::Size, _: f32) -> String {
+        line.to_string()
+    }
+
+    /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
+    /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
+    /// character appended, or `content` if not truncated.
     ///
     /// The truncation point is chosen such that the resulting string with ellipsis will fit in
-    /// `max_width_px` if possible.
+    /// `max_width_px` if possible. The `line` must not contain newline characters.
     #[cfg(target_arch = "wasm32")]
-    fn text_truncated_with_ellipsis(
+    fn line_truncated_with_ellipsis(
         &self,
-        content: String,
-        mut line_style: StyleIterator,
-        max_width_px: Option<f32>,
+        line: &str,
+        font_size: style::Size,
+        max_width_px: f32,
     ) -> String {
         const ELLIPSIS: char = '\u{2026}';
-        let truncate_at = max_width_px.and_then(|max_width| {
-            let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
-            let mut truncation_point = 0.bytes();
-            let truncate = content.char_indices().any(|(i, ch)| {
-                let style = line_style.next().unwrap_or_default();
-                let font_size = style.size.raw;
-                let char_info = pen::CharInfo::new(ch, font_size);
-                let pen_info = pen.advance(Some(char_info));
-                let next_width = pen_info.offset + char_info.size;
-                if next_width > max_width {
-                    return true;
-                }
-                let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size).size;
-                let char_length: Bytes = ch.len_utf8().into();
-                line_style.drop(char_length - 1.bytes());
-                if next_width + width_of_ellipsis <= max_width {
-                    truncation_point = Bytes::from(i) + char_length;
-                }
-                false
-            });
-            truncate.then(|| truncation_point)
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        let mut truncation_point = 0.bytes();
+        let truncate = line.char_indices().any(|(i, ch)| {
+            let char_info = pen::CharInfo::new(ch, font_size.raw);
+            let pen_info = pen.advance(Some(char_info));
+            let next_width = pen_info.offset + char_info.size;
+            if next_width > max_width_px {
+                return true;
+            }
+            let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+            let char_length: Bytes = ch.len_utf8().into();
+            if next_width + width_of_ellipsis <= max_width_px {
+                truncation_point = Bytes::from(i) + char_length;
+            }
+            false
         });
-        match truncate_at {
-            Some(i) => content[..i.as_usize()].to_string() + String::from(ELLIPSIS).as_str(),
-            None => content,
+        if truncate {
+            let truncated_content = line[..truncation_point.as_usize()].to_string();
+            truncated_content + String::from(ELLIPSIS).as_str()
+        } else {
+            line.to_string()
         }
+    }
+
+    /// Truncate every line of `text` that exceeds `max_width_px` when rendered using the current
+    /// font at `font_size`. Return `text` with every truncated substring replaced with an ellipsis
+    /// character ("…").
+    ///
+    /// The truncation point of every line is chosen such that the truncated string with ellipsis
+    /// will fit in `max_width_px` if possible. Unix (`\n`) and MS-DOS (`\r\n`) style line endings
+    /// are recognized and preserved in the returned string.
+    fn text_truncated_with_ellipsis(
+        &self,
+        text: String,
+        font_size: style::Size,
+        max_width_px: f32,
+    ) -> String {
+        let lines = text.split_inclusive("\n");
+        /// Return the length of a trailing Unix (`\n`) or MS-DOS (`\r\n`) style line ending in
+        /// `s`, or 0 if not found.
+        fn length_of_trailing_line_ending(s: &str) -> usize {
+            if s.ends_with("\r\n") {
+                2
+            } else if s.ends_with("\n") {
+                1
+            } else {
+                0
+            }
+        }
+        let tuples_of_lines_and_endings =
+            lines.map(|line| line.split_at(line.len() - length_of_trailing_line_ending(line)));
+        let lines_truncated_with_ellipsis = tuples_of_lines_and_endings.map(|(line, ending)| {
+            self.line_truncated_with_ellipsis(line, font_size, max_width_px) + ending
+        });
+        lines_truncated_with_ellipsis.collect()
+    }
+
+    fn default_font_size(&self) -> style::Size {
+        *self.buffer.style.get().size.default()
     }
 
     fn new_line(&self, index: usize) -> Line {
@@ -1006,10 +1031,6 @@ impl AreaModel {
         self.display_object.add_child(&glyph_system);
         let old_glyph_system = self.glyph_system.replace(glyph_system);
         self.display_object.remove_child(&old_glyph_system);
-    }
-
-    fn set_truncation_width(&self, width: Option<f32>) {
-        self.truncation_width.replace(width);
     }
 }
 

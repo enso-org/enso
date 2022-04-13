@@ -87,8 +87,17 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 pub struct Label {
     display_object: display::object::Instance,
     label:          text::Area,
+    text:           Rc<RefCell<String>>,
+    max_width_px:   Rc<Cell<f32>>,
     network:        enso_frp::Network,
     style_watch:    StyleWatchFrp,
+}
+
+impl Label {
+    fn update_label_content(&self) {
+        let text = self.text.borrow().clone();
+        self.label.set_content_truncated(text, self.max_width_px.get());
+    }
 }
 
 impl Entry for Label {
@@ -98,6 +107,8 @@ impl Entry for Label {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
+        let text = default();
+        let max_width_px = default();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let color = style_watch.get_color(theme::widget::list_view::text);
@@ -114,15 +125,17 @@ impl Entry for Label {
             eval size ((size) label.set_position_y(size/2.0));
         }
         init.emit(());
-        Self { display_object, label, network, style_watch }
+        Self { display_object, label, text, max_width_px, network, style_watch }
     }
 
     fn update(&self, model: &Self::Model) {
-        self.label.set_content(model);
+        self.text.replace(model.clone());
+        self.update_label_content();
     }
 
-    fn resize(&self, width_px: f32) {
-        self.label.set_truncation_width(width_px);
+    fn resize(&self, max_width_px: f32) {
+        self.max_width_px.set(max_width_px);
+        self.update_label_content();
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {

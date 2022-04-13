@@ -91,7 +91,12 @@ impl component::Frp<Model> for Frp {
             init <- source_();
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
-            model.header.set_content <+ input.set_header_text;
+            _set_header <- input.set_header_text.map2(&size_and_header_geometry, f!(
+                (t,(size,hdr_geom)) {
+                    model.header_text.replace(t.clone());
+                    model.resize(*size, *hdr_geom);
+                })
+            );
             eval input.set_background_color((c)
                 model.background.color.set(c.into()));
 
@@ -153,6 +158,7 @@ impl HeaderGeometry {
 pub struct Model {
     display_object: display::object::Instance,
     header:         text::Area,
+    header_text:    Rc<RefCell<String>>,
     background:     background::View,
     entries:        ListView<entry::Label>,
 }
@@ -169,6 +175,7 @@ impl component::Model for Model {
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
+        let header_text = default();
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
@@ -181,7 +188,7 @@ impl component::Model for Model {
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
-        Model { display_object, header, background, entries }
+        Model { display_object, header, header_text, background, entries }
     }
 }
 
@@ -203,7 +210,8 @@ impl Model {
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         let header_padding_right = header_geometry.padding_right;
-        self.header.set_truncation_width(size.x - header_padding_left - header_padding_right);
+        let max_text_width = size.x - header_padding_left - header_padding_right;
+        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
 
 
         // === Entries ===
