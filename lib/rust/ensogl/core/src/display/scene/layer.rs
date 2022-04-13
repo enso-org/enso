@@ -525,7 +525,8 @@ impl LayerModel {
         }
     }
 
-    /// Consume all dirty flags and update the ordering of elements if needed.
+    /// Consume all dirty flags and update the ordering of elements if needed. Returns [`true`] if
+    /// the layer or its sub-layers were modified during this call.
     pub fn update(&self) -> bool {
         self.update_internal(None)
     }
