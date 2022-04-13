@@ -19,7 +19,7 @@ use web::Closure;
 /// differ across browsers and browser versions. We have even observed that `performance.now()` can
 /// sometimes provide a bigger value than time provided to `requestAnimationFrame` callback later,
 /// which resulted in a negative frame time.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct TimeInfo {
     pub animation_loop_start:         Duration,
@@ -36,7 +36,13 @@ impl TimeInfo {
     /// Check whether the time info was initialized. See the documentation of the struct to learn
     /// more.
     pub fn is_initialized(&self) -> bool {
-        self.animation_loop_start != 0.0.ms()
+        self.animation_loop_start != 0.ms()
+    }
+
+    pub fn new_frame(mut self, since_animation_loop_started: Duration) -> Self {
+        self.previous_frame = since_animation_loop_started - self.since_animation_loop_started;
+        self.since_animation_loop_started = since_animation_loop_started;
+        self
     }
 }
 
@@ -199,7 +205,9 @@ impl<Callback> FixedFrameRateSampler<Callback> {
     pub fn new(frame_rate: f32, callback: Callback) -> Self {
         let frame_time = (1000.0 / frame_rate).ms();
         let local_time = default();
-        let time_buffer = default();
+        // The first call to this sampler will be with frame time 0, which would drop this
+        // `time_buffer` to 0.
+        let time_buffer = frame_time;
         Self { frame_time, local_time, time_buffer, callback }
     }
 }
@@ -213,22 +221,28 @@ impl<Callback: FnOnce<(TimeInfo,)>> FnOnce<(TimeInfo,)> for FixedFrameRateSample
 
 impl<Callback: FnMut<(TimeInfo,)>> FnMut<(TimeInfo,)> for FixedFrameRateSampler<Callback> {
     extern "rust-call" fn call_mut(&mut self, args: (TimeInfo,)) -> Self::Output {
-        let time = args.0;
-        self.time_buffer += time.previous_frame;
-        loop {
-            if self.time_buffer < 0.0.ms() {
-                break;
-            } else {
-                self.time_buffer -= self.frame_time;
-                let animation_loop_start = time.animation_loop_start;
-                let previous_frame = self.frame_time;
-                let since_animation_loop_started = self.local_time;
-                let time2 =
-                    TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
-                self.local_time += self.frame_time;
-                self.callback.call_mut((time2,));
-            }
+        let mut time = args.0;
+
+        self.time_buffer += time.since_animation_loop_started - self.local_time;
+
+        while self.time_buffer > self.frame_time * 1.5 {
+            self.local_time += self.frame_time;
+            self.time_buffer -= self.frame_time;
+
+            let animation_loop_start = time.animation_loop_start;
+            let previous_frame = self.frame_time;
+            let since_animation_loop_started = self.local_time;
+            let time2 =
+                TimeInfo { animation_loop_start, previous_frame, since_animation_loop_started };
+            self.callback.call_mut((time2,));
         }
+
+        if self.time_buffer >= 0.ms() {
+            self.time_buffer -= self.frame_time;
+        }
+        time.previous_frame = time.since_animation_loop_started - self.local_time;
+        self.local_time = time.since_animation_loop_started;
+        self.callback.call_mut((time,));
     }
 }
 
@@ -247,5 +261,79 @@ where Callback: LoopCallback
     /// Constructor.
     pub fn new_with_fixed_frame_rate(frame_rate: f32, callback: Callback) -> Self {
         Self::new(FixedFrameRateSampler::new(frame_rate, callback))
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::VecDeque;
+
+    #[test]
+    fn fixed_frame_rate_sampler_test() {
+        let mut count_check = 0;
+        let mut count = Rc::new(Cell::new(0));
+        let mut frame_times = Rc::new(RefCell::new(VecDeque::new()));
+        let mut lp = FixedFrameRateSampler::new(10.0, |t| {
+            frame_times.borrow_mut().push_back(t);
+            count.set(count.get() + 1);
+        });
+        let mut time = TimeInfo {
+            animation_loop_start:         0.ms(),
+            previous_frame:               0.ms(),
+            since_animation_loop_started: 0.ms(),
+        };
+
+        let mut step = |frame_time: Duration, ts: &[Duration], offset: Duration| {
+            let time2 = time.new_frame(frame_time);
+            lp(time2);
+            for t in ts {
+                count_check += 1;
+                time = time.new_frame(*t);
+                assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
+            }
+            count_check += 1;
+            time = time.new_frame(time2.since_animation_loop_started);
+            assert_eq!(frame_times.borrow_mut().pop_front(), Some(time));
+            assert_eq!(frame_times.borrow_mut().pop_front(), None);
+            assert_eq!(count.get(), count_check);
+            assert_eq!(lp.time_buffer, offset);
+        };
+
+        // Start frame.
+        step(0.ms(), &[], 0.ms());
+
+        // Perfectly timed next frame.
+        step(100.ms(), &[], 0.ms());
+
+        // Skipping 2 frames.
+        step(400.ms(), &[200.ms(), 300.ms()], 0.ms());
+
+        // Perfectly timed next frame.
+        step(500.ms(), &[], 0.ms());
+
+        // Next frame too slow.
+        step(650.ms(), &[], 50.ms());
+
+        // Next frame too slow.
+        step(800.ms(), &[750.ms()], 0.ms());
+
+        // Not-perfectly timed next frames.
+        step(870.ms(), &[], -30.ms());
+        step(1010.ms(), &[], 10.ms());
+        step(1090.ms(), &[], -10.ms());
+        step(1200.ms(), &[], 0.ms());
+
+        // Next frames way too fast.
+        step(1210.ms(), &[], -90.ms());
+        // Time compression – we don't want to accumulate too much of negative time buffer for
+        // monitors with bigger refresh-rate than assumed.
+        step(1220.ms(), &[], -80.ms());
     }
 }
