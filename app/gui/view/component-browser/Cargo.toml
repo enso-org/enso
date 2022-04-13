@@ -8,4 +8,4 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ide-view-component-group = { path = "component-group-view" }
+ide-view-component-group = { path = "component-group" }

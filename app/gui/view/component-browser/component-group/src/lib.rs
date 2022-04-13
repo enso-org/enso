@@ -1,7 +1,7 @@
-//! An EnsoGL implementation of a Component Group View.
+//! The implementation of a Component Group view.
 //!
-//! A Component Group View is displayed as a header (containing the name of a group of Enso
-//! components) and a list of entries below it (names of the components belonging to that group).
+//! A Component Group is displayed as a header (containing the name of a group of Enso components)
+//! and a list of entries below it (names of the components belonging to that group).
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===

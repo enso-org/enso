@@ -1,13 +1,5 @@
-//! A debug scene which shows the Component Group View.
+//! A debug scene which shows the Component Group visual component.
 
-#![recursion_limit = "1024"]
-// === Features ===
-#![feature(associated_type_defaults)]
-#![feature(drain_filter)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -29,7 +21,7 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
-use ide_view_component_group as component_group_view;
+use ide_view_component_group as component_group;
 
 
 
@@ -101,14 +93,14 @@ fn init(app: &Application) {
     ]);
 
 
-    let component_group_view = app.new_view::<component_group_view::View>();
+    let component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
     let group_name = "Long group name with text overflowing the width";
-    component_group_view.set_header_text(group_name.to_string());
-    component_group_view.set_entries(provider);
-    component_group_view.set_size(Vector2(150.0, 200.0));
-    component_group_view.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
-    app.display.add_child(&component_group_view);
+    component_group.set_header_text(group_name.to_string());
+    component_group.set_entries(provider);
+    component_group.set_size(Vector2(150.0, 200.0));
+    component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    app.display.add_child(&component_group);
 
-    std::mem::forget(component_group_view);
+    std::mem::forget(component_group);
 }
