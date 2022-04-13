@@ -127,7 +127,8 @@ where E::Model: Default
         }
     }
 
-    /// Update displayed entries to show the given range.
+    /// Update displayed entries to show the given range and limit their display width to at most
+    /// `max_width_px`.
     pub fn update_entries(&self, mut range: Range<entry::Id>, max_width_px: f32) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
@@ -157,7 +158,8 @@ where E::Model: Default
         }
     }
 
-    /// Update displayed entries, giving new provider.
+    /// Update displayed entries, giving new provider. New entries created by the function have
+    /// their maximum width set to `max_width_px`.
     pub fn update_entries_new_provider(
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
