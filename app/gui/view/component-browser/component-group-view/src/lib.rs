@@ -58,6 +58,40 @@ pub mod background {
 
 
 
+// =======================
+// === Header Geometry ===
+// =======================
+
+#[derive(Debug, Copy, Clone, Default)]
+struct HeaderGeometry {
+    height:         f32,
+    padding_left:   f32,
+    padding_right:  f32,
+    padding_bottom: f32,
+}
+
+impl HeaderGeometry {
+    fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
+        let height = style.get_number(theme::header::height);
+        let padding_left = style.get_number(theme::header::padding::left);
+        let padding_right = style.get_number(theme::header::padding::right);
+        let padding_bottom = style.get_number(theme::header::padding::bottom);
+
+        frp::extend! { network
+            init <- source_();
+            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
+                |_,&height,&padding_left,&padding_right,&padding_bottom|
+                    Self{height,padding_left,padding_right,padding_bottom}
+            );
+            theme_sampler <- theme.sampler();
+        }
+        init.emit(());
+        theme_sampler
+    }
+}
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -112,40 +146,6 @@ impl component::Frp<Model> for Frp {
             model.entries.set_entries <+ input.set_entries;
         }
         init.emit(());
-    }
-}
-
-
-
-// =======================
-// === Header Geometry ===
-// =======================
-
-#[derive(Debug, Copy, Clone, Default)]
-struct HeaderGeometry {
-    height:         f32,
-    padding_left:   f32,
-    padding_right:  f32,
-    padding_bottom: f32,
-}
-
-impl HeaderGeometry {
-    fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
-        let height = style.get_number(theme::header::height);
-        let padding_left = style.get_number(theme::header::padding::left);
-        let padding_right = style.get_number(theme::header::padding::right);
-        let padding_bottom = style.get_number(theme::header::padding::bottom);
-
-        frp::extend! { network
-            init <- source_();
-            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
-                |_,&height,&padding_left,&padding_right,&padding_bottom|
-                    Self{height,padding_left,padding_right,padding_bottom}
-            );
-            theme_sampler <- theme.sampler();
-        }
-        init.emit(());
-        theme_sampler
     }
 }
 
