@@ -92,9 +92,9 @@ fn constructor_graph() -> visualization::java_script::Definition {
     visualization::java_script::Definition::new_builtin(sources).unwrap()
 }
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code, missing_docs)]
-pub fn entry_point_visualization() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);
