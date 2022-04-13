@@ -21,6 +21,26 @@ spec =
         Test.specify "Can get full set of character sets" <|
             character_sets = Encoding_Module.all_character_sets
             character_sets.length . should_not_equal 0
+            character_sets.contains "UTF-8" . should_equal True
+
+        Test.specify "Can get full set of encoding objects" <|
+            encodings = Encoding_Module.all_encodings
+            encodings.length . should_not_equal 0
+            encodings.contains Encoding.utf_8 . should_equal True
+
+    Test.group "ASCII" <|
+        test = 'Hello World!'
+        test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+
+        Test.specify "should dump ASCII bytes to a vector via encoding" <|
+            test.bytes Encoding.ascii . should_equal test_ascii
+
+        Test.specify "should convert an array of bytes to text" <|
+            Text.from_bytes test_ascii Encoding.ascii . should_equal test
+
+    Test.group "Invalid ASCII" <|
+        test = "Ok But Not Ok æ"
+        IO.println <| test.bytes Encoding.ascii
 
     Test.group "UTF_8" <|
         kshi = '\u0915\u094D\u0937\u093F'
@@ -31,6 +51,9 @@ spec =
 
         Test.specify "should dump utf-8 bytes to a vector" <|
             kshi.utf_8.should_equal kshi_utf_8
+
+        Test.specify "should convert an array of bytes to text via encoding" <|
+            Text.from_bytes kshi_utf_8 Encoding.utf_8 . should_equal kshi
 
         Test.specify "should convert an array of bytes to text" <|
             Text.from_utf_8 kshi_utf_8 . should_equal kshi

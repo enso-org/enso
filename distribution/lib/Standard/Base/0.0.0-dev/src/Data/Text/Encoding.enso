@@ -101,3 +101,5 @@ type Encoding
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding "windows-1258"
+
+type Encoding_Error (message:Text)

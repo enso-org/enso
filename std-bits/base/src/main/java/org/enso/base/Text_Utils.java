@@ -7,8 +7,13 @@ import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -16,6 +21,7 @@ import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
+import org.enso.base.text.StringFromBytes;
 import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
@@ -24,6 +30,7 @@ public class Text_Utils {
       Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern vertical_space =
       Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
+  private static final String INVALID_CHARACTER = "\uFFFD";
 
   /***
    * Utility function to get a Charset for character_set name.
@@ -180,8 +187,48 @@ public class Text_Utils {
    * @param charset the character set to use to decode the bytes
    * @return the resulting string
    */
-  public static String from_bytes(byte[] bytes, Charset charset) {
-    return new String(bytes, charset);
+  public static StringFromBytes from_bytes(byte[] bytes, Charset charset) {
+    if (bytes.length == 0) {
+      return new StringFromBytes("");
+    }
+
+    CharsetDecoder decoder = charset.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT);
+
+    ByteBuffer in = ByteBuffer.wrap(bytes);
+    int n = (int)(bytes.length * decoder.averageCharsPerByte());
+    CharBuffer out = CharBuffer.allocate(n);
+
+    StringBuilder warnings = null;
+    while (in.hasRemaining()) {
+      int position = in.position();
+      CoderResult cr = decoder.decode(in, out, true);
+      if (cr.isMalformed() || cr.isUnmappable()) {
+        out.put(INVALID_CHARACTER);
+        if (warnings == null) {
+          warnings = new StringBuilder();
+          warnings.append("Encoding issues at ");
+        } else {
+          warnings.append(", ");
+        }
+        warnings.append(position);
+      } else if (cr.isUnderflow()) {
+        // Finished
+        decoder.flush(out);
+        break;
+      } else if (cr.isOverflow()) {
+        // Ensure progress; n might be 0!
+        n = 2*n + 1;
+        CharBuffer o = CharBuffer.allocate(n);
+        out.flip();
+        o.put(out);
+        out = o;
+      }
+    }
+
+    out.flip();
+    return new StringFromBytes(out.toString(), warnings == null ? "" : warnings.toString());
   }
 
   /**
