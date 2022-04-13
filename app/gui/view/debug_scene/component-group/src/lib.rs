@@ -93,7 +93,7 @@ fn init(app: &Application) {
     ]);
 
 
-    let component_group = app.new_view::<component_group::View>();
+    let component_group = app.new_view::<component_group::wide_component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
