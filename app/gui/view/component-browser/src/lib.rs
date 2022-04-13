@@ -1,4 +1,3 @@
-#![recursion_limit = "1024"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -16,5 +15,5 @@
 // === Export ===
 // ==============
 
-pub use ide_view_component_group as component_group_view;
+pub use ide_view_component_group as component_group;
 
