@@ -131,11 +131,18 @@ struct KhrProgram {
 
 
 
+// ================
+// === Progress ===
+// ================
+
+/// Shader compiler progress status.
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub enum Progress {
     StepProgress,
     NewShaderReady,
 }
+
 
 
 // ================

@@ -7,6 +7,7 @@ use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::Scene;
+use crate::display::scene::UpdateStatus;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
 
@@ -90,8 +91,8 @@ impl pass::Definition for SymbolsRenderPass {
         self.framebuffers = Some(Framebuffers::new(composed_fb, mask_fb, layer_fb));
     }
 
-    fn run(&mut self, instance: &pass::Instance, requires_refresh: bool, _mouse_was_dirty: bool) {
-        if requires_refresh {
+    fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
+        if update_status.scene_was_dirty {
             let framebuffers = self.framebuffers.as_ref().unwrap();
 
             framebuffers.composed.bind();

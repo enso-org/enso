@@ -522,10 +522,10 @@ impl Renderer {
     }
 
     /// Run the renderer.
-    pub fn run(&self, was_updated: bool, mouse_was_dirty: bool) {
+    pub fn run(&self, update_status: UpdateStatus) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
             debug!(self.logger, "Running.", || {
-                composer.run(was_updated, mouse_was_dirty);
+                composer.run(update_status);
             })
         }
     }
@@ -705,36 +705,51 @@ impl Extensions {
 
 
 
+// ====================
+// === UpdateStatus ===
+// ====================
+
+/// Scene update status. Used to tell the renderer what is the minimal amount of per-frame
+/// processing. For example, if scene was not dirty (no animations), but pointer position changed,
+/// the scene should not be re-rendered, but the id-texture pixel under the mouse should be read.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UpdateStatus {
+    pub scene_was_dirty:          bool,
+    pub pointer_position_changed: bool,
+}
+
+
+
 // =================
 // === SceneData ===
 // =================
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object:       display::object::Instance,
-    pub dom:                  Dom,
-    pub context:              Rc<RefCell<Option<Context>>>,
+    pub display_object: display::object::Instance,
+    pub dom: Dom,
+    pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    pub symbols:              SymbolRegistry,
-    pub variables:            UniformScope,
-    pub current_js_event:     CurrentJsEvent,
-    pub mouse:                Mouse,
-    pub keyboard:             Keyboard,
-    pub uniforms:             Uniforms,
-    pub background:           PointerTarget,
-    pub shapes:               ShapeRegistry,
-    pub stats:                Stats,
-    pub dirty:                Dirty,
-    pub logger:               Logger,
-    pub renderer:             Renderer,
-    pub layers:               HardcodedLayers,
-    pub style_sheet:          style::Sheet,
-    pub bg_color_var:         style::Var,
-    pub bg_color_change:      callback::Handle,
-    pub frp:                  Frp,
-    pub mouse_position_dirty: Rc<Cell<bool>>,
-    extensions:               Extensions,
-    disable_context_menu:     Rc<EventListenerHandle>,
+    pub symbols: SymbolRegistry,
+    pub variables: UniformScope,
+    pub current_js_event: CurrentJsEvent,
+    pub mouse: Mouse,
+    pub keyboard: Keyboard,
+    pub uniforms: Uniforms,
+    pub background: PointerTarget,
+    pub shapes: ShapeRegistry,
+    pub stats: Stats,
+    pub dirty: Dirty,
+    pub logger: Logger,
+    pub renderer: Renderer,
+    pub layers: HardcodedLayers,
+    pub style_sheet: style::Sheet,
+    pub bg_color_var: style::Var,
+    pub bg_color_change: callback::Handle,
+    pub frp: Frp,
+    pub pointer_position_changed: Rc<Cell<bool>>,
+    extensions: Extensions,
+    disable_context_menu: Rc<EventListenerHandle>,
 }
 
 impl SceneData {
@@ -785,7 +800,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
-        let mouse_position_dirty = default();
+        let pointer_position_changed = default();
         Self {
             display_object,
             dom,
@@ -808,7 +823,7 @@ impl SceneData {
             bg_color_var,
             bg_color_change,
             frp,
-            mouse_position_dirty,
+            pointer_position_changed,
             extensions,
             disable_context_menu,
         }
@@ -929,8 +944,8 @@ impl SceneData {
         });
     }
 
-    pub fn render(&self, was_updated: bool, mouse_was_dirty: bool) {
-        self.renderer.run(was_updated, mouse_was_dirty);
+    pub fn render(&self, update_status: UpdateStatus) {
+        self.renderer.run(update_status);
         // WebGL `flush` should be called when expecting results such as queries, or at completion
         // of a rendering frame. Flush tells the implementation to push all pending commands out
         // for execution, flushing them out of the queue, instead of waiting for more commands to
@@ -981,7 +996,7 @@ impl SceneData {
         let network = &self.frp.network;
         let shapes = &self.shapes;
         let target = &self.mouse.target;
-        let mouse_position_dirty = &self.mouse_position_dirty;
+        let pointer_position_changed = &self.pointer_position_changed;
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
@@ -999,7 +1014,7 @@ impl SceneData {
                 shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
             });
 
-            eval self.mouse.frp.position ((_) mouse_position_dirty.set(true));
+            eval self.mouse.frp.position ((_) pointer_position_changed.set(true));
         }
     }
 
@@ -1109,30 +1124,30 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, time: animation::TimeInfo) -> (bool, bool) {
+    pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
         if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                let mut was_dirty = false;
+                let mut scene_was_dirty = false;
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                was_dirty = was_dirty || self.update_camera(self);
+                scene_was_dirty = scene_was_dirty || self.update_camera(self);
                 self.display_object.update(self);
-                was_dirty = was_dirty || self.layers.update();
-                was_dirty = was_dirty || self.update_shape();
-                was_dirty = was_dirty || self.update_symbols();
+                scene_was_dirty = scene_was_dirty || self.layers.update();
+                scene_was_dirty = scene_was_dirty || self.update_shape();
+                scene_was_dirty = scene_was_dirty || self.update_symbols();
                 self.handle_mouse_over_and_out_events();
-                was_dirty = was_dirty || context.shader_compiler.run(time);
+                scene_was_dirty = scene_was_dirty || context.shader_compiler.run(time);
 
-                let mouse_position_dirty = self.mouse_position_dirty.get();
-                self.mouse_position_dirty.set(false);
-                (was_dirty, mouse_position_dirty)
+                let pointer_position_changed = self.pointer_position_changed.get();
+                self.pointer_position_changed.set(false);
+                UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
         } else {
-            (false, false)
+            default()
         }
     }
-}poprawic animation loop - jak za duzo skipownych klatek to zrobic limit!
+}
 
 impl AsRef<Scene> for Scene {
     fn as_ref(&self) -> &Scene {

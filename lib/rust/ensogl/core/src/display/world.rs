@@ -299,10 +299,9 @@ impl WorldData {
         self.on.before_frame.run_all(time);
         self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        let (scene_was_dirty, mouse_was_dirty) = self.default_scene.update(time);
-        // DEBUG!("scene_was_dirty: {scene_was_dirty:?}");
+        let update_status = self.default_scene.update(time);
         self.garbage_collector.mouse_events_handled();
-        self.default_scene.render(scene_was_dirty, mouse_was_dirty);
+        self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
     }
