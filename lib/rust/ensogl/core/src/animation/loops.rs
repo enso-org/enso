@@ -196,6 +196,7 @@ where
 /// callback will be used instead.
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
+#[allow(missing_docs)]
 pub struct FixedFrameRateSampler<Callback, OnTooManyFramesSkipped> {
     pub max_skipped_frames:     usize,
     frame_time:                 Duration,
