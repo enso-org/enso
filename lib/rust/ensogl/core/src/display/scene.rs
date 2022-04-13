@@ -522,10 +522,10 @@ impl Renderer {
     }
 
     /// Run the renderer.
-    pub fn run(&self, was_updated: bool) {
+    pub fn run(&self, was_updated: bool, mouse_was_dirty: bool) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
             debug!(self.logger, "Running.", || {
-                composer.run(was_updated);
+                composer.run(was_updated, mouse_was_dirty);
             })
         }
     }
@@ -732,6 +732,7 @@ pub struct SceneData {
     pub bg_color_var:         style::Var,
     pub bg_color_change:      callback::Handle,
     pub frp:                  Frp,
+    pub mouse_position_dirty: Rc<Cell<bool>>,
     extensions:               Extensions,
     disable_context_menu:     Rc<EventListenerHandle>,
 }
@@ -784,6 +785,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
+        let mouse_position_dirty = default();
         Self {
             display_object,
             dom,
@@ -806,6 +808,7 @@ impl SceneData {
             bg_color_var,
             bg_color_change,
             frp,
+            mouse_position_dirty,
             extensions,
             disable_context_menu,
         }
@@ -926,8 +929,8 @@ impl SceneData {
         });
     }
 
-    pub fn render(&self, was_updated: bool) {
-        self.renderer.run(was_updated);
+    pub fn render(&self, was_updated: bool, mouse_was_dirty: bool) {
+        self.renderer.run(was_updated, mouse_was_dirty);
         // WebGL `flush` should be called when expecting results such as queries, or at completion
         // of a rendering frame. Flush tells the implementation to push all pending commands out
         // for execution, flushing them out of the queue, instead of waiting for more commands to
@@ -978,6 +981,7 @@ impl SceneData {
         let network = &self.frp.network;
         let shapes = &self.shapes;
         let target = &self.mouse.target;
+        let mouse_position_dirty = &self.mouse_position_dirty;
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
@@ -986,6 +990,7 @@ impl SceneData {
                 pressed.borrow_mut().insert(*button,current_target);
                 shapes.with_mouse_target(current_target, |t| t.mouse_down.emit(button));
             });
+
             eval self.mouse.frp.up ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
@@ -993,6 +998,8 @@ impl SceneData {
                 }
                 shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
             });
+
+            eval self.mouse.frp.position ((_) mouse_position_dirty.set(true));
         }
     }
 
@@ -1102,7 +1109,7 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, time: animation::TimeInfo) -> bool {
+    pub fn update(&self, time: animation::TimeInfo) -> (bool, bool) {
         if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
                 let mut was_dirty = false;
@@ -1116,13 +1123,16 @@ impl Scene {
                 was_dirty = was_dirty || self.update_symbols();
                 self.handle_mouse_over_and_out_events();
                 was_dirty = was_dirty || context.shader_compiler.run(time);
-                was_dirty
+
+                let mouse_position_dirty = self.mouse_position_dirty.get();
+                self.mouse_position_dirty.set(false);
+                (was_dirty, mouse_position_dirty)
             })
         } else {
-            false
+            (false, false)
         }
     }
-}
+}poprawic animation loop - jak za duzo skipownych klatek to zrobic limit!
 
 impl AsRef<Scene> for Scene {
     fn as_ref(&self) -> &Scene {

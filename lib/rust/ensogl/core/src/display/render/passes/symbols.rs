@@ -90,7 +90,7 @@ impl pass::Definition for SymbolsRenderPass {
         self.framebuffers = Some(Framebuffers::new(composed_fb, mask_fb, layer_fb));
     }
 
-    fn run(&mut self, instance: &pass::Instance, requires_refresh: bool) {
+    fn run(&mut self, instance: &pass::Instance, requires_refresh: bool, _mouse_was_dirty: bool) {
         if requires_refresh {
             let framebuffers = self.framebuffers.as_ref().unwrap();
 

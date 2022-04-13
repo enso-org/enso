@@ -18,7 +18,7 @@ use crate::system::gpu::data::texture::class::TextureOps;
 #[allow(missing_docs)]
 pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
     fn initialize(&mut self, _instance: &Instance) {}
-    fn run(&mut self, _instance: &Instance, requires_refresh: bool);
+    fn run(&mut self, _instance: &Instance, requires_refresh: bool, mouse_was_dirty: bool);
 }
 
 clone_boxed!(Definition);
