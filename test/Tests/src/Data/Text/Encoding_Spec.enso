@@ -1,9 +1,10 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 import Standard.Base.Data.Text.Encoding as Encoding_Module
 
 import Standard.Test
+import Standard.Test.Problems
 
 spec =
     Test.group "Encoding object" <|
@@ -38,9 +39,13 @@ spec =
         Test.specify "should convert an array of bytes to text" <|
             Text.from_bytes test_ascii Encoding.ascii . should_equal test
 
-    Test.group "Invalid ASCII" <|
-        test = "Ok But Not Ok æ"
-        IO.println <| test.bytes Encoding.ascii
+    Test.group "Invalid ASCII should raise a warning" <|
+        test = 'Hello World!\uFFFD'
+        test_ascii = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, -56]
+        action = Text.from_bytes test_ascii Encoding.ascii on_problems=_
+        tester result = result . should_equal test
+        problems = [Encoding_Error "Encoding issues at 12"]
+        Problems.test_problem_handling action problems tester
 
     Test.group "UTF_8" <|
         kshi = '\u0915\u094D\u0937\u093F'

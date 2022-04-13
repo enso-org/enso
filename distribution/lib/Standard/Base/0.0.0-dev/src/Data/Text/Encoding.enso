@@ -102,4 +102,8 @@ type Encoding
     windows_1258 : Encoding
     windows_1258 = Encoding "windows-1258"
 
+## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error (message:Text)
+
+Encoding_Error.to_display_text : Text
+Encoding_Error.to_display_text = "Encoding_Error: " + this.message

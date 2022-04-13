@@ -180,6 +180,15 @@ public class Text_Utils {
     return new String(codepoints, 0, codepoints.length);
   }
 
+  private static CharBuffer resize(CharBuffer old) {
+    int n = old.capacity();
+    int new_n = 2*n + 1;
+    CharBuffer o = CharBuffer.allocate(new_n);
+    old.flip();
+    o.put(old);
+    return o;
+  }
+
   /**
    * Converts an array of encoded bytes into a string.
    *
@@ -197,15 +206,22 @@ public class Text_Utils {
         .onUnmappableCharacter(CodingErrorAction.REPORT);
 
     ByteBuffer in = ByteBuffer.wrap(bytes);
-    int n = (int)(bytes.length * decoder.averageCharsPerByte());
-    CharBuffer out = CharBuffer.allocate(n);
+    CharBuffer out = CharBuffer.allocate(
+        (int)(bytes.length * decoder.averageCharsPerByte()));
 
     StringBuilder warnings = null;
     while (in.hasRemaining()) {
-      int position = in.position();
       CoderResult cr = decoder.decode(in, out, true);
       if (cr.isMalformed() || cr.isUnmappable()) {
+        // Get current position for error reporting
+        int position = in.position();
+
+        if (out.remaining() < INVALID_CHARACTER.length()) {
+          out = resize(out);
+        }
         out.put(INVALID_CHARACTER);
+        in.position(in.position() + cr.length());
+
         if (warnings == null) {
           warnings = new StringBuilder();
           warnings.append("Encoding issues at ");
@@ -218,12 +234,7 @@ public class Text_Utils {
         decoder.flush(out);
         break;
       } else if (cr.isOverflow()) {
-        // Ensure progress; n might be 0!
-        n = 2*n + 1;
-        CharBuffer o = CharBuffer.allocate(n);
-        out.flip();
-        o.put(out);
-        out = o;
+        out = resize(out);
       }
     }
 
