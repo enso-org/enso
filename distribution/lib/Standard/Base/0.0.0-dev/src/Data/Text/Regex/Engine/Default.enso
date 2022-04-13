@@ -566,7 +566,7 @@ type Pattern
                 all_matches = this.match input
                 all_matches_count = if all_matches.is_nothing then 0 else all_matches.length
 
-                if all_matches_count <= 0 then input else
+                if all_matches_count == 0 then input else
                     internal_matcher = this.build_matcher input start end
                     buffer = StringBuffer.new
                     last_match_index = all_matches_count - 1
