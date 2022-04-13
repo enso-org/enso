@@ -86,7 +86,7 @@ prepare_aggregate_columns aggregates table =
    To be used when `new_name` is `Nothing`.
 
    Assumes that the `Aggregate_Column` is resolved. You may need to transform it
-   with `resolve_columns` first.
+   with `resolve_aggregate` first.
 default_aggregate_column_name aggregate_column =
     case aggregate_column of
         Group_By c _ -> c.name

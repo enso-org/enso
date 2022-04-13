@@ -9,6 +9,8 @@ import project.Database.Common_Spec
 import project.Database.Helpers.Name_Generator
 import project.Common_Table_Spec
 import project.Aggregate_Spec
+from Standard.Table.Data.Aggregate_Column import all
+from Standard.Database.Data.Sql import Sql_Type
 
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
@@ -18,17 +20,61 @@ postgres_specific_spec connection pending =
         t.insert ["a", Nothing, False, 1.2, 0.000000000001]
         t.insert ["abc", Nothing, Nothing, 1.3, Nothing]
         t.insert ["def", 42, True, 1.4, 10]
+
         Test.specify "should return Table information" <|
             i = t.info
             i.index . to_vector . should_equal ["strs", "ints", "bools", "reals", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 2]
             i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4", "float8"]
+
+        Test.specify "should return Table information, also for aggregated results" <|
+            i = t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
+            i.index . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
+            i.at "Items Count" . to_vector . should_equal [1, 1, 1]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "BIGINT", "BIGINT"]
+
         Test.specify "should infer standard types correctly" <|
             t.at "strs" . sql_type . is_definitely_text . should_be_true
             t.at "ints" . sql_type . is_definitely_integer . should_be_true
             t.at "bools" . sql_type . is_definitely_boolean . should_be_true
             t.at "reals" . sql_type . is_definitely_double . should_be_true
         connection.execute_update 'DROP TABLE "'+tinfo+'"'
+
+    Test.group "[PostgreSQL] Table.aggregate should correctly infer result types" pending=pending <|
+        name = Name_Generator.random_name "Ttypes"
+        connection.execute_update 'CREATE TEMPORARY TABLE "'+name+'" ("txt" VARCHAR, "i1" SMALLINT, "i2" INT, "i3" BIGINT, "i4" NUMERIC, "r1" REAL, "r2" DOUBLE PRECISION, "bools" BOOLEAN)'
+        t = connection.access_table name
+        Test.specify "Concatenate, Shortest and Longest" <|
+            r = t.aggregate [Concatenate "txt", Shortest "txt", Longest "txt"]
+            r.columns.at 0 . sql_type . should_equal Sql_Type.text
+            r.columns.at 1 . sql_type . should_equal Sql_Type.text
+            r.columns.at 2 . sql_type . should_equal Sql_Type.text
+
+        Test.specify "Counts" <|
+            r = t.aggregate [Count, Count_Empty "txt", Count_Not_Empty "txt", Count_Distinct "i1", Count_Not_Nothing "i2", Count_Nothing "i3"]
+            r.columns.length . should_equal 6
+            r.columns.each column->
+                column.sql_type . should_equal Sql_Type.bigint
+
+        Test.specify "Sum" <|
+            r = t.aggregate [Sum "i1", Sum "i2", Sum "i3", Sum "i4", Sum "r1", Sum "r2"]
+            r.columns.at 0 . sql_type . should_equal Sql_Type.bigint
+            r.columns.at 1 . sql_type . should_equal Sql_Type.bigint
+            r.columns.at 2 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 3 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 4 . sql_type . should_equal Sql_Type.real
+            r.columns.at 5 . sql_type . should_equal Sql_Type.double
+
+        Test.specify "Average" <|
+            r = t.aggregate [Average "i1", Average "i2", Average "i3", Average "i4", Average "r1", Average "r2"]
+            r.columns.at 0 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 1 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 2 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 3 . sql_type . should_equal Sql_Type.numeric
+            r.columns.at 4 . sql_type . should_equal Sql_Type.double
+            r.columns.at 5 . sql_type . should_equal Sql_Type.double
+
+        connection.execute_update 'DROP TABLE "'+name+'"'
 
 run_tests connection pending=Nothing =
     prefix = "[PostgreSQL] "
@@ -39,10 +85,11 @@ run_tests connection pending=Nothing =
         Ref.put name_counter ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
-        in_mem_table = Materialized_Table.new <| columns.map description-> [description.at 0, description.at 2]
-        table = connection.upload_table name in_mem_table
-        tables.append name
-        table
+        in_mem_table = Materialized_Table.new columns
+        case connection.upload_table name in_mem_table of
+            table ->
+                tables.append name
+                table
     clean_tables table_names =
         table_names.each name->
             sql = 'DROP TABLE "' + name + '"'
@@ -52,14 +99,14 @@ run_tests connection pending=Nothing =
     here.postgres_specific_spec connection pending=pending
     Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=True pending=pending
 
-    selection = Aggregate_Spec.Test_Selection text_shortest_longest=True first_last_row_order=False aggregation_problems=False
+    selection = Aggregate_Spec.Test_Selection first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
     tables.append empty_agg_table.name
     materialize = .to_dataframe
-    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table materialize selection pending=pending
+    Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection pending=pending
 
     clean_tables tables.to_vector
 

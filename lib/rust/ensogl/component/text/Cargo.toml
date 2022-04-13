@@ -17,6 +17,7 @@ ensogl-core = { path = "../../core" }
 ensogl-text-embedded-fonts = { path = "embedded-fonts" }
 ensogl-text-msdf-sys = { path = "msdf-sys" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+const_format = "0.2.22"
 xi-rope = { version = "0.3.0" }
 
 [dev-dependencies]

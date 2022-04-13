@@ -99,3 +99,9 @@ mod tests {
         ERROR!("test");
     }
 }
+
+/// Instruction of how to report important errors.
+pub const REPORT_INSTRUCTION: &str = "We will be thankful for reporting this error here: \
+https://github.com/enso-org/enso/issues. Please, provide us with as much information as possible, \
+including your system specification, browser version, and a detailed description of the steps you \
+made before this error happened.";

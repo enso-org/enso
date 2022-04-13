@@ -47,6 +47,12 @@
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
 
+#### EnsoGL (rendering engine)
+
+- [You can change font and set letters bold in the <code>text::Area</code>
+  component][3385]. Use the <code>set_font</code> and
+  <code>set_bold_bytes</code> respectively.
+
 #### Enso Standard Library
 
 - [Implemented `Vector.distinct` allowing to remove duplicate elements from a
@@ -94,9 +100,11 @@
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
 - [Added warning handling to `Table.aggregate`][3349]
-- [Improved performance of `Table.aggregate` and full warnings implementation]
-  [3364]
+- [Improved performance of `Table.aggregate` and full warnings
+  implementation][3364]
 - [Implemented `Text.reverse`][3377]
+- [Implemented support for most Table aggregations in the Database
+  backend.][3383]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -150,6 +158,9 @@
 [3379]: https://github.com/enso-org/enso/pull/3379
 [3381]: https://github.com/enso-org/enso/pull/3381
 [3391]: https://github.com/enso-org/enso/pull/3391
+[3383]: https://github.com/enso-org/enso/pull/3383
+[3385]: https://github.com/enso-org/enso/pull/3385
+[3392]: https://github.com/enso-org/enso/pull/3392
 
 #### Enso Compiler
 

@@ -12,7 +12,7 @@ use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use data::opt_vec::OptVec;
 
@@ -93,7 +93,8 @@ impl SymbolRegistry {
         SymbolId::new(index as u32)
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
         for symbol in &*self.symbols.borrow() {

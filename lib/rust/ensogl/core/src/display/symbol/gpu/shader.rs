@@ -3,17 +3,17 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
-use crate::system::gpu::shader::*;
 
 use crate::control::callback;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::material::VarDecl;
-use crate::display::symbol::shader;
-use crate::display::symbol::shader::ContextLossOrError;
 use crate::display::symbol::ScopeType;
-use crate::system::Context;
+use crate::system::gpu::shader;
+use crate::system::gpu::shader::compiler as shader_compiler;
+use crate::system::gpu::shader::glsl;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use web_sys::WebGlProgram;
@@ -58,18 +58,19 @@ shared! { Shader
 /// Shader keeps track of a shader and related WebGL Program.
 #[derive(Debug)]
 pub struct ShaderData {
-    context           : Option<Context>,
-    geometry_material : Material,
-    surface_material  : Material,
-    program           : Option<WebGlProgram>,
-    shader            : Option<builder::Shader>,
-    dirty             : Dirty,
-    logger            : Logger,
-    stats             : Stats,
+    context             : Option<Context>,
+    geometry_material   : Material,
+    surface_material    : Material,
+    program             : Rc<RefCell<Option<shader::Program>>>,
+    shader_compiler_job : Option<shader_compiler::JobHandler>,
+    dirty               : Dirty,
+    logger              : Logger,
+    stats               : Stats,
 }
 
 impl {
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&mut self, context:Option<&Context>) {
         if context.is_some() {
             self.dirty.set();
@@ -77,8 +78,12 @@ impl {
         self.context = context.cloned();
     }
 
-    pub fn program(&self) -> Option<WebGlProgram> {
-        self.program.clone()
+    pub fn program(&self) -> Option<shader::Program> {
+        self.program.borrow().clone()
+    }
+
+    pub fn native_program(&self) -> Option<WebGlProgram> {
+        self.program.borrow().as_ref().map(|t| t.native.clone())
     }
 
     pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
@@ -94,29 +99,30 @@ impl {
     /// Creates new shader with attached callback.
     pub fn new<OnMut:callback::NoArgs>(logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_shader_count();
-        let context           = default();
+        let context = default();
         let geometry_material = default();
-        let surface_material  = default();
-        let program           = default();
-        let shader            = default();
-        let dirty_logger      = Logger::new_sub(&logger,"dirty");
-        let dirty             = Dirty::new(dirty_logger,Box::new(on_mut));
-        let stats             = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,shader,dirty,logger,stats}
+        let surface_material = default();
+        let program = default();
+        let shader_compiler_job = default();
+        let dirty_logger = Logger::new_sub(&logger,"dirty");
+        let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
+        let stats = stats.clone_ref();
+        Self {context,geometry_material,surface_material,program,shader_compiler_job,dirty,logger,stats}
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self, bindings:&[VarBinding]) {
+    pub fn update<F: 'static + Fn(&[VarBinding], &shader::Program)>
+    (&mut self, bindings:Vec<VarBinding>, on_ready:F) {
         debug!(self.logger, "Updating.", || {
             if let Some(context) = &self.context {
                 if self.dirty.check_all() {
 
                     self.stats.inc_shader_compile_count();
 
-                    let mut shader_cfg     = shader::builder::ShaderConfig::new();
-                    let mut shader_builder = shader::builder::ShaderBuilder::new();
+                    let mut shader_cfg     = builder::ShaderConfig::new();
+                    let mut shader_builder = builder::ShaderBuilder::new();
 
-                    for binding in bindings {
+                    for binding in &bindings {
                         let name = &binding.name;
                         let tp   = &binding.decl.tp;
                         match binding.scope {
@@ -145,21 +151,25 @@ impl {
                     let vertex_code = self.geometry_material.code().clone();
                     let fragment_code = self.surface_material.code().clone();
                     shader_builder.compute(&shader_cfg,vertex_code,fragment_code);
-                    let shader = shader_builder.build();
-                    let program = compile_program(context,&shader.vertex,&shader.fragment);
-                    match program {
-                        Ok(program) => {
-                            self.program = Some(program);
-                            self.shader = Some(shader);
-                        }
-                        Err(ContextLossOrError::Error(err)) => error!(self.logger, "{err}"),
-                        Err(ContextLossOrError::ContextLoss) => {}
-                    }
+                    let code = shader_builder.build();
 
+                    *self.program.borrow_mut() = None;
+                    let program = self.program.clone_ref();
+                    let handler = context.shader_compiler.submit(code, move |p| {
+                        on_ready(&bindings,&p);
+                        *program.borrow_mut() = Some(p);
+                    });
+                    self.cancel_previous_shader_compiler_job_and_use_new_one(handler);
                     self.dirty.unset_all();
                 }
             }
         })
+    }
+
+    fn cancel_previous_shader_compiler_job_and_use_new_one
+    (&mut self, handler: shader_compiler::JobHandler) {
+        // Dropping the previous handler.
+        self.shader_compiler_job = Some(handler);
     }
 
     /// Traverses the shader definition and collects all attribute names.
@@ -167,11 +177,6 @@ impl {
         let geometry_material_inputs = self.geometry_material.inputs().clone();
         let surface_material_inputs  = self.surface_material.inputs().clone();
         geometry_material_inputs.into_iter().chain(surface_material_inputs).collect()
-    }
-
-    /// Get the generated shader, if it was already generated.
-    pub fn shader(&self) -> Option<builder::Shader> {
-        self.shader.clone()
     }
 }}
 
