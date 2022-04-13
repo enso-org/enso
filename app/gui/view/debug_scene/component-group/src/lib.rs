@@ -23,13 +23,13 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ide_view_component_group as component_group_view;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
+use ide_view_component_group as component_group_view;
 
 
 
