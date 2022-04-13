@@ -16,67 +16,6 @@ use ensogl_text as text;
 // === Constants ===
 // =================
 
-const HEADER_FONT: &str = "DejaVuSans-Bold";
-
-
-
-// ==========================
-// === Shapes Definitions ===
-// ==========================
-
-
-// === Background ===
-
-/// The background of the Component Group View.
-pub mod background {
-    use super::*;
-
-    ensogl_core::define_shape_system! {
-        below = [list_view::background];
-        (style:Style, color:Vector4) {
-            let sprite_width: Var<Pixels> = "input_size.x".into();
-            let sprite_height: Var<Pixels> = "input_size.y".into();
-            let color = Var::<Rgba>::from(color);
-            let shape = Rect((&sprite_width, &sprite_height)).fill(color);
-            shape.into()
-        }
-    }
-}
-
-
-
-// =======================
-// === Header Geometry ===
-// =======================
-
-#[derive(Debug, Copy, Clone, Default)]
-struct HeaderGeometry {
-    height:         f32,
-    padding_left:   f32,
-    padding_right:  f32,
-    padding_bottom: f32,
-}
-
-impl HeaderGeometry {
-    fn from_style(style: &StyleWatchFrp, network: &frp::Network) -> frp::Sampler<Self> {
-        let height = style.get_number(theme::header::height);
-        let padding_left = style.get_number(theme::header::padding::left);
-        let padding_right = style.get_number(theme::header::padding::right);
-        let padding_bottom = style.get_number(theme::header::padding::bottom);
-
-        frp::extend! { network
-            init <- source_();
-            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
-                |_,&height,&padding_left,&padding_right,&padding_bottom|
-                    Self{height,padding_left,padding_right,padding_bottom}
-            );
-            theme_sampler <- theme.sampler();
-        }
-        init.emit(());
-        theme_sampler
-    }
-}
-
 
 
 // ===========
@@ -97,40 +36,12 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        let header_text_size = style.get_number(theme::header::text::size);
         frp::extend! { network
-
-            // === Geometry ===
-
-            let header_geometry = HeaderGeometry::from_style(style, network);
-            size_and_header_geometry <- all(&input.set_size, &header_geometry);
-            eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
-
-
-            // === Header ===
-
-            init <- source_();
-            header_text_size <- all(&header_text_size, &init)._0();
-            model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
-            _set_header <- input.set_header_text.map2(&size_and_header_geometry, f!(
-                (t,(size,hdr_geom)) {
-                    model.header_text.replace(t.clone());
-                    model.resize(*size, *hdr_geom);
-                })
-            );
-            eval input.set_background_color((c)
-                model.background.color.set(c.into()));
-
-
-            // === Entries ===
-
-            model.entries.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
-            model.entries.show_background_shadow(false);
-            model.entries.set_background_corners_radius(0.0);
-            model.entries.set_background_color <+ input.set_background_color;
-            model.entries.set_entries <+ input.set_entries;
+            model.group.set_size <+ input.set_size;
+            model.group.set_header_text <+ input.set_header_text;
+            model.group.set_entries <+ input.set_entries;
+            model.group.set_background_color <+ input.set_background_color;
         }
-        init.emit(());
     }
 }
 
@@ -144,10 +55,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
-    header:         text::Area,
-    header_text:    Rc<RefCell<String>>,
-    background:     background::View,
-    entries:        list_view::ListView<list_view::entry::Label>,
+    group: crate::View,
 }
 
 impl display::Object for Model {
@@ -158,54 +66,19 @@ impl display::Object for Model {
 
 impl component::Model for Model {
     fn label() -> &'static str {
-        "ComponentGroupView"
+        "WideComponentGroupView"
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
-        let header_text = default();
         let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let header = text::Area::new(app);
-        let entries = list_view::ListView::new(app);
-        display_object.add_child(&background);
-        display_object.add_child(&header);
-        display_object.add_child(&entries);
+        let group = app.new_view::<crate::View>();
+        display_object.add_child(&group);
 
-        header.set_font(HEADER_FONT);
-        let label_layer = &app.display.default_scene.layers.label;
-        header.add_to_scene_layer(label_layer);
-
-        Model { display_object, header, header_text, background, entries }
+        Model { display_object, group }
     }
 }
 
 impl Model {
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
-        // === Background ===
-
-        self.background.size.set(size);
-
-
-        // === Header Text ===
-
-        let header_padding_left = header_geometry.padding_left;
-        let header_text_x = -size.x / 2.0 + header_padding_left;
-        let header_text_height = self.header.height.value();
-        let header_padding_bottom = header_geometry.padding_bottom;
-        let header_height = header_geometry.height;
-        let header_bottom_y = size.y / 2.0 - header_height;
-        let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
-        self.header.set_position_xy(Vector2(header_text_x, header_text_y));
-        let header_padding_right = header_geometry.padding_right;
-        let max_text_width = size.x - header_padding_left - header_padding_right;
-        self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
-
-
-        // === Entries ===
-
-        self.entries.resize(size - Vector2(0.0, header_height));
-        self.entries.set_position_y(-header_height / 2.0);
-    }
 }
 
 
