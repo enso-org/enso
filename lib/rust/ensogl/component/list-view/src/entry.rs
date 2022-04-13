@@ -67,7 +67,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     fn update(&self, model: &Self::Model);
 
     /// Resize the entry's view to fit a new width.
-    fn resize(&self, width_px: f32);
+    fn set_max_width(&self, max_width_px: f32);
 
     /// Set the layer of all [`text::Area`] components inside. The [`text::Area`] component is
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
@@ -133,7 +133,7 @@ impl Entry for Label {
         self.update_label_content();
     }
 
-    fn resize(&self, max_width_px: f32) {
+    fn set_max_width(&self, max_width_px: f32) {
         if self.max_width_px.get() != max_width_px {
             self.max_width_px.set(max_width_px);
             self.update_label_content();
@@ -198,8 +198,8 @@ impl Entry for GlyphHighlightedLabel {
         self.highlight.emit(&model.highlighted);
     }
 
-    fn resize(&self, width_px: f32) {
-        self.inner.resize(width_px);
+    fn set_max_width(&self, max_width_px: f32) {
+        self.inner.set_max_width(max_width_px);
     }
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
