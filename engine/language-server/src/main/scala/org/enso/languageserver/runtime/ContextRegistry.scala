@@ -1,7 +1,5 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
@@ -12,12 +10,16 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.MethodsSampler
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.searcher.SuggestionsRepo
 
+import java.util.UUID
+
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /** Registry handles execution context requests and communicates with runtime
   * connector.
@@ -72,6 +74,7 @@ final class ContextRegistry(
   import ContextRegistryProtocol._
 
   private val timeout = config.executionContext.requestTimeout
+  private val sampler = MethodsSampler("context-registry")
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -106,9 +109,11 @@ final class ContextRegistry(
           .foreach(_ ! update)
 
       case update: Api.ExecutionFailed =>
+        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionComplete =>
+        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionUpdate =>
@@ -160,6 +165,7 @@ final class ContextRegistry(
         }
 
       case PushContextRequest(client, contextId, stackItem) =>
+        sampler.start()
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
           val handler =

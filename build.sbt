@@ -686,7 +686,8 @@ lazy val `logging-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130",
+      "org.scalatest"   %% "scalatest"                    % scalatestVersion % Test
     )
   )
 
