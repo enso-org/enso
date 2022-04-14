@@ -61,12 +61,14 @@ class EditionsListDefinedComponentsHandler(
             .validate(definedLibraries)
 
           validationResults
-            .collect { case Left(error) => error }
+            .collect { case (_, Left(error)) => error }
             .foreach(logValidationError)
 
-          val validatedLibraries = validationResults
-            .collect { case Right(config) => config }
-          componentGroupsResolver.run(validatedLibraries)
+          val validatedLibraries = validationResults.collect {
+            case (libraryName, Right(componentGroups)) =>
+              libraryName -> componentGroups
+          }.toMap
+          componentGroupsResolver.resolveComponentGroups(validatedLibraries)
         }
         .map(EditionsListDefinedComponentsHandler.Result) pipeTo self
 
