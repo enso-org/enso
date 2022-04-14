@@ -761,6 +761,9 @@ class LibrariesTest extends BaseServerTest {
         .rightValue
 
       components should not be empty
+      components.map(_.library).toSet should contain theSameElementsAs Seq(
+        LibraryName("Standard", "Base")
+      )
 
       val currentEditionName = buildinfo.Info.currentEdition
       client.send(json"""
@@ -784,6 +787,10 @@ class LibrariesTest extends BaseServerTest {
         .rightValue
 
       components2 should not be empty
+      components2.map(_.library).toSet should contain theSameElementsAs Seq(
+        LibraryName("Standard", "Base")
+      )
+
     }
   }
 

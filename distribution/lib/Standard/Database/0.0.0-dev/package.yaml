@@ -16,7 +16,6 @@ component-groups:
     - Standard.Base.Select:
         exports:
           - Standard.Database.Data.Table.Table.at
-          - Standard.Database.Data.Table.Table.select
           - Standard.Database.Data.Table.Table.select_columns
           - Standard.Database.Data.Table.Table.rename_columns
     - Standard.Base.Join:

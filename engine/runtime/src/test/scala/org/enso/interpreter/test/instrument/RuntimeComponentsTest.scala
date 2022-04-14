@@ -6,8 +6,6 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
-  Component,
-  ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
   GroupName,
@@ -22,7 +20,7 @@ import org.graalvm.polyglot.Context
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, OptionValues}
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
@@ -36,6 +34,7 @@ class RuntimeComponentsTest
     extends AnyFlatSpec
     with TimeLimitedTests
     with Matchers
+    with OptionValues
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
@@ -241,15 +240,33 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-    val expectedComponents = Map(
-      LibraryName("Enso_Test", "Test") ->
-      context.pkg.config.componentGroups
-        .getOrElse(fail("Unexpected config value.")),
-      LibraryName("Standard", "Base") ->
-      RuntimeComponentsTest.standardBaseComponents,
-      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+//    val expectedComponents = Map(
+//      LibraryName("Enso_Test", "Test") ->
+//      context.pkg.config.componentGroups
+//        .getOrElse(fail("Unexpected config value.")),
+//      LibraryName("Standard", "Base") ->
+//      RuntimeComponentsTest.standardBaseComponents,
+//      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+//    )
+//    components should contain theSameElementsAs expectedComponents
+
+    components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
+    context.pkg.config.componentGroups
+      .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Standard", "Base"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupName("Input"),
+      GroupName("Web"),
+      GroupName("Parse"),
+      GroupName("Select"),
+      GroupName("Join"),
+      GroupName("Transform"),
+      GroupName("Output")
     )
-    components should contain theSameElementsAs expectedComponents
 
     context.consumeOut shouldEqual List()
   }
@@ -309,22 +326,47 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-    val expectedComponents = Map(
-      LibraryName("Enso_Test", "Test") ->
-      context.pkg.config.componentGroups
-        .getOrElse(fail("Unexpected config value.")),
-      LibraryName("Standard", "Base") ->
-      RuntimeComponentsTest.standardBaseComponents,
-      LibraryName("Standard", "Test") -> ComponentGroups.empty,
-      LibraryName("Standard", "Database") ->
-      RuntimeComponentsTest.standardDatabaseComponents,
-      LibraryName("Standard", "Visualization") -> ComponentGroups.empty,
-      LibraryName("Standard", "Geo")           -> ComponentGroups.empty,
-      LibraryName("Standard", "Table") ->
-      RuntimeComponentsTest.standardTableComponents,
-      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+
+    components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
+    context.pkg.config.componentGroups
+      .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Standard", "Base"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupName("Input"),
+      GroupName("Web"),
+      GroupName("Parse"),
+      GroupName("Select"),
+      GroupName("Join"),
+      GroupName("Transform"),
+      GroupName("Output")
     )
-    components should contain theSameElementsAs expectedComponents
+
+    components
+      .get(LibraryName("Standard", "Database"))
+      .value
+      .extendedGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform"))
+    )
+
+    components
+      .get(LibraryName("Standard", "Table"))
+      .value
+      .extendedGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Output"))
+    )
 
     // check that component group symbols can be resolved
     val suggestionSymbols = responses
@@ -352,213 +394,12 @@ class RuntimeComponentsTest
       }
       .map(_.name)
 
+    componentSymbols should not be empty
     componentSymbols.foreach { component =>
       suggestionSymbols should contain(component)
     }
 
     context.consumeOut shouldEqual List()
   }
-
-}
-object RuntimeComponentsTest {
-
-  def getComponentSelfType(suggestion: Suggestion): Option[String] =
-    suggestion match {
-      case symbol: Suggestion.Module => Some(symbol.module)
-      case symbol: Suggestion.Method => Some(symbol.selfType)
-      case _                         => None
-    }
-
-  val standardBaseComponents: ComponentGroups =
-    ComponentGroups(
-      List(
-        ComponentGroup(
-          GroupName("Input"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.System.File.new", None),
-            Component("Standard.Base.System.File.read", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Web"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Network.Http.new", None),
-            Component("Standard.Base.Network.Http.fetch", None),
-            Component("Standard.Base.Network.Http.get", None),
-            Component("Standard.Base.Network.Http.post", None),
-            Component("Standard.Base.Network.Http.post_form", None),
-            Component("Standard.Base.Network.Http.post_json", None),
-            Component("Standard.Base.Network.Http.put", None),
-            Component("Standard.Base.Network.Http.put_json", None),
-            Component("Standard.Base.Network.Http.head", None),
-            Component("Standard.Base.Network.Http.options", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Parse"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Data.Json.parse", None),
-            Component("Standard.Base.Data.Text.Regex.compile", None),
-            Component("Standard.Base.Data.Text.Regex.escape", None),
-            Component("Standard.Base.Data.Text.Regex.from_flags", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Select"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Data.Vector.Vector.tail", None),
-            Component("Standard.Base.Data.Vector.Vector.filter", None),
-            Component("Standard.Base.Data.Vector.Vector.find", None),
-            Component("Standard.Base.Data.Vector.Vector.at", None),
-            Component("Standard.Base.Data.Vector.Vector.take", None),
-            Component("Standard.Base.Data.Vector.Vector.partition", None),
-            Component("Standard.Base.Data.Vector.Vector.distinct", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Join"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Data.Vector.Vector.append", None),
-            Component("Standard.Base.Data.Vector.Vector.prepend", None),
-            Component("Standard.Base.Data.Vector.Vector.zip", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Transform"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.Data.Vector.Vector.map", None),
-            Component("Standard.Base.Data.Vector.Vector.sort", None),
-            Component("Standard.Base.Data.Vector.Vector.distinct", None)
-          )
-        ),
-        ComponentGroup(
-          GroupName("Output"),
-          None,
-          None,
-          Seq(
-            Component("Standard.Base.System.File.File.write", None)
-          )
-        )
-      ),
-      List()
-    )
-
-  val standardDatabaseComponents: ComponentGroups =
-    ComponentGroups(
-      List(),
-      List(
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
-          Seq(
-            Component("Standard.Database.Connection.Database.connect", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
-          Seq(
-            Component("Standard.Database.Data.Table.Table.at", None),
-            Component("Standard.Database.Data.Table.Table.select", None),
-            Component(
-              "Standard.Database.Data.Table.Table.select_columns",
-              None
-            ),
-            Component("Standard.Database.Data.Table.Table.rename_columns", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
-          Seq(
-            Component("Standard.Database.Data.Table.Table.join", None),
-            Component("Standard.Database.Data.Table.Table.group", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(
-            LibraryName("Standard", "Base"),
-            GroupName("Transform")
-          ),
-          Seq(
-            Component(
-              "Standard.Database.Data.Table.Table.remove_columns",
-              None
-            ),
-            Component(
-              "Standard.Database.Data.Table.Table.reorder_columns",
-              None
-            ),
-            Component("Standard.Database.Data.Table.Table.sort_columns", None),
-            Component("Standard.Database.Data.Table.Table.sort", None),
-            Component("Standard.Database.Data.Column.Column.to_table", None)
-          )
-        )
-      )
-    )
-
-  val standardTableComponents: ComponentGroups =
-    ComponentGroups(
-      List(),
-      List(
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
-          Seq(
-            Component("Standard.Table.Data.Table.new", None),
-            Component("Standard.Table.Data.Table.from_rows", None),
-            Component("Standard.Table.Data.Column.from_vector", None),
-            Component("Standard.Table.Io.Csv.from_csv", None),
-            Component("Standard.Table.Io.Spreadsheet.from_xlsx", None),
-            Component("Standard.Table.Io.Spreadsheet.from_xls", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
-          Seq(
-            Component("Standard.Table.Data.Table.Table.at", None),
-            Component("Standard.Table.Data.Table.Table.select", None),
-            Component("Standard.Table.Data.Table.Table.select_columns", None),
-            Component("Standard.Table.Data.Table.Table.rename_columns", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
-          Seq(
-            Component("Standard.Table.Data.Table.Table.join", None),
-            Component("Standard.Table.Data.Table.Table.group", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(
-            LibraryName("Standard", "Base"),
-            GroupName("Transform")
-          ),
-          Seq(
-            Component("Standard.Table.Data.Table.Table.remove_columns", None),
-            Component("Standard.Table.Data.Table.Table.reorder_columns", None),
-            Component("Standard.Table.Data.Table.Table.sort_columns", None),
-            Component("Standard.Table.Data.Table.Table.sort", None),
-            Component("Standard.Table.Data.Table.Table.to_csv", None),
-            Component("Standard.Table.Data.Column.Column.to_table", None)
-          )
-        ),
-        ExtendedComponentGroup(
-          GroupReference(LibraryName("Standard", "Base"), GroupName("Output")),
-          Seq(
-            Component("Standard.Table.Data.Table.Table.write_csv", None),
-            Component("Standard.Table.Data.Table.Table.write_xlsx", None)
-          )
-        )
-      )
-    )
 
 }

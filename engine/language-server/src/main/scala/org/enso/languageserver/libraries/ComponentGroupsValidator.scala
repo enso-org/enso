@@ -103,6 +103,17 @@ final class ComponentGroupsValidator {
       .getOrElse(Right(componentGroups))
   }
 
+  /** Internal method that runs validation functions. The validation runs on
+    * the collection on key-value pairs, where the value of the collection is
+    * validated and contains either a validated value or a validation error.
+    *
+    * @param init the collection of key-value pairs that should be validated
+    * @param validators the list of validation functions
+    * @tparam K the type of keys in the validated collection
+    * @tparam V the type of values in the validated collection
+    * @tparam E the type of validation error
+    * @return the validated collection of key-value pairs
+    */
   private def runValidation[K, V, E](init: Iterable[(K, Either[E, V])])(
     validators: K => V => Either[E, V]*
   ): Iterable[(K, Either[E, V])] =

@@ -21,18 +21,17 @@ component-groups:
     - Standard.Base.Select:
         exports:
           - Standard.Table.Data.Table.Table.at
-          - Standard.Table.Data.Table.Table.select
           - Standard.Table.Data.Table.Table.select_columns
           - Standard.Table.Data.Table.Table.rename_columns
+          - Standard.Table.Data.Table.Table.remove_columns
+          - Standard.Table.Data.Table.Table.reorder_columns
+          - Standard.Table.Data.Table.Table.sort_columns
     - Standard.Base.Join:
         exports:
           - Standard.Table.Data.Table.Table.join
           - Standard.Table.Data.Table.Table.group
     - Standard.Base.Transform:
         exports:
-          - Standard.Table.Data.Table.Table.remove_columns
-          - Standard.Table.Data.Table.Table.reorder_columns
-          - Standard.Table.Data.Table.Table.sort_columns
           - Standard.Table.Data.Table.Table.sort
           - Standard.Table.Data.Table.Table.to_csv
           - Standard.Table.Data.Column.Column.to_table
