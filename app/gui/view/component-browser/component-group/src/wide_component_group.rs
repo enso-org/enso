@@ -8,8 +8,8 @@ use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
-use list_view::entry::AnyModelProvider;
 use ensogl_text as text;
+use list_view::entry::AnyModelProvider;
 
 
 
@@ -26,23 +26,19 @@ pub struct ModelProvider {
 
 impl ModelProvider {
     pub fn new(inner: &AnyModelProvider<Entry>, index: usize) -> AnyModelProvider<Entry> {
-        AnyModelProvider::new(Self { inner : inner.clone_ref(), index: Immutable(index) })
+        AnyModelProvider::new(Self { inner: inner.clone_ref(), index: Immutable(index) })
     }
 }
 
 impl list_view::entry::ModelProvider<Entry> for ModelProvider {
     fn entry_count(&self) -> usize {
-        self.inner.entry_count() / 3
+        let count = self.inner.entry_count();
+        let count = count / 3 + if count % 3 > 0 && *self.index < count % 3 { 1 } else { 0 };
+        count
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<String>
-    {
-        DEBUG!("Getting entry with id={id}");
-        if *self.index == id % 3 {
-            self.inner.get(id)
-        } else {
-            None
-        }
+    fn get(&self, id: list_view::entry::Id) -> Option<String> {
+        self.inner.get(id * 3 + *self.index)
     }
 }
 
