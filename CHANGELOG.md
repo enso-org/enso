@@ -2,6 +2,9 @@
 
 #### Visual Environment
 
+- [Long names on the Node Searcher's list are truncated.][3373] The part of the
+  name that doesn't fit in the Searcher's window is replaced with an ellipsis
+  character ("…").
 - [Magnet Alignment algorithm is used while placing new nodes][3366]. When we
   find an available free space for a new node, the node gets aligned with the
   surrounding nodes horizontally and vertically. This helps to preserve a nice
@@ -154,6 +157,7 @@
 [3349]: https://github.com/enso-org/enso/pull/3349
 [3361]: https://github.com/enso-org/enso/pull/3361
 [3364]: https://github.com/enso-org/enso/pull/3364
+[3373]: https://github.com/enso-org/enso/pull/3373
 [3377]: https://github.com/enso-org/enso/pull/3377
 [3366]: https://github.com/enso-org/enso/pull/3366
 [3379]: https://github.com/enso-org/enso/pull/3379

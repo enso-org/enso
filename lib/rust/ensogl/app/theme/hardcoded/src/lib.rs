@@ -179,6 +179,21 @@ define_themes! { [light:0, dark:1]
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
         }
+        component_browser {
+            component_group {
+                header {
+                    text {
+                        size = 12.0, 12.0;
+                    }
+                    height = 30.0, 30.0;
+                    padding {
+                        left   = 16.5, 16.5;
+                        right  = 2.5, 2.5;
+                        bottom = 5.0, 5.0;
+                    }
+                }
+            }
+        }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
