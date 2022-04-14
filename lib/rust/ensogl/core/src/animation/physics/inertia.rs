@@ -733,6 +733,7 @@ where
 }
 
 impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
+    /// Downgrade to a weak reference.
     pub fn downgrade(&self) -> WeakSimulator<T, OnStep, OnStart, OnEnd> {
         let data = self.data.clone_ref();
         let animation_loop = self.animation_loop.downgrade();
@@ -745,6 +746,7 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
 // === WeakSimulator ===
 // =====================
 
+/// Weak version of [`Simulator`].
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
@@ -752,8 +754,8 @@ pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
     animation_loop: WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd>,
 }
 
-
 impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    /// Try upgrading to a string reference.
     pub fn upgrade(&self) -> Option<Simulator<T, OnStep, OnStart, OnEnd>> {
         let data = self.data.clone_ref();
         self.animation_loop.upgrade().map(|animation_loop| Simulator { data, animation_loop })
