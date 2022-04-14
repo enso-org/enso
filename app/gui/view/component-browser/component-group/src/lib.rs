@@ -18,13 +18,13 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;

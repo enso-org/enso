@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use crate::system::gpu::*;
 
+use crate::display::scene::UpdateStatus;
 use crate::system::gpu::data::texture::class::TextureOps;
 
 
@@ -18,7 +19,7 @@ use crate::system::gpu::data::texture::class::TextureOps;
 #[allow(missing_docs)]
 pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
     fn initialize(&mut self, _instance: &Instance) {}
-    fn run(&mut self, _instance: &Instance);
+    fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
 }
 
 clone_boxed!(Definition);
