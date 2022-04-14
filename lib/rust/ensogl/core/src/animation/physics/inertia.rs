@@ -762,6 +762,12 @@ impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
     }
 }
 
+impl<T, OnStep, OnStart, OnEnd> Debug for WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WeakSimulator")
+    }
+}
+
 
 
 // =========================
