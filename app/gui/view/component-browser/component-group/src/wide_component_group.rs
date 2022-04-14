@@ -89,15 +89,20 @@ impl component::Frp<Model> for Frp {
             eval input.set_size((size) model.resize_background(*size));
             eval input.set_background_color((c)
                 model.background.color.set(c.into()));
+            chosen_entry <- any_mut();
+            eval chosen_entry (((entry, group)) model.on_entry_chosen(*entry, *group));
         }
         for (idx, group) in model.groups.iter().enumerate() {
             frp::extend! { network
+                let group = group.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
                 group.set_entries <+ entries;
                 _eval <- all_with(&input.set_size, &entries, f!([group](size, count) Model::resize(&group,count.entry_count(),*size)));
                 group.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
                 group.show_background_shadow(false);
                 group.set_background_corners_radius(0.0);
+                
+                chosen_entry <+ group.frp.output.selected_entry.filter_map(|e| *e).map(move |e| (*e, idx));
             }
         }
     }
@@ -149,6 +154,12 @@ impl component::Model for Model {
 }
 
 impl Model {
+    fn on_entry_chosen(&self, _entry: usize, group_id: usize) {
+        for (_, group) in self.groups.iter().enumerate().filter(|(i, _)| *i != group_id) {
+            group.deselect_entries();
+        }
+    }
+
     fn resize_background(&self, size: Vector2) {
         self.background.size.set(size);
     }
