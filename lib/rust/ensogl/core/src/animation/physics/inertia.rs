@@ -628,7 +628,7 @@ pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), Box<dyn Fn(EndStatus
 #[derivative(Clone(bound = ""))]
 pub struct Simulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
-    animation_loop: AnimationLoop<T, OnStep, OnStart, OnEnd>,
+    animation_loop: AnimationLoopSlot<T, OnStep, OnStart, OnEnd>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> Deref for Simulator<T, OnStep, OnStart, OnEnd> {
@@ -749,7 +749,7 @@ impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
 #[derivative(Clone(bound = ""))]
 pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
-    animation_loop: WeakAnimationLoop<T, OnStep, OnStart, OnEnd>,
+    animation_loop: WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd>,
 }
 
 
@@ -762,56 +762,62 @@ impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
 
 
 
-// =====================
-// === AnimationLoop ===
-// =====================
+// =========================
+// === AnimationLoopSlot ===
+// =========================
 
-/// A wrapper over animation loop implementation. This type is defined mainly to make Rust type
-/// inferencer happy (not infer infinite, recursive types).
+/// A slot for an animation loop. It will be empty if the animation is not active – either if it was
+/// not startd yet or it was already finished.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
-pub struct AnimationLoop<T, OnStep, OnStart, OnEnd> {
+pub struct AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     animation_loop: Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
 #[allow(clippy::type_complexity)]
-impl<T, OnStep, OnStart, OnEnd> Deref for AnimationLoop<T, OnStep, OnStart, OnEnd> {
+impl<T, OnStep, OnStart, OnEnd> Deref for AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     type Target = Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>;
     fn deref(&self) -> &Self::Target {
         &self.animation_loop
     }
 }
 
-impl<T, OnStep, OnStart, OnEnd> AnimationLoop<T, OnStep, OnStart, OnEnd> {
+impl<T, OnStep, OnStart, OnEnd> AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     /// Downgrade to a week reference.
-    pub fn downgrade(&self) -> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
+    pub fn downgrade(&self) -> WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
         let animation_loop = Rc::downgrade(&self.animation_loop);
-        WeakAnimationLoop { animation_loop }
+        WeakAnimationLoopSlot { animation_loop }
     }
 }
 
-/// A weak wrapper over animation loop implementation. This type is defined mainly to make Rust type
-/// inferencer happy (not infer infinite, recursive types).
+
+// =============================
+// === WeakAnimationLoopSlot ===
+// =============================
+
+/// A weak version of [`AnimationLoopSlot`].
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
-pub struct WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
+pub struct WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     animation_loop: Weak<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
-impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
+impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     /// Upgrade the weak reference.
-    pub fn upgrade(&self) -> Option<AnimationLoop<T, OnStep, OnStart, OnEnd>> {
-        self.animation_loop.upgrade().map(|animation_loop| AnimationLoop { animation_loop })
+    pub fn upgrade(&self) -> Option<AnimationLoopSlot<T, OnStep, OnStart, OnEnd>> {
+        self.animation_loop.upgrade().map(|animation_loop| AnimationLoopSlot { animation_loop })
     }
 }
 
 
-// === Animation Step ===
+// ==========================
+// === FixedFrameRateLoop ===
+// ==========================
 
 /// Alias for [`FixedFrameRateLoop`] with specified step callback.
 pub type FixedFrameRateLoop<T, OnStep, OnStart, OnEnd> = animation::FixedFrameRateLoop<
@@ -890,6 +896,12 @@ impl Default for EndStatus {
         Self::Normal
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

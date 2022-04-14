@@ -220,7 +220,7 @@ impl<OnFrame, OnTooManyFramesSkipped> FixedFrameRateSampler<OnFrame, OnTooManyFr
         callback: OnFrame,
         on_too_many_frames_skipped: OnTooManyFramesSkipped,
     ) -> Self {
-        let max_skipped_frames = 0;
+        let max_skipped_frames = 2;
         let frame_time = (1000.0 / fps).ms();
         let local_time = default();
         // The first call to this sampler will be with frame time 0, which would drop this
@@ -258,7 +258,7 @@ where
 
         let frame_time_2 = self.frame_time * 0.5;
         let skipped_frames = ((self.time_buffer - frame_time_2) / self.frame_time) as usize;
-        let too_many_frames_skipped = skipped_frames >= self.max_skipped_frames;
+        let too_many_frames_skipped = skipped_frames > self.max_skipped_frames;
         if !too_many_frames_skipped {
             for _ in 0..skipped_frames {
                 self.local_time += self.frame_time;
