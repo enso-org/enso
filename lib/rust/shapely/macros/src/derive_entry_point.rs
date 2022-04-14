@@ -7,6 +7,7 @@ use crate::prelude::*;
 // ===================
 
 fn crate_name_to_fn_name(name: &str) -> String {
+    let name = name.replace("debug-scene-", "");
     let name = name.replace("ensogl-example-", "");
     let name = name.replace("enso-example-", "");
     let name = name.replace("enso-", "");

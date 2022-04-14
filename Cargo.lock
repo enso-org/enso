@@ -566,6 +566,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "const_format"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22bc6cd49b0ec407b680c3e380182b6ac63b73991cb7602de350352fc309b614"
+dependencies = [
+ "const_format_proc_macros",
+]
+
+[[package]]
+name = "const_format_proc_macros"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef196d5d972878a48da7decb7686eded338b4858fbabeed513d63a7c98b2b82d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-xid",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -717,6 +737,19 @@ checksum = "ccc0a48a9b826acdf4028595adc9db92caea352f7af011a3034acd172a52a0aa"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "debug-scene-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -921,6 +954,7 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
+ "debug-scene-component-group",
  "debug-scene-interface",
  "debug-scene-visualization",
 ]
@@ -1104,7 +1138,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "num",
  "object 0.24.0",
- "paste 1.0.6",
+ "paste 1.0.7",
  "serde",
  "serde_json",
  "shrinkwraprs 0.3.0",
@@ -1131,6 +1165,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",
  "serde",
@@ -1217,6 +1252,7 @@ dependencies = [
  "assert_approx_eq",
  "nalgebra 0.26.2",
  "num-traits",
+ "paste 1.0.7",
 ]
 
 [[package]]
@@ -1678,13 +1714,13 @@ dependencies = [
 name = "ensogl-text"
 version = "0.1.0"
 dependencies = [
+ "const_format",
  "enso-frp",
  "enso-prelude",
  "enso-shapely",
  "enso-text",
  "enso-types",
  "ensogl-core",
- "ensogl-hardcoded-theme",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen-test",
@@ -2233,6 +2269,18 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "welcome-screen",
+]
+
+[[package]]
+name = "ide-view-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text",
 ]
 
 [[package]]
@@ -3075,9 +3123,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.6"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0744126afe1a6dd7f394cb50a716dbe086cb06e255e53d8d0185d82828358fb5"
+checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
 
 [[package]]
 name = "paste-impl"
@@ -3804,7 +3852,7 @@ dependencies = [
  "approx 0.4.0",
  "num-complex 0.3.1",
  "num-traits",
- "paste 1.0.6",
+ "paste 1.0.7",
 ]
 
 [[package]]

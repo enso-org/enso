@@ -3047,8 +3047,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     let node_tgt_pos_anim = DEPRECATED_Animation::<Vector2<f32>>::new(network);
     let x_snap_strength   = DEPRECATED_Tween::new(network);
     let y_snap_strength   = DEPRECATED_Tween::new(network);
-    x_snap_strength.set_duration(300.0);
-    y_snap_strength.set_duration(300.0);
+    x_snap_strength.set_duration(300.0.ms());
+    y_snap_strength.set_duration(300.0.ms());
 
     _eval <- node_tgt_pos_rt.map2(&just_pressed,
         f!([model,x_snap_strength,y_snap_strength,node_tgt_pos_anim](pos,just_pressed) {

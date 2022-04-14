@@ -5,6 +5,7 @@ from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
@@ -38,70 +39,48 @@ type Sqlite_Dialect
        Deduces the result type for an aggregation operation.
 
        The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_columns` first.
+       You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
 
 ## PRIVATE
 make_internal_generator_dialect =
-    starts_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation starts_with")
-    ends_with arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation ends_with")
-    contains arguments =
-        case arguments.length == 2 of
-            True ->
-                str = arguments.at 0
-                sub = arguments.at 1
-                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
-                res.paren
-            False ->
-                Error.throw ("Invalid amount of arguments for operation contains")
-    text = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]+here.concat_ops
-    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty]
+    text = [here.starts_with, here.contains, here.ends_with]+here.concat_ops
+    counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
     stats = [here.agg_stddev_pop, here.agg_stddev_samp]
     my_mappings = text + counts + stats
     Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.
-   You may need to transform it with `resolve_columns` first.
+   You may need to transform it with `resolve_aggregate` first.
 resolve_target_sql_type aggregate = case aggregate of
     Group_By c _ -> c.sql_type
     Count _ -> Sql_Type.integer
-    Count_Distinct _ _ _ -> Sql_Type.integer
+    Count_Distinct columns _ _ ->
+        if columns.length == 1 then Sql_Type.integer else
+            here.unsupported "Count_Distinct on multiple columns"
     Count_Not_Nothing _ _ -> Sql_Type.integer
     Count_Nothing _ _ -> Sql_Type.integer
     Count_Not_Empty _ _ -> Sql_Type.integer
     Count_Empty _ _ -> Sql_Type.integer
-    Percentile _ _ _ -> Sql_Type.real
-    Mode c _ -> c.sql_type
-    First c _ _ _ -> c.sql_type
-    Last c _ _ _ -> c.sql_type
+    Percentile _ _ _ -> here.unsupported "Percentile"
+    Mode _ _ -> here.unsupported "Mode"
+    First _ _ _ _ -> here.unsupported "First"
+    Last _ _ _ _ -> here.unsupported "Last"
     Maximum c _ -> c.sql_type
     Minimum c _ -> c.sql_type
-    Shortest c _ -> c.sql_type
-    Longest c _ -> c.sql_type
+    Shortest _ _ -> here.unsupported "Shortest"
+    Longest _ _ -> here.unsupported "Longest"
     Standard_Deviation _ _ _ -> Sql_Type.real
     Concatenate _ _ _ _ _ _ -> Sql_Type.text
-    ## TODO revise these
     Sum c _ -> c.sql_type
     Average _ _ -> Sql_Type.real
-    Median _ _ -> Sql_Type.real
+    Median _ _ -> here.unsupported "Median"
+
+## PRIVATE
+unsupported name =
+    Error.throw (Unsupported_Database_Operation_Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -119,7 +98,7 @@ agg_count_not_empty = Base_Generator.lift_unary_op "COUNT_NOT_EMPTY" arg->
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
     sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
     square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
     var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / " ++ n
     Sql.code "SQRT(" ++ var ++ Sql.code ")"
 
@@ -127,7 +106,7 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
 agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
     sum_of_squares = Sql.code "SUM(" ++ arg.paren ++ Sql.code "*" ++ arg.paren ++ Sql.code ")"
     square_of_sums = Sql.code "SUM(" ++ arg ++ Sql.code ") * SUM(" ++ arg ++ Sql.code ")"
-    n = Sql.code "COUNT(" ++ arg ++ Sql.code ")"
+    n = Sql.code "CAST(COUNT(" ++ arg ++ Sql.code ") AS REAL)"
     var = Sql.code "(" ++ sum_of_squares ++ Sql.code " - (" ++ square_of_sums ++ Sql.code " / " ++ n ++ Sql.code ")) / (" ++ n ++ Sql.code " - 1)"
     Sql.code "SQRT(" ++ var ++ Sql.code ")"
 
@@ -158,7 +137,37 @@ window_aggregate window_type ignore_null args =
 concat_ops =
     make_raw_concat_expr expr separator =
         Sql.code "group_concat(" ++ expr ++ Sql.code ", " ++ separator ++ Sql.code ")"
-    make_contains_expr expr substring =
-        Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
-    concat = Helpers.make_concat make_raw_concat_expr make_contains_expr
+    concat = Helpers.make_concat make_raw_concat_expr here.make_contains_expr
     [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+
+## PRIVATE
+agg_count_distinct args = case args.length == 1 of
+    True -> Sql.code "COUNT(DISTINCT (" ++ args.first ++ Sql.code "))"
+    False -> Error.throw (Illegal_Argument_Error "COUNT_DISTINCT supports only single arguments in SQLite.")
+
+## PRIVATE
+agg_count_distinct_include_null args = case args.length == 1 of
+    True ->
+        arg = args.first
+        count = Sql.code "COUNT(DISTINCT " ++ arg ++ Sql.code ")"
+        all_nulls_case = Sql.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ Sql.code "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+        count ++ Sql.code " + " ++ all_nulls_case
+    False -> Error.throw (Illegal_Argument_Error "COUNT_DISTINCT supports only single arguments in SQLite.")
+
+## PRIVATE
+starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
+    res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
+    res.paren
+
+## PRIVATE
+ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
+    res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
+    res.paren
+
+## PRIVATE
+make_contains_expr expr substring =
+    Sql.code "instr(" ++ expr ++ Sql.code ", " ++ substring ++ Sql.code ") > 0"
+
+## PRIVATE
+contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr

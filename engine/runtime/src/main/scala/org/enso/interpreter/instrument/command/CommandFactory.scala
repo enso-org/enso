@@ -28,6 +28,9 @@ object CommandFactory {
       case payload: Api.RecomputeContextRequest =>
         new RecomputeContextCmd(request.requestId, payload)
 
+      case _: Api.GetComponentGroupsRequest =>
+        new GetComponentGroupsCmd(request.requestId)
+
       case payload: Api.AttachVisualisation =>
         new AttachVisualisationCmd(request.requestId, payload)
 

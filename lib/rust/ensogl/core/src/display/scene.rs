@@ -25,10 +25,10 @@ use crate::display::symbol::Symbol;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::Context;
+use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
-use crate::system::Context;
-use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
@@ -466,19 +466,21 @@ impl Renderer {
         Self { logger, dom, variables, pipeline, composer }
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let composer = context.map(|context| {
             // To learn more about the blending equations used here, please see the following
             // articles:
             // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
             // - https://www.khronos.org/opengl/wiki/Blending#Colors
-            context.enable(Context::BLEND);
-            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.enable(*Context::BLEND);
+            context.blend_equation_separate(*Context::FUNC_ADD, *Context::FUNC_ADD);
             context.blend_func_separate(
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
             );
 
             let (width, height) = self.view_size();
@@ -520,10 +522,10 @@ impl Renderer {
     }
 
     /// Run the renderer.
-    pub fn run(&self) {
+    pub fn run(&self, update_status: UpdateStatus) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
             debug!(self.logger, "Running.", || {
-                composer.run();
+                composer.run(update_status);
             })
         }
     }
@@ -704,35 +706,51 @@ impl Extensions {
 
 
 
+// ====================
+// === UpdateStatus ===
+// ====================
+
+/// Scene update status. Used to tell the renderer what is the minimal amount of per-frame
+/// processing. For example, if scene was not dirty (no animations), but pointer position changed,
+/// the scene should not be re-rendered, but the id-texture pixel under the mouse should be read.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UpdateStatus {
+    pub scene_was_dirty:          bool,
+    pub pointer_position_changed: bool,
+}
+
+
+
 // =================
 // === SceneData ===
 // =================
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object:       display::object::Instance,
-    pub dom:                  Dom,
-    pub context:              Rc<RefCell<Option<Context>>>,
+    pub display_object: display::object::Instance,
+    pub dom: Dom,
+    pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    pub symbols:              SymbolRegistry,
-    pub variables:            UniformScope,
-    pub current_js_event:     CurrentJsEvent,
-    pub mouse:                Mouse,
-    pub keyboard:             Keyboard,
-    pub uniforms:             Uniforms,
-    pub background:           PointerTarget,
-    pub shapes:               ShapeRegistry,
-    pub stats:                Stats,
-    pub dirty:                Dirty,
-    pub logger:               Logger,
-    pub renderer:             Renderer,
-    pub layers:               HardcodedLayers,
-    pub style_sheet:          style::Sheet,
-    pub bg_color_var:         style::Var,
-    pub bg_color_change:      callback::Handle,
-    pub frp:                  Frp,
-    extensions:               Extensions,
-    disable_context_menu:     Rc<EventListenerHandle>,
+    pub symbols: SymbolRegistry,
+    pub variables: UniformScope,
+    pub current_js_event: CurrentJsEvent,
+    pub mouse: Mouse,
+    pub keyboard: Keyboard,
+    pub uniforms: Uniforms,
+    pub background: PointerTarget,
+    pub shapes: ShapeRegistry,
+    pub stats: Stats,
+    pub dirty: Dirty,
+    pub logger: Logger,
+    pub renderer: Renderer,
+    pub layers: HardcodedLayers,
+    pub style_sheet: style::Sheet,
+    pub bg_color_var: style::Var,
+    pub bg_color_change: callback::Handle,
+    pub frp: Frp,
+    pub pointer_position_changed: Rc<Cell<bool>>,
+    extensions: Extensions,
+    disable_context_menu: Rc<EventListenerHandle>,
 }
 
 impl SceneData {
@@ -783,6 +801,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
+        let pointer_position_changed = default();
         Self {
             display_object,
             dom,
@@ -805,6 +824,7 @@ impl SceneData {
             bg_color_var,
             bg_color_change,
             frp,
+            pointer_position_changed,
             extensions,
             disable_context_menu,
         }
@@ -816,6 +836,8 @@ impl SceneData {
         self
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
@@ -840,7 +862,7 @@ impl SceneData {
         &self.symbols
     }
 
-    fn update_shape(&self) {
+    fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
             self.resize_canvas(screen);
@@ -849,17 +871,24 @@ impl SceneData {
             });
             self.renderer.resize_composer();
             self.dirty.shape.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_symbols(&self) {
+    fn update_symbols(&self) -> bool {
         if self.dirty.symbols.check_all() {
             self.symbols.update();
             self.dirty.symbols.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_camera(&self, scene: &Scene) {
+    fn update_camera(&self, scene: &Scene) -> bool {
+        let mut was_dirty = false;
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
@@ -868,6 +897,7 @@ impl SceneData {
         let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
+            was_dirty = true;
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(&camera);
             self.dom.layers.front.update_view_projection(&camera);
@@ -875,19 +905,26 @@ impl SceneData {
         }
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
+            was_dirty = true;
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
             self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
         }
         let node_searcher_camera = self.layers.node_searcher.camera();
         let node_searcher_camera_changed = node_searcher_camera.update(scene);
         if node_searcher_camera_changed {
+            was_dirty = true;
             self.dom.layers.node_searcher.update_view_projection(&node_searcher_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
+        let sublayer_was_dirty = Rc::new(Cell::new(false));
         self.layers.iter_sublayers_and_masks_nested(|layer| {
-            layer.camera().update(scene);
+            let dirty = layer.camera().update(scene);
+            sublayer_was_dirty.set(sublayer_was_dirty.get() || dirty);
         });
+        was_dirty = was_dirty || sublayer_was_dirty.get();
+
+        was_dirty
     }
 
     /// Resize the underlying canvas. This function should rather not be called
@@ -908,8 +945,18 @@ impl SceneData {
         });
     }
 
-    pub fn render(&self) {
-        self.renderer.run()
+    pub fn render(&self, update_status: UpdateStatus) {
+        self.renderer.run(update_status);
+        // WebGL `flush` should be called when expecting results such as queries, or at completion
+        // of a rendering frame. Flush tells the implementation to push all pending commands out
+        // for execution, flushing them out of the queue, instead of waiting for more commands to
+        // enqueue before sending for execution.
+        //
+        // Not flushing commands can sometimes cause context loss. To learn more, see:
+        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+        if let Some(context) = &*self.context.borrow() {
+            context.flush()
+        }
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
@@ -950,6 +997,7 @@ impl SceneData {
         let network = &self.frp.network;
         let shapes = &self.shapes;
         let target = &self.mouse.target;
+        let pointer_position_changed = &self.pointer_position_changed;
         let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
 
         frp::extend! { network
@@ -958,6 +1006,7 @@ impl SceneData {
                 pressed.borrow_mut().insert(*button,current_target);
                 shapes.with_mouse_target(current_target, |t| t.mouse_down.emit(button));
             });
+
             eval self.mouse.frp.up ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
@@ -965,6 +1014,8 @@ impl SceneData {
                 }
                 shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
             });
+
+            eval_ self.mouse.frp.position (pointer_position_changed.set(true));
         }
     }
 
@@ -1031,7 +1082,7 @@ impl Scene {
     }
 
     fn init(&self) {
-        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
+        let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
         match context_loss_handler {
             Err(err) => error!(self.logger, "{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
@@ -1043,8 +1094,8 @@ impl Scene {
     }
 }
 
-impl system::context::Display for Scene {
-    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+impl system::gpu::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
         &self.dom.layers.canvas
     }
 
@@ -1074,19 +1125,27 @@ impl Deref for Scene {
 
 impl Scene {
     #[profile(Debug)]
-    pub fn update(&self, t: animation::TimeInfo) {
-        if self.context.borrow().is_some() {
+    pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
+        if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                self.frp.frame_time_source.emit(t.local);
+                let mut scene_was_dirty = false;
+                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                self.update_camera(self);
+                scene_was_dirty = self.update_camera(self) || scene_was_dirty;
                 self.display_object.update(self);
-                self.layers.update();
-                self.update_shape();
-                self.update_symbols();
+                scene_was_dirty = self.layers.update() || scene_was_dirty;
+                scene_was_dirty = self.update_shape() || scene_was_dirty;
+                scene_was_dirty = self.update_symbols() || scene_was_dirty;
                 self.handle_mouse_over_and_out_events();
+                scene_was_dirty = context.shader_compiler.run(time) || scene_was_dirty;
+
+                let pointer_position_changed = self.pointer_position_changed.get();
+                self.pointer_position_changed.set(false);
+                UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
+        } else {
+            default()
         }
     }
 }

@@ -39,6 +39,7 @@ import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Polyglot.Java as Java_Ext
 from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
@@ -533,7 +534,7 @@ type Pattern
                  pattern = engine.compile "aa []
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
-    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full | Matching_Mode.Last) -> Text
     replace input replacement mode=Mode.All =
         do_replace_mode mode start end = case mode of
             Mode.First ->
@@ -559,8 +560,26 @@ type Pattern
                 internal_matcher.replaceAll replacement
             Mode.Full ->
                 case this.match input mode=Mode.Full of
-                    Match _ _ _ _ -> replacement
+                    Match _ _ _ _ -> this.replace input replacement Mode.First
                     Nothing -> input
+            Matching_Mode.Last ->
+                all_matches = this.match input
+                all_matches_count = if all_matches.is_nothing then 0 else all_matches.length
+
+                if all_matches_count == 0 then input else
+                    internal_matcher = this.build_matcher input start end
+                    buffer = StringBuffer.new
+                    last_match_index = all_matches_count - 1
+
+                    go match_index =
+                        internal_matcher.find
+                        case match_index == last_match_index of
+                            True -> internal_matcher.appendReplacement buffer replacement
+                            False -> @Tail_Call go (match_index + 1)
+
+                    go 0
+                    internal_matcher.appendTail buffer
+                    buffer.to_text
             Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Modes cannot be recursive."
 

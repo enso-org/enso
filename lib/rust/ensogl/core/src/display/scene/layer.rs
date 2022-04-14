@@ -525,8 +525,9 @@ impl LayerModel {
         }
     }
 
-    /// Consume all dirty flags and update the ordering of elements if needed.
-    pub fn update(&self) {
+    /// Consume all dirty flags and update the ordering of elements if needed. Returns [`true`] if
+    /// the layer or its sub-layers were modified during this call.
+    pub fn update(&self) -> bool {
         self.update_internal(None)
     }
 
@@ -534,23 +535,29 @@ impl LayerModel {
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
-    ) {
+    ) -> bool {
+        let mut was_dirty = false;
+
         if self.depth_order_dirty.check() {
+            was_dirty = true;
             self.depth_order_dirty.unset();
             self.depth_sort(global_element_depth_order);
         }
 
         if self.sublayers.element_depth_order_dirty.check() {
+            was_dirty = true;
             self.sublayers.element_depth_order_dirty.unset();
             for layer in self.sublayers() {
-                layer.update_internal(Some(&*self.global_element_depth_order.borrow()))
+                layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
             }
             if let Some(layer) = &*self.mask.borrow() {
                 if let Some(layer) = layer.upgrade() {
-                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()))
+                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
                 }
             }
         }
+
+        was_dirty
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
@@ -1159,6 +1166,9 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// scene.layers.add_shapes_order_dependency::<shape::View, input::port::hover::View>();
 /// scene.layers.add_shapes_order_dependency::<input::port::hover::View, input::port::viz::View>();
 /// ```
+///
+/// A shape listed on the left side of an arrow (`->`) will be ordered below the shape listed on
+/// the right side of the arrow.
 #[macro_export]
 macro_rules! shapes_order_dependencies {
     ($scene:expr => {
