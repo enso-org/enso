@@ -6,6 +6,7 @@
 //! [`Duration`] or a number, respectfully. You are allowed to define any combination of operators
 //! and rules of how the result inference should be performed.
 
+use paste::paste;
 use std::marker::PhantomData;
 
 
@@ -110,9 +111,15 @@ impl<V, R> !IsNotUnit for UnitData<V, R> {}
 // === Default ===
 // ===============
 
-impl<V, R: Default> Default for UnitData<V, R> {
+/// A default value of unit.
+#[allow(missing_docs)]
+pub trait UnitDefault<R> {
+    fn unit_default() -> R;
+}
+
+impl<V: UnitDefault<R>, R> Default for UnitData<V, R> {
     fn default() -> Self {
-        R::default().unchecked_into()
+        <V as UnitDefault<R>>::unit_default().unchecked_into()
     }
 }
 
@@ -152,7 +159,6 @@ impl<V, R> AsRef<UnitData<V, R>> for UnitData<V, R> {
 // === Eq ===
 // ==========
 
-impl<V, R: PartialEq> Eq for UnitData<V, R> {}
 impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
     fn eq(&self, other: &Self) -> bool {
         self.repr.eq(&other.repr)
@@ -164,12 +170,6 @@ impl<V, R: PartialEq> PartialEq for UnitData<V, R> {
 // ===========
 // === Ord ===
 // ===========
-
-impl<V, R: Ord> Ord for UnitData<V, R> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.repr.cmp(&other.repr)
-    }
-}
 
 impl<V, R: PartialOrd> PartialOrd for UnitData<V, R> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -354,8 +354,6 @@ macro_rules! gen_ops_mut {
     };
 }
 
-
-
 gen_ops!(RevAdd, Add, add);
 gen_ops!(RevSub, Sub, sub);
 gen_ops!(RevMul, Mul, mul);
@@ -367,6 +365,15 @@ gen_ops_mut!(RevAdd, Add, AddAssign, add_assign);
 gen_ops_mut!(RevSub, Sub, SubAssign, sub_assign);
 gen_ops_mut!(RevMul, Mul, MulAssign, mul_assign);
 gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
+
+impl<V, R: ops::Neg<Output = R>> ops::Neg for UnitData<V, R> {
+    type Output = UnitData<V, R>;
+
+    fn neg(mut self) -> Self::Output {
+        self.repr = self.repr.neg();
+        self
+    }
+}
 
 
 
@@ -394,16 +401,23 @@ gen_ops_mut!(RevDiv, Div, DivAssign, div_assign);
 /// ```
 #[macro_export]
 macro_rules! define {
-    ($(#$meta:tt)* $name:ident = $variant:ident ($tp:ident)) => {
-        $(#$meta)*
-        pub type $name = Unit<$variant>;
+    ($(#$meta:tt)* $name:ident: $tp:ident = $default:expr) => {
+        paste!{
+            $(#$meta)*
+            pub type $name = $crate::unit2::Unit<[<$name:snake:upper>]>;
+            $(#$meta)*
+            #[derive(Debug, Clone, Copy)]
+            pub struct [<$name:snake:upper>];
 
-        $(#$meta)*
-        #[derive(Debug, Clone, Copy)]
-        pub struct $variant;
+            impl $crate::unit2::Variant for [<$name:snake:upper>] {
+                type Repr = $tp;
+            }
 
-        impl Variant for $variant {
-            type Repr = $tp;
+            impl $crate::unit2::UnitDefault<$tp> for [<$name:snake:upper>] {
+                fn unit_default() -> $tp {
+                    $default
+                }
+            }
         }
     };
 }
@@ -551,7 +565,7 @@ define! {
     /// Conversions between this type and the [`std::time::Duration`] are provided, however, please
     /// note that [`std::time::Duration`] internal representation is optimized for different cases,
     /// so losing precision is expected during the conversion.
-    Duration = DURATION(f32)
+    Duration: f32 = 0.0
 }
 define_ops![
     Duration [+,-] Duration = Duration,
@@ -615,6 +629,16 @@ impl const DurationNumberOps for f32 {
 
     fn s(self) -> Duration {
         Duration::s(self)
+    }
+}
+
+impl const DurationNumberOps for i64 {
+    fn ms(self) -> Duration {
+        (self as f32).ms()
+    }
+
+    fn s(self) -> Duration {
+        (self as f32).s()
     }
 }
 
