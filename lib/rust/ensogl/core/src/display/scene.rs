@@ -1131,13 +1131,13 @@ impl Scene {
                 self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                scene_was_dirty = scene_was_dirty || self.update_camera(self);
+                scene_was_dirty = self.update_camera(self) || scene_was_dirty;
                 self.display_object.update(self);
-                scene_was_dirty = scene_was_dirty || self.layers.update();
-                scene_was_dirty = scene_was_dirty || self.update_shape();
-                scene_was_dirty = scene_was_dirty || self.update_symbols();
+                scene_was_dirty = self.layers.update() || scene_was_dirty;
+                scene_was_dirty = self.update_shape() || scene_was_dirty;
+                scene_was_dirty = self.update_symbols() || scene_was_dirty;
                 self.handle_mouse_over_and_out_events();
-                scene_was_dirty = scene_was_dirty || context.shader_compiler.run(time);
+                scene_was_dirty = context.shader_compiler.run(time) || scene_was_dirty;
 
                 let pointer_position_changed = self.pointer_position_changed.get();
                 self.pointer_position_changed.set(false);

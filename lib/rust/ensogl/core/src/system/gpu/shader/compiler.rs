@@ -30,8 +30,8 @@ use crate::system::gpu::shader::Vertex;
 use crate::system::web;
 use crate::types::unit2::Duration;
 
-use enso_logger::DefaultTraceLogger as Logger;
 use web_sys::WebGl2RenderingContext;
+
 
 
 // =================
