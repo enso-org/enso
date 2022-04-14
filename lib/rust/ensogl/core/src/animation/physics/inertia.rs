@@ -585,20 +585,20 @@ impl<T, OnStep, OnStart, OnEnd> Deref for SimulatorData<T, OnStep, OnStart, OnEn
     }
 }
 
-impl<T, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd>
-where
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>,
-{
+impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd> {
     /// Constructor.
     pub fn new(on_step: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let simulation = SimulationDataCell::new();
         let frame_rate = Cell::new(60.0);
         Self { simulation, frame_rate, on_step, on_start, on_end }
     }
+}
 
+impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd>
+where
+    OnStep: Callback1<T>,
+    OnEnd: Callback1<EndStatus>,
+{
     /// Proceed with the next simulation step for the given time delta.
     pub fn step(&self, delta_seconds: Duration) -> bool {
         let is_active = self.simulation.active();
@@ -830,13 +830,12 @@ where
     OnStep: Callback1<T>,
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
-    let data = simulator.data.clone_ref();
-    let animation_loop = simulator.animation_loop.downgrade();
+    let weak_simulator = simulator.downgrade();
     move |time: animation::TimeInfo| {
-        let delta_seconds = time.previous_frame / 1000.0;
-        if !data.step(delta_seconds) {
-            if let Some(animation_loop) = animation_loop.upgrade() {
-                animation_loop.set(None)
+        if let Some(simulator) = weak_simulator.upgrade() {
+            let delta_seconds = time.previous_frame / 1000.0;
+            if !simulator.step(delta_seconds) {
+                simulator.animation_loop.set(None)
             }
         }
     }
