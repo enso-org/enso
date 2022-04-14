@@ -295,42 +295,41 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    if (!arg.requiresCast()) {
-      generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
-      generateUncheckedArgumentRead(out, arg, argsArray);
-    } else {
-      generateCheckedArgumentRead(out, arg, argsArray);
-    }
-
     if (!arg.acceptsError()) {
-
-      String varName = mkArgumentInternalVarName(arg);
+      String argReference = argsArray + "[" + arg.getPosition() + "]";
       String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
       out.println(
           "    if ("
               + condProfile
               + ".profile(TypesGen.isDataflowError("
-              + varName
+              + argReference
               + "))) {\n"
               + "      return new Stateful(state, "
-              + varName
+              + argReference
               + ");\n"
               + "    }");
       if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
         String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
         out.println(
             "    else if (TypesGen.isPanicSentinel("
-                + varName
+                + argReference
                 + ")) {\n"
                 + "      "
                 + branchProfile
                 + ".enter();\n"
                 + "      throw TypesGen.asPanicSentinel("
-                + varName
+                + argReference
                 + ");\n"
                 + "    }");
       }
+    }
+
+    if (!arg.requiresCast()) {
+      generateUncastedArgumentRead(out, arg, argsArray);
+    } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
+      generateUncheckedArgumentRead(out, arg, argsArray);
+    } else {
+      generateCheckedArgumentRead(out, arg, argsArray);
     }
   }
 
