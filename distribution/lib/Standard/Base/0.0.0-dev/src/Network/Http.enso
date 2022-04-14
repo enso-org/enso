@@ -239,6 +239,49 @@ post_form uri parts (headers = []) = here.new.post_form uri parts headers
 post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
 post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
 
+## ALIAS PUT Request
+
+   Send a Put request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body: The contents of the put request.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Put request with binary data. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+         import Standard.Base.Network.Http.Request.Body
+
+         example_post =
+             body = Body.Bytes "Hello".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.put "http://httpbin.org/put" body [header_binary]
+put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+put uri body (headers = []) = here.new.put uri body headers
+
+## Send a Put request with body with content-type "application/json".
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body_json: The JSON for the body of the put request.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Put request with json data. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+
+         example_post_json =
+             json = Json.parse '{"key":"val"}'
+             HTTP.put_json "http://httpbin.org/put" json
+put_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
+put_json uri body_json (headers = []) = here.new.put_json uri body_json headers
+
 type Http
 
     ## PRIVATE
