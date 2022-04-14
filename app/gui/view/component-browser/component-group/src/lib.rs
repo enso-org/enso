@@ -57,6 +57,8 @@ pub mod background {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
             let color = Var::<Rgba>::from(color);
+            // TODO[MC,WD]: We should use Plane here, but it has a bug - renders wrong color. See:
+            //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
             let shape = Rect((&sprite_width, &sprite_height)).fill(color);
             shape.into()
         }
@@ -133,8 +135,8 @@ impl component::Frp<Model> for Frp {
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
-                (t, (size, hdr_geom)) {
-                    model.header_text.replace(t.clone());
+                (text, (size, hdr_geom)) {
+                    model.header_text.replace(text.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
             );

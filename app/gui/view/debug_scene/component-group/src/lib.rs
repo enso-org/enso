@@ -31,7 +31,6 @@ use ide_view_component_group as component_group;
 
 /// An entry point.
 #[entry_point]
-#[allow(dead_code)]
 pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
