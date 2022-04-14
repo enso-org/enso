@@ -8,7 +8,7 @@ import org.enso.pkg.{
   ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
-  ModuleName,
+  GroupName,
   Shortcut
 }
 
@@ -76,14 +76,14 @@ object LibraryComponentGroups {
   * the JSONRPC API.
   *
   * @param library the library name
-  * @param module the module name
+  * @param group the group name
   * @param color the component group color
   * @param icon the component group icon
   * @param exports the list of components provided by this component group
   */
 case class LibraryComponentGroup(
   library: LibraryName,
-  module: ModuleName,
+  group: GroupName,
   color: Option[String],
   icon: Option[String],
   exports: Seq[LibraryComponent]
@@ -103,7 +103,7 @@ object LibraryComponentGroup {
   ): LibraryComponentGroup =
     LibraryComponentGroup(
       library = libraryName,
-      module  = componentGroup.module,
+      group   = componentGroup.group,
       color   = componentGroup.color,
       icon    = componentGroup.icon,
       exports = componentGroup.exports.map(LibraryComponent.fromComponent)
@@ -119,8 +119,8 @@ object LibraryComponentGroup {
     extendedComponentGroup: ExtendedComponentGroup
   ): LibraryComponentGroup =
     LibraryComponentGroup(
-      library = extendedComponentGroup.module.libraryName,
-      module  = extendedComponentGroup.module.moduleName,
+      library = extendedComponentGroup.group.libraryName,
+      group   = extendedComponentGroup.group.groupName,
       color   = None,
       icon    = None,
       exports =
@@ -145,7 +145,7 @@ object LibraryComponentGroup {
     )
     Json.obj(
       (Fields.Library -> componentGroup.library.asJson) +:
-      (Fields.Module  -> componentGroup.module.asJson) +:
+      (Fields.Module  -> componentGroup.group.asJson) +:
       (color.toSeq ++ icon.toSeq ++ exports.toSeq): _*
     )
   }
@@ -154,7 +154,7 @@ object LibraryComponentGroup {
   implicit val decoder: Decoder[LibraryComponentGroup] = { json =>
     for {
       library <- json.get[LibraryName](Fields.Library)
-      module  <- json.get[ModuleName](Fields.Module)
+      module  <- json.get[GroupName](Fields.Module)
       color   <- json.get[Option[String]](Fields.Color)
       icon    <- json.get[Option[String]](Fields.Icon)
       exports <- json.getOrElse[List[LibraryComponent]](Fields.Exports)(List())

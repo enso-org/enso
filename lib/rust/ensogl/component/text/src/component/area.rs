@@ -271,6 +271,12 @@ ensogl_core::define_endpoints! {
         /// MSDF texture, etc.).
         set_font              (String),
         set_content           (String),
+        /// Set content, truncating the trailing characters on every line to fit a width in pixels
+        /// when rendered with current font and font size. The truncated substrings are replaced
+        /// with an ellipsis character ("…").
+        ///
+        /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
+        set_content_truncated (String, f32),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -480,6 +486,10 @@ impl Area {
                 input.insert(s);
                 input.remove_all_cursors();
             });
+            input.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
+                m.text_truncated_with_ellipsis(text.clone(), m.default_font_size(), *max_width_px)
+            }));
+
 
             // === Font ===
 
@@ -869,6 +879,86 @@ impl AreaModel {
         let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
         last_offset - cursor_offset
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn line_truncated_with_ellipsis(&self, line: &str, _: style::Size, _: f32) -> String {
+        line.to_string()
+    }
+
+    /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
+    /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
+    /// character appended, or `content` if not truncated.
+    ///
+    /// The truncation point is chosen such that the resulting string with ellipsis will fit in
+    /// `max_width_px` if possible. The `line` must not contain newline characters.
+    #[cfg(target_arch = "wasm32")]
+    fn line_truncated_with_ellipsis(
+        &self,
+        line: &str,
+        font_size: style::Size,
+        max_width_px: f32,
+    ) -> String {
+        const ELLIPSIS: char = '\u{2026}';
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        let mut truncation_point = 0.bytes();
+        let truncate = line.char_indices().any(|(i, ch)| {
+            let char_info = pen::CharInfo::new(ch, font_size.raw);
+            let pen_info = pen.advance(Some(char_info));
+            let next_width = pen_info.offset + char_info.size;
+            if next_width > max_width_px {
+                return true;
+            }
+            let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+            let char_length: Bytes = ch.len_utf8().into();
+            if next_width + width_of_ellipsis <= max_width_px {
+                truncation_point = Bytes::from(i) + char_length;
+            }
+            false
+        });
+        if truncate {
+            let truncated_content = line[..truncation_point.as_usize()].to_string();
+            truncated_content + String::from(ELLIPSIS).as_str()
+        } else {
+            line.to_string()
+        }
+    }
+
+    /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
+    /// rendered using the current font at `font_size`. Return `text` with every truncated
+    /// substring replaced with an ellipsis character ("…").
+    ///
+    /// The truncation point of every line is chosen such that the truncated string with ellipsis
+    /// will fit in `max_width_px` if possible. Unix (`\n`) and MS-DOS (`\r\n`) style line endings
+    /// are recognized and preserved in the returned string.
+    fn text_truncated_with_ellipsis(
+        &self,
+        text: String,
+        font_size: style::Size,
+        max_width_px: f32,
+    ) -> String {
+        let lines = text.split_inclusive('\n');
+        /// Return the length of a trailing Unix (`\n`) or MS-DOS (`\r\n`) style line ending in
+        /// `s`, or 0 if not found.
+        fn length_of_trailing_line_ending(s: &str) -> usize {
+            if s.ends_with("\r\n") {
+                2
+            } else if s.ends_with('\n') {
+                1
+            } else {
+                0
+            }
+        }
+        let tuples_of_lines_and_endings =
+            lines.map(|line| line.split_at(line.len() - length_of_trailing_line_ending(line)));
+        let lines_truncated_with_ellipsis = tuples_of_lines_and_endings.map(|(line, ending)| {
+            self.line_truncated_with_ellipsis(line, font_size, max_width_px) + ending
+        });
+        lines_truncated_with_ellipsis.collect()
+    }
+
+    fn default_font_size(&self) -> style::Size {
+        *self.buffer.style.get().size.default()
     }
 
     fn new_line(&self, index: usize) -> Line {

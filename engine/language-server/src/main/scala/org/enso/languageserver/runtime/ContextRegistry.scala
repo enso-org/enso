@@ -201,6 +201,21 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case GetComponentGroupsRequest(clientId, contextId) =>
+        if (store.hasContext(clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              GetComponentGroupsHandler.props(
+                runtimeFailureMapper,
+                timeout,
+                runtime
+              )
+            )
+          handler.forward(Api.GetComponentGroupsRequest())
+        } else {
+          sender() ! AccessDenied
+        }
+
       case ExecuteExpression(clientId, visualisationId, expressionId, cfg) =>
         val contextId = cfg.executionContextId
         if (store.hasContext(clientId, contextId)) {
