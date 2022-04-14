@@ -190,7 +190,7 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
             }
-            let need_sync = update_status.scene_was_dirty || update_status.pointer_position_changed;
+            let need_sync = true; //update_status.scene_was_dirty || update_status.pointer_position_changed;
             if need_sync && self.sync.is_none() {
                 self.run_not_synced(&instance.context);
                 if let Some(callback) = &self.sync_callback {
