@@ -1,10 +1,13 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
@@ -64,6 +67,8 @@ public class Context {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
+  @CompilerDirectives.CompilationFinal
+  private Optional<AtomConstructor> date;
 
   /**
    * Creates a new Enso context.
@@ -462,5 +467,32 @@ public class Context {
    */
   public long clockTick() {
     return clock.getAndIncrement();
+  }
+
+  /** Return the {@code Standard.Base.Data.Time.Date} constructor.
+   *
+   * @return optional with {@link AtomConstructor} for the date, if it can be found
+   */
+  public Optional<AtomConstructor> getDateConstructor() {
+    if (date == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      ensureModuleIsLoaded("Standard.Base.Data.Time.Date");
+      Optional<Module> dateModule = findModule("Standard.Base.Data.Time.Date");
+      if (dateModule.isPresent()) {
+        try {
+          InteropLibrary iop = InteropLibrary.getUncached();
+          Object constrDate = iop.invokeMember(dateModule.get(), "get_constructor", "Date");
+          if (constrDate instanceof AtomConstructor) {
+            date = Optional.of((AtomConstructor) constrDate);
+          }
+        } catch (InteropException ex) {
+          throw new IllegalStateException(ex);
+        }
+        if (date == null) {
+          date = Optional.empty();
+        }
+      }
+    }
+    return date;
   }
 }
