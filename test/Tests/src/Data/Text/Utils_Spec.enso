@@ -52,10 +52,10 @@ spec =
 
             codeunits = Vector.new folded.getFoldedString.utf_16.length+1 ix->ix
             grapheme_ixes = codeunits.map ix->
-                folded.codeUnitToGraphemeIndex ix
+                folded.findGrapheme ix . index
             grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
 
-            Test.expect_panic_with (folded.codeUnitToGraphemeIndex -1) Polyglot_Error
-            Test.expect_panic_with (folded.codeUnitToGraphemeIndex folded.getFoldedString.utf_16.length+1) Polyglot_Error
+            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error
+            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.utf_16.length+1) Polyglot_Error
 
 main = Test.Suite.run_main here.spec
