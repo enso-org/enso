@@ -172,4 +172,3 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
             out_3.delete_if_exists
-

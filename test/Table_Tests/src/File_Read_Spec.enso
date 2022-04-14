@@ -1,0 +1,26 @@
+from Standard.Base import all
+import Standard.Table.Io.File_read
+import Standard.Table.Io.File_Format
+
+import Standard.Test
+
+spec =
+    sample_xxx = Enso_Project.data / "sample.xxx"
+    sample_txt = Enso_Project.data / "sample.txt"
+    windows_txt = Enso_Project.data / "windows.txt"
+
+    Test.group "File_Format.Bytes" <|
+        Test.specify "should be able to read a file as Bytes" <|
+            bytes = sample_xxx.read File_Format.Bytes
+            bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+            bytes_2 = File.read (sample_xxx) File_Format.Bytes
+            bytes_2.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+            bytes_3 = File.read (sample_xxx.path) File_Format.Bytes
+            bytes_3.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+
+    Test.group "File_Format.Text" <|
+        Test.specify "should be able to read a file as Text" <|
+            text = sample_xxx.read File_Format.Text
+            text.should_equal "Hello World!"
+
+main = Test.Suite.run_main here.spec

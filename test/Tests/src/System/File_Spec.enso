@@ -26,6 +26,11 @@ spec =
         Test.specify "should get file name" <|
             sample_file.name.should_equal "sample.txt"
 
+        Test.specify "should get file extension" <|
+            sample_file.extension.should_equal ".txt"
+            (File.new "this.is.a.silly.name.txt").extension.should_equal ".txt"
+            (File.new "no_extension").extension.should_equal ""
+
         Test.specify "should convert a file to absolute" <|
             abs = File.new "foo.txt" . absolute
             through_cwd = (File.current_directory / "foo.txt")
@@ -51,7 +56,7 @@ spec =
 
         Test.specify "should handle exceptions when deleting a missing file" <|
             file = File.new "does_not_exist.txt"
-            file.delete . should_fail_with File.No_Such_File_Error
+            file.delete . should_fail_with File.File_Not_Found
 
     Test.group "read_bytes" <|
         Test.specify "should allow reading a file to byte vector" <|
@@ -65,9 +70,9 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            File.read_bytes "does_not_exist.txt" . should_fail_with File.No_Such_File_Error
-            file.read_bytes . should_fail_with File.No_Such_File_Error
-            non_existent_file.read_bytes . should_fail_with File.No_Such_File_Error
+            File.read_bytes "does_not_exist.txt" . should_fail_with File.File_Not_Found
+            file.read_bytes . should_fail_with File.File_Not_Found
+            non_existent_file.read_bytes . should_fail_with File.File_Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
@@ -99,9 +104,9 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            File.read_text "does_not_exist.txt" . should_fail_with File.No_Such_File_Error
-            file.read_text . should_fail_with File.No_Such_File_Error
-            non_existent_file.read_text . should_fail_with File.No_Such_File_Error
+            File.read_text "does_not_exist.txt" . should_fail_with File.File_Not_Found
+            file.read_text . should_fail_with File.File_Not_Found
+            non_existent_file.read_text . should_fail_with File.File_Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
