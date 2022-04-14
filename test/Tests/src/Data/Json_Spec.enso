@@ -122,3 +122,4 @@ spec =
             object.get "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with Json.No_Such_Field_Error
 
+main = Test.Suite.run_main here.spec

@@ -25,3 +25,5 @@ spec = Test.group 'JSON conversion' <|
         simple_empty.write out Table.Format.Json
         (Json.parse out.read_text).to_table ['a', 'b', 'c'] . should_equal simple_empty
         out.delete_if_exists
+
+main = Test.Suite.run_main here.spec
