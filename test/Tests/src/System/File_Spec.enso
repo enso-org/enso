@@ -89,12 +89,12 @@ spec =
 
         Test.specify "should allow reading a Windows file via path" <|
             contents = windows_file.read_text Encoding.windows_1252
-            contents.should_equal "Hello World! $¢¤¥€"
+            contents.should_equal "Hello World! $¢¤¥"
 
         Test.specify "should raise warnings when reading invalid characters" <|
             action = windows_file.read_text Encoding.ascii on_problems=_
-            tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD?'
-            problems = [Encoding_Error "Encoding issues at 15, 16, 17, 18"]
+            tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
+            problems = [Encoding_Error "Encoding issues at 14, 15, 16"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
