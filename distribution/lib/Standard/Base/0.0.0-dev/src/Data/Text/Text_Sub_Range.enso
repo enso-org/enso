@@ -81,22 +81,22 @@ type Text_Sub_Range
                 if delimiter.is_empty then (Range 0 0) else
                     span = Text_Utils.span_of text delimiter
                     if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 span.start)
+                        (Range 0 span.codeunit_start)
             Before_Last delimiter ->
                 if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
                     span = Text_Utils.last_span_of text delimiter
                     if span.is_nothing then (Range 0 (Text_Utils.char_length text)) else
-                        (Range 0 span.start)
+                        (Range 0 span.codeunit_start)
             After delimiter ->
                 if delimiter.is_empty then (Range 0 (Text_Utils.char_length text)) else
                     span = Text_Utils.span_of text delimiter
                     if span.is_nothing then (Range 0 0) else
-                        (Range span.end (Text_Utils.char_length text))
+                        (Range span.codeunit_end (Text_Utils.char_length text))
             After_Last delimiter ->
                 if delimiter.is_empty then (Range 0 0) else
                     span = Text_Utils.last_span_of text delimiter
                     if span.is_nothing then (Range 0 0) else
-                        (Range span.end (Text_Utils.char_length text))
+                        (Range span.codeunit_end (Text_Utils.char_length text))
             While predicate ->
                 indices = find_sub_range_end text _-> start-> end->
                     predicate (Text_Utils.substring text start end) . not

@@ -39,6 +39,7 @@ use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
@@ -98,16 +99,16 @@ pub mod background {
 
     ensogl_core::define_shape_system! {
         below = [selection];
-        (style:Style) {
+        (style: Style, shadow_alpha: f32, corners_radius_px: f32, color: Vector4) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
             let width         = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
             let height        = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
-            let color         = style.get_color(theme::widget::list_view::background);
-            let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
+            let color         = Var::<color::Rgba>::from(color);
+            let rect          = Rect((&width,&height)).corners_radius(corners_radius_px);
             let shape         = rect.fill(color);
 
-            let shadow  = shadow::from_shape(rect.into(),style);
+            let shadow = shadow::from_shape_with_alpha(rect.into(), &shadow_alpha, style);
 
             (shadow + shape).into()
         }
@@ -154,6 +155,11 @@ impl<E: Entry> Model<E> {
         Model { app, entries, selection, background, scrolled_area, display_object }
     }
 
+    fn show_background_shadow(&self, value: bool) {
+        let alpha = if value { 1.0 } else { 0.0 };
+        self.background.shadow_alpha.set(alpha);
+    }
+
     fn padding(&self) -> f32 {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -161,23 +167,29 @@ impl<E: Entry> Model<E> {
         styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
     }
 
+    fn doubled_padding_with_shape_padding(&self) -> f32 {
+        2.0 * self.padding() + SHAPE_PADDING
+    }
+
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
     fn update_after_view_change(&self, view: &View) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
-        let padding_px = self.padding();
-        let padding = 2.0 * padding_px + SHAPE_PADDING;
+        let padding = self.doubled_padding_with_shape_padding();
         let padding = Vector2(padding, padding);
+        let entry_width = view.size.x - padding.x;
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
-        self.entries.update_entries(visible_entries);
+        self.entries.update_entries(visible_entries, entry_width);
     }
 
     fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
-        self.entries.update_entries_new_provider(provider, visible_entries);
+        let padding = self.doubled_padding_with_shape_padding();
+        let entry_width = view.size.x - padding;
+        self.entries.update_entries_new_provider(provider, visible_entries, entry_width);
     }
 
     fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {
@@ -250,18 +262,21 @@ ensogl_core::define_endpoints! {
         /// Deselect all entries.
         deselect_entries(),
 
-        resize       (Vector2<f32>),
-        scroll_jump  (f32),
-        set_entries  (entry::AnyModelProvider<E>),
-        select_entry (entry::Id),
-        chose_entry  (entry::Id),
+        resize(Vector2<f32>),
+        scroll_jump(f32),
+        set_entries(entry::AnyModelProvider<E>),
+        select_entry(entry::Id),
+        chose_entry(entry::Id),
+        show_background_shadow(bool),
+        set_background_corners_radius(f32),
+        set_background_color(color::Rgba),
     }
 
     Output {
-        selected_entry  (Option<entry::Id>),
-        chosen_entry    (Option<entry::Id>),
-        size            (Vector2<f32>),
-        scroll_position (f32),
+        selected_entry(Option<entry::Id>),
+        chosen_entry(Option<entry::Id>),
+        size(Vector2<f32>),
+        scroll_position(f32),
     }
 }
 
@@ -311,8 +326,27 @@ where E::Model: Default
         let view_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_y = DEPRECATED_Animation::<f32>::new(network);
         let selection_height = DEPRECATED_Animation::<f32>::new(network);
+        let style = StyleWatchFrp::new(&scene.style_sheet);
+        use theme::widget::list_view as list_view_style;
+        let default_background_color = style.get_color(list_view_style::background);
 
         frp::extend! { network
+
+            // === Background ===
+
+            init <- source_();
+            default_show_background_shadow <- init.constant(true);
+            show_background_shadow <- any(
+                &default_show_background_shadow,&frp.show_background_shadow);
+            eval show_background_shadow ((t) model.show_background_shadow(*t));
+            default_background_corners_radius <- init.constant(background::CORNER_RADIUS_PX);
+            background_corners_radius <- any(
+                &default_background_corners_radius,&frp.set_background_corners_radius);
+            eval background_corners_radius ((px) model.background.corners_radius_px.set(*px));
+            default_background_color <- all(&default_background_color,&init)._0();
+            background_color <- any(&default_background_color,&frp.set_background_color);
+            eval background_color ((color) model.background.color.set(color.into()));
+
 
             // === Mouse Position ===
 
@@ -329,6 +363,7 @@ where E::Model: Default
 
 
             // === Selected Entry ===
+
             frp.source.selected_entry <+ frp.select_entry.map(|id| Some(*id));
 
             selection_jump_on_one_up  <- frp.move_selection_up.constant(-1);
@@ -452,6 +487,7 @@ where E::Model: Default
             ));
         }
 
+        init.emit(());
         view_y.set_target_value(MAX_SCROLL);
         view_y.skip();
         frp.scroll_jump(MAX_SCROLL);
