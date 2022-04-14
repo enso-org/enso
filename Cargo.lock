@@ -740,6 +740,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-interface"
 version = "0.1.0"
 dependencies = [
@@ -941,6 +954,7 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
+ "debug-scene-component-group",
  "debug-scene-interface",
  "debug-scene-visualization",
 ]
@@ -1706,7 +1720,6 @@ dependencies = [
  "enso-text",
  "enso-types",
  "ensogl-core",
- "ensogl-hardcoded-theme",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "wasm-bindgen-test",
@@ -2255,6 +2268,18 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "welcome-screen",
+]
+
+[[package]]
+name = "ide-view-component-group"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-text",
 ]
 
 [[package]]

@@ -8,5 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+debug-scene-component-group = { path = "component-group" }
 debug-scene-interface = { path = "interface" }
 debug-scene-visualization = { path = "visualization" }

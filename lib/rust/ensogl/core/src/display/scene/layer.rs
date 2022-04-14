@@ -1097,6 +1097,9 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// scene.layers.add_shapes_order_dependency::<shape::View, input::port::hover::View>();
 /// scene.layers.add_shapes_order_dependency::<input::port::hover::View, input::port::viz::View>();
 /// ```
+///
+/// A shape listed on the left side of an arrow (`->`) will be ordered below the shape listed on
+/// the right side of the arrow.
 #[macro_export]
 macro_rules! shapes_order_dependencies {
     ($scene:expr => {
