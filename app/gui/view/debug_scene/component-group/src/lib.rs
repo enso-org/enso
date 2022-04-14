@@ -98,7 +98,7 @@ fn init(app: &Application) {
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
     component_group.set_entries(provider);
-    component_group.set_size(Vector2(150.0, 200.0));
+    component_group.set_size(Vector2(450.0, 200.0));
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&component_group);
 

@@ -13,6 +13,29 @@ use list_view::entry::AnyModelProvider;
 
 
 
+// ==========================
+// === Shapes Definitions ===
+// ==========================
+
+
+// === Background ===
+
+/// The background of the Component Group View.
+pub mod background {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        below = [list_view::background];
+        (style:Style, color:Vector4) {
+            let sprite_width: Var<Pixels> = "input_size.x".into();
+            let sprite_height: Var<Pixels> = "input_size.y".into();
+            let color = Var::<Rgba>::from(color);
+            let shape = Rect((&sprite_width, &sprite_height)).fill(color);
+            shape.into()
+        }
+    }
+}
+
 // =================
 // === ModelProvider ===
 // =================
@@ -61,11 +84,19 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
+        frp::extend! { network
+            eval input.set_size((size) model.resize_background(*size));
+            eval input.set_background_color((c)
+                model.background.color.set(c.into()));
+        }
         for (idx, group) in model.groups.iter().enumerate() {
             frp::extend! { network
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
                 group.set_entries <+ entries;
-                group.resize <+ input.set_size;
+                _eval <- all_with(&input.set_size, &entries, f!([group](size, count) Model::resize(&group,count.entry_count(),*size)));
+                group.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
+                group.show_background_shadow(false);
+                group.set_background_corners_radius(0.0);
             }
         }
     }
@@ -81,6 +112,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
+    background: background::View,
     groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
 }
 
@@ -97,6 +129,8 @@ impl component::Model for Model {
 
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
+        let background = background::View::new(&logger);
+        display_object.add_child(&background);
         let groups = Rc::new([
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
@@ -109,11 +143,21 @@ impl component::Model for Model {
             display_object.add_child(group);
         }
 
-        Model { display_object, groups }
+        Model { display_object, background, groups }
     }
 }
 
-impl Model {}
+impl Model {
+    fn resize_background(&self, size: Vector2) {
+        self.background.size.set(size);
+    }
+
+    fn resize(group: &list_view::ListView<list_view::entry::Label>, entries_count: usize, size: Vector2) {
+        let size = Vector2(size.x / 3.0, size.y);
+        group.resize(size);
+        group.set_position_y(- size.y + entries_count as f32 * list_view::entry::HEIGHT);
+    }
+}
 
 
 
