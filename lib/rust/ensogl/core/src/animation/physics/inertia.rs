@@ -732,6 +732,34 @@ where
     }
 }
 
+impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
+    pub fn downgrade(&self) -> WeakSimulator<T, OnStep, OnStart, OnEnd> {
+        let data = self.data.clone_ref();
+        let animation_loop = self.animation_loop.downgrade();
+        WeakSimulator { data, animation_loop }
+    }
+}
+
+
+// =====================
+// === WeakSimulator ===
+// =====================
+
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
+    animation_loop: WeakAnimationLoop<T, OnStep, OnStart, OnEnd>,
+}
+
+
+impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    pub fn upgrade(&self) -> Option<Simulator<T, OnStep, OnStart, OnEnd>> {
+        let data = self.data.clone_ref();
+        self.animation_loop.upgrade().map(|animation_loop| Simulator { data, animation_loop })
+    }
+}
+
 
 
 // =====================
@@ -746,12 +774,12 @@ where
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
 pub struct AnimationLoop<T, OnStep, OnStart, OnEnd> {
-    animation_loop: Rc<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>,
+    animation_loop: Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
 #[allow(clippy::type_complexity)]
 impl<T, OnStep, OnStart, OnEnd> Deref for AnimationLoop<T, OnStep, OnStart, OnEnd> {
-    type Target = Rc<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>;
+    type Target = Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>;
     fn deref(&self) -> &Self::Target {
         &self.animation_loop
     }
@@ -769,8 +797,10 @@ impl<T, OnStep, OnStart, OnEnd> AnimationLoop<T, OnStep, OnStart, OnEnd> {
 /// inferencer happy (not infer infinite, recursive types).
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
 pub struct WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
-    animation_loop: Weak<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>,
+    animation_loop: Weak<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
@@ -784,7 +814,7 @@ impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
 // === Animation Step ===
 
 /// Alias for [`FixedFrameRateLoop`] with specified step callback.
-pub type FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd> = animation::FixedFrameRateLoop<
+pub type FixedFrameRateLoop<T, OnStep, OnStart, OnEnd> = animation::FixedFrameRateLoop<
     Step<T, OnStep, OnStart, OnEnd>,
     OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>,
 >;
@@ -823,8 +853,12 @@ where
     OnStep: Callback1<T>,
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
-    let data = simulator.data.clone_ref();
-    move || data.skip()
+    let weak_simulator = simulator.downgrade();
+    move || {
+        if let Some(simulator) = weak_simulator.upgrade() {
+            simulator.skip()
+        }
+    }
 }
 
 
