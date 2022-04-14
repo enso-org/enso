@@ -61,7 +61,7 @@ pub fn main() {
     frp::new_network! { network
         trace view1.events.mouse_over;
         trace view1.events.mouse_out;
-        trace view1.events.mouse_down;
+        trace view1.events.mouse_down_primary;
     }
 
     world
