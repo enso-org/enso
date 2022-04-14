@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
+import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
 import org.enso.base.text.Utf16Span;
 
@@ -232,19 +233,6 @@ public class Text_Utils {
   }
 
   /**
-   * Replaces all occurrences of {@code oldSequence} within {@code str} with {@code newSequence}.
-   *
-   * @param str the string to process
-   * @param oldSequence the substring that is searched for and will be replaced
-   * @param newSequence the string that will replace occurrences of {@code oldSequence}
-   * @return {@code str} with all occurrences of {@code oldSequence} replaced with {@code
-   *     newSequence}
-   */
-  public static String replace(String str, String oldSequence, String newSequence) {
-    return str.replace(oldSequence, newSequence);
-  }
-
-  /**
    * Gets the length of char array of a string
    *
    * @param str the string to measure
@@ -306,7 +294,7 @@ public class Text_Utils {
 
     StringSearch search = new StringSearch(needle, haystack);
     ArrayList<Utf16Span> occurrences = new ArrayList<>();
-    long ix;
+    int ix;
     while ((ix = search.next()) != StringSearch.DONE) {
       occurrences.add(new Utf16Span(ix, ix + search.getMatchLength()));
     }
@@ -456,13 +444,21 @@ public class Text_Utils {
    * @return a minimal {@code GraphemeSpan} which contains all code units from the match
    */
   private static GraphemeSpan findExtendedSpan(CaseFoldedString string, int position, int length) {
-    int firstGrapheme = string.codeUnitToGraphemeIndex(position);
+    Grapheme firstGrapheme = string.findGrapheme(position);
     if (length == 0) {
-      return new GraphemeSpan(firstGrapheme, firstGrapheme);
+      return new GraphemeSpan(
+          firstGrapheme.index,
+          firstGrapheme.index,
+          firstGrapheme.codeunit_start,
+          firstGrapheme.codeunit_start);
     } else {
-      int lastGrapheme = string.codeUnitToGraphemeIndex(position + length - 1);
-      int endGrapheme = lastGrapheme + 1;
-      return new GraphemeSpan(firstGrapheme, endGrapheme);
+      Grapheme lastGrapheme = string.findGrapheme(position + length - 1);
+      int endGraphemeIndex = lastGrapheme.index + 1;
+      return new GraphemeSpan(
+          firstGrapheme.index,
+          endGraphemeIndex,
+          firstGrapheme.codeunit_start,
+          lastGrapheme.codeunit_end);
     }
   }
 
@@ -484,5 +480,31 @@ public class Text_Utils {
    */
   public static boolean is_all_whitespace(String text) {
     return text.codePoints().allMatch(UCharacter::isUWhiteSpace);
+  }
+
+  /**
+   * Replaces all provided spans within the text with {@code newSequence}.
+   *
+   * @param str the string to process
+   * @param spans the spans to replace; the spans should be sorted by their starting point in the
+   *     non-decreasing order; the behaviour is undefined if these requirements are not satisfied.
+   * @param newSequence the string that will replace the spans
+   * @return {@code str} with all provided spans replaced with {@code newSequence}
+   */
+  public static String replace_spans(String str, List<Utf16Span> spans, String newSequence) {
+    StringBuilder sb = new StringBuilder();
+    int current_ix = 0;
+    for (Utf16Span span : spans) {
+      if (span.codeunit_start > current_ix) {
+        sb.append(str, current_ix, span.codeunit_start);
+      }
+
+      sb.append(newSequence);
+      current_ix = span.codeunit_end;
+    }
+
+    // Add the remaining part of the string (if any).
+    sb.append(str, current_ix, str.length());
+    return sb.toString();
   }
 }

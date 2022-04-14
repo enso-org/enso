@@ -108,6 +108,7 @@
 - [Implemented `Text.reverse`][3377]
 - [Implemented support for most Table aggregations in the Database
   backend.][3383]
+- [Update `Text.replace` to new API.][3393]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -164,6 +165,7 @@
 [3383]: https://github.com/enso-org/enso/pull/3383
 [3385]: https://github.com/enso-org/enso/pull/3385
 [3392]: https://github.com/enso-org/enso/pull/3392
+[3393]: https://github.com/enso-org/enso/pull/3393
 
 #### Enso Compiler
 
