@@ -74,7 +74,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
                 String pkgName =
                         processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
                 String clazzName = element.getSimpleName().toString();
-                registerBuiltinType(processingEnv.getFiler(), clazzName, pkgName + "." + clazzName, builtinTypeAnnotation.params());
+                // Replace CamelCase class name to Snake_Case used in Enso
+                String ensoTypeName = clazzName.replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+                registerBuiltinType(processingEnv.getFiler(), ensoTypeName, pkgName + "." + clazzName, builtinTypeAnnotation.params());
             }
         }
         return true;
