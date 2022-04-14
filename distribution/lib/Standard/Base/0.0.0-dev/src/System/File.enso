@@ -1,6 +1,8 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.Data.Text.Matching_Mode
+import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 
@@ -33,9 +35,7 @@ new path = case path of
     Text -> File (Prim_Io.get_file path)
     _ -> path
 
-## ALIAS Read File
-
-   Open and reads all bytes in the file at the provided `path` into a byte vector.
+## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
@@ -55,9 +55,7 @@ read_bytes path =
         _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
     file.read_bytes
 
-## ALIAS Read Text File
-
-   Open and read the file at the provided `path`.
+## Open and read the file at the provided `path`.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
@@ -490,6 +488,14 @@ type File
     name : Text
     name = this.prim_file.getName
 
+    ## Returns the extension of the file
+    extension : Text
+    extension =
+        name = this.name
+        last_dot = name.location_of "." mode=Matching_Mode.last
+        if last_dot.is_nothing then "" else
+            name.drop (Text_Sub_Range.First last_dot.start)
+
     ## Converts this file to an equivalent file represented with an absolute
        path.
 
@@ -874,9 +880,9 @@ handle_java_exceptions file ~action =
     rethrow_java exception =
         result = case exception of
             Polyglot_Error exc ->
-                if Java.is_instance exc NoSuchFileException then Error.throw (No_Such_File_Error file) else
-                    if Java.is_instance exc AccessDeniedException then Error.throw (Access_Denied_Error file) else
-                        if Java.is_instance exc IOException then Error.throw (Io_Error exc.getMessage) else
+                if Java.is_instance exc NoSuchFileException then Error.throw (File_Not_Found file) else
+                    if Java.is_instance exc AccessDeniedException then Error.throw (Io_Error file ("You do not have permission to access the file.")) else
+                        if Java.is_instance exc IOException then Error.throw (Io_Error file ("An IO error has occurred: " + exc.getMessage)) else
                             Error.throw exception
             _ -> Error.throw exception
         result
@@ -900,29 +906,22 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    type No_Such_File_Error file
-
-    ## An error that indicates that the program does not have access to the
-       requested file.
-
-       Arguments:
-       - file: The file that the program does not have permission to access.
-    type Access_Denied_Error file
+    type File_Not_Found file
 
     ## A generic IO error.
 
        Arguments:
+       - file: The file that couldn't be read.
        - message: The message for the error.
-    type Io_Error message
+    type Io_Error file message
 
     ## UNSTABLE
 
        Convert the File error to a human-readable format.
     to_display_text : Text
     to_display_text = case this of
-        No_Such_File_Error file -> "The file at " + file.path + " does not exist."
-        Access_Denied_Error file -> "You do not have permission to access the file at " + file.path + "."
-        Io_Error msg -> "An IO error has occurred: " + msg.to_text + "."
+        File_Not_Found  file -> "The file at " + file.path + " does not exist."
+        Io_Error file msg -> msg.to_text + " (" + file.path + ")"
 
 
 ## PRIVATE
