@@ -87,7 +87,7 @@ fn init(app: &Application) {
         "table input".into(),
         "text input".into(),
         "number input".into(),
-        "table input".into(),
+        "table output".into(),
         "data output".into(),
         "data input".into(),
     ]);

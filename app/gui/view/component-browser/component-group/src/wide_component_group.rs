@@ -61,7 +61,8 @@ impl list_view::entry::ModelProvider<Entry> for ModelProvider {
     }
 
     fn get(&self, id: list_view::entry::Id) -> Option<String> {
-        self.inner.get(id * 3 + *self.index)
+        let idx = (self.entry_count() - 1 - id) * 3 + *self.index;
+        self.inner.get(idx)
     }
 }
 
