@@ -301,6 +301,7 @@ impl WorldData {
         self.scene_dirty.unset_all();
         let update_status = self.default_scene.update(time);
         self.garbage_collector.mouse_events_handled();
+        DEBUG!("{update_status:?}");
         self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
