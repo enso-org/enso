@@ -8,14 +8,43 @@ use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
+use list_view::entry::AnyModelProvider;
 use ensogl_text as text;
 
 
 
 // =================
-// === Constants ===
+// === ModelProvider ===
 // =================
 
+type Entry = list_view::entry::Label;
+#[derive(Debug, Clone, CloneRef, Default)]
+pub struct ModelProvider {
+    inner: AnyModelProvider<Entry>,
+    index: Immutable<usize>,
+}
+
+impl ModelProvider {
+    pub fn new(inner: &AnyModelProvider<Entry>, index: usize) -> AnyModelProvider<Entry> {
+        AnyModelProvider::new(Self { inner : inner.clone_ref(), index: Immutable(index) })
+    }
+}
+
+impl list_view::entry::ModelProvider<Entry> for ModelProvider {
+    fn entry_count(&self) -> usize {
+        self.inner.entry_count() / 3
+    }
+
+    fn get(&self, id: list_view::entry::Id) -> Option<String>
+    {
+        DEBUG!("Getting entry with id={id}");
+        if *self.index == id % 3 {
+            self.inner.get(id)
+        } else {
+            None
+        }
+    }
+}
 
 
 // ===========
@@ -36,9 +65,10 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        for group in model.groups.iter() {
+        for (idx, group) in model.groups.iter().enumerate() {
             frp::extend! { network
-                group.set_entries <+ input.set_entries;
+                entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
+                group.set_entries <+ entries;
                 group.resize <+ input.set_size;
             }
         }
