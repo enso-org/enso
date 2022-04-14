@@ -46,7 +46,6 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.Builtin;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
@@ -69,7 +68,7 @@ public class Builtins {
   private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
   // TODO Consider dropping the map and just assigning to a single variable since builtin types
   //      should be unique
-  private HashMap<String, Builtin> builtinTypes;
+  private HashMap<String, AtomConstructor> builtinTypes;
 
   private final AtomConstructor debug;
   private final AtomConstructor projectDescription;
@@ -187,13 +186,12 @@ public class Builtins {
     assignMethodsToBuiltins(readBuiltinTypesMetadata(scope), scope, language);
   }
 
-  public void assignMethodsToBuiltins(List<Builtin> builtins, ModuleScope scope, Language language) {
-    for (Builtin atom: builtins) {
+  public void assignMethodsToBuiltins(List<AtomConstructor> builtins, ModuleScope scope, Language language) {
+    for (AtomConstructor atom: builtins) {
       String tpeName = atom.getName();
       builtinTypes.put(tpeName, atom);
       Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(tpeName);
       if (methods != null) {
-        Builtin finalAtom = atom;
         methods.forEach((methodName, clazz) -> {
           Optional<Function> fun;
           try {
@@ -203,7 +201,7 @@ public class Builtins {
             e.printStackTrace();
             fun = Optional.empty();
           }
-          fun.ifPresent(f -> scope.registerMethod(finalAtom, methodName, f));
+          fun.ifPresent(f -> scope.registerMethod(atom, methodName, f));
         });
       }
     }
@@ -246,7 +244,7 @@ public class Builtins {
     }
   }
 
-  private List<Builtin> readBuiltinTypesMetadata(ModuleScope scope) {
+  private List<AtomConstructor> readBuiltinTypesMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(TypeProcessor.META_PATH)) {
@@ -263,9 +261,9 @@ public class Builtins {
       }
 
       String fullName = builtinMeta[1];
-      Builtin builtin = null;
+      AtomConstructor builtin = null;
       try {
-        Class<Builtin> clazz = (Class<Builtin>) Class.forName(fullName);
+        Class<AtomConstructor> clazz = (Class<AtomConstructor>) Class.forName(fullName);
         builtin = clazz.getDeclaredConstructor(ModuleScope.class).newInstance(scope);
         if (builtinMeta.length == 2) {
           builtin = builtin.initializeFields();
@@ -349,7 +347,7 @@ public class Builtins {
     }
   }
 
-  public Builtin getBuiltinType(String name) {
+  public AtomConstructor getBuiltinType(String name) {
     return builtinTypes.get(name);
   }
 

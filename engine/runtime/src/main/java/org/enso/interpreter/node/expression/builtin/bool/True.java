@@ -1,12 +1,12 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.bool;
 
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.runtime.callable.atom.Builtin;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @BuiltinType
-public class True extends Builtin {
+public class True extends AtomConstructor {
     public True(ModuleScope definitionScope) {
-        super("True", definitionScope);
+        super("True", definitionScope, true);
     }
 }

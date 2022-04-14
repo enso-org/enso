@@ -11,7 +11,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.compiler.exception.CompilerError;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -36,7 +35,8 @@ import org.enso.pkg.QualifiedName;
 public class AtomConstructor implements TruffleObject {
 
   private final String name;
-  private final ModuleScope definitionScope;
+  private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;
+  private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
@@ -48,12 +48,29 @@ public class AtomConstructor implements TruffleObject {
    * @param definitionScope the scope in which this constructor was defined
    */
   public AtomConstructor(String name, ModuleScope definitionScope) {
+    this(name, definitionScope, false);
+  }
+
+  public AtomConstructor(String name, ModuleScope definitionScope, Boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
+    this.builtin = builtin;
   }
 
   public boolean isInitialized() {
     return constructorFunction != null;
+  }
+
+  public boolean isBuiltin() {
+    return builtin;
+  }
+
+  public void setShadowDefinitions(ModuleScope scope) {
+    if (builtin) {
+      this.definitionScope = scope;
+    } else {
+      throw new RuntimeException("Attempting to modify scope of a non-builtin type post-construction is not allowed");
+    }
   }
 
   /**

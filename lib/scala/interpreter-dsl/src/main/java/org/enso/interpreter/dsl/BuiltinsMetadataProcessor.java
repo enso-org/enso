@@ -8,6 +8,7 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,7 +42,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
                             lines().
                             collect(Collectors.toMap(l -> l.split(":")[0], Function.identity()));
                 }
-            } catch (FileNotFoundException notFoundException) {
+            } catch (NoSuchFileException notFoundException) {
                 pastEntries = new HashMap<>();
             } catch (Exception e) {
                 e.printStackTrace();

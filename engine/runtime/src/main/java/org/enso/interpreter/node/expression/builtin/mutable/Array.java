@@ -1,13 +1,13 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.mutable;
 
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.runtime.callable.atom.Builtin;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 @BuiltinType
-public class Array extends Builtin {
+public class Array extends AtomConstructor {
     public Array(ModuleScope definitionScope) {
-        super("Array", definitionScope);
+        super("Array", definitionScope, true);
     }
 }
 
