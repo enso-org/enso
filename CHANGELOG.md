@@ -109,9 +109,8 @@
 - [Implemented support for most Table aggregations in the Database
   backend.][3383]
 - [Update `Text.replace` to new API.][3393]
-- [Add encoding support to `Text.bytes` and `Text.from_bytes`. Renamed and
-  added encoding to `File.read_text`. New `File.read` API.][3390]
-
+- [Add encoding support to `Text.bytes` and `Text.from_bytes`. Renamed and added
+  encoding to `File.read_text`. New `File.read` API.][3390]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
