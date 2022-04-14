@@ -5,6 +5,7 @@ use crate::system::gpu::*;
 use crate::system::js::*;
 
 use crate::display::render::pass;
+use crate::display::scene::UpdateStatus;
 use crate::system::gpu::data::texture::class::TextureOps;
 
 use web_sys::WebGlBuffer;
@@ -180,7 +181,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
-    fn run(&mut self, instance: &pass::Instance) {
+    fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
         } else {
@@ -189,7 +190,8 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
             }
-            if self.sync.is_none() {
+            let need_sync = update_status.scene_was_dirty || update_status.pointer_position_changed;
+            if need_sync && self.sync.is_none() {
                 self.run_not_synced(&instance.context);
                 if let Some(callback) = &self.sync_callback {
                     callback()
