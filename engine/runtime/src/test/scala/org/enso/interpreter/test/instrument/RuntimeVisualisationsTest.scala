@@ -1675,10 +1675,10 @@ class RuntimeVisualisationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(46, 14)
+    val idMain = metadata.addItem(42, 14)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |main =
         |    Error.throw 42
@@ -1707,7 +1707,9 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val responses = context.receive(n = 4, timeoutSeconds = 60))
+
+    responses should contain allOf(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1716,6 +1718,12 @@ class RuntimeVisualisationsTest
       ),
       context.executionComplete(contextId)
     )
+
+    val loadedLibraries = responses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+    loadedLibraries should contain(("Standard", "Base"))
 
     // attach visualisation
     context.send(
@@ -1863,11 +1871,12 @@ class RuntimeVisualisationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(77, 28)
+    val idMain = metadata.addItem(120, 28)
 
     val code =
       """from Standard.Builtins import all
         |import Standard.Base.Data.List
+        |from Standard.Base.Error.Common import all
         |
         |main =
         |    Error.throw List.Empty_Error
@@ -1902,7 +1911,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushContextResponses =
-      context.receive(n = 4, timeoutSeconds = 90)
+      context.receive(n = 5, timeoutSeconds = 90)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(

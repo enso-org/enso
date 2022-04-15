@@ -4,10 +4,10 @@ package org.enso.interpreter.runtime.type;
 public class Constants {
 
   public static final String ANY = "Standard.Base.Data.Any.Any";
-  public static final String ARRAY = "Standard.Data.Main.Array";
+  public static final String ARRAY = "Standard.Base.Data.Array.Array";
   public static final String BOOLEAN = "Standard.Builtins.Main.Boolean";
   public static final String DECIMAL = "Standard.Builtins.Main.Decimal";
-  public static final String ERROR = "Standard.Builtins.Main.Error";
+  public static final String ERROR = "Standard.Base.Error.Common.Error";
   public static final String FUNCTION = "Standard.Builtins.Main.Function";
   public static final String INTEGER = "Standard.Builtins.Main.Integer";
   public static final String MANAGED_RESOURCE = "Standard.Builtins.Main.Managed_Resource";

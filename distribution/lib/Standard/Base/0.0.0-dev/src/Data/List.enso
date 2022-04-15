@@ -1,5 +1,5 @@
 from Standard.Builtins import all
-from Standard.Builtins export Nil, Cons
+from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
 
 ## The basic cons-list type.
@@ -377,4 +377,3 @@ map_helper list cons f = case list of
         Unsafe.set_atom_field cons 1 res
         @Tail_Call here.map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil
-

@@ -77,7 +77,6 @@ public class Builtins {
   private final AtomConstructor panic;
   private final AtomConstructor caughtPanic;
 
-  private final DataflowError dataflowError;
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
@@ -101,7 +100,6 @@ public class Builtins {
     builtinTypes = new HashMap<>();
 
     debug = new AtomConstructor("Debug", scope).initializeFields();
-    dataflowError = new DataflowError(language, scope);
     Warning.initWarningMethods(language, scope);
     projectDescription =
         new AtomConstructor("Project_Description", scope)
@@ -462,8 +460,8 @@ public class Builtins {
   }
 
   /** @return the container for the dataflow error-related builtins */
-  public DataflowError dataflowError() {
-    return dataflowError;
+  public AtomConstructor dataflowError() {
+    return builtinTypes.get("Error");
   }
 
   public Special special() {
@@ -501,7 +499,7 @@ public class Builtins {
       case Constants.DECIMAL:
         return number.getDecimal().newInstance();
       case Constants.ERROR:
-        return dataflowError.constructor().newInstance();
+        return dataflowError().newInstance();
       case Constants.FUNCTION:
         return function.newInstance();
       case Constants.INTEGER:

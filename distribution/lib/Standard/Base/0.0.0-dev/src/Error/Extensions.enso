@@ -51,78 +51,6 @@ Unimplemented_Error.to_display_text = "An implementation is missing: " + this.me
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error message)
 
-## Executes the provided handler on a dataflow error, or returns a non-error
-   value unchanged.
-
-   Arguments:
-   - handler: The function to call on this if it is an error value. By default
-     this is identity.
-
-   > Example
-     Catching an erroneous value and getting the length of its message.
-
-         import Standard.Examples
-
-         example_catch =
-             Examples.throw_error.catch (err -> err.message.length)
-Error.catch : (Error -> Any) -> Any
-Error.catch (handler = x->x) = this.catch_primitive handler
-
-## UNSTABLE
-
-   Returns a display representation of the dataflow error on which it is called.
-
-   > Example
-     Displaying a dataflow error.
-
-         import Standard.Examples
-
-         example_display = Examples.throw_error.to_default_visualization_data
-Error.to_default_visualization_data : Text
-Error.to_default_visualization_data = this.catch .to_default_visualization_data
-
-## UNSTABLE
-
-   Returns a human-readable text representing this error.
-Error.to_display_text : Text
-Error.to_display_text  = "Error: " + (this.catch .to_display_text)
-
-## UNSTABLE
-
-   Returns a JSON representation of the dataflow error.
-
-   > Example
-     Converting a dataflow error to JSON.
-
-         import Standard.Examples
-
-         example_to_json = Examples.throw_error.to_json
-Error.to_json : Json.Object
-Error.to_json =
-    error_type = ["type", "Error"]
-    error_content = ["content", this.catch .to_json]
-    error_message = ["message", this.catch .to_display_text]
-    Json.from_pairs [error_type, error_content, error_message]
-
-## Transforms an error.
-
-   Arguments:
-   - f: The function used to transform the error.
-
-   If `this` is a non-error value it is returned unchanged. However, if `this`
-   is an error, the error is transformed using the provided function
-
-   > Example
-     Transforming an error value.
-
-         import Standard.Examples
-
-         example_map_error =
-             map = Examples.map
-             map.get 10 . map_error (_ -> "The element 10 was not found.")
-Error.map_error : (Error -> Error) -> Any
-Error.map_error f = this.catch (x -> Error.throw (f x))
-
 ## ADVANCED
    UNSTABLE
 
@@ -139,26 +67,6 @@ Panic.get_attached_stack_trace error =
     prim_stack = Panic.primitive_get_attached_stack_trace throwable
     stack_with_prims = Vector.Vector prim_stack
     stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
-
-## ADVANCED
-   UNSTABLE
-
-   Returns the attached stack trace of the error.
-
-   The ordering of the resulting vector is such that the top stack frame is the
-   first element.
-Error.stack_trace : Vector.Vector Stack_Trace_Element
-Error.stack_trace =
-    Panic.get_attached_stack_trace this
-
-## Checks if `this` is an error.
-
-   > Example
-     Checking if the value 1 is an error.
-
-         1.is_error
-Error.is_error : Boolean
-Error.is_error = True
 
 ## Takes any value, and if it is a dataflow error, throws it as a Panic,
    otherwise, returns the original value unchanged.

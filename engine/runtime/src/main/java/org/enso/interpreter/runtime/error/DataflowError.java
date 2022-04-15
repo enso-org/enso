@@ -116,7 +116,7 @@ public class DataflowError extends AbstractTruffleException {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
-      return conversion.resolveFor(target, context.getBuiltins().dataflowError().constructor());
+      return conversion.resolveFor(target, context.getBuiltins().dataflowError());
     }
 
     static Context getContext() {

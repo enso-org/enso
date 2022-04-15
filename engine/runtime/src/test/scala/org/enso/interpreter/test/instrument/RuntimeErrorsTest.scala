@@ -102,7 +102,7 @@ class RuntimeErrorsTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
+      Option(messageQueue.poll(60, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -125,6 +125,13 @@ class RuntimeErrorsTest
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
+    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
+      false
+    case _ =>
+      true
   }
 
   it should "return panic sentinels in method body" in {
@@ -292,13 +299,13 @@ class RuntimeErrorsTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     // foo body id
-    metadata.addItem(70, 5)
-    val xId       = metadata.addItem(84, 19)
-    val yId       = metadata.addItem(112, 8)
-    val mainResId = metadata.addItem(125, 7)
+    metadata.addItem(79, 5)
+    val xId       = metadata.addItem(93, 19)
+    val yId       = metadata.addItem(121, 8)
+    val mainResId = metadata.addItem(134, 7)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Error.Common import all
         |
         |type MyError
         |
@@ -337,7 +344,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -356,6 +364,12 @@ class RuntimeErrorsTest
       ),
       context.executionComplete(contextId)
     )
+
+    val loadedLibraries = responses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+    loadedLibraries should contain(("Standard", "Base"))
   }
 
   it should "return panic sentinels continuing execution" in {
@@ -444,12 +458,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(64, 19)
-    val yId        = metadata.addItem(92, 2)
-    val mainResId  = metadata.addItem(99, 12)
+    val xId        = metadata.addItem(60, 19)
+    val yId        = metadata.addItem(88, 2)
+    val mainResId  = metadata.addItem(95, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |type MyError
         |
@@ -487,7 +501,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    val responses = context.receive(7)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -518,12 +533,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(64, 19)
-    val yId        = metadata.addItem(92, 5)
-    val mainResId  = metadata.addItem(102, 12)
+    val xId        = metadata.addItem(60, 19)
+    val yId        = metadata.addItem(88, 5)
+    val mainResId  = metadata.addItem(98, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |type MyError
         |
@@ -561,7 +576,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -592,7 +608,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val responses2 = context.receive(4)
+    responses2.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, Constants.INTEGER),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       context.executionComplete(contextId)
@@ -657,12 +674,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(79, 20)
-    val yId        = metadata.addItem(108, 5)
-    val mainResId  = metadata.addItem(118, 12)
+    val xId        = metadata.addItem(75, 20)
+    val yId        = metadata.addItem(104, 5)
+    val mainResId  = metadata.addItem(114, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |type MyError1
         |type MyError2
@@ -701,7 +718,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -743,13 +761,13 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val fooThrowId = metadata.addItem(74, 20)
-    val xId        = metadata.addItem(111, 8)
-    val yId        = metadata.addItem(128, 5)
-    val mainResId  = metadata.addItem(138, 12)
+    val fooThrowId = metadata.addItem(70, 20)
+    val xId        = metadata.addItem(107, 8)
+    val yId        = metadata.addItem(124, 5)
+    val mainResId  = metadata.addItem(134, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |type MyError1
         |type MyError2
@@ -791,7 +809,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1048,12 +1067,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(79, 20)
-    val yId        = metadata.addItem(108, 5)
-    val mainResId  = metadata.addItem(118, 12)
+    val xId        = metadata.addItem(75, 20)
+    val yId        = metadata.addItem(104, 5)
+    val mainResId  = metadata.addItem(114, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |type MyError1
         |type MyError2
@@ -1092,7 +1111,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1279,12 +1299,13 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(75, 8)
-    val yId        = metadata.addItem(92, 5)
-    val mainResId  = metadata.addItem(102, 12)
+    val xId        = metadata.addItem(118, 8)
+    val yId        = metadata.addItem(135, 5)
+    val mainResId  = metadata.addItem(145, 12)
 
     val code =
       """from Standard.Builtins import all
+        |from Standard.Base.Error.Common import all
         |
         |foo =
         |    Error.throw 9
@@ -1323,7 +1344,8 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    val responses = context.receive(6)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1352,7 +1374,7 @@ class RuntimeErrorsTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(3, 4), model.Position(3, 17)),
+              model.Range(model.Position(4, 4), model.Position(4, 17)),
               "10002 - 10000"
             )
           )
