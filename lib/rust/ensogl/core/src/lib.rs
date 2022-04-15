@@ -25,6 +25,7 @@
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]

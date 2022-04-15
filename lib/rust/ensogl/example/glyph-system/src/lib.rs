@@ -28,6 +28,8 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::data::color;
 use ensogl_text_msdf_sys::run_once_initialized;
 
+
+
 const CHARS_TO_TEST: &[&str] = &["abcdqwerty", "ABCDQUERTY"];
 
 /// Main example runner.
