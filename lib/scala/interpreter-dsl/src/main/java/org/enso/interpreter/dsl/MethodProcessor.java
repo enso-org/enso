@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.openide.util.lookup.ServiceProvider;
 import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 
 /**
  * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
@@ -164,19 +165,20 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
 
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
-          String condName = mkArgumentInternalVarName(arg) + "ConditionProfile";
-          String branchName = mkArgumentInternalVarName(arg) + "BranchProfile";
+        if (arg.shouldCheckErrors()) {
+          String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
+          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println(
               "  private final ConditionProfile "
                   + condName
                   + " = ConditionProfile.createCountingProfile();");
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
-          if (!arg.isThis() && !arg.acceptsWarning()) {
-            String warningName = mkArgumentInternalVarName(arg) + "WarningProfile";
-            out.println(
-                "  private final BranchProfile " + warningName + " = BranchProfile.create();");
-          }
+        }
+
+        if (arg.shouldCheckWarnings()) {
+          String warningName = mkArgumentInternalVarName(arg) + WARNING_PROFILE;
+          out.println(
+              "  private final BranchProfile " + warningName + " = BranchProfile.create();");
         }
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
@@ -310,9 +312,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    if (!arg.acceptsError() && !arg.isThis()) {
+    if (arg.shouldCheckErrors()) {
       String argReference = argsArray + "[" + arg.getPosition() + "]";
-      String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
+      String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
       out.println(
           "    if ("
               + condProfile
@@ -323,7 +325,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + argReference
               + ");\n"
               + "    }");
-      String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
+      String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
       out.println(
           "    else if (TypesGen.isPanicSentinel("
               + argReference
@@ -406,9 +408,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   private boolean generateWarningsCheck(
       PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
     List<MethodDefinition.ArgumentDefinition> argsToCheck =
-        arguments.stream()
-            .filter(arg -> !arg.acceptsWarning() && !arg.isThis())
-            .collect(Collectors.toList());
+        arguments.stream().filter(ArgumentDefinition::shouldCheckWarnings).collect(Collectors.toList());
     if (argsToCheck.isEmpty()) {
       return false;
     } else {
@@ -419,7 +419,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
             "    if ("
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " instanceof WithWarnings) {");
-        out.println("      " + mkArgumentInternalVarName(arg) + "WarningProfile.enter();");
+        out.println("      " + mkArgumentInternalVarName(arg) + WARNING_PROFILE + ".enter();");
         out.println("      anyWarnings = true;");
         out.println(
             "      WithWarnings withWarnings = (WithWarnings) "
@@ -518,4 +518,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     if (elements.length != 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
     return new MethodMetadataEntry(elements[0], elements[1]);
   }
+
+  private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";
+  private static final String PANIC_SENTINEL_PROFILE = "PanicSentinelBranchProfile";
+  private static final String WARNING_PROFILE = "WarningProfile";
 }

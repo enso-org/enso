@@ -256,7 +256,7 @@ public class MethodDefinition {
         return false;
       }
 
-      if (position == 0 && !isThis()) {
+      if (isPositional() && position == 0 && !isThis()) {
         processingEnvironment
             .getMessager()
             .printMessage(
@@ -340,6 +340,14 @@ public class MethodDefinition {
 
     public boolean isThis() {
       return name.equals(THIS);
+    }
+
+    public boolean shouldCheckErrors() {
+      return isPositional() && !isThis() && !acceptsError();
+    }
+
+    public boolean shouldCheckWarnings() {
+      return isPositional() && !isThis()  && !acceptsWarning();
     }
   }
 }
