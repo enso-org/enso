@@ -590,7 +590,7 @@ mod tests {
         profiler::internal::EventLog.start(
             profiler::internal::EventId::implicit(),
             profiler::internal::Label("unfinished (?:?)"),
-            None,
+            Some(profiler::internal::Timestamp::now()),
             profiler::internal::StartState::Active,
         );
         let profile: profiler_data::Profile<OpaqueMetadata> =
@@ -604,7 +604,7 @@ mod tests {
         let id = profiler::internal::EventLog.start(
             profiler::internal::EventId::implicit(),
             profiler::internal::Label("unfinished (?:?)"),
-            None,
+            Some(profiler::internal::Timestamp::now()),
             profiler::internal::StartState::Active,
         );
         profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
