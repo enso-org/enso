@@ -29,7 +29,6 @@
 //! profiler/enso_data $ cargo run --bin message_beanpoles < ~/fullprofile.json > ~/diagram.svg
 //! ```
 
-
 // === Features ===
 #![feature(test)]
 // === Standard Linter Configuration ===
