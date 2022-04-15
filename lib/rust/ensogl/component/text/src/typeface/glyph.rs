@@ -204,6 +204,12 @@ impl System {
     }
 }
 
+impl Drop for System {
+    fn drop(&mut self) {
+        DEBUG!("GlyphSystem dropped");
+    }
+}
+
 impl display::Object for System {
     fn display_object(&self) -> &display::object::Instance {
         self.sprite_system.display_object()
