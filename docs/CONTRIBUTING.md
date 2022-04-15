@@ -547,47 +547,36 @@ For more details about the CI setup, you can check the
 
 ### Running Enso
 
-The only component in this repository with a proper executable is the Enso
-interpreter. It can be run using the sbt `run` command in the project `runner`
-and provides a rudimentary command-line interface to the basic capabilities of
-the interpreter.
-
-Enso should be launched using the `distribution/bin` scripts.
-
-#### Interpreter
-
-Interpreter is started with the `distribution/bin/enso` script and requires
-`runner.jar` and `runtime.jar` (see
+The language interpreter can be started by the `bin/enso` launcher script
+located inside of the Enso runtime distribution. Use the following `sbt` command
+to compile necessary bits (see
 [Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
-to be built and copied (or linked) to the `distribution/component` directory.
+and generate the Enso distribution:
 
 ##### Bash
 
 ```bash
-# build runtime.jar and runner.jar
-sbt engine-runner/assembly
-# link or copy jars to the distributiong
-mkdir -p distribution/component
-cd distribution/component
-ln -s ../../runtime.jar .
-ln -s ../../runner.jar .
+$ sbt buildEngineDistribution
+...
+Engine package created at built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev
 ```
 
 ##### PowerShell
 
 ```powershell
-# build runtime.jar and runner.jar
-sbt.bat engine-runner/assembly
-# copy jars to the distributiong
-mkdir -p .\distribution\component
-cp .\runtime.jar .\distribution\component\
-cp .\runner.jar .\distribution\component\
+sbt.bat buildEngineDistribution
 ```
 
-Detailed information on the flags it supports is shown by the `--help` flag, but
-the primary functionality is as follows:
+Then one can execute the launcher:
 
-- `--new PATH`: Creates a new Enso project at the location spcified by `PATH`.
+```bash
+$ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso
+```
+
+Detailed information on the flags it supports can be shown with the `--help`
+flag, but the primary functionality is as follows:
+
+- `--new PATH`: Creates a new Enso project at the location specified by `PATH`.
 - `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
   In this case, `PATH` must point to either a standalone Enso file or an Enso
   project.

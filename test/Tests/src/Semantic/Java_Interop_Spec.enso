@@ -9,22 +9,46 @@ polyglot java import java.lang.String
 polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
 
-spec = Test.group "Java FFI" <|
-    Test.specify "should call methods imported from Java" <|
-        Long.sum 1 2 . should_equal 3
+import Standard.Base.Data.Time.Date
+polyglot java import java.time.LocalDate
+polyglot java import java.time.LocalTime
 
-    Test.specify "should call constructors imported from Java" <|
-        list = ArrayList.new
-        list.add 432
-        list.get 0 . should_equal 432
-    Test.specify "should auto-convert numeric types across the polyglot boundary" <|
-        (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
-        (Integer.sum 1 2 + 3) . should_equal 6
-    Test.specify "should auto-convert strings across the polyglot boundary" <|
-        (String.format "%s bar %s" "baz" "quux" + " foo").should_equal "baz bar quux foo"
-    Test.specify "should support Java import renaming" <|
-        builder = Java_String_Builder.new
-        builder.append "foo"
-        builder.append "bar"
-        str = builder.toString
-        str.should_equal "foobar"
+spec =
+    Test.group "Java FFI" <|
+        Test.specify "should call methods imported from Java" <|
+            Long.sum 1 2 . should_equal 3
+
+        Test.specify "should call constructors imported from Java" <|
+            list = ArrayList.new
+            list.add 432
+            list.get 0 . should_equal 432
+        Test.specify "should auto-convert numeric types across the polyglot boundary" <|
+            (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
+            (Integer.sum 1 2 + 3) . should_equal 6
+        Test.specify "should auto-convert strings across the polyglot boundary" <|
+            (String.format "%s bar %s" "baz" "quux" + " foo").should_equal "baz bar quux foo"
+        Test.specify "should support Java import renaming" <|
+            builder = Java_String_Builder.new
+            builder.append "foo"
+            builder.append "bar"
+            str = builder.toString
+            str.should_equal "foobar"
+
+    Test.group "Java/Enso Date" <|
+        Test.specify "Java date has Enso properties" <|
+            april1st = LocalDate.of 2022 04 01
+            april1st.year.should_equal 2022
+            april1st.month.should_equal 4
+            april1st.day.should_equal 1
+
+        Test.specify "send Enso date into Java" <|
+            ensodate = Date.new 2022 04 01
+            javatime = LocalTime.of 10 26
+            javatimedate = javatime.atDate ensodate
+            april1st = javatimedate . toLocalDate
+            april1st.year.should_equal 2022
+            april1st.month.should_equal 4
+            april1st.day.should_equal 1
+
+
+main = Test.Suite.run_main here.spec

@@ -1138,7 +1138,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "num",
  "object 0.24.0",
- "paste 1.0.6",
+ "paste 1.0.7",
  "serde",
  "serde_json",
  "shrinkwraprs 0.3.0",
@@ -1252,6 +1252,7 @@ dependencies = [
  "assert_approx_eq",
  "nalgebra 0.26.2",
  "num-traits",
+ "paste 1.0.7",
 ]
 
 [[package]]
@@ -3122,9 +3123,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.6"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0744126afe1a6dd7f394cb50a716dbe086cb06e255e53d8d0185d82828358fb5"
+checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
 
 [[package]]
 name = "paste-impl"
@@ -3851,7 +3852,7 @@ dependencies = [
  "approx 0.4.0",
  "num-complex 0.3.1",
  "num-traits",
- "paste 1.0.6",
+ "paste 1.0.7",
 ]
 
 [[package]]
