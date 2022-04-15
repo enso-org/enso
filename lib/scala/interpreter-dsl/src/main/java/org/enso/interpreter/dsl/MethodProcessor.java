@@ -4,6 +4,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 
 import javax.annotation.processing.*;
+import com.google.auto.service.AutoService;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
@@ -14,6 +28,7 @@ import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.openide.util.lookup.ServiceProvider;
+import org.enso.interpreter.dsl.model.MethodDefinition;
 
 /**
  * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
@@ -295,7 +310,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    if (!arg.acceptsError()) {
+    boolean is_self_reference = arg.getName().equals("this") && arg.getPosition() == 0;
+    if (!arg.acceptsError() && !is_self_reference) {
       String argReference = argsArray + "[" + arg.getPosition() + "]";
       String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
       out.println(
@@ -308,20 +324,18 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + argReference
               + ");\n"
               + "    }");
-      if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
-        String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
-        out.println(
-            "    else if (TypesGen.isPanicSentinel("
-                + argReference
-                + ")) {\n"
-                + "      "
-                + branchProfile
-                + ".enter();\n"
-                + "      throw TypesGen.asPanicSentinel("
-                + argReference
-                + ");\n"
-                + "    }");
-      }
+      String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
+      out.println(
+          "    else if (TypesGen.isPanicSentinel("
+              + argReference
+              + ")) {\n"
+              + "      "
+              + branchProfile
+              + ".enter();\n"
+              + "      throw TypesGen.asPanicSentinel("
+              + argReference
+              + ");\n"
+              + "    }");
     }
 
     if (!arg.requiresCast()) {
