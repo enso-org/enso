@@ -9,6 +9,7 @@ members = [
     "build/rust-scripts",
     "lib/rust/*",
     "lib/rust/profiler/data",
+    "lib/rust/profiler/enso_data",
     "integration-test"
 ]
 

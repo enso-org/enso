@@ -1173,6 +1173,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-profiler-enso-data"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "csv",
+ "enso-profiler",
+ "enso-profiler-data",
+ "serde",
+]
+
+[[package]]
 name = "enso-profiler-flame-graph"
 version = "0.1.0"
 dependencies = [
