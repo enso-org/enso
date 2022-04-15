@@ -1,5 +1,6 @@
 // This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
 
+const path = require("path");
 const utils = require('../../utils')
 
 const dist = utils.require_env('ENSO_BUILD_IDE')
