@@ -167,11 +167,14 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (arg.shouldCheckErrors()) {
           String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
-          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println(
               "  private final ConditionProfile "
                   + condName
                   + " = ConditionProfile.createCountingProfile();");
+        }
+
+        if (arg.isPositional() && !arg.isThis()) {
+          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
         }
 
@@ -312,8 +315,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
+    String argReference = argsArray + "[" + arg.getPosition() + "]";
     if (arg.shouldCheckErrors()) {
-      String argReference = argsArray + "[" + arg.getPosition() + "]";
       String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
       out.println(
           "    if ("
@@ -325,9 +328,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               + argReference
               + ");\n"
               + "    }");
+    }
+    if (!arg.isThis()) {
       String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
       out.println(
-          "    else if (TypesGen.isPanicSentinel("
+          "    if (TypesGen.isPanicSentinel("
               + argReference
               + ")) {\n"
               + "      "
@@ -408,7 +413,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   private boolean generateWarningsCheck(
       PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
     List<MethodDefinition.ArgumentDefinition> argsToCheck =
-        arguments.stream().filter(ArgumentDefinition::shouldCheckWarnings).collect(Collectors.toList());
+        arguments.stream()
+            .filter(ArgumentDefinition::shouldCheckWarnings)
+            .collect(Collectors.toList());
     if (argsToCheck.isEmpty()) {
       return false;
     } else {
