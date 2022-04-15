@@ -6,7 +6,7 @@
 //! the language server. Writes to stdout an SVG representation of message timings.
 //!
 //! ```console
-//! ~/git/enso/data $ cargo run --bin timing < profile.json > out.svg
+//! ~/git/enso/data $ cargo run --bin message_beanpoles < profile.json > out.svg
 //! ```
 //!
 //! # Usage example
@@ -26,7 +26,7 @@
 //! # Merge the IDE profiler and the language server messages profile.
 //! profiler/enso_data $ cat ~/profile.json ~/messages.json > ~/fullprofile.json
 //! # Render an SVG diagram of the message timings.
-//! profiler/enso_data $ cargo run --bin timings < ~/fullprofile.json > ~/diagram.svg
+//! profiler/enso_data $ cargo run --bin message_beanpoles < ~/fullprofile.json > ~/diagram.svg
 //! ```
 
 
