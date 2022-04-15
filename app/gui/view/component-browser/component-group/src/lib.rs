@@ -18,12 +18,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-<<<<<<< HEAD
 use ensogl_core::display::shape::*;
-=======
 pub mod wide_component_group;
-
->>>>>>> 3b8304415 (Add new wide_component_group module)
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
