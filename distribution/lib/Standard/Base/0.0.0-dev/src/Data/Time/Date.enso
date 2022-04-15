@@ -20,7 +20,7 @@ polyglot java import org.enso.base.Time_Utils
 
          example_now = Date.now
 now : Date
-now = Date LocalDate.now
+now = LocalDate.now
 
 ## ALIAS Current Date
 
@@ -60,7 +60,7 @@ today = here.now
 
 new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
 new year (month = 1) (day = 1) =
-    Panic.recover Any (Date (LocalDate.of year month day)) . catch e-> case e of
+    Panic.recover Any (LocalDate.of year month day) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -253,7 +253,7 @@ type Date
              example_subtract = Date.new 2020 - 7.days
     - : Duration -> Date
     - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
-        Date (this . internal_local_date . minus amount.internal_period)
+        (this . internal_local_date . minus amount.internal_period)
 
     ## Format this date using the default formatter.
 
