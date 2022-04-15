@@ -45,42 +45,29 @@ pub mod traits {
 /// When the [`Instance`] is added to another layer, [`Sublayers::for_each_sublayer`] method of the
 /// `sublayers` field will be used to reattach sublayers to this new layer as well. Thus the
 /// sublayers are following the [`Instance`] at all times.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, CloneRef, Deref)]
+#[clone_ref(bound = "S:CloneRef")]
+#[allow(missing_docs)]
 pub struct InstanceWithSublayers<S> {
-    inner:         Instance,
-    /// Attached sublayers. Should implement [`ForEachSublayer`] trait.
+    #[deref]
+    instance:      Instance,
     pub sublayers: S,
-}
-
-impl<S: CloneRef> CloneRef for InstanceWithSublayers<S> {
-    fn clone_ref(&self) -> Self {
-        Self { inner: self.inner.clone_ref(), sublayers: self.sublayers.clone_ref() }
-    }
-}
-
-impl<S: CloneRef> Deref for InstanceWithSublayers<S> {
-    type Target = Instance;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
 }
 
 impl<S: CloneRef + ForEachSublayer + 'static> InstanceWithSublayers<S> {
     /// Constructor. Sets a `on_scene_layers_changed` callback for `instance`.
     pub fn new(instance: Instance, sublayers: S) -> Self {
-        instance.set_on_scene_layer_changed(f!([sublayers](_, from, to) {
-            for layer in from {
-                if let Some(layer) = layer.upgrade() {
-                    sublayers.for_each_sublayer(|sub| layer.remove_sublayer(sub));
+        instance.set_on_scene_layer_changed(f!((_, source, destination) {
+            sublayers.for_each_sublayer(|sublayer| {
+                for layer in source {
+                    layer.remove_sublayer(sublayer);
                 }
-            }
-            for layer in to {
-                if let Some(layer) = layer.upgrade() {
-                    sublayers.for_each_sublayer(|sub| layer.add_sublayer(sub));
+                for layer in destination {
+                    layer.add_sublayer(sublayer);
                 }
-            }
+            });
         }));
-        Self { inner: instance, sublayers }
+        Self { instance, sublayers }
     }
 }
 

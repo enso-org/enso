@@ -261,6 +261,20 @@ impl WeakLayer {
     pub fn upgrade(&self) -> Option<Layer> {
         self.model.upgrade().map(|model| Layer { model })
     }
+
+    /// Attach a `layer` as a sublayer. Will do nothing if the layer does not exist.
+    pub fn add_sublayer(&self, sublayer: &Layer) {
+        if let Some(layer) = self.upgrade() {
+            layer.add_sublayer(sublayer)
+        }
+    }
+
+    /// Remove previously attached sublayer. Will do nothing if the layer does not exist.
+    pub fn remove_sublayer(&self, sublayer: &Layer) {
+        if let Some(layer) = self.upgrade() {
+            layer.remove_sublayer(sublayer)
+        }
+    }
 }
 
 impl Debug for WeakLayer {
@@ -907,15 +921,14 @@ impl SublayersModel {
 /// layers and will be dropped together with the main object.
 #[derive(Debug, Clone, CloneRef)]
 pub struct MaskingSublayers {
-    /// Contains the objects that needs to be masked.
+    /// Objects that need to be masked.
     pub content: Layer,
-    /// Contains a masking shape. See docs in [`crate::display::scene::layer`] for information on
-    /// masking.
+    /// The masking shape. See [`crate::display::scene::layer`] docs to learn about masking.
     pub mask:    Layer,
 }
 
 impl MaskingSublayers {
-    /// Constructor. The passed `camera` will be used to render created sublayers.
+    /// Constructor. The passed [`camera`] will be used to render created sublayers.
     pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
         let content = Layer::new_with_cam(logger.sub("ContentLayer"), camera);
         let mask = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
@@ -927,7 +940,7 @@ impl MaskingSublayers {
 impl ForEachSublayer for MaskingSublayers {
     fn for_each_sublayer(&self, f: impl Fn(&Layer)) {
         f(&self.content);
-        f(&self.mask);
+        // f(&self.mask);
     }
 }
 

@@ -72,7 +72,11 @@ mod mask {
     use super::*;
     ensogl_core::define_shape_system! {
         (style:Style) {
-            Plane().fill(color::Rgba::new(1.0,1.0,1.0,1.0)).into()
+            let sprite_width  : Var<Pixels> = "input_size.x".into();
+            let sprite_height : Var<Pixels> = "input_size.y".into();
+
+            let rect  = Rect((&sprite_width,&sprite_height));
+            rect.fill(color::Rgba::new(1.0,1.0,1.0,1.0)).into()
         }
     }
 }

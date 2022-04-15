@@ -324,6 +324,7 @@ impl<T: Default> Default for CloneRefCell<T> {
 pub trait RefCellOptionOps<T> {
     fn clear(&self);
     fn set(&self, val: T);
+    fn set_if_empty_or_panic(&self, val: T);
 }
 
 impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
@@ -332,6 +333,13 @@ impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
     }
 
     fn set(&self, val: T) {
+        *self.borrow_mut() = Some(val);
+    }
+
+    fn set_if_empty_or_panic(&self, val: T) {
+        if self.borrow().is_some() {
+            panic!("Trying to set value that was already set.")
+        }
         *self.borrow_mut() = Some(val);
     }
 }
