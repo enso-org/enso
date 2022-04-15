@@ -463,4 +463,8 @@ public final class Function implements TruffleObject {
   public boolean isThunk() {
     return schema == FunctionSchema.THUNK;
   }
+
+  public boolean isFullyApplied() {
+    return schema.isFullyApplied();
+  }
 }

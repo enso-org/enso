@@ -7,11 +7,14 @@ import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.dispatch.IndirectInvokeFunctionNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Node responsible for executing (forcing) thunks passed to it as runtime values. */
 @GenerateUncached
@@ -86,6 +89,47 @@ public abstract class ThunkExecutorNode extends Node {
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
+  }
+
+  static InvokeFunctionNode buildInvokeFunctionNode(BaseNode.TailStatus tailStatus) {
+    var node =
+        InvokeFunctionNode.build(
+            new CallArgumentInfo[0],
+            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+    node.setTailStatus(tailStatus);
+    return node;
+  }
+
+  @Specialization(
+      guards = {"!fn.isThunk()", "fn.isFullyApplied()", "isTail == cachedIsTail"},
+      limit = "3" /* limit is 3 because that's the number of different values for isTail */)
+  Stateful doCachedFn(
+      Function fn,
+      Object state,
+      BaseNode.TailStatus isTail,
+      @Cached("isTail") BaseNode.TailStatus cachedIsTail,
+      @Cached("buildInvokeFunctionNode(cachedIsTail)") InvokeFunctionNode invokeFunctionNode) {
+    return invokeFunctionNode.execute(fn, null, state, new Object[0]);
+  }
+
+  @Specialization(
+      guards = {"!fn.isThunk()", "fn.isFullyApplied()"},
+      replaces = {"doCachedFn"})
+  Stateful doUncachedFn(
+      Function fn,
+      Object state,
+      BaseNode.TailStatus isTail,
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+    return invokeFunctionNode.execute(
+        fn,
+        null,
+        state,
+        new Object[0],
+        new CallArgumentInfo[0],
+        InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+        InvokeCallableNode.ArgumentsExecutionMode.EXECUTE,
+        isTail);
   }
 
   @Fallback

@@ -38,6 +38,8 @@ public class FunctionSchema {
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
 
+  public final boolean isFullyApplied;
+
   /**
    * Creates an {@link FunctionSchema} instance.
    *
@@ -68,6 +70,7 @@ public class FunctionSchema {
 
     this.hasAnyPreApplied = hasAnyPreApplied;
     this.hasOversaturatedArguments = this.oversaturatedArguments.length > 0;
+    this.isFullyApplied = isFullyApplied(InvokeCallableNode.DefaultsExecutionMode.EXECUTE);
   }
 
   /**
@@ -212,5 +215,9 @@ public class FunctionSchema {
       }
     }
     return functionIsFullyApplied;
+  }
+
+  public boolean isFullyApplied() {
+    return isFullyApplied;
   }
 }

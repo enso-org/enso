@@ -169,7 +169,7 @@ case object DemandAnalysis extends IRPass {
     name: IR.Name,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
-    val usesLazyTerm = isUsageOfSuspendedTerm(name)
+    val usesLazyTerm = true
 
     if (isInsideCallArgument) {
       name
@@ -227,11 +227,12 @@ case object DemandAnalysis extends IRPass {
   ): IR.Application =
     application match {
       case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+        val newFun = fn match {
+          case n: IR.Name => n
+          case e => analyseExpression(e, isInsideCallArgument = false)
+        }
         pref.copy(
-          function = analyseExpression(
-            fn,
-            isInsideCallArgument = false
-          ),
+          function = newFun,
           arguments = args.map(analyseCallArgument)
         )
       case force @ IR.Application.Force(target, _, _, _) =>

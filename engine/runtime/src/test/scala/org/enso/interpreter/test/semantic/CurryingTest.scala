@@ -32,8 +32,7 @@ class CurryingTest extends InterpreterTest {
           |    fn1 = fn ...
           |    fn2 = fn1 1 2 ...
           |    fn3 = fn2 3 ...
-          |
-          |    fn3.call
+          |    fn3
           |""".stripMargin
 
       eval(code) shouldEqual 26
@@ -74,11 +73,19 @@ class CurryingTest extends InterpreterTest {
           |    fn1 = Nothing.fn ...
           |    fn2 = fn1 1 2 ...
           |    fn3 = fn2 3 ...
-          |
-          |    fn3.call
+          |    fn3
           |""".stripMargin
 
       eval(code) shouldEqual 26
+    }
+
+    "automatically force functions with all-defaulted arguments" in {
+      val code =
+        """main =
+          |     foo (x=1) = x
+          |     foo + 1
+          |""".stripMargin
+      eval(code) shouldEqual 2
     }
   }
 }
