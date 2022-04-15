@@ -2,6 +2,7 @@
 //! but can differ in all other aspects.
 
 use crate::prelude::*;
+use ensogl_core::display::world::*;
 
 use crate::typeface::font;
 
@@ -12,11 +13,11 @@ use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
-use ensogl_core::display::world::*;
 use ensogl_core::system::gpu;
 use ensogl_core::system::gpu::texture;
 use font::Font;
 use font::GlyphRenderInfo;
+
 
 
 // =================

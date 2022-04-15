@@ -107,8 +107,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
-  - [`workspace/undo`](#workspaceundo)
-  - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
   - [`heartbeat/init`](#heartbeatinit)
@@ -125,6 +123,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
@@ -1537,11 +1536,11 @@ interface LibraryComponentGroup {
    */
   library: string;
 
-  /** The module name without the library name prefix.
-   *  E.g. given the `Standard.Base.Data.Vector` module reference,
-   * the `module` field contains `Data.Vector`.
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `group` field contains `Group 1`.
    */
-  module: string;
+  group: string;
 
   color?: string;
 
@@ -2810,68 +2809,6 @@ project in situations where it does not have a project manager to connect to.
   decoded.
 - [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
 
-### `workspace/undo`
-
-This request is sent from the client to the server to request that an operation
-be undone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server undoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it undoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
-### `workspace/redo`
-
-This request is sent from the client to the server to request that an operation
-be redone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server redoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it redoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
 ## Monitoring
 
 The language server also has a heartbeat operation to monitor the Language
@@ -3366,6 +3303,37 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when context with the provided id
+  does not exist.
 
 ### `executionContext/expressionUpdates`
 

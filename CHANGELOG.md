@@ -2,6 +2,9 @@
 
 #### Visual Environment
 
+- [Long names on the Node Searcher's list are truncated.][3373] The part of the
+  name that doesn't fit in the Searcher's window is replaced with an ellipsis
+  character ("…").
 - [Magnet Alignment algorithm is used while placing new nodes][3366]. When we
   find an available free space for a new node, the node gets aligned with the
   surrounding nodes horizontally and vertically. This helps to preserve a nice
@@ -105,6 +108,7 @@
 - [Implemented `Text.reverse`][3377]
 - [Implemented support for most Table aggregations in the Database
   backend.][3383]
+- [Update `Text.replace` to new API.][3393]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -153,13 +157,16 @@
 [3349]: https://github.com/enso-org/enso/pull/3349
 [3361]: https://github.com/enso-org/enso/pull/3361
 [3364]: https://github.com/enso-org/enso/pull/3364
+[3373]: https://github.com/enso-org/enso/pull/3373
 [3377]: https://github.com/enso-org/enso/pull/3377
 [3366]: https://github.com/enso-org/enso/pull/3366
 [3379]: https://github.com/enso-org/enso/pull/3379
 [3381]: https://github.com/enso-org/enso/pull/3381
+[3391]: https://github.com/enso-org/enso/pull/3391
 [3383]: https://github.com/enso-org/enso/pull/3383
 [3385]: https://github.com/enso-org/enso/pull/3385
 [3392]: https://github.com/enso-org/enso/pull/3392
+[3393]: https://github.com/enso-org/enso/pull/3393
 
 #### Enso Compiler
 
@@ -169,6 +176,7 @@
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
+- [Converting Enso Date to java.time.LocalDate and back][3374]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -177,6 +185,7 @@
 [3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
+[3374]: https://github.com/enso-org/enso/pull/3374
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

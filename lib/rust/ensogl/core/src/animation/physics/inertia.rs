@@ -585,20 +585,20 @@ impl<T, OnStep, OnStart, OnEnd> Deref for SimulatorData<T, OnStep, OnStart, OnEn
     }
 }
 
-impl<T, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd>
-where
-    T: Value,
-    OnStep: Callback1<T>,
-    OnStart: Callback0,
-    OnEnd: Callback1<EndStatus>,
-{
+impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd> {
     /// Constructor.
     pub fn new(on_step: OnStep, on_start: OnStart, on_end: OnEnd) -> Self {
         let simulation = SimulationDataCell::new();
         let frame_rate = Cell::new(60.0);
         Self { simulation, frame_rate, on_step, on_start, on_end }
     }
+}
 
+impl<T: Value, OnStep, OnStart, OnEnd> SimulatorData<T, OnStep, OnStart, OnEnd>
+where
+    OnStep: Callback1<T>,
+    OnEnd: Callback1<EndStatus>,
+{
     /// Proceed with the next simulation step for the given time delta.
     pub fn step(&self, delta_seconds: Duration) -> bool {
         let is_active = self.simulation.active();
@@ -628,7 +628,7 @@ pub type DynSimulator<T> = Simulator<T, Box<dyn Fn(T)>, (), Box<dyn Fn(EndStatus
 #[derivative(Clone(bound = ""))]
 pub struct Simulator<T, OnStep, OnStart, OnEnd> {
     data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
-    animation_loop: AnimationLoop<T, OnStep, OnStart, OnEnd>,
+    animation_loop: AnimationLoopSlot<T, OnStep, OnStart, OnEnd>,
 }
 
 impl<T, OnStep, OnStart, OnEnd> Deref for Simulator<T, OnStep, OnStart, OnEnd> {
@@ -707,7 +707,12 @@ where
         if self.animation_loop.get().is_none() {
             let frame_rate = self.frame_rate.get();
             let step = step(self);
-            let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate, step);
+            let on_too_many_frames_skipped = on_too_many_frames_skipped(self);
+            let animation_loop = animation::Loop::new_with_fixed_frame_rate(
+                frame_rate,
+                step,
+                on_too_many_frames_skipped,
+            );
             self.animation_loop.set(Some(animation_loop));
             self.on_start.call();
         }
@@ -727,60 +732,106 @@ where
     }
 }
 
+impl<T, OnStep, OnStart, OnEnd> Simulator<T, OnStep, OnStart, OnEnd> {
+    /// Downgrade to a weak reference.
+    pub fn downgrade(&self) -> WeakSimulator<T, OnStep, OnStart, OnEnd> {
+        let data = self.data.clone_ref();
+        let animation_loop = self.animation_loop.downgrade();
+        WeakSimulator { data, animation_loop }
+    }
+}
 
 
 // =====================
-// === AnimationLoop ===
+// === WeakSimulator ===
 // =====================
 
-/// A wrapper over animation loop implementation. This type is defined mainly to make Rust type
-/// inferencer happy (not infer infinite, recursive types).
+/// Weak version of [`Simulator`].
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    data:           Rc<SimulatorData<T, OnStep, OnStart, OnEnd>>,
+    animation_loop: WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd>,
+}
+
+impl<T, OnStep, OnStart, OnEnd> WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    /// Try upgrading to a string reference.
+    pub fn upgrade(&self) -> Option<Simulator<T, OnStep, OnStart, OnEnd>> {
+        let data = self.data.clone_ref();
+        self.animation_loop.upgrade().map(|animation_loop| Simulator { data, animation_loop })
+    }
+}
+
+impl<T, OnStep, OnStart, OnEnd> Debug for WeakSimulator<T, OnStep, OnStart, OnEnd> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WeakSimulator")
+    }
+}
+
+
+
+// =========================
+// === AnimationLoopSlot ===
+// =========================
+
+/// A slot for an animation loop. It will be empty if the animation is not active – either if it was
+/// not startd yet or it was already finished.
 #[derive(CloneRef, Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
-pub struct AnimationLoop<T, OnStep, OnStart, OnEnd> {
-    animation_loop: Rc<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>,
+pub struct AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
+    animation_loop: Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
 #[allow(clippy::type_complexity)]
-impl<T, OnStep, OnStart, OnEnd> Deref for AnimationLoop<T, OnStep, OnStart, OnEnd> {
-    type Target = Rc<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>;
+impl<T, OnStep, OnStart, OnEnd> Deref for AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
+    type Target = Rc<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>;
     fn deref(&self) -> &Self::Target {
         &self.animation_loop
     }
 }
 
-impl<T, OnStep, OnStart, OnEnd> AnimationLoop<T, OnStep, OnStart, OnEnd> {
+impl<T, OnStep, OnStart, OnEnd> AnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     /// Downgrade to a week reference.
-    pub fn downgrade(&self) -> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
+    pub fn downgrade(&self) -> WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
         let animation_loop = Rc::downgrade(&self.animation_loop);
-        WeakAnimationLoop { animation_loop }
+        WeakAnimationLoopSlot { animation_loop }
     }
 }
 
-/// A weak wrapper over animation loop implementation. This type is defined mainly to make Rust type
-/// inferencer happy (not infer infinite, recursive types).
+
+// =============================
+// === WeakAnimationLoopSlot ===
+// =============================
+
+/// A weak version of [`AnimationLoopSlot`].
 #[allow(clippy::type_complexity)]
 #[allow(missing_debug_implementations)]
-pub struct WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
-    animation_loop: Weak<CloneCell<Option<FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd>>>>,
+#[derive(CloneRef, Derivative)]
+#[derivative(Clone(bound = ""))]
+pub struct WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
+    animation_loop: Weak<CloneCell<Option<FixedFrameRateLoop<T, OnStep, OnStart, OnEnd>>>>,
 }
 
-impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoop<T, OnStep, OnStart, OnEnd> {
+impl<T, OnStep, OnStart, OnEnd> WeakAnimationLoopSlot<T, OnStep, OnStart, OnEnd> {
     /// Upgrade the weak reference.
-    pub fn upgrade(&self) -> Option<AnimationLoop<T, OnStep, OnStart, OnEnd>> {
-        self.animation_loop.upgrade().map(|animation_loop| AnimationLoop { animation_loop })
+    pub fn upgrade(&self) -> Option<AnimationLoopSlot<T, OnStep, OnStart, OnEnd>> {
+        self.animation_loop.upgrade().map(|animation_loop| AnimationLoopSlot { animation_loop })
     }
 }
 
 
-// === Animation Step ===
+// ==========================
+// === FixedFrameRateLoop ===
+// ==========================
 
-/// Alias for `FixedFrameRateLoop` with specified step callback.
-pub type FixedFrameRateAnimationStep<T, OnStep, OnStart, OnEnd> =
-    animation::FixedFrameRateLoop<Step<T, OnStep, OnStart, OnEnd>>;
+/// Alias for [`FixedFrameRateLoop`] with specified step callback.
+pub type FixedFrameRateLoop<T, OnStep, OnStart, OnEnd> = animation::FixedFrameRateLoop<
+    Step<T, OnStep, OnStart, OnEnd>,
+    OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>,
+>;
 
 /// Callback for an animation step.
 pub type Step<T, OnStep, OnStart, OnEnd> = impl Fn(animation::TimeInfo);
@@ -793,14 +844,32 @@ where
     OnStep: Callback1<T>,
     OnStart: Callback0,
     OnEnd: Callback1<EndStatus>, {
-    let data = simulator.data.clone_ref();
-    let animation_loop = simulator.animation_loop.downgrade();
+    let weak_simulator = simulator.downgrade();
     move |time: animation::TimeInfo| {
-        let delta_seconds = time.previous_frame / 1000.0;
-        if !data.step(delta_seconds) {
-            if let Some(animation_loop) = animation_loop.upgrade() {
-                animation_loop.set(None)
+        if let Some(simulator) = weak_simulator.upgrade() {
+            let delta_seconds = time.previous_frame / 1000.0;
+            if !simulator.step(delta_seconds) {
+                simulator.animation_loop.set(None)
             }
+        }
+    }
+}
+
+/// Callback for an animation step.
+pub type OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd> = impl Fn();
+
+fn on_too_many_frames_skipped<T, OnStep, OnStart, OnEnd>(
+    simulator: &Simulator<T, OnStep, OnStart, OnEnd>,
+) -> OnTooManyFramesSkipped<T, OnStep, OnStart, OnEnd>
+where
+    T: Value,
+    OnStep: Callback1<T>,
+    OnStart: Callback0,
+    OnEnd: Callback1<EndStatus>, {
+    let weak_simulator = simulator.downgrade();
+    move || {
+        if let Some(simulator) = weak_simulator.upgrade() {
+            simulator.skip()
         }
     }
 }
@@ -835,6 +904,12 @@ impl Default for EndStatus {
         Self::Normal
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

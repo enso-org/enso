@@ -7,6 +7,7 @@ use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::Scene;
+use crate::display::scene::UpdateStatus;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
 
@@ -90,25 +91,27 @@ impl pass::Definition for SymbolsRenderPass {
         self.framebuffers = Some(Framebuffers::new(composed_fb, mask_fb, layer_fb));
     }
 
-    fn run(&mut self, instance: &pass::Instance) {
-        let framebuffers = self.framebuffers.as_ref().unwrap();
+    fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
+        if update_status.scene_was_dirty {
+            let framebuffers = self.framebuffers.as_ref().unwrap();
 
-        framebuffers.composed.bind();
+            framebuffers.composed.bind();
 
-        let arr = vec![0.0, 0.0, 0.0, 0.0];
-        instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
-        instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
+            let arr = vec![0.0, 0.0, 0.0, 0.0];
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
 
-        let mut scissor_stack = default();
-        self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
-        if !scissor_stack.is_empty() {
-            warning!(
-                &self.logger,
-                "The scissor stack was not cleaned properly. \
+            let mut scissor_stack = default();
+            self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
+            if !scissor_stack.is_empty() {
+                warning!(
+                    &self.logger,
+                    "The scissor stack was not cleaned properly. \
                 This is an internal bug that may lead to visual artifacts. Please report it."
-            );
+                );
+            }
+            instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
         }
-        instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
     }
 }
 

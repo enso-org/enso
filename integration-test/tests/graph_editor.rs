@@ -337,8 +337,8 @@ async fn mouse_oriented_node_placement() {
 
         fn check_edge_drop(&self) {
             let port = self.source_node.view.model().output_port_shape().unwrap();
-            port.events.mouse_down.emit(PrimaryButton);
-            port.events.mouse_up.emit(PrimaryButton);
+            port.events.emit_mouse_down(PrimaryButton);
+            port.events.emit_mouse_up(PrimaryButton);
             self.scene.mouse.frp.position.emit(self.mouse_position);
             assert!(
                 self.graph_editor.has_detached_edge.value(),

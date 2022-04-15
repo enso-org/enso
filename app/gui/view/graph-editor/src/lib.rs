@@ -1372,15 +1372,12 @@ impl GraphEditorModelWithNetwork {
         let edge_id = edge.id();
         self.add_child(&edge);
         self.edges.insert(edge.clone_ref());
-
         let network = &self.network;
-
         frp::extend! { network
-            eval_ edge.view.frp.shape_events.mouse_down ( edge_click.emit(edge_id));
-            eval_ edge.view.frp.shape_events.mouse_over ( edge_over.emit(edge_id));
-            eval_ edge.view.frp.shape_events.mouse_out ( edge_out.emit(edge_id));
+            eval_ edge.view.frp.shape_events.mouse_down_primary (edge_click.emit(edge_id));
+            eval_ edge.view.frp.shape_events.mouse_over (edge_over.emit(edge_id));
+            eval_ edge.view.frp.shape_events.mouse_out (edge_out.emit(edge_id));
         }
-
         edge_id
     }
 
@@ -2634,10 +2631,10 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         mouse_up_target <- mouse.up_primary.map(f_!(model.scene().mouse.target.get()));
         background_up   <= mouse_up_target.map(
-            |t| (t==&display::scene::PointerTargetId::Background).as_some(())
+            |t| (t == &display::scene::PointerTargetId::Background).as_some(())
         );
 
-        eval_ scene.background.mouse_down (touch.background.down.emit(()));
+        eval_ scene.background.mouse_down_primary (touch.background.down.emit(()));
     }
 
 
@@ -3707,8 +3704,8 @@ mod graph_editor_tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.mouse_down.emit(PrimaryButton);
-        port.events.mouse_up.emit(PrimaryButton);
+        port.events.emit_mouse_down(PrimaryButton);
+        port.events.emit_mouse_up(PrimaryButton);
         assert_eq!(graph_editor.edges().len(), 1);
         // Dropping edge.
         let mouse = &app.display.default_scene.mouse;
@@ -3734,8 +3731,8 @@ mod graph_editor_tests {
         graph_editor.stop_editing();
         // Creating edge.
         let port = node_1.model().output_port_shape().expect("No output port.");
-        port.events.mouse_down.emit(PrimaryButton);
-        port.events.mouse_up.emit(PrimaryButton);
+        port.events.emit_mouse_down(PrimaryButton);
+        port.events.emit_mouse_up(PrimaryButton);
         let edge_id = graph_editor.on_edge_add.value();
         let edge = edges.get_cloned_ref(&edge_id).expect("Edge was not added.");
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
@@ -3745,8 +3742,8 @@ mod graph_editor_tests {
         // We need to enable ports. Normally it is done by hovering the node.
         node_2.model().input.frp.set_ports_active(true, None);
         let port = node_2.model().input_port_shape().expect("No input port.");
-        port.hover.events.mouse_down.emit(PrimaryButton);
-        port.hover.events.mouse_up.emit(PrimaryButton);
+        port.hover.events.emit_mouse_down(PrimaryButton);
+        port.hover.events.emit_mouse_up(PrimaryButton);
         assert_eq!(edge.source().map(|e| e.node_id), Some(node_id_1));
         assert_eq!(edge.target().map(|e| e.node_id), Some(node_id_2));
     }
