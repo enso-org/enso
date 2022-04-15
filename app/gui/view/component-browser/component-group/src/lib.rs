@@ -29,6 +29,7 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
+use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 
 
 
@@ -36,7 +37,7 @@ use ensogl_text as text;
 // === Constants ===
 // =================
 
-const HEADER_FONT: &str = "DejaVuSans-Bold";
+const HEADER_FONT: &str = DEJA_VU_SANS_BOLD;
 
 
 

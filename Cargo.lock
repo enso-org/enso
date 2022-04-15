@@ -1733,8 +1733,13 @@ version = "0.1.0"
 dependencies = [
  "enso-build-utilities",
  "enso-prelude",
+ "ensogl-text-embedded-fonts-names",
  "zip",
 ]
+
+[[package]]
+name = "ensogl-text-embedded-fonts-names"
+version = "0.1.0"
 
 [[package]]
 name = "ensogl-text-msdf-sys"
@@ -2281,6 +2286,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-text",
+ "ensogl-text-embedded-fonts-names",
 ]
 
 [[package]]
