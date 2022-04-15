@@ -1707,7 +1707,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receive(n = 4, timeoutSeconds = 60))
+    val responses = context.receive(n = 4, timeoutSeconds = 60)
 
     responses should contain allOf(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
