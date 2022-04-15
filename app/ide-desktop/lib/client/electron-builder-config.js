@@ -90,7 +90,7 @@ const config = {
         // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
         sign: false,
     },
-    afterAllArtifactBuild: 'tasks/computeHashes.js',
+    afterAllArtifactBuild: path.join(__dirname, 'tasks', 'computeHashes.js'),
 
     // TODO [mwu]: Temporarily disabled, signing should be revised.
     //             In particular, engine should handle signing of its artifacts.
