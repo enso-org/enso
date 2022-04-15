@@ -37,7 +37,7 @@ use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 // === Constants ===
 // =================
 
-const HEADER_FONT: &str = DEJA_VU_SANS_BOLD;
+const HEADER_FONT: &str = embedded_fonts_names::DEJA_VU_SANS_BOLD;
 
 
 

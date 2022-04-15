@@ -11,5 +11,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 ensogl-text = { path = "../../component/text" }
+ensogl-text-embedded-fonts-names = { path = "../../component/text/embedded-fonts/names" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }

@@ -221,6 +221,7 @@ mod tests {
     use super::*;
 
     use ensogl_text_embedded_fonts::EmbeddedFonts;
+    use ensogl_text_embedded_fonts_names::DEJA_VU_SANS_MONO_BOLD;
     use nalgebra::Vector2;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -232,8 +233,8 @@ mod tests {
         initialized().await;
         // given
         let font_base = EmbeddedFonts::create_and_fill();
-        let font =
-            Font::load_from_memory(font_base.font_data_by_name.get("DejaVuSansMono-Bold").unwrap());
+        let font_name = DEJA_VU_SANS_MONO_BOLD;
+        let font = Font::load_from_memory(font_base.font_data_by_name.get(font_name).unwrap());
         let params = MsdfParameters {
             width: 32,
             height: 32,
