@@ -2,46 +2,29 @@
 layout: style-guide title: Rust Style Guide category: style-guide tags: [style-guide,contributing]
 ---
 
-# Rust Style Guide
+# Rust style guide.
 
-We are using `rustfmt` for the basic formatting of our rust code, which is also
-checked on CI. We have some additional guidelines for imports, naming, sections
-within files and naming which are documented here.
+All of the codebase should be formatted by the `rustfmt`. However, the code style is way more than just formatting. In many cases formatting can be automated. According to rustfmt docs: “formatting code is a mostly mechanical task which takes both time and mental effort. By using an automatic formatting tool, a programmer is relieved of this task and can concentrate on more important things.”. While in many cases it is true, if the code author does not take extra effort to make his code pretty by refactoring long lines to variables, moving code to specific modules, or sections, the formatting tool will result in code that is hard to read and hard to write. Thus, it is important to take time to write code in such way that we can be proud of its quality. The following document provides you with a detailed guide regarding the code quality we are looking for.
 
-## Styling rules
+## Code formatting in macros.
+Unfortunately, `rustfmt` is not working inside of macros. Thus, this code should be manually formated in the same was as `rustfmt` would do it.
 
-### Imports
+## Submodules and imports.
 
-Imports should be divided into 4 groups separated by blank lines. Items in the
-groups should be sorted alphabetically.
+- **Design your files to be imported as module.**  
+  Design names of your libraries, structs, and functions to be imported as modules. For example, prefer an import `use graph;` and it's usage `graph::Node::new()` over `use graph::new_node`. This design minimizes the amount of imports and allows related modules to import shorter names to the scope.
 
-```rust
-// Group 1: sub-module definitions.
-// Group 2: prelude-like imports.
-// Group 3: local-crate imports.
-// Group 4: external imports.
-```
+- **Don't use relative imports.**  
+  Do not use `super::` nor `self::` imports in files (you can use them in localy defined modules). Use absolute imports or imports from local submodules only.
 
-For example:
+- **Use Enso Formatter to format your imports**  
+  Run the `build/enso-formatter` script (e.g. by running `cargo run -p enso-formatter`) to format imports in all files before contributing your PR.
 
-```rust
-pub mod display_object;
 
-use crate::prelude::*;
-
-use crate::closure;
-use crate::data::opt_vec::OptVec;
-use crate::data::dirty;
-use crate::system::web::group;
-
-use nalgebra::Matrix4;
-use nalgebra::Vector3;
-```
-
-### Sections
+## Sections.
 
 Source files should be divided into sections. Section headers should be placed
-before each new " concept" defined in a file. By "concept" we normally mean a
+before each new "concept" defined in a file. By "concept" we normally mean a
 structure with related implementations. In case related implementations use some
 helper structs with very small implementations, these helper structs may be
 defined in the same section. Moreover, the code in each section should be
@@ -141,7 +124,7 @@ impl<OnChange: Callback0> HierarchicalTransform<OnChange> {
 }
 ```
 
-### Multiline Expressions
+## Multiline Expressions
 
 Most (preferably all) expressions should be single line. Multiline expressions
 are hard to read and introduce noise in the code. Often, it is also an indicator
@@ -173,7 +156,7 @@ pub fn new() -> Self {
 }
 ```
 
-### Getters and Setters
+## Getters and Setters
 
 Getters do not have the `get_` prefix, while setters do. If a setter is provided
 (method with the `set_` prefix), a `mut` accessor should be provided as well.
@@ -193,7 +176,7 @@ fn set_field(&mut self, val: Type) {
 }
 ```
 
-### Trait exporting
+## Trait exporting
 
 All names should be designed to be used in a qualified fashion. However, this
 makes one situation tricky. In order to use methods defined in a trait, it has
