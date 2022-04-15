@@ -6,8 +6,6 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.interop.InteropException;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
@@ -476,21 +474,14 @@ public class Context {
   public Optional<AtomConstructor> getDateConstructor() {
     if (date == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      ensureModuleIsLoaded("Standard.Base.Data.Time.Date");
-      Optional<Module> dateModule = findModule("Standard.Base.Data.Time.Date");
+      final String stdDateModuleName = "Standard.Base.Data.Time.Date";
+      final String stdDateConstructorName = "Date";
+      ensureModuleIsLoaded(stdDateModuleName);
+      Optional<Module> dateModule = findModule(stdDateModuleName);
       if (dateModule.isPresent()) {
-        try {
-          InteropLibrary iop = InteropLibrary.getUncached();
-          Object constrDate = iop.invokeMember(dateModule.get(), "get_constructor", "Date");
-          if (constrDate instanceof AtomConstructor) {
-            date = Optional.of((AtomConstructor) constrDate);
-          }
-        } catch (InteropException ex) {
-          throw new IllegalStateException(ex);
-        }
-        if (date == null) {
-          date = Optional.empty();
-        }
+        date = Optional.ofNullable(dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
+      } else {
+        date = Optional.empty();
       }
     }
     return date;
