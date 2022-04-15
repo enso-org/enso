@@ -18,7 +18,7 @@ Unfortunately, `rustfmt` is not working inside of macros. Thus, this code should
   Do not use `super::` nor `self::` imports in files (you can use them in localy defined modules). Use absolute imports or imports from local submodules only.
 
 - **Use Enso Formatter to format your imports**  
-  Run the `build/enso-formatter` script to format imports in all files before contributing your PR.
+  Run the `build/enso-formatter` script (e.g. by running `cargo run -p enso-formatter`) to format imports in all files before contributing your PR.
 
 
 ## Sections.
