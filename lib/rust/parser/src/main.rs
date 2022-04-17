@@ -403,9 +403,9 @@ impl<'s> Lexer<'s> {
 // =============
 
 /// Based on https://en.wikipedia.org/wiki/Whitespace_character.
-const UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
-const UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
-const UNICODE_ZERO_SPACES: &str = "\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
+const OTHER_UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
+const OTHER_UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
+const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 #[inline(always)]
 fn space_char_visible_size(t: char) -> Option<usize> {
@@ -418,15 +418,13 @@ fn space_char_visible_size(t: char) -> Option<usize> {
     } else if t >= '\u{1680}' {
         if t == '\u{1680}' {
             Some(1)
-        } else if t == '\u{180E}' {
-            Some(0)
         } else if t >= '\u{2000}' {
-            if UNICODE_SINGLE_SPACES.contains(t) {
+            if OTHER_UNICODE_SINGLE_SPACES.contains(t) {
                 Some(1)
-            } else if t >= UNICODE_SINGLE_SPACES_RANGE.0 && t <= UNICODE_SINGLE_SPACES_RANGE.1 {
+            } else if t >= OTHER_UNICODE_SINGLE_SPACES_RANGE.0
+                && t <= OTHER_UNICODE_SINGLE_SPACES_RANGE.1
+            {
                 Some(1)
-            } else if UNICODE_ZERO_SPACES.contains(t) {
-                Some(0)
             } else {
                 None
             }
@@ -875,9 +873,8 @@ impl<'s> Lexer<'s> {
     }
 }
 
-
 fn main() {
-    let str = "_";
+    let str = "fo\u{180E}o";
     let mut lexer = Lexer::new(str);
     println!("{:?}", lexer.run());
     println!("{:?}", lexer.output);
@@ -891,6 +888,14 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_case_block() {
+        test_lexer_many(vec![
+            ("\n", vec![newline(0, "\n")]),
+            ("\n  foo", vec![newline(0, "\n"), block_start(0), ident(2, "foo")]),
+        ]);
+    }
 
 
     fn test_lexer_many(inputs: Vec<(&str, Vec<Token>)>) {
@@ -949,6 +954,26 @@ mod tests {
         }
     }
 
+    fn newline(left_offset: usize, repr: &str) -> Token {
+        Token {
+            left_visible_offset: left_offset,
+            left_offset:         Bytes::from(left_offset),
+            start:               Bytes(0),
+            len:                 Bytes(repr.len()),
+            elem:                Kind::newline(),
+        }
+    }
+
+    fn block_start(left_offset: usize) -> Token {
+        Token {
+            left_visible_offset: left_offset,
+            left_offset:         Bytes::from(left_offset),
+            start:               Bytes(0),
+            len:                 Bytes(0),
+            elem:                Kind::block_start(),
+        }
+    }
+
     #[test]
     fn test_utf_8_idents() {
         test_lexer_many(vec![
@@ -988,7 +1013,9 @@ mod tests {
     fn test_case_identifier() {
         test_lexer_many(vec![
             ("", vec![]),
-            ("_", vec![wildcard(0, "_"), wildcard(0, "_'"), wildcard(0, "_''")]),
+            ("_", vec![wildcard(0, "_")]),
+            ("_'", vec![wildcard(0, "_'")]),
+            ("_''", vec![wildcard(0, "_''")]),
         ]);
         test_lexer_many(iso_idents(&[
             "a",
@@ -1010,6 +1037,10 @@ mod tests {
             "a'b'",
             "a'b''",
         ]));
+        for zero_space in UNICODE_ZERO_SPACES.chars() {
+            let var = format!("pre{}post", zero_space);
+            test_lexer(&var, vec![ident(0, &var)])
+        }
     }
 
     #[test]
