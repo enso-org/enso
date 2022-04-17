@@ -6,7 +6,7 @@ use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
 use enum_dispatch::*;
 
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use upload::UniformUpload;
@@ -237,7 +237,7 @@ impl<T> WithContent for Uniform<T> {
 pub struct TypeMismatch;
 
 macro_rules! define_any_prim_uniform {
-    ( [] [$([$t1:ident $t2:ident])*] ) => { paste::item! {
+    ( [] [$([$t1:ident $t2:ident])*] ) => { paste! {
         /// Existentially typed uniform value.
         #[allow(non_camel_case_types)]
         #[enum_dispatch(AnyPrimUniformOps)]
@@ -285,7 +285,7 @@ impl<Value: UniformUpload> AnyPrimUniformOps for UniformData<Value> {
 // =========================
 
 macro_rules! define_any_texture_uniform {
-    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste::item! {
+    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste! {
         #[allow(non_camel_case_types)]
         #[derive(Clone,CloneRef,Debug)]
         pub enum AnyTextureUniform {
@@ -308,7 +308,7 @@ macro_rules! define_any_texture_uniform {
 
         impl TextureOps for AnyTextureUniform {
             fn bind_texture_unit
-            (&self, context:&crate::display::Context, unit:TextureUnit) -> TextureBindGuard {
+            (&self, context:&Context, unit:TextureUnit) -> TextureBindGuard {
                 match self {
                     $(
                         Self::[<$storage _ $internal_format _ $item_type >](t) =>

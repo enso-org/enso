@@ -1,26 +1,31 @@
 //! The core vector rendering engine for EnsoGL, a blazing fast 2D drawing library. This crate
-//! contains the core utilities necessary for the rendering engine to run correctly. See thr docs
+//! contains the core utilities necessary for the rendering engine to run correctly. See the docs
 //! of the `ensogl` crate to learn more.
 
 #![recursion_limit = "512"]
 // === Features ===
 #![allow(incomplete_features)]
+#![feature(negative_impls)]
 #![feature(associated_type_defaults)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
+#![feature(entry_insert)]
 #![feature(fn_traits)]
+#![feature(marker_trait_attr)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(marker_trait_attr)]
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
+#![feature(trace_macros)]
+#![feature(const_trait_impl)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -60,12 +65,15 @@ pub mod prelude {
     pub use super::types::*;
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
+    pub use crate::types::unit2::traits::*;
     pub use enso_data_structures as data;
     pub use enso_logger as logger;
     pub use enso_logger::AnyLogger;
     pub use enso_logger::DefaultWarningLogger as Logger;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
     pub use enso_shapely::newtype_prim;
     pub use enso_shapely::newtype_prim_no_default;
     pub use enso_shapely::newtype_prim_no_default_no_display;

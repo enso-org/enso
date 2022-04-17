@@ -97,6 +97,19 @@ object Suggestion {
       }
   }
 
+  /** Documentation extractor */
+  object Documentation {
+    def apply(suggestion: Suggestion): Option[String] =
+      suggestion match {
+        case module: Module   => module.documentation
+        case atom: Atom       => atom.documentation
+        case method: Method   => method.documentation
+        case conv: Conversion => conv.documentation
+        case _: Function      => None
+        case _: Local         => None
+      }
+  }
+
   /** An argument of an atom or a function.
     *
     * @param name the argument name
@@ -148,8 +161,9 @@ object Suggestion {
   case class Module(
     module: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -187,8 +201,9 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -202,8 +217,6 @@ object Suggestion {
       s"returnType=$returnType" +
       s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                             else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -227,8 +240,9 @@ object Suggestion {
     selfType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion
       with ToLogString {
 
@@ -242,8 +256,6 @@ object Suggestion {
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -265,8 +277,9 @@ object Suggestion {
     sourceType: String,
     returnType: String,
     documentation: Option[String],
-    documentationHtml: Option[String],
-    reexport: Option[String] = None
+    documentationHtml: Option[String]               = None,
+    documentationSections: Option[List[DocSection]] = None,
+    reexport: Option[String]                        = None
   ) extends Suggestion {
 
     /** @inheritdoc */
@@ -282,8 +295,6 @@ object Suggestion {
       s"returnType=$returnType," +
       s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
                            else documentation) +
-      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
-                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 

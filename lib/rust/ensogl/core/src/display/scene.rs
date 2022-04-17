@@ -22,15 +22,13 @@ use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
-use crate::display::symbol::SymbolId;
 use crate::system;
-use crate::system::gpu::data::attribute;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
+use crate::system::gpu::Context;
+use crate::system::gpu::ContextLostHandler;
 use crate::system::web;
 use crate::system::web::EventListenerHandle;
-use crate::system::Context;
-use crate::system::ContextLostHandler;
 
 use enso_frp as frp;
 use enso_frp::io::js::CurrentJsEvent;
@@ -47,18 +45,13 @@ use web::HtmlElement;
 pub mod dom;
 #[warn(missing_docs)]
 pub mod layer;
+#[warn(missing_docs)]
+pub mod pointer_target;
 
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
-
-
-
-pub trait MouseTarget: Debug + 'static {
-    fn mouse_down(&self) -> &frp::Source;
-    fn mouse_up(&self) -> &frp::Source;
-    fn mouse_over(&self) -> &frp::Source;
-    fn mouse_out(&self) -> &frp::Source;
-}
+pub use pointer_target::PointerTarget;
+pub use pointer_target::PointerTargetId;
 
 
 
@@ -67,17 +60,24 @@ pub trait MouseTarget: Debug + 'static {
 // =====================
 
 shared! { ShapeRegistry
-#[derive(Debug,Default)]
+#[derive(Debug)]
 pub struct ShapeRegistryData {
     // FIXME[WD]: The only valid field here is the `mouse_target_map`. The rest should be removed
     //            after proper implementation of text depth sorting, which is the only component
     //            using the obsolete fields now.
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<(SymbolId,attribute::InstanceIndex),Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<PointerTargetId, PointerTarget>,
 }
 
 impl {
+    fn new(background: &PointerTarget) -> Self {
+        let scene = default();
+        let shape_system_map = default();
+        let mouse_target_map = default();
+        Self {scene, shape_system_map, mouse_target_map} . init(background)
+    }
+
     fn get<T:ShapeSystemInstance>(&self) -> Option<T> {
         let id = TypeId::of::<T>();
         self.shape_system_map.get(&id).and_then(|t| t.downcast_ref::<T>()).map(|t| t.clone_ref())
@@ -105,198 +105,45 @@ impl {
         system.new_instance()
     }
 
-    pub fn insert_mouse_target<T:MouseTarget>
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex, target:T) {
-        let target = Rc::new(target);
-        self.mouse_target_map.insert((symbol_id,instance_id),target);
+    pub fn insert_mouse_target
+    (&mut self, id:impl Into<PointerTargetId>, target:impl Into<PointerTarget>) {
+        self.mouse_target_map.insert(id.into(),target.into());
     }
 
     pub fn remove_mouse_target
-    (&mut self, symbol_id:SymbolId, instance_id:attribute::InstanceIndex) {
-        self.mouse_target_map.remove(&(symbol_id,instance_id));
+    (&mut self, id:impl Into<PointerTargetId>) {
+        self.mouse_target_map.remove(&id.into());
     }
 
-    pub fn get_mouse_target(&mut self, target:PointerTarget) -> Option<Rc<dyn MouseTarget>> {
-        match target {
-            PointerTarget::Background => None,
-            PointerTarget::Symbol {symbol_id,instance_id} => {
-                self.mouse_target_map.get(&(symbol_id,instance_id)).cloned()
-            }
-        }
+    pub fn get_mouse_target(&self, target:PointerTargetId) -> Option<PointerTarget> {
+        self.mouse_target_map.get(&target).cloned()
     }
 }}
 
-
-
-// ==============
-// === Target ===
-// ==============
-
-/// Result of a Decoding operation in the Target.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum DecodingResult {
-    /// Values had to be truncated.
-    Truncated(u8, u8, u8),
-    /// Values have been encoded successfully.
-    Ok(u8, u8, u8),
-}
-
-/// Mouse target. Contains a path to an object pointed by mouse.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum PointerTarget {
-    Background,
-    Symbol { symbol_id: SymbolId, instance_id: attribute::InstanceIndex },
-}
-
-impl PointerTarget {
-    /// Encode two u32 values into three u8 values.
-    ///
-    /// This is the same encoding that is used in the `fragment_runner`. This encoding is lossy and
-    /// can only encode values up to 4096 (2^12) each.
-    ///
-    /// We use 12 bits from each value and pack them into the 3 output bytes like described in the
-    /// following diagram.
-    ///
-    /// ```text
-    ///  Input
-    ///
-    ///    value1 (v1) as bytes               value2 (v2) as bytes
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///   |     |     |     |     |           |     |     |     |     |
-    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
-    ///  32    24    16     8     0          32    24    16     8     0   <- Bit index
-    ///
-    ///
-    /// Output
-    ///
-    /// byte1            byte2                     byte3
-    /// +-----------+    +----------------------+     +------------+
-    /// | v ]12..4] |    | v1 ]4..0]  v2 ]4..0] |     | v2 ]12..4] |
-    /// +-----------+    +----------------------+     +------------+
-    ///
-    /// Ranges use mathematical notation for inclusion/exclusion.
-    /// ```
-    fn encode(value1: u32, value2: u32) -> DecodingResult {
-        let chunk1 = (value1 >> 4u32) & 0x00FFu32;
-        let chunk2 = (value1 & 0x000Fu32) << 4u32;
-        let chunk2 = chunk2 | ((value2 & 0x0F00u32) >> 8u32);
-        let chunk3 = value2 & 0x00FFu32;
-
-        if value1 > 2u32.pow(12) || value2 > 2u32.pow(12) {
-            DecodingResult::Truncated(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        } else {
-            DecodingResult::Ok(chunk1 as u8, chunk2 as u8, chunk3 as u8)
-        }
-    }
-
-    /// Decode the symbol_id and instance_id that was encoded in the `fragment_runner`.
-    ///
-    /// See the `encode` method for more information on the encoding.
-    fn decode(chunk1: u32, chunk2: u32, chunk3: u32) -> (u32, u32) {
-        let value1 = (chunk1 << 4) + (chunk2 >> 4);
-        let value2 = chunk3 + ((chunk2 & 0x000F) << 8);
-        (value1, value2)
-    }
-
-    fn to_internal(self, logger: &Logger) -> Vector4<u32> {
-        match self {
-            Self::Background => Vector4::new(0, 0, 0, 0),
-            Self::Symbol { symbol_id, instance_id } => {
-                match Self::encode(*symbol_id, (*instance_id) as u32) {
-                    DecodingResult::Truncated(pack0, pack1, pack2) => {
-                        warning!(
-                            logger,
-                            "Target values too big to encode: \
-                                         ({symbol_id},{instance_id})."
-                        );
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1)
-                    }
-                    DecodingResult::Ok(pack0, pack1, pack2) =>
-                        Vector4::new(pack0.into(), pack1.into(), pack2.into(), 1),
-                }
+impl ShapeRegistry {
+    /// Runs the provided function on the [`PointerTarget`] associated with the provided
+    /// [`PointerTargetId`]. Please note that the [`PointerTarget`] will be cloned because during
+    /// evaluation of the provided function this registry might be changed, which would result in
+    /// double borrow mut otherwise.
+    pub fn with_mouse_target<T>(
+        &self,
+        target: PointerTargetId,
+        f: impl FnOnce(&PointerTarget) -> T,
+    ) -> Option<T> {
+        match self.get_mouse_target(target) {
+            Some(target) => Some(f(&target)),
+            None => {
+                WARNING!("Internal error. Symbol ID {target:?} is not registered.");
+                None
             }
         }
     }
-
-    fn from_internal(v: Vector4<u32>) -> Self {
-        if v.w == 0 {
-            Self::Background
-        } else if v.w == 255 {
-            let decoded = Self::decode(v.x, v.y, v.z);
-            let symbol_id = SymbolId::new(decoded.0);
-            let instance_id = attribute::InstanceIndex::new(decoded.1 as usize);
-            Self::Symbol { symbol_id, instance_id }
-        } else {
-            panic!("Wrong internal format alpha for mouse target.")
-        }
-    }
-
-    pub fn is_background(self) -> bool {
-        self == Self::Background
-    }
-
-    pub fn is_symbol(self) -> bool {
-        !self.is_background()
-    }
 }
 
-impl Default for PointerTarget {
-    fn default() -> Self {
-        Self::Background
-    }
-}
-
-
-// === Target Tests ===
-
-#[cfg(test)]
-mod target_tests {
-    use super::*;
-
-    /// Asserts that decoding encoded the given values returns the correct initial values again.
-    /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
-    fn assert_valid_roundtrip(value1: u32, value2: u32) {
-        let pack = PointerTarget::encode(value1, value2);
-        match pack {
-            DecodingResult::Truncated { .. } => {
-                panic!("Values got truncated. This is an invalid test case: {}, {}", value1, value1)
-            }
-            DecodingResult::Ok(pack0, pack1, pack2) => {
-                let unpack = PointerTarget::decode(pack0.into(), pack1.into(), pack2.into());
-                assert_eq!(unpack.0, value1);
-                assert_eq!(unpack.1, value2);
-            }
-        }
-    }
-
-    #[test]
-    fn test_roundtrip_coding() {
-        assert_valid_roundtrip(0, 0);
-        assert_valid_roundtrip(0, 5);
-        assert_valid_roundtrip(512, 0);
-        assert_valid_roundtrip(1024, 64);
-        assert_valid_roundtrip(1024, 999);
-    }
-
-    #[test]
-    fn test_encoding() {
-        let pack = PointerTarget::encode(0, 0);
-        assert_eq!(pack, DecodingResult::Ok(0, 0, 0));
-
-        let pack = PointerTarget::encode(3, 7);
-        assert_eq!(pack, DecodingResult::Ok(0, 48, 7));
-
-        let pack = PointerTarget::encode(3, 256);
-        assert_eq!(pack, DecodingResult::Ok(0, 49, 0));
-
-        let pack = PointerTarget::encode(255, 356);
-        assert_eq!(pack, DecodingResult::Ok(15, 241, 100));
-
-        let pack = PointerTarget::encode(256, 356);
-        assert_eq!(pack, DecodingResult::Ok(16, 1, 100));
-
-        let pack = PointerTarget::encode(31256, 0);
-        assert_eq!(pack, DecodingResult::Truncated(161, 128, 0));
+impl ShapeRegistryData {
+    fn init(mut self, background: &PointerTarget) -> Self {
+        self.mouse_target_map.insert(PointerTargetId::Background, background.clone_ref());
+        self
     }
 }
 
@@ -311,8 +158,8 @@ pub struct Mouse {
     pub mouse_manager: MouseManager,
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
-    pub hover_ids:     Uniform<Vector4<u32>>,
-    pub target:        Rc<Cell<PointerTarget>>,
+    pub hover_rgba:    Uniform<Vector4<u32>>,
+    pub target:        Rc<Cell<PointerTargetId>>,
     pub handles:       Rc<[callback::Handle; 4]>,
     pub frp:           enso_frp::io::Mouse,
     pub scene_frp:     Frp,
@@ -328,10 +175,10 @@ impl Mouse {
         logger: Logger,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
-        let target = PointerTarget::default();
+        let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
-        let position = variables.add_or_panic("mouse_position", Vector2::new(0, 0));
-        let hover_ids = variables.add_or_panic("mouse_hover_ids", target.to_internal(&logger));
+        let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
@@ -370,7 +217,7 @@ impl Mouse {
             mouse_manager,
             last_position,
             position,
-            hover_ids,
+            hover_rgba,
             target,
             handles,
             frp,
@@ -382,12 +229,12 @@ impl Mouse {
     /// Re-emits FRP mouse changed position event with the last mouse position value.
     ///
     /// The immediate question that appears is why it is even needed. The reason is tightly coupled
-    /// with how the rendering engine works and it is important to understand it properly. When
+    /// with how the rendering engine works, and it is important to understand it properly. When
     /// moving a mouse the following events happen:
     /// - `MouseManager` gets notification and fires callbacks.
     /// - Callback above is run. The value of `screen_position` uniform changes and FRP events are
     ///   emitted.
-    /// - FRP events propagate trough the whole system.
+    /// - FRP events propagate through the whole system.
     /// - The rendering engine renders a frame and waits for the pixel read pass to report symbol ID
     ///   under the cursor. This is normally done the next frame but sometimes could take even few
     ///   frames.
@@ -470,8 +317,8 @@ impl Dom {
 // === DomLayers ===
 // =================
 
-/// DOM DomLayers of the scene. It contains a 2 CSS 3D layers and a canvas layer in the middle. The
-/// CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
+/// DOM DomLayers of the scene. It contains several CSS 3D layers and a canvas layer in the middle.
+/// The CSS layers are used to manage DOM elements and to simulate depth-sorting of DOM and canvas
 /// elements.
 ///
 /// Each DomLayer is created with `pointer-events: none` CSS property to avoid "stealing" mouse
@@ -492,6 +339,9 @@ pub struct DomLayers {
     pub fullscreen_vis: DomScene,
     /// Front DOM scene layer.
     pub front:          DomScene,
+    /// DOM scene layer for Node Searcher DOM elements. This layer should probably be removed once
+    /// all parts of Node Searcher will use ensogl primitives instead of DOM objects for rendering.
+    pub node_searcher:  DomScene,
     /// The WebGL scene layer.
     pub canvas:         web::HtmlCanvasElement,
 }
@@ -525,12 +375,17 @@ impl DomLayers {
         canvas.set_style_or_warn("pointer-events", "none");
         dom.append_or_warn(&canvas);
 
+        let node_searcher = DomScene::new(logger);
+        node_searcher.dom.set_class_name("node-searcher");
+        node_searcher.dom.set_style_or_warn("z-index", "4");
+        dom.append_or_warn(&node_searcher.dom);
+
         let front = DomScene::new(logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "4");
+        front.dom.set_style_or_warn("z-index", "5");
         dom.append_or_warn(&front.dom);
 
-        Self { back, welcome_screen, fullscreen_vis, front, canvas }
+        Self { back, welcome_screen, fullscreen_vis, front, node_searcher, canvas }
     }
 }
 
@@ -611,19 +466,21 @@ impl Renderer {
         Self { logger, dom, variables, pipeline, composer }
     }
 
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>) {
         let composer = context.map(|context| {
             // To learn more about the blending equations used here, please see the following
             // articles:
             // - http://www.realtimerendering.com/blog/gpus-prefer-premultiplication
             // - https://www.khronos.org/opengl/wiki/Blending#Colors
-            context.enable(Context::BLEND);
-            context.blend_equation_separate(Context::FUNC_ADD, Context::FUNC_ADD);
+            context.enable(*Context::BLEND);
+            context.blend_equation_separate(*Context::FUNC_ADD, *Context::FUNC_ADD);
             context.blend_func_separate(
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
-                Context::ONE,
-                Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
+                *Context::ONE,
+                *Context::ONE_MINUS_SRC_ALPHA,
             );
 
             let (width, height) = self.view_size();
@@ -665,10 +522,10 @@ impl Renderer {
     }
 
     /// Run the renderer.
-    pub fn run(&self) {
+    pub fn run(&self, update_status: UpdateStatus) {
         if let Some(composer) = &mut *self.composer.borrow_mut() {
             debug!(self.logger, "Running.", || {
-                composer.run();
+                composer.run(update_status);
             })
         }
     }
@@ -698,6 +555,9 @@ pub struct HardcodedLayers {
     pub panel:              Layer,
     pub panel_text:         Layer,
     pub node_searcher:      Layer,
+    pub node_searcher_text: Layer,
+    pub edited_node:        Layer,
+    pub edited_node_text:   Layer,
     pub node_searcher_mask: Layer,
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
@@ -726,13 +586,19 @@ impl HardcodedLayers {
         let panel = Layer::new(logger.sub("panel"));
         let panel_text = Layer::new(logger.sub("panel_text"));
         let node_searcher = Layer::new(logger.sub("node_searcher"));
+        let node_searcher_cam = node_searcher.camera();
+        let searcher_text_logger = logger.sub("node_searcher_text");
+        let node_searcher_text = Layer::new_with_cam(searcher_text_logger, &node_searcher_cam);
+        let edited_node = Layer::new(logger.sub("edited_node"));
+        let edited_node_cam = edited_node.camera();
+        let edited_node_text_logger = logger.sub("edited_node_text");
+        let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
         let node_searcher_mask = Layer::new(logger.sub("node_searcher_mask"));
         let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
 
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
-        node_searcher.set_mask(&node_searcher_mask);
         root.set_sublayers(&[
             &viz,
             &below_main,
@@ -744,6 +610,9 @@ impl HardcodedLayers {
             &panel,
             &panel_text,
             &node_searcher,
+            &node_searcher_text,
+            &edited_node,
+            &edited_node_text,
             &tooltip,
             &tooltip_text,
             &cursor,
@@ -760,6 +629,9 @@ impl HardcodedLayers {
             panel,
             panel_text,
             node_searcher,
+            node_searcher_text,
+            edited_node,
+            edited_node_text,
             node_searcher_mask,
             tooltip,
             tooltip_text,
@@ -833,34 +705,51 @@ impl Extensions {
 
 
 
+// ====================
+// === UpdateStatus ===
+// ====================
+
+/// Scene update status. Used to tell the renderer what is the minimal amount of per-frame
+/// processing. For example, if scene was not dirty (no animations), but pointer position changed,
+/// the scene should not be re-rendered, but the id-texture pixel under the mouse should be read.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct UpdateStatus {
+    pub scene_was_dirty:          bool,
+    pub pointer_position_changed: bool,
+}
+
+
+
 // =================
 // === SceneData ===
 // =================
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object:       display::object::Instance,
-    pub dom:                  Dom,
-    pub context:              Rc<RefCell<Option<Context>>>,
+    pub display_object: display::object::Instance,
+    pub dom: Dom,
+    pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    pub symbols:              SymbolRegistry,
-    pub variables:            UniformScope,
-    pub current_js_event:     CurrentJsEvent,
-    pub mouse:                Mouse,
-    pub keyboard:             Keyboard,
-    pub uniforms:             Uniforms,
-    pub shapes:               ShapeRegistry,
-    pub stats:                Stats,
-    pub dirty:                Dirty,
-    pub logger:               Logger,
-    pub renderer:             Renderer,
-    pub layers:               HardcodedLayers,
-    pub style_sheet:          style::Sheet,
-    pub bg_color_var:         style::Var,
-    pub bg_color_change:      callback::Handle,
-    pub frp:                  Frp,
-    extensions:               Extensions,
-    disable_context_menu:     Rc<EventListenerHandle>,
+    pub symbols: SymbolRegistry,
+    pub variables: UniformScope,
+    pub current_js_event: CurrentJsEvent,
+    pub mouse: Mouse,
+    pub keyboard: Keyboard,
+    pub uniforms: Uniforms,
+    pub background: PointerTarget,
+    pub shapes: ShapeRegistry,
+    pub stats: Stats,
+    pub dirty: Dirty,
+    pub logger: Logger,
+    pub renderer: Renderer,
+    pub layers: HardcodedLayers,
+    pub style_sheet: style::Sheet,
+    pub bg_color_var: style::Var,
+    pub bg_color_change: callback::Handle,
+    pub frp: Frp,
+    pub pointer_position_changed: Rc<Cell<bool>>,
+    extensions: Extensions,
+    disable_context_menu: Rc<EventListenerHandle>,
 }
 
 impl SceneData {
@@ -882,7 +771,8 @@ impl SceneData {
         let symbols = SymbolRegistry::mk(&variables, stats, &logger, f!(symbols_dirty.set()));
         let layers = HardcodedLayers::new(&logger);
         let stats = stats.clone();
-        let shapes = ShapeRegistry::default();
+        let background = PointerTarget::new();
+        let shapes = ShapeRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&logger, &dom, &variables);
         let style_sheet = style::Sheet::new();
@@ -910,6 +800,7 @@ impl SceneData {
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         let context = default();
         let context_lost_handler = default();
+        let pointer_position_changed = default();
         Self {
             display_object,
             dom,
@@ -922,6 +813,7 @@ impl SceneData {
             keyboard,
             uniforms,
             shapes,
+            background,
             stats,
             dirty,
             logger,
@@ -931,12 +823,22 @@ impl SceneData {
             bg_color_var,
             bg_color_change,
             frp,
+            pointer_position_changed,
             extensions,
             disable_context_menu,
         }
+        .init()
     }
 
+    fn init(self) -> Self {
+        self.init_mouse_down_and_up_events();
+        self
+    }
+
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
+        let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
         self.symbols.set_context(context);
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
@@ -959,18 +861,7 @@ impl SceneData {
         &self.symbols
     }
 
-    fn handle_mouse_events(&self) {
-        let new_target = PointerTarget::from_internal(self.mouse.hover_ids.get());
-        let current_target = self.mouse.target.get();
-        if new_target != current_target {
-            self.mouse.target.set(new_target);
-            self.shapes.get_mouse_target(current_target).for_each(|t| t.mouse_out().emit(()));
-            self.shapes.get_mouse_target(new_target).for_each(|t| t.mouse_over().emit(()));
-            self.mouse.re_emit_position_event(); // See docs to learn why.
-        }
-    }
-
-    fn update_shape(&self) {
+    fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
             self.resize_canvas(screen);
@@ -979,17 +870,24 @@ impl SceneData {
             });
             self.renderer.resize_composer();
             self.dirty.shape.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_symbols(&self) {
+    fn update_symbols(&self) -> bool {
         if self.dirty.symbols.check_all() {
             self.symbols.update();
             self.dirty.symbols.unset_all();
+            true
+        } else {
+            false
         }
     }
 
-    fn update_camera(&self, scene: &Scene) {
+    fn update_camera(&self, scene: &Scene) -> bool {
+        let mut was_dirty = false;
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
         let camera = self.camera();
@@ -998,6 +896,7 @@ impl SceneData {
         let welcome_screen_camera = self.layers.panel.camera();
         let changed = camera.update(scene);
         if changed {
+            was_dirty = true;
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(&camera);
             self.dom.layers.front.update_view_projection(&camera);
@@ -1005,14 +904,26 @@ impl SceneData {
         }
         let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
         if fs_vis_camera_changed {
+            was_dirty = true;
             self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
             self.dom.layers.welcome_screen.update_view_projection(&welcome_screen_camera);
         }
+        let node_searcher_camera = self.layers.node_searcher.camera();
+        let node_searcher_camera_changed = node_searcher_camera.update(scene);
+        if node_searcher_camera_changed {
+            was_dirty = true;
+            self.dom.layers.node_searcher.update_view_projection(&node_searcher_camera);
+        }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
+        let sublayer_was_dirty = Rc::new(Cell::new(false));
         self.layers.iter_sublayers_and_masks_nested(|layer| {
-            layer.camera().update(scene);
+            let dirty = layer.camera().update(scene);
+            sublayer_was_dirty.set(sublayer_was_dirty.get() || dirty);
         });
+        was_dirty = was_dirty || sublayer_was_dirty.get();
+
+        was_dirty
     }
 
     /// Resize the underlying canvas. This function should rather not be called
@@ -1033,8 +944,18 @@ impl SceneData {
         });
     }
 
-    pub fn render(&self) {
-        self.renderer.run()
+    pub fn render(&self, update_status: UpdateStatus) {
+        self.renderer.run(update_status);
+        // WebGL `flush` should be called when expecting results such as queries, or at completion
+        // of a rendering frame. Flush tells the implementation to push all pending commands out
+        // for execution, flushing them out of the queue, instead of waiting for more commands to
+        // enqueue before sending for execution.
+        //
+        // Not flushing commands can sometimes cause context loss. To learn more, see:
+        // [https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#flush_when_expecting_results].
+        if let Some(context) = &*self.context.borrow() {
+            context.flush()
+        }
     }
 
     pub fn screen_to_scene_coordinates(&self, position: Vector3<f32>) -> Vector3<f32> {
@@ -1055,7 +976,7 @@ impl SceneData {
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
 
-        let shape = self.frp.shape.value();
+        let shape = camera.screen();
         let clip_space_z = origin_clip_space.z;
         let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
         let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
@@ -1064,6 +985,56 @@ impl SceneData {
         (inv_object_matrix * world_space).xy()
     }
 }
+
+
+// === Mouse ===
+
+impl SceneData {
+    /// Init handling of mouse up and down events. It is also responsible for discovering of the
+    /// mouse release events. To learn more see the documentation of [`PointerTarget`].
+    fn init_mouse_down_and_up_events(&self) {
+        let network = &self.frp.network;
+        let shapes = &self.shapes;
+        let target = &self.mouse.target;
+        let pointer_position_changed = &self.pointer_position_changed;
+        let pressed: Rc<RefCell<HashMap<mouse::Button, PointerTargetId>>> = default();
+
+        frp::extend! { network
+            eval self.mouse.frp.down ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                pressed.borrow_mut().insert(*button,current_target);
+                shapes.with_mouse_target(current_target, |t| t.emit_mouse_down(*button));
+            });
+
+            eval self.mouse.frp.up ([shapes,target,pressed](button) {
+                let current_target = target.get();
+                if let Some(last_target) = pressed.borrow_mut().remove(button) {
+                    shapes.with_mouse_target(last_target, |t| t.emit_mouse_release(*button));
+                }
+                shapes.with_mouse_target(current_target, |t| t.emit_mouse_up(*button));
+            });
+
+            eval_ self.mouse.frp.position (pointer_position_changed.set(true));
+        }
+    }
+
+    /// Discover what object the mouse pointer is on.
+    fn handle_mouse_over_and_out_events(&self) {
+        let opt_new_target = PointerTargetId::decode_from_rgba(self.mouse.hover_rgba.get());
+        let new_target = opt_new_target.unwrap_or_else(|err| {
+            error!(self.logger, "{err}");
+            default()
+        });
+        let current_target = self.mouse.target.get();
+        if new_target != current_target {
+            self.mouse.target.set(new_target);
+            self.shapes.with_mouse_target(current_target, |t| t.mouse_out.emit(()));
+            self.shapes.with_mouse_target(new_target, |t| t.mouse_over.emit(()));
+            self.mouse.re_emit_position_event(); // See docs to learn why.
+        }
+    }
+}
+
 
 impl display::Object for SceneData {
     fn display_object(&self) -> &display::object::Instance {
@@ -1110,7 +1081,7 @@ impl Scene {
     }
 
     fn init(&self) {
-        let context_loss_handler = crate::system::context::init_webgl_2_context(self);
+        let context_loss_handler = crate::system::gpu::context::init_webgl_2_context(self);
         match context_loss_handler {
             Err(err) => error!(self.logger, "{err}"),
             Ok(handler) => *self.context_lost_handler.borrow_mut() = Some(handler),
@@ -1122,8 +1093,8 @@ impl Scene {
     }
 }
 
-impl system::context::Display for Scene {
-    fn device_context_handler(&self) -> &system::context::DeviceContextHandler {
+impl system::gpu::context::Display for Scene {
+    fn device_context_handler(&self) -> &system::gpu::context::DeviceContextHandler {
         &self.dom.layers.canvas
     }
 
@@ -1152,19 +1123,28 @@ impl Deref for Scene {
 }
 
 impl Scene {
-    pub fn update(&self, t: animation::TimeInfo) {
-        if self.context.borrow().is_some() {
+    #[profile(Debug)]
+    pub fn update(&self, time: animation::TimeInfo) -> UpdateStatus {
+        if let Some(context) = &*self.context.borrow() {
             debug!(self.logger, "Updating.", || {
-                self.frp.frame_time_source.emit(t.local);
+                let mut scene_was_dirty = false;
+                self.frp.frame_time_source.emit(time.since_animation_loop_started.unchecked_raw());
                 // Please note that `update_camera` is called first as it may trigger FRP events
                 // which may change display objects layout.
-                self.update_camera(self);
+                scene_was_dirty = self.update_camera(self) || scene_was_dirty;
                 self.display_object.update(self);
-                self.layers.update();
-                self.update_shape();
-                self.update_symbols();
-                self.handle_mouse_events();
+                scene_was_dirty = self.layers.update() || scene_was_dirty;
+                scene_was_dirty = self.update_shape() || scene_was_dirty;
+                scene_was_dirty = self.update_symbols() || scene_was_dirty;
+                self.handle_mouse_over_and_out_events();
+                scene_was_dirty = context.shader_compiler.run(time) || scene_was_dirty;
+
+                let pointer_position_changed = self.pointer_position_changed.get();
+                self.pointer_position_changed.set(false);
+                UpdateStatus { scene_was_dirty, pointer_position_changed }
             })
+        } else {
+            default()
         }
     }
 }
@@ -1221,5 +1201,30 @@ impl<'t> DomPath for &'t String {
 impl<'t> DomPath for &'t str {
     fn try_into_dom_element(self) -> Option<HtmlElement> {
         web::document.get_html_element_by_id(self)
+    }
+}
+
+
+
+// ==================
+// === Test Utils ===
+// ==================
+
+/// Extended API for tests.
+pub mod test_utils {
+    use super::*;
+
+    pub trait MouseExt {
+        /// Emulate click on background for testing purposes.
+        fn click_on_background(&self);
+    }
+
+    impl MouseExt for Mouse {
+        fn click_on_background(&self) {
+            self.target.set(PointerTargetId::Background);
+            let left_mouse_button = frp::io::mouse::Button::Button0;
+            self.frp.down.emit(left_mouse_button);
+            self.frp.up.emit(left_mouse_button);
+        }
     }
 }

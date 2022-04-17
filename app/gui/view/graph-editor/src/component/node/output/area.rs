@@ -216,6 +216,22 @@ impl Model {
         self
     }
 
+    /// Return a list of Node's output ports.
+    pub fn ports(&self) -> Vec<port::Model> {
+        let port_count = self.port_count.get();
+        let mut ports = Vec::with_capacity(port_count);
+        self.traverse_borrowed_expression(|is_a_port, node, _| {
+            if is_a_port {
+                ports.push(node.payload.clone());
+            }
+        });
+        ports
+    }
+
+    fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.label.add_to_scene_layer(layer);
+    }
+
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
@@ -417,10 +433,10 @@ impl Model {
 /// Please note that the origin of the node is on its left side, centered vertically. To learn more
 /// about this design decision, please read the docs for the [`node::Node`].
 #[derive(Clone, CloneRef, Debug)]
+#[allow(missing_docs)]
 pub struct Area {
-    #[allow(missing_docs)]
-    pub frp: Frp,
-    model:   Rc<Model>,
+    pub frp:   Frp,
+    pub model: Rc<Model>,
 }
 
 impl Deref for Area {
@@ -491,6 +507,11 @@ impl Area {
         label_color.target_color(label_vis_color.opaque);
 
         Self { frp, model }
+    }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.model.set_label_layer(layer);
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.

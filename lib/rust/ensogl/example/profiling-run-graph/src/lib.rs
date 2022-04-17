@@ -34,9 +34,9 @@ use ensogl_flame_graph as flame_graph;
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_profiling_run_graph() {
+pub fn main() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
 
@@ -51,7 +51,7 @@ pub fn entry_point_profiling_run_graph() {
     // Generate Test data
     futures::executor::block_on(start_project());
 
-    let measurements = profiler_flame_graph::FlameGraph::take_from_log();
+    let measurements = profiler_flame_graph::Graph::take_from_log();
     let flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
     world.add_child(&flame_graph);

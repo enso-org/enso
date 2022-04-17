@@ -55,9 +55,9 @@ mod mask {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_complex_shape_system() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
@@ -117,7 +117,6 @@ pub fn entry_point_complex_shape_system() {
         .before_frame
         .add(move |_time| {
             mask.set_position_x(((frame as f32) / 30.0).sin() * 100.0);
-
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;

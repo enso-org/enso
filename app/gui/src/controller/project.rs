@@ -120,6 +120,7 @@ impl Project {
     /// warning about unsupported engine version).
     ///
     /// Returns the controllers of module and graph which should be displayed in the view.
+    #[profile(Task)]
     pub async fn initialize(&self) -> FallibleResult<InitializationResult> {
         let project = self.model.clone_ref();
         let parser = self.model.parser();
@@ -213,6 +214,7 @@ impl Project {
         }
     }
 
+    #[profile(Detail)]
     fn notify_about_compiling_process(&self, graph: &controller::ExecutedGraph) {
         let status_notifier = self.status_notifications.clone_ref();
         let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);

@@ -43,8 +43,25 @@ public abstract class HostMethodCallNode extends Node {
      * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
      */
     CONVERT_TO_TEXT,
+    /**
+     * The method call should be handled by converting {@code _this} to a {@code
+     * Standard.Base.Data.Time.Date} and dispatching natively.
+     */
+    CONVERT_TO_DATE,
     /** The method call should be handled by dispatching through the {@code Any} type. */
-    NOT_SUPPORTED
+    NOT_SUPPORTED;
+
+    /**
+     * Directly use {@link InteropLibrary}, or not. Types that return false are
+     * either {@link #NOT_SUPPORTED unsupported} or require
+     * additional conversions like {@link #CONVERT_TO_TEXT} and {@link #CONVERT_TO_DATE}.
+     *
+     * @return true if one can directly pass this object to
+     * {@link InteropLibrary}
+     */
+    public boolean isInteropLibrary() {
+      return this != NOT_SUPPORTED && this != CONVERT_TO_TEXT && this != CONVERT_TO_DATE;
+    }
   }
 
   private static final String ARRAY_LENGTH_NAME = "length";
@@ -76,9 +93,12 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
     } else if (library.isString(_this)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
-    } else {
-      return PolyglotCallType.NOT_SUPPORTED;
+    } else if (library.isDate(_this)) {
+      if (!library.isTime(_this)) {
+        return PolyglotCallType.CONVERT_TO_DATE;
+      }
     }
+    return PolyglotCallType.NOT_SUPPORTED;
   }
 
   /**

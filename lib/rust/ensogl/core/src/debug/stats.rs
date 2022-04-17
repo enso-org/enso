@@ -152,7 +152,7 @@ macro_rules! emit_if_integer {
 /// Emits the StatsData struct, and extends StatsWithTimeProvider with accessors to StatsData
 /// fields.
 macro_rules! gen_stats {
-    ($($field:ident : $field_type:ty),* $(,)?) => { paste::item! {
+    ($($field:ident : $field_type:ty),* $(,)?) => { paste! {
 
 
         // === StatsData ===
@@ -185,15 +185,16 @@ macro_rules! gen_stats {
                 self.[<set _ $field>](value);
             }
 
+            // FIXME: saturating_add is proper solution, but even without it it should not crash, but it does. To be investigated.
             emit_if_integer!($field_type,
                 /// Increments field's value.
                 pub fn [<inc _ $field>](&self) {
-                    self.[<mod _ $field>](|t| t + 1);
+                    self.[<mod _ $field>](|t| t.saturating_add(1));
                 }
 
                 /// Decrements field's value.
                 pub fn [<dec _ $field>](&self) {
-                    self.[<mod _ $field>](|t| t - 1);
+                    self.[<mod _ $field>](|t| t.saturating_sub(1));
                 }
             );
 

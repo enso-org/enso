@@ -247,6 +247,11 @@ impl ProfilingLabel {
 
         ProfilingLabel { root, label, frp, styles }
     }
+
+    /// Set a scene layer for text rendering.
+    pub fn set_label_layer(&self, layer: &display::scene::Layer) {
+        self.label.add_to_scene_layer(layer);
+    }
 }
 
 impl display::Object for ProfilingLabel {

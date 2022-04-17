@@ -43,8 +43,8 @@ use ensogl_text_msdf_sys::run_once_initialized;
 // ===================
 
 /// An entry point.
-#[wasm_bindgen]
-pub fn entry_point_scroll_area() {
+#[entry_point]
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);

@@ -352,7 +352,6 @@ impl Manager {
         }
     }
 
-
     fn resolve_context_module(
         &self,
         context_module: &ContextModule,
@@ -371,12 +370,21 @@ impl Manager {
         })
     }
 
+    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
+    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
+        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
+        for target in to_remove {
+            self.set_visualization(target, None);
+        }
+    }
+
     /// Schedule an asynchronous task that will try applying local desired state of the
     /// visualization to the language server.
-    pub fn synchronize(self: &Rc<Self>, target: ast::Id) {
+    #[profile(Detail)]
+    fn synchronize(self: &Rc<Self>, target: ast::Id) {
         let context = self.executed_graph.when_ready();
         let weak = Rc::downgrade(self);
-        let task = async move || -> Option<()> {
+        let task = async move {
             context.await;
             let description = weak.upgrade()?.visualizations.get_cloned(&target)?;
             let status = description.when_done().await?;
@@ -392,131 +400,125 @@ impl Manager {
             });
             match (status, new_visualization) {
                 // Nothing attached and we want to have something.
-                (Status::NotAttached, Some(new_visualization)) => {
-                    info!(
-                        this.logger,
-                        "Will attach visualization {new_visualization.id} to \
-                    expression {target}"
-                    );
-                    let status = Status::BeingAttached(new_visualization.clone());
-                    this.update_status(target, status);
-                    let notifier = this.notification_sender.clone();
-                    let attaching_result =
-                        this.executed_graph.attach_visualization(new_visualization.clone());
-                    match attaching_result.await {
-                        Ok(update_receiver) => {
-                            let visualization_id = new_visualization.id;
-                            let status = Status::Attached(new_visualization);
-                            this.update_status(target, status);
-                            spawn(update_receiver.for_each(move |data| {
-                                let notification =
-                                    Notification::ValueUpdate { target, visualization_id, data };
-                                let _ = notifier.unbounded_send(notification);
-                                ready(())
-                            }))
-                        }
-                        Err(error) => {
-                            // TODO [mwu]
-                            //   We should somehow deal with this, but we have really no
-                            // information, how to.   If this failed
-                            // because e.g. the visualization was already removed (or another
-                            //   reason to that effect), we should just do nothing.
-                            //   However, if it is issue like connectivity problem, then we should
-                            // retry.   However, even if had better
-                            // error recognition, we won't always know.
-                            //   So we should also handle errors like unexpected visualization
-                            // updates and use   them to drive cleanups
-                            // on such discrepancies.
-                            let status = Status::NotAttached;
-                            this.update_status(target, status);
-                            let notification = Notification::FailedToAttach {
-                                visualization: new_visualization,
-                                error,
-                            };
-                            let _ = notifier.unbounded_send(notification);
-                        }
-                    };
-                }
-
+                (Status::NotAttached, Some(new_visualization)) =>
+                    this.attach_visualization(target, new_visualization).await,
                 (Status::Attached(so_far), None) | (Status::Attached(so_far), Some(_))
                     if !desired_vis_id.contains(&so_far.id) =>
-                {
-                    info!(this.logger, "Will detach from {target}: {so_far:?}");
-                    let status = Status::BeingDetached(so_far.clone());
-                    this.update_status(target, status);
-                    let detaching_result = this.executed_graph.detach_visualization(so_far.id);
-                    match detaching_result.await {
-                        Ok(_) => {
-                            let status = Status::NotAttached;
-                            this.update_status(target, status);
-                            if let Some(vis) = this.visualizations.remove(&so_far.expression_id) {
-                                if vis.desired.is_some() {
-                                    // Restore visualization that was re-requested while being
-                                    // detached.
-                                    this.visualizations.insert(so_far.expression_id, vis);
-                                    this.synchronize(so_far.expression_id);
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            let status = Status::Attached(so_far.clone());
-                            this.update_status(target, status);
-                            let notification =
-                                Notification::FailedToDetach { visualization: so_far, error };
-                            let _ = this.notification_sender.unbounded_send(notification);
-                        }
-                    };
-                }
+                    this.detach_visualization(target, so_far).await,
                 (Status::Attached(so_far), Some(new_visualization))
                     if so_far != new_visualization && so_far.id == new_visualization.id =>
-                {
-                    info!(
-                        this.logger,
-                        "Will modify visualization on {target} from {so_far:?} to \
-                    {new_visualization:?}"
-                    );
-                    let status = Status::BeingModified {
-                        from: so_far.clone(),
-                        to:   new_visualization.clone(),
-                    };
-                    this.update_status(target, status);
-                    let id = so_far.id;
-                    let expression = new_visualization.preprocessor_code.clone();
-                    let module = new_visualization.context_module.clone();
-                    let modifying_result = this.executed_graph.modify_visualization(
-                        id,
-                        Some(expression),
-                        Some(module),
-                    );
-                    match modifying_result.await {
-                        Ok(_) => {
-                            let status = Status::Attached(new_visualization);
-                            this.update_status(target, status);
-                        }
-                        Err(error) => {
-                            let status = Status::Attached(so_far);
-                            this.update_status(target, status);
-                            let notification =
-                                Notification::FailedToModify { desired: new_visualization, error };
-                            let _ = this.notification_sender.unbounded_send(notification);
-                        }
-                    };
-                }
+                    this.modify_visualization(target, so_far, new_visualization).await,
                 _ => {}
             };
             Some(())
         };
         spawn(async move {
-            task().await;
+            task.await;
         });
     }
 
-    /// Remove (set desired state to None) each visualization not attached to any of the `targets`.
-    pub fn retain_visualizations(self: &Rc<Self>, targets: &HashSet<ast::Id>) {
-        let to_remove = self.visualizations.keys().into_iter().filter(|id| !targets.contains(id));
-        for target in to_remove {
-            self.set_visualization(target, None);
-        }
+    #[profile(Detail)]
+    async fn attach_visualization(
+        self: Rc<Self>,
+        target: ast::Id,
+        new_visualization: Visualization,
+    ) {
+        info!(
+            self.logger,
+            "Will attach visualization {new_visualization.id} to expression {target}"
+        );
+        let status = Status::BeingAttached(new_visualization.clone());
+        self.update_status(target, status);
+        let notifier = self.notification_sender.clone();
+        let attaching_result = self.executed_graph.attach_visualization(new_visualization.clone());
+        match attaching_result.await {
+            Ok(update_receiver) => {
+                let visualization_id = new_visualization.id;
+                let status = Status::Attached(new_visualization);
+                self.update_status(target, status);
+                spawn(update_receiver.for_each(move |data| {
+                    let notification = Notification::ValueUpdate { target, visualization_id, data };
+                    let _ = notifier.unbounded_send(notification);
+                    ready(())
+                }))
+            }
+            Err(error) => {
+                // TODO [mwu]
+                //   We should somehow deal with this, but we have really no information, how to.
+                //   If this failed because e.g. the visualization was already removed (or another
+                //   reason to that effect), we should just do nothing.
+                //   However, if it is issue like connectivity problem, then we should retry.
+                //   However, even if had better error recognition, we won't always know.
+                //   So we should also handle errors like unexpected visualization updates and use
+                //   them to drive cleanups on such discrepancies.
+                let status = Status::NotAttached;
+                self.update_status(target, status);
+                let notification =
+                    Notification::FailedToAttach { visualization: new_visualization, error };
+                let _ = notifier.unbounded_send(notification);
+            }
+        };
+    }
+
+    #[profile(Detail)]
+    async fn detach_visualization(self: Rc<Self>, target: ast::Id, so_far: Visualization) {
+        info!(self.logger, "Will detach from {target}: {so_far:?}");
+        let status = Status::BeingDetached(so_far.clone());
+        self.update_status(target, status);
+        let detaching_result = self.executed_graph.detach_visualization(so_far.id);
+        match detaching_result.await {
+            Ok(_) => {
+                let status = Status::NotAttached;
+                self.update_status(target, status);
+                if let Some(vis) = self.visualizations.remove(&so_far.expression_id) {
+                    if vis.desired.is_some() {
+                        // Restore visualization that was re-requested while being detached.
+                        self.visualizations.insert(so_far.expression_id, vis);
+                        self.synchronize(so_far.expression_id);
+                    }
+                }
+            }
+            Err(error) => {
+                let status = Status::Attached(so_far.clone());
+                self.update_status(target, status);
+                let notification = Notification::FailedToDetach { visualization: so_far, error };
+                let _ = self.notification_sender.unbounded_send(notification);
+            }
+        };
+    }
+
+    #[profile(Detail)]
+    async fn modify_visualization(
+        self: Rc<Self>,
+        target: ast::Id,
+        so_far: Visualization,
+        new_visualization: Visualization,
+    ) {
+        info!(
+            self.logger,
+            "Will modify visualization on {target} from {so_far:?} to {new_visualization:?}"
+        );
+        let status =
+            Status::BeingModified { from: so_far.clone(), to: new_visualization.clone() };
+        self.update_status(target, status);
+        let id = so_far.id;
+        let expression = new_visualization.preprocessor_code.clone();
+        let module = new_visualization.context_module.clone();
+        let modifying_result =
+            self.executed_graph.modify_visualization(id, Some(expression), Some(module));
+        match modifying_result.await {
+            Ok(_) => {
+                let status = Status::Attached(new_visualization);
+                self.update_status(target, status);
+            }
+            Err(error) => {
+                let status = Status::Attached(so_far);
+                self.update_status(target, status);
+                let notification =
+                    Notification::FailedToModify { desired: new_visualization, error };
+                let _ = self.notification_sender.unbounded_send(notification);
+            }
+        };
     }
 }
 

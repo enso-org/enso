@@ -125,7 +125,7 @@ spec =
 
         Test.specify "should allow Enso to catch R exceptions" <|
             value = My_Type 1 2
-            result = Panic.recover <| value.my_throw
+            result = Panic.recover Any <| value.my_throw
             err = result.catch
             err.to_display_text.should_equal "Polyglot error: Error: error in R code!"
 
@@ -136,7 +136,7 @@ spec =
             result . should_equal 7
 
         Test.specify "should properly report parse errors" <|
-            err = Panic.recover here.does_not_parse
+            err = Panic.recover Any here.does_not_parse
             err.catch.to_display_text.should .contain 'parse exception'
 
         Test.specify "should perform maths with mixed numbers" <|

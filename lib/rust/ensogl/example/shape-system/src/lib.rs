@@ -54,9 +54,9 @@ pub fn shape() -> AnyShape {
 // ===================
 
 /// The example entry point.
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_shape_system() {
+pub fn main() {
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
@@ -70,12 +70,20 @@ pub fn entry_point_shape_system() {
     world.add_child(&sprite_system);
     world.keep_alive_forever();
 
+    let mut i = 0;
     world
         .on
         .before_frame
         .add(move |_time| {
             let _keep_alive = &sprite;
             let _keep_alive = &navigator;
+            i += 1;
+            if i == 5 {
+                if let Some(program) = sprite.symbol.shader().program() {
+                    DEBUG!("\n\nVERTEX:\n{program.shader.vertex.code}");
+                    DEBUG!("\n\nFRAGMENT:\n{program.shader.fragment.code}");
+                }
+            }
         })
         .forget();
 }

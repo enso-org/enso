@@ -102,12 +102,12 @@ class RuntimeVisualisationsTest
     }
 
     def receive: Option[Api.Response] =
-      receiveTimeout(10)
+      receiveTimeout(20)
 
     def receiveTimeout(timeoutSeconds: Int): Option[Api.Response] =
       Option(messageQueue.poll(timeoutSeconds.toLong, TimeUnit.SECONDS))
 
-    def receive(n: Int, timeoutSeconds: Int = 10): List[Api.Response] =
+    def receive(n: Int, timeoutSeconds: Int = 20): List[Api.Response] =
       Iterator
         .continually(receiveTimeout(timeoutSeconds))
         .take(n)
@@ -1712,7 +1712,7 @@ class RuntimeVisualisationsTest
       TestMessages.error(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )
@@ -1813,7 +1813,7 @@ class RuntimeVisualisationsTest
           Api.VisualisationConfiguration(
             contextId,
             moduleName,
-            "x -> Panic.recover x . catch_primitive _.to_text"
+            "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text"
           )
         )
       )
@@ -1877,7 +1877,8 @@ class RuntimeVisualisationsTest
 
     // NOTE: below values need to be kept in sync with what is used internally by Rust IDE code
     val visualisationModule = "Standard.Base.Main"
-    val visualisationCode   = Source.fromResource("error_preprocessor.enso").mkString
+    val visualisationCode =
+      Source.fromResource("error_preprocessor.enso").mkString
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1901,13 +1902,13 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushContextResponses =
-      context.receive(n = 4, timeoutSeconds = 60)
+      context.receive(n = 4, timeoutSeconds = 90)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
         idMain,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(idMain))
       ),
       context.executionComplete(contextId)
     )

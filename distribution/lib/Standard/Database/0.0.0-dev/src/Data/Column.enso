@@ -7,6 +7,7 @@ import Standard.Table.Data.Column as Materialized_Column
 
 from Standard.Database.Data.Sql import Sql_Type
 from Standard.Database.Data.Table import Integrity_Error
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 type Column
 
@@ -118,7 +119,7 @@ type Column
             Column _ _ _ other_expr _ ->
                 case Helpers.check_integrity this operand of
                     False ->
-                        Error.throw <| Illegal_State_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
+                        Error.throw <| Unsupported_Database_Operation_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
                         new_expr = IR.Operation op_kind [this.expression, other_expr]
                         Column this.name this.connection actual_new_type new_expr this.context
@@ -510,7 +511,7 @@ type Column
     as_internal : IR.Internal_Column
     as_internal = IR.Internal_Column this.name this.sql_type this.expression
 
-type Aggregate_Column
+type Aggregate_Column_Builder
 
     ## UNSTABLE
 
@@ -524,10 +525,10 @@ type Aggregate_Column
        - context: The SQl context in which the column exists.
 
        Allows performing aggregation operations on the contained values.
-    # type Aggregate_Column (name : Text) (connection : Connection)
+    # type Aggregate_Column_Builder (name : Text) (connection : Connection)
     #                       (sql_type : Sql_Type) (expression : IR.Expression)
     #                       (context : IR.Context)
-    type Aggregate_Column name connection sql_type expression context
+    type Aggregate_Column_Builder name connection sql_type expression context
 
     ## UNSTABLE
 

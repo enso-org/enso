@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 

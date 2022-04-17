@@ -46,7 +46,7 @@ spec =
             table  = Table.from_rows header [row_1, row_2]
             expect table 'value' [10,20]
 
-        Test.specify "is case insensitive" <|
+        Test.specify "is case-insensitive" <|
             header = ['α', 'Value']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]

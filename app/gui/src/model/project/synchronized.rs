@@ -248,6 +248,7 @@ pub struct Project {
 
 impl Project {
     /// Create a new project model.
+    #[profile(Detail)]
     pub async fn new(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -303,6 +304,7 @@ impl Project {
     }
 
     /// Initializes the json and binary connection to Language Server, and creates a Project Model
+    #[profile(Detail)]
     pub async fn new_connected(
         parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
@@ -337,6 +339,7 @@ impl Project {
 
     /// Creates a project model by opening a given project in project_manager, and initializing
     /// the received json and binary connections.
+    #[profile(Detail)]
     pub async fn new_opened(
         parent: &Logger,
         project_manager: Rc<dyn project_manager::API>,
@@ -522,6 +525,7 @@ impl Project {
             .acquire_capability(&capability.method, &capability.register_options)
     }
 
+    #[profile(Task)]
     fn load_module(
         &self,
         path: module::Path,
@@ -580,6 +584,7 @@ impl model::project::API for Project {
         self.content_roots.get(id)
     }
 
+    #[profile(Detail)]
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
         async move {
             info!(self.logger, "Obtaining module for {path}");
@@ -590,6 +595,7 @@ impl model::project::API for Project {
         .boxed_local()
     }
 
+    #[profile(Detail)]
     fn create_execution_context(
         &self,
         root_definition: MethodPointer,

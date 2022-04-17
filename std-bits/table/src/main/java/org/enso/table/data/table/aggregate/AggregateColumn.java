@@ -1,8 +1,6 @@
 package org.enso.table.data.table.aggregate;
 
-import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.table.Column;
 

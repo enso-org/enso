@@ -1,21 +1,15 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
-  Component,
   ComponentGroups,
   ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference,
+  GroupName,
+  GroupReference,
   Package,
   PackageManager
 }
@@ -23,17 +17,29 @@ import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
+import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, OptionValues}
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.file.{Files, Path, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+
+import scala.concurrent.duration._
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeComponentsTest
     extends AnyFlatSpec
+    with TimeLimitedTests
     with Matchers
+    with OptionValues
     with BeforeAndAfterEach
     with BeforeAndAfterAll
     with OsSpec {
+
+  override val timeLimit = 5.minutes
 
   final val ContextPathSeparator: String = File.pathSeparator
 
@@ -48,6 +54,9 @@ class RuntimeComponentsTest
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
     val distributionHome: File =
       Paths.get("../../distribution/component").toFile.getAbsoluteFile
+    val editionHome: File =
+      Paths.get("../../distribution/lib").toRealPath().toFile.getAbsoluteFile
+    val edition     = TestEdition.readStdlib(editionHome)
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -58,11 +67,11 @@ class RuntimeComponentsTest
           newGroups = List(),
           extendedGroups = List(
             ExtendedComponentGroup(
-              module = ModuleReference(
+              group = GroupReference(
                 LibraryName("Standard", "Base"),
-                ModuleName("Group2")
+                GroupName("Input")
               ),
-              exports = List(Component("foo", None))
+              exports = List()
             )
           )
         )
@@ -70,7 +79,7 @@ class RuntimeComponentsTest
         root            = tmpDir.toFile,
         name            = packageName,
         namespace       = "Enso_Test",
-        edition         = Some(TestEdition.edition),
+        edition         = Some(edition),
         componentGroups = componentGroups
       )
     }
@@ -208,7 +217,7 @@ class RuntimeComponentsTest
     val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 60
+        timeout = 120
       )
     // sanity check
     responses should contain allOf (
@@ -231,14 +240,164 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-    val expectedComponents = Map(
-      LibraryName("Enso_Test", "Test") ->
-      context.pkg.config.componentGroups
-        .getOrElse(fail("Unexpected config value.")),
-      LibraryName("Standard", "Base")     -> ComponentGroups.empty,
-      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+//    val expectedComponents = Map(
+//      LibraryName("Enso_Test", "Test") ->
+//      context.pkg.config.componentGroups
+//        .getOrElse(fail("Unexpected config value.")),
+//      LibraryName("Standard", "Base") ->
+//      RuntimeComponentsTest.standardBaseComponents,
+//      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
+//    )
+//    components should contain theSameElementsAs expectedComponents
+
+    components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
+    context.pkg.config.componentGroups
+      .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Standard", "Base"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupName("Input"),
+      GroupName("Web"),
+      GroupName("Parse"),
+      GroupName("Select"),
+      GroupName("Join"),
+      GroupName("Transform"),
+      GroupName("Output")
     )
-    components should contain theSameElementsAs expectedComponents
+
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "load component groups of standard library" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+
+    val code =
+      """from Standard.Base import all
+        |import Standard.Visualization
+        |
+        |main = "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveOne shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    val responses =
+      context.receiveAllUntil(
+        context.executionComplete(contextId),
+        timeout = 120
+      )
+    // sanity check
+    responses should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+
+    // check the registered component groups
+    val components = context.languageContext.getPackageRepository.getComponents
+
+    components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
+    context.pkg.config.componentGroups
+      .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Standard", "Base"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupName("Input"),
+      GroupName("Web"),
+      GroupName("Parse"),
+      GroupName("Select"),
+      GroupName("Join"),
+      GroupName("Transform"),
+      GroupName("Output")
+    )
+
+    components
+      .get(LibraryName("Standard", "Database"))
+      .value
+      .extendedGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform"))
+    )
+
+    components
+      .get(LibraryName("Standard", "Table"))
+      .value
+      .extendedGroups
+      .map(_.group) should contain theSameElementsAs Seq(
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Input")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Select")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Join")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Transform")),
+      GroupReference(LibraryName("Standard", "Base"), GroupName("Output"))
+    )
+
+    // check that component group symbols can be resolved
+    val suggestionSymbols = responses
+      .collect {
+        case Api.Response(
+              None,
+              msg: Api.SuggestionsDatabaseModuleUpdateNotification
+            ) =>
+          msg.updates.toVector.map(_.suggestion)
+      }
+      .flatten
+      .flatMap { suggestion =>
+        for {
+          selfType <- Suggestion.SelfType(suggestion)
+        } yield s"$selfType.${suggestion.name}"
+      }
+      .toSet
+
+    val componentSymbols = components
+      .flatMap { case (_, componentGroups) =>
+        val newComponents = componentGroups.newGroups.flatMap(_.exports)
+        val extendedComponents =
+          componentGroups.extendedGroups.flatMap(_.exports)
+        newComponents ++ extendedComponents
+      }
+      .map(_.name)
+
+    componentSymbols should not be empty
+    componentSymbols.foreach { component =>
+      suggestionSymbols should contain(component)
+    }
 
     context.consumeOut shouldEqual List()
   }

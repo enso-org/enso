@@ -31,8 +31,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
+  - [`DocSection`](#docsection)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
-  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
@@ -107,8 +107,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
   - [`workspace/projectInfo`](#workspaceprojectinfo)
-  - [`workspace/undo`](#workspaceundo)
-  - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
   - [`heartbeat/init`](#heartbeatinit)
@@ -125,6 +123,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
@@ -453,9 +452,11 @@ interface SuggestionEntryModule {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryAtom {
@@ -480,9 +481,11 @@ interface SuggestionEntryAtom {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryMethod {
@@ -510,9 +513,11 @@ interface SuggestionEntryMethod {
   /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
-  /** The rendered HTMl of the documentation string. */
-
+  /** The rendered HTML of the documentation string. */
   documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface SuggestionEntryFunction {
@@ -533,10 +538,6 @@ interface SuggestionEntryFunction {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 
 interface SuggestionEntryLocal {
@@ -554,10 +555,6 @@ interface SuggestionEntryLocal {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
-
-  /** The rendered HTMl of the documentation string. */
-
-  documentationHtml?: string;
 }
 ```
 
@@ -582,11 +579,124 @@ The suggestion entry id of the suggestions database.
 type SuggestionId = number;
 ```
 
-### `SuggestionsDatabaseEntry`
+### `DocSection`
+
+A single section of the documentation.
 
 #### Format
 
+```typescript
+type DocSection = Tag | Paragraph | Keyed | Marked;
+
+/** The documentation tag.
+ *
+ * {{{
+ *   name text
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   UNSTABLE
+ *   DEPRECATED
+ *   ALIAS Length
+ * }}}
+ *
+ */
+interface Tag {
+  /** The tag name. */
+  name: string;
+
+  /** The tag text. */
+  text: HTMLString;
+}
+
+/** The paragraph of the text.
+ *
+ * @example
+ *
+ * {{{
+ *   Arbitrary text in the documentation comment.
+ *
+ *   This is another paragraph.
+ * }}}
+ *
+ */
+interface Paragraph {
+  /** The elements that make up this paragraph. */
+  body: HTMLString;
+}
+
+/** The section that starts with the key followed by the colon and the body.
+ *
+ * {{{
+ *   key: body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   Arguments:
+ *   - one: the first
+ *   - two: the second
+ * }}}
+ *
+ *
+ * {{{
+ *   Icon: table-from-rows
+ * }}}
+ *
+ */
+interface Keyed {
+  /** The section key. */
+  key: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** The section that starts with the mark followed by the header and the body.
+ *
+ * {{{
+ *   mark header
+ *   body
+ * }}}
+ *
+ * @example
+ *
+ * {{{
+ *   > Example
+ *     This is how it's done.
+ *         foo = bar baz
+ * }}}
+ *
+ * {{{
+ *   ! Notice
+ *     This is important.
+ * }}}
+ */
+interface Marked {
+  /** The section mark. */
+  mark: Mark;
+
+  /** The section header. */
+  header?: string;
+
+  /** The elements that make up the body of the section. */
+  body: HTMLString;
+}
+
+/** Text rendered as HTML (may contain HTML tags). */
+type HTMLString = string;
+
+type Mark = "Important" | "Info" | "Example";
+```
+
+### `SuggestionsDatabaseEntry`
+
 The entry in the suggestions database.
+
+#### Format
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -599,32 +709,6 @@ interface SuggestionsDatabaseEntry {
    * The suggestion entry.
    */
   suggestion: SuggestionEntry;
-}
-```
-
-### `SuggestionsOrderDatabaseEntry`
-
-The entry in the suggestions order database.
-
-#### Format
-
-```typescript
-interface SuggestionsOrderDatabaseEntry {
-  /**
-   * The unique identifier of a suggestion referring to the `id` identifier of
-   * the suggestions database.
-   */
-  suggestionId: SuggestionId;
-
-  /**
-   * The suggestion that goes before this one in the source file.
-   */
-  prevId?: SuggestionId;
-
-  /**
-   * Ths suggestion that goes after this one in the source file.
-   */
-  nextId?: SuggestionId;
 }
 ```
 
@@ -1452,11 +1536,11 @@ interface LibraryComponentGroup {
    */
   library: string;
 
-  /** The module name without the library name prefix.
-   *  E.g. given the `Standard.Base.Data.Vector` module reference,
-   * the `module` field contains `Data.Vector`.
+  /** The group name without the library name prefix.
+   *  E.g. given the `Standard.Base.Group 1` group reference,
+   * the `group` field contains `Group 1`.
    */
-  module: string;
+  group: string;
 
   color?: string;
 
@@ -2725,68 +2809,6 @@ project in situations where it does not have a project manager to connect to.
   decoded.
 - [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
 
-### `workspace/undo`
-
-This request is sent from the client to the server to request that an operation
-be undone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server undoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it undoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
-### `workspace/redo`
-
-This request is sent from the client to the server to request that an operation
-be redone.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-The exact behaviour of this message is to be determined, but it must involve the
-server redoing that same action for all clients in the workspace.
-
-#### Parameters
-
-```typescript
-{
-  requestID?: UUID; // If not specified, it redoes the latest request
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
 ## Monitoring
 
 The language server also has a heartbeat operation to monitor the Language
@@ -3281,6 +3303,37 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/getComponentGroups`
+
+Sent from the client to the server to get the list of component groups available
+in runtime.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+{
+  componentGroups: LibraryComponentGroup[];
+}
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when context with the provided id
+  does not exist.
 
 ### `executionContext/expressionUpdates`
 

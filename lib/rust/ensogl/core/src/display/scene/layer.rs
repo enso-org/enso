@@ -13,8 +13,8 @@ use crate::display::shape::system::DynShapeSystemOf;
 use crate::display::shape::system::KnownShapeSystemId;
 use crate::display::shape::system::ShapeSystemId;
 use crate::display::shape::ShapeSystemInstance;
+use crate::display::symbol;
 use crate::display::symbol::SymbolId;
-use crate::system::gpu::data::attribute;
 
 use enso_data_structures::dependency_graph::DependencyGraph;
 use enso_shapely::shared;
@@ -199,10 +199,10 @@ impl Layer {
     /// Instantiate the provided [`DynamicShape`].
     pub fn instantiate<T>(&self, scene: &Scene, shape: &T) -> LayerDynamicShapeInstance
     where T: display::shape::system::DynamicShape {
-        let (shape_system_info, symbol_id, instance_id) =
+        let (shape_system_info, symbol_id, global_instance_id) =
             self.shape_system_registry.instantiate(scene, shape);
         self.add_shape(shape_system_info, symbol_id);
-        LayerDynamicShapeInstance::new(self, symbol_id, instance_id)
+        LayerDynamicShapeInstance::new(self, global_instance_id)
     }
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
@@ -525,8 +525,9 @@ impl LayerModel {
         }
     }
 
-    /// Consume all dirty flags and update the ordering of elements if needed.
-    pub fn update(&self) {
+    /// Consume all dirty flags and update the ordering of elements if needed. Returns [`true`] if
+    /// the layer or its sub-layers were modified during this call.
+    pub fn update(&self) -> bool {
         self.update_internal(None)
     }
 
@@ -534,23 +535,29 @@ impl LayerModel {
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,
-    ) {
+    ) -> bool {
+        let mut was_dirty = false;
+
         if self.depth_order_dirty.check() {
+            was_dirty = true;
             self.depth_order_dirty.unset();
             self.depth_sort(global_element_depth_order);
         }
 
         if self.sublayers.element_depth_order_dirty.check() {
+            was_dirty = true;
             self.sublayers.element_depth_order_dirty.unset();
             for layer in self.sublayers() {
-                layer.update_internal(Some(&*self.global_element_depth_order.borrow()))
+                layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
             }
             if let Some(layer) = &*self.mask.borrow() {
                 if let Some(layer) = layer.upgrade() {
-                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()))
+                    layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
                 }
             }
         }
+
+        was_dirty
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
@@ -790,16 +797,15 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct LayerDynamicShapeInstance {
-    pub layer:       WeakLayer,
-    pub symbol_id:   SymbolId,
-    pub instance_id: attribute::InstanceIndex,
+    pub layer:              WeakLayer,
+    pub global_instance_id: symbol::GlobalInstanceId,
 }
 
 impl LayerDynamicShapeInstance {
     /// Constructor.
-    pub fn new(layer: &Layer, symbol_id: SymbolId, instance_id: attribute::InstanceIndex) -> Self {
+    pub fn new(layer: &Layer, global_instance_id: symbol::GlobalInstanceId) -> Self {
         let layer = layer.downgrade();
-        Self { layer, symbol_id, instance_id }
+        Self { layer, global_instance_id }
     }
 }
 
@@ -962,19 +968,19 @@ impl {
 
     /// Instantiate the provided [`DynamicShape`].
     pub fn instantiate<T>
-    (&mut self, scene:&Scene, shape:&T) -> (ShapeSystemInfo,SymbolId,attribute::InstanceIndex)
+    (&mut self, scene:&Scene, shape:&T) -> (ShapeSystemInfo, SymbolId, symbol::GlobalInstanceId)
     where T : display::shape::system::DynamicShape {
         self.with_get_or_register_mut::<DynShapeSystemOf<T>,_,_>(scene,|entry| {
-            let system            = entry.shape_system;
-            let system_id         = DynShapeSystemOf::<T>::id();
-            let instance_id       = system.instantiate(shape);
-            let symbol_id         = system.shape_system().sprite_system.symbol.id;
-            let above             = DynShapeSystemOf::<T>::above();
-            let below             = DynShapeSystemOf::<T>::below();
-            let ordering          = ShapeSystemStaticDepthOrdering {above,below};
+            let system = entry.shape_system;
+            let system_id = DynShapeSystemOf::<T>::id();
+            let global_instance_id = system.instantiate(shape);
+            let symbol_id = system.shape_system().sprite_system.symbol.id;
+            let above = DynShapeSystemOf::<T>::above();
+            let below = DynShapeSystemOf::<T>::below();
+            let ordering = ShapeSystemStaticDepthOrdering {above,below};
             let shape_system_info = ShapeSystemInfo::new(system_id,ordering);
             *entry.instance_count += 1;
-            (shape_system_info,symbol_id,instance_id)
+            (shape_system_info, symbol_id, global_instance_id)
         })
     }
 
@@ -1098,6 +1104,9 @@ impl<T> ShapeSystemInfoTemplate<T> {
 /// scene.layers.add_shapes_order_dependency::<shape::View, input::port::hover::View>();
 /// scene.layers.add_shapes_order_dependency::<input::port::hover::View, input::port::viz::View>();
 /// ```
+///
+/// A shape listed on the left side of an arrow (`->`) will be ordered below the shape listed on
+/// the right side of the arrow.
 #[macro_export]
 macro_rules! shapes_order_dependencies {
     ($scene:expr => {

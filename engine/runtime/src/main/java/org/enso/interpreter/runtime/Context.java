@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -64,6 +65,8 @@ public class Context {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
+  @CompilerDirectives.CompilationFinal
+  private Optional<AtomConstructor> date;
 
   /**
    * Creates a new Enso context.
@@ -456,7 +459,31 @@ public class Context {
     return TruffleLogger.getLogger(LanguageInfo.ID, klass);
   }
 
+  /** Returns the current clock value and atomically increments the counter by one.
+   *
+   * The counter is used to track the creation time of warnings.
+   */
   public long clockTick() {
     return clock.getAndIncrement();
+  }
+
+  /** Return the {@code Standard.Base.Data.Time.Date} constructor.
+   *
+   * @return optional with {@link AtomConstructor} for the date, if it can be found
+   */
+  public Optional<AtomConstructor> getDateConstructor() {
+    if (date == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      final String stdDateModuleName = "Standard.Base.Data.Time.Date";
+      final String stdDateConstructorName = "Date";
+      ensureModuleIsLoaded(stdDateModuleName);
+      Optional<Module> dateModule = findModule(stdDateModuleName);
+      if (dateModule.isPresent()) {
+        date = Optional.ofNullable(dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
+      } else {
+        date = Optional.empty();
+      }
+    }
+    return date;
   }
 }

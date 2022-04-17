@@ -208,27 +208,23 @@ impl Model {
 
     fn camera_changed(&self) {
         let screen = self.camera.screen();
-        let x = -screen.width / 2.0 + MARGIN;
-        let y = -screen.height / 2.0 + MARGIN;
-        self.root.set_position_x(x.round());
+        let y = screen.height / 2.0 - MARGIN;
         self.root.set_position_y(y.round());
     }
 
     fn update_layout(&self) {
-        self.label.set_position_x(PADDING);
-        self.label.set_position_y(HEIGHT / 2.0 + TEXT_SIZE / 2.0);
+        let label_width = self.label.width.value();
+        self.label.set_position_x(-label_width / 2.0);
+        self.label.set_position_y(-HEIGHT / 2.0 + TEXT_SIZE / 2.0);
 
-        let bg_width = if self.label.width.value() > 0.0 {
-            PADDING + self.label.width.value() + PADDING
+        let bg_width = if label_width > 0.0 {
+            label_width + 2.0 * PADDING + 2.0 * MAGIC_SHADOW_MARGIN
         } else {
             0.0
         };
-        let bg_height = HEIGHT;
-        self.background.size.set(Vector2(
-            bg_width + 2.0 * MAGIC_SHADOW_MARGIN,
-            bg_height + 2.0 * MAGIC_SHADOW_MARGIN,
-        ));
-        self.background.set_position(Vector3(bg_width / 2.0, bg_height / 2.0, 0.0));
+        let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
+        self.background.size.set(Vector2(bg_width, bg_height));
+        self.background.set_position_y(-HEIGHT / 2.0);
     }
 
     fn add_event(&self, label: &event::Label) -> event::Id {

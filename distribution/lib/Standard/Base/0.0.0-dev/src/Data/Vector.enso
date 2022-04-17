@@ -233,7 +233,7 @@ type Vector
              [0, 1, 2].sum
     sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
-        result = Panic.recover <| this.reduce (+)
+        result = Panic.recover Any <| this.reduce (+)
         result.map_error x->case x of
             No_Such_Method_Error _ _ -> x
             Empty_Error -> x
@@ -637,7 +637,7 @@ type Vector
              ["foo", "bar", "baz"].join ", "
     join : Text -> Text
     join separator="" prefix="" suffix="" =
-        if this.length == 0 then prefix+suffix else
+        if this.is_empty then prefix+suffix else
             if this.length == 1 then prefix + this.unsafe_at 0 + suffix else
                 prefix + this.unsafe_at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.unsafe_at i) + suffix
 
@@ -910,16 +910,6 @@ type Vector
        Arguments:
        - on: A projection from the element type to the value of that element
              which determines the uniqueness criteria.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         function.
-         By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
-       - warnings: A Warning_System instance specifying how to handle warnings.
-         This is a temporary workaround to allow for testing the warning
-         mechanism. Once the proper warning system is implemented, this
-         argument will become obsolete and will be removed. No user code should
-         use this argument, as it will be removed in the future.
 
        The returned unique elements are kept in the same order as they appeared
        in the input.
@@ -948,7 +938,7 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        recovered = Panic.recover
+        recovered = Panic.recover Any
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->
@@ -1022,6 +1012,14 @@ type Builder
              Vector.new_builder.capacity
     capacity : Integer
     capacity = this.to_array.length
+
+    ## Checks if this builder is empty.
+    is_empty : Boolean
+    is_empty = this.length == 0
+
+    ## Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty = this.is_empty.not
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.

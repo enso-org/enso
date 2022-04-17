@@ -14,6 +14,7 @@ use crate::debug;
 use crate::debug::stats::Stats;
 use crate::debug::stats::StatsData;
 use crate::display;
+use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
@@ -135,7 +136,7 @@ impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
         let data = WorldData::new();
-        let main_loop = MainLoop::new(Box::new(f!([data](t) data.go_to_next_frame_with_time(t))));
+        let main_loop = MainLoop::new(Box::new(f!([data](t) data.run_next_frame(t))));
         Self { main_loop, data }
     }
 }
@@ -187,6 +188,7 @@ pub struct WorldData {
     stats_draw_handle:    callback::Handle,
     pub on:               Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+    garbage_collector:    garbage::Collector,
 }
 
 impl WorldData {
@@ -201,6 +203,7 @@ impl WorldData {
         let default_scene = Scene::new(&logger, &stats, on_change);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
+        let garbage_collector = default();
 
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
@@ -216,6 +219,7 @@ impl WorldData {
             debug_hotkeys_handle,
             stats_monitor,
             stats_draw_handle,
+            garbage_collector,
         }
         .init()
     }
@@ -247,6 +251,9 @@ impl WorldData {
                     display_mode.set(1)
                 } else if key == "Digit2" {
                     display_mode.set(2)
+                } else if key == "KeyP" {
+                    let log = profiler::internal::take_log();
+                    web_sys::console::log_1(&log.into());
                 }
             }
         });
@@ -255,11 +262,14 @@ impl WorldData {
     }
 
     fn init_composer(&self) {
-        let mouse_hover_ids = self.default_scene.mouse.hover_ids.clone_ref();
+        let mouse_hover_rgba = self.default_scene.mouse.hover_rgba.clone_ref();
+        let garbage_collector = &self.garbage_collector;
         let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.default_scene.mouse.position);
-        pixel_read_pass.set_callback(move |v| {
-            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
-        });
+        pixel_read_pass.set_callback(f!([garbage_collector](v) {
+            mouse_hover_rgba.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)));
+            garbage_collector.pixel_updated();
+        }));
+        pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");
@@ -281,18 +291,27 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
-    pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
+    pub fn run_next_frame(&self, time: animation::TimeInfo) {
         let previous_frame_stats = self.stats.begin_frame();
         if let Some(stats) = previous_frame_stats {
             self.on.prev_frame_stats.run_all(&stats);
         }
         self.on.before_frame.run_all(time);
-        self.uniforms.time.set(time.local);
+        self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        self.default_scene.update(time);
-        self.default_scene.render();
+        let update_status = self.default_scene.update(time);
+        self.garbage_collector.mouse_events_handled();
+        self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
+    }
+
+    /// Pass object for garbage collection.
+    ///
+    /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
+    /// structure with static timeline may be put. For details, see docs of [`garbage::Collector`].
+    pub fn collect_garbage<T: 'static>(&self, object: T) {
+        self.garbage_collector.collect(object);
     }
 }
 

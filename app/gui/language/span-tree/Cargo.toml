@@ -9,6 +9,7 @@ ast = { path = "../ast/impl" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-text = { path = "../../../../lib/rust/text" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
+enso-profiler = { path = "../../../../lib/rust/profiler" }
 failure = { version = "0.1.6" }
 
 [dev-dependencies]

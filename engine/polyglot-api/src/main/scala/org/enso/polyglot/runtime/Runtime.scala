@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import com.fasterxml.jackson.module.scala.{
-  DefaultScalaModule,
-  ClassTagExtensions
+  ClassTagExtensions,
+  DefaultScalaModule
 }
+import org.enso.editions.LibraryName
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
+import org.enso.pkg.ComponentGroups
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
@@ -17,6 +19,7 @@ import org.enso.text.editing.model.{Range, TextEdit}
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
+
 import scala.util.Try
 
 object Runtime {
@@ -73,6 +76,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.RecomputeContextResponse],
         name  = "recomputeContextResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.GetComponentGroupsRequest],
+        name  = "getComponentGroupsRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.GetComponentGroupsResponse],
+        name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.OpenFileNotification],
@@ -602,7 +613,6 @@ object Runtime {
         * @param arguments the arguments to update
         * @param returnType the return type to update
         * @param documentation the documentation string to update
-        * @param documentationHtml the HTML documentation to update
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
@@ -611,7 +621,6 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
-        documentationHtml: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
@@ -620,17 +629,14 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           "Modify(" +
-          s"externalId=$externalId," +
-          s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
-          s"returnType=$returnType" +
-          s"documentation=" +
+          s"externalId=$externalId" +
+          s",arguments=${arguments.map(_.map(_.toLogString(shouldMask)))}" +
+          s",returnType=$returnType" +
+          s",documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
-          s"documentationHtml=" +
-          (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
-           else documentationHtml) +
           s",scope=$scope" +
-          s"reexport=$reexport" +
+          s",reexport=$reexport" +
           ")"
       }
     }
@@ -1080,12 +1086,27 @@ object Runtime {
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the
-      * [[RecomputeContextRequest]]
+      * [[RecomputeContextRequest]].
       *
       * @param contextId the context's id.
       */
     final case class RecomputeContextResponse(contextId: ContextId)
         extends ApiResponse
+
+    /** A request sent from the client to the runtime server to get the
+      * component groups loaded in runtime.
+      */
+    final case class GetComponentGroupsRequest() extends ApiRequest
+
+    /** A response sent from the server upon handling the
+      * [[GetComponentGroupsRequest]].
+      *
+      * @param componentGroups the mapping containing the loaded component
+      * groups
+      */
+    final case class GetComponentGroupsResponse(
+      componentGroups: Vector[(LibraryName, ComponentGroups)]
+    ) extends ApiResponse
 
     /** An error response signifying a non-existent context.
       *

@@ -203,7 +203,7 @@ impl Sampler {
         let animation_cb = Box::new(move |t| prop.set(t)) as Box<dyn Fn(SpriteData)>;
         let easing_animator = Animator::new(start, end, easing_function2, animation_cb, ());
         let time = 0.0;
-        easing_animator.set_duration(2000.0);
+        easing_animator.set_duration(2.0.s());
         Self {
             color,
             time,
@@ -266,9 +266,9 @@ impl Example {
         let _animator = animation::Loop::new(Box::new(move |time_info: animation::TimeInfo| {
             left_canvas.clear();
             right_canvas.clear();
-            sampler1.render(time_info.frame);
-            sampler2.render(time_info.frame);
-            sampler3.render(time_info.frame);
+            sampler1.render(time_info.previous_frame.unchecked_raw());
+            sampler2.render(time_info.previous_frame.unchecked_raw());
+            sampler3.render(time_info.previous_frame.unchecked_raw());
         }) as Box<dyn FnMut(animation::TimeInfo)>);
         Self { _animator }
     }
@@ -278,17 +278,17 @@ macro_rules! examples {
     ($($name:ident),*) => {$(
         std::mem::forget(Example::new(
             stringify!($name),
-            paste::expr!{[<$name _in>]()},
-            paste::expr!{[<$name _out>]()},
-            paste::expr!{[<$name _in_out>]()},
+            paste!{[<$name _in>]()},
+            paste!{[<$name _out>]()},
+            paste!{[<$name _in_out>]()},
         ));
     )*};
 }
 
-#[wasm_bindgen]
-#[allow(dead_code)]
 /// Runs EasingAnimator example.
-pub fn entry_point_easing_animator() {
+#[entry_point]
+#[allow(dead_code)]
+pub fn main() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
     let container = web::document.create_div_or_panic();

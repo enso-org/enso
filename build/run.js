@@ -163,9 +163,34 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
-    if (cargoArgs) {
-        args.push('--')
+    // Use the environment-variable API provided by the `enso_profiler_macros` library to implement
+    // the public interface to profiling-level configuration
+    // (see: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
+    if (argv['profiling-level']) {
+        process.env.ENSO_MAX_PROFILING_LEVEL = argv['profiling-level']
     }
+    args.push('--')
+    // Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file and line
+    // number information to include in generated profile files.
+    //
+    // The IntelliJ Rust plugin does not support the `proc_macro_span` Rust feature; using it causes
+    // JetBrains IDEs to become entirely unaware of the items produced by `#[profile]`.
+    // (See: https://github.com/intellij-rust/intellij-rust/issues/8655)
+    //
+    // In order to have line number information in actual usage, but keep everything understandable
+    // by JetBrains IDEs, we need IntelliJ/CLion to build crates differently from how they are
+    // built for the application to be run. This is accomplished by gating the use of the unstable
+    // functionality by a `cfg` flag. A `cfg` flag is disabled by default, so when a Rust IDE builds
+    // crates internally in order to determine macro expansions, it will do so without line numbers.
+    // When this script is used to build the application, it is not for the purpose of IDE macro
+    // expansion, so we can safely enable line numbers.
+    //
+    // The reason we don't use a Cargo feature for this is because this script can build different
+    // crates, and we'd like to enable this feature when building any crate that depends on the
+    // `profiler` crates. We cannot do something like '--feature=enso_profiler/line-numbers' without
+    // causing build to fail when building a crate that doesn't have `enso_profiler` in its
+    // dependency tree.
+    process.env.ENSO_ENABLE_PROC_MACRO_SPAN = 1
     await run_cargo('wasm-pack', args)
     await patch_file(paths.wasm.glue, js_workaround_patcher)
     await fs.rename(paths.wasm.mainRaw, paths.wasm.main)
@@ -173,7 +198,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const limitMb = 4.62
+        const limitMb = 4.05
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
@@ -239,7 +264,7 @@ commands.test = command(`Run test suites`)
 commands.test.rust = async function (argv) {
     if (argv.native) {
         console.log(`Running Rust test suite.`)
-        await run_cargo('cargo', ['test'])
+        await run_cargo('cargo', ['test', '--workspace'])
     }
 
     if (argv.wasm) {
@@ -269,7 +294,7 @@ commands['integration-test'].rust = async function (argv) {
     }
     try {
         console.log(`Running Rust WASM test suite.`)
-        process.env.WASM_BINDGEN_TEST_TIMEOUT = 120
+        process.env.WASM_BINDGEN_TEST_TIMEOUT = 300
         let args = [
             'test',
             '--headless',

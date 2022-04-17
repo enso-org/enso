@@ -11,12 +11,13 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
+import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
-import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -24,6 +25,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
@@ -39,7 +41,7 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(ArgumentDefinition...)} is called.
+   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
@@ -49,15 +51,37 @@ public final class AtomConstructor implements TruffleObject {
     this.definitionScope = definitionScope;
   }
 
+
   /**
-   * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
+   * Generates a constructor function for this {@link AtomConstructor}.
+   * Note that such manually constructed argument definitions must not have default arguments.
    *
-   * @param args the arguments this constructor will take
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(ArgumentDefinition... args) {
+    ExpressionNode[] reads = new ExpressionNode[args.length];
+    for (int i=0; i<args.length; i++) {
+      reads[i] = ReadArgumentNode.build(i, null);
+    }
+    return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, args);
+  }
+
+  /**
+   * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
+   *
+   * @param localScope a description of the local scope
+   * @param assignments the expressions that evaluate and assign constructor arguments to local vars
+   * @param varReads the expressions that read field values from local vars
+   * @param args the arguments this constructor will take
+   * @return {@code this}, for convenience
+   */
+  public AtomConstructor initializeFields(
+          LocalScope localScope,
+          ExpressionNode[] assignments,
+          ExpressionNode[] varReads,
+          ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.constructorFunction = buildConstructorFunction(args);
+    this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
     generateMethods(args);
     if (args.length == 0) {
       cachedInstance = new Atom(this);
@@ -69,20 +93,27 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Generates a constructor function to be used for object instantiation from other Enso code.
+   * Building constructor function involves storing the argument in a local var and then reading
+   * it again on purpose. That way default arguments can refer to previously defined constructor arguments.
    *
+   * @param localScope a description of the local scope
+   * @param assignments the expressions that evaluate and assign constructor arguments to local vars
+   * @param varReads the expressions that read field values from previously evaluated local vars
    * @param args the argument definitions for the constructor function to take
    * @return a {@link Function} taking the specified arguments and returning an instance for this
    *     {@link AtomConstructor}
    */
-  private Function buildConstructorFunction(ArgumentDefinition[] args) {
-    ExpressionNode[] argumentReaders = new ExpressionNode[args.length];
-    for (int i = 0; i < args.length; i++) {
-      argumentReaders[i] = ReadArgumentNode.build(i, args[i].getDefaultValue().orElse(null));
-    }
-    ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
+  private Function buildConstructorFunction(
+          LocalScope localScope,
+          ExpressionNode[] assignments,
+          ExpressionNode[] varReads,
+          ArgumentDefinition[] args) {
+
+    ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
+    BlockNode instantiateBlock = BlockNode.build(assignments, instantiateNode);
     RootNode rootNode =
-        InstantiateAtomNode.build(
-            null, definitionScope.getModule().getName().item() + "." + name, instantiateNode);
+        ClosureRootNode.build(null, localScope, definitionScope, instantiateBlock,
+                instantiateNode.getSourceSection(), definitionScope.getModule().getName().item() + "." + name);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }

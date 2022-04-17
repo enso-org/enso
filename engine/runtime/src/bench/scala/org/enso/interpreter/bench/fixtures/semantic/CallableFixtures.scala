@@ -11,8 +11,8 @@ class CallableFixtures extends DefaultInterpreterRunner {
       |
       |type Foo
       |
-      |Foo.from (acc : Number) = current ->
-      |    if current == 0 then acc else @Tail_Call Foo.from (acc + current) (current - 1)
+      |Foo.from (that : Number) current=0 =
+      |    if current == 0 then that else @Tail_Call Foo.from (that + current) (current - 1)
       |
       |main = sumTo ->
       |    res = Foo.from 0 sumTo
