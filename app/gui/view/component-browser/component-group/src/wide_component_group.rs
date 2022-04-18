@@ -76,7 +76,7 @@ ensogl_core::define_endpoints_2! {
         set_header_text(String),
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
-        set_size(Vector2),
+        set_width(f32),
     }
     Output {}
 }
@@ -86,7 +86,7 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         frp::extend! { network
-            eval input.set_size((size) model.resize_background(*size));
+            eval input.set_width ((width) model.set_width(*width));
             eval input.set_background_color((c)
                 model.background.color.set(c.into()));
             chosen_entry <- any_mut();
@@ -96,8 +96,9 @@ impl component::Frp<Model> for Frp {
             frp::extend! { network
                 let group = group.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
+                eval entries ((e) model.set_height(e.entry_count()));
                 group.set_entries <+ entries;
-                _eval <- all_with(&input.set_size, &entries, f!([group](size, count) Model::resize(&group,count.entry_count(),*size)));
+
                 group.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
                 group.show_background_shadow(false);
                 group.set_background_corners_radius(0.0);
@@ -119,6 +120,7 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     display_object: display::object::Instance,
     background: background::View,
+    size: Rc<Cell<Vector2>>,
     groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
 }
 
@@ -136,20 +138,23 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
+        background.size.set(Vector2(0.0, 200.0));
         display_object.add_child(&background);
         let groups = Rc::new([
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
         ]);
+        let size = Vector2(450.0, 200.0);
         let mut x = -150.0;
         for group in groups.iter() {
             group.set_position_x(x);
+            group.resize(Vector2(150.0, 200.0));
             x += 150.0;
             display_object.add_child(group);
         }
 
-        Model { display_object, background, groups }
+        Model { display_object, size: Rc::new(Cell::new(size)), background, groups }
     }
 }
 
@@ -158,6 +163,27 @@ impl Model {
         for (_, group) in self.groups.iter().enumerate().filter(|(i, _)| *i != group_id) {
             group.deselect_entries();
         }
+    }
+
+    fn set_width(&self, width: f32) {
+        let size = self.size.get();
+        self.background.size.set(Vector2(width, size.y));
+        for (i, group) in self.groups.iter().enumerate() {
+            group.resize(Vector2(width / 3.0, size.y));
+            group.set_position_x(- width / 3.0 + width / 3.0 * i as f32);
+        }
+        self.size.set(Vector2(width, size.y));
+    }
+
+    fn set_height(&self, entries_count: usize) {
+        let needed_height = entries_count as f32 * list_view::entry::HEIGHT;
+        let size = self.size.get();
+        self.background.size.set(Vector2(size.x, needed_height));
+        for (i, group) in self.groups.iter().enumerate() {
+            group.resize(Vector2(size.x / 3.0, needed_height));
+            group.set_position_y(- size.y + needed_height);
+        }
+        self.size.set(Vector2(size.x, needed_height));
     }
 
     fn resize_background(&self, size: Vector2) {

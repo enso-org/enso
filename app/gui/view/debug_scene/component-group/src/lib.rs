@@ -92,7 +92,7 @@ fn init(app: &Application) {
     app.display.add_child(&component_group);
 
     let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
-    wide_component_group.set_size(Vector2(450.0, 100.0));
+    wide_component_group.set_width(450.0);
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&wide_component_group);
 
