@@ -35,7 +35,7 @@ pub mod traits {
 // =================================
 
 /// When [`Instance`] is added to a new scene layer, the `layer` is attached to that new layer
-/// using [Layer::add_sublayer]. Likewise, when the instance is removed from a layer, the 
+/// using [Layer::add_sublayer]. Likewise, when the instance is removed from a layer, the
 /// `layer` is detached using [Layer::remove_sublayer].
 ///
 /// It is used for creation and managing of additional layers needed for various UI components.
@@ -91,7 +91,7 @@ mod tests {
         let display_object = Instance::new(&logger);
         let layer = MaskedLayer::new(logger, camera);
         let display_object = InstanceWithAttachedLayer::new(display_object, layer);
-        let content_layer = display_object.layer.content.downgrade();
+        let content_layer = display_object.layer.masked_object.downgrade();
         assert!(content_layer.upgrade().is_some());
         drop(display_object);
         assert!(content_layer.upgrade().is_none());

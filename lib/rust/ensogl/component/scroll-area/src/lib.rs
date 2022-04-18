@@ -117,7 +117,8 @@ impl ScrollArea {
         let camera = scene.layers.main.camera();
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = MaskedLayer::new(&logger, &camera);
-        let display_object = display::object::InstanceWithAttachedLayer::new(display_object, masked_layer);
+        let display_object =
+            display::object::InstanceWithAttachedLayer::new(display_object, masked_layer);
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);

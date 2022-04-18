@@ -915,10 +915,10 @@ impl SublayersModel {
 /// A layer with attached mask. Every object in `mask` layer will mask the objects of the
 /// `masked_object` layer.
 ///
-/// One of the usecases might be a `ensogl_scroll_area::ScrollArea` component
+/// One of the use cases might be an `ensogl_scroll_area::ScrollArea` component
 /// implementation. To clip the area's content (so that it is displayed only inside its borders) we
-/// place the area's content in `masked_object` layer; and we place a rectangular mask in `mask`
-/// layer.
+/// place the area's content in the `masked_object` layer; and we place a rectangular mask in the
+/// `mask` layer.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct MaskedLayer {
