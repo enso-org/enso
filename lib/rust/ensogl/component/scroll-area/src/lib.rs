@@ -26,7 +26,7 @@ use ensogl_core::control::io::mouse;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene::layer::MaskingSublayers;
+use ensogl_core::display::scene::layer::MaskedLayer;
 use ensogl_scrollbar as scrollbar;
 use ensogl_scrollbar::Scrollbar;
 
@@ -88,7 +88,7 @@ pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
     pub content:           display::object::Instance,
-    display_object:        display::object::InstanceWithSublayers<MaskingSublayers>,
+    display_object:        display::object::InstanceWithAttachedLayer<MaskedLayer>,
     h_scrollbar:           Scrollbar,
     v_scrollbar:           Scrollbar,
     scroll_handler_handle: callback::Handle,
@@ -114,10 +114,10 @@ impl ScrollArea {
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
-        let display_object = display::object::Instance::new(&logger);
         let camera = scene.layers.main.camera();
-        let sublayers = MaskingSublayers::new(&logger, &camera);
-        let display_object = display::object::InstanceWithSublayers::new(display_object, sublayers);
+        let display_object = display::object::Instance::new(&logger);
+        let masked_layer = MaskedLayer::new(&logger, &camera);
+        let display_object = display::object::InstanceWithAttachedLayer::new(display_object, masked_layer);
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
@@ -125,8 +125,8 @@ impl ScrollArea {
         let mask = mask::View::new(&logger);
         display_object.add_child(&mask);
 
-        display_object.sublayers.content.add_exclusive(&content);
-        display_object.sublayers.mask.add_exclusive(&mask);
+        display_object.layer.masked_object.add_exclusive(&content);
+        display_object.layer.mask.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
         display_object.add_child(&h_scrollbar);

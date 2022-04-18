@@ -3610,8 +3610,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         limit_max_zoom <- frp.set_debug_mode.on_false();
         unlimit_max_zoom <- frp.set_debug_mode.on_true();
-        eval_ limit_max_zoom (model.navigator.settings().set_max_zoom(Some(MAX_ZOOM)));
-        eval_ unlimit_max_zoom (model.navigator.settings().set_max_zoom(None));
+        eval_ limit_max_zoom (model.navigator.set_max_zoom(Some(MAX_ZOOM)));
+        eval_ unlimit_max_zoom (model.navigator.set_max_zoom(None));
     }
 
     // Init defaults

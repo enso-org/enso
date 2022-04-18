@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use super::scene::layer::ForEachSublayer;
+use crate::display::scene::layer::Layer;
 
 
 // ==============
@@ -30,44 +30,43 @@ pub mod traits {
 
 
 
-// =============================
-// === InstanceWithSublayers ===
-// =============================
+// =================================
+// === InstanceWithAttachedLayer ===
+// =================================
 
-/// A wrapper around [`Instance`] with attached sublayers. It is used for
-/// dynamic creation and managing of additional on-demand sublayers needed for various UI
-/// components. Sublayers are layers attached to other layers by [`Layer::add_sublayer`] method
-/// and used for shapes ordering and masking. See [`Layer`] documentation for more info about
-/// sublayers.
+/// When [`Instance`] is added to a new scene layer, the `layer` is attached to that new layer
+/// using [Layer::add_sublayer]. Likewise, when the instance is removed from a layer, the 
+/// `layer` is detached using [Layer::remove_sublayer].
 ///
-/// See [`crate::display::scene::layer::MaskingSublayers`] docs for one of the use cases.
+/// It is used for creation and managing of additional layers needed for various UI components.
+/// See one of the use cases in [`crate::display::scene::layer::MaskedLayer`] docs.
 ///
-/// When the [`Instance`] is added to another layer, [`Sublayers::for_each_sublayer`] method of the
-/// `sublayers` field will be used to reattach sublayers to this new layer as well. Thus the
-/// sublayers are following the [`Instance`] at all times.
+/// [Layer::add_sublayer]: crate::display::scene::layer::LayerModel::add_sublayer
+/// [Layer::remove_sublayer]: crate::display::scene::layer::LayerModel::remove_sublayer
 #[derive(Debug, Clone, CloneRef, Deref)]
-#[clone_ref(bound = "S:CloneRef")]
+#[clone_ref(bound = "L:CloneRef")]
 #[allow(missing_docs)]
-pub struct InstanceWithSublayers<S> {
+pub struct InstanceWithAttachedLayer<L> {
     #[deref]
-    instance:      Instance,
-    pub sublayers: S,
+    instance:  Instance,
+    pub layer: L,
 }
 
-impl<S: CloneRef + ForEachSublayer + 'static> InstanceWithSublayers<S> {
+impl<L: CloneRef + Deref<Target = Layer> + 'static> InstanceWithAttachedLayer<L> {
     /// Constructor. Sets a `on_scene_layers_changed` callback for `instance`.
-    pub fn new(instance: Instance, sublayers: S) -> Self {
-        instance.set_on_scene_layer_changed(f!((_, source, destination) {
-            sublayers.for_each_sublayer(|sublayer| {
-                for layer in source {
-                    layer.remove_sublayer(sublayer);
-                }
-                for layer in destination {
-                    layer.add_sublayer(sublayer);
-                }
-            });
+    ///
+    /// Calling this method does not immediately attaches `layer` to the `instance`'s layer, so it
+    /// should be called before changing the layer of the `instance`.
+    pub fn new(instance: Instance, layer: L) -> Self {
+        instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
+            for src_layer in source {
+                src_layer.remove_sublayer(&*layer);
+            }
+            for dst_layer in destination {
+                dst_layer.add_sublayer(&*layer);
+            }
         }));
-        Self { instance, sublayers }
+        Self { instance, layer }
     }
 }
 
@@ -82,7 +81,7 @@ mod tests {
     use super::*;
 
     use crate::application::Application;
-    use crate::display::scene::layer::MaskingSublayers;
+    use crate::display::scene::layer::MaskedLayer;
 
     #[test]
     fn test_that_sublayers_are_dropped() {
@@ -90,9 +89,9 @@ mod tests {
         let logger = &app.logger;
         let camera = &app.display.default_scene.layers.main.camera();
         let display_object = Instance::new(&logger);
-        let sublayers = MaskingSublayers::new(logger, camera);
-        let display_object = InstanceWithSublayers::new(display_object, sublayers);
-        let content_layer = display_object.sublayers.content.downgrade();
+        let layer = MaskedLayer::new(logger, camera);
+        let display_object = InstanceWithAttachedLayer::new(display_object, layer);
+        let content_layer = display_object.layer.content.downgrade();
         assert!(content_layer.upgrade().is_some());
         drop(display_object);
         assert!(content_layer.upgrade().is_none());

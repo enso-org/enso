@@ -118,12 +118,13 @@ impl NavigatorSettings {
 // ======================
 
 /// Navigator enables camera navigation with mouse interactions.
-#[derive(Debug)]
+#[derive(Debug, Deref)]
 pub struct NavigatorModel {
+    #[deref]
+    settings:        Rc<NavigatorSettings>,
     events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
-    settings:        Rc<NavigatorSettings>,
 }
 
 impl NavigatorModel {
@@ -222,20 +223,6 @@ impl NavigatorModel {
                 settings,
             ),
         )
-    }
-
-    pub fn settings(&self) -> &NavigatorSettings {
-        &self.settings
-    }
-
-    /// Enable navigator.
-    pub fn enable(&self) {
-        self.settings().enable()
-    }
-
-    /// Disable navigator.
-    pub fn disable(&self) {
-        self.settings().disable()
     }
 
     /// Emit zoom event. This function could be used in the tests to simulate user interactions.
