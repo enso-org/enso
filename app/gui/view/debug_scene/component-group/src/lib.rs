@@ -49,31 +49,6 @@ pub fn main() {
 // === Mock Entries ===
 // ====================
 
-#[derive(Clone, Debug, Default)]
-struct MockEntries {
-    entries: Vec<String>,
-}
-
-impl MockEntries {
-    fn new(entries: Vec<String>) -> Self {
-        Self { entries }
-    }
-
-    fn get_entry(&self, i: usize) -> Option<String> {
-        self.entries.get(i).cloned()
-    }
-}
-
-impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
-    fn entry_count(&self) -> usize {
-        self.entries.len()
-    }
-
-    fn get(&self, id: usize) -> Option<String> {
-        self.get_entry(id)
-    }
-}
-
 const PREPARED_ITEMS: &[&'static str; 8] = &[
     "long sample entry with text overflowing the width",
     "convert",
@@ -85,9 +60,8 @@ const PREPARED_ITEMS: &[&'static str; 8] = &[
     "data input",
 ];
 
-fn mock_entries(count: usize) -> MockEntries {
-    let items = PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect(); 
-    MockEntries::new(items)
+fn mock_entries(count: usize) -> Vec<String> {
+    PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect()
 }
 
 
@@ -101,41 +75,38 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    /*
     let slider = app.new_view::<selector::NumberPicker>();
     app.display.add_child(&slider);
     slider.frp.resize(Vector2(400.0, 50.0));
-    slider.frp.allow_click_selection(false);
-    slider.frp.set_bounds(Bounds::new(0.0, 10.0));
+    slider.frp.allow_click_selection(true);
+    slider.frp.set_bounds(Bounds::new(0.0, 15.0));
     slider.set_position_y(250.0);
     slider.frp.set_caption(Some("Items count:".to_string()));
-    slider.frp.set_value(5.0);
-    */
 
     let component_group = app.new_view::<component_group::View>();
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
     component_group.set_size(Vector2(150.0, 400.0));
+    component_group.set_position_x(-400.0);
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&component_group);
 
-    let cg = component_group.clone_ref();
-    let mut frame = 0;
-    let provider = AnyModelProvider::new(mock_entries(13));
-    cg.set_entries(provider);
-    let provider = AnyModelProvider::new(mock_entries(3));
-    cg.set_entries(provider);
-    std::mem::forget(component_group);
+    let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
+    wide_component_group.set_size(Vector2(450.0, 100.0));
+    wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    app.display.add_child(&wide_component_group);
 
-    /*
     let network = frp::Network::new("ComponentGroupDemo");
     frp::extend! { network
         int_value <- slider.frp.output.value.map(|v| *v as usize);
         entries <- int_value.map(|count| AnyModelProvider::new(mock_entries(*count)));
         component_group.set_entries <+ entries;
+        wide_component_group.set_entries <+ entries;
     }
-    */
+    slider.frp.set_value(5.0);
 
-    //std::mem::forget(slider);
-    //std::mem::forget(network);
+    std::mem::forget(slider);
+    std::mem::forget(network);
+    std::mem::forget(component_group);
+    std::mem::forget(wide_component_group);
 }
