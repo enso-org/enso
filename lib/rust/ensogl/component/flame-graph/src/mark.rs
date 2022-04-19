@@ -1,4 +1,4 @@
-//! A single block component that is used to build up a flame graph.
+//! A single mark component that is used to build up a flame graph.
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -6,7 +6,6 @@ use ensogl_core::prelude::*;
 use ensogl::frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::data::color::Lcha;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
@@ -17,14 +16,22 @@ use super::BASE_TEXT_SIZE;
 
 
 
-// =======================
-// === Layout Constants ===
-// =======================
+// =================
+// === Constants ===
+// =================
 
-const TEXT_OFFSET_X: f32 = 4.0;
-const TEXT_OFFSET_Y: f32 = -2.0;
 
 const EMPTY_LABEL: &str = "<No Label>";
+
+const MARK_WIDTH: f32 = 2.0;
+const MARK_HOVER_AREA_WIDTH: f32 = 20.0;
+
+/// Invisible dummy color to catch hover events.
+const HOVER_COLOR: color::Rgba = color::Rgba::new(1.0, 0.0, 0.0, 0.000_001);
+
+const INFINITE: f32 = 99999.0;
+
+const TEXT_OFFSET_X: f32 = MARK_WIDTH + 8.0;
 
 
 
@@ -35,27 +42,19 @@ const EMPTY_LABEL: &str = "<No Label>";
 mod background {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style,color_rgba:Vector4<f32>) {
-            let width  : Var<Pixels> = "input_size.x".into();
-            let height : Var<Pixels> = "input_size.y".into();
-            let zoom                 = Var::<f32>::from("1.0/zoom()");
-            let color = Var::<color::Rgba>::from(color_rgba);
+        (style:Style) {
+            let width  : Var<Pixels> = MARK_WIDTH.px();
+            let height : Var<Pixels> = INFINITE.px();
+            let zoom                 = &Var::<f32>::from("1.0/zoom()");
+            let base_color           = style.get_color("flame_graph_mark_color");
 
-            let shape = Rect((&width,&height));
+            let shape = Rect((&width*zoom,&height));
+            let shape = shape.fill(base_color);
 
-            let border_width: Var<Pixels> = (zoom * 2.0).into();
+            let hover_area = shape.grow(zoom * MARK_HOVER_AREA_WIDTH.px());
+            let hover_area = hover_area.fill(HOVER_COLOR);
 
-            let right = Rect((&border_width,&height));
-            let right = right.translate_x(&width/2.0);
-
-            let left = Rect((&border_width,&height));
-            let left = left.translate_x(-&width/2.0);
-
-            let shape = shape - left;
-            let shape = shape - right;
-            let shape = shape.fill(color);
-
-            (shape).into()
+            (shape + hover_area).into()
         }
     }
 }
@@ -69,24 +68,27 @@ mod background {
 ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
-        set_size(Vector2),
-        set_color(Lcha)
     }
     Output {}
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+    fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
         let background = &model.background.events;
+
+        let cursor_pos = app.cursor.frp.scene_position.clone_ref();
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
-            eval api.input.set_size((size) model.set_size(*size));
-            eval api.input.set_color((color) model.set_color(*color));
 
             is_hovered <- bool(&background.mouse_out, &background.mouse_over);
             eval is_hovered((hovered) model.set_label_visible(*hovered));
+
+            on_mouse_over_pos <- cursor_pos.gate(&is_hovered);
+            eval on_mouse_over_pos((pos) model.set_label_y(pos.y));
         }
+
+        model.set_size(Vector2::new(MARK_WIDTH + 2.0 * MARK_HOVER_AREA_WIDTH, INFINITE));
     }
 }
 
@@ -107,7 +109,7 @@ pub struct Model {
 
 impl component::Model for Model {
     fn label() -> &'static str {
-        "FlameGraphBlock"
+        "FlameGraphMark"
     }
 
     fn new(app: &Application, logger: &Logger) -> Self {
@@ -140,8 +142,8 @@ impl Model {
     fn set_label_visible(&self, visible: bool) {
         if visible {
             self.enable_label();
-        } else if let Some(label) = self.label.take() {
-            label.unset_parent()
+        } else {
+            self.label.take().for_each(|label| label.unset_parent())
         }
     }
 
@@ -151,23 +153,23 @@ impl Model {
 
         let text_layer = &self.app.display.default_scene.layers.tooltip_text;
         label.add_to_scene_layer(text_layer);
-
         label.set_default_text_size(text::Size(
             BASE_TEXT_SIZE / self.app.display.default_scene.camera().zoom(),
         ));
-        let text_size = label.height.value();
-        let text_origin = Vector2(
-            TEXT_OFFSET_X - self.background.size.get().x / 2.0,
-            TEXT_OFFSET_Y + text_size / 2.0,
-        );
-        label.set_position_xy(text_origin);
-        label.set_content(self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned()));
 
+        label.set_position_x(TEXT_OFFSET_X);
+        label.set_content(self.label_text());
         self.label.set(label);
     }
 
-    fn set_color(&self, color: Lcha) {
-        self.background.color_rgba.set(color::Rgba::from(color).into());
+    fn set_label_y(&self, y: f32) {
+        if let Some(label) = self.label.deref().borrow().as_ref() {
+            label.set_position_y(y)
+        }
+    }
+
+    fn label_text(&self) -> String {
+        self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned())
     }
 }
 
@@ -184,4 +186,4 @@ impl display::Object for Model {
 // =================
 
 #[allow(missing_docs)]
-pub type Block = ComponentView<Model, Frp>;
+pub type Mark = ComponentView<Model, Frp>;

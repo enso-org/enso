@@ -6,14 +6,24 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
+use crate::State::Active;
+use crate::State::Paused;
+
 use enso_profiler as profiler;
 use enso_profiler_data as data;
-
 
 
 // ==================
 // === Block Data ===
 // ==================
+
+/// Indicates whether a block indicates an active interval or a paused interval. Paused intervals
+/// are used to represent async tasks that are started and awaited, but that have made no progress.
+#[derive(Copy, Clone, Debug)]
+pub enum State {
+    Active,
+    Paused,
+}
 
 /// A `Block` contains the data required to render a single block of a frame graph.
 #[derive(Clone, Debug)]
@@ -26,6 +36,8 @@ pub struct Block {
     pub row:   u32,
     /// The label to be displayed with the block.
     pub label: String,
+    /// Indicates what state this block represents (active/paused).
+    pub state: State,
 }
 
 impl Block {
@@ -33,6 +45,20 @@ impl Block {
     pub fn width(&self) -> f64 {
         self.end - self.start
     }
+}
+
+
+// ==================
+// === Mark Data ===
+// ==================
+
+/// A `Mark` contains the data required to render a mark that indicates a labeled point in time.
+#[derive(Clone, Debug)]
+pub struct Mark {
+    /// X coordinate of the mark.
+    pub position: f64,
+    /// The label to be displayed with the mark.
+    pub label:    String,
 }
 
 
@@ -47,6 +73,8 @@ impl Block {
 pub struct Graph {
     /// Collection of all blocks making up the flame graph.
     pub blocks: Vec<Block>,
+    /// Collection of marks that can be shown in the flame graph.
+    pub marks:  Vec<Mark>,
 }
 
 impl Graph {
@@ -100,7 +128,8 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             builder.visit_interval(*child, 0);
         }
         let Self { blocks, .. } = builder;
-        Graph { blocks }
+        let marks = Vec::default();
+        Graph { blocks, marks }
     }
 }
 
@@ -115,7 +144,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        self.blocks.push(Block { start, end, label, row });
+        self.blocks.push(Block { start, end, label, row, state: Active });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
@@ -146,7 +175,8 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
             builder.visit_measurement(*child);
         }
         let Self { blocks, .. } = builder;
-        Graph { blocks }
+        let marks = Vec::default();
+        Graph { blocks, marks }
     }
 }
 
@@ -158,26 +188,66 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
         if measurement.intervals.len() >= 2 {
             let row = self.next_row;
             self.next_row += 1;
-            for active in &measurement.intervals {
-                let active = &self.profile[*active];
-                let start = active.interval.start.into_ms();
-                let mut end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
-                // The rungraph view should illustrate every time an async task wakes up, because
-                // wakeups reveal the dependencies between tasks: A task is always awake before
-                // and after awaiting another task.
-                //
-                // These wakeups are often momentary, when there is no (or trivial) work between
-                // .await points. The real intervals would often be difficult or impossible to see,
-                // so here we enlarge short intervals to a value that will make them visible at a
-                // moderate zoom level.
-                const DURATION_FLOOR_MS: f64 = 3.0;
-                if end < start + DURATION_FLOOR_MS {
-                    end = start + DURATION_FLOOR_MS;
+            let window_size = 2; // Current and next element.
+            for window in measurement.intervals.windows(window_size) {
+                if let [current, next] = window {
+                    let current = &self.profile[*current];
+                    let next = &self.profile[*next];
+
+                    let current_start = current.interval.start.into_ms();
+                    let current_end =
+                        current.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
+                    let next_start = next.interval.start.into_ms();
+
+                    let active_interval = [current_start, current_end];
+                    let sleep_interval = [current_end, next_start];
+
+                    let label_active = self.profile[current.measurement].label.to_string();
+                    let label_sleep =
+                        format!("{} (inactive)", self.profile[current.measurement].label);
+
+                    self.blocks.push(Block {
+                        start: active_interval[0],
+                        end: active_interval[1],
+                        label: label_active,
+                        row,
+                        state: Active,
+                    });
+
+                    self.blocks.push(Block {
+                        start: sleep_interval[0],
+                        end: sleep_interval[1],
+                        label: label_sleep,
+                        row,
+                        state: Paused,
+                    });
                 }
-                let label = self.profile[active.measurement].label.to_string();
-                self.blocks.push(Block { start, end, label, row });
             }
+
+            // Add first inactive interval.
+            let first = measurement.intervals.first().unwrap(); // There are at least two intervals.
+            let first = &self.profile[*first];
+            self.blocks.push(Block {
+                start: measurement.created.into_ms(),
+                end: first.interval.start.into_ms(),
+                label: self.profile[first.measurement].label.to_string(),
+                row,
+                state: Paused,
+            });
+
+            // Add last active interval.
+            let last = measurement.intervals.last().unwrap(); // There are at least two intervals.
+            let last = &self.profile[*last];
+            self.blocks.push(Block {
+                start: last.interval.start.into_ms(),
+                end: last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
+                label: self.profile[last.measurement].label.to_string(),
+                row,
+                state: Active,
+            });
         }
+
+        // Recourse through children.
         for child in &measurement.children {
             self.visit_measurement(*child);
         }
@@ -201,7 +271,8 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
         callgraph.visit_interval(*child, next_row);
     }
     let CallgraphBuilder { blocks, .. } = callgraph;
-    Graph { blocks }
+    let marks = Vec::default();
+    Graph { blocks, marks }
 }
 
 
@@ -231,7 +302,8 @@ impl From<FlamegraphBuilder> for Graph {
             grapher.visit_frame(frame, label.to_string(), 0);
         }
         let FlamegraphGrapher { blocks, .. } = grapher;
-        Self { blocks }
+        let marks = Vec::default();
+        Self { blocks, marks }
     }
 }
 
@@ -246,7 +318,7 @@ impl FlamegraphGrapher {
     fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
         let start = self.time;
         let end = self.time + frame.total_duration();
-        self.blocks.push(Block { start, end, label, row });
+        self.blocks.push(Block { start, end, label, row, state: State::Active });
         for (label, frame) in &frame.children {
             self.visit_frame(frame, label.to_string(), row + 1);
         }
