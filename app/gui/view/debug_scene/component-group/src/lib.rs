@@ -64,6 +64,42 @@ fn mock_entries(count: usize) -> Vec<String> {
     PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect()
 }
 
+#[derive(Debug)]
+struct MockEntries {
+    entries: Vec<String>,
+    count: Cell<usize>,
+}
+
+impl MockEntries {
+    fn new(count: usize) -> Rc<Self> {
+        Rc::new(Self {
+            entries: PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect(),
+            count: Cell::new(count),
+        })
+    }
+
+    fn set_count(&self, count: usize) {
+        if self.entries.len() >= count {
+            self.count.set(count);
+        }
+    }
+
+    fn get_entry(&self, id: list_view::entry::Id) -> Option<String> {
+        self.entries.get(id).cloned()
+    }
+}
+
+impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
+    fn entry_count(&self) -> usize {
+        self.count.get()
+    }
+
+    fn get(&self, id: list_view::entry::Id) -> Option<String> {
+        self.get_entry(id)
+    }
+}
+
+
 
 
 // ========================
@@ -96,12 +132,16 @@ fn init(app: &Application) {
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&wide_component_group);
 
+    let mock_entries = MockEntries::new(25);
+    mock_entries.set_count(5);
+    let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     let network = frp::Network::new("ComponentGroupDemo");
     frp::extend! { network
         int_value <- slider.frp.output.value.map(|v| *v as usize);
-        entries <- int_value.map(|count| AnyModelProvider::new(mock_entries(*count)));
-        component_group.set_entries <+ entries;
-        wide_component_group.set_entries <+ entries;
+        eval int_value((i) mock_entries.set_count(*i));
+        provider <- int_value.map(move |_| model_provider.clone_ref());
+        component_group.set_entries <+ provider;
+        wide_component_group.set_entries <+ provider;
     }
     slider.frp.set_value(5.0);
 
