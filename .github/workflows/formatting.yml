@@ -1,11 +1,6 @@
 name: Code Formatting Check
 
 on:
-  workflow_run:
-    workflows: [ "Engine CI (legacy)", "Engine CI (new)" ]
-    branches: [ main ]
-    types:
-      - completed
   push:
     branches: [develop, "release/*"]
   pull_request:
@@ -18,66 +13,22 @@ env:
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.5.2
-  # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2021-11-29
-  # Some moderately recent version of Node.JS is needed to run the library download tests.
-  nodeVersion: 14.17.2
 
 jobs:
   test_formatting:
     name: Build and Test Formatting
     runs-on: "ubuntu-18.04"
     timeout-minutes: 120
-    # Only run if basic build succeeded, might be too restrictive depending on the stability of CI
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     strategy:
       # No need to run it on multiple distros, result should be the same
       fail-fast: false
     steps:
-      - name: Disable TCP/UDP Offloading (Linux)
-        shell: bash
-        run: sudo ethtool -K eth0 tx off rx off
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1.0.5
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - name: Install FlatBuffers Compiler
-        run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}
           native-image: true
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.nodeVersion }}
-      - name: Install Dependencies of the Simple Library Server
-        shell: bash
-        working-directory: tools/simple-library-server
-        run: |
-          npm install
-      - name: Install Dependencies of the Simple Library Server
-        shell: bash
-        working-directory: tools/simple-library-server
-        run: |
-          npm install
-      - name: Download Project Template Files
-        shell: bash
-        run: |
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/data/store_data.xlsx https://github.com/enso-org/project-templates/raw/main/Orders/data/store_data.xlsx
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Orders/src/Main.enso
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/la_districts.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/la_districts.csv
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/data/restaurants.csv https://github.com/enso-org/project-templates/raw/main/Restaurants/data/restaurants.csv
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/restaurants/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Restaurants/src/Main.enso
-          curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/stargazers/src/Main.enso https://github.com/enso-org/project-templates/raw/main/Stargazers/src/Main.enso
       - name: Set Up SBT
         shell: bash
         run: |
@@ -85,34 +36,8 @@ jobs:
           tar -xzf sbt.tgz
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
 
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: Linux-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: Linux-sbt-
-
-      - name: Bootstrap Enso project
-        run: |
-          sleep 1
-          sbt --no-colors bootstrap
-
-      # Compile
-      - name: Build Enso
-        run: |
-          sleep 1
-          sbt --no-colors compile
-
       # The actual check
       - name: Check Scala formatting
         run: |
-          sleep 1
-          sbt --no-colors scalafmtCheckAll
-      - name: Check Java formatting
-        run: |
-          sleep 1
-          sbt --no-colors javafmtCheckAll
+          sbt --no-colors "scalafmtCheckAll; javafmtCheckAll"
+
