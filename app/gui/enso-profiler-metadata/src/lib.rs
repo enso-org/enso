@@ -4,6 +4,11 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 
+
+// ================
+// === Metadata ===
+// ================
+
 /// Metadata that is logged within the Enso core libraries.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Metadata {

@@ -54,7 +54,6 @@ mod background {
             let hover_area = shape.grow(zoom * MARK_HOVER_AREA_WIDTH.px());
             let hover_area = hover_area.fill(HOVER_COLOR);
 
-
             (shape + hover_area).into()
         }
     }
