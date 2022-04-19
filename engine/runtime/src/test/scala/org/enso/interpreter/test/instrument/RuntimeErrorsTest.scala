@@ -19,7 +19,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeErrorsTest
@@ -37,9 +36,7 @@ class RuntimeErrorsTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) {
-    val messageQueue: LinkedBlockingQueue[Api.Response] =
-      new LinkedBlockingQueue()
+  class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
@@ -97,18 +94,6 @@ class RuntimeErrorsTest
 
     def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
-    def receiveNone: Option[Api.Response] = {
-      Option(messageQueue.poll())
-    }
-
-    def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(60, TimeUnit.SECONDS))
-    }
-
-    def receive(n: Int): List[Api.Response] = {
-      Iterator.continually(receive).take(n).flatten.toList
-    }
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -124,14 +109,7 @@ class RuntimeErrorsTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
-  }
-
-  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
-    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
-      false
-    case _ =>
-      true
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receiveOne()
   }
 
   it should "return panic sentinels in method body" in {
@@ -157,7 +135,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -181,7 +159,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -241,7 +219,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -265,7 +243,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -320,7 +298,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -344,8 +322,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -364,12 +341,6 @@ class RuntimeErrorsTest
       ),
       context.executionComplete(contextId)
     )
-
-    val loadedLibraries = responses.collect {
-      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
-        (namespace, name)
-    }
-    loadedLibraries should contain(("Standard", "Base"))
   }
 
   it should "return panic sentinels continuing execution" in {
@@ -377,12 +348,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(50, 9)
-    val yId        = metadata.addItem(68, 2)
-    val mainResId  = metadata.addItem(75, 12)
+    val xId        = metadata.addItem(40, 9)
+    val yId        = metadata.addItem(58, 2)
+    val mainResId  = metadata.addItem(65, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """import Standard.Base.IO
         |
         |main =
         |    x = undefined
@@ -394,7 +365,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -418,7 +389,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -477,7 +448,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -501,8 +472,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(7)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq (
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -552,7 +522,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -576,8 +546,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -608,8 +577,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses2 = context.receive(4)
-    responses2.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, Constants.INTEGER),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       context.executionComplete(contextId)
@@ -630,7 +598,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.error(
         contextId,
         xId,
@@ -661,7 +629,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, Constants.INTEGER),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       context.executionComplete(contextId)
@@ -694,7 +662,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -718,8 +686,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -750,7 +717,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receiveN(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
@@ -785,7 +752,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -809,8 +776,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -842,7 +808,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receiveN(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
@@ -872,7 +838,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -896,8 +862,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -942,8 +907,7 @@ class RuntimeErrorsTest
       )
     )
 
-    val responses2 = context.receive(5)
-    responses2.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, Constants.INTEGER),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
@@ -957,12 +921,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(50, 7)
-    val yId        = metadata.addItem(66, 5)
-    val mainResId  = metadata.addItem(76, 12)
+    val xId        = metadata.addItem(49, 7)
+    val yId        = metadata.addItem(65, 5)
+    val mainResId  = metadata.addItem(75, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.IO import all
         |
         |main =
         |    x = 1 + foo
@@ -974,7 +938,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -998,7 +962,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1055,7 +1019,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, xId, Constants.INTEGER),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
@@ -1090,7 +1054,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1114,8 +1078,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1159,7 +1122,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.panic(
         contextId,
         xId,
@@ -1214,7 +1177,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1238,8 +1201,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1284,8 +1246,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses2 = context.receive(5)
-    responses2.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         xId,
@@ -1304,12 +1265,12 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(118, 8)
-    val yId        = metadata.addItem(135, 5)
-    val mainResId  = metadata.addItem(145, 12)
+    val xId        = metadata.addItem(108, 8)
+    val yId        = metadata.addItem(125, 5)
+    val mainResId  = metadata.addItem(135, 12)
 
     val code =
-      """from Standard.Builtins import all
+      """import Standard.Base.IO
         |from Standard.Base.Error.Common import all
         |
         |foo =
@@ -1325,7 +1286,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1349,8 +1310,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    val responses = context.receive(6)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -1386,7 +1346,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         xId,
@@ -1408,8 +1368,8 @@ class RuntimeErrorsTest
     val metadata   = new Metadata
     val xId        = metadata.addItem(15, 20)
     val mainResId  = metadata.addItem(40, 1)
-    val x1Id       = metadata.addItem(50, 20)
-    val mainRes1Id = metadata.addItem(75, 1)
+    val x1Id       = metadata.addItem(40, 20)
+    val mainRes1Id = metadata.addItem(65, 1)
 
     val code =
       """main =
@@ -1421,7 +1381,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1445,7 +1405,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -1488,13 +1448,13 @@ class RuntimeErrorsTest
           Seq(
             TextEdit(
               model.Range(model.Position(0, 0), model.Position(0, 0)),
-              s"from Standard.Builtins import all$newline$newline"
+              s"import Standard.Base.IO$newline$newline"
             )
           )
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, x1Id, Constants.NOTHING),
       TestMessages.update(contextId, mainRes1Id, Constants.NOTHING),
       context.executionComplete(contextId)

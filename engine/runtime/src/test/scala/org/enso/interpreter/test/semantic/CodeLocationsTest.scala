@@ -68,18 +68,18 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.IO
           |
           |main =
           |    x = 2 + 2 * 2
           |    y = x * x
           |    IO.println y
           |""".stripMargin
-      instrumenter.assertNodeExists(47, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(65, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(69, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(73, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(90, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(37, 13, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(55, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(59, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(63, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(80, 1, classOf[ReadLocalVariableNode])
       eval(code)
       ()
     }
@@ -89,6 +89,7 @@ class CodeLocationsTest extends InterpreterTest {
       val code =
         """
           |from Standard.Builtins import all
+          |import Standard.Base.IO
           |
           |Nothing.method =
           |    foo = a -> b ->
@@ -100,10 +101,10 @@ class CodeLocationsTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin
 
-      instrumenter.assertNodeExists(118, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(136, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(132, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(144, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(142, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(160, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(156, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(168, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }

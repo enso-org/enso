@@ -12,6 +12,7 @@ class EvalTest extends InterpreterTest {
     "evaluate a string expression" in {
       val code =
         s"""from Standard.Builtins import all
+           |import Standard.Base.IO
            |
            |main =
            |    Debug.eval $rawTQ
@@ -24,6 +25,7 @@ class EvalTest extends InterpreterTest {
     "have access to the caller scope" in {
       val code =
         s"""from Standard.Builtins import all
+           |import Standard.Base.IO
            |
            |main =
            |    x = "Hello World!"
@@ -37,6 +39,7 @@ class EvalTest extends InterpreterTest {
     "have access to the caller module scope" in {
       val code =
         s"""from Standard.Builtins import all
+           |import Standard.Base.IO
            |
            |type MyType x
            |

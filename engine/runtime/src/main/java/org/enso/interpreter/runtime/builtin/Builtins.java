@@ -114,8 +114,6 @@ public class Builtins {
     system = new System(language, scope);
     special = new Special(language);
 
-    AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
-    AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
@@ -125,8 +123,6 @@ public class Builtins {
     scope.registerConstructor(nothing);
     scope.registerConstructor(function);
 
-    scope.registerConstructor(io);
-    scope.registerConstructor(primIo);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
     scope.registerConstructor(projectDescription);
@@ -134,13 +130,6 @@ public class Builtins {
     scope.registerConstructor(thread);
 
     scope.registerConstructor(unsafe);
-
-    scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
-    scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
-    scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
-    scope.registerMethod(primIo, "get_file", GetFileMethodGen.makeFunction(language));
-    scope.registerMethod(primIo, "get_cwd", GetCwdMethodGen.makeFunction(language));
-    scope.registerMethod(primIo, "get_user_home", GetUserHomeMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(

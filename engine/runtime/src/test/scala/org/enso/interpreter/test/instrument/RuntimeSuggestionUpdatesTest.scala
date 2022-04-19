@@ -18,7 +18,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
@@ -28,9 +27,7 @@ class RuntimeSuggestionUpdatesTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) {
-    val messageQueue: LinkedBlockingQueue[Api.Response] =
-      new LinkedBlockingQueue()
+  class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
@@ -76,18 +73,6 @@ class RuntimeSuggestionUpdatesTest
 
     def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
-    def receiveNone: Option[Api.Response] = {
-      Option(messageQueue.poll())
-    }
-
-    def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(50, TimeUnit.SECONDS))
-    }
-
-    def receive(n: Int): List[Api.Response] = {
-      Iterator.continually(receive).take(n).flatten.toList
-    }
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -103,14 +88,7 @@ class RuntimeSuggestionUpdatesTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
-  }
-
-  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
-    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
-      false
-    case _ =>
-      true
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receiveOne()
   }
 
   it should "send suggestion updates after file modification" in {
@@ -119,7 +97,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -128,7 +106,7 @@ class RuntimeSuggestionUpdatesTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -152,7 +130,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -222,12 +200,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -307,12 +285,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -412,12 +390,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -526,12 +504,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |foo x = x * 10
               |
@@ -669,12 +647,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |foo a b = a * b
               |
@@ -765,7 +743,7 @@ class RuntimeSuggestionUpdatesTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -789,8 +767,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    val response = context.receive(4)
-    response.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -923,7 +900,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val mainCode =
-      """from Standard.Builtins import all
+      """import Standard.Base.IO
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
@@ -948,7 +925,7 @@ class RuntimeSuggestionUpdatesTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receiveOne() shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -976,7 +953,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -1172,12 +1149,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """import Standard.Base.IO
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
@@ -1216,12 +1193,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """import Standard.Base.IO
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")

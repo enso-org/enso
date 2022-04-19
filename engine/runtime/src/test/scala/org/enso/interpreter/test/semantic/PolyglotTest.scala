@@ -60,7 +60,7 @@ class PolyglotTest extends InterpreterTest {
     "match on Polyglot type when imported everything from stdlib" in {
       val code =
         """from Standard.Base import all
-          |from Standard.Builtins import IO, Nothing
+          |from Standard.Builtins import Nothing
           |polyglot java import java.util.Random
           |
           |main =
@@ -77,7 +77,8 @@ class PolyglotTest extends InterpreterTest {
     "fail to match on Polyglot type when explicitly importing everything from Polyglot module" in {
       val code =
         """from Standard.Base.Polyglot import all
-          |from Standard.Builtins import IO, Nothing
+          |from Standard.Base.IO import all
+          |from Standard.Builtins import Nothing
           |polyglot java import java.util.Random
           |
           |main =
@@ -94,7 +95,8 @@ class PolyglotTest extends InterpreterTest {
     "fail to match on Polyglot type case when only importing Polyglot module" in {
       val code =
         """import Standard.Base.Polyglot
-          |from Standard.Builtins import IO, Nothing
+          |from Standard.Base.IO import all
+          |from Standard.Builtins import Nothing
           |polyglot java import java.util.Random
           |
           |main =
@@ -111,7 +113,8 @@ class PolyglotTest extends InterpreterTest {
     "match on qualified name of the Polyglot type from Polyglot module" in {
       val code =
         """import Standard.Base.Polyglot
-          |from Standard.Builtins import IO, Nothing
+          |from Standard.Base.IO import all
+          |from Standard.Builtins import Nothing
           |polyglot java import java.util.Random
           |
           |main =

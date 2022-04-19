@@ -11,7 +11,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with single-line literals" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main = IO.println "hello world!"
           |""".stripMargin
@@ -22,7 +22,7 @@ class TextTest extends InterpreterTest {
 
     "support text concatenation" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    h = "Hello, "
@@ -35,7 +35,7 @@ class TextTest extends InterpreterTest {
 
     "support converting arbitrary structures to text" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |type My_Type a
           |
@@ -50,7 +50,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with raw block literals" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |
            |main =
            |    x = $rawTQ
@@ -68,6 +68,7 @@ class TextTest extends InterpreterTest {
     "support escape sequences in literals" in {
       val code =
         """from Standard.Builtins import all
+          |import Standard.Base.IO
           |
           |main = IO.println '\"Grzegorz Brzeczyszczykiewicz\"'
           |""".stripMargin
@@ -79,6 +80,7 @@ class TextTest extends InterpreterTest {
     "support printing to standard error" in {
       val code =
         s"""from Standard.Builtins import all
+           |import Standard.Base.IO
            |
            |main = IO.print_err "My error string"
            |""".stripMargin
@@ -91,7 +93,7 @@ class TextTest extends InterpreterTest {
       val inputString = "foobarbaz"
 
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    IO.readln + " yay!"
@@ -109,6 +111,7 @@ class TextTest extends InterpreterTest {
           |from Standard.Base.Data.List import Cons
           |from Standard.Base.Error.Common import all
           |from Standard.Base.Data.Text.Text import all
+          |import Standard.Base.IO
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text

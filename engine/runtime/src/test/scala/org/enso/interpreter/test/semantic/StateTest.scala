@@ -66,6 +66,7 @@ class StateTest extends InterpreterTest {
       val code =
         """from Standard.Builtins import all
           |from Standard.Base.Data.List import Nil
+          |from Standard.Base.IO import all
           |
           |run =
           |    matcher = x -> case x of

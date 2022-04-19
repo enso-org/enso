@@ -56,6 +56,7 @@ class ExpressionIdTest extends InterpreterTest {
       val code =
         """
           |from Standard.Builtins import all
+          |import Standard.Base.IO
           |
           |Nothing.method =
           |    foo = a -> b ->
@@ -67,10 +68,10 @@ class ExpressionIdTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(118, 5)
-      val id2  = meta.addItem(136, 1)
-      val id3  = meta.addItem(132, 7)
-      val id4  = meta.addItem(144, 9)
+      val id1  = meta.addItem(142, 5)
+      val id2  = meta.addItem(160, 1)
+      val id3  = meta.addItem(156, 7)
+      val id4  = meta.addItem(168, 9)
 
       instrumenter.assertNodeExists(id1, "30")
       instrumenter.assertNodeExists(id2, "10")

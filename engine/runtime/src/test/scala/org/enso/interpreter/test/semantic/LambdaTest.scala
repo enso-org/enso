@@ -117,7 +117,7 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated returned lambdas" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.IO import all
           |
           |main =
           |    fn = a -> b ->

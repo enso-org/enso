@@ -261,7 +261,7 @@ class NamedArgumentsTest extends InterpreterTest {
     "work with constructors when no other arguments passed" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.IO
           |
           |type My_Tp a=10 b="hello"
           |
