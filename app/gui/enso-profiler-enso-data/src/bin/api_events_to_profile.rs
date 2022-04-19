@@ -76,7 +76,7 @@ fn main() {
         let api_events::Message { timestamp, direction, request_id, endpoint } = message;
         let data = backend::Message { direction, request_id, endpoint };
         let timestamp = timestamp.timestamp_nanos();
-        let timestamp = format::Timestamp::from_ms(timestamp as f64 / 1000_000.0);
+        let timestamp = format::Timestamp::from_ms(timestamp as f64 / 1_000_000.0);
         backend_profile.metadata(timestamp, "BackendMessage", data);
     }
     let backend_profile = backend_profile.build_string();
