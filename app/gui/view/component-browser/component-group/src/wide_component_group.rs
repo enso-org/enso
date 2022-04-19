@@ -187,8 +187,15 @@ impl Model {
     }
 
     fn set_height(&self, entries_count: usize) {
+        if entries_count == 0 {
+            self.show_no_items_label();
+        } else {
+            self.hide_no_items_label();
+        }
         let max_entries_in_list = Model::entry_count_in_column(0, entries_count);
         let background_height = max_entries_in_list as f32 * list_view::entry::HEIGHT;
+        let min_background_height = list_view::entry::HEIGHT;
+        let background_height = background_height.max(min_background_height);
         let size = self.size.get();
         self.background.size.set(Vector2(size.x, background_height));
         for (i, group) in self.groups.iter().enumerate() {
