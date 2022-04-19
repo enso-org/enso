@@ -15,8 +15,8 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ensogl_core::application::Application;
 use enso_frp as frp;
+use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
@@ -49,7 +49,7 @@ pub fn main() {
 // === Mock Entries ===
 // ====================
 
-const PREPARED_ITEMS: &[&'static str; 8] = &[
+const PREPARED_ITEMS: &[&str; 8] = &[
     "long sample entry with text overflowing the width",
     "convert",
     "table input",
@@ -60,21 +60,17 @@ const PREPARED_ITEMS: &[&'static str; 8] = &[
     "data input",
 ];
 
-fn mock_entries(count: usize) -> Vec<String> {
-    PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect()
-}
-
 #[derive(Debug)]
 struct MockEntries {
     entries: Vec<String>,
-    count: Cell<usize>,
+    count:   Cell<usize>,
 }
 
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
         Rc::new(Self {
             entries: PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect(),
-            count: Cell::new(count),
+            count:   Cell::new(count),
         })
     }
 
@@ -101,7 +97,6 @@ impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
 
 
 
-
 // ========================
 // === Init Application ===
 // ========================
@@ -123,17 +118,17 @@ fn init(app: &Application) {
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
     component_group.set_size(Vector2(150.0, 400.0));
-    component_group.set_position_x(-400.0);
+    component_group.set_position_x(-300.0);
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&component_group);
 
     let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
+    wide_component_group.set_position_x(100.0);
     wide_component_group.set_width(450.0);
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&wide_component_group);
 
     let mock_entries = MockEntries::new(25);
-    mock_entries.set_count(5);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     let network = frp::Network::new("ComponentGroupDemo");
     frp::extend! { network
