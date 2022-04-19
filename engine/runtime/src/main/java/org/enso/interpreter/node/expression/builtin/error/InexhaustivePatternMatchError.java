@@ -1,13 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType(params = "scrutinee")
-public class InexhaustivePatternMatchError extends AtomConstructor {
-    public InexhaustivePatternMatchError(ModuleScope definitionScope) {
-        super("Inexhaustive_Pattern_Match_Error", definitionScope, true);
-    }
-}
+public class InexhaustivePatternMatchError extends Builtin {}
 

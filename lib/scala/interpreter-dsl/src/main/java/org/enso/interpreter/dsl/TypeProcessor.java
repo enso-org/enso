@@ -83,11 +83,11 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
     }
 
     protected void registerBuiltinType(Filer f, String name, String clazzName, String params) {
-        Map<String, BuiltinTypeConstr> methods = builtinTypes.get(f);
-        if (methods == null) {
-            methods = new HashMap<>();
-            builtinTypes.put(f, methods);
+        Map<String, BuiltinTypeConstr> classes = builtinTypes.get(f);
+        if (classes == null) {
+            classes = new HashMap<>();
+            builtinTypes.put(f, classes);
         }
-        methods.put(name, new BuiltinTypeConstr(clazzName, params));
+        classes.put(name, new BuiltinTypeConstr(clazzName, params));
     }
 }

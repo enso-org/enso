@@ -18,20 +18,17 @@ import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.node.expression.builtin.*;
+import org.enso.interpreter.node.expression.builtin.Boolean;
+import org.enso.interpreter.node.expression.builtin.bool.False;
+import org.enso.interpreter.node.expression.builtin.bool.True;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
+import org.enso.interpreter.node.expression.builtin.error.Panic;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.GetCwdMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.GetFileMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.GetUserHomeMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.mutable.Array;
+import org.enso.interpreter.node.expression.builtin.mutable.Ref;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
@@ -228,24 +225,18 @@ public class Builtins {
         throw new CompilerError("Invalid builtin metadata in: " + line + " " + builtinMeta.length);
       }
 
-      String fullName = builtinMeta[1];
-      AtomConstructor builtin = null;
-      try {
-        Class<AtomConstructor> clazz = (Class<AtomConstructor>) Class.forName(fullName);
-        builtin = clazz.getDeclaredConstructor(ModuleScope.class).newInstance(scope);
-        if (builtinMeta.length == 2) {
-          builtin = builtin.initializeFields();
-        } else {
-          // there are some type params
-          String[] paramNames = builtinMeta[2].split(",");
-          ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
-          for (int i = 0; i < paramNames.length; i++) {
-            args[i] = new ArgumentDefinition(i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
-          }
-          builtin = builtin.initializeFields(args);
+      AtomConstructor builtin;
+      builtin = new AtomConstructor(builtinMeta[0], scope, true);
+      if (builtinMeta.length == 2) {
+        builtin = builtin.initializeFields();
+      } else {
+        // there are some type params
+        String[] paramNames = builtinMeta[2].split(",");
+        ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
+        for (int i = 0; i < paramNames.length; i++) {
+          args[i] = new ArgumentDefinition(i, paramNames[i], ArgumentDefinition.ExecutionMode.EXECUTE);
         }
-      } catch (Exception e) {
-        e.printStackTrace();
+        builtin = builtin.initializeFields(args);
       }
       return builtin;
     }).filter(b -> b != null).collect(Collectors.toList());
@@ -315,7 +306,7 @@ public class Builtins {
     }
   }
 
-  public AtomConstructor getBuiltinType(Class<?> clazz) {
+  public AtomConstructor getBuiltinType(Class<? extends Builtin> clazz) {
     String snakeCaseName = clazz.getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
     return getBuiltinType(snakeCaseName);
   }
@@ -362,17 +353,17 @@ public class Builtins {
 
   /** @return the Boolean constructor. */
   public AtomConstructor bool() {
-    return builtinTypes.get("Boolean");
+    return this.getBuiltinType(Boolean.class);
   }
 
   /** @return the True constructor. */
   public AtomConstructor trueAtom() {
-    return builtinTypes.get("True");
+    return this.getBuiltinType(True.class);
   }
 
   /** @return the False constructor. */
   public AtomConstructor falseAtom() {
-    return builtinTypes.get("False");
+    return this.getBuiltinType(False.class);
   }
 
 
@@ -387,7 +378,7 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public AtomConstructor any() {
-    return this.getBuiltinType("Any");
+    return this.getBuiltinType(Any.class);
   }
 
   /**
@@ -411,27 +402,27 @@ public class Builtins {
 
   /** @return the Array constructor. */
   public AtomConstructor array() {
-    return builtinTypes.get("Array");
+    return this.getBuiltinType(Array.class);
   }
 
   /** @return the Ref constructor. */
   public AtomConstructor ref() {
-    return builtinTypes.get("Ref");
+    return this.getBuiltinType(Ref.class);
   }
 
   /** @return the container for polyglot-related builtins. */
   public AtomConstructor polyglot() {
-    return builtinTypes.get("Polyglot");
+    return this.getBuiltinType(Polyglot.class);
   }
 
   /** @return the {@code Caught_Panic} atom constructor */
   public AtomConstructor caughtPanic() {
-    return builtinTypes.get("Caught_Panic");
+    return this.getBuiltinType(CaughtPanic.class);
   }
 
   /** @return the {@code Panic} atom constructor */
   public AtomConstructor panic() {
-    return builtinTypes.get("Panic");
+    return this.getBuiltinType(Panic.class);
   }
 
   /** @return the container for ordering-related builtins */
@@ -441,7 +432,7 @@ public class Builtins {
 
   /** @return the container for the dataflow error-related builtins */
   public AtomConstructor dataflowError() {
-    return builtinTypes.get("Error");
+    return this.getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
   }
 
   public Special special() {
@@ -495,7 +486,7 @@ public class Builtins {
       case Constants.REF:
         return ref().newInstance();
       case Constants.TEXT:
-        return getBuiltinType(Text.class).newInstance();
+        return text().newInstance();
       default:
         return null;
     }

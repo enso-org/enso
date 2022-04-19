@@ -32,7 +32,7 @@ import org.enso.pkg.QualifiedName;
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public class AtomConstructor implements TruffleObject {
+public final class AtomConstructor implements TruffleObject {
 
   private final String name;
   private @CompilerDirectives.CompilationFinal ModuleScope definitionScope;

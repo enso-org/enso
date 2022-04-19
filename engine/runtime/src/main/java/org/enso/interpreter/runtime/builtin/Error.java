@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
@@ -13,8 +14,9 @@ import org.enso.interpreter.runtime.data.text.Text;
 public class Error {
 
   private Builtins builtins;
-  // FXIME: compilation final
+  @CompilerDirectives.CompilationFinal
   private Atom arithmeticErrorShiftTooBig;
+  @CompilerDirectives.CompilationFinal
   private Atom arithmeticErrorDivideByZero;
 
   private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
