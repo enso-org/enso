@@ -65,8 +65,7 @@ public class Context {
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
-  @CompilerDirectives.CompilationFinal
-  private Optional<AtomConstructor> date;
+  @CompilerDirectives.CompilationFinal private Optional<AtomConstructor> date;
 
   /**
    * Creates a new Enso context.
@@ -468,7 +467,8 @@ public class Context {
     return clock.getAndIncrement();
   }
 
-  /** Return the {@code Standard.Base.Data.Time.Date} constructor.
+  /**
+   * Return the {@code Standard.Base.Data.Time.Date} constructor.
    *
    * @return optional with {@link AtomConstructor} for the date, if it can be found
    */
@@ -480,7 +480,9 @@ public class Context {
       ensureModuleIsLoaded(stdDateModuleName);
       Optional<Module> dateModule = findModule(stdDateModuleName);
       if (dateModule.isPresent()) {
-        date = Optional.ofNullable(dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
+        date =
+            Optional.ofNullable(
+                dateModule.get().getScope().getConstructors().get(stdDateConstructorName));
       } else {
         date = Optional.empty();
       }
