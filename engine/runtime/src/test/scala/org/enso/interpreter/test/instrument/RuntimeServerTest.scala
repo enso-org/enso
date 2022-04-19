@@ -984,7 +984,7 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, Api.StackItem.LocalCall(mainFoo))
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, fooX, Constants.INTEGER),
       TestMessages.update(contextId, fooRes, Constants.INTEGER),
@@ -1013,7 +1013,7 @@ class RuntimeServerTest
 
     // pop the foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
         .update(
@@ -1165,7 +1165,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       TestMessages.update(contextId, idResult, Constants.TEXT),
       context.executionComplete(contextId)
     )
@@ -1254,7 +1254,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         idMainA,

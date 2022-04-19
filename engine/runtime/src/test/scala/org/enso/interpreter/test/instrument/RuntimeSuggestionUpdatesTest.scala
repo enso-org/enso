@@ -200,7 +200,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -285,7 +285,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -390,7 +390,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -504,7 +504,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -647,7 +647,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
@@ -1149,7 +1149,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,

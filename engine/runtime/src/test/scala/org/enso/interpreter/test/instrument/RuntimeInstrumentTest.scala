@@ -564,7 +564,7 @@ class RuntimeInstrumentTest
     val metadata   = new Metadata
 
     // f expression
-    metadata.addItem(52, 5)
+    metadata.addItem(42, 5)
     val aExpr    = metadata.addItem(56, 1)
     val fApp     = metadata.addItem(74, 3)
     val mainRes  = metadata.addItem(62, 16)
