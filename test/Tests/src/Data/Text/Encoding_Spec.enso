@@ -46,13 +46,13 @@ spec =
         Test.specify "Invalid ASCII should raise a warning when decoding" <|
             action = Text.from_bytes invalid_ascii Encoding.ascii on_problems=_
             tester result = result . should_equal invalid
-            problems = [Encoding_Error "Encoding issues at 12"]
+            problems = [Encoding_Error "Encoding issues at 12."]
             Problems.test_problem_handling action problems tester
 
         Test.specify "Invalid ASCII should raise a warning when encoding" <|
             action = invalid.bytes Encoding.ascii on_problems=_
             tester result = result . should_equal invalid_ascii_out
-            problems = [Encoding_Error "Encoding issues at 12"]
+            problems = [Encoding_Error "Encoding issues at 12."]
             Problems.test_problem_handling action problems tester
 
     Test.group "UTF_8" <|

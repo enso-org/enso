@@ -30,6 +30,7 @@ spec =
             sample_file.extension.should_equal ".txt"
             (File.new "this.is.a.silly.name.txt").extension.should_equal ".txt"
             (File.new "no_extension").extension.should_equal ""
+            (File.new "file.").extension.should_equal ""
 
         Test.specify "should convert a file to absolute" <|
             abs = File.new "foo.txt" . absolute
@@ -99,7 +100,7 @@ spec =
         Test.specify "should raise warnings when reading invalid characters" <|
             action = windows_file.read_text Encoding.ascii on_problems=_
             tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
-            problems = [Encoding_Error "Encoding issues at 14, 15, 16"]
+            problems = [Encoding_Error "Encoding issues at 14, 15, 16."]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle exceptions when reading a non-existent file" <|

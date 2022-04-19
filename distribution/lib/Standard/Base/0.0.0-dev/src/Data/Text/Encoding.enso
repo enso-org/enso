@@ -28,7 +28,7 @@ type Encoding
        Convert an Encoding to it's corresponding Java Charset
     to_java_charset : Charset
     to_java_charset =
-        Panic.catch UnsupportedCharsetException (Text_Utils.get_charset this.character_set) _->
+        Panic.catch UnsupportedCharsetException (Charset.forName this.character_set) _->
             Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + this.character_set))
 
     ## Encoding for ASCII.

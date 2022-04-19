@@ -104,8 +104,7 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
      `File.read_text file`. The later, however, will still work.
 
    > Example
-     Read the `data.csv` file in the project directory's `data` directory. You
-     will need to create the file `data.csv` manually in that directory.
+     Read the `data.csv` file in the from the Examples project.
 
          import Standard.Base.System.File
          import Standard.Examples
@@ -488,13 +487,21 @@ type File
     name : Text
     name = this.prim_file.getName
 
-    ## Returns the extension of the file
+    ## Returns the extension of the file.
+
+       > Example
+         Get the extension of a file.
+
+             import Standard.Examples
+
+             Examples.csv.extension == ".csv"
     extension : Text
     extension =
         name = this.name
         last_dot = name.location_of "." mode=Matching_Mode.last
         if last_dot.is_nothing then "" else
-            name.drop (Text_Sub_Range.First last_dot.start)
+            extension = name.drop (Text_Sub_Range.First last_dot.start)
+            if extension == "." then "" else extension
 
     ## Converts this file to an equivalent file represented with an absolute
        path.
@@ -883,8 +890,8 @@ handle_java_exceptions file ~action =
                 if Java.is_instance exc NoSuchFileException then Error.throw (File_Not_Found file) else
                     if Java.is_instance exc AccessDeniedException then Error.throw (Io_Error file ("You do not have permission to access the file.")) else
                         if Java.is_instance exc IOException then Error.throw (Io_Error file ("An IO error has occurred: " + exc.getMessage)) else
-                            Error.throw exception
-            _ -> Error.throw exception
+                            Panic.throw exception
+            _ -> Panic.throw exception
         result
 
     err = Panic.recover Any action

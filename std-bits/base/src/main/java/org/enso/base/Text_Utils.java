@@ -11,7 +11,6 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
@@ -21,7 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
@@ -126,7 +124,13 @@ public class Text_Utils {
     if (out.limit() != array.length) {
       array = Arrays.copyOf(array, out.limit());
     }
-    return new ResultWithWarnings<>(array, warnings == null ? null : warnings.toString());
+
+    if (warnings == null) {
+      return new ResultWithWarnings<>(array);
+    }
+
+    warnings.append(".");
+    return new ResultWithWarnings<>(array, warnings.toString());
   }
 
   /**
@@ -276,7 +280,13 @@ public class Text_Utils {
     }
 
     out.flip();
-    return new ResultWithWarnings<>(out.toString(), warnings == null ? null : warnings.toString());
+
+    if (warnings == null) {
+      return new ResultWithWarnings<>(out.toString());
+    }
+
+    warnings.append(".");
+    return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
   /**
