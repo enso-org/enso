@@ -21,8 +21,7 @@ public abstract class TakeNode extends Node {
   abstract Object execute(Object _this, ManagedResource resource);
 
   @Specialization
-  Object doTake(
-      Object _this, ManagedResource resource) {
+  Object doTake(Object _this, ManagedResource resource) {
     Context.get(this).getResourceManager().take(resource);
     return resource.getResource();
   }

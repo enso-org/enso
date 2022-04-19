@@ -23,10 +23,10 @@ import scala.util.{Failure, Success}
   * @param versionsRepo the versions repo
   */
 class RepoInitialization(
-                          directoriesConfig: ProjectDirectoriesConfig,
-                          eventStream: EventStream,
-                          suggestionsRepo: SqlSuggestionsRepo,
-                          versionsRepo: SqlVersionsRepo
+  directoriesConfig: ProjectDirectoriesConfig,
+  eventStream: EventStream,
+  suggestionsRepo: SqlSuggestionsRepo,
+  versionsRepo: SqlVersionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent
     with LazyLogging {

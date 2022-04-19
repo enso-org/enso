@@ -29,8 +29,7 @@ public class CatchAnyNode extends Node {
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
+  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
     return new Stateful(state, _this);
   }
 }

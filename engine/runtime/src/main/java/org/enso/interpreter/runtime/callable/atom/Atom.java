@@ -234,8 +234,7 @@ public class Atom implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this, UnresolvedSymbol symbol)
+    static Function resolve(Atom _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(_this.constructor, symbol);
       if (function == null) {
@@ -257,9 +256,7 @@ public class Atom implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(
-        AtomConstructor cons,
-        AtomConstructor target,
-        UnresolvedConversion conversion) {
+        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
       return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
     }
 
@@ -283,16 +280,12 @@ public class Atom implements TruffleObject {
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("_this.constructor") AtomConstructor cachedConstructor,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)")
-            Function function) {
+        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+    static Function resolve(Atom _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(_this.constructor, target, conversion);
       if (function == null) {

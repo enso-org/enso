@@ -21,8 +21,8 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
  * is impossible to execute origin language's code when executing in the other context. Therefore
  * outer context values need to be specially wrapped before being passed (e.g. as arguments) to the
  * inner context, and inner context values need rewrapping for use in the outer context. See {@link
- * org.enso.interpreter.epb.runtime.PolyglotProxy} and {@link
- * ContextRewrapNode} for details of how and when this wrapping is done.
+ * org.enso.interpreter.epb.runtime.PolyglotProxy} and {@link ContextRewrapNode} for details of how
+ * and when this wrapping is done.
  *
  * <p>With the structure outlined above, EPB is the only language that is initialized in both inner
  * and outer contexts and thus it is very minimal. Its only role is to manage both contexts and
