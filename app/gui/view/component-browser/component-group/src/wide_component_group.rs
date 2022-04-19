@@ -6,10 +6,16 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
+use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
 
 
+// =================
+// === Constants ===
+// =================
+
+const NO_ITEMS_LABEL_TEXT: &str = "No local variables";
 
 // ==========================
 // === Shapes Definitions ===
@@ -120,6 +126,7 @@ pub struct Model {
     background:     background::View,
     size:           Rc<Cell<Vector2>>,
     groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
+    no_items_label: Label,
 }
 
 impl display::Object for Model {
@@ -136,27 +143,33 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
-        background.size.set(Vector2(0.0, 200.0));
         display_object.add_child(&background);
+        background.size.set(Vector2(0.0, 200.0));
         let groups = Rc::new([
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
         ]);
-        let size = Vector2(450.0, 200.0);
-        let mut x = -150.0;
+        let size = Vector2(0.0, 0.0);
         for group in groups.iter() {
-            group.set_position_x(x);
-            group.resize(Vector2(150.0, 200.0));
-            x += 150.0;
             display_object.add_child(group);
         }
+        let no_items_label = Label::new(app);
+        no_items_label.set_content(NO_ITEMS_LABEL_TEXT);
 
-        Model { display_object, size: Rc::new(Cell::new(size)), background, groups }
+        Model { no_items_label, display_object, size: Rc::new(Cell::new(size)), background, groups }
     }
 }
 
 impl Model {
+    fn show_no_items_label(&self) {
+        self.display_object.add_child(&self.no_items_label);
+    }
+
+    fn hide_no_items_label(&self) {
+        self.display_object.remove_child(&self.no_items_label);
+    }
+
     fn on_entry_chosen(&self, _entry: usize, group_id: usize) {
         for (_, group) in self.groups.iter().enumerate().filter(|(i, _)| *i != group_id) {
             group.deselect_entries();
@@ -178,13 +191,12 @@ impl Model {
         let background_height = max_entries_in_list as f32 * list_view::entry::HEIGHT;
         let size = self.size.get();
         self.background.size.set(Vector2(size.x, background_height));
-        self.background.set_position_y(-background_height / 2.0);
         for (i, group) in self.groups.iter().enumerate() {
             let count_in_group = Self::entry_count_in_column(i, entries_count);
             let group_height = count_in_group as f32 * list_view::entry::HEIGHT;
             group.resize(Vector2(size.x / 3.0, group_height));
             let half_group_height = group_height / 2.0;
-            let background_bottom = -background_height;
+            let background_bottom = -background_height / 2.0;
             let pos = background_bottom + half_group_height;
             group.set_position_y(pos);
         }

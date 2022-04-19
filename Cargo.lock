@@ -2280,6 +2280,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-label",
  "ensogl-list-view",
  "ensogl-text",
 ]
