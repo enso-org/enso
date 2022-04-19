@@ -172,7 +172,8 @@ object SearchProtocol {
       conversion.sourceType,
       false,
       false,
-      None
+      None,
+      Option.empty
     )
     Suggestion.Method(
       conversion.externalId,

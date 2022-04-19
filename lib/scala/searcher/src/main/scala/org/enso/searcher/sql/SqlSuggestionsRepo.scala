@@ -1069,7 +1069,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           sourceType,
           false,
           false,
-          None
+          None,
+          Option.empty
         )
         val row = SuggestionRow(
           id               = None,
@@ -1259,7 +1260,8 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       reprType     = row.tpe,
       isSuspended  = row.isSuspended,
       hasDefault   = row.hasDefault,
-      defaultValue = row.defaultValue
+      defaultValue = row.defaultValue,
+      tagValues = Option.empty
     )
 
   /** Convert bits to the UUID.

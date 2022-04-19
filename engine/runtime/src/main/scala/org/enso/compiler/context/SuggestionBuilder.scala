@@ -173,7 +173,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Suggestion.Method = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature, bindings)
     val (methodArgs, returnTypeDef) =
-      buildMethodArguments(args, typeSig, selfType)
+      buildMethodArguments(args, typeSig, selfType, name.name)
     Suggestion.Method(
       externalId    = externalId,
       module        = module.toString,
@@ -431,8 +431,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildMethodArguments(
     vargs: Seq[IR.DefinitionArgument],
     targs: Seq[TypeArg],
-    selfType: QualifiedName
+    selfType: QualifiedName,
+    methodName: String
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
+    var tagValues: Map[String, Seq[String]] = Map.empty;
     @scala.annotation.tailrec
     def go(
       vargs: Seq[IR.DefinitionArgument],
@@ -457,13 +459,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               reprType     = selfType.toString,
               isSuspended  = suspended,
               hasDefault   = defaultValue.isDefined,
-              defaultValue = defaultValue.flatMap(buildDefaultValue)
+              defaultValue = defaultValue.flatMap(buildDefaultValue),
+              tagValues = Option.empty
             )
             go(vtail, targs, acc :+ thisArg)
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
+                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ, tagValues))
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -496,7 +499,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           case varg +: vtail =>
             targs match {
               case targ +: ttail =>
-                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ))
+                go(vtail, ttail, acc :+ buildTypedArgument(varg, targ, Map.empty))
               case _ =>
                 go(vtail, targs, acc :+ buildArgument(varg))
             }
@@ -514,14 +517,16 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     */
   private def buildTypedArgument(
     varg: IR.DefinitionArgument,
-    targ: TypeArg
+    targ: TypeArg,
+    tagValues : Map[String,Seq[String]]
   ): Suggestion.Argument =
     Suggestion.Argument(
       name         = varg.name.name,
       reprType     = buildTypeArgumentName(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
+      defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
+      tagValues = tagValues.get(varg.name.name)
     )
 
   /** Build the name of type argument.
@@ -565,7 +570,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       reprType     = Any,
       isSuspended  = arg.suspended,
       hasDefault   = arg.defaultValue.isDefined,
-      defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
+      defaultValue = arg.defaultValue.flatMap(buildDefaultValue),
+      tagValues = Option.empty
     )
 
   /** Build return type from the type definition.
