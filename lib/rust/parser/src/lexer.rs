@@ -104,20 +104,21 @@ impl BytesStrOps for str {
 // === Token ===
 // =============
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Deref, PartialEq, Eq)]
 pub struct Token<T = Kind> {
+    #[deref]
+    elem:                T,
     left_visible_offset: usize,
     left_offset:         Bytes,
     start:               Bytes,
     len:                 Bytes,
-    elem:                T,
 }
 
-// impl<T: Debug> Debug for Token<T> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}({},{})", self.elem, self.left_visible_offset, self.len)
-//     }
-// }
+impl<T: Debug> Debug for Token<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}({},{})", self.elem, self.left_visible_offset, self.len)
+    }
+}
 
 impl<T> Token<T> {
     #[inline(always)]
@@ -488,8 +489,8 @@ impl<'s> Lexer<'s> {
 
 macro_rules! tagged_enum {
     ($name:ident {
-        $($l_variant:ident : $variant:ident $({$($arg:ident : $arg_tp:ty),* $(,)?})? ),* $(,)?
-    }) => {
+        $($variant:ident $({$($arg:ident : $arg_tp:ty),* $(,)?})? ),* $(,)?
+    }) => {paste! {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         pub enum $name {
             $($variant($variant)),*
@@ -517,33 +518,52 @@ macro_rules! tagged_enum {
         )*
 
         impl $name {
+            pub fn variant(&self) -> [<$name Variant>] {
+                self.into()
+            }
+
             $(
                 /// Constructor.
                 #[inline(always)]
-                pub fn $l_variant($($($arg : $arg_tp),*)?) -> Self {
+                pub fn [<$variant:snake:lower>]($($($arg : $arg_tp),*)?) -> Self {
                     Self::$variant($variant { $($($arg),*)? })
                 }
             )*
         }
-    };
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub enum [<$name Variant>] {
+            $($variant),*
+        }
+
+        impl From<&$name> for [<$name Variant>] {
+            fn from(t:&$name) -> Self {
+                match t {
+                    $(
+                        $name::$variant(_) => Self::$variant
+                    ),*
+                }
+            }
+        }
+    }};
 }
 
 tagged_enum!(Kind {
-    newline:      Newline,
-    symbol:       Symbol,
-    block_start:  BlockStart,
-    block_end:    BlockEnd,
-    wildcard:     Wildcard { lift_level: usize },
-    ident:        Ident { is_free: bool, lift_level: usize },
-    operator:     Operator,
-    modifier:     Modifier,
-    comment:      Comment,
-    doc_comment:  DocComment,
-    number:       Number,
-    text_start:   TextStart,
-    text_end:     TextEnd,
-    text_section: TextSection,
-    text_escape:  TextEscape,
+    Newline,
+    Symbol,
+    BlockStart,
+    BlockEnd,
+    Wildcard { lift_level: usize },
+    Ident { is_free: bool, lift_level: usize },
+    Operator,
+    Modifier,
+    Comment,
+    DocComment,
+    Number,
+    TextStart,
+    TextEnd,
+    TextSection,
+    TextEscape,
 });
 
 
