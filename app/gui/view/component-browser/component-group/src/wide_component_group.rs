@@ -6,9 +6,7 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
-use ensogl_text as text;
 use list_view::entry::AnyModelProvider;
 
 
@@ -56,7 +54,7 @@ impl ModelProvider {
 impl list_view::entry::ModelProvider<Entry> for ModelProvider {
     fn entry_count(&self) -> usize {
         let count = self.inner.entry_count();
-        let count = count / 3 + if count % 3 > 0 && *self.index < count % 3 { 1 } else { 0 };
+        let count = Model::entry_count_in_column(*self.index, count);
         count
     }
 
@@ -87,6 +85,7 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         frp::extend! { network
             eval input.set_width ((width) model.set_width(*width));
+            eval input.set_entries((e) model.set_height(e.entry_count()));
             eval input.set_background_color((c)
                 model.background.color.set(c.into()));
             chosen_entry <- any_mut();
@@ -96,13 +95,12 @@ impl component::Frp<Model> for Frp {
             frp::extend! { network
                 let group = group.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
-                eval entries ((e) model.set_height(e.entry_count()));
                 group.set_entries <+ entries;
 
                 group.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
                 group.show_background_shadow(false);
                 group.set_background_corners_radius(0.0);
-                
+
                 chosen_entry <+ group.frp.output.selected_entry.filter_map(|e| *e).map(move |e| (*e, idx));
             }
         }
@@ -119,8 +117,8 @@ impl component::Frp<Model> for Frp {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     display_object: display::object::Instance,
-    background: background::View,
-    size: Rc<Cell<Vector2>>,
+    background:     background::View,
+    size:           Rc<Cell<Vector2>>,
     groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
 }
 
@@ -170,30 +168,32 @@ impl Model {
         self.background.size.set(Vector2(width, size.y));
         for (i, group) in self.groups.iter().enumerate() {
             group.resize(Vector2(width / 3.0, size.y));
-            group.set_position_x(- width / 3.0 + width / 3.0 * i as f32);
+            group.set_position_x(-width / 3.0 + width / 3.0 * i as f32);
         }
         self.size.set(Vector2(width, size.y));
     }
 
     fn set_height(&self, entries_count: usize) {
-        let needed_height = entries_count as f32 * list_view::entry::HEIGHT;
+        let max_entries_in_list = Model::entry_count_in_column(0, entries_count);
+        let background_height = max_entries_in_list as f32 * list_view::entry::HEIGHT;
         let size = self.size.get();
-        self.background.size.set(Vector2(size.x, needed_height));
+        self.background.size.set(Vector2(size.x, background_height));
+        self.background.set_position_y(-background_height / 2.0);
         for (i, group) in self.groups.iter().enumerate() {
-            group.resize(Vector2(size.x / 3.0, needed_height));
-            group.set_position_y(- size.y + needed_height);
+            let count_in_group = Self::entry_count_in_column(i, entries_count);
+            let group_height = count_in_group as f32 * list_view::entry::HEIGHT;
+            group.resize(Vector2(size.x / 3.0, group_height));
+            let half_group_height = group_height / 2.0;
+            let background_bottom = -background_height;
+            let pos = background_bottom + half_group_height;
+            group.set_position_y(pos);
         }
-        self.size.set(Vector2(size.x, needed_height));
+        self.size.set(Vector2(size.x, background_height));
     }
 
-    fn resize_background(&self, size: Vector2) {
-        self.background.size.set(size);
-    }
-
-    fn resize(group: &list_view::ListView<list_view::entry::Label>, entries_count: usize, size: Vector2) {
-        let size = Vector2(size.x / 3.0, size.y);
-        group.resize(size);
-        group.set_position_y(- size.y + entries_count as f32 * list_view::entry::HEIGHT);
+    fn entry_count_in_column(index: usize, total_entry_count: usize) -> usize {
+        total_entry_count / 3
+            + if total_entry_count % 3 > 0 && index < total_entry_count % 3 { 1 } else { 0 }
     }
 }
 
