@@ -90,8 +90,22 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         frp::extend! { network
-            eval input.set_width ((width) model.set_width(*width));
-            eval input.set_entries((e) model.set_height(e.entry_count()));
+            let background_width = input.set_width.clone_ref();
+            column_width <- background_width.map(|w| *w / 3.0);
+
+            entry_count <- input.set_entries.map(|p| p.entry_count());
+            background_height <- entry_count.map(|c| Model::background_height(*c));
+
+            _eval <- all_with(&background_width, &background_height, f!([model] (width, height) {
+                model.background.size.set(Vector2(*width, *height));
+            }));
+
+            no_entries_provided <- entry_count.map(|c| *c == 0);
+            show_no_items_label <- no_entries_provided.on_true();
+            hide_no_items_label <- no_entries_provided.on_false();
+            eval_ show_no_items_label(model.show_no_items_label());
+            eval_ hide_no_items_label(model.hide_no_items_label());
+
             eval input.set_background_color((c)
                 model.background.color.set(c.into()));
             chosen_entry <- any_mut();
@@ -101,7 +115,18 @@ impl component::Frp<Model> for Frp {
             frp::extend! { network
                 let group = group.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
+                entry_count_in_column <- entries.map(|p| p.entry_count());
                 group.set_entries <+ entries;
+
+                column_height <- entry_count_in_column.map(|count| *count as f32 * list_view::entry::HEIGHT);
+
+                _eval <- all_with3(&column_width, &column_height, &background_height, f!([group](&width, &height, bg_height) {
+                    group.resize(Vector2(width, height));
+                    group.set_position_x(- width + width * idx as f32);
+                    let half_height = height / 2.0;
+                    let background_bottom = -*bg_height / 2.0;
+                    group.set_position_y(background_bottom + half_height);
+                }));
 
                 group.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
                 group.show_background_shadow(false);
@@ -124,7 +149,6 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     display_object: display::object::Instance,
     background:     background::View,
-    size:           Rc<Cell<Vector2>>,
     groups:         Rc<[list_view::ListView<list_view::entry::Label>; 3]>,
     no_items_label: Label,
 }
@@ -150,14 +174,13 @@ impl component::Model for Model {
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
         ]);
-        let size = Vector2(0.0, 0.0);
         for group in groups.iter() {
             display_object.add_child(group);
         }
         let no_items_label = Label::new(app);
         no_items_label.set_content(NO_ITEMS_LABEL_TEXT);
 
-        Model { no_items_label, display_object, size: Rc::new(Cell::new(size)), background, groups }
+        Model { no_items_label, display_object, background, groups }
     }
 }
 
@@ -175,39 +198,12 @@ impl Model {
             group.deselect_entries();
         }
     }
-
-    fn set_width(&self, width: f32) {
-        let size = self.size.get();
-        self.background.size.set(Vector2(width, size.y));
-        for (i, group) in self.groups.iter().enumerate() {
-            group.resize(Vector2(width / 3.0, size.y));
-            group.set_position_x(-width / 3.0 + width / 3.0 * i as f32);
-        }
-        self.size.set(Vector2(width, size.y));
-    }
-
-    fn set_height(&self, entries_count: usize) {
-        if entries_count == 0 {
-            self.show_no_items_label();
-        } else {
-            self.hide_no_items_label();
-        }
-        let max_entries_in_list = Model::entry_count_in_column(0, entries_count);
-        let background_height = max_entries_in_list as f32 * list_view::entry::HEIGHT;
+    
+    fn background_height(entry_count: usize) -> f32 {
         let min_background_height = list_view::entry::HEIGHT;
-        let background_height = background_height.max(min_background_height);
-        let size = self.size.get();
-        self.background.size.set(Vector2(size.x, background_height));
-        for (i, group) in self.groups.iter().enumerate() {
-            let count_in_group = Self::entry_count_in_column(i, entries_count);
-            let group_height = count_in_group as f32 * list_view::entry::HEIGHT;
-            group.resize(Vector2(size.x / 3.0, group_height));
-            let half_group_height = group_height / 2.0;
-            let background_bottom = -background_height / 2.0;
-            let pos = background_bottom + half_group_height;
-            group.set_position_y(pos);
-        }
-        self.size.set(Vector2(size.x, background_height));
+        let entry_count_in_largest_column = Self::entry_count_in_column(0, entry_count);
+        let background_height = entry_count_in_largest_column as f32 * list_view::entry::HEIGHT;
+        background_height.max(min_background_height)
     }
 
     fn entry_count_in_column(index: usize, total_entry_count: usize) -> usize {
