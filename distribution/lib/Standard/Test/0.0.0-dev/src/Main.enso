@@ -145,7 +145,7 @@ Any.should verb argument = verb Verbs this argument
 fail : Text -> Assertion
 fail message =
     failure = Failure message
-    Panic.throw <| failure
+    Panic.throw failure
 
 ## Expect a function to fail with the provided dataflow error.
 
