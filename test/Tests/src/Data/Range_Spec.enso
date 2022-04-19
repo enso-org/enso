@@ -19,8 +19,17 @@ spec = Test.group "Range" <|
         range_3.end . should_equal 0
         range_3.step  . should_equal -1
 
+    Test.specify "should allow setting a new step magnitude" <|
         1.up_to 2 . with_step 3 . should_equal (Range 1 2 3)
+
+        0.up_to 10 . with_step 2 . should_equal (Range 0 10 2)
+        0.up_to 10 . with_step 2 . to_vector . should_equal [0, 2, 4, 6, 8]
+
+        10.down_to 0 . with_step 2 . should_equal (Range 10 0 -2)
+        10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
+
         1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error
 
     Test.specify "should have a length" <|
         range = 0.up_to 100

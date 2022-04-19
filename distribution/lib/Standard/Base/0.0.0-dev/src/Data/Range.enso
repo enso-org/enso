@@ -18,12 +18,18 @@ type Range
        > Example
          Create a range of even numbers from 0 to 10 (exclusive).
 
-             0.up_to 10 . with_step 2
+             0.up_to 10 . with_step 2 . to_vector == [0, 2, 4, 6, 8]
+
+       > Example
+         Create a a decreasing range of even numbers from 10 to 0 (exclusive).
+
+             10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
     with_step : Integer -> Range
     with_step new_step = case new_step of
         Integer ->
             if new_step == 0 then here.throw_zero_step_error else
-                Range this.start this.end new_step
+                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range this.start this.end this.step.signum*new_step
         _ ->
             Error.throw (Illegal_Argument_Error "Range step should be an integer.")
 
