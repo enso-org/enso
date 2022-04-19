@@ -1,6 +1,7 @@
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::Animation;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
@@ -40,9 +41,11 @@ pub mod background {
     }
 }
 
-// =================
+
+
+// =====================
 // === ModelProvider ===
-// =================
+// =====================
 
 type Entry = list_view::entry::Label;
 #[derive(Debug, Clone, CloneRef, Default)]
@@ -89,14 +92,15 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
+        let background_height = Animation::new(network);
         frp::extend! { network
             let background_width = input.set_width.clone_ref();
             column_width <- background_width.map(|w| *w / 3.0);
 
             entry_count <- input.set_entries.map(|p| p.entry_count());
-            background_height <- entry_count.map(|c| Model::background_height(*c));
+            background_height.target <+ entry_count.map(|c| Model::background_height(*c));
 
-            _eval <- all_with(&background_width, &background_height, f!([model] (width, height) {
+            _eval <- all_with(&background_width, &background_height.value, f!([model] (width, height) {
                 model.background.size.set(Vector2(*width, *height));
             }));
 
@@ -116,11 +120,12 @@ impl component::Frp<Model> for Frp {
                 let group = group.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::new(p, idx));
                 entry_count_in_column <- entries.map(|p| p.entry_count());
+                trace entries;
                 group.set_entries <+ entries;
 
                 column_height <- entry_count_in_column.map(|count| *count as f32 * list_view::entry::HEIGHT);
 
-                _eval <- all_with3(&column_width, &column_height, &background_height, f!([group](&width, &height, bg_height) {
+                _eval <- all_with3(&column_width, &column_height, &background_height.value, f!([group](&width, &height, bg_height) {
                     group.resize(Vector2(width, height));
                     group.set_position_x(- width + width * idx as f32);
                     let half_height = height / 2.0;
@@ -198,7 +203,7 @@ impl Model {
             group.deselect_entries();
         }
     }
-    
+
     fn background_height(entry_count: usize) -> f32 {
         let min_background_height = list_view::entry::HEIGHT;
         let entry_count_in_largest_column = Self::entry_count_in_column(0, entry_count);
