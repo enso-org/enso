@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.callable.atom;
 
+import java.time.LocalDate;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -201,6 +203,21 @@ public class Atom implements TruffleObject {
   @ExportMessage
   boolean hasFunctionalDispatch() {
     return true;
+  }
+
+  @ExportMessage
+  boolean isDate(@CachedLibrary("this") InteropLibrary iop) {
+    var dateConstructor = Context.get(iop).getDateConstructor();
+    if (dateConstructor.isPresent()) {
+      return dateConstructor.get() == this.constructor;
+    } else {
+      return false;
+    }
+  }
+
+  @ExportMessage
+  LocalDate asDate(@CachedLibrary(limit = "3") InteropLibrary iop) throws UnsupportedMessageException {
+    return iop.asDate(fields[0]);
   }
 
   @ExportMessage

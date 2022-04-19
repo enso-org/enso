@@ -644,7 +644,7 @@ impl Area {
 
                     let mouse_over_raw = port_shape.hover.events.mouse_over.clone_ref();
                     let mouse_out      = port_shape.hover.events.mouse_out.clone_ref();
-                    mouse_down_raw <- port_shape.hover.events.mouse_down.constant(());
+                    let mouse_down_raw = port_shape.hover.events.mouse_down_primary.clone_ref();
 
 
                     // === Body Hover ===

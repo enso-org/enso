@@ -76,7 +76,6 @@ impl ShapeSystem {
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("time", 0.0);
-        material.add_input("symbol_id", 0);
         material.add_input("display_mode", 0);
         material.add_output("id", Vector4::<f32>::zero());
         material

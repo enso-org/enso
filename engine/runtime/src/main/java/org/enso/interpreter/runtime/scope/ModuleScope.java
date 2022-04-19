@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.google.common.base.Joiner;
 import com.oracle.truffle.api.CompilerDirectives;
 
 import java.util.*;

@@ -14,7 +14,6 @@ use crate::display::shape::primitive::system::DynamicShapeInternals;
 use crate::display::symbol;
 
 
-
 // ==============
 // === Export ===
 // ==============

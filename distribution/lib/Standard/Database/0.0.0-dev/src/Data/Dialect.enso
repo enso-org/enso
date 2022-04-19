@@ -35,7 +35,7 @@ type Dialect
        Deduces the result type for an aggregation operation.
 
        The provided aggregate is assumed to contain only already resolved columns.
-       You may need to transform it with `resolve_columns` first.
+       You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type = Errors.unimplemented "This is an interface only."
 

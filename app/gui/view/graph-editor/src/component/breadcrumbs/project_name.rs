@@ -265,10 +265,10 @@ impl ProjectName {
 
             // === Mouse IO ===
 
-            mouse_down <- model.view.events.mouse_down.constant(());
+            let mouse_down = model.view.events.mouse_down_primary.clone_ref();
             frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
                                           &model.view.events.mouse_over);
-            frp.source.mouse_down <+ model.view.events.mouse_down.constant(());
+            frp.source.mouse_down <+ model.view.events.mouse_down_primary;
 
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);

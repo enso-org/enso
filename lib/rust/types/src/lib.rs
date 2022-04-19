@@ -2,6 +2,14 @@
 
 // === Features ===
 #![feature(trait_alias)]
+#![feature(const_trait_impl)]
+#![feature(auto_traits)]
+#![feature(negative_impls)]
+#![feature(const_fn_trait_bound)]
+#![feature(const_ops)]
+#![feature(const_convert)]
+#![feature(const_mut_refs)]
+#![feature(const_fn_floating_point_arithmetic)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -23,6 +31,7 @@ pub mod algebra;
 pub mod num;
 pub mod topology;
 pub mod unit;
+pub mod unit2;
 
 pub use algebra::*;
 pub use topology::*;

@@ -203,6 +203,18 @@ defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
 will automatically download the appropriate compiler version along with the
 necessary components.
 
+Please consult the [GUI Contribution Guide](../app/gui/docs/CONTRIBUTING.md) to
+learn details on setting your system up. Quick summary:
+
+```bash
+enso$ rustup toolchain install stable                  # Stable toolchain required for the following tools.
+enso$ cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
+enso$ cargo +stable install cargo-watch                # To enable ./run watch utility
+```
+
+The previous three steps shall be enough to build the IDE via
+`./run build --dev`.
+
 ### Getting Set Up (JVM)
 
 In order to properly build the `runtime` component, the JVM running SBT needs to
@@ -535,47 +547,36 @@ For more details about the CI setup, you can check the
 
 ### Running Enso
 
-The only component in this repository with a proper executable is the Enso
-interpreter. It can be run using the sbt `run` command in the project `runner`
-and provides a rudimentary command-line interface to the basic capabilities of
-the interpreter.
-
-Enso should be launched using the `distribution/bin` scripts.
-
-#### Interpreter
-
-Interpreter is started with the `distribution/bin/enso` script and requires
-`runner.jar` and `runtime.jar` (see
+The language interpreter can be started by the `bin/enso` launcher script
+located inside of the Enso runtime distribution. Use the following `sbt` command
+to compile necessary bits (see
 [Building the Interperter CLI Fat Jar](#building-the-interpreter-cli-fat-jar))
-to be built and copied (or linked) to the `distribution/component` directory.
+and generate the Enso distribution:
 
 ##### Bash
 
 ```bash
-# build runtime.jar and runner.jar
-sbt engine-runner/assembly
-# link or copy jars to the distributiong
-mkdir -p distribution/component
-cd distribution/component
-ln -s ../../runtime.jar .
-ln -s ../../runner.jar .
+$ sbt buildEngineDistribution
+...
+Engine package created at built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev
 ```
 
 ##### PowerShell
 
 ```powershell
-# build runtime.jar and runner.jar
-sbt.bat engine-runner/assembly
-# copy jars to the distributiong
-mkdir -p .\distribution\component
-cp .\runtime.jar .\distribution\component\
-cp .\runner.jar .\distribution\component\
+sbt.bat buildEngineDistribution
 ```
 
-Detailed information on the flags it supports is shown by the `--help` flag, but
-the primary functionality is as follows:
+Then one can execute the launcher:
 
-- `--new PATH`: Creates a new Enso project at the location spcified by `PATH`.
+```bash
+$ built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso
+```
+
+Detailed information on the flags it supports can be shown with the `--help`
+flag, but the primary functionality is as follows:
+
+- `--new PATH`: Creates a new Enso project at the location specified by `PATH`.
 - `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
   In this case, `PATH` must point to either a standalone Enso file or an Enso
   project.
@@ -649,7 +650,7 @@ directory of the distribution folder. Distribution paths are printed when you
 run project manager with `-v` verbose logging.
 
 ```bash
-$ ./built-distribution/enso-project-manager-0.2.32-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+$ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
 [info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
 [debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
   dataRoot = /home/dbv/.local/share/enso,
