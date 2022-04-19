@@ -7,6 +7,7 @@ import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -19,6 +20,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
@@ -75,12 +79,12 @@ public class Text_Utils {
     return string.substring(from);
   }
 
-  private static ByteBuffer resize(ByteBuffer old) {
+  private static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
     int n = old.capacity();
     int new_n = 2*n + 1;
-    ByteBuffer o = ByteBuffer.allocate(new_n);
+    T o = allocate.apply(new_n);
     old.flip();
-    o.put(old);
+    put.accept(o, old);
     return o;
   }
 
@@ -113,7 +117,7 @@ public class Text_Utils {
         int position = in.position();
 
         if (out.remaining() < encoder.replacement().length) {
-          out = resize(out);
+          out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
         }
         out.put(encoder.replacement());
         in.position(in.position() + cr.length());
@@ -130,7 +134,7 @@ public class Text_Utils {
         encoder.flush(out);
         break;
       } else if (cr.isOverflow()) {
-        out = resize(out);
+        out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
       }
     }
 
@@ -238,15 +242,6 @@ public class Text_Utils {
     return new String(codepoints, 0, codepoints.length);
   }
 
-  private static CharBuffer resize(CharBuffer old) {
-    int n = old.capacity();
-    int new_n = 2*n + 1;
-    CharBuffer o = CharBuffer.allocate(new_n);
-    old.flip();
-    o.put(old);
-    return o;
-  }
-
   /**
    * Converts an array of encoded bytes into a string.
    *
@@ -276,7 +271,7 @@ public class Text_Utils {
         int position = in.position();
 
         if (out.remaining() < INVALID_CHARACTER.length()) {
-          out = resize(out);
+          out = resize(out, CharBuffer::allocate, CharBuffer::put);
         }
         out.put(INVALID_CHARACTER);
         in.position(in.position() + cr.length());
@@ -293,7 +288,7 @@ public class Text_Utils {
         decoder.flush(out);
         break;
       } else if (cr.isOverflow()) {
-        out = resize(out);
+        out = resize(out, CharBuffer::allocate, CharBuffer::put);
       }
     }
 

@@ -46,7 +46,7 @@ new path = case path of
 
          import Standard.Examples
 
-         example_read_bytes = Examples.csv.read_bytes
+         example_read_bytes = File.read_bytes Examples.csv
 read_bytes : (Text | File) -> Vector.Vector ! File_Error
 read_bytes path =
     file = case path of
