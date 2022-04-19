@@ -11,7 +11,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    type Range start end step=1
+    type Range (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -220,10 +220,17 @@ type Range
               vec = ["A", "B", "C", "D", "E"]
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
-    contains value =
-        if this.step > 0 then (value >= this.start) && (value < this.end) && (((value - this.start) % this.step) == 0) else
-            if this.step < 0 then (value <= this.start) && (value > this.end) && (((this.start - value) % (-this.step)) == 0) else
-                here.throw_zero_step_error
+    contains value = case value of
+        Integer ->
+            if this.step > 0 then (value >= this.start) && (value < this.end) && (((value - this.start) % this.step) == 0) else
+                if this.step < 0 then (value <= this.start) && (value > this.end) && (((this.start - value) % (-this.step)) == 0) else
+                    here.throw_zero_step_error
+        ## In the future this will be handled by type-checking, but for now we
+           add this so that we avoid a confusing
+           `Range 0 10 . contains 3.0 == False` and get a type error for
+           decimals instead.
+        _ ->
+            Error.throw (Illegal_Argument_Error "`Range.contains` only accepts Integers.")
 
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State_Error "A range with step = 0 is ill-formed.")

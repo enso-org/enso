@@ -287,8 +287,9 @@ type Syntax_Error message
    Arguments:
    - expected: The expected type at the error location.
    - actual: The actual type at the error location.
+   - name: The name of the argument whose type is mismatched.
 @Builtin_Type
-type Type_Error expected actual
+type Type_Error expected actual name
 
 ## The runtime representation of a compilation error.
 
