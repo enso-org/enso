@@ -59,6 +59,9 @@ spec =
         kshi = '\u0915\u094D\u0937\u093F'
         kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 
+        invalid = 'Hello World! ¢£¥\uFFFD'
+        invalid_utf_8 = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33, 32, -62, -94, -62, -93, -62, -91, -62]
+
         Test.specify "should dump utf-8 bytes to a vector via encoding" <|
             kshi.bytes Encoding.utf_8 . should_equal kshi_utf_8
 
@@ -70,6 +73,18 @@ spec =
 
         Test.specify "should convert an array of bytes to text" <|
             Text.from_utf_8 kshi_utf_8 . should_equal kshi
+
+        Test.specify "Invalid UTF-8 should raise a warning when decoding via encoding" <|
+            action = Text.from_bytes invalid_utf_8 Encoding.utf_8 on_problems=_
+            tester result = result . should_equal invalid
+            problems = [Encoding_Error "Encoding issues at 19."]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "Invalid UTF-8 should raise a warning when decoding" <|
+            action = Text.from_utf_8 invalid_utf_8 on_problems=_
+            tester result = result . should_equal invalid
+            problems = [Encoding_Error "Encoding issues at 19."]
+            Problems.test_problem_handling action problems tester
 
     Test.group "UTF_16 BigEndian" <|
         kshi = '\u0915\u094D\u0937\u093F'
