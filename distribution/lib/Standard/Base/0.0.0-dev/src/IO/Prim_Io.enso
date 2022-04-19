@@ -1,0 +1,29 @@
+## Primitive IO operations internal to the runtime.
+type Prim_Io
+
+    ## PRIVATE
+
+       A type for primitive IO operations.
+    type Prim_Io
+
+## PRIVATE
+
+   Gets a file corresponding to the current working directory of the
+   program.
+get_cwd : File
+get_cwd = @Builtin_Method "Prim_Io.get_cwd"
+
+## PRIVATE
+
+   Gets a file corresponding to the provided path.
+
+   Arguments:
+   - path: The path to obtain a file at.
+get_file : Text -> File
+get_file path = @Builtin_Method "Prim_Io.get_file"
+
+## PRIVATE
+
+   Gets the textual path to the user's system-defined home directory.
+user_home : Text
+user_home = @Builtin_Method "Prim_Io.user_home"
