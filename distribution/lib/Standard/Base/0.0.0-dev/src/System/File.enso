@@ -564,9 +564,7 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete =
-        result = here.handle_java_exceptions this this.prim_file.delete
-        if result.is_error then result else
-            Nothing
+        here.handle_java_exceptions this this.prim_file.delete
 
     ## Deletes the file if it exists on disk.
 
@@ -888,7 +886,7 @@ handle_java_exceptions file ~action =
         result = case exception of
             Polyglot_Error exc ->
                 if Java.is_instance exc NoSuchFileException then Error.throw (File_Not_Found file) else
-                    if Java.is_instance exc AccessDeniedException then Error.throw (Io_Error file ("You do not have permission to access the file.")) else
+                    if Java.is_instance exc AccessDeniedException then Error.throw (Io_Error file ("You do not have permission to access the file")) else
                         if Java.is_instance exc IOException then Error.throw (Io_Error file ("An IO error has occurred: " + exc.getMessage)) else
                             Panic.throw exception
             _ -> Panic.throw exception
@@ -928,7 +926,7 @@ type File_Error
     to_display_text : Text
     to_display_text = case this of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
-        Io_Error file msg -> msg.to_text + " (" + file.path + ")"
+        Io_Error file msg -> msg.to_text + " (" + file.path + ")."
 
 
 ## PRIVATE
