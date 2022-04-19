@@ -67,7 +67,8 @@ mod api_events {
 fn main() {
     use std::io::Write;
 
-    let backend_messages = api_events::parse(std::io::stdin()).unwrap();
+    let must_be_csv = "Parse error (Is this a CSV logged by the language server?)";
+    let backend_messages = api_events::parse(std::io::stdin()).expect(must_be_csv);
     let mut backend_profile = ProfileBuilder::new();
     backend_profile.time_offset_ms(0.0);
     backend_profile.process("LanguageServer");
@@ -79,5 +80,5 @@ fn main() {
         backend_profile.metadata(timestamp, "BackendMessage", data);
     }
     let backend_profile = backend_profile.build_string();
-    std::io::stdout().write_all(backend_profile.as_bytes()).unwrap();
+    std::io::stdout().write_all(backend_profile.as_bytes()).expect("IO Error writing results");
 }
