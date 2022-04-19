@@ -12,12 +12,16 @@ class InstrumentTestContext {
     Option(messageQueue.poll())
   }
 
-  def receiveOne(timeout: Long=10): Option[Api.Response] = {
-    Option(messageQueue.poll(timeout, TimeUnit.SECONDS))
+  def receive: Option[Api.Response] = {
+    Option(messageQueue.poll(10, TimeUnit.SECONDS))
   }
 
-  def receiveN(n: Int, timeout: Long=10): List[Api.Response] = {
-    Iterator.continually(receiveOne(timeout)).take(n).flatten.toList
+  def receiveWithTimeout(timeoutSeconds: Long): Option[Api.Response] = {
+    Option(messageQueue.poll(timeoutSeconds, TimeUnit.SECONDS))
+  }
+
+  def receiveN(n: Int, timeoutSeconds: Long=10): List[Api.Response] = {
+    Iterator.continually(receiveWithTimeout(timeoutSeconds)).take(n).flatten.toList
   }
 
   def receiveNIgnoreStdLib(n: Int): List[Api.Response] = {

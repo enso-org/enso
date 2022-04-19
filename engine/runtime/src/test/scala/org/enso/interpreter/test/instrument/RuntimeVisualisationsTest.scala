@@ -19,7 +19,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import scala.io.Source
 
@@ -39,9 +38,7 @@ class RuntimeVisualisationsTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) {
-    val messageQueue: LinkedBlockingQueue[Api.Response] =
-      new LinkedBlockingQueue()
+  class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
@@ -96,23 +93,6 @@ class RuntimeVisualisationsTest
     }
 
     def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
-    def receiveNone: Option[Api.Response] = {
-      Option(messageQueue.poll())
-    }
-
-    def receive: Option[Api.Response] =
-      receiveTimeout(20)
-
-    def receiveTimeout(timeoutSeconds: Int): Option[Api.Response] =
-      Option(messageQueue.poll(timeoutSeconds.toLong, TimeUnit.SECONDS))
-
-    def receive(n: Int, timeoutSeconds: Int = 20): List[Api.Response] =
-      Iterator
-        .continually(receiveTimeout(timeoutSeconds))
-        .take(n)
-        .flatten
-        .toList
 
     def consumeOut: List[String] = {
       val result = out.toString
@@ -267,13 +247,6 @@ class RuntimeVisualisationsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
-    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
-      false
-    case _ =>
-      true
-  }
-
   it should "emit visualisation update when expression is computed" in {
     val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
@@ -316,7 +289,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -340,7 +313,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(3)
+    val attachVisualisationResponses = context.receiveN(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -366,7 +339,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
 
-    val recomputeResponses = context.receive(3)
+    val recomputeResponses = context.receiveN(3)
     recomputeResponses should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
@@ -429,7 +402,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -452,7 +425,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -477,7 +450,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive(2) should contain allOf (
+    context.receiveN(2) should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -494,7 +467,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val recomputeResponses2 = context.receive(3)
+    val recomputeResponses2 = context.receiveN(3)
     recomputeResponses2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
@@ -558,7 +531,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -581,7 +554,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -617,7 +590,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val editFileResponse = context.receive(2)
+    val editFileResponse = context.receiveN(2)
     editFileResponse should contain(
       context.executionComplete(contextId)
     )
@@ -680,7 +653,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -703,7 +676,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -739,7 +712,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val editFileResponse = context.receive(2)
+    val editFileResponse = context.receiveN(2)
     editFileResponse should contain(
       context.executionComplete(contextId)
     )
@@ -800,7 +773,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -824,7 +797,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -859,7 +832,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val modifyVisualisationResponses = context.receive(2)
+    val modifyVisualisationResponses = context.receiveN(2)
     modifyVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationModified())
     )
@@ -926,7 +899,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         Api.ExecutionFailed(
@@ -946,7 +919,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushResponses = context.receive(6)
+    val pushResponses = context.receiveN(6)
     pushResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
@@ -991,7 +964,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -1008,7 +981,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
@@ -1056,7 +1029,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1079,7 +1052,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -1115,7 +1088,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receiveN(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
   }
@@ -1160,7 +1133,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1184,7 +1157,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receiveN(2)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -1230,7 +1203,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val modifyVisualisationResponses = context.receive(3)
+    val modifyVisualisationResponses = context.receiveN(3)
     modifyVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationModified()),
       Api.Response(requestId, Api.VisualisationDetached())
@@ -1284,7 +1257,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1308,7 +1281,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receiveN(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
     )
   }
@@ -1344,7 +1317,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1370,7 +1343,7 @@ class RuntimeVisualisationsTest
     )
 
     val attachVisualisationResponses =
-      context.receive(n = 5, timeoutSeconds = 60)
+      context.receiveN(n = 5, timeoutSeconds = 60)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1432,7 +1405,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1456,7 +1429,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receiveN(1) should contain theSameElementsAs Seq(
       Api.Response(
         requestId,
         Api.VisualisationExpressionFailed(
@@ -1506,7 +1479,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1530,7 +1503,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         Api.VisualisationEvaluationFailed(
@@ -1611,7 +1584,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1635,7 +1608,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
         Api.VisualisationEvaluationFailed(
@@ -1714,7 +1687,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receive(n = 4, timeoutSeconds = 60)
+    val responses = context.receiveN(n = 4, timeoutSeconds = 60)
 
     responses should contain allOf(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -1747,7 +1720,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(3)
+    val attachVisualisationResponses = context.receiveN(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1808,8 +1781,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val responses = context.receive(4, timeoutSeconds = 60)
-    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,
@@ -1834,7 +1806,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
       TestMessages.panic(
         contextId,
@@ -1919,7 +1891,7 @@ class RuntimeVisualisationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushContextResponses =
-      context.receive(n = 5, timeoutSeconds = 90)
+      context.receiveN(n = 5, timeoutSeconds = 90)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
@@ -1950,7 +1922,7 @@ class RuntimeVisualisationsTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(3)
+    val attachVisualisationResponses = context.receiveN(3)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)

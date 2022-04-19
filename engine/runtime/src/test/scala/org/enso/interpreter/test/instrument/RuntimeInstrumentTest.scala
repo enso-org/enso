@@ -102,7 +102,7 @@ class RuntimeInstrumentTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val Some(Api.Response(_, Api.InitializedNotification())) = context.receiveOne()
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   it should "instrument simple expression" in {
@@ -119,7 +119,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -168,7 +168,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -221,7 +221,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -283,7 +283,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -343,7 +343,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -402,7 +402,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -459,7 +459,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -518,7 +518,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -583,7 +583,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -643,7 +643,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -700,7 +700,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -762,7 +762,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -824,7 +824,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -884,7 +884,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -956,7 +956,7 @@ class RuntimeInstrumentTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 

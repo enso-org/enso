@@ -109,7 +109,7 @@ class RuntimeErrorsTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val Some(Api.Response(_, Api.InitializedNotification())) = context.receiveOne()
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   it should "return panic sentinels in method body" in {
@@ -135,7 +135,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -219,7 +219,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -298,7 +298,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -365,7 +365,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -448,7 +448,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -522,7 +522,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -662,7 +662,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -752,7 +752,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -838,7 +838,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -938,7 +938,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1054,7 +1054,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1177,7 +1177,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1286,7 +1286,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1381,7 +1381,7 @@ class RuntimeErrorsTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 

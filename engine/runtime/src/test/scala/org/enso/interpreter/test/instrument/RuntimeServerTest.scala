@@ -321,7 +321,7 @@ class RuntimeServerTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val Some(Api.Response(_, Api.InitializedNotification())) = context.receiveOne()
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
@@ -332,7 +332,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -348,7 +348,7 @@ class RuntimeServerTest
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
     )
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.InvalidStackItemError(contextId))
     )
 
@@ -393,7 +393,7 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, invalidExplicitCall)
       )
     )
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.InvalidStackItemError(contextId))
     )
 
@@ -407,13 +407,13 @@ class RuntimeServerTest
 
     // pop main
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.PopContextResponse(contextId))
     )
 
     // pop empty stack
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
@@ -440,7 +440,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -543,7 +543,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -629,7 +629,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -688,7 +688,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -748,7 +748,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -810,7 +810,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -871,7 +871,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -939,7 +939,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1037,7 +1037,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1118,7 +1118,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1207,7 +1207,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1406,7 +1406,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1599,7 +1599,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1636,7 +1636,7 @@ class RuntimeServerTest
     val requestId = UUID.randomUUID()
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1690,7 +1690,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
@@ -1709,7 +1709,7 @@ class RuntimeServerTest
     val code       = metadata.appendToCode("main = 84")
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1755,7 +1755,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       context.executionComplete(contextId)
     )
   }
@@ -1770,7 +1770,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1826,7 +1826,7 @@ class RuntimeServerTest
 
     // pop empty stack
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
@@ -1838,7 +1838,7 @@ class RuntimeServerTest
     val newline    = System.lineSeparator()
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1925,7 +1925,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -1971,7 +1971,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2023,7 +2023,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2076,7 +2076,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2120,7 +2120,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2171,7 +2171,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2229,7 +2229,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2297,7 +2297,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2373,7 +2373,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2451,7 +2451,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2520,7 +2520,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2590,7 +2590,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2684,7 +2684,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2745,7 +2745,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2805,7 +2805,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2870,7 +2870,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2936,7 +2936,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -2996,7 +2996,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -3045,7 +3045,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -3091,7 +3091,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
@@ -3174,7 +3174,7 @@ class RuntimeServerTest
     val expectedGraph: TypeGraph = Types.getTypeHierarchy
 
     context.send(Api.Request(requestId, Api.GetTypeGraphRequest()))
-    context.receiveOne() shouldEqual Some(
+    context.receive shouldEqual Some(
       Api.Response(requestId, Api.GetTypeGraphResponse(expectedGraph))
     )
   }
