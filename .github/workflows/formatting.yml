@@ -16,13 +16,14 @@ env:
 
 jobs:
   test_formatting:
-    name: Build and Test Formatting
-    runs-on: "ubuntu-18.04"
+    name: Test Formatting
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       # No need to run it on multiple distros, result should be the same
       fail-fast: false
     steps:
+      - uses: actions/checkout@v2
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
@@ -35,9 +36,7 @@ jobs:
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
-
-      # The actual check
-      - name: Check Scala formatting
+      - name: Check Code Formatting
         run: |
-          sbt --no-colors "scalafmtCheckAll; javafmtCheckAll"
+          sbt "scalafmtCheckAll; javafmtCheckAll"
 
