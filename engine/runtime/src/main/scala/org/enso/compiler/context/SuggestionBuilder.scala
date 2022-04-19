@@ -435,6 +435,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     methodName: String
   ): (Seq[Suggestion.Argument], Option[TypeArg]) = {
     var tagValues: Map[String, Seq[String]] = Map.empty;
+    if (selfType.toString().equals("Standard.Builtins.Main.Text")) {
+      if ("trim".equals(methodName)) {
+        tagValues = Map(
+          "where" -> Seq("Location.Both", "Location.Start", "Location.End")
+        )
+      }
+    }
     @scala.annotation.tailrec
     def go(
       vargs: Seq[IR.DefinitionArgument],
