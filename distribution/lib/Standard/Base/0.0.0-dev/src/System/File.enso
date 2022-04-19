@@ -104,7 +104,7 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
      `File.read_text file`. The later, however, will still work.
 
    > Example
-     Read the `data.csv` file in the from the Examples project.
+     Read the `data.csv` file from the Examples project.
 
          import Standard.Base.System.File
          import Standard.Examples
@@ -882,19 +882,10 @@ type Input_Stream
 
    Utility method for running an action with Java exceptions mapping.
 handle_java_exceptions file ~action =
-    rethrow_java exception =
-        result = case exception of
-            Polyglot_Error exc ->
-                if Java.is_instance exc NoSuchFileException then Error.throw (File_Not_Found file) else
-                    if Java.is_instance exc AccessDeniedException then Error.throw (Io_Error file ("You do not have permission to access the file")) else
-                        if Java.is_instance exc IOException then Error.throw (Io_Error file ("An IO error has occurred: " + exc.getMessage)) else
-                            Panic.throw exception
-            _ -> Panic.throw exception
-        result
-
-    err = Panic.recover Any action
-    r = err.catch (rethrow_java)
-    r
+    Panic.catch IOException handler=(caught_panic-> (Error.throw (Io_Error file "An IO error has occurred: " + caught_panic.payload.cause.getMessage))) <|
+        Panic.catch AccessDeniedException handler=(_-> (Error.throw (Io_Error file "You do not have permission to access the file"))) <|
+            Panic.catch NoSuchFileException handler=(_-> (Error.throw (File_Not_Found file))) <|
+                action
 
 ## PRIVATE
 
