@@ -188,7 +188,8 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
         if measurement.intervals.len() >= 2 {
             let row = self.next_row;
             self.next_row += 1;
-            for window in measurement.intervals.windows(2) {
+            let window_size = 2; // Current and next element.
+            for window in measurement.intervals.windows(window_size) {
                 if let [current, next] = window {
                     let current = &self.profile[*current];
                     let next = &self.profile[*next];
@@ -222,6 +223,19 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                     });
                 }
             }
+
+            // Add first inactive interval.
+            let first = measurement.intervals.first().unwrap(); // There are at least two intervals.
+            let first = &self.profile[*first];
+            self.blocks.push(Block {
+                start: measurement.created.into_ms(),
+                end: first.interval.start.into_ms(),
+                label: self.profile[first.measurement].label.to_string(),
+                row,
+                state: Paused,
+            });
+
+            // Add last active interval.
             let last = measurement.intervals.last().unwrap(); // There are at least two intervals.
             let last = &self.profile[*last];
             self.blocks.push(Block {
@@ -232,6 +246,8 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 state: Active,
             });
         }
+
+        // Recourse through children.
         for child in &measurement.children {
             self.visit_measurement(*child);
         }
