@@ -44,7 +44,7 @@ public abstract class InteropConversionCallNode extends Node {
     return InvokeConversionNode.build(
         args, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.PRE_EXECUTED, 1);
   }
-  
+
   Context getContext() {
     return Context.get(this);
   }

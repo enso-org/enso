@@ -51,8 +51,7 @@ public class DefaultDoubleExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Double _this, UnresolvedSymbol symbol)
+    static Function resolve(Double _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -107,10 +106,7 @@ public class DefaultDoubleExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Double _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+    static Function resolve(Double _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

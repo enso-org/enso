@@ -36,9 +36,7 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean doAtom(
-      Atom _this,
-      Atom that,
-      @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
+      Atom _this, Atom that, @Cached("getDecimalConstructor()") AtomConstructor decimalCons) {
     var thatCons = that.getConstructor();
     var thisCons = _this.getConstructor();
     return (thatCons == decimalCons) && (thisCons == thatCons);
