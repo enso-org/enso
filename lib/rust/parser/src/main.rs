@@ -18,79 +18,59 @@ pub mod prelude {
 #[derive(Clone, Debug)]
 pub struct Node<T> {
     head: T,
-    tail: Option<List<T>>,
+    tail: List<T>,
 }
 
 
 
-#[derive(Derivative, Debug)]
+#[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
 pub struct List<T> {
-    node: Rc<Option<Node<T>>>,
+    node: Option<Rc<Node<T>>>,
 }
 
 impl<T> List<T> {
     pub fn with_head(self, head: T) -> Self {
-        let tail = Some(self);
-        let node = Rc::new(Some(Node { head, tail }));
+        let tail = self;
+        let node = Some(Rc::new(Node { head, tail }));
         Self { node }
     }
 
     pub fn head(&self) -> Option<&T> {
-        (&*self.node).as_ref().map(|t| &t.head)
+        self.node.as_ref().map(|t| &t.head)
     }
 
-    pub fn tail(&self) -> List<T> {
-        if let Some(node) = &*self.node {
-            node.tail.clone().unwrap_or_default()
-        } else {
-            default()
-        }
-    }
-
-    pub fn tt(&self) -> Option<&List<T>> {
-        (&*self.node).as_ref().and_then(|t| t.tail.as_ref())
+    pub fn tail(&self) -> Option<&List<T>> {
+        self.node.as_ref().map(|t| &t.tail)
     }
 
     fn to_vec(&self) -> Vec<&T> {
         let mut out: Vec<&T> = default();
         let mut this = self;
         loop {
-            if let Some(head) = this.head() {
-                out.push(head);
-                if let Some(tail) = this.tt() {
-                    this = tail;
-                } else {
-                    break;
+            match this.head() {
+                None => break,
+                Some(head) => {
+                    out.push(head);
+                    match this.tail() {
+                        None => break,
+                        Some(tail) => this = tail,
+                    }
                 }
-            } else {
-                break;
             }
         }
         out
     }
 }
 
-// // FIXME: this has terrible performance
-// impl<T: Clone> From<&List<T>> for Vec<T> {
-//     fn from(list: &List<T>) -> Self {
-//         let mut tail: Vec<T> = (&list.tail()).into();
-//         if let Some(head) = list.head().cloned() {
-//             let mut v = vec![head];
-//             v.extend(tail.into_iter());
-//             v
-//         } else {
-//             tail
-//         }
-//     }
-// }
-// impl<T: Clone + Debug> Debug for List<T> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let v: Vec<T> = self.into();
-//         Debug::fmt(&v, f)
-//     }
-// }
+impl<T: Debug> Debug for List<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.to_vec(), f)
+    }
+}
+
+// ==================================
 
 pub struct Stream<'a> {
     in_bounds: bool,
@@ -212,7 +192,7 @@ impl<'a> SectionTreeStack<'a> {
             let mut new_section_tree = SectionTree::default();
             for v in list {
                 if let Some(first) = v.head() {
-                    let vv = v.tail();
+                    let vv = v.tail().cloned().unwrap_or_default();
                     new_section_tree.subsections.entry(&first.repr).or_default().push(vv);
                 } else {
                     todo!()
