@@ -81,7 +81,7 @@ class RuntimeSuggestionUpdatesTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
+      Option(messageQueue.poll(50, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -104,6 +104,13 @@ class RuntimeSuggestionUpdatesTest
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
+    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
+      false
+    case _ =>
+      true
   }
 
   it should "send suggestion updates after file modification" in {
@@ -742,6 +749,7 @@ class RuntimeSuggestionUpdatesTest
 
     val contents =
       """from Standard.Builtins import all
+        |from Standard.Base.Data.Text.Text import all
         |
         |main =
         |    x = 15.overloaded 1
@@ -781,7 +789,8 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val response = context.receive(4)
+    response.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -836,8 +845,8 @@ class RuntimeSuggestionUpdatesTest
                         "x",
                         Constants.ANY,
                         Suggestion.Scope(
-                          Suggestion.Position(2, 6),
-                          Suggestion.Position(7, 0)
+                          Suggestion.Position(3, 6),
+                          Suggestion.Position(8, 0)
                         )
                       ),
                       Api.SuggestionAction.Add()

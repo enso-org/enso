@@ -267,6 +267,13 @@ class RuntimeVisualisationsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
+  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
+    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
+      false
+    case _ =>
+      true
+  }
+
   it should "emit visualisation update when expression is computed" in {
     val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
@@ -1769,10 +1776,10 @@ class RuntimeVisualisationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(46, 14)
+    val idMain = metadata.addItem(42, 14)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |main =
         |    Panic.throw 42
@@ -1801,7 +1808,8 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val responses = context.receive(4, timeoutSeconds = 60)
+    responses.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.panic(
         contextId,

@@ -184,5 +184,22 @@ class DataflowErrorsTest extends InterpreterTest {
       eval(code)
       consumeOut shouldEqual List("(Error: My_Error)")
     }
+
+    // TODO: Make sure this is expected
+    "catch and pretty-print semantic errors" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+          |    IO.println x
+          |    IO.println (x.catch .to_text)
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List(
+        "(Error: (Syntax_Error 'Unrecognized token.'))",
+        "(Syntax_Error 'Unrecognized token.')",
+      )
+    }
   }
 }

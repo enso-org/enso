@@ -103,7 +103,7 @@ class RuntimeServerTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
+      Option(messageQueue.poll(50, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -337,6 +337,13 @@ class RuntimeServerTest
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+  }
+
+  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
+    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
+      false
+    case _ =>
+      true
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
@@ -1395,12 +1402,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(41, 80)
-    val id1      = metadata.addItem(50, 15)
-    val id2      = metadata.addItem(70, 18)
-    val id3      = metadata.addItem(93, 15)
+    val idMain   = metadata.addItem(86, 80)
+    val id1      = metadata.addItem(95, 15)
+    val id2      = metadata.addItem(115, 18)
+    val id3      = metadata.addItem(138, 15)
     val code =
       """from Standard.Builtins import all
+        |from Standard.Base.Data.Text.Text import all
         |
         |main =
         |    x = 15.overloaded 1
@@ -1440,7 +1448,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    val response = context.receive(7)
+    response.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       TestMessages.update(
@@ -2796,10 +2805,10 @@ class RuntimeServerTest
   }
 
   it should "return compiler error variable redefined" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata   = new Metadata
+    val metadata = new Metadata
 
     val code =
       """from Standard.Builtins import all
@@ -2866,10 +2875,11 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |main =
         |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+        |    IO.println x
         |    IO.println (x.catch .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2901,7 +2911,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    val response = context.receive(4)
+    response.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2918,7 +2929,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error 'Unrecognized token.'))"
+      "(Error: (Syntax_Error 'Unrecognized token.'))",
+      "(Syntax_Error 'Unrecognized token.')"
     )
   }
 
@@ -2930,6 +2942,7 @@ class RuntimeServerTest
 
     val code =
       """from Standard.Builtins import all
+        |from Standard.Base.Error.Common import all
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error
@@ -2965,7 +2978,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    val response = context.receive(3)
+    response.filter(excludeLibraryLoadingPayload) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -2974,7 +2988,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 30), model.Position(3, 32)))
+              Some(model.Range(model.Position(4, 30), model.Position(4, 32)))
             )
           )
         )

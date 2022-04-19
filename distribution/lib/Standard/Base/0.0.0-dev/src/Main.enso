@@ -14,6 +14,7 @@ import project.Data.Ordering.Sort_Order
 import project.Data.Pair
 import project.Data.Range
 import project.Data.Ref
+import project.Data.Text.Text
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
 import project.Data.Vector
@@ -30,7 +31,7 @@ import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
-from Standard.Builtins import Nothing, Number, Integer, Arithmetic_Error
+from Standard.Builtins import Nothing, Number, Integer
 
 export project.Data.Interval
 export project.Data.Json
@@ -66,6 +67,7 @@ from project.Data.Range export Range
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style, Case, Location
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
+from project.Data.Text.Text export all
 from project.Error.Common export all
 from project.Error.Extensions export all
 from project.Meta.Enso_Project export all

@@ -91,7 +91,7 @@ class StateTest extends InterpreterTest {
 
     "undo changes on Panics" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |
           |panicker =
           |    State.put Number 400

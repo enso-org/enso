@@ -1,0 +1,40 @@
+## Enso's text type.
+type Text
+
+    ## Enso's text type.
+
+       Enso's text type is natively unicode aware, and will handle arbitrary
+       textual data.
+
+       ? Concatenation
+         Enso's text type uses a rope-based structure under the hood to provide
+         users with efficient concatenation operations.
+    @Builtin_Type
+    type Text
+
+    ## Concatenates the text that to the right side of this.
+
+       Arguments:
+       - that: The text to concatenate to this.
+
+       > Example
+         Concatenating two texts.
+
+             "Hello" + ", world!"
+    + : Text -> Text
+    + that = @Builtin_Method "Text.+"
+
+## Internal text utilities for inspecting text primitives.
+type Prim_Text_Helper
+
+    ## PRIVATE
+
+       A container for primitive text operations.
+    @Builtin_Type
+    type Prim_Text_Helper
+
+    ## PRIVATE
+
+       Forces flattening of a text value.
+    optimize : Text
+    optimize = @Builtin_Method "Prim_Text_Helpers.optimize"

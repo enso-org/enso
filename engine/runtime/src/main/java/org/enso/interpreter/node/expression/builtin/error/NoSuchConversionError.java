@@ -1,0 +1,13 @@
+package org.enso.interpreter.node.expression.builtin.error;
+
+import org.enso.interpreter.dsl.BuiltinType;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+
+@BuiltinType(params = "target,that,conversion")
+public class NoSuchConversionError extends AtomConstructor {
+    public NoSuchConversionError(ModuleScope definitionScope) {
+        super("No_Such_Conversion_Error", definitionScope, true);
+    }
+}
+

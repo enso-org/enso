@@ -107,6 +107,8 @@ class TextTest extends InterpreterTest {
         """
           |from Standard.Builtins import all
           |from Standard.Base.Data.List import Cons
+          |from Standard.Base.Error.Common import all
+          |from Standard.Base.Data.Text.Text import all
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text

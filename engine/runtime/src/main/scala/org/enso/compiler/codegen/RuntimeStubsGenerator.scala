@@ -1,5 +1,6 @@
 package org.enso.compiler.codegen
 
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.builtin.Builtins
@@ -25,6 +26,9 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     localBindings.types.foreach { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
+        if (builtinType == null) {
+          throw new CompilerError("Unknown @BuiltinType " + tp.name)
+        }
         scope.registerConstructor(builtinType)
         builtinType.setShadowDefinitions(scope)
       } else {

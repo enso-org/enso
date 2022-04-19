@@ -247,6 +247,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       val code =
         """
           |from Standard.Builtins import all
+          |from Standard.Base.Error.Common import Panic
           |
           |main =
           |    Debug.breakpoint

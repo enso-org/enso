@@ -39,6 +39,7 @@ import org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMetho
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
@@ -74,8 +75,6 @@ public class Builtins {
   private final AtomConstructor projectDescription;
   private final AtomConstructor function;
   private final AtomConstructor nothing;
-  private final AtomConstructor panic;
-  private final AtomConstructor caughtPanic;
 
   private final Error error;
   private final Module module;
@@ -84,7 +83,6 @@ public class Builtins {
   private final Ordering ordering;
   private final Resource resource;
   private final System system;
-  private final Text text;
   private final Special special;
 
   /**
@@ -107,21 +105,13 @@ public class Builtins {
                 new ArgumentDefinition(
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
-    error = new Error(language, scope);
+    error = new Error(this);
     function = new AtomConstructor("Function", scope).initializeFields();
     nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
-    panic = new AtomConstructor("Panic", scope).initializeFields();
-    caughtPanic =
-        new AtomConstructor("Caught_Panic", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "payload", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(
-                    1, "internal_original_exception", ArgumentDefinition.ExecutionMode.EXECUTE));
     resource = new Resource(language, scope);
     system = new System(language, scope);
-    text = new Text(language, scope);
     special = new Special(language);
 
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
@@ -137,8 +127,6 @@ public class Builtins {
 
     scope.registerConstructor(io);
     scope.registerConstructor(primIo);
-    scope.registerConstructor(panic);
-    scope.registerConstructor(caughtPanic);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
     scope.registerConstructor(projectDescription);
@@ -161,13 +149,6 @@ public class Builtins {
     scope.registerMethod(
         runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
 
-    scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
-    scope.registerMethod(panic, "catch_primitive", CatchPanicMethodGen.makeFunction(language));
-    scope.registerMethod(
-        panic,
-        "primitive_get_attached_stack_trace",
-        GetAttachedStackTraceMethodGen.makeFunction(language));
-    scope.registerMethod(caughtPanic, "convert_to_dataflow_error", CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "run", RunStateMethodGen.makeFunction(language));
@@ -345,6 +326,11 @@ public class Builtins {
     }
   }
 
+  public AtomConstructor getBuiltinType(Class<?> clazz) {
+    String snakeCaseName = clazz.getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+    return getBuiltinType(snakeCaseName);
+  }
+
   public AtomConstructor getBuiltinType(String name) {
     return builtinTypes.get(name);
   }
@@ -363,8 +349,8 @@ public class Builtins {
    *
    * @return the {@code Text} part of builtins.
    */
-  public Text text() {
-    return text;
+  public AtomConstructor text() {
+    return getBuiltinType(Text.class);
   }
 
   /**
@@ -451,7 +437,12 @@ public class Builtins {
 
   /** @return the {@code Caught_Panic} atom constructor */
   public AtomConstructor caughtPanic() {
-    return caughtPanic;
+    return builtinTypes.get("Caught_Panic");
+  }
+
+  /** @return the {@code Panic} atom constructor */
+  public AtomConstructor panic() {
+    return builtinTypes.get("Panic");
   }
 
   /** @return the container for ordering-related builtins */
@@ -511,11 +502,11 @@ public class Builtins {
       case Constants.NUMBER:
         return number.getNumber().newInstance();
       case Constants.PANIC:
-        return panic.newInstance();
+        return panic().newInstance();
       case Constants.REF:
         return ref().newInstance();
       case Constants.TEXT:
-        return text.getText().newInstance();
+        return getBuiltinType(Text.class).newInstance();
       default:
         return null;
     }

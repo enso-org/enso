@@ -812,8 +812,8 @@ class IrToTruffle(
                   builtinFalse,
                   branchCodeNode.getCallTarget
                 )
-              } else if (atomCons == text.getText) {
-                TextBranchNode.build(text.getText, branchCodeNode.getCallTarget)
+              } else if (atomCons == text) {
+                TextBranchNode.build(text, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getInteger) {
                 IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getDecimal) {
