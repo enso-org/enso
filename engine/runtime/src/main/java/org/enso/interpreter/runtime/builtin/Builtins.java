@@ -178,7 +178,10 @@ public class Builtins {
         panic,
         "primitive_get_attached_stack_trace",
         GetAttachedStackTraceMethodGen.makeFunction(language));
-    scope.registerMethod(caughtPanic, "convert_to_dataflow_error", CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
+    scope.registerMethod(
+        caughtPanic,
+        "convert_to_dataflow_error",
+        CaughtPanicConvertToDataflowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch_primitive", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));

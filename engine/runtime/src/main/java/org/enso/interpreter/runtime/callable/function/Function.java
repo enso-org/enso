@@ -397,8 +397,7 @@ public final class Function implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Function _this, UnresolvedSymbol symbol)
+    static Function resolve(Function _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -421,7 +420,8 @@ public final class Function implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
-      return conversion.resolveFor(target, context.getBuiltins().function(), context.getBuiltins().any());
+      return conversion.resolveFor(
+          target, context.getBuiltins().function(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -429,29 +429,26 @@ public final class Function implements TruffleObject {
     }
 
     @Specialization(
-            guards = {
-                    "!getContext().isInlineCachingDisabled()",
-                    "cachedTarget == target",
-                    "cachedConversion == conversion",
-                    "function != null"
-            },
-            limit = "CACHE_SIZE")
+        guards = {
+          "!getContext().isInlineCachingDisabled()",
+          "cachedTarget == target",
+          "cachedConversion == conversion",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
     static Function resolveCached(
-            Function _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion,
-            @Cached("conversion") UnresolvedConversion cachedConversion,
-            @Cached("target") AtomConstructor cachedTarget,
-            @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
+        Function _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @Cached("conversion") UnresolvedConversion cachedConversion,
+        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-            Function _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion)
-            throws MethodDispatchLibrary.NoSuchConversionException {
+    static Function resolve(Function _this, AtomConstructor target, UnresolvedConversion conversion)
+        throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();

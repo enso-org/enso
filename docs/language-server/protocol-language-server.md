@@ -403,7 +403,7 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 interface SuggestionEntryArgument {
   // The argument name
   name: string;
-  // The arguement type. String 'Any' is used to specify genric types
+  // The argument type. String 'Any' is used to specify generic types
   type: string;
   // Indicates whether the argument is lazy
   isSuspended: bool;

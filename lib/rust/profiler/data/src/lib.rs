@@ -258,6 +258,11 @@ impl<M> Profile<M> {
     pub fn root_interval_id(&self) -> IntervalId {
         IntervalId(self.intervals.len() - 1)
     }
+
+    /// Iterate over only the metadata stored in the profile.
+    pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
+        self.intervals.iter().flat_map(|interval| interval.metadata.iter())
+    }
 }
 
 

@@ -41,7 +41,8 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)} is called.
+   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)}
+   * is called.
    *
    * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
@@ -51,16 +52,15 @@ public final class AtomConstructor implements TruffleObject {
     this.definitionScope = definitionScope;
   }
 
-
   /**
-   * Generates a constructor function for this {@link AtomConstructor}.
-   * Note that such manually constructed argument definitions must not have default arguments.
+   * Generates a constructor function for this {@link AtomConstructor}. Note that such manually
+   * constructed argument definitions must not have default arguments.
    *
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
-    for (int i=0; i<args.length; i++) {
+    for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null);
     }
     return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, args);
@@ -76,10 +76,10 @@ public final class AtomConstructor implements TruffleObject {
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
-          LocalScope localScope,
-          ExpressionNode[] assignments,
-          ExpressionNode[] varReads,
-          ArgumentDefinition... args) {
+      LocalScope localScope,
+      ExpressionNode[] assignments,
+      ExpressionNode[] varReads,
+      ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
     generateMethods(args);
@@ -93,8 +93,9 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Generates a constructor function to be used for object instantiation from other Enso code.
-   * Building constructor function involves storing the argument in a local var and then reading
-   * it again on purpose. That way default arguments can refer to previously defined constructor arguments.
+   * Building constructor function involves storing the argument in a local var and then reading it
+   * again on purpose. That way default arguments can refer to previously defined constructor
+   * arguments.
    *
    * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
@@ -104,16 +105,21 @@ public final class AtomConstructor implements TruffleObject {
    *     {@link AtomConstructor}
    */
   private Function buildConstructorFunction(
-          LocalScope localScope,
-          ExpressionNode[] assignments,
-          ExpressionNode[] varReads,
-          ArgumentDefinition[] args) {
+      LocalScope localScope,
+      ExpressionNode[] assignments,
+      ExpressionNode[] varReads,
+      ArgumentDefinition[] args) {
 
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
     BlockNode instantiateBlock = BlockNode.build(assignments, instantiateNode);
     RootNode rootNode =
-        ClosureRootNode.build(null, localScope, definitionScope, instantiateBlock,
-                instantiateNode.getSourceSection(), definitionScope.getModule().getName().item() + "." + name);
+        ClosureRootNode.build(
+            null,
+            localScope,
+            definitionScope,
+            instantiateBlock,
+            instantiateNode.getSourceSection(),
+            definitionScope.getModule().getName().item() + "." + name);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(callTarget, null, new FunctionSchema(args));
   }
@@ -290,9 +296,7 @@ public final class AtomConstructor implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        AtomConstructor _this,
-        UnresolvedSymbol symbol)
+    static Function resolve(AtomConstructor _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(_this, symbol);
       if (function == null) {
@@ -313,9 +317,7 @@ public final class AtomConstructor implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(
-        AtomConstructor cons,
-        AtomConstructor target,
-        UnresolvedConversion conversion) {
+        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
       return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
     }
 
@@ -345,9 +347,7 @@ public final class AtomConstructor implements TruffleObject {
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        AtomConstructor _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+        AtomConstructor _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(_this, target, conversion);
       if (function == null) {

@@ -213,8 +213,7 @@ public class Text implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Text _this, UnresolvedSymbol symbol)
+    static Function resolve(Text _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -269,10 +268,7 @@ public class Text implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Text _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+    static Function resolve(Text _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

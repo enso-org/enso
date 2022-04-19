@@ -28,6 +28,22 @@ use parser::Parser;
 
 
 
+// =================
+// === Profiling ===
+// =================
+
+thread_local! {
+    /// A common preamble used to start every shader program.
+    static RPC_EVENT_LOGGER: enso_profiler::MetadataLogger<& 'static str> = enso_profiler::MetadataLogger::new("RpcEvent");
+}
+
+/// Log an RPC Event to the profiling framework.
+pub fn log_rpc_event(event_name: &'static str) {
+    RPC_EVENT_LOGGER.with(|logger| logger.log(event_name));
+}
+
+
+
 // =================================
 // === ExecutionContextsRegistry ===
 // =================================
@@ -457,6 +473,14 @@ impl Project {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
             use engine_protocol::language_server::Event;
             use engine_protocol::language_server::Notification;
+
+            // Profiler logging
+            if let Event::Notification(notification) = &event {
+                let name: &'static str = notification.into();
+                log_rpc_event(name);
+            }
+
+            // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
