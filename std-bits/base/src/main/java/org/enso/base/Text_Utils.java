@@ -38,23 +38,6 @@ public class Text_Utils {
       Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
   private static final String INVALID_CHARACTER = "\uFFFD";
 
-  /***
-   * Utility function to get a Charset for character_set name.
-   * Uses the StandardCharsets if possible.
-   * @param character_set name of the character set
-   * @return Charset object
-   */
-  public static Charset get_charset(String character_set) {
-    switch (character_set) {
-      case "UTF-8": return StandardCharsets.UTF_8;
-      case "UTF-16LE": return StandardCharsets.UTF_16LE;
-      case "UTF-16BE": return StandardCharsets.UTF_16BE;
-      case "US-ASCII": return StandardCharsets.US_ASCII;
-      case "windows-1252": return StandardCharsets.ISO_8859_1;
-      default: return Charset.forName(character_set);
-    }
-  }
-
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
    * mechanism.

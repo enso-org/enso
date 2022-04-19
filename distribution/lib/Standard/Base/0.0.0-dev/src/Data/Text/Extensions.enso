@@ -743,8 +743,7 @@ Text.is_whitespace =
 ## Returns a vector containing bytes representing the specified encoding of the
    input text.
 
-   This is useful for low-level operations, such as binary data encoding and
-   decoding.
+   This is useful for low-level operations, such as binary data encoding.
 
    Arguments:
    - encoding: The text encoding to encode this with. Defaults to UTF-8.

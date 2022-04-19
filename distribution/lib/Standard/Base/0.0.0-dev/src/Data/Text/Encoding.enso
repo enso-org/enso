@@ -31,17 +31,6 @@ type Encoding
         Panic.catch UnsupportedCharsetException (Text_Utils.get_charset this.character_set) _->
             Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + this.character_set))
 
-    ## Check if this Encoding is equal to another Encoding.
-
-       > Example
-         Check if two Encodings are equal.
-
-             import Standard.Base.Text.Encoding
-
-             Encoding.utf_8 == Encoding "UTF-8"
-    == : Encoding->Boolean
-    == that = this.character_set == that.character_set
-
     ## Encoding for ASCII.
     ascii : Encoding
     ascii = Encoding "US-ASCII"
@@ -89,6 +78,10 @@ type Encoding
        Encoding for Turkish (Windows).
     windows_1254 : Encoding
     windows_1254 = Encoding "windows-1254"
+
+    ## Encoding for Hebrew (Windows).
+    windows_1255 : Encoding
+    windows_1255 = Encoding "windows-1255"
 
     ## Encoding for Arabic (Windows).
     windows_1256 : Encoding
