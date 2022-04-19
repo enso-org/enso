@@ -234,7 +234,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 end: first.interval.start.into_ms(),
                 label: self.profile[first.measurement].label.to_string(),
                 row,
-                state: Paused,
+                theme_color: COLOR_BLOCK_PAUSED,
             });
 
             // Add last active interval.
@@ -245,7 +245,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 end: last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
                 label: self.profile[last.measurement].label.to_string(),
                 row,
-                state: Active,
+                theme_color: COLOR_BLOCK_ACTIVE,
             });
         }
 
@@ -317,10 +317,10 @@ struct FlamegraphGrapher {
 }
 
 impl FlamegraphGrapher {
-    fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
+    fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: RowNumber) {
         let start = self.time;
         let end = self.time + frame.total_duration();
-        self.blocks.push(Block { start, end, label, row, state: State::Active });
+        self.blocks.push(Block { start, end, label, row, theme_color: COLOR_BLOCK_ACTIVE });
         for (label, frame) in &frame.children {
             self.visit_frame(frame, label.to_string(), row + 1);
         }

@@ -19,7 +19,6 @@ use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
-use crate::profiler::log_stats_data;
 use crate::system::web;
 
 use web::prelude::Closure;
@@ -53,6 +52,22 @@ impl Uniforms {
         let display_mode = scope.add_or_panic("display_mode", 0);
         Self { time, display_mode }
     }
+}
+
+
+// =========================
+// === Metadata Profiler ===
+// =========================
+
+
+thread_local! {
+    /// A common preamble used to start every shader program.
+    static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
+}
+
+/// Log rendering stats to the profiling framework.
+pub fn log_render_stats(stats: StatsData) {
+    RENDER_STATS_LOGGER.with(|logger| logger.log(stats));
 }
 
 
@@ -207,7 +222,7 @@ impl WorldData {
         let garbage_collector = default();
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
-            log_stats_data(*stats)
+            log_render_stats(*stats)
         }));
 
         Self {

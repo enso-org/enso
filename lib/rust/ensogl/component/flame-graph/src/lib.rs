@@ -73,10 +73,7 @@ pub fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -
 
     let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
 
-    let color: color::Rgba = match block.state {
-        State::Active => style.get_color("flame_graph_block_color_active").value(),
-        State::Paused => style.get_color("flame_graph_block_color_paused").value(),
-    };
+    let color: color::Rgba = style.get_color(block.theme_color).value();
     let color: color::Lcha = color.into();
     component.set_color(color);
 
@@ -95,31 +92,10 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
     component.set_content.emit(label);
     component.set_position_xy(pos);
 
-    let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-
-    let color: color::Rgba = style.get_color(block.theme_color).value();
-    let color: color::Lcha = color.into();
-    component.set_color(color);
-
     component
 }
 
-/// Instantiate a `Block` shape for the given block data from the profiler.
-pub fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark {
-    let component = app.new_view::<Mark>();
-    let x = mark.position as f32;
-    let y = 0.0;
-    let pos = Vector2::new(x, y);
-
-    let label = format!("{} ({:.1}ms)", mark.label, mark.position);
-
-    component.set_content.emit(label);
-    component.set_position_xy(pos);
-
-    component
-}
-
-const MIN_INTERVAL_TIME: f64 = 0.0;
+const MIN_INTERVAL_TIME_MS: f64 = 0.0;
 const X_SCALE: f64 = 1.0;
 
 fn align_block(
@@ -157,8 +133,7 @@ impl FlameGraph {
         let blocks = blocks_zero_aligned.map(|block| shape_from_block(block, app)).collect_vec();
         blocks.iter().for_each(|item| display_object.add_child(item));
 
-        let marks: Vec<_> =
-            blocks_marks_aligned.into_iter().map(|mark| shape_from_mark(mark, app)).collect();
+        let marks: Vec<_> = marks.into_iter().map(|mark| shape_from_mark(mark, app)).collect();
         marks.iter().for_each(|item| display_object.add_child(item));
 
         let app = app.clone_ref();

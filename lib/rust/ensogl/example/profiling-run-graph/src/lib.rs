@@ -21,18 +21,16 @@ use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_profiler_data::Profile;
 use enso_profiler_flame_graph as profiler_flame_graph;
-use enso_profiler_metadata::Metadata;
 use enso_profiler_flame_graph::COLOR_BLOCK_ACTIVE;
 use enso_profiler_flame_graph::COLOR_BLOCK_PAUSED;
 use enso_profiler_flame_graph::COLOR_MARK_DEFAULT;
+use enso_profiler_metadata::Metadata;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
-use ensogl_core::profiler::log_rpc_event;
-use ensogl_core::profiler::Metadata;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 
@@ -130,7 +128,7 @@ fn init_theme(scene: &Scene) {
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
         .iter_metadata()
-        .filter_map(|metadata: &enso_profiler_data::Metadata<ensogl_core::profiler::Metadata>| {
+        .filter_map(|metadata: &enso_profiler_data::Metadata<Metadata>| {
             let position = metadata.mark.into_ms();
             match metadata.data {
                 Metadata::RenderStats(_) => None,
@@ -167,7 +165,6 @@ fn make_rendering_performance_blocks(
     }
     blocks
 }
-
 
 
 
@@ -232,9 +229,7 @@ fn work(n: u32) {
 #[profile(Objective)]
 async fn start_project() {
     wake_dragon().await;
-    log_rpc_event("Dragon Awake");
     feed_troll();
-    log_rpc_event("Troll Fed");
     ride_rainbow();
 }
 #[profile(Objective)]
