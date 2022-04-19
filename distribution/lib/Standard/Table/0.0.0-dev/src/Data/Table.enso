@@ -1184,7 +1184,7 @@ type Table
 
              example_to_csv = Examples.inventory_table.write_csv (Enso_Project.data / 'example.json')
     write_json : File.File -> Nothing
-    write_json file = file.write this.to_json.to_text
+    write_json file = file.write_text this.to_json.to_text
 
     ## UNSTABLE
 

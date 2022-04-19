@@ -55,9 +55,7 @@ Manual.to_text = "[[[MyREP " + this.b.to_text + "]]]"
 spec =
     Test.group "Text" <|
         kshi = '\u0915\u094D\u0937\u093F'
-        kshi_utf_8 = [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
-        facepalm_codes = [129318, 127996, 8205, 9794, 65039]
         accent_1 = '\u00E9'
         accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
@@ -168,17 +166,6 @@ spec =
         Test.specify "should be able to split the text on arbitrary text sequence" <|
             "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
 
-        Test.specify "should dump utf-8 bytes to a vector" <|
-            kshi.utf_8.should_equal kshi_utf_8
-
-        Test.specify "should convert an array of bytes to text" <|
-            Text.from_utf_8 kshi_utf_8 . should_equal kshi
-
-        Test.specify "should dump utf codepoints to a vector" <|
-            facepalm.codepoints.should_equal facepalm_codes
-
-        Test.specify "should convert an array of codepoints to text" <|
-            Text.from_codepoints facepalm_codes . should_equal facepalm
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto (Manual 123) . to_text
@@ -427,13 +414,13 @@ spec =
             "123".to_case Case.Upper . should_equal "123"
             "abc123".to_case Case.Upper . should_equal "ABC123"
 
-        Test.specify "should dump utf-16 characters to a vector" <|
-            kshi_chars = kshi.utf_16
+        Test.specify "should dump characters to a vector" <|
+            kshi_chars = kshi.char_vector
             kshi_chars . should_equal [2325, 2381, 2359, 2367]
 
-        Test.specify "should convert an array of utf-16 characters to text" <|
+        Test.specify "should convert a vector of characters to text" <|
             kshi_chars = [2325, 2381, 2359, 2367]
-            Text.from_utf_16 kshi_chars . should_equal kshi
+            Text.from_char_vector kshi_chars . should_equal kshi
 
         Test.specify "should insert text at a non-negative index position" <|
             "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
