@@ -187,7 +187,7 @@ Error.should_fail_with matcher frames_to_skip=0 =
     caught = this.catch x->x
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
-        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + "."))
+        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + ").")
 
 ## Expect a function to fail with the provided panic.
 
