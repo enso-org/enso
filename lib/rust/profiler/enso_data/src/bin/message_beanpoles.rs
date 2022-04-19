@@ -81,19 +81,21 @@ fn main() {
     let ls = dia.process("LanguageServer");
     let engine = dia.process("Engine");
     // TODO[kw]: Add metadata to format and read these fields from the file.
-    //let offset0 = profiles[0].time_offset.unwrap().0;
-    //let offset1 = profiles[1].time_offset.unwrap().0;
-    let offset0 = 16387.6;
-    let offset1 = 1649765873085.0;
+    let mut offset0 = None;
+    let mut offset1 = None;
     for meta in metadata0.into_iter() {
         if let enso_data::Metadata::RpcMessage(message) = meta.data {
-            let time = meta.mark.into_ms() - offset0 + 6200.0;
+            let abs_time = meta.mark.into_ms();
+            let offset = offset0.get_or_insert(abs_time);
+            let time = abs_time - *offset;
             dia.message(ls, frontend, time, message);
         }
     }
     for meta in metadata1.into_iter() {
         if let enso_data::Metadata::BackendMessage(message) = meta.data {
-            let time = meta.mark.into_ms() - offset1;
+            let abs_time = meta.mark.into_ms();
+            let offset = offset1.get_or_insert(abs_time);
+            let time = abs_time - *offset;
             let (p0, p1) = match message.direction {
                 enso_data::backend::Direction::Request => (ls, engine),
                 enso_data::backend::Direction::Response => (engine, ls),
