@@ -128,11 +128,18 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be invocable.");
     } catch (ArityException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+          this);
     }
   }
 
@@ -147,7 +154,8 @@ public abstract class HostMethodCallNode extends Node {
       @Cached BranchProfile errorProfile) {
     if (args.length != 0) {
       errorProfile.enter();
-      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
+      throw new PanicException(
+          Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
       return hostValueToEnsoNode.execute(members.readMember(_this, symbol));
@@ -172,11 +180,18 @@ public abstract class HostMethodCallNode extends Node {
           "Impossible to reach here. The member is checked to be instantiable.");
     } catch (ArityException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeArityError(e.getExpectedMinArity(), e.getExpectedMaxArity(), e.getActualArity()),
           this);
     } catch (UnsupportedTypeException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeUnsupportedArgumentsError(e.getSuppliedValues()), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeUnsupportedArgumentsError(e.getSuppliedValues()),
+          this);
     }
   }
 
@@ -191,7 +206,8 @@ public abstract class HostMethodCallNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 0) {
       errorProfile.enter();
-      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
+      throw new PanicException(
+          Context.get(this).getBuiltins().error().makeArityError(0, 0, args.length), this);
     }
     try {
       return hostValueToEnsoNode.execute(arrays.getArraySize(_this));
@@ -212,7 +228,8 @@ public abstract class HostMethodCallNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 1) {
       arityErrorProfile.enter();
-      throw new PanicException(Context.get(this).getBuiltins().error().makeArityError(1, 1, args.length), this);
+      throw new PanicException(
+          Context.get(this).getBuiltins().error().makeArityError(1, 1, args.length), this);
     }
     if (!(args[0] instanceof Long)) {
       typeErrorProfile.enter();

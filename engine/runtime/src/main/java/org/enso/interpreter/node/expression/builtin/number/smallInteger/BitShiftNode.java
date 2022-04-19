@@ -38,8 +38,7 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = "that >= 0", replaces = "doLongShiftLeft")
-  Object doLongShiftLeftExplicit(
-      long _this, long that) {
+  Object doLongShiftLeftExplicit(long _this, long that) {
     if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(_this, that))) {
       return doLongShiftLeft(_this, that);
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
@@ -69,9 +68,7 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization
-  Object doBigInteger(
-      long _this,
-      EnsoBigInteger that) {
+  Object doBigInteger(long _this, EnsoBigInteger that) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return _this >= 0 ? 0L : -1L;
     } else {

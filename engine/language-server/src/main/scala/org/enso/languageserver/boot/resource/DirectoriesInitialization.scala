@@ -9,8 +9,8 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param directoriesConfig the directories config
   */
-class DirectoriesInitialization(directoriesConfig: ProjectDirectoriesConfig)(implicit
-                                                                             ec: ExecutionContext
+class DirectoriesInitialization(directoriesConfig: ProjectDirectoriesConfig)(
+  implicit ec: ExecutionContext
 ) extends InitializationComponent
     with LazyLogging {
 
