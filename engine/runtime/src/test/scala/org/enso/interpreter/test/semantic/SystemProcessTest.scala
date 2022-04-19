@@ -265,7 +265,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stdout
           |""".stripMargin
 
-      val result = eval(code).asString().replace("\r\n","\n")
+      val result = eval(code).asString().replace("\r\n", "\n")
       result shouldEqual "foobar\n"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
@@ -280,7 +280,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stdout
           |""".stripMargin
 
-      val result = eval(code).asString().replace("\r\n","\n")
+      val result = eval(code).asString().replace("\r\n", "\n")
       result shouldEqual "foobar\n"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()

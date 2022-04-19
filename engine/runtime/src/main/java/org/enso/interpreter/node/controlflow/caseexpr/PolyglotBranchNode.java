@@ -40,10 +40,7 @@ public abstract class PolyglotBranchNode extends BranchNode {
   }
 
   @Specialization(guards = "isPolyglotObject(obj)")
-  void doLiteral(
-      VirtualFrame frame,
-      Object state,
-      Object obj) {
+  void doLiteral(VirtualFrame frame, Object state, Object obj) {
     if (polyglotProfile.profile(isPolyglotObject(obj))) {
       accept(frame, state, new Object[0]);
     }

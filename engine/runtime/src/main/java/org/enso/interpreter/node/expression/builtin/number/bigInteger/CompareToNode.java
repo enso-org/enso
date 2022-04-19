@@ -24,30 +24,22 @@ public abstract class CompareToNode extends Node {
   abstract Atom execute(EnsoBigInteger _this, Object that);
 
   @Specialization
-  Atom doLong(
-      EnsoBigInteger _this,
-      long that) {
+  Atom doLong(EnsoBigInteger _this, long that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization
-  Atom doBigInt(
-      EnsoBigInteger _this,
-      EnsoBigInteger that) {
+  Atom doBigInt(EnsoBigInteger _this, EnsoBigInteger that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(
-      EnsoBigInteger _this,
-      double that) {
+  Atom doDecimal(EnsoBigInteger _this, double that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(_this.getValue(), that));
   }
 
   @Specialization
-  Atom doOther(
-      EnsoBigInteger _this,
-      Object that) {
+  Atom doOther(EnsoBigInteger _this, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber().newInstance();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");

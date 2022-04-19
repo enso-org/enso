@@ -23,11 +23,11 @@ import org.enso.logger.masking.MaskedString
 import scala.concurrent.duration.FiniteDuration
 
 /** A handler for a read bytes request
- *
- * @param requestTimeout a request timeout
- * @param fileManager a reference to the file-manager actor
- * @param replyTo the actor to reply to
- */
+  *
+  * @param requestTimeout a request timeout
+  * @param fileManager a reference to the file-manager actor
+  * @param replyTo the actor to reply to
+  */
 class ReadBytesHandler(
   requestTimeout: FiniteDuration,
   fileManager: ActorRef,

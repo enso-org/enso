@@ -114,8 +114,8 @@ case object OverloadsResolution extends IRPass {
         }
     }
 
-    val diagnostics = ir.bindings.collect {
-      case diag: IR.Diagnostic => diag
+    val diagnostics = ir.bindings.collect { case diag: IR.Diagnostic =>
+      diag
     }
 
     ir.copy(
