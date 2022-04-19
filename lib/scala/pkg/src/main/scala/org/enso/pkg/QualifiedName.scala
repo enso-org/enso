@@ -38,9 +38,9 @@ case class QualifiedName(path: List[String], item: String) {
   }
 
   /** Gets the path portion of the qualified name as a Java list.
-   *
-   * @return a Java list representation of the path portion of the qualified name.
-   */
+    *
+    * @return a Java list representation of the path portion of the qualified name.
+    */
   def pathAsJava(): java.util.List[String] = {
     path.asJava
   }

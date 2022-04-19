@@ -8,7 +8,10 @@ import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ModuleManagementTest extends AnyFlatSpec with Matchers with WithTemporaryDirectory {
+class ModuleManagementTest
+    extends AnyFlatSpec
+    with Matchers
+    with WithTemporaryDirectory {
   var ctx: TestContext = _
 
   override def beforeEach(): Unit = {
@@ -18,7 +21,11 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers with WithTemporaryD
 
   class TestContext(packageName: String) {
     val pkg: Package[File] =
-      PackageManager.Default.create(getTestDirectory.toFile, packageName, "Enso_Test")
+      PackageManager.Default.create(
+        getTestDirectory.toFile,
+        packageName,
+        "Enso_Test"
+      )
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -100,58 +107,58 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers with WithTemporaryD
   }
 
   it should "allow to create new, importable modules" in {
-      ctx.writeMain("""
-                      |import Enso_Test.Test.Foo
-                      |
-                      |main = Foo.foo + 1
-                      |""".stripMargin)
+    ctx.writeMain("""
+                    |import Enso_Test.Test.Foo
+                    |
+                    |main = Foo.foo + 1
+                    |""".stripMargin)
 
-      ctx.writeFile(
-        "Foo.enso",
-        """
-          |foo = 10
-          |""".stripMargin
-      )
+    ctx.writeFile(
+      "Foo.enso",
+      """
+        |foo = 10
+        |""".stripMargin
+    )
 
-      val topScope = ctx.executionContext.getTopScope
-      topScope.registerModule(
-        "Enso_Test.Test.Foo",
-        ctx.mkFile("Foo.enso").getAbsolutePath
-      )
+    val topScope = ctx.executionContext.getTopScope
+    topScope.registerModule(
+      "Enso_Test.Test.Foo",
+      ctx.mkFile("Foo.enso").getAbsolutePath
+    )
 
-      val mainModule = topScope.getModule("Enso_Test.Test.Main")
-      val assocCons  = mainModule.getAssociatedConstructor
-      val mainFun    = mainModule.getMethod(assocCons, "main").get
-      mainFun.execute(assocCons).asLong shouldEqual 11L
+    val mainModule = topScope.getModule("Enso_Test.Test.Main")
+    val assocCons  = mainModule.getAssociatedConstructor
+    val mainFun    = mainModule.getMethod(assocCons, "main").get
+    mainFun.execute(assocCons).asLong shouldEqual 11L
   }
 
   it should "allow importing literal-source modules" in {
-      ctx.writeMain("""
-                      |import Enso_Test.Test.Foo
-                      |
-                      |main = Foo.foo + 1
-                      |""".stripMargin)
+    ctx.writeMain("""
+                    |import Enso_Test.Test.Foo
+                    |
+                    |main = Foo.foo + 1
+                    |""".stripMargin)
 
-      ctx.writeFile(
-        "Foo.enso",
-        """
-          |foo = 10
-          |""".stripMargin
-      )
+    ctx.writeFile(
+      "Foo.enso",
+      """
+        |foo = 10
+        |""".stripMargin
+    )
 
-      val topScope = ctx.executionContext.getTopScope
-      val fooModule = topScope.registerModule(
-        "Enso_Test.Test.Foo",
-        ctx.mkFile("Foo.enso").getAbsolutePath
-      )
-      fooModule.setSource("""
-                            |foo = 20
-                            |""".stripMargin)
+    val topScope = ctx.executionContext.getTopScope
+    val fooModule = topScope.registerModule(
+      "Enso_Test.Test.Foo",
+      ctx.mkFile("Foo.enso").getAbsolutePath
+    )
+    fooModule.setSource("""
+                          |foo = 20
+                          |""".stripMargin)
 
-      val mainModule = topScope.getModule("Enso_Test.Test.Main")
-      val assocCons  = mainModule.getAssociatedConstructor
-      val mainFun    = mainModule.getMethod(assocCons, "main").get
-      mainFun.execute(assocCons).asLong shouldEqual 21L
+    val mainModule = topScope.getModule("Enso_Test.Test.Main")
+    val assocCons  = mainModule.getAssociatedConstructor
+    val mainFun    = mainModule.getMethod(assocCons, "main").get
+    mainFun.execute(assocCons).asLong shouldEqual 21L
   }
 
   it should "allow for module deletions" in {
