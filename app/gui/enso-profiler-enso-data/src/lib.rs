@@ -1,4 +1,4 @@
-//! Facilities for interpreting profiler data in ways that depend on Enso application datatypes.
+//! Types for interpreting profiles containing Enso application data.
 
 // === Features ===
 #![feature(test)]
@@ -17,19 +17,31 @@
 pub mod backend;
 pub mod beanpole;
 
+use serde::Serializer;
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 
 
 // ================
 // === Metadata ===
 // ================
 
-/// Any type of Enso metadata.
-#[derive(Clone, Debug, serde::Deserialize)]
+/// Metadata that is logged within the Enso core libraries.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Metadata {
-    /// A message the received by the IDE from the Language Server.
-    #[serde(rename = "RpcEvent")]
-    RpcMessage(String),
+    /// A message received by the IDE from the Language Server.
+    RpcEvent(String),
     /// A message between the Language Server and the Engine.
     #[serde(rename = "BackendMessage")]
     BackendMessage(backend::Message),
+}
+
+impl Display for Metadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Metadata::RpcEvent(name) => f.collect_str(name),
+            Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
+        }
+    }
 }

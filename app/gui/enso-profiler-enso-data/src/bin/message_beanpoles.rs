@@ -84,7 +84,7 @@ fn main() {
     let mut offset0 = None;
     let mut offset1 = None;
     for meta in metadata0.into_iter() {
-        if let enso_data::Metadata::RpcMessage(message) = meta.data {
+        if let enso_data::Metadata::RpcEvent(message) = meta.data {
             let abs_time = meta.mark.into_ms();
             let offset = offset0.get_or_insert(abs_time);
             let time = abs_time - *offset;

@@ -21,7 +21,7 @@ use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_profiler_data::Profile;
 use enso_profiler_flame_graph as profiler_flame_graph;
-use enso_profiler_metadata::Metadata;
+use enso_profiler_enso_data::Metadata;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;

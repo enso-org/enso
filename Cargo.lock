@@ -1205,14 +1205,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-profiler-metadata"
-version = "0.1.0"
-dependencies = [
- "enso-profiler",
- "serde",
-]
-
-[[package]]
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
@@ -1495,8 +1487,8 @@ dependencies = [
  "enso-frp",
  "enso-profiler",
  "enso-profiler-data",
+ "enso-profiler-enso-data",
  "enso-profiler-flame-graph",
- "enso-profiler-metadata",
  "enso-web",
  "ensogl-core",
  "ensogl-flame-graph",

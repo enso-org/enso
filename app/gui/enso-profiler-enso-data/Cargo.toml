@@ -8,5 +8,5 @@ authors = ["Enso Team <contact@enso.org>"]
 chrono = { version = "0.4.19", features = ["serde"] }
 csv = "1.1"
 serde = { version = "1", features = ["derive"] }
-enso-profiler = { path = "../" }
-enso-profiler-data = { path = "../data" }
+enso-profiler = { path = "../../../lib/rust/profiler"}
+enso-profiler-data = { path = "../../../lib/rust/profiler/data"}
