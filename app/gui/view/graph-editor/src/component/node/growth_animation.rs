@@ -10,12 +10,12 @@ use ensogl::prelude::*;
 use crate::GraphEditorModelWithNetwork;
 use crate::NodeId;
 
+use crate::application::command::FrpNetworkProvider;
 use enso_frp as frp;
 use ensogl::animation::easing::EndStatus::Normal;
 use ensogl::display::Scene;
 use ensogl::Animation;
 use ensogl::Easing;
-
 
 
 /// Describes the "speed" of growth/shrink animation.
@@ -37,7 +37,7 @@ pub fn initialize_edited_node_animator(
     frp: &crate::Frp,
     scene: &Scene,
 ) {
-    let network = &frp.network;
+    let network = &frp.network();
     let out = &frp.output;
     let searcher_cam = scene.layers.node_searcher.camera();
     let edited_node_cam = scene.layers.edited_node.camera();

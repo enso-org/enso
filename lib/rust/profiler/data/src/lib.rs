@@ -223,12 +223,15 @@ impl<M> Profile<M> {
     pub fn root_measurement(&self) -> &Measurement {
         self.measurements.last().unwrap()
     }
-}
 
-impl<M> Profile<M> {
     /// A virtual interval containing the top-level intervals as children.
     pub fn root_interval(&self) -> &ActiveInterval<M> {
         self.intervals.last().unwrap()
+    }
+
+    /// Iterate over only the metadata stored in the profile.
+    pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
+        self.intervals.iter().flat_map(|interval| interval.metadata.iter())
     }
 }
 
