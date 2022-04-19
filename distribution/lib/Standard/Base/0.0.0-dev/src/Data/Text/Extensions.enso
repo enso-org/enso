@@ -834,22 +834,21 @@ Text.from_utf_8 bytes on_problems=Report_Warning =
    decoding.
 
    > Example
-     Get the UTF-16 bytes of the text "Hello".
+     Get the character vector of the text "Hello".
 
-         "Hello".utf_16
-Text.utf_16 : Vector.Vector Integer
-Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
+         "Hello".char_vector
+Text.char_vector : Vector.Vector Integer
+Text.char_vector = Vector.Vector (Text_Utils.get_chars this)
 
-## Takes a vector of UTF-16 characters and returns the text that results from
-   decoding it as UTF-16.
+## Takes a vector of characters and returns the text that results from it.
 
    Arguments:
    - chars: The vector of UTF-16 characters.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_16 : Vector.Vector Integer -> Text
-Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector : Vector.Vector Integer -> Text
+Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.

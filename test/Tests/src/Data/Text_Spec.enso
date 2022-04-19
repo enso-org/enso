@@ -414,13 +414,13 @@ spec =
             "123".to_case Case.Upper . should_equal "123"
             "abc123".to_case Case.Upper . should_equal "ABC123"
 
-        Test.specify "should dump utf-16 characters to a vector" <|
-            kshi_chars = kshi.utf_16
+        Test.specify "should dump characters to a vector" <|
+            kshi_chars = kshi.char_vector
             kshi_chars . should_equal [2325, 2381, 2359, 2367]
 
-        Test.specify "should convert an array of utf-16 characters to text" <|
+        Test.specify "should convert a vector of characters to text" <|
             kshi_chars = [2325, 2381, 2359, 2367]
-            Text.from_utf_16 kshi_chars . should_equal kshi
+            Text.from_char_vector kshi_chars . should_equal kshi
 
         Test.specify "should insert text at a non-negative index position" <|
             "Hello World!".insert 0 " Cruel" . should_equal " CruelHello World!"
