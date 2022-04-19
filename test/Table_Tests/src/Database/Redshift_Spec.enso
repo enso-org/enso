@@ -68,7 +68,7 @@ spec =
     credentials = Enso_Project.data / 'redshift_credentials.json'
     case credentials.exists of
         True ->
-            creds = Json.parse credentials.read . unwrap
+            creds = Json.parse credentials.read_text . unwrap
             access_key = ['AccessKeyID', creds.get 'access_key_id']
             secret_key = ['SecretAccessKey', creds.get 'secret_access_key']
             uri = creds.get 'db_uri'

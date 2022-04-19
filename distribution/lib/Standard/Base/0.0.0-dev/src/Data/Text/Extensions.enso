@@ -12,6 +12,8 @@ import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Base.Data.Text.Span as Span_Module import Span
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
@@ -187,10 +189,10 @@ Text.characters =
    - comments: Enables or disables the comments mode for the regular expression.
      In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
+       character class or when preceded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
      - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
+       preceded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
    - extra_opts: Specifies additional options in a vector. This allows options
@@ -738,23 +740,82 @@ Text.is_whitespace : Boolean
 Text.is_whitespace =
     Text_Utils.is_all_whitespace this
 
+## Returns a vector containing bytes representing the specified encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding.
+
+   Arguments:
+   - encoding: The text encoding to encode this with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
+Text.bytes encoding on_problems=Report_Warning =
+    result = Text_Utils.get_bytes this (encoding . to_java_charset)
+    vector = Vector.Vector result.result
+    if result.warnings.is_nothing then vector else
+        on_problems.attach_problems_after vector [Encoding_Error result.warnings]
+
+## Takes a vector of bytes and returns Text resulting from decoding it using the
+   specified encoding.
+
+   Arguments:
+   - bytes: The vector of UTF-8 bytes.
+   - encoding: The text encoding to decode the bytes with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
+Text.from_bytes bytes encoding on_problems=Report_Warning =
+    result = Text_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    if result.warnings.is_nothing then result.result else
+        on_problems.attach_problems_after result.result [Encoding_Error result.warnings]
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
+   Arguments:
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
    > Example
      Get the UTF-8 bytes of the text "Hello".
 
          "Hello".utf_8
-Text.utf_8 : Vector.Vector Byte
-Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
+Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
+Text.utf_8 on_problems=Report_Warning =
+    this.bytes Encoding.utf_8 on_problems
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
    Arguments:
    - bytes: The vector of UTF-8 bytes.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
@@ -763,35 +824,31 @@ Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
      Decoding the bytes to get a text.
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
-Text.from_utf_8 : Vector.Vector Byte -> Text
-Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
+Text.from_utf_8 : Vector.Vector Byte -> Problem_Behavior -> Text
+Text.from_utf_8 bytes on_problems=Report_Warning =
+    Text.from_bytes bytes Encoding.utf_8 on_problems
 
-## ADVANCED
-
-   Returns a vector containing the UTF-16 characters that encode the input text.
+## Returns a vector containing the UTF-16 characters that encode the input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
    > Example
-     Get the UTF-16 bytes of the text "Hello".
+     Get the character vector of the text "Hello".
 
-         "Hello".utf_16
-Text.utf_16 : Vector.Vector Integer
-Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
+         "Hello".char_vector
+Text.char_vector : Vector.Vector Integer
+Text.char_vector = Vector.Vector (Text_Utils.get_chars this)
 
-## ADVANCED
-
-   Takes a vector of UTF-16 characters and returns the text that results from
-   decoding it as UTF-16.
+## Takes a vector of characters and returns the text that results from it.
 
    Arguments:
    - chars: The vector of UTF-16 characters.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_16 : Vector.Vector Integer -> Text
-Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector : Vector.Vector Integer -> Text
+Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
