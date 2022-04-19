@@ -1,14 +1,14 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.pkg.{ComponentGroup, Config, ModuleReference}
+import org.enso.pkg.{ComponentGroup, ComponentGroups, Config, GroupReference}
 
 import scala.collection.mutable
 
 /** Validate the component groups of provided packages. */
 final class ComponentGroupsValidator {
 
-  import ComponentGroupsValidator.ValidationError
+  import ComponentGroupsValidator.{ValidationError, Validator}
 
   /** Run the validation.
     *
@@ -22,91 +22,110 @@ final class ComponentGroupsValidator {
     */
   def validate(
     packages: Iterable[Config]
-  ): Iterable[Either[ValidationError, Config]] = {
-    val init: Iterable[Right[ValidationError, Config]]           = packages.map(Right(_))
-    val modulesMap: mutable.Map[ModuleReference, ComponentGroup] = mutable.Map()
+  ): Iterable[(LibraryName, Either[ValidationError, ComponentGroups])] = {
+    val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
+    val init = packages.map { config =>
+      val libraryName = LibraryName(config.namespace, config.name)
+      libraryName -> validateInvalidComponentGroups(config)
+    }
 
     runValidation(init)(
-      validateInvalidComponentGroups,
-      validateDuplicateComponentGroups(modulesMap),
-      validateComponentGroupExtendsNothing(modulesMap)
+      validateDuplicateComponentGroups(groupsMap),
+      validateComponentGroupExtendsNothing(groupsMap)
     )
   }
 
-  private def validateInvalidComponentGroups
-    : Config => Either[ValidationError, Config] = { config =>
+  /** Run the validation.
+    *
+    * @param componentGroups the component groups mapping
+    * @return the validation result for each package
+    */
+  def validate(
+    componentGroups: Map[LibraryName, ComponentGroups]
+  ): Map[LibraryName, Either[ValidationError, ComponentGroups]] = {
+    val init: Map[LibraryName, Either[ValidationError, ComponentGroups]] =
+      componentGroups.map { case (k, v) => k -> Right(v) }
+    val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
+
+    runValidation(init)(
+      validateDuplicateComponentGroups(groupsMap),
+      validateComponentGroupExtendsNothing(groupsMap)
+    ).toMap
+  }
+
+  private def validateInvalidComponentGroups(
+    config: Config
+  ): Either[ValidationError, ComponentGroups] = {
     val libraryName = LibraryName(config.namespace, config.name)
-    config.componentGroups match {
-      case Right(_) =>
-        Right(config)
-      case Left(e) =>
-        Left(
-          ValidationError.InvalidComponentGroups(libraryName, e.getMessage())
-        )
+    config.componentGroups.left.map { e =>
+      ValidationError.InvalidComponentGroups(libraryName, e.getMessage())
     }
   }
 
   private def validateDuplicateComponentGroups(
-    modulesMap: mutable.Map[ModuleReference, ComponentGroup]
-  ): Config => Either[ValidationError, Config] = { config =>
-    val libraryName = LibraryName(config.namespace, config.name)
-    config.componentGroups.toOption
-      .flatMap { componentGroups =>
-        componentGroups.newGroups
-          .map { componentGroup =>
-            val moduleReference =
-              ModuleReference(libraryName, componentGroup.module)
-            if (modulesMap.contains(moduleReference)) {
-              Left(
-                ValidationError
-                  .DuplicatedComponentGroup(libraryName, moduleReference)
-              )
-            } else {
-              modulesMap += moduleReference -> componentGroup
-              Right(config)
-            }
-          }
-          .find(_.isLeft)
+    groupsMap: mutable.Map[GroupReference, ComponentGroup]
+  ): Validator = { libraryName => componentGroups =>
+    componentGroups.newGroups
+      .map { componentGroup =>
+        val groupReference =
+          GroupReference(libraryName, componentGroup.group)
+        if (groupsMap.contains(groupReference)) {
+          Left(
+            ValidationError
+              .DuplicatedComponentGroup(libraryName, groupReference)
+          )
+        } else {
+          groupsMap += groupReference -> componentGroup
+          Right(componentGroups)
+        }
       }
-      .getOrElse(Right(config))
+      .find(_.isLeft)
+      .getOrElse(Right(componentGroups))
   }
 
   private def validateComponentGroupExtendsNothing(
-    modulesMap: mutable.Map[ModuleReference, ComponentGroup]
-  ): Config => Either[ValidationError, Config] = { config =>
-    val libraryName = LibraryName(config.namespace, config.name)
-    config.componentGroups.toOption
-      .flatMap { componentGroups =>
-        componentGroups.extendedGroups
-          .map { extendedComponentGroup =>
-            if (modulesMap.contains(extendedComponentGroup.module)) {
-              Right(config)
-            } else {
-              Left(
-                ValidationError.ComponentGroupExtendsNothing(
-                  libraryName,
-                  extendedComponentGroup.module
-                )
-              )
-            }
-          }
-          .find(_.isLeft)
+    groupsMap: mutable.Map[GroupReference, ComponentGroup]
+  ): Validator = { libraryName => componentGroups =>
+    componentGroups.extendedGroups
+      .map { extendedComponentGroup =>
+        if (groupsMap.contains(extendedComponentGroup.group)) {
+          Right(componentGroups)
+        } else {
+          Left(
+            ValidationError.ComponentGroupExtendsNothing(
+              libraryName,
+              extendedComponentGroup.group
+            )
+          )
+        }
       }
-      .getOrElse(Right(config))
+      .find(_.isLeft)
+      .getOrElse(Right(componentGroups))
   }
 
-  private def runValidation[A, E](xs: Iterable[Either[E, A]])(
-    fs: A => Either[E, A]*
-  ): Iterable[Either[E, A]] =
-    fs.foldLeft(xs) { (xs, f) =>
-      xs.map {
-        case Right(a) => f(a)
-        case Left(e)  => Left(e)
-      }
+  /** Internal method that runs validation functions. The validation runs on
+    * the collection on key-value pairs, where the value of the collection is
+    * validated and contains either a validated value or a validation error.
+    *
+    * @param init the collection of key-value pairs that should be validated
+    * @param validators the list of validation functions
+    * @tparam K the type of keys in the validated collection
+    * @tparam V the type of values in the validated collection
+    * @tparam E the type of validation error
+    * @return the validated collection of key-value pairs
+    */
+  private def runValidation[K, V, E](init: Iterable[(K, Either[E, V])])(
+    validators: K => V => Either[E, V]*
+  ): Iterable[(K, Either[E, V])] =
+    validators.foldLeft(init) { (acc, validator) =>
+      acc.map { case (k, ev) => k -> ev.flatMap(validator(k)) }
     }
 }
 
 object ComponentGroupsValidator {
+
+  type Validator =
+    LibraryName => ComponentGroups => Either[ValidationError, ComponentGroups]
 
   /** Base trait for validation results. */
   sealed trait ValidationError
@@ -116,11 +135,11 @@ object ComponentGroupsValidator {
       * group.
       *
       * @param libraryName the library defining duplicate component group
-      * @param moduleReference the duplicated module reference
+      * @param groupReference the duplicated component group reference
       */
     case class DuplicatedComponentGroup(
       libraryName: LibraryName,
-      moduleReference: ModuleReference
+      groupReference: GroupReference
     ) extends ValidationError
 
     /** An error indicating that the package config has invalid component groups
@@ -138,12 +157,13 @@ object ComponentGroupsValidator {
       * that extends non-existent component group.
       *
       * @param libraryName the library defining problematic component group
-      *                    extension
-      * @param moduleReference the module reference to non-existent module
+      * extension
+      * @param groupReference the group reference to non-existent component
+      * group
       */
     case class ComponentGroupExtendsNothing(
       libraryName: LibraryName,
-      moduleReference: ModuleReference
+      groupReference: GroupReference
     ) extends ValidationError
   }
 }

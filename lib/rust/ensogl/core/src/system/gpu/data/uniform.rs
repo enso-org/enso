@@ -6,7 +6,7 @@ use crate::system::gpu::data::prim::*;
 use crate::system::gpu::data::texture::*;
 use enum_dispatch::*;
 
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use upload::UniformUpload;
@@ -308,7 +308,7 @@ macro_rules! define_any_texture_uniform {
 
         impl TextureOps for AnyTextureUniform {
             fn bind_texture_unit
-            (&self, context:&crate::display::Context, unit:TextureUnit) -> TextureBindGuard {
+            (&self, context:&Context, unit:TextureUnit) -> TextureBindGuard {
                 match self {
                     $(
                         Self::[<$storage _ $internal_format _ $item_type >](t) =>

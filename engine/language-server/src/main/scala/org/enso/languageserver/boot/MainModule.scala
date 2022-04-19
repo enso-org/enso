@@ -20,7 +20,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  NoopEventsMonitor
 }
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
@@ -145,9 +146,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "lock-manager-service"
   )
 
+  val runtimeEventsMonitor =
+    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
+    else new NoopEventsMonitor
+  log.trace(
+    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+  )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService),
+      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
       "runtime-connector"
     )
 

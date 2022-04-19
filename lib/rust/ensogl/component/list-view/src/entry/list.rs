@@ -127,8 +127,9 @@ where E::Model: Default
         }
     }
 
-    /// Update displayed entries to show the given range.
-    pub fn update_entries(&self, mut range: Range<entry::Id>) {
+    /// Update displayed entries to show the given range and limit their display width to at most
+    /// `max_width_px`.
+    pub fn update_entries(&self, mut range: Range<entry::Id>, max_width_px: f32) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
@@ -152,13 +153,18 @@ where E::Model: Default
             });
             self.entries_range.set(range);
         }
+        for entry in self.entries.borrow().iter() {
+            entry.entry.set_max_width(max_width_px);
+        }
     }
 
-    /// Update displayed entries, giving new provider.
+    /// Update displayed entries, giving new provider. New entries created by the function have
+    /// their maximum width set to `max_width_px`.
     pub fn update_entries_new_provider(
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
         mut range: Range<entry::Id>,
+        max_width_px: f32,
     ) {
         const MAX_SAFE_ENTRIES_COUNT: usize = 1000;
         let provider = provider.into();
@@ -173,7 +179,12 @@ where E::Model: Default
         range.end = range.end.min(provider.entry_count());
         let models = range.clone().map(|id| (id, provider.get(id)));
         let mut entries = self.entries.borrow_mut();
-        entries.resize_with(range.len(), || self.create_new_entry());
+        let create_new_entry_with_max_width = || {
+            let entry = self.create_new_entry();
+            entry.entry.set_max_width(max_width_px);
+            entry
+        };
+        entries.resize_with(range.len(), create_new_entry_with_max_width);
         for (entry, (id, model)) in entries.iter().zip(models) {
             Self::update_entry(&self.logger, entry, id, &model);
         }

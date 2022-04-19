@@ -28,8 +28,8 @@
 #![warn(unused_import_braces)]
 
 use enso_prelude::*;
-use enso_profiler_data as data;
 
+use enso_profiler_data as data;
 use std::collections;
 
 

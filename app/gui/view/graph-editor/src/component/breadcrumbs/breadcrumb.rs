@@ -518,7 +518,7 @@ impl Breadcrumb {
             eval_ mouse_out_if_not_selected(
                 model.animations.color.set_target_value(model.deselected_color().into())
             );
-            eval_ model.view.events.mouse_down(frp.outputs.clicked.emit(()));
+            eval_ model.view.events.mouse_down_primary(frp.outputs.clicked.emit(()));
         }
 
 

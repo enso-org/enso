@@ -62,10 +62,10 @@ impl<I: InternalFormat, T: ItemType> Texture<RemoteImage, I, T> {
         let height = 1;
         let border = 0;
         let color = vec![0, 0, 255, 255];
-        self.context().bind_texture(Context::TEXTURE_2D, Some(self.gl_texture()));
+        self.context().bind_texture(*Context::TEXTURE_2D, Some(self.gl_texture()));
         self.context()
             .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-                target,
+                *target,
                 level,
                 internal_format,
                 width,
@@ -103,10 +103,10 @@ impl<I: InternalFormat, T: ItemType> TextureReload for Texture<RemoteImage, I, T
             let internal_format = Self::gl_internal_format();
             let format = Self::gl_format().into();
             let elem_type = Self::gl_elem_type();
-            context.bind_texture(target, Some(&gl_texture));
+            context.bind_texture(*target, Some(&gl_texture));
             context
                 .tex_image_2d_with_u32_and_u32_and_html_image_element(
-                    target,
+                    *target,
                     level,
                     internal_format,
                     format,

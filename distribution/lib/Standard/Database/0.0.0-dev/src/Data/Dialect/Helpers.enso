@@ -38,7 +38,8 @@ make_concat make_raw_concat_expr make_contains_expr has_quote args =
                 includes_separator = separator ++ Sql.code " != '' AND " ++ make_contains_expr expr separator
                 ## We use the assumption that `has_quote` is True iff `quote` is not empty.
                 includes_quote = make_contains_expr expr quote
-                needs_quoting = includes_separator.paren ++ Sql.code " OR " ++ includes_quote.paren
+                is_empty = expr ++ Sql.code " = ''"
+                needs_quoting = includes_separator.paren ++ Sql.code " OR " ++ includes_quote.paren ++ Sql.code " OR " ++ is_empty.paren
                 escaped = Sql.code "replace(" ++ expr ++ Sql.code ", " ++ quote ++ Sql.code ", " ++ quote ++ append ++ quote ++ Sql.code ")"
                 quoted = quote ++ append ++ escaped ++ append ++ quote
                 Sql.code "CASE WHEN " ++ needs_quoting ++ Sql.code " THEN " ++ quoted ++ Sql.code " ELSE " ++ expr ++ Sql.code " END"

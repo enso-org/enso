@@ -1,4 +1,5 @@
 //! A module containing the garbage [`Collector`] structure.
+
 use crate::prelude::*;
 
 

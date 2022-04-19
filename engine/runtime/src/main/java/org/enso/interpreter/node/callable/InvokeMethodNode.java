@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -15,7 +14,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.*;
@@ -34,7 +32,6 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
-  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
   private @Child InvokeMethodNode childDispatch;
   private final int argumentCount;
   private final int thisArgumentPosition;
@@ -162,8 +159,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(_this)",
         "!methods.hasSpecialDispatch(_this)",
-        "polyglotCallType != NOT_SUPPORTED",
-        "polyglotCallType != CONVERT_TO_TEXT"
+        "polyglotCallType.isInteropLibrary()",
       })
   Stateful doPolyglot(
       VirtualFrame frame,
@@ -229,6 +225,34 @@ public abstract class InvokeMethodNode extends BaseNode {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_DATE"
+      })
+  Stateful doConvertDate(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop
+  ) {
+    try {
+      var dateConstructor = Context.get(this).getDateConstructor();
+      Object date = dateConstructor.isPresent() ? dateConstructor.get().newInstance(_this) : _this;
+      Function function = dateDispatch.getFunctionalDispatch(date, symbol);
+      arguments[0] = date;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
       throw new PanicException(
           Context.get(this).getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
