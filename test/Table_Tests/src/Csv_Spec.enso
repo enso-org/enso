@@ -14,7 +14,7 @@ spec =
 
     Test.group "Table.from_csv" <|
         Test.specify "should create a table from a textual CSV" <|
-            file_contents = (Enso_Project.data / "simple_empty.csv") . read
+            file_contents = (Enso_Project.data / "simple_empty.csv") . read_text
             table = Table.from_csv file_contents
             table.should_equal expected_table
 
@@ -111,7 +111,7 @@ spec =
                 2005-03-04,2005-03-04,,6,6.25,6.25
                 2005-03-07,2005-03-07,7,7,7.0,7
                 2005-03-08,2005-03-08,8,8,8.0,osiem\n
-            out.read.should_equal exp
+            out.read_text.should_equal exp
             out.delete_if_exists
 
         Test.specify 'should write CSV to multiple files, when row limit specified' <|
@@ -138,9 +138,9 @@ spec =
                 C0,C1,C2,C3,C4,C5
                 2005-03-07,2005-03-07,7,7,7.0,7
                 2005-03-08,2005-03-08,8,8,8.0,osiem\n
-            out_1.read.should_equal exp_1
-            out_2.read.should_equal exp_2
-            out_3.read.should_equal exp_3
+            out_1.read_text.should_equal exp_1
+            out_2.read_text.should_equal exp_2
+            out_3.read_text.should_equal exp_3
             out_1.delete_if_exists
             out_2.delete_if_exists
             out_3.delete_if_exists
@@ -166,10 +166,9 @@ spec =
             exp_3 = '''
                 2005-03-07;2005-03-07;7;7;7.0;7
                 2005-03-08;2005-03-08;8;8;8.0;osiem\n
-            out_1.read.should_equal exp_1
-            out_2.read.should_equal exp_2
-            out_3.read.should_equal exp_3
+            out_1.read_text.should_equal exp_1
+            out_2.read_text.should_equal exp_2
+            out_3.read_text.should_equal exp_3
             out_1.delete_if_exists
             out_2.delete_if_exists
             out_3.delete_if_exists
-
