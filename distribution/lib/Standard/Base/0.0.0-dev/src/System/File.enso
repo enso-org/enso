@@ -1,6 +1,10 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+import Standard.Base.Data.Text.Matching_Mode
+import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 
 export Standard.Base.System.File.Option
 
@@ -31,18 +35,42 @@ new path = case path of
     Text -> File (Prim_Io.get_file path)
     _ -> path
 
-## ALIAS Read Text File
-
-   Open and read the file at the provided `path`.
+## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
      accept a textual path or a file.
 
+   > Example
+     Read all of the bytes in the file.
+
+         import Standard.Examples
+
+         example_read_bytes = File.read_bytes Examples.csv
+read_bytes : (Text | File) -> Vector.Vector ! File_Error
+read_bytes path =
+    file = case path of
+        Text -> (here.new path)
+        File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.read_bytes
+
+## Open and read the file at the provided `path`.
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
    ? Module or Instance?
      If you have a variable `file` of type `File`, we recommend calling the
-     `.read` method on it directly, rather than using `File.read file`. The
-     latter, however, will still work.
+     `.read_text` method on it directly, rather than using
+     `File.read_text file`. The later, however, will still work.
 
    > Example
      Read the `data.csv` file in the project directory's `data` directory. You
@@ -51,11 +79,44 @@ new path = case path of
          import Standard.Base.System.File
          import Standard.Examples
 
-         example_read = File.read Examples.csv_path
-read : (Text | File) -> Text
-read path = .read <| case path of
-    Text -> (here.new path)
-    File _ -> path
+         example_read = File.read_text Examples.csv_path
+read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
+read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
+    file = case path of
+        Text -> (here.new path)
+        File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.read_text encoding on_problems
+
+## ALIAS Write Text File
+
+   Open and write to the file at the provided `path`.
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - contents: The text to write to the file.
+   - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+
+   ? Module or Instance?
+     If you have a variable `file` of type `File`, we recommend calling the
+     `.read_text` method on it directly, rather than using
+     `File.read_text file`. The later, however, will still work.
+
+   > Example
+     Read the `data.csv` file from the Examples project.
+
+         import Standard.Base.System.File
+         import Standard.Examples
+
+         example_read = File.read_text Examples.csv_path
+write_text : (Text | File) -> Text -> Encoding -> Text
+write_text path contents (encoding=Encoding.utf_8) =
+    file = case path of
+        Text -> (here.new path)
+        File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.write_text contents encoding
 
 ## ALIAS Current Directory
 
@@ -212,7 +273,15 @@ type File
         opts = [Option.Read]
         this.with_input_stream opts (_.read_all_bytes)
 
-    ## Reads the whole file into a `Text`, assuming UTF-8 content encoding.
+    ## Reads the whole file into a `Text`, with specified encoding.
+
+       Arguments:
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
+       - on_problems: Specifies the behavior when a problem occurs during the
+         function.
+         By default, a warning is issued, but the operation proceeds.
+         If set to `Report_Error`, the operation fails with a dataflow error.
+         If set to `Ignore`, the operation proceeds without errors or warnings.
 
        > Example
          Read the contents of the file.
@@ -220,10 +289,10 @@ type File
              import Standard.Examples
 
              example_read = Examples.csv.read
-    read : Text ! File_Error
-    read =
+    read_text : Encoding -> Problem_Behavior -> Text ! File_Error
+    read_text (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
         bytes = this.read_bytes
-        Text.from_utf_8 bytes
+        Text.from_bytes bytes encoding on_problems
 
     ## Appends a number of bytes at the end of this file.
 
@@ -276,11 +345,12 @@ type File
 
     ## ALIAS Write Text File
 
-       Writes a UTF-8 encoded `Text` into this file, replacing any existing
-       contents.
+       Writes a `Text` into this file with specified encoding, replacing any
+       existing contents.
 
        Arguments:
-       - contents: The UTF-8 encoded text to write to the file.
+       - contents: The text to write to the file.
+       - encoding: The text encoding to decode the file with. Defaults to UTF-8.
 
        If the file does not exist, it will be created.
 
@@ -290,8 +360,9 @@ type File
              import Standard.Examples
 
              example_write = Examples.scratch_file.write "hello"
-    write : Text -> Nothing ! File_Error
-    write contents = this.write_bytes contents.utf_8
+    write_text : Text -> Encoding -> Nothing ! File_Error
+    write_text contents (encoding=Encoding.utf_8) =
+        this.write_bytes <| contents.bytes encoding
 
     ## Join two path segments together.
 
@@ -299,7 +370,7 @@ type File
        - subpath: The path to join to the path of `this`.
 
        > Example
-         Concaatenate two file path segments.
+         Concatenate two file path segments.
 
              import Standard.Examples
 
@@ -416,6 +487,22 @@ type File
     name : Text
     name = this.prim_file.getName
 
+    ## Returns the extension of the file.
+
+       > Example
+         Get the extension of a file.
+
+             import Standard.Examples
+
+             Examples.csv.extension == ".csv"
+    extension : Text
+    extension =
+        name = this.name
+        last_dot = name.location_of "." mode=Matching_Mode.last
+        if last_dot.is_nothing then "" else
+            extension = name.drop (Text_Sub_Range.First last_dot.start)
+            if extension == "." then "" else extension
+
     ## Converts this file to an equivalent file represented with an absolute
        path.
 
@@ -473,13 +560,11 @@ type File
 
              example_delete =
                  file = Examples.data_dir / "my_file"
-                 file.write "hello"
+                 file.write_text "hello"
                  file.delete
     delete : Nothing ! File_Error
     delete =
-        here.handle_java_exceptions this <|
-            this.prim_file.delete
-        Nothing
+        here.handle_java_exceptions this this.prim_file.delete
 
     ## Deletes the file if it exists on disk.
 
@@ -508,8 +593,7 @@ type File
     new_input_stream : Vector.Vector -> Input_Stream ! File_Error
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = here.handle_java_exceptions this <|
-            (this.prim_file.newInputStream opts)
+        stream = here.handle_java_exceptions this (this.prim_file.newInputStream opts)
         resource = Managed_Resource.register stream here.close_stream
         Input_Stream this resource
 
@@ -793,33 +877,15 @@ type Input_Stream
     with_java_stream : (Java_Input_Stream -> Any) -> Any
     with_java_stream f = Managed_Resource.with this.stream_resource f
 
-## PRIVATE
-
-   Utility method for rewrapping Java exceptions into Enso panics.
-
-   Arguments:
-   - file: The file object.
-   - exception: The java exception that was encountered.
-rethrow_java : File -> Any -> Any
-rethrow_java file exception =
-    case exception of
-        Polyglot_Error exc ->
-            if Java.is_instance exc NoSuchFileException then
-                Panic.throw (No_Such_File_Error file)
-            if Java.is_instance exc AccessDeniedException then
-                Panic.throw (Access_Denied_Error file)
-            if Java.is_instance exc IOException then
-                Panic.throw (Io_Error exc.getMessage)
-            Panic.throw exception
-        _ -> Panic.throw exception
 
 ## PRIVATE
 
    Utility method for running an action with Java exceptions mapping.
 handle_java_exceptions file ~action =
-    err = Panic.recover Any action
-    r = err.catch (here.rethrow_java file)
-    r
+    Panic.catch IOException handler=(caught_panic-> (Error.throw (Io_Error file "An IO error has occurred: " + caught_panic.payload.cause.getMessage))) <|
+        Panic.catch AccessDeniedException handler=(_-> (Error.throw (Io_Error file "You do not have permission to access the file"))) <|
+            Panic.catch NoSuchFileException handler=(_-> (Error.throw (File_Not_Found file))) <|
+                action
 
 ## PRIVATE
 
@@ -836,29 +902,22 @@ type File_Error
 
        Arguments:
        - file: The file that doesn't exist.
-    type No_Such_File_Error file
-
-    ## An error that indicates that the program does not have access to the
-       requested file.
-
-       Arguments:
-       - file: The file that the program does not have permission to access.
-    type Access_Denied_Error file
+    type File_Not_Found file
 
     ## A generic IO error.
 
        Arguments:
+       - file: The file that couldn't be read.
        - message: The message for the error.
-    type Io_Error message
+    type Io_Error file message
 
     ## UNSTABLE
 
        Convert the File error to a human-readable format.
     to_display_text : Text
     to_display_text = case this of
-        No_Such_File_Error file -> "The file at " + file.path + " does not exist."
-        Access_Denied_Error file -> "You do not have permission to access the file at " + file.path + "."
-        Io_Error msg -> "An IO error has occurred: " + msg.to_text + "."
+        File_Not_Found  file -> "The file at " + file.path + " does not exist."
+        Io_Error file msg -> msg.to_text + " (" + file.path + ")."
 
 
 ## PRIVATE

@@ -13,7 +13,7 @@ component-groups:
     - Input:
         exports:
           - Standard.Base.System.File.new
-          - Standard.Base.System.File.read
+          - Standard.Base.System.File.read_text
     - Web:
         exports:
           - Standard.Base.Network.Http.new
@@ -53,4 +53,4 @@ component-groups:
           - Standard.Base.Data.Vector.Vector.distinct
     - Output:
         exports:
-          - Standard.Base.System.File.File.write
+          - Standard.Base.System.File.File.write_text

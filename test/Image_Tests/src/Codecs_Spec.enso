@@ -47,7 +47,7 @@ spec =
 
         Test.specify "should return error when write failed" <|
             out_file = Enso_Project.root / "no_such_directory" / "out.png"
-            Test.expect_panic_with (Codecs.read rgba_file . write out_file) File.Io_Error
+            Codecs.read rgba_file . write out_file . should_fail_with File.Io_Error
         Test.specify "should write a PNG file with alpha channel" <|
             out_file = Enso_Project.root / "out_alpha.png"
             Codecs.read rgba_file Codecs.Read_Alpha_Channel . write out_file

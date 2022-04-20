@@ -28,4 +28,4 @@ main =
         Bench.measure (here.check_all big_random ["A.{5000}A"] Regex_Matcher.new) suite_prefix+" const-width regex" 10 10
         Bench.measure (here.check_all big_random ["AAAAA.*AAAAA"] Regex_Matcher.new) suite_prefix+" wildcard regex" 10 10
 
-    bench_contains "Text.contains " (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.utf_16)
+    bench_contains "Text.contains " (Faker.upper_case_letters + Faker.lower_case_letters + 'ąę\u{301}\u{302}\u{303}\u{321}'.char_vector)

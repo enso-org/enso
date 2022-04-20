@@ -1,0 +1,42 @@
+from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Table.Io.File_Format
+
+## ALIAS Read Text File, Read File
+
+   Read a file using the specified file format
+
+   Arguments:
+   - path: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+   - format: The text encoding to decode the file with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   ? Module or Instance?
+     If you have a variable `file` of type `File`, we recommend calling the
+     `.read` method on it directly, rather than using `File.read file`. The
+     later, however, will still work.
+File.read : (Text | File) -> File_Format -> Problem_Behavior -> Any ! File_Error
+File.read path (format=File_Format.Auto) (on_problems=Report_Warning) =
+    file = case path of
+        Text -> (File.new path)
+        File.File _ -> path
+        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file.read format on_problems
+
+## Read a file using the specified file format
+
+   Arguments:
+   - format: The text encoding to decode the file with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+File.File.read : File_Format -> Problem_Behavior -> Any ! File_Error
+File.File.read (format=File_Format.Auto) (on_problems=Report_Warning) =
+    format.read this on_problems

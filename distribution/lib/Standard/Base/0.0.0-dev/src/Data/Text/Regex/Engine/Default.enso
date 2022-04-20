@@ -708,8 +708,8 @@ type Match
        ! What is a Character?
          This regular expression engine defines a "character" to mean a UTF-16
          character. This means that these indices should only be used with the
-         result of calling `.utf_16` on the text. Using them with `.characters`
-         or `.codepoints` will produce incorrect results.
+         result of calling `.char_vector` on the text. Using them with
+         `.characters` or `.codepoints` will produce incorrect results.
 
        > Example
          Get the start index in the input where the full pattern matched for
@@ -736,8 +736,8 @@ type Match
        ! What is a Character?
          This regular expression engine defines a "character" to mean a UTF-16
          character. This means that these indices should only be used with the
-         result of calling `.utf_16` on the text. Using them with `.characters`
-         or `.codepoints` will produce incorrect results.
+         result of calling `.char_vector` on the text. Using them with
+         `.characters` or `.codepoints` will produce incorrect results.
 
        > Example
          Get the end index in the input where the full pattern matched for this
@@ -763,8 +763,8 @@ type Match
        ! What is a Character?
          This regular expression engine defines a "character" to mean a UTF-16
          character. This means that these indices should only be used with the
-         result of calling `.utf_16` on the text. Using them with `.characters`
-         or `.codepoints` will produce incorrect results.
+         result of calling `.char_vector` on the text. Using them with
+         `.characters` or `.codepoints` will produce incorrect results.
 
        > Example
          Get the span over the input that was matched by the full match.
@@ -784,8 +784,8 @@ type Match
        ! What is a Character?
          This regular expression engine defines a "character" to mean a UTF-16
          character. This means that these indices should only be used with the
-         result of calling `.utf_16` on the text. Using them with `.characters`
-         or `.codepoints` will produce incorrect results.
+         result of calling `.char_vector` on the text. Using them with
+         `.characters` or `.codepoints` will produce incorrect results.
 
        > Example
          Get the start position in the input to which this match was limited.
@@ -803,8 +803,8 @@ type Match
        ! What is a Character?
          This regular expression engine defines a "character" to mean a UTF-16
          character. This means that these indices should only be used with the
-         result of calling `.utf_16` on the text. Using them with `.characters`
-         or `.codepoints` will produce incorrect results.
+         result of calling `.char_vector` on the text. Using them with
+         `.characters` or `.codepoints` will produce incorrect results.
 
        > Example
          Get the end position in the input to which this match was limited.
