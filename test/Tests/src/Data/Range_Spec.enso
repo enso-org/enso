@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Test
 
 spec = Test.group "Range" <|
-    Test.specify "should be created with a start, an end and step" <|
+    Test.specify "should be created with a start, an end and a step" <|
         range = 1.up_to 100
         range.start . should_equal 1
         range.end . should_equal 100
