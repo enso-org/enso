@@ -10,12 +10,18 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -26,6 +32,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -88,6 +95,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   public static class ReplExecutionEventNode extends ExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
+    private @Child AnyToTextNode toTextNode = AnyToTextNode.build();
 
     private ReplExecutionEventNodeState nodeState;
 
@@ -151,6 +159,26 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       } catch (Exception e) {
         nodeState = savedState;
         TruffleStackTrace.fillIn(e);
+        return new Left<>(e);
+      }
+    }
+
+    /**
+     * Returns the String representation of the provided object as defined by Enso {@code to_text}
+     * operation.
+     */
+    public Either<Exception, String> showObject(Object o) {
+      try {
+        InteropLibrary atoms = InteropLibrary.getUncached();
+        Text text = TypesGen.expectText(atoms.invokeMember(o, "to_text"));
+        return new Right<>(toJavaStringNode.execute(text));
+      } catch (UnsupportedMessageException
+          | ArityException
+          | UnknownIdentifierException
+          | UnsupportedTypeException
+          | UnexpectedResultException e) {
+        return new Right<>(o.toString());
+      } catch (Exception e) {
         return new Left<>(e);
       }
     }
