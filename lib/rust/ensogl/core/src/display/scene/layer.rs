@@ -902,7 +902,6 @@ impl SublayersModel {
     fn remove(&mut self, layer_id: LayerId) {
         if let Some(ix) = self.layer_ix(layer_id) {
             self.layers.remove(ix);
-            self.layer_placement.remove(&layer_id);
         }
     }
 
@@ -918,34 +917,37 @@ impl SublayersModel {
 // === MaskedLayer ===
 // ===================
 
-/// A layer with attached mask. Every object in `mask` layer will mask the objects of the
-/// `masked_object` layer.
+/// A layer with an attached mask. Each opaque shape in the `mask_layer` defines the renderable area
+/// of the `masked_layer`.
 ///
 /// One of the use cases might be an `ensogl_scroll_area::ScrollArea` component
 /// implementation. To clip the area's content (so that it is displayed only inside its borders) we
 /// place the area's content in the `masked_object` layer; and we place a rectangular mask in the
 /// `mask` layer.
+///
+/// We need to store `mask_layer`, because [`LayerModel::set_mask`] uses [`WeakLayer`] internally,
+/// so the [`Layer`] would be deallocated otherwise.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct MaskedLayer {
     #[deref]
-    pub masked_object: Layer,
-    pub mask:          Layer,
+    pub masked_layer: Layer,
+    pub mask_layer:   Layer,
 }
 
 impl AsRef<Layer> for MaskedLayer {
     fn as_ref(&self) -> &Layer {
-        &self.masked_object
+        &self.masked_layer
     }
 }
 
 impl MaskedLayer {
     /// Constructor. The passed [`camera`] is used to render created layers.
     pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
-        let masked_object = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
-        let mask = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
-        masked_object.set_mask(&mask);
-        Self { masked_object, mask }
+        let masked_layer = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
+        let mask_layer = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
+        masked_layer.set_mask(&mask_layer);
+        Self { masked_layer, mask_layer }
     }
 }
 

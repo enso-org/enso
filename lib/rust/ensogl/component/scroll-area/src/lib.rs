@@ -126,8 +126,8 @@ impl ScrollArea {
         let mask = mask::View::new(&logger);
         display_object.add_child(&mask);
 
-        display_object.layer.masked_object.add_exclusive(&content);
-        display_object.layer.mask.add_exclusive(&mask);
+        display_object.layer.masked_layer.add_exclusive(&content);
+        display_object.layer.mask_layer.add_exclusive(&mask);
 
         let h_scrollbar = Scrollbar::new(app);
         display_object.add_child(&h_scrollbar);

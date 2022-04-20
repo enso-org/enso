@@ -88,16 +88,6 @@ mod tests {
     use crate::display::scene::layer::MaskedLayer;
 
     #[test]
-    fn test_that_a_layer_can_be_used_in_instance_with_layer() {
-        let app = Application::new("root");
-        let logger = &app.logger;
-        let camera = &app.display.default_scene.layers.main.camera();
-        let display_object = Instance::new(&logger);
-        let layer = Layer::new(logger.clone_ref());
-        let display_object = InstanceWithLayer::new(display_object, layer);
-    }
-
-    #[test]
     fn test_that_sublayers_are_dropped() {
         let app = Application::new("root");
         let logger = &app.logger;
@@ -105,7 +95,7 @@ mod tests {
         let display_object = Instance::new(&logger);
         let layer = MaskedLayer::new(logger, camera);
         let display_object = InstanceWithLayer::new(display_object, layer);
-        let content_layer = display_object.layer.masked_object.downgrade();
+        let content_layer = display_object.layer.masked_layer.downgrade();
         assert!(content_layer.upgrade().is_some());
         drop(display_object);
         assert!(content_layer.upgrade().is_none());
