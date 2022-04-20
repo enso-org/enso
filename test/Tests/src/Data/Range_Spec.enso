@@ -138,7 +138,7 @@ spec = Test.group "Range" <|
         r1 = Range 10 11
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
-        r.length . should_equal 1
+        r1.length . should_equal 1
         r1.to_vector . should_equal [10]
         build_with_each r1 . should_equal [10]
         r1.map x->x*2 . should_equal [20]
@@ -239,7 +239,7 @@ spec = Test.group "Range" <|
         r6.to_vector . should_equal [0, 3, 6, 9]
         build_with_each r6 . should_equal [0, 3, 6, 9]
         r6.map x->x+1 . should_equal [1, 4, 7, 10]
-        r6.fold 0 (+) .  should_equal 22
+        r6.fold 0 (+) .  should_equal 18
         r6.any (_ == 3) . should_equal True
         r6.any (_ == 2) . should_equal False
         r6.all (x-> x % 2 == 0) . should_equal False
