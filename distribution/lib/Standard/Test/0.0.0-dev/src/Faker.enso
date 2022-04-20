@@ -3,9 +3,9 @@ from Standard.Base import all
 polyglot java import java.util.Random
 polyglot java import org.enso.base.Text_Utils
 
-upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".utf_16
-lower_case_letters = "abcdefghijklmnopqrstuvwxyz".utf_16
-numbers = "0123456789".utf_16
+upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
+lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
+numbers = "0123456789".char_vector
 
 ## Creates a new Faker which can be used for creating test values.
 
@@ -29,9 +29,9 @@ type Faker
        > Examples:
          Creates a fake UK National Insurance number:
 
-                l = "ABCEGHJKLMNOPRSTWXYZ".utf_16
-                n = "0123456789".utf_16
-                s = "ABCDFMP ".utf_16
+                l = "ABCEGHJKLMNOPRSTWXYZ".char_vector
+                n = "0123456789".char_vector
+                s = "ABCDFMP ".char_vector
                 template = [l, l, n, n, n, n, n, s]
                 ni_number = Faker.new . string_value template
     string_value : Vector -> Text
@@ -39,7 +39,7 @@ type Faker
         characters = template.map possible_chars->
             selected_char_ix = this.generator.nextInt possible_chars.length
             possible_chars.at selected_char_ix
-        Text.from_utf_16 characters
+        Text.from_char_vector characters
 
     ## Generates a Text consisting of lower/upper case characters.
 
@@ -67,7 +67,7 @@ type Faker
        - length: length of text to generate
     hexadecimal : Integer->Text
     hexadecimal length=1 =
-        alphabet = "0123456789ABCDEF".utf_16
+        alphabet = "0123456789ABCDEF".char_vector
         this.string_value <| 0.up_to length . map _->alphabet
 
     ## Create a random Boolean value

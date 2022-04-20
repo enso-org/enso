@@ -6,14 +6,26 @@ import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
-import java.nio.charset.StandardCharsets;
+
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiConsumer;
+import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
+import org.enso.base.text.ResultWithWarnings;
 import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
@@ -22,6 +34,7 @@ public class Text_Utils {
       Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
   private static final Pattern vertical_space =
       Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
+  private static final String INVALID_CHARACTER = "\uFFFD";
 
   /**
    * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
@@ -47,14 +60,77 @@ public class Text_Utils {
     return string.substring(from);
   }
 
+  private static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
+    int n = old.capacity();
+    int new_n = 2*n + 1;
+    T o = allocate.apply(new_n);
+    old.flip();
+    put.accept(o, old);
+    return o;
+  }
+
   /**
-   * Converts a string into an array of UTF-8 bytes.
+   * Converts a string into an array of bytes using the specified encoding.
    *
    * @param str the string to convert
+   * @param charset the character set to use to encode the string
    * @return the UTF-8 representation of the string.
    */
-  public static byte[] get_bytes(String str) {
-    return str.getBytes(StandardCharsets.UTF_8);
+  public static ResultWithWarnings<byte[]> get_bytes(String str, Charset charset) {
+    if (str.isEmpty()) {
+      return new ResultWithWarnings<>(new byte[0]);
+    }
+
+    CharsetEncoder encoder = charset.newEncoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .reset();
+
+    CharBuffer in = CharBuffer.wrap(str.toCharArray());
+    ByteBuffer out = ByteBuffer.allocate(
+        (int)(in.remaining() * encoder.averageBytesPerChar()));
+
+    StringBuilder warnings = null;
+    while (in.hasRemaining()) {
+      CoderResult cr = encoder.encode(in, out, true);
+      if (cr.isMalformed() || cr.isUnmappable()) {
+        // Get current position for error reporting
+        int position = in.position();
+
+        if (out.remaining() < encoder.replacement().length) {
+          out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
+        }
+        out.put(encoder.replacement());
+        in.position(in.position() + cr.length());
+
+        if (warnings == null) {
+          warnings = new StringBuilder();
+          warnings.append("Encoding issues at ");
+        } else {
+          warnings.append(", ");
+        }
+        warnings.append(position);
+      } else if (cr.isUnderflow()) {
+        // Finished
+        encoder.flush(out);
+        break;
+      } else if (cr.isOverflow()) {
+        out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
+      }
+    }
+
+    out.flip();
+    byte[] array = out.array();
+    if (out.limit() != array.length) {
+      array = Arrays.copyOf(array, out.limit());
+    }
+
+    if (warnings == null) {
+      return new ResultWithWarnings<>(array);
+    }
+
+    warnings.append(".");
+    return new ResultWithWarnings<>(array, warnings.toString());
   }
 
   /**
@@ -154,13 +230,63 @@ public class Text_Utils {
   }
 
   /**
-   * Converts an array of UTF-8 bytes into a string.
+   * Converts an array of encoded bytes into a string.
    *
    * @param bytes the bytes to convert
+   * @param charset the character set to use to decode the bytes
    * @return the resulting string
    */
-  public static String from_utf_8(byte[] bytes) {
-    return new String(bytes, StandardCharsets.UTF_8);
+  public static ResultWithWarnings<String> from_bytes(byte[] bytes, Charset charset) {
+    if (bytes.length == 0) {
+      return new ResultWithWarnings<>("");
+    }
+
+    CharsetDecoder decoder = charset.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .reset();
+
+    ByteBuffer in = ByteBuffer.wrap(bytes);
+    CharBuffer out = CharBuffer.allocate(
+        (int)(bytes.length * decoder.averageCharsPerByte()));
+
+    StringBuilder warnings = null;
+    while (in.hasRemaining()) {
+      CoderResult cr = decoder.decode(in, out, true);
+      if (cr.isMalformed() || cr.isUnmappable()) {
+        // Get current position for error reporting
+        int position = in.position();
+
+        if (out.remaining() < INVALID_CHARACTER.length()) {
+          out = resize(out, CharBuffer::allocate, CharBuffer::put);
+        }
+        out.put(INVALID_CHARACTER);
+        in.position(in.position() + cr.length());
+
+        if (warnings == null) {
+          warnings = new StringBuilder();
+          warnings.append("Encoding issues at ");
+        } else {
+          warnings.append(", ");
+        }
+        warnings.append(position);
+      } else if (cr.isUnderflow()) {
+        // Finished
+        decoder.flush(out);
+        break;
+      } else if (cr.isOverflow()) {
+        out = resize(out, CharBuffer::allocate, CharBuffer::put);
+      }
+    }
+
+    out.flip();
+
+    if (warnings == null) {
+      return new ResultWithWarnings<>(out.toString());
+    }
+
+    warnings.append(".");
+    return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
   /**
@@ -475,7 +601,7 @@ public class Text_Utils {
   /**
    * Checks if the given string consists only of whitespace characters.
    *
-   * @param str the string to check
+   * @param text the string to check
    * @return {@code true} if {@code str} is only whitespace, otherwise {@code false}
    */
   public static boolean is_all_whitespace(String text) {

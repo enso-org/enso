@@ -1,12 +1,16 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+
 import Standard.Test
+import Standard.Test.Problems
 
 spec =
     sample_file = Enso_Project.data / "sample.txt"
+    windows_file = Enso_Project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
-    Test.group "File Operations" <|
 
+    Test.group "File Operations" <|
         Test.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path
@@ -15,31 +19,18 @@ spec =
             file = File.new sample_file
             file . should_equal sample_file
 
-        Test.specify "should allow reading a file" <|
-            contents = sample_file.read
-            contents.should .start_with "Cupcake ipsum dolor sit amet."
-
-        Test.specify "should allow reading a file to byte vector" <|
-            contents = sample_file.read_bytes
-            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
-
-        Test.specify "should handle exceptions when reading a non-existent file" <|
-            file = File.new "does_not_exist.txt"
-            successfully_failed = Panic.recover Any file.read . catch e-> case e of
-                File.No_Such_File_Error _ -> True
-                _ -> False
-            successfully_failed . should_be_true
-
         Test.specify "should check if file exists" <|
             non_existent_file.exists.should_be_false
             sample_file.exists.should_be_true
 
-        Test.specify "should check if file is a directory" <|
-            sample_file.is_directory.should_be_false
-            Enso_Project.root.is_directory.should_be_true
-
         Test.specify "should get file name" <|
             sample_file.name.should_equal "sample.txt"
+
+        Test.specify "should get file extension" <|
+            sample_file.extension.should_equal ".txt"
+            (File.new "this.is.a.silly.name.txt").extension.should_equal ".txt"
+            (File.new "no_extension").extension.should_equal ""
+            (File.new "file.").extension.should_equal ""
 
         Test.specify "should convert a file to absolute" <|
             abs = File.new "foo.txt" . absolute
@@ -55,7 +46,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write "Cup"
+            f.write_text "Cup"
             f.with_input_stream stream->
                 stream.read_byte.should_equal 67
                 stream.read_byte.should_equal 117
@@ -64,34 +55,94 @@ spec =
             f.delete
             f.exists.should_be_false
 
+        Test.specify "should handle exceptions when deleting a missing file" <|
+            file = File.new "does_not_exist.txt"
+            file.delete . should_fail_with File.File_Not_Found
+
+    Test.group "read_bytes" <|
+        Test.specify "should allow reading a file to byte vector" <|
+            contents = sample_file.read_bytes
+            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+
+        Test.specify "should allow reading a file to byte vector via path" <|
+            full_path = sample_file . path
+            contents = File.read_bytes full_path
+            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+
+        Test.specify "should handle exceptions when reading a non-existent file" <|
+            file = File.new "does_not_exist.txt"
+            File.read_bytes "does_not_exist.txt" . should_fail_with File.File_Not_Found
+            file.read_bytes . should_fail_with File.File_Not_Found
+            non_existent_file.read_bytes . should_fail_with File.File_Not_Found
+
+        Test.specify "should open and read the file in one shot" <|
+            path_name = sample_file.path
+            contents = File.read_bytes path_name
+            contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+            file = sample_file
+            contents_2 = File.read_bytes file
+            contents_2.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
+
+    Test.group "read_text" <|
+        Test.specify "should allow reading a UTF-8 file" <|
+            contents = sample_file.read_text
+            contents.should .start_with "Cupcake ipsum dolor sit amet."
+
+        Test.specify "should allow reading a UTF-8 file via path" <|
+            full_path = sample_file . path
+            contents = File.read_text full_path
+            contents.should .start_with "Cupcake ipsum dolor sit amet."
+
+        Test.specify "should allow reading a Windows file via path" <|
+            contents = windows_file.read_text Encoding.windows_1252
+            contents.should_equal "Hello World! $¢¤¥"
+
+        Test.specify "should raise warnings when reading invalid characters" <|
+            action = windows_file.read_text Encoding.ascii on_problems=_
+            tester result = result.should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
+            problems = [Encoding_Error "Encoding issues at 14, 15, 16."]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should handle exceptions when reading a non-existent file" <|
+            file = File.new "does_not_exist.txt"
+            File.read_text "does_not_exist.txt" . should_fail_with File.File_Not_Found
+            file.read_text . should_fail_with File.File_Not_Found
+            non_existent_file.read_text . should_fail_with File.File_Not_Found
+
+        Test.specify "should open and read the file in one shot" <|
+            path_name = sample_file.path
+            contents = File.read_text path_name
+            contents.should .start_with "Cupcake ipsum dolor sit amet."
+            file = sample_file
+            contents_2 = File.read_text file
+            contents_2.should .start_with "Cupcake ipsum dolor sit amet."
+
+    Test.group "write operations" <|
         Test.specify "should write and append to files" <|
             f = Enso_Project.data / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            f.write "line 1!"
+            f.write_text "line 1!"
             f.exists.should_be_true
-            f.read.should_equal "line 1!"
+            f.read_text.should_equal "line 1!"
             f.append '\nline 2!'
-            f.read.should_equal 'line 1!\nline 2!'
+            f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
 
-        Test.specify "should open and read the file in one shot" <|
-            path_name = sample_file.path
-            contents = File.read path_name
-            contents.should .start_with "Cupcake ipsum dolor sit amet."
-            file = sample_file
-            contents_2 = File.read file
-            contents_2.should .start_with "Cupcake ipsum dolor sit amet."
-
+    Test.group "folder operations" <|
         resolve files =
             base = Enso_Project.data
             files.map str->
                 (base / str) . to_text
 
+        Test.specify "should check if file is a directory" <|
+            sample_file.is_directory.should_be_false
+            Enso_Project.root.is_directory.should_be_true
+
         Test.specify "should list files in a directory" <|
             immediate = Enso_Project.data.list . map .to_text
-            immediate.sort.should_equal (resolve ["books.json", "sample.txt", "subdirectory"])
+            immediate.sort.should_equal (resolve ["books.json", "sample.txt", "subdirectory", "windows.txt"])
 
             filtered1 = Enso_Project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])
@@ -101,10 +152,12 @@ spec =
 
         Test.specify "should list files in a directory recursively" <|
             all = Enso_Project.data.list recursive=True . map .to_text
-            all.sort.should_equal (resolve ["", "books.json", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
+            all.sort.should_equal (resolve ["", "books.json", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt", "windows.txt"])
 
             filtered1 = Enso_Project.data.list name_filter="**.txt" recursive=True . map .to_text
-            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt", "windows.txt"])
 
             filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
+
+main = Test.Suite.run_main here.spec
