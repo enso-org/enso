@@ -181,9 +181,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         }
 
         return new Right<>(o.toString());
-      } catch (UnsupportedMessageException
-          | ArityException
-          | UnsupportedTypeException e) {
+      } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
         return new Right<>(o.toString());
       } catch (Exception e) {
         return new Left<>(e);
