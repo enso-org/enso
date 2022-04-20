@@ -18,12 +18,12 @@ impl<'a> Diagram<'a> {
     pub fn process<'b: 'a>(&mut self, name: &'b str) -> Process {
         let id = self.processes.len();
         self.processes.push(name);
-        Process(id)
+        Process { id }
     }
 
     /// Log a message between two processes.
-    pub fn message(&mut self, p0: Process, p1: Process, time: f64, label: String) {
-        self.messages.push(Message { p0, p1, time, label });
+    pub fn message(&mut self, sender: Process, recipient: Process, time: f64, label: String) {
+        self.messages.push(Message { sender, recipient, time, label });
     }
 }
 
@@ -32,7 +32,7 @@ impl<'a> Diagram<'a> {
 
 /// A process that may send and receive messages.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Process(usize);
+pub struct Process { id: usize }
 
 
 // === Message ===
@@ -40,10 +40,10 @@ pub struct Process(usize);
 /// An event of communication between processes.
 #[derive(Clone, Debug)]
 pub struct Message {
-    p0:    Process,
-    p1:    Process,
-    time:  f64,
-    label: String,
+    sender:    Process,
+    recipient: Process,
+    time:      f64,
+    label:     String,
 }
 
 
@@ -128,13 +128,14 @@ pub mod svg {
             forward: bool,
         }
         for index in 1..dia.processes.len() {
-            let i0 = Process(index - 1);
-            let i1 = Process(index);
+            let i0 = Process { id: index - 1 };
+            let i1 = Process { id: index };
             pairs.insert((i0, i1), Pair { index, forward: true });
             pairs.insert((i1, i0), Pair { index, forward: false });
         }
         for m in &dia.messages {
-            let Pair { index, forward } = *pairs.get(&(m.p0, m.p1)).expect(simple_only);
+            let pair = (m.sender, m.recipient);
+            let Pair { index, forward } = *pairs.get(&pair).expect(simple_only);
             let x = index as f64 * POLE_SPACING;
             if forward {
                 writeln!(
