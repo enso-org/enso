@@ -1100,6 +1100,7 @@ name = "enso-parser"
 version = "0.2.6"
 dependencies = [
  "bumpalo",
+ "enso-data-structures",
  "enso-prelude",
  "ouroboros",
 ]

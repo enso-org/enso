@@ -8,6 +8,7 @@ use crate::prelude::*;
 
 pub mod lexer;
 
+use enso_data_structures::hash_map_tree::HashMapTree;
 use lexer::Token;
 
 pub mod prelude {
@@ -43,6 +44,10 @@ impl<T> List<T> {
 
     pub fn tail(&self) -> Option<&List<T>> {
         self.node.as_ref().map(|t| &t.tail)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.node.is_none()
     }
 
     fn to_vec(&self) -> Vec<&T> {
@@ -140,61 +145,125 @@ impl Pattern {
 
 
 #[derive(Debug)]
-pub struct Segment<'a> {
+pub struct Macro<'a> {
     prefix:   Option<Pattern>,
-    section:  Section<'a>,
-    sections: List<Section<'a>>,
+    section:  MacroSegment<'a>,
+    segments: List<MacroSegment<'a>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Section<'a> {
+pub struct MacroSegment<'a> {
     repr:    &'a str,
     pattern: Pattern,
 }
 
+#[derive(Debug)]
+pub struct MatchedSegment {
+    header: Token,
+    body:   Vec<Token>,
+}
+
 use lexer::Lexer;
 
-fn segment_if_then_else<'a>() -> Segment<'a> {
-    let section1 = Section { repr: "if", pattern: Pattern::Everything };
-    let section2 = Section { repr: "then", pattern: Pattern::Everything };
-    let section3 = Section { repr: "else", pattern: Pattern::Everything };
-    Segment {
+fn macro_if_then_else<'a>() -> Macro<'a> {
+    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
+    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
+    let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
+    Macro {
         prefix:   None,
         section:  section1,
-        sections: List::default().with_head(section3).with_head(section2),
+        segments: List::default().with_head(section3).with_head(section2),
     }
 }
 
+fn macro_if_then<'a>() -> Macro<'a> {
+    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
+    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
+    Macro { prefix: None, section: section1, segments: List::default().with_head(section2) }
+}
+
 #[derive(Default, Debug)]
-pub struct SectionTree<'a> {
-    subsections: HashMap<&'a str, Vec<List<Section<'a>>>>,
-    parent:      Option<Box<SectionTree<'a>>>,
+pub struct MacroSegmentTreeData<'a> {
+    subsections: HashMap<&'a str, Vec<List<MacroSegment<'a>>>>,
+    parent:      Option<Box<MacroSegmentTreeData<'a>>>,
 }
 
 #[derive(Default, Debug, Deref, DerefMut)]
-pub struct SectionTreeStack<'a> {
-    tree: SectionTree<'a>,
+pub struct MacroSegmentTree<'a> {
+    tree: MacroSegmentTreeData<'a>,
 }
 
-impl<'a> SectionTreeStack<'a> {
-    pub fn enter(&mut self, repr: &'a str) {
-        if let Some(list) = self.subsections.get(repr) {
-            let mut new_section_tree = SectionTree::default();
+#[derive(Default, Debug)]
+pub struct MacroResolver {
+    current_segment: Option<MatchedSegment>,
+    segments:        Vec<MatchedSegment>,
+}
+
+#[derive(Default, Debug)]
+pub struct Resolver {
+    current_macro:  MacroResolver,
+    macro_stack:    Vec<MacroResolver>,
+    is_final_state: bool,
+}
+
+impl Resolver {
+    pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) {
+        let mut segment_tree = MacroSegmentTree::default();
+        let mut root_segment_tree = MacroSegmentTree::default();
+
+        let if_then = macro_if_then();
+        let if_then_else = macro_if_then_else();
+        root_segment_tree.subsections.entry("if").or_default().push(if_then.segments);
+        root_segment_tree.subsections.entry("if").or_default().push(if_then_else.segments);
+
+        println!("{:#?}", root_segment_tree);
+
+        for token in tokens {
+            let token = *token;
+            let repr = lexer.repr(token);
+            println!("\n>> '{}' = {:#?}", repr, token);
+            println!("reserved: {}", segment_tree.is_reserved(repr));
+            self.enter(lexer, &mut segment_tree, &root_segment_tree, token);
+            self.current_macro.current_segment.as_mut().unwrap().body.push(token);
+            println!("{:#?}", segment_tree);
+        }
+    }
+
+    pub fn enter<'a>(
+        &mut self,
+        lexer: &Lexer,
+        stack: &mut MacroSegmentTree<'a>,
+        root: &MacroSegmentTree<'a>,
+        token: Token,
+    ) {
+        let repr = lexer.repr(token);
+        if let Some(list) = stack.subsections.get(repr).or_else(|| root.subsections.get(repr)) {
+            let mut current_macro = Some(MatchedSegment { header: token, body: default() });
+            mem::swap(&mut self.current_macro.current_segment, &mut current_macro);
+            if let Some(current_macro) = current_macro {
+                self.current_macro.segments.push(current_macro);
+            }
+
+            self.is_final_state = false;
+            let mut new_section_tree = MacroSegmentTreeData::default();
             for v in list {
+                if v.is_empty() {
+                    self.is_final_state = true;
+                }
                 if let Some(first) = v.head() {
-                    let vv = v.tail().cloned().unwrap_or_default();
-                    new_section_tree.subsections.entry(&first.repr).or_default().push(vv);
+                    let tail = v.tail().cloned().unwrap_or_default();
+                    new_section_tree.subsections.entry(&first.repr).or_default().push(tail);
                 } else {
                     // todo!()
                 }
             }
-            mem::swap(&mut new_section_tree, &mut self.tree);
-            self.tree.parent = Some(Box::new(new_section_tree));
+            mem::swap(&mut new_section_tree, &mut stack.tree);
+            stack.tree.parent = Some(Box::new(new_section_tree));
         }
     }
 }
 
-impl<'a> SectionTree<'a> {
+impl<'a> MacroSegmentTreeData<'a> {
     pub fn is_reserved(&self, repr: &'a str) -> bool {
         self.parent
             .as_ref()
@@ -202,6 +271,10 @@ impl<'a> SectionTree<'a> {
             .unwrap_or(false)
     }
 }
+
+
+
+pub struct Ast {}
 
 fn main() {
     let str = "if a then b else c";
@@ -219,20 +292,12 @@ fn main() {
 
     println!("\n---\n");
 
-    let mut section_tree = SectionTreeStack::default();
 
-    let if_then_else = segment_if_then_else();
-    section_tree.subsections.entry("if").or_default().push(if_then_else.sections);
+    let mut resolver = Resolver::default();
+    resolver.run(&lexer, lexer.output.borrow_vec());
 
-    for token in lexer.output.borrow_vec() {
-        let repr = lexer.repr(*token);
-        println!("\n>> '{}' = {:#?}", repr, token);
-        println!("reserved: {}", section_tree.is_reserved(repr));
-        section_tree.enter(repr);
-        println!("{:#?}", section_tree);
-    }
-
-    // println!("{:#?}", section_tree);
+    println!("{:#?}", resolver);
+    // println!("{:#?}", segment_tree);
     // let if_then_else =
     // println!("{:#?}", pattern.next(&mut stream))
 }

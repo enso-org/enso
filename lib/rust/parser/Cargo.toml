@@ -13,4 +13,5 @@ license-file = "../../LICENSE"
 [dependencies]
 bumpalo = {version = "3.9.1", features = ["allocator_api"]}
 enso-prelude = { path = "../prelude" }
+enso-data-structures = { path = "../data-structures" }
 ouroboros = "0.14.2"
