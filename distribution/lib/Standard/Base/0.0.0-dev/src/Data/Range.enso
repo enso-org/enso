@@ -102,12 +102,12 @@ type Range
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
     each function =
-        go end_condition current end =
-            if end_condition current end then Nothing else
+        go end_condition current =
+            if end_condition current this.end then Nothing else
                 function current
-                @Tail_Call go end_condition current+this.step end
-        if this.step > 0 then go (>=) this.start this.end else
-            if this.step < 0 then go (<=) this.start this.end else
+                @Tail_Call go end_condition current+this.step
+        if this.step > 0 then go (>=) this.start else
+            if this.step < 0 then go (<=) this.start else
                 here.throw_zero_step_error
 
     ## Combines all the elements of the range, by iteratively applying the
@@ -130,12 +130,12 @@ type Range
              0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold init function =
-        go end_condition acc current end =
-            if end_condition current end then acc else
+        go end_condition acc current =
+            if end_condition current this.end then acc else
                 new_acc = function acc current
-                @Tail_Call go end_condition new_acc current+this.step end
-        if this.step > 0 then go (>=) init this.start this.end else
-            if this.step < 0 then go (<=) init this.start this.end else
+                @Tail_Call go end_condition new_acc current+this.step
+        if this.step > 0 then go (>=) init this.start else
+            if this.step < 0 then go (<=) init this.start else
                 here.throw_zero_step_error
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
@@ -150,13 +150,7 @@ type Range
 
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
-    all predicate =
-        go end_condition current end =
-            if end_condition current end then True else
-                if predicate current then @Tail_Call go end_condition current+this.step end else False
-        if this.step > 0 then go (>=) this.start this.end else
-            if this.step < 0 then go (<=) this.start this.end else
-                here.throw_zero_step_error
+    all predicate = this . exists (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -200,12 +194,12 @@ type Range
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
     find predicate =
-        go end_condition current end =
-            if end_condition current end then Nothing else
+        go end_condition current =
+            if end_condition current this.end then Nothing else
                 if predicate current then current else
-                    @Tail_Call go end_condition current+this.step end
-        if this.step > 0 then go (>=) this.start this.end else
-            if this.step < 0 then go (<=) this.start this.end else
+                    @Tail_Call go end_condition current+this.step
+        if this.step > 0 then go (>=) this.start else
+            if this.step < 0 then go (<=) this.start else
                 here.throw_zero_step_error
 
     ## Converts the range to a vector containing the numbers in the range.
@@ -215,8 +209,7 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector.Vector
-    to_vector =
-        Vector.new this.length (i -> this.start + i*this.step)
+    to_vector = this.map x->x
 
     ## Does the range contain the specified value
 
