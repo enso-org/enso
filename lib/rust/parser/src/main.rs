@@ -182,6 +182,7 @@ fn macro_if_then<'a>() -> Macro<'a> {
     Macro { prefix: None, section: section1, segments: List::default().with_head(section2) }
 }
 
+
 #[derive(Default, Debug)]
 pub struct MacroSegmentTreeData<'a> {
     subsections: HashMap<&'a str, Vec<List<MacroSegment<'a>>>>,
@@ -193,15 +194,16 @@ pub struct MacroSegmentTree<'a> {
     tree: MacroSegmentTreeData<'a>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct MacroResolver {
-    current_segment: Option<MatchedSegment>,
+    current_segment: MatchedSegment,
     segments:        Vec<MatchedSegment>,
 }
 
 #[derive(Default, Debug)]
 pub struct Resolver {
-    current_macro:  MacroResolver,
+    leading_tokens: Vec<Token>,
+    current_macro:  Option<MacroResolver>,
     macro_stack:    Vec<MacroResolver>,
     is_final_state: bool,
 }
@@ -223,10 +225,22 @@ impl Resolver {
             let repr = lexer.repr(token);
             println!("\n>> '{}' = {:#?}", repr, token);
             println!("reserved: {}", segment_tree.is_reserved(repr));
-            self.enter(lexer, &mut segment_tree, &root_segment_tree, token);
-            self.current_macro.current_segment.as_mut().unwrap().body.push(token);
+            if !self.enter(lexer, &mut segment_tree, &root_segment_tree, token) {
+                match self.current_macro.as_mut() {
+                    Some(current_macro) => current_macro.current_segment.body.push(token),
+                    None => self.leading_tokens.push(token),
+                }
+            }
             println!("{:#?}", segment_tree);
         }
+        self.finish();
+    }
+
+    pub fn finish(&mut self) {
+        let current_macro = mem::take(&mut self.current_macro).unwrap();
+        let mut segments = current_macro.segments;
+        segments.push(current_macro.current_segment);
+        println!("{:#?}", segments);
     }
 
     pub fn enter<'a>(
@@ -235,15 +249,33 @@ impl Resolver {
         stack: &mut MacroSegmentTree<'a>,
         root: &MacroSegmentTree<'a>,
         token: Token,
-    ) {
+    ) -> bool {
         let repr = lexer.repr(token);
-        if let Some(list) = stack.subsections.get(repr).or_else(|| root.subsections.get(repr)) {
-            let mut current_macro = Some(MatchedSegment { header: token, body: default() });
-            mem::swap(&mut self.current_macro.current_segment, &mut current_macro);
-            if let Some(current_macro) = current_macro {
-                self.current_macro.segments.push(current_macro);
+        let list = match stack.subsections.get(repr) {
+            Some(list) => {
+                let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
+                let mut current_segment = MatchedSegment { header: token, body: default() };
+                mem::swap(&mut current_macro.current_segment, &mut current_segment);
+                current_macro.segments.push(current_segment);
+                Some(list)
             }
+            None => match root.subsections.get(repr) {
+                Some(list) => {
+                    let current_segment = MatchedSegment { header: token, body: default() };
+                    let mut current_macro =
+                        Some(MacroResolver { current_segment, segments: default() });
+                    mem::swap(&mut self.current_macro, &mut current_macro);
+                    if let Some(current_macro) = current_macro {
+                        self.macro_stack.push(current_macro);
+                    }
+                    Some(list)
+                }
+                None => None,
+            },
+        };
 
+        let out = list.is_some();
+        if let Some(list) = list {
             self.is_final_state = false;
             let mut new_section_tree = MacroSegmentTreeData::default();
             for v in list {
@@ -260,6 +292,7 @@ impl Resolver {
             mem::swap(&mut new_section_tree, &mut stack.tree);
             stack.tree.parent = Some(Box::new(new_section_tree));
         }
+        out
     }
 }
 
@@ -277,7 +310,7 @@ impl<'a> MacroSegmentTreeData<'a> {
 pub struct Ast {}
 
 fn main() {
-    let str = "if a then b else c";
+    let str = "if a then b c else d e f";
     let mut lexer = Lexer::new(str);
     println!("{:#?}", lexer.run());
     println!("{:#?}", lexer.output);
@@ -295,6 +328,8 @@ fn main() {
 
     let mut resolver = Resolver::default();
     resolver.run(&lexer, lexer.output.borrow_vec());
+
+    println!("\n---\n");
 
     println!("{:#?}", resolver);
     // println!("{:#?}", segment_tree);
