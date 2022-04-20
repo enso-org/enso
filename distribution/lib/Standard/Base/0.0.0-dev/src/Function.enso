@@ -1,0 +1,26 @@
+# Function types.
+type Function
+
+    ## A function is any type that represents a not-yet evaluated computation.
+
+       Methods are represented as functions with dynamic dispatch semantics on
+       the this argument.
+    @Builtin_Type
+    type Function
+
+    ## Forces evaluation of a fully-applied but not evaluated function.
+
+       This is particularly useful when you want to call a function that is
+       fully applied with default arguments.
+
+       This is usually _not_ the correct solution to a problem, and so should be
+       used sparingly.
+
+       > Example
+         Evaluate a fully applied function to get 4.
+
+            example_call =
+                f (a = 2) = a * a
+                f.call
+    call : Any
+    call = @Builtin_Method "Function.call"

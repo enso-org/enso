@@ -70,8 +70,6 @@ public class Builtins {
 
   private final AtomConstructor debug;
   private final AtomConstructor projectDescription;
-  private final AtomConstructor function;
-  private final AtomConstructor nothing;
 
   private final Error error;
   private final Module module;
@@ -103,8 +101,6 @@ public class Builtins {
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
     error = new Error(this);
-    function = new AtomConstructor("Function", scope).initializeFields();
-    nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
     resource = new Resource(language, scope);
@@ -117,8 +113,6 @@ public class Builtins {
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
-    scope.registerConstructor(nothing);
-    scope.registerConstructor(function);
 
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
@@ -142,7 +136,6 @@ public class Builtins {
     scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalMethodGen.makeFunction(language));
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
-    scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
     scope.registerMethod(
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
@@ -241,8 +234,7 @@ public class Builtins {
       return builtin;
     }).filter(b -> b != null).collect(Collectors.toList());
   }
-
-
+  
   private void readBuiltinsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
@@ -321,7 +313,7 @@ public class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public AtomConstructor nothing() {
-    return nothing;
+    return getBuiltinType(Nothing.class);
   }
 
   /**
@@ -339,7 +331,7 @@ public class Builtins {
    * @return the {@code Function} atom constructor
    */
   public AtomConstructor function() {
-    return function;
+    return getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
   }
 
   /**
@@ -472,13 +464,13 @@ public class Builtins {
       case Constants.ERROR:
         return dataflowError().newInstance();
       case Constants.FUNCTION:
-        return function.newInstance();
+        return function().newInstance();
       case Constants.INTEGER:
         return number.getInteger().newInstance();
       case Constants.MANAGED_RESOURCE:
         return resource.getManagedResource().newInstance();
       case Constants.NOTHING:
-        return nothing.newInstance();
+        return nothing().newInstance();
       case Constants.NUMBER:
         return number.getNumber().newInstance();
       case Constants.PANIC:

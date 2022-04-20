@@ -726,8 +726,9 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val contents =
-      """from Standard.Builtins import all
+      """from Standard.Builtins import Number
         |from Standard.Base.Data.Text.Text import all
+        |import Standard.Base.Nothing
         |
         |main =
         |    x = 15.overloaded 1
@@ -822,8 +823,8 @@ class RuntimeSuggestionUpdatesTest
                         "x",
                         Constants.ANY,
                         Suggestion.Scope(
-                          Suggestion.Position(3, 6),
-                          Suggestion.Position(8, 0)
+                          Suggestion.Position(4, 6),
+                          Suggestion.Position(9, 0)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -908,7 +909,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Builtins import all
+      """from Standard.Builtins import Integer
         |
         |type MyType
         |    type MkA a

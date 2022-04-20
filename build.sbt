@@ -1130,6 +1130,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(Defaults.testSettings),
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(

@@ -75,34 +75,6 @@ type Prim_Warning
     get_reassignments : Prim_Warning -> Any
     get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"
 
-
-# Function types.
-type Function
-
-    ## A function is any type that represents a not-yet evaluated computation.
-
-       Methods are represented as functions with dynamic dispatch semantics on
-       the this argument.
-    @Builtin_Type
-    type Function
-
-    ## Forces evaluation of a fully-applied but not evaluated function.
-
-       This is particularly useful when you want to call a function that is
-       fully applied with default arguments.
-
-       This is usually _not_ the correct solution to a problem, and so should be
-       used sparingly.
-
-       > Example
-         Evaluate a fully applied function to get 4.
-
-            example_call =
-                f (a = 2) = a * a
-                f.call
-    call : Any
-    call = @Builtin_Method "Function.call"
-
 ## The root type of the Enso numeric hierarchy.
 
    If a Number is expected, then the program can provide either a Decimal or
@@ -1095,14 +1067,6 @@ type Project_Description
        - prim_root_file: The primitive root file of the project.
     @Builtin_Type
     type Project_Description prim_root_file
-
-## The type that has only a singleton value.
-
-   It is often used alongside a value of type a to provide a Maybe or
-   Option abstraction. The type a | Nothing is semantically equivalent to
-   Maybe a.
-@Builtin_Type
-type Nothing
 
 ## A representation of the relative ordering between two values.
 type Ordering

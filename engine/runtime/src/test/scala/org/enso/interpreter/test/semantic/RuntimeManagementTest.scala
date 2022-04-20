@@ -23,6 +23,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """from Standard.Builtins import all
           |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |foo x =
           |    if x == 0 then IO.println "Start." else Nothing
@@ -117,6 +118,7 @@ class RuntimeManagementTest extends InterpreterTest {
         """
           |from Standard.Builtins import all
           |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |
@@ -157,6 +159,7 @@ class RuntimeManagementTest extends InterpreterTest {
         """
           |from Standard.Builtins import all
           |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |

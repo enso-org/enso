@@ -67,8 +67,7 @@ class TextTest extends InterpreterTest {
 
     "support escape sequences in literals" in {
       val code =
-        """from Standard.Builtins import all
-          |import Standard.Base.IO
+        """import Standard.Base.IO
           |
           |main = IO.println '\"Grzegorz Brzeczyszczykiewicz\"'
           |""".stripMargin
@@ -107,11 +106,11 @@ class TextTest extends InterpreterTest {
     "support converting values to display texts" in {
       val code =
         """
-          |from Standard.Builtins import all
           |from Standard.Base.Data.List import Cons
           |from Standard.Base.Error.Common import all
           |from Standard.Base.Data.Text.Text import all
           |import Standard.Base.IO
+          |import Standard.Base.Nothing
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text

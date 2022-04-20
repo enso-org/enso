@@ -54,12 +54,12 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in applications and method calls" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """from Standard.Base import all
+        """from Standard.Base.Data.List import Cons
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
           |""".stripMargin
-      instrumenter.assertNodeExists(38, 36, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(63, 8, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(49, 36, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(74, 8, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -88,7 +88,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Nothing
           |import Standard.Base.IO
           |
           |Nothing.method =
@@ -101,10 +101,10 @@ class CodeLocationsTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin
 
-      instrumenter.assertNodeExists(142, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(160, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(156, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(168, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(137, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(155, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(151, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(163, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }

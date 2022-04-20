@@ -20,8 +20,10 @@ import project.Data.Text.Matching
 import project.Data.Vector
 import project.Error.Common
 import project.Error.Extensions
+import project.Function
 import project.IO.Prim_Io
 import project.IO
+import project.Nothing
 import project.Math
 import project.Meta
 import project.Meta.Enso_Project
@@ -33,7 +35,7 @@ import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
-from Standard.Builtins import Nothing, Number, Integer
+from Standard.Builtins import Number, Integer
 
 export project.Data.Interval
 export project.Data.Json
@@ -74,7 +76,9 @@ from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Mat
 from project.Data.Text.Text export all
 from project.Error.Common export all
 from project.Error.Extensions export all
+from project.Function export all
 from project.Meta.Enso_Project export all
+from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
 

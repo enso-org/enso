@@ -1246,7 +1246,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         xId,

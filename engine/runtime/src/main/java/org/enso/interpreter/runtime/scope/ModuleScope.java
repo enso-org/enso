@@ -116,7 +116,11 @@ public class ModuleScope implements TruffleObject {
     Map<String, Function> methodMap = ensureMethodMapFor(atom);
 
     if (methodMap.containsKey(method)) {
-      throw new RedefinedMethodException(atom.getName(), method);
+      if (!atom.isBuiltin()) {
+        // Builtin types will have double definition because of
+        // BuiltinMethod and that's OK
+        throw new RedefinedMethodException(atom.getName(), method);
+      }
     } else {
       methodMap.put(method, function);
     }

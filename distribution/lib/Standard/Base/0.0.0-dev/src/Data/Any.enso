@@ -30,6 +30,16 @@ type Any
     to_text : Text
     to_text = @Builtin_Method "Any.to_text"
 
+    ## Generic conversion of an arbitrary Enso value to a corresponding human-readable
+       representation.
+
+       > Example
+         Getting a human-readable textual representation of the number 7.
+
+             7.to_text
+    to_display_text : Text
+    to_display_text = @Builtin_Method "Any.to_display_text"
+
     ## ALIAS Equality
 
        Checks if `this` is equal to `that`.

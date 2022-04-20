@@ -8,7 +8,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
   override def specify(implicit
     interpreterContext: InterpreterContext
   ): Unit = {
-    "surface ast-processing errors in the language" in {
+   "surface ast-processing errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
           |
@@ -26,7 +26,6 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface parsing errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
-          |from Standard.Builtins import Nothing
           |
           |main =
           |    x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
@@ -35,7 +34,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
       eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
     }
 
-    "surface redefinition errors in the language" in {
+  "surface redefinition errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
           |from Standard.Builtins import Nothing

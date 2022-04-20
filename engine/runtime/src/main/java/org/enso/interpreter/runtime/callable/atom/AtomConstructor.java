@@ -29,6 +29,8 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
+import java.util.Map;
+
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
@@ -67,6 +69,12 @@ public final class AtomConstructor implements TruffleObject {
 
   public void setShadowDefinitions(ModuleScope scope) {
     if (builtin) {
+      // Ensure that synthetic methods, such as getters for fields are in the scope
+      // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null check.
+      Map<String,Function> methods = this.definitionScope.getMethods().get(this);
+      if (methods != null) {
+        methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
+      }
       this.definitionScope = scope;
     } else {
       throw new RuntimeException("Attempting to modify scope of a non-builtin type post-construction is not allowed");

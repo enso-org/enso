@@ -89,7 +89,7 @@ class LambdaTest extends InterpreterTest {
 
     "support the use of oversaturated args in methods" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.my_method = 1
           |

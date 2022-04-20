@@ -64,9 +64,10 @@ class StateTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Builtins import State,Number
           |from Standard.Base.Data.List import Nil
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
+          |import Standard.Base.Nothing
           |
           |run =
           |    matcher = x -> case x of

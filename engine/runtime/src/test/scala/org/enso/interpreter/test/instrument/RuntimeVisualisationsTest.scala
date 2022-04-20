@@ -1851,11 +1851,10 @@ class RuntimeVisualisationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(120, 28)
+    val idMain = metadata.addItem(86, 28)
 
     val code =
-      """from Standard.Builtins import all
-        |import Standard.Base.Data.List
+      """import Standard.Base.Data.List
         |from Standard.Base.Error.Common import all
         |
         |main =

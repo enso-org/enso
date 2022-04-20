@@ -25,7 +25,7 @@ class MethodsTest extends InterpreterTest {
     "execute `this` argument once" in {
       val code =
         """from Standard.Base.IO import all
-          |from Standard.Builtins import Nothing
+          |import Standard.Base.Nothing
           |
           |Nothing.foo = 0
           |
@@ -128,7 +128,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |from Standard.Base.IO import all
-          |from Standard.Builtins import Nothing
+          |import Standard.Base.Nothing
           |
           |type Foo
           |type Bar
