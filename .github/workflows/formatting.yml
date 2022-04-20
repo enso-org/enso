@@ -39,4 +39,3 @@ jobs:
       - name: Check Code Formatting
         run: |
           sbt "scalafmtCheckAll; javafmtCheckAll"
-
