@@ -164,6 +164,12 @@ impl Deref for Layer {
     }
 }
 
+impl AsRef<Layer> for Layer {
+    fn as_ref(&self) -> &Layer {
+        self
+    }
+}
+
 impl Debug for Layer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&*self.model, f)
@@ -925,6 +931,12 @@ pub struct MaskedLayer {
     #[deref]
     pub masked_object: Layer,
     pub mask:          Layer,
+}
+
+impl AsRef<Layer> for MaskedLayer {
+    fn as_ref(&self) -> &Layer {
+        &self.masked_object
+    }
 }
 
 impl MaskedLayer {

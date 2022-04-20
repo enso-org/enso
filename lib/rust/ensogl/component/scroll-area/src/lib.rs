@@ -88,7 +88,7 @@ pub struct ScrollArea {
     /// All objects that should be inside the scroll area and affected by the scrolling, have to be
     /// added as children to `content`.
     pub content:           display::object::Instance,
-    display_object:        display::object::InstanceWithAttachedLayer<MaskedLayer>,
+    display_object:        display::object::InstanceWithLayer<MaskedLayer>,
     h_scrollbar:           Scrollbar,
     v_scrollbar:           Scrollbar,
     scroll_handler_handle: callback::Handle,
@@ -118,7 +118,7 @@ impl ScrollArea {
         let display_object = display::object::Instance::new(&logger);
         let masked_layer = MaskedLayer::new(&logger, &camera);
         let display_object =
-            display::object::InstanceWithAttachedLayer::new(display_object, masked_layer);
+            display::object::InstanceWithLayer::new(display_object, masked_layer);
 
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
