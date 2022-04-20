@@ -73,19 +73,44 @@ class ReplTest
       val code =
         """
           |from Standard.Builtins import all
+          |polyglot java import java.util.regex.Pattern
           |
           |type Foo a b
           |
           |Foo.to_text = "{" + this.a.to_text + ": " + this.b + "}"
+          |
+          |type Bar x
+          |
+          |Bar.to_text = 42
+          |
+          |type Baz x
+          |
+          |Baz.to_text a b c = a+b+c
           |
           |main =
           |    x = Debug.breakpoint
           |    x.a
           |""".stripMargin
       setSessionManager { executor =>
-        val result = executor.evaluate("Foo 2 'a'")
-        inside(result) { case Right(value) =>
-          value.toString shouldEqual "{2: a}"
+        inside(executor.evaluate("2")) { case Right(result) =>
+          result.toString shouldEqual "2"
+        }
+        inside(executor.evaluate("Bar 1")) { case Right(result) =>
+          result.toString shouldEqual "Bar 1"
+        }
+        inside(executor.evaluate("Baz 1")) { case Right(result) =>
+          result.toString shouldEqual "Baz 1"
+        }
+        inside(executor.evaluate("Pattern.compile 'foo'")) {
+          case Right(result) =>
+            result.toString shouldEqual "JavaObject[foo (java.util.regex.Pattern)]"
+        }
+        inside(executor.evaluate("Array.new_2 1 (Array.new 0)")) {
+          case Right(result) =>
+            result.toString shouldEqual "[1, []]"
+        }
+        inside(executor.evaluate("Foo 2 'a'")) { case Right(result) =>
+          result.toString shouldEqual "{2: a}"
         }
         executor.exit()
       }

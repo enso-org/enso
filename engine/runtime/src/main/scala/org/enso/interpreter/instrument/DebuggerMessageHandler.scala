@@ -93,7 +93,7 @@ class DebuggerMessageHandler extends MessageEndpoint {
               case Right(value) =>
                 node.showObject(value) match {
                   case Left(error) =>
-                    Logger[this.type].error(
+                    Logger[this.type].warn(
                       s"Failed to call `to_text` on computation result (${error.getMessage}), falling back to Java representation."
                     )
                     sendToClient(Debugger.createEvaluationSuccess(value))

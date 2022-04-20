@@ -170,13 +170,20 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     public Either<Exception, String> showObject(Object o) {
       try {
         InteropLibrary atoms = InteropLibrary.getUncached();
-        Text text = TypesGen.expectText(atoms.invokeMember(o, "to_text"));
-        return new Right<>(toJavaStringNode.execute(text));
+        String toTextIdentifier = "to_text";
+        if (atoms.isMemberInvocable(o, toTextIdentifier)) {
+          Object repr = atoms.invokeMember(o, toTextIdentifier);
+          if (repr instanceof Text) {
+            return new Right<>(toJavaStringNode.execute((Text) repr));
+          } else if (repr instanceof String) {
+            return new Right<>((String) repr);
+          }
+        }
+
+        return new Right<>(o.toString());
       } catch (UnsupportedMessageException
           | ArityException
-          | UnknownIdentifierException
-          | UnsupportedTypeException
-          | UnexpectedResultException e) {
+          | UnsupportedTypeException e) {
         return new Right<>(o.toString());
       } catch (Exception e) {
         return new Left<>(e);
