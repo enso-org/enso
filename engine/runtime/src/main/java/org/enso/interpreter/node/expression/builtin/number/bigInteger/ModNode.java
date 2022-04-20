@@ -35,7 +35,8 @@ public abstract class ModNode extends Node {
 
   @Specialization
   double doDouble(EnsoBigInteger _this, double that) {
-    // No need to trap, as floating-point modulo returns NaN for division by zero instead of throwing.
+    // No need to trap, as floating-point modulo returns NaN for division by zero instead of
+    // throwing.
     return BigIntegerOps.toDouble(_this.getValue()) % that;
   }
 

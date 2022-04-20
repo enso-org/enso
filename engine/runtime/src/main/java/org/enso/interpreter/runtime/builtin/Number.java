@@ -382,37 +382,27 @@ public class Number {
             language));
   }
 
-  /**
-   * @return the Int64 atom constructor.
-   */
+  /** @return the Int64 atom constructor. */
   public AtomConstructor getSmallInteger() {
     return smallInteger;
   }
 
-  /**
-   * @return the Big_Integer atom constructor.
-   */
+  /** @return the Big_Integer atom constructor. */
   public AtomConstructor getBigInteger() {
     return bigInteger;
   }
 
-  /**
-   * @return the Integer atom constructor
-   */
+  /** @return the Integer atom constructor */
   public AtomConstructor getInteger() {
     return integer;
   }
 
-  /**
-   * @return the Number atom constructor
-   */
+  /** @return the Number atom constructor */
   public AtomConstructor getNumber() {
     return number;
   }
 
-  /**
-   * @return the Decimal atom constructor
-   */
+  /** @return the Decimal atom constructor */
   public AtomConstructor getDecimal() {
     return decimal;
   }
