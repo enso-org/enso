@@ -245,10 +245,16 @@ spec =
 
             3.5%1 . should_equal 0.5
 
+            almost_max_long_times_three%10 . should_equal 8
+            1000%almost_max_long_times_three . should_equal 1000
+
             1%0 . should_fail_with Arithmetic_Error
+            almost_max_long_times_three%0 . should_fail_with Arithmetic_Error
+
             1.0%0.0 . is_nan . should_be_true
             1%0.0 . is_nan . should_be_true
             1.0%0 . is_nan . should_be_true
+            almost_max_long_times_three%0.0 . is_nan . should_be_true
 
         Test.specify "should expose comparison operators" <|
             (3 < hundred_factorial).should_be_true
