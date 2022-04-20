@@ -29,6 +29,16 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     tmp
   }
 
+  private def suggestionArgument(
+    name: String,
+    reprType: String,
+    isSuspended: Boolean,
+    hasDefault: Boolean,
+    defaultValue: Option[String]
+  ): Suggestion.Argument = {
+    Suggestion.Argument(name, reprType, isSuspended, hasDefault, defaultValue, None)
+  }
+
   def withRepo(test: SqlSuggestionsRepo => Any): Any = {
     val tmpdb = Files.createTempFile(tmpdir, "suggestions-repo", ".db")
     val repo  = new SqlSuggestionsRepo(SqlDatabase(tmpdb.toFile))
@@ -787,7 +797,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       s shouldEqual Some(
         suggestion.atom.copy(arguments =
           suggestion.atom.arguments.init :+
-          Suggestion.Argument("c", "C", true, true, Some("C"))
+          suggestionArgument("c", "C", true, true, Some("C"))
         )
       )
     }
@@ -1026,8 +1036,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
         val method = suggestion.method.copy(arguments =
           Seq(
-            Suggestion.Argument("x", "Number", false, true, Some("0")),
-            Suggestion.Argument(
+            suggestionArgument("x", "Number", false, true, Some("0")),
+            suggestionArgument(
               "y",
               "Test.Main.Test.MyType",
               false,
@@ -1621,8 +1631,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         module     = "Test.Main",
         name       = "Pair",
         arguments = Seq(
-          Suggestion.Argument("a", "Any", false, false, None),
-          Suggestion.Argument("b", "Any", false, false, None)
+          suggestionArgument("a", "Any", false, false, None),
+          suggestionArgument("b", "Any", false, false, None)
         ),
         returnType    = "Pair",
         documentation = Some("Awesome")
@@ -1655,7 +1665,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         module     = "Test.Main",
         name       = "bar",
         arguments = Seq(
-          Suggestion.Argument("x", "Number", false, true, Some("0"))
+          suggestionArgument("x", "Number", false, true, Some("0"))
         ),
         returnType = "Test.Main.MyType",
         scope =
