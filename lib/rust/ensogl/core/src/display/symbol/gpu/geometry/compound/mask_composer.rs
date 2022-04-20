@@ -43,11 +43,9 @@ impl MaskComposer {
             vec4 sample_color = texture(input_{color},input_uv);
             vec4 sample_id    = texture(input_{id},input_uv);
             output_id         = (sample_mask.a > 0.5) ? sample_id : vec4(0.0,0.0,0.0,0.0);
-            // output_color      = (sample_mask.a > 0.5) ? sample_color : vec4(0.0,0.0,0.0,0.0);
             output_color      = sample_color;
             // We multiply all components by alpha because we store them in the premultiplied form.
             output_color *= sample_mask.a;
-            // output_color = sample_color;
             "
         );
         material.add_input_def::<texture::FloatSampler>(mask);
