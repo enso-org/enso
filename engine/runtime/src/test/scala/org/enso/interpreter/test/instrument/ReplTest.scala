@@ -3,9 +3,13 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
 import org.graalvm.polyglot.Context
-import org.scalatest.{BeforeAndAfter, EitherValues}
+import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
-class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
+class ReplTest
+    extends InterpreterTest
+    with BeforeAndAfter
+    with EitherValues
+    with Inside {
 
   override def subject: String = "Repl"
 
@@ -63,6 +67,25 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
         executor.exit()
       }
       eval(code) shouldEqual 55
+    }
+
+    "allow to access Text representations of the returned values" in {
+      val code =
+        """
+          |from Standard.Base import all
+          |
+          |main =
+          |    c = Debug.breakpoint
+          |    c.at 0
+          |""".stripMargin
+      setSessionManager { executor =>
+        val result = executor.evaluate("'a,b,c'.split ','")
+        inside(result) { case Right(value) =>
+          value.toString shouldEqual "['a', 'b', 'c']"
+        }
+        executor.exit()
+      }
+      eval(code) shouldEqual "a"
     }
 
     "be able to define its local variables" in {
