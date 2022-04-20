@@ -245,8 +245,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "1") MethodDispatchLibrary dateDispatch,
-      @CachedLibrary(limit = "10") InteropLibrary interop
-  ) {
+      @CachedLibrary(limit = "10") InteropLibrary interop) {
     try {
       var dateConstructor = Context.get(this).getDateConstructor();
       Object date = dateConstructor.isPresent() ? dateConstructor.get().newInstance(_this) : _this;
