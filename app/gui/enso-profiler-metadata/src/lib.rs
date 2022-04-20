@@ -1,4 +1,9 @@
 //! Enso specific metadata logging utilities for use with the profiling framework.
+
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+
 use serde::Serializer;
 use std::fmt::Display;
 use std::fmt::Formatter;

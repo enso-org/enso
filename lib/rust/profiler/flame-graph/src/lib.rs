@@ -13,6 +13,7 @@ use enso_profiler as profiler;
 use enso_profiler_data as data;
 
 
+
 // ==================
 // === Block Data ===
 // ==================

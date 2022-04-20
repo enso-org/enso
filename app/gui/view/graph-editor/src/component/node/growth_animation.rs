@@ -7,15 +7,16 @@
 
 use ensogl::prelude::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::GraphEditorModelWithNetwork;
 use crate::NodeId;
 
-use crate::application::command::FrpNetworkProvider;
 use enso_frp as frp;
 use ensogl::animation::easing::EndStatus::Normal;
 use ensogl::display::Scene;
 use ensogl::Animation;
 use ensogl::Easing;
+
 
 
 /// Describes the "speed" of growth/shrink animation.
