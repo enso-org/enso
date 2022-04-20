@@ -180,7 +180,25 @@ class Compiler(
     module
   }
 
+  @scala.annotation.tailrec
   private def runInternal(
+    modules: List[Module],
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): Unit = {
+    runInternal1(modules, generateCode, shouldCompileDependencies)
+    val pendingModules = packageRepository.getPendingModules
+    println(s"!!! PENDING_MODULES=${pendingModules.map(_.getName)}")
+    if (pendingModules.nonEmpty) {
+      runInternal(
+        pendingModules.toList,
+        generateCode,
+        shouldCompileDependencies
+      )
+    }
+  }
+
+  private def runInternal1(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean

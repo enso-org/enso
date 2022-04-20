@@ -17,6 +17,7 @@ import org.enso.librarymanager.{
 }
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{
+  Component,
   ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
@@ -69,6 +70,8 @@ trait PackageRepository {
 
   /** Get the loaded library components. */
   def getComponents: PackageRepository.ComponentsMap
+
+  def getPendingModules: Iterable[Module]
 
   /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
@@ -192,6 +195,40 @@ object PackageRepository {
       collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
     }
 
+    private def getComponentModules: Iterable[Module] =
+      for {
+        componentGroups <- loadedComponents.readOnlySnapshot().values
+        newComponents      = componentGroups.newGroups.flatMap(_.exports)
+        extendedComponents = componentGroups.extendedGroups.flatMap(_.exports)
+        component <- newComponents ++ extendedComponents
+        module    <- findComponentModule(component)
+      } yield module
+
+    private def findComponentModule(component: Component): Option[Module] = {
+      def mkModuleName(path: Array[String]): String =
+        path.mkString(LibraryName.separator.toString)
+      @scala.annotation.tailrec
+      def go(path: Array[String]): Option[Module] =
+        if (path.isEmpty) None
+        else {
+          loadedModules.get(mkModuleName(path)) match {
+            case Some(module) => Some(module)
+            case None         => go(path.init)
+          }
+        }
+
+      val r = go(component.name.split(LibraryName.separator))
+//      if (component.name.startsWith("Standard.Database"))
+//        println(
+//          s"findComponentModule $component = ${r.map(_.getName)} "
+//          + s",path=${component.name.split(LibraryName.separator).tail.mkString(LibraryName.separator.toString)}"
+//          + s",loadedModules=${loadedModules
+//            .get(mkModuleName(component.name.split(LibraryName.separator).tail))}"
+//        )
+
+      r
+    }
+
     /** @inheritdoc */
     override def getModuleMap: ModuleMap = loadedModules
 
@@ -201,6 +238,17 @@ object PackageRepository {
     /** @inheritdoc */
     override def getComponents: ComponentsMap =
       loadedComponents.readOnlySnapshot().toMap
+
+    /** @inheritdoc */
+    override def getPendingModules: Iterable[Module] =
+      for {
+        module <- getComponentModules
+        isCompiled =
+          module.getCompilationStage.isAtLeast(
+            Module.CompilationStage.AFTER_CODEGEN
+          )
+        if !isCompiled
+      } yield module
 
     /** @inheritdoc */
     override def registerMainProjectPackage(
@@ -227,6 +275,7 @@ object PackageRepository {
       pkg: Package[TruffleFile],
       isLibrary: Boolean
     ): Unit = {
+      println(s"REGISTER_PACKAGE $libraryName")
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
@@ -270,19 +319,20 @@ object PackageRepository {
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
     /** @inheritdoc */
-    override def initialize(): Either[Error, Unit] = this.synchronized {
-      val unprocessedPackages =
-        loadedPackages.keySet
-          .diff(loadedComponents.keySet)
-          .flatMap(loadedPackages(_))
-      unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
-        (accumulator, pkg) =>
-          for {
-            _ <- accumulator
-            _ <- resolveComponentGroups(pkg)
-          } yield ()
+    override def initialize(): Either[Error, Unit] =
+      this.synchronized {
+        val unprocessedPackages =
+          loadedPackages.keySet
+            .diff(loadedComponents.keySet)
+            .flatMap(loadedPackages(_))
+        unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
+          (accumulator, pkg) =>
+            for {
+              _ <- accumulator
+              _ <- resolveComponentGroups(pkg)
+            } yield ()
+        }
       }
-    }
 
     private def resolveComponentGroups(
       pkg: Package[TruffleFile]
@@ -327,13 +377,17 @@ object PackageRepository {
     private def registerComponentGroups(
       library: LibraryName,
       newGroups: List[ComponentGroup]
-    ): Unit =
+    ): Unit = {
+      println(
+        s"REGISTER_COMPONENT_GROUP ${newGroups.map(_.group.name)} of $library"
+      )
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(newGroups = groups.newGroups ::: newGroups))
         case None =>
           Some(ComponentGroups(newGroups, List()))
       }
+    }
 
     /** Register a component group extended by a library.
       *
@@ -343,13 +397,17 @@ object PackageRepository {
     private def registerExtendedComponentGroup(
       library: LibraryName,
       group: ExtendedComponentGroup
-    ): Unit =
+    ): Unit = {
+      println(
+        s"REGISTER_EXTENDED_COMPONENT_GROUP ${group.group.groupName.name} of $library"
+      )
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(extendedGroups = groups.extendedGroups :+ group))
         case None =>
           Some(ComponentGroups(List(), List(group)))
       }
+    }
 
     /** @inheritdoc */
     override def ensurePackageIsLoaded(
