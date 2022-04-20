@@ -211,7 +211,7 @@ type Range
     to_vector : Vector.Vector
     to_vector = this.map x->x
 
-    ## Does the range contain the specified value
+    ## Checks if the range contains the specified value.
 
        > Example
          Check if an index is in the range of a Vector

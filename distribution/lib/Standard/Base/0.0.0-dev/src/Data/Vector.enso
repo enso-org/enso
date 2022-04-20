@@ -675,6 +675,29 @@ type Vector
     drop_start : Integer -> Vector Any
     drop_start count = this.take count this.length
 
+    ## Creates a new vector with elements at the beginning of the vector which
+       satisfy the provided predicate removed.
+
+       Arguments:
+       - predicate: A function returning `Boolean` specifying the prefix to
+         remove.
+
+       > Example
+         Remove any odd elements at the beginining of the vector (but keeping
+         any odd elements later on).
+
+             [1, 3, 5, 6, 8, 9, 10, 11, 13].drop_while (x-> x%2 == 1) == [6, 8, 9, 10, 11, 13]
+    drop_while : (Any -> Boolean) -> Vector Any
+    drop_while predicate =
+        find_first_false current =
+            if current >= this.length then Nothing else
+                case predicate (this.unsafe_at current) of
+                    False -> current
+                    True -> @Tail_Call find_first_false current+1
+        case find_first_false 0 of
+            Nothing -> []
+            first_false -> this.take first_false this.length
+
     ## Creates a new vector with the last `count` elements in `this` removed.
 
        Arguments:
@@ -951,7 +974,7 @@ type Vector
         recovered.map_error e-> case e of
             No_Such_Method_Error _ _ -> Incomparable_Values_Error
             Unsupported_Argument_Types _ -> Incomparable_Values_Error
-            Type_Error _ _ -> Incomparable_Values_Error
+            Type_Error _ _ _ -> Incomparable_Values_Error
             _ -> Panic.throw e
 
 

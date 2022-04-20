@@ -65,6 +65,13 @@ spec = Test.group "Range" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
         vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should allow efficient iteration" <|
+        cell = Ref.new 0
+        n = 100000000
+        0.up_to n . each _->
+            x = Ref.get cell
+            Ref.put cell x+1
+        Ref.get cell . should_equal n
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
     Test.specify "should check all" <|
