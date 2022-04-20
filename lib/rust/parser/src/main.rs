@@ -148,7 +148,6 @@ pub struct Segment<'a> {
 
 #[derive(Clone, Debug)]
 pub struct Section<'a> {
-    token:   lexer::KindVariant,
     repr:    &'a str,
     pattern: Pattern,
 }
@@ -156,18 +155,9 @@ pub struct Section<'a> {
 use lexer::Lexer;
 
 fn segment_if_then_else<'a>() -> Segment<'a> {
-    let section1 =
-        Section { token: lexer::KindVariant::Ident, repr: "if", pattern: Pattern::Everything };
-    let section2 = Section {
-        token:   lexer::KindVariant::Ident,
-        repr:    "then",
-        pattern: Pattern::Everything,
-    };
-    let section3 = Section {
-        token:   lexer::KindVariant::Ident,
-        repr:    "else",
-        pattern: Pattern::Everything,
-    };
+    let section1 = Section { repr: "if", pattern: Pattern::Everything };
+    let section2 = Section { repr: "then", pattern: Pattern::Everything };
+    let section3 = Section { repr: "else", pattern: Pattern::Everything };
     Segment {
         prefix:   None,
         section:  section1,
@@ -195,12 +185,21 @@ impl<'a> SectionTreeStack<'a> {
                     let vv = v.tail().cloned().unwrap_or_default();
                     new_section_tree.subsections.entry(&first.repr).or_default().push(vv);
                 } else {
-                    todo!()
+                    // todo!()
                 }
             }
             mem::swap(&mut new_section_tree, &mut self.tree);
             self.tree.parent = Some(Box::new(new_section_tree));
         }
+    }
+}
+
+impl<'a> SectionTree<'a> {
+    pub fn is_reserved(&self, repr: &'a str) -> bool {
+        self.parent
+            .as_ref()
+            .map(|parent| parent.subsections.contains_key(repr) || parent.is_reserved(repr))
+            .unwrap_or(false)
     }
 }
 
@@ -228,6 +227,7 @@ fn main() {
     for token in lexer.output.borrow_vec() {
         let repr = lexer.repr(*token);
         println!("\n>> '{}' = {:#?}", repr, token);
+        println!("reserved: {}", section_tree.is_reserved(repr));
         section_tree.enter(repr);
         println!("{:#?}", section_tree);
     }
