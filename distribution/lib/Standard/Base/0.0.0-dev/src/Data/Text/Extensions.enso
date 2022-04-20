@@ -1112,7 +1112,7 @@ Text.repeat count=1 =
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take range =
     char_range = case range of
-        Range _ _ -> Span_Module.range_to_char_indices this range
+        Range _ _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     Text_Utils.substring this char_range.start char_range.end
 
@@ -1152,7 +1152,7 @@ Text.take range =
 Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop range =
     char_range = case range of
-        Range _ _ -> Span_Module.range_to_char_indices this range
+        Range _ _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
         prefix = Text_Utils.substring this 0 char_range.start

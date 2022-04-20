@@ -111,6 +111,8 @@
 - [Update `Text.replace` to new API.][3393]
 - [Add encoding support to `Text.bytes` and `Text.from_bytes`. Renamed and added
   encoding to `File.read_text`. New `File.read` API.][3390]
+- [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
+  `with_step` allowing to change the range step.][3408]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -170,6 +172,7 @@
 [3392]: https://github.com/enso-org/enso/pull/3392
 [3393]: https://github.com/enso-org/enso/pull/3393
 [3390]: https://github.com/enso-org/enso/pull/3390
+[3408]: https://github.com/enso-org/enso/pull/3408
 
 #### Enso Compiler
 

@@ -34,6 +34,13 @@ public abstract class ModNode extends Node {
   }
 
   @Specialization
+  double doDouble(EnsoBigInteger _this, double that) {
+    // No need to trap, as floating-point modulo returns NaN for division by zero instead of
+    // throwing.
+    return BigIntegerOps.toDouble(_this.getValue()) % that;
+  }
+
+  @Specialization
   Object doBigInteger(EnsoBigInteger _this, EnsoBigInteger that) {
     // No need to trap, as 0 is never represented as an EnsoBigInteger.
     return toEnsoNumberNode.execute(BigIntegerOps.modulo(_this.getValue(), that.getValue()));
@@ -42,7 +49,7 @@ public abstract class ModNode extends Node {
   @Fallback
   Object doOther(EnsoBigInteger _this, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Atom integer = builtins.number().getInteger().newInstance();
-    throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
+    Atom number = builtins.number().getNumber().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }
