@@ -1,49 +1,42 @@
-package org.enso.interpreter.node.expression.builtin.number.smallInteger;
+package org.enso.interpreter.node.expression.builtin.number.decimal;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.number.decimal.ModNodeGen;
+import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-@BuiltinMethod(type = "Small_Integer", name = "%", description = "Modulo division of numbers.")
+@BuiltinMethod(type = "Decimal", name = "%", description = "Modulo division of numbers.")
 public abstract class ModNode extends Node {
-  abstract Object execute(long _this, Object that);
+  abstract double execute(double _this, Object that);
 
   static ModNode build() {
     return ModNodeGen.create();
   }
 
   @Specialization
-  Object doLong(long _this, long that) {
-    try {
-      return _this % that;
-    } catch (ArithmeticException e) {
-      return DataflowError.withoutTrace(
-          Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
-    }
-  }
-
-  @Specialization
-  double doDouble(long _this, double that) {
-    // No need to trap, as floating-point modulo returns NaN for division by zero instead of
-    // throwing.
+  double doDouble(double _this, double that) {
     return _this % that;
   }
 
   @Specialization
-  long doBigInteger(long _this, EnsoBigInteger that) {
-    // No need to trap, as 0 is never represented as an EnsoBigInteger.
-    return _this;
+  double doLong(double _this, long that) {
+    return _this % that;
+  }
+
+  @Specialization
+  double doBigInteger(double _this, EnsoBigInteger that) {
+    return _this % BigIntegerOps.toDouble(that.getValue());
   }
 
   @Fallback
-  Object doOther(long _this, Object that) {
+  double doOther(double _this, Object that) {
     Builtins builtins = Context.get(this).getBuiltins();
     Atom number = builtins.number().getNumber().newInstance();
     throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
