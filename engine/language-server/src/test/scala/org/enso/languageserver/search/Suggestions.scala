@@ -25,6 +25,16 @@ object Suggestions {
         |""".stripMargin.linesIterator.mkString("\n")
   }
 
+  private def suggestionArgument(
+    name: String,
+    reprType: String,
+    isSuspended: Boolean,
+    hasDefault: Boolean,
+    defaultValue: Option[String]
+  ): Suggestion.Argument = {
+    Suggestion.Argument(name, reprType, isSuspended, hasDefault, defaultValue, None)
+  }  
+
   val htmlDocsGenerator: DocsGenerator =
     DocsGenerator
   val docSectionsBuilder: DocSectionsBuilder =
@@ -42,7 +52,7 @@ object Suggestions {
     externalId    = None,
     module        = "Test.Main",
     name          = "MyType",
-    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    arguments     = Vector(suggestionArgument("a", "Any", false, false, None)),
     returnType    = "MyAtom",
     documentation = Some(comment.atom),
     documentationHtml =
@@ -55,8 +65,8 @@ object Suggestions {
     module     = "Test.Main",
     name       = "foo",
     arguments = Vector(
-      Suggestion.Argument("this", "MyType", false, false, None),
-      Suggestion.Argument("foo", "Number", false, true, Some("42"))
+      suggestionArgument("this", "MyType", false, false, None),
+      suggestionArgument("foo", "Number", false, true, Some("42"))
     ),
     selfType              = "MyType",
     returnType            = "Number",
@@ -70,9 +80,9 @@ object Suggestions {
     module     = "Test.Main",
     name       = "print",
     arguments = Vector(
-      Suggestion.Argument("a", "Any", false, false, None),
-      Suggestion.Argument("b", "Any", true, false, None),
-      Suggestion.Argument("c", "Any", false, true, Some("C"))
+      suggestionArgument("a", "Any", false, false, None),
+      suggestionArgument("b", "Any", true, false, None),
+      suggestionArgument("c", "Any", false, true, Some("C"))
     ),
     returnType = "IO",
     scope =
@@ -93,8 +103,8 @@ object Suggestions {
     module     = "Standard.Base.Data.Any.Extensions",
     name       = "<<",
     arguments = Vector(
-      Suggestion.Argument("this", "Any", false, false, None),
-      Suggestion.Argument("that", "Any", false, false, None)
+      suggestionArgument("this", "Any", false, false, None),
+      suggestionArgument("that", "Any", false, false, None)
     ),
     selfType              = "Any",
     returnType            = "Any",
@@ -108,7 +118,7 @@ object Suggestions {
     module     = "Standard.Base.Data.Number.Extensions",
     name       = "asin",
     arguments = Vector(
-      Suggestion.Argument("this", "Number", false, false, None)
+      suggestionArgument("this", "Number", false, false, None)
     ),
     selfType              = "Number",
     returnType            = "Number",
@@ -122,7 +132,7 @@ object Suggestions {
     module     = "Builtins.Main",
     name       = "+",
     arguments = Vector(
-      Suggestion.Argument("that", "Number", false, false, None)
+      suggestionArgument("that", "Number", false, false, None)
     ),
     selfType              = "Integer",
     returnType            = "Number",

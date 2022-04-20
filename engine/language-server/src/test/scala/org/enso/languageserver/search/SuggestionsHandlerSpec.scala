@@ -1232,8 +1232,8 @@ class SuggestionsHandlerSpec
         module     = "Test.Pair",
         name       = "Pair",
         arguments = Seq(
-          Suggestion.Argument("a", "Any", false, false, None),
-          Suggestion.Argument("b", "Any", false, false, None)
+          Suggestion.Argument("a", "Any", false, false, None, None),
+          Suggestion.Argument("b", "Any", false, false, None, None)
         ),
         returnType            = "Pair",
         documentation         = Some("Awesome"),

@@ -101,6 +101,16 @@ class RuntimeSuggestionUpdatesTest
   def contentsVersion(content: String): ContentVersion =
     Sha3_224VersionCalculator.evalVersion(content)
 
+  def suggestionArgument(
+    name: String,
+    reprType: String,
+    isSuspended: Boolean,
+    hasDefault: Boolean,
+    defaultValue: Option[String]
+  ): Suggestion.Argument = {
+    Suggestion.Argument(name, reprType, isSuspended, hasDefault, defaultValue, None)
+  }
+
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
@@ -174,8 +184,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -238,8 +247,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -324,8 +332,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -430,8 +437,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -546,8 +552,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -619,16 +624,14 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
                           false,
                           None
                         ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                      suggestionArgument("x", Constants.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -689,16 +692,14 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "foo",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
                           false,
                           None
                         ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                      suggestionArgument("x", Constants.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -714,8 +715,7 @@ class RuntimeSuggestionUpdatesTest
                           .Modify(1, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
                           2,
-                          Suggestion
-                            .Argument("b", Constants.ANY, false, false, None)
+                          suggestionArgument("b", Constants.ANY, false, false, None)
                         )
                       )
                     ),
@@ -810,8 +810,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     Seq(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
@@ -853,15 +852,14 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "overloaded",
                     Seq(
-                      Suggestion.Argument(
+                      suggestionArgument(
                         "this",
                         Constants.TEXT,
                         false,
                         false,
                         None
                       ),
-                      Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                      suggestionArgument("arg", Constants.ANY, false, false, None)
                     ),
                     Constants.TEXT,
                     Constants.ANY,
@@ -880,15 +878,14 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "overloaded",
                     Seq(
-                      Suggestion.Argument(
+                      suggestionArgument(
                         "this",
                         Constants.NUMBER,
                         false,
                         false,
                         None
                       ),
-                      Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                      suggestionArgument("arg", Constants.ANY, false, false, None)
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
@@ -992,8 +989,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     "MkA",
                     List(
-                      Suggestion
-                        .Argument("a", Constants.ANY, false, false, None)
+                      suggestionArgument("a", Constants.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MkA",
                     None,
@@ -1011,8 +1007,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     "a",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.A.MkA",
                           false,
@@ -1037,7 +1032,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     "fortytwo",
                     List(
-                      Suggestion.Argument(
+                      suggestionArgument(
                         "this",
                         Constants.INTEGER,
                         false,
@@ -1062,7 +1057,7 @@ class RuntimeSuggestionUpdatesTest
                     "Enso_Test.Test.A",
                     "hello",
                     List(
-                      Suggestion.Argument(
+                      suggestionArgument(
                         "this",
                         "Enso_Test.Test.A",
                         false,
@@ -1122,8 +1117,7 @@ class RuntimeSuggestionUpdatesTest
                     moduleName,
                     "main",
                     List(
-                      Suggestion
-                        .Argument(
+                      suggestionArgument(
                           "this",
                           "Enso_Test.Test.Main",
                           false,
