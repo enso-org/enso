@@ -23,7 +23,7 @@ public abstract class InvalidConversionTargetErrorToDisplayTextNode extends Node
   @Specialization
   Text doAtom(
       Atom _this,
-      @CachedLibrary(limit="10") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "10") InteropLibrary interopLibrary,
       @Cached TypeToDisplayTextNode fallback) {
     String fieldRep;
     Object target = _this.getFields()[0];

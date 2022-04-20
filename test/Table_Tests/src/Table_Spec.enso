@@ -679,5 +679,4 @@ spec =
             problems = [Duplicate_Output_Column_Names ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
-
 main = Test.Suite.run_main here.spec

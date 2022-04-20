@@ -898,6 +898,8 @@ dependencies = [
  "serde",
  "serde_json",
  "sha3",
+ "strum",
+ "strum_macros",
  "tokio",
  "uuid",
  "wasm-bindgen-test",
@@ -1192,6 +1194,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-profiler-metadata"
+version = "0.1.0"
+dependencies = [
+ "enso-profiler",
+ "serde",
+]
+
+[[package]]
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
@@ -1339,6 +1349,7 @@ dependencies = [
  "num-traits",
  "num_enum",
  "rustc-hash",
+ "serde",
  "shrinkwraprs 0.3.0",
  "smallvec 1.8.0",
  "typenum",
@@ -1472,7 +1483,9 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "enso-profiler",
+ "enso-profiler-data",
  "enso-profiler-flame-graph",
+ "enso-profiler-metadata",
  "enso-web",
  "ensogl-core",
  "ensogl-flame-graph",
@@ -1480,7 +1493,10 @@ dependencies = [
  "ensogl-text",
  "ensogl-text-msdf-sys",
  "futures 0.3.21",
+ "serde",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
@@ -2137,6 +2153,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 
 [[package]]
+name = "heck"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2455,6 +2477,7 @@ name = "json-rpc"
 version = "0.1.0"
 dependencies = [
  "enso-prelude",
+ "enso-profiler",
  "enso-shapely",
  "enso-web",
  "failure",
@@ -3925,6 +3948,25 @@ dependencies = [
  "failure",
  "parser",
  "wasm-bindgen-test",
+]
+
+[[package]]
+name = "strum"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e96acfc1b70604b8b2f1ffa4c57e59176c7dbb05d556c71ecd2f5498a1dee7f8"
+
+[[package]]
+name = "strum_macros"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6878079b17446e4d3eba6192bb0a2950d5b14f0ed8424b852310e5a94345d0ef"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn",
 ]
 
 [[package]]

@@ -1,0 +1,47 @@
+from Standard.Base import all
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+
+## This type needs to be here to allow for the usage of Standard.Table
+   functions. Ideally, it would be an interface within Standard.Base and
+   expanded by additional implementations in Standard.Table.
+
+## Determines the format of file to use based on the file extension.
+type Auto
+    type Auto
+
+    ## ADVANCED
+       Gets the underlying File_Format for the specified file
+    materialise : File->File_Format
+    materialise file =
+        extension = file.extension
+
+        output = Ref.new File_Format.Bytes
+        if ".txt".equals_ignore_case extension then Ref.put output File_Format.Text
+        if ".log".equals_ignore_case extension then Ref.put output File_Format.Text
+
+        Ref.get output
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read file on_problems =
+        materialised = this.materialise file
+        materialised.read file on_problems
+
+## Reads the file to a `Vector` of bytes.
+type Bytes
+    type Bytes
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read file _ =
+        file.read_bytes
+
+## Reads the file to a `Text` with specified encoding.
+type Text
+    type Text (encoding:Encoding=Encoding.utf_8)
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read file on_problems =
+        file.read_text this.encoding on_problems
