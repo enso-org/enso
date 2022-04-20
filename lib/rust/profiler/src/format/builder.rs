@@ -1,21 +1,21 @@
-//! Supports constructing a profile file.
+//! Supports constructing a document in the JSON format (see [`crate::format`]).
 
 use crate::format;
 use crate::internal;
 
 
 
-// ======================
-// === ProfileBuilder ===
-// ======================
+// ===============
+// === Builder ===
+// ===============
 
-/// Supports constructing a profile file.
+/// Constructs a profile document for serialization into the JSON format (see [`crate::format`]).
 #[derive(Debug, Default)]
-pub struct ProfileBuilder<'a> {
+pub struct Builder<'a> {
     events: Vec<internal::Event<format::AnyMetadata, &'a str>>,
 }
 
-impl<'a> ProfileBuilder<'a> {
+impl<'a> Builder<'a> {
     #[allow(missing_docs)]
     pub fn new() -> Self {
         Default::default()

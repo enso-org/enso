@@ -5,7 +5,6 @@
 //! - They are used by [the macros](../index.html#macros) that provide the public interface to
 //!   `profiler`.
 
-use crate::build;
 use crate::format;
 use crate::log;
 
@@ -43,7 +42,7 @@ pub fn take_log() -> String {
     let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
     let mut metadata_entries: Vec<_> =
         metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
-    let mut profile = build::ProfileBuilder::new();
+    let mut profile = format::Builder::new();
     let mut id_map = std::collections::HashMap::<EventId, format::MeasurementId>::new();
     id_map.insert(EventId::IMPLICIT, EventId::IMPLICIT);
     id_map.insert(EventId::APP_LIFETIME, EventId::APP_LIFETIME);

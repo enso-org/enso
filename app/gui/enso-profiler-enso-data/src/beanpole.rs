@@ -1,4 +1,9 @@
 //! A diagram type for illustrating timings of messages between processes.
+//!
+//! Like a UML timing diagram, this illustrates interactions between processes over time. However,
+//! this diagram is simpler (the UML diagram type supports nonspecific times, process state changes,
+//! and many other data complexities); as a result, it is better suited to display of large numbers
+//! of events spread unevenly over a long time range than any UML renderers I[KW] am aware of.
 
 
 

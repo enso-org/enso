@@ -153,7 +153,6 @@
 // === Export ===
 // ==============
 
-pub mod build;
 pub mod format;
 pub mod internal;
 pub mod log;
