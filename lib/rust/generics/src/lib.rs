@@ -20,7 +20,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![feature(const_fn_trait_bound)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 
