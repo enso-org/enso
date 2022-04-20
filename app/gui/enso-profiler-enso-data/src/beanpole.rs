@@ -32,7 +32,9 @@ impl<'a> Diagram<'a> {
 
 /// A process that may send and receive messages.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Process { id: usize }
+pub struct Process {
+    id: usize,
+}
 
 
 // === Message ===
