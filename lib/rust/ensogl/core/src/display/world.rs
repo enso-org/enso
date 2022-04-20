@@ -61,7 +61,7 @@ impl Uniforms {
 
 
 thread_local! {
-    /// A common preamble used to start every shader program.
+    /// Profiling metadata logger for `StatsData`.
     static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
 }
 

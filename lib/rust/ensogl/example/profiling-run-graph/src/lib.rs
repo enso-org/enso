@@ -21,9 +21,7 @@ use enso_profiler as profiler;
 use enso_profiler::profile;
 use enso_profiler_data::Profile;
 use enso_profiler_flame_graph as profiler_flame_graph;
-use enso_profiler_flame_graph::COLOR_BLOCK_ACTIVE;
-use enso_profiler_flame_graph::COLOR_BLOCK_PAUSED;
-use enso_profiler_flame_graph::COLOR_MARK_DEFAULT;
+use enso_profiler_flame_graph::Performance;
 use enso_profiler_metadata::Metadata;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -33,7 +31,12 @@ use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
-
+use ensogl_flame_graph::COLOR_BLOCK_ACTIVE;
+use ensogl_flame_graph::COLOR_BLOCK_PAUSED;
+use ensogl_flame_graph::COLOR_MARK_DEFAULT;
+use ensogl_flame_graph::COLOR_PERFORMANCE_BAD;
+use ensogl_flame_graph::COLOR_PERFORMANCE_GOOD;
+use ensogl_flame_graph::COLOR_PERFORMANCE_MEDIUM;
 
 
 // =================
@@ -44,11 +47,7 @@ use ensogl_flame_graph as flame_graph;
 /// generated and rendered.  The file must be located in the assets subdirectory that is
 /// served by the webserver, i.e. `enso/dist/content` or `app/ide-desktop/lib/content/assets`.
 /// For example use `Some("profile.json"))`.
-const PROFILER_LOG_NAME: Option<&str> = None;
-
-const COLOR_FPS_GOOD: &str = "flame_graph_block_color_fps_good";
-const COLOR_FPS_MEDIUM: &str = "flame_graph_block_color_fps_medium";
-const COLOR_FPS_BAD: &str = "flame_graph_block_color_fps_bad";
+const PROFILER_LOG_NAME: Option<&str> = Some("profile.json");
 
 
 
@@ -79,10 +78,10 @@ pub async fn main() {
     let mut flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
 
     let marks = make_marks_from_profile(&profile);
-    flame_graph.add_marks(marks.into_iter());
+    marks.into_iter().for_each(|mark| flame_graph.add_mark(mark));
 
     let performance_blocks = make_rendering_performance_blocks(&profile);
-    flame_graph.add_blocks(performance_blocks.into_iter());
+    performance_blocks.into_iter().for_each(|block| flame_graph.add_block(block));
 
     world.add_child(&flame_graph);
     scene.add_child(&flame_graph);
@@ -108,9 +107,9 @@ fn init_theme(scene: &Scene) {
     let theme = theme::Theme::new();
     theme.set(COLOR_BLOCK_ACTIVE, color::Lcha::blue_green(0.5, 0.8));
     theme.set(COLOR_BLOCK_PAUSED, color::Lcha::blue_green(0.8, 0.0));
-    theme.set(COLOR_FPS_BAD, color::Lcha::red(0.4, 0.5));
-    theme.set(COLOR_FPS_GOOD, color::Lcha::green(0.8, 0.5));
-    theme.set(COLOR_FPS_MEDIUM, color::Lcha::yellow(0.6, 0.5));
+    theme.set(COLOR_PERFORMANCE_BAD, color::Lcha::red(0.4, 0.5));
+    theme.set(COLOR_PERFORMANCE_GOOD, color::Lcha::green(0.8, 0.5));
+    theme.set(COLOR_PERFORMANCE_MEDIUM, color::Lcha::yellow(0.6, 0.5));
     theme.set(COLOR_MARK_DEFAULT, color::Lcha::blue_green(0.9, 0.1));
 
     theme_manager.register("theme", theme);
@@ -143,7 +142,7 @@ fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_gr
 
 fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
-) -> Vec<profiler_flame_graph::Block> {
+) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
     let render_stats = profile
         .iter_metadata()
@@ -154,12 +153,12 @@ fn make_rendering_performance_blocks(
             let end = current.mark.into_ms();
             let row = -1;
             let label = format!("{:#?}", data);
-            let theme_color = match data.fps {
-                fps if fps > 55.0 => COLOR_FPS_GOOD,
-                fps if fps > 25.0 => COLOR_FPS_MEDIUM,
-                _ => COLOR_FPS_BAD,
+            let block_type = match data.fps {
+                fps if fps > 55.0 => Performance::Good,
+                fps if fps > 25.0 => Performance::Medium,
+                _ => Performance::Bad,
             };
-            let block = profiler_flame_graph::Block { start, end, row, label, theme_color };
+            let block = profiler_flame_graph::Block { start, end, row, label, block_type };
             blocks.push(block);
         }
     }
