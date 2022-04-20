@@ -375,11 +375,11 @@ mod tests {
         let profile: data::Profile<data::OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
         let flame_graph = Graph::new_callgraph(&profile);
-        assert_eq!(flame_graph.blocks.len(), 2);
+        assert_eq!(flame_graph.activity_blocks.len(), 2);
 
-        assert_eq!(flame_graph.blocks[1].row, 1);
-        assert!(flame_graph.blocks[1].label.contains("profiled_b"));
-        assert_eq!(flame_graph.blocks[0].row, 0);
-        assert!(flame_graph.blocks[0].label.contains("profiled_a"));
+        assert_eq!(flame_graph.activity_blocks[1].row, 1);
+        assert!(flame_graph.activity_blocks[1].label.contains("profiled_b"));
+        assert_eq!(flame_graph.activity_blocks[0].row, 0);
+        assert!(flame_graph.activity_blocks[0].label.contains("profiled_a"));
     }
 }
