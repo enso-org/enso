@@ -183,34 +183,6 @@ Number.log base = this.ln / base.ln
 Number.format : Text -> Text
 Number.format fmt = String.format fmt this
 
-## ALIAS Range
-
-   Creates an increasing right-exclusive range of integers from `this` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 0, 1, 2, 3, 4.
-
-         0.up_to 5
-Integer.up_to : Integer -> Range
-Integer.up_to n = Range this n
-
-## ALIAS Range
-
-   Creates a decreasing right-exclusive range of integers from `this` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 5, 4, 3, 2, 1.
-
-         5.down_to 0
-Integer.down_to : Integer -> Range
-Integer.down_to n = Range this n -1
-
 ## Checks equality of numbers, using an `epsilon` value.
 
    Arguments:

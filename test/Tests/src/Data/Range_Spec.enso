@@ -30,20 +30,32 @@ spec = Test.group "Range" <|
 
         1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error
         1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error
+        0.up_to 2.0 . should_fail_with Illegal_Argument_Error
+        0.down_to 2.0 . should_fail_with Illegal_Argument_Error
+        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error
+        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error
 
     Test.specify "should have a length" <|
-        range = 0.up_to 100
-        range.length . should_equal 100
+        0.up_to 100 . length . should_equal 100
+        100.down_to 0 . length . should_equal 100
+        0.up_to 0 . length . should_equal 0
+        0.up_to -5 . length . should_equal 0
+        0.down_to 1 . length . should_equal 0
+        0.up_to 10 . with_step 2 . length . should_equal 5
+        10.down_to 0 . with_step 2 . length . should_equal 5
+        0.up_to 10 . with_step 3 . length . should_equal 4
     Test.specify "should allow checking for emptiness" <|
         0.up_to 0 . is_empty . should_be_true
         0.up_to -100 . is_empty . should_be_true
         0.up_to 1 . is_empty . should_be_false
         0.up_to 5 . is_empty . should_be_false
+        5.down_to 0 . is_empty . should_be_false
     Test.specify "should allow checking for non emptiness" <|
         0.up_to 0 . not_empty . should_be_false
         0.up_to -100 . not_empty . should_be_false
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
+        5.down_to 0 . not_empty . should_be_true
     Test.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
         empty.map *2 . should_equal []
@@ -102,6 +114,7 @@ spec = Test.group "Range" <|
         check_empty_range r =
             r.is_empty . should_be_true
             r.not_empty . should_be_false
+            r.length . should_equal 0
             r.to_vector . should_equal []
             build_with_each r . should_equal []
             r.map x->x+1 . should_equal []
@@ -125,6 +138,7 @@ spec = Test.group "Range" <|
         r1 = Range 10 11
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
+        r.length . should_equal 1
         r1.to_vector . should_equal [10]
         build_with_each r1 . should_equal [10]
         r1.map x->x*2 . should_equal [20]
@@ -141,6 +155,7 @@ spec = Test.group "Range" <|
         r1 = Range 0 10 2
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
+        r1.length . should_equal 5
         r1.to_vector . should_equal [0, 2, 4, 6, 8]
         build_with_each r1 . should_equal [0, 2, 4, 6, 8]
         r1.map x->x+1 . should_equal [1, 3, 5, 7, 9]
@@ -156,6 +171,7 @@ spec = Test.group "Range" <|
         r2 = Range 0 3 2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
+        r2.length . should_equal 2
         r2.to_vector . should_equal [0, 2]
         build_with_each r2 . should_equal [0, 2]
         r2.map x->x+1 . should_equal [1, 3]
@@ -171,6 +187,7 @@ spec = Test.group "Range" <|
         r3 = Range 5 6 200
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
+        r3.length . should_equal 1
         r3.to_vector . should_equal [5]
         build_with_each r3 . should_equal [5]
         r3.map x->x+1 . should_equal [6]
@@ -186,6 +203,7 @@ spec = Test.group "Range" <|
         r4 = Range 5 8 2
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
+        r4.length . should_equal 2
         r4.to_vector . should_equal [5, 7]
         build_with_each r4 . should_equal [5, 7]
         r4.map x->x+1 . should_equal [6, 8]
@@ -201,6 +219,7 @@ spec = Test.group "Range" <|
         r5 = Range 5 7 2
         r5.is_empty . should_be_false
         r5.not_empty . should_be_true
+        r5.length . should_equal 1
         r5.to_vector . should_equal [5]
         build_with_each r5 . should_equal [5]
         r5.map x->x+1 . should_equal [6]
@@ -213,10 +232,27 @@ spec = Test.group "Range" <|
         r5.find (x-> x*x == 4) . should_equal Nothing
         verify_contains r5 [5] [0, 1, 4, 6, 7, 10]
 
+        r6 = Range 0 10 3
+        r6.is_empty . should_be_false
+        r6.not_empty . should_be_true
+        r6.length . should_equal 4
+        r6.to_vector . should_equal [0, 3, 6, 9]
+        build_with_each r6 . should_equal [0, 3, 6, 9]
+        r6.map x->x+1 . should_equal [1, 4, 7, 10]
+        r6.fold 0 (+) .  should_equal 22
+        r6.any (_ == 3) . should_equal True
+        r6.any (_ == 2) . should_equal False
+        r6.all (x-> x % 2 == 0) . should_equal False
+        r6.all (x-> x % 3 == 0) . should_equal True
+        r6.find (x-> x*x == 9) . should_equal 3
+        r6.find (x-> x*x == 25) . should_equal Nothing
+        verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
+
     Test.specify "should behave correctly with negative step" <|
         r1 = Range 4 0 -1
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
+        r1.length . should_equal 4
         r1.to_vector . should_equal [4, 3, 2, 1]
         build_with_each r1 . should_equal [4, 3, 2, 1]
         r1.map x->x+1 . should_equal [5, 4, 3, 2]
@@ -232,6 +268,7 @@ spec = Test.group "Range" <|
         r2 = Range 4 0 -2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
+        r2.length . should_equal 2
         r2.to_vector . should_equal [4, 2]
         build_with_each r2 . should_equal [4, 2]
         r2.map x->x+1 . should_equal [5, 3]
@@ -247,6 +284,7 @@ spec = Test.group "Range" <|
         r3 = Range 4 0 -10
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
+        r3.length . should_equal 1
         r3.to_vector . should_equal [4]
         build_with_each r3 . should_equal [4]
         r3.map x->x+1 . should_equal [5]
@@ -262,6 +300,7 @@ spec = Test.group "Range" <|
         r4 = Range 3 0 -3
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
+        r4.length . should_equal 1
         r4.to_vector . should_equal [3]
         build_with_each r4 . should_equal [3]
         r4.map x->x+1 . should_equal [4]
