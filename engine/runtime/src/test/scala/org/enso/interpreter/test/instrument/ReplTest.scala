@@ -72,20 +72,24 @@ class ReplTest
     "allow to access Text representations of the returned values" in {
       val code =
         """
-          |from Standard.Base import all
+          |from Standard.Builtins import all
+          |
+          |type Foo a b
+          |
+          |Foo.to_text = "{" + this.a.to_text + ": " + this.b + "}"
           |
           |main =
-          |    c = Debug.breakpoint
-          |    c.at 0
+          |    x = Debug.breakpoint
+          |    x.a
           |""".stripMargin
       setSessionManager { executor =>
-        val result = executor.evaluate("'a,b,c'.split ','")
+        val result = executor.evaluate("Foo 2 'a'")
         inside(result) { case Right(value) =>
-          value.toString shouldEqual "['a', 'b', 'c']"
+          value.toString shouldEqual "{2: a}"
         }
         executor.exit()
       }
-      eval(code) shouldEqual "a"
+      eval(code) shouldEqual 2
     }
 
     "be able to define its local variables" in {
