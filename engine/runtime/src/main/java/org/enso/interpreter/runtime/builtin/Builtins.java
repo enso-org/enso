@@ -90,7 +90,7 @@ public class Builtins {
   public Builtins(Context context) {
     Language language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
-    scope = module.compileScope(context).getScope();
+    scope = module.compileScope(context);
 
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);

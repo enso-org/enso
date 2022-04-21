@@ -312,7 +312,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       if (!compilationStage.isAtLeast(Module.CompilationStage.AFTER_CODEGEN)) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        ctx.executionService.getContext.getCompiler.run(module)
+        val result = ctx.executionService.getContext.getCompiler.run(module)
+        result.copy(compiledModules =
+          result.compiledModules.filter(_.getName != module.getName)
+        )
       } else {
         CompilerResult.empty
       }
