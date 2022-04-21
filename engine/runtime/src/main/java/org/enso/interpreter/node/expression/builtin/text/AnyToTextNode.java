@@ -18,11 +18,11 @@ public abstract class AnyToTextNode extends Node {
   private @Child InteropLibrary strings =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
 
-  static AnyToTextNode build() {
+  public static AnyToTextNode build() {
     return AnyToTextNodeGen.create();
   }
 
-  abstract Text execute(Object _this);
+  public abstract Text execute(Object _this);
 
   @Specialization
   Text doAtom(Atom at) {
