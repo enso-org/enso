@@ -16,7 +16,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
@@ -89,7 +88,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   public static class ReplExecutionEventNode extends ExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
     private @Child ToJavaStringNode toJavaStringNode = ToJavaStringNode.build();
-    private @Child AnyToTextNode toTextNode = AnyToTextNode.build();
 
     private ReplExecutionEventNodeState nodeState;
 
