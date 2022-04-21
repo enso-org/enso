@@ -5,7 +5,7 @@
 # where plausible.
 members = [
     "app/gui",
-    "app/gui/enso-profiler-enso-data",
+    "app/gui/enso-profiler-metadata",
     "build/enso-formatter",
     "build/rust-scripts",
     "lib/rust/*",
