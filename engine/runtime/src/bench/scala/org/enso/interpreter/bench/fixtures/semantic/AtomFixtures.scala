@@ -7,20 +7,17 @@ import org.graalvm.polyglot.Value
 class AtomFixtures extends DefaultInterpreterRunner {
   val million: Long = 1000000
 
-  def buildInputList(length: Long): Value = {
-    val builtins =
-      interpreterContext.executionContext.getTopScope
-        .getModule(Builtins.MODULE_NAME)
-    val nil  = builtins.getConstructor("Nil")
-    val cons = builtins.getConstructor("Cons")
-    1L.to(length).foldLeft(nil.newInstance()) { case (tail, el) =>
-      cons.newInstance(el.asInstanceOf[Object], tail)
-    }
-  }
-  val millionElementList = buildInputList(million)
+  val millionElementList = eval(
+    s"""|from Standard.Base.Data.List import Cons,Nil
+        |from Standard.Base.Data.Number.Extensions import all
+        |
+        |main =
+        |    res = (1.up_to $million).fold Nil (acc -> x -> Cons x acc)
+        |    res
+        """.stripMargin)
 
   val generateListCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = length ->
       |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Cons i acc) (i - 1)
@@ -31,18 +28,18 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val generateList = getMain(generateListCode)
 
   val generateListQualifiedCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Builtins.cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.cons i acc) (i - 1)
       |
-      |    res = generator Builtins.nil length
+      |    res = generator List.nil length
       |    res
     """.stripMargin
   val generateListQualified = getMain(generateListQualifiedCode)
 
   val reverseListCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = list ->
       |    reverser = acc -> list -> case list of
@@ -55,7 +52,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseList = getMain(reverseListCode)
 
   val reverseListMethodsCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |Cons.reverse = acc -> case this of
       |    Cons h t -> @Tail_Call t.reverse (Cons h acc)
@@ -69,7 +66,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethods = getMain(reverseListMethodsCode)
 
   val sumListCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = list ->
       |    summator = acc -> list -> case list of
@@ -82,7 +79,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumList = getMain(sumListCode)
 
   val sumListLeftFoldCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = list ->
       |    fold = f -> acc -> list -> case list of
@@ -95,7 +92,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListLeftFold = getMain(sumListLeftFoldCode)
 
   val sumListFallbackCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |main = list ->
       |    summator = acc -> list -> case list of
@@ -108,7 +105,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListFallback = getMain(sumListFallbackCode)
 
   val sumListMethodsCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |Nil.sum = acc -> acc
       |Cons.sum = acc -> case this of
@@ -121,7 +118,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListMethods = getMain(sumListMethodsCode)
 
   val mapReverseListCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
@@ -134,7 +131,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseList = getMain(mapReverseListCode)
 
   val mapReverseListCurryCode =
-    """from Standard.Builtins import all
+    """from Standard.Base.Data.List import all
       |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
