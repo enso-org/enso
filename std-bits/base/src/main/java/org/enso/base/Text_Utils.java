@@ -6,7 +6,6 @@ import com.ibm.icu.text.CaseMap.Fold;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
 import com.ibm.icu.text.StringSearch;
-
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -62,7 +61,7 @@ public class Text_Utils {
 
   private static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
     int n = old.capacity();
-    int new_n = 2*n + 1;
+    int new_n = 2 * n + 1;
     T o = allocate.apply(new_n);
     old.flip();
     put.accept(o, old);
@@ -81,14 +80,15 @@ public class Text_Utils {
       return new ResultWithWarnings<>(new byte[0]);
     }
 
-    CharsetEncoder encoder = charset.newEncoder()
-        .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT)
-        .reset();
+    CharsetEncoder encoder =
+        charset
+            .newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
 
     CharBuffer in = CharBuffer.wrap(str.toCharArray());
-    ByteBuffer out = ByteBuffer.allocate(
-        (int)(in.remaining() * encoder.averageBytesPerChar()));
+    ByteBuffer out = ByteBuffer.allocate((int) (in.remaining() * encoder.averageBytesPerChar()));
 
     StringBuilder warnings = null;
     while (in.hasRemaining()) {
@@ -181,10 +181,38 @@ public class Text_Utils {
    * substrings in an array.
    *
    * @param str the string to split
+   * @param keep_endings whether to keep line endings in returned lines
    * @return the array of substrings of {@code str}
    */
-  public static String[] split_on_lines(String str) {
-    return vertical_space.split(str);
+  public static List<String> split_on_lines(String str, boolean keep_endings) {
+    ArrayList<String> acc = new ArrayList<>();
+    int length = str.length();
+    int currentStart = 0;
+    int currentPos = 0;
+    while (currentPos < length) {
+      if (str.charAt(currentPos) == '\n') {
+        acc.add(str.substring(currentStart, keep_endings ? currentPos + 1 : currentPos));
+        currentStart = currentPos + 1;
+        currentPos = currentStart;
+      } else if (str.charAt(currentPos) == '\r') {
+        // Handle the '\r\n' digraph.
+        int offset = 1;
+        if (currentPos + 1 < length && str.charAt(currentPos + 1) == '\n') {
+          offset = 2;
+        }
+        acc.add(str.substring(currentStart, keep_endings ? currentPos + offset : currentPos));
+        currentStart = currentPos + offset;
+        currentPos = currentStart;
+      } else {
+        currentPos += 1;
+      }
+    }
+
+    if (currentStart < length) {
+      acc.add(str.substring(currentStart));
+    }
+
+    return acc;
   }
 
   /**
@@ -241,14 +269,15 @@ public class Text_Utils {
       return new ResultWithWarnings<>("");
     }
 
-    CharsetDecoder decoder = charset.newDecoder()
-        .onMalformedInput(CodingErrorAction.REPORT)
-        .onUnmappableCharacter(CodingErrorAction.REPORT)
-        .reset();
+    CharsetDecoder decoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
 
     ByteBuffer in = ByteBuffer.wrap(bytes);
-    CharBuffer out = CharBuffer.allocate(
-        (int)(bytes.length * decoder.averageCharsPerByte()));
+    CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
 
     StringBuilder warnings = null;
     while (in.hasRemaining()) {

@@ -547,7 +547,12 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
    > Example
      Getting the words in the sentence "I have not one, but two cats."
 
-        "I have not one, but two cats.".words
+        "I have not one, but two cats.".words == ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
+
+   > Example
+     Getting the words in the Thai sentence "แมวมีสี่ขา"
+
+         "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
 Text.words : Boolean -> Vector.Vector Text
 Text.words keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
@@ -559,9 +564,7 @@ Text.words keep_whitespace=False =
     build prev nxt = if nxt == -1 then Nothing else
         word = Text_Utils.substring this prev nxt
         word_not_whitespace = (Text_Utils.is_all_whitespace word).not
-        if word_not_whitespace then bldr.append word else
-            if keep_whitespace then
-                bldr.append word
+        if word_not_whitespace || keep_whitespace then bldr.append word
 
         next_nxt = iterator.next
         @Tail_Call build nxt next_nxt
@@ -569,6 +572,31 @@ Text.words keep_whitespace=False =
     build fst nxt
 
     bldr.to_vector
+
+## ALIAS Get Lines
+
+   Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
+
+   Empty lines are added for leading and trailing newlines. Multiple consecutive
+   newlines will also yield additional empty lines.
+
+   > Example
+     Split the text 'a\nb\nc' into lines.
+
+        'a\nb\nc'.lines == ['a', 'b', 'c']
+
+   > Example
+     Split the text '\na\n\nb\n\n' into lines.
+
+        'a\nb\nc'.lines == ['', 'a', '', 'b', '', '']
+
+   > Example
+     Split the text '\na\nb\n' into lines, keeping the line endings.
+
+        '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
+Text.lines : Boolean -> Vector.Vector Text
+Text.lines keep_endings=False =
+    Vector.Vector (Text_Utils.split_on_lines this keep_endings)
 
 ## Checks whether `this` is equal to `that`.
 

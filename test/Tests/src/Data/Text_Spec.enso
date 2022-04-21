@@ -60,8 +60,6 @@ spec =
         accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
         utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
-        utf_8_vertical = 'foo\n   bar \v baz \r quux'
-        utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
         sentences = '''
             I have a very long block of text, here. It goes on and on, containing
             things like decimal points (1.0314e3) and other language scripts as well
@@ -155,13 +153,28 @@ spec =
             str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to split the text into words" <|
+            "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
+            "แมวมีสี่ขา".words . should_equal ['แมว', 'มี', 'สี่', 'ขา']
             sentences.words . should_equal sentence_words
+
+        Test.specify "should be able to split the text into lines" <|
+            utf_8_vertical = 'foo\n   bar \r\n baz \r quux'
+            utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
+            utf_8_vertical.lines . should_equal utf_8_vertical_split
+
+            '\n\n\n'.lines . should_equal ['', '', '']
+            '\r\r\r'.lines . should_equal ['', '', '']
+            '\r\n\r\n\r\n'.lines . should_equal ['', '', '']
+            '\n\n\n'.lines keep_endings=True . should_equal ['\n', '\n', '\n']
+            'a\r\nb\n\rc'.lines keep_endings=True . should_equal ['a\r\n', 'b\n', '\r', 'c']
+            'a\r\nb\n\rc'.lines . should_equal ['a', 'b', '', 'c']
+            'abc'.lines . should_equal ['abc']
+            'abc\n'.lines . should_equal ['abc']
+            'abc\n'.lines keep_endings=True . should_equal ['abc\n']
+            '\na'.lines . should_equal ['', 'a']
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split . should_equal utf_8_whitespace_split
-
-        Test.specify "should be able to split the text on UTF-8 newlines" <|
-            utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
 
         Test.specify "should be able to split the text on arbitrary text sequence" <|
             "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
