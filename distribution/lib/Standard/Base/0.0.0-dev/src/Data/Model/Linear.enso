@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Table.Model import Fit_Error
+from Standard.Base.Data.Model.Fit_Error as Fit_Error_Module import Fit_Error
 
 polyglot java import org.enso.table.model.LeastSquares
 polyglot java import org.enso.table.model.FitError

@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Table import all
 
-from Standard.Table.Model import Fit_Error
+from Standard.Base.Data.Statistics import Fit_Error
 
 import Standard.Test
 
@@ -27,3 +27,4 @@ spec =
             result = table.linear_regression "x" "y"
             result . should_equal (Model.linear_regression column_x column_y)
 
+main = Test.Suite.run_main here.spec

@@ -26,7 +26,7 @@ import project.System.Environment
 import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
-import project.Statistics
+import project.Data.Statistics
 
 from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 

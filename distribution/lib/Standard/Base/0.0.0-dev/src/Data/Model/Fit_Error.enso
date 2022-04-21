@@ -1,0 +1,13 @@
+## PRIVATE
+
+   An error thrown when the linear regression cannot be computed.
+
+   Arguments:
+   - message: The error message.
+type Fit_Error message
+
+## PRIVATE
+
+   Converts the `Fit_Error` to a human-readable representation.
+Fit_Error.to_display_text : Text
+Fit_Error.to_display_text = "Could not fit the model: " + this.message.to_text

@@ -1,14 +1,17 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Model.Fit_Error as Fit_Error_Module import Fit_Error
+
 polyglot java import org.enso.base.statistics.SingleValue
 polyglot java import org.enso.base.statistics.Regression
+
+from Standard.Base.Data.Model.Fit_Error as Fit_Error_Module export Fit_Error
 
 type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent
     to_java : SingleValue
     to_java = case this of
-        Count -> SingleValue.COUNT
         Sum -> SingleValue.SUM
         Mean -> SingleValue.MEAN
         Variance p -> if p then SingleValue.VARIANCE_POPULATION else SingleValue.VARIANCE
@@ -47,8 +50,8 @@ type Statistic
    - statistics: Set of statistics to calculate.
 compute : Any -> [Statistics] -> [Pair Statistics Number]
 compute data statistics=[Count, Sum] =
-    SingleValues = statistics.map .to_java . to_array
-    stats_array = SingleValue.compute data.to_array SingleValues
+    java_stats = statistics.map .to_java . to_array
+    stats_array = SingleValue.compute data.to_array java_stats
     statistics.map_with_index idx->stat->(Pair stat (stats_array.at idx))
 
 ## Given a set of known y-values and a set of fitted values, compute the R²
@@ -58,7 +61,7 @@ compute data statistics=[Count, Sum] =
    - known: `Vector` of known values
    - fitted: `Vector` of fitted values
 r_squared : [Number] -> [Number] -> Number
-r_squared known fitted :
+r_squared known fitted =
     Regression.rSquared known.to_array fitted.to_array
 
 ## Compute statistics on the vector

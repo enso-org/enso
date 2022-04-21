@@ -6,17 +6,6 @@ import java.util.Arrays;
  * Set of descriptive statistics for numerical data sets
  */
 public enum SingleValue {
-  COUNT {
-    @Override
-    public int order() {
-      return 0;
-    }
-
-    @Override
-    public double evaluate(long n, double[] sums) {
-      return n;
-    }
-  },
   SUM {
     @Override
     public int order() {

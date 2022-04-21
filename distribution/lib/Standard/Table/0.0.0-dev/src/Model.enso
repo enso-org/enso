@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-from Standard.Table import Column, Table
+from Standard.Base.Data.Statistics import Fit_Error
 
-from Standard.Table.Model.Linear as Linear_Module import Linear
-from Standard.Table.Model.Linear as Linear_Module export Linear
+from Standard.Table import Column, Table
 
 ## Compute the linear regression between the x and y coordinates, returning a
    vector containing the slope in the first position and the bias in the second.
@@ -63,18 +62,3 @@ linear_regression x_values y_values =
         bias = bias_numerator / n
 
         [slope, bias]
-
-## PRIVATE
-
-   An error thrown when the linear regression cannot be computed.
-
-   Arguments:
-   - message: The error message.
-type Fit_Error message
-
-## PRIVATE
-
-   Converts the `Fit_Error` to a human-readable representation.
-Fit_Error.to_display_text : Text
-Fit_Error.to_display_text = "Could not fit the model: " + this.message.to_text
-
