@@ -6,13 +6,14 @@
 //!
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
-use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_label::Label;

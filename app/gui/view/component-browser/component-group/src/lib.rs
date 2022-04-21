@@ -19,7 +19,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::display::shape::*;
-pub mod wide_component_group;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -30,6 +29,13 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod wide_component_group;
 
 
 
