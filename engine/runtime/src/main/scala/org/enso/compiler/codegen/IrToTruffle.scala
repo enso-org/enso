@@ -1317,6 +1317,9 @@ class IrToTruffle(
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
         case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
+          if (args.isEmpty && hasDefaultsSuspended) {
+            return run(fn)
+          }
           val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
           val arguments = args

@@ -87,5 +87,49 @@ class CurryingTest extends InterpreterTest {
           |""".stripMargin
       eval(code) shouldEqual 2
     }
+
+    "allow to pass suspended functions in arguments with `...`" in {
+      val code =
+        """main =
+          |    foo f = f 1
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "allow to pass suspended functions in arguments with `...` but still auto-execute them" in {
+      val code =
+        """main =
+          |    foo f = f
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "should handle a defaulted-suspended combo" in {
+      val code =
+        """main =
+          |    foo ~f = f
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "should make `...` an identity on Atom Constructors" in {
+      val code =
+        """
+          |type My_Atom x=1
+          |
+          |My_Atom.my_static = "hello"
+          |
+          |main =
+          |    (My_Atom ...).my_static
+          |""".stripMargin
+      eval(code) shouldEqual "hello"
+    }
+
   }
 }
