@@ -103,6 +103,7 @@
 #![warn(unused_import_braces)]
 
 use enso_profiler as profiler;
+use profiler::format;
 use std::error;
 use std::fmt;
 
@@ -130,16 +131,11 @@ pub enum Error<M> {
     ///
     /// For an example of handling a recoverable failure, see `tests::skip_failed_metadata`.
     RecoverableFormatError {
-        /// Deserialization errors for each Event that failed to parse.
+        /// Deserialization errors for each metadata Event that failed to parse.
         errors:            Vec<EventError<serde_json::Error>>,
-        /// The core data.
-        ///
-        /// If the `errors` all relate to metadata events, the remaining data will be
-        /// available here, with one metadata object missing for each error.
-        ///
-        /// If some errors are not metadata errors (i.e. the core format has changed), the readable
-        /// subset of events might not form a valid log, and this will contain an error too.
-        with_missing_data: Result<Profile<M>, EventError<parse::DataError>>,
+        /// A profile with metadata of one or more types excluded due to format incompatibility.
+        /// There is one missing metadata object for each value in `errors`.
+        with_missing_data: Profile<M>,
     },
     /// Failed to interpret the event log data.
     DataError(EventError<parse::DataError>),
@@ -372,7 +368,7 @@ pub enum OpaqueMetadata {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Mark {
     /// Time of the mark.
-    time: profiler::internal::Timestamp,
+    time: format::Timestamp,
     /// Sequence number of the mark. Used to resolve timestamp collisions.
     seq:  Seq,
 }
@@ -393,10 +389,10 @@ impl Mark {
 
 /// A value that can be used to compare the order of events within a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub(crate) struct Seq(u32);
+pub(crate) struct Seq(usize);
 
 impl Seq {
-    fn runtime_event(event_index: u32) -> Self {
+    fn runtime_event(event_index: usize) -> Self {
         // Seq(0) is the time origin.
         Seq(event_index.checked_add(1).unwrap())
     }
@@ -646,7 +642,7 @@ mod tests {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {
                 assert_eq!(errors.len(), 1);
                 assert_eq!(errors[0].log_pos, 1);
-                with_missing_data.unwrap()
+                with_missing_data
             }
             other => panic!("Expected RecoverableFormatError, found: {:?}", other),
         };

@@ -65,7 +65,7 @@ fn main() {
         match profile {
             Ok(profile) => profiles_.push(profile),
             Err(data::Error::RecoverableFormatError { with_missing_data, .. }) =>
-                profiles_.push(with_missing_data.unwrap()),
+                profiles_.push(with_missing_data),
             Err(e) => panic!("{}", e),
         }
     }

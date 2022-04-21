@@ -9,7 +9,6 @@ use crate::format;
 use crate::log;
 
 use std::fmt;
-use std::num;
 use std::rc;
 
 
@@ -19,11 +18,10 @@ use std::rc;
 // ======================================================
 
 thread_local! {
-    static EVENT_LOG: log::Log<Event<ExternalMetadata, &'static str>> = log::Log::new();
+    static EVENT_LOG: log::Log<Event> = log::Log::new();
 }
 /// Global log of [`Events`]s.
-pub(crate) static EVENTS: log::ThreadLocalLog<Event<ExternalMetadata, &'static str>> =
-    log::ThreadLocalLog::new(EVENT_LOG);
+pub(crate) static EVENTS: log::ThreadLocalLog<Event> = log::ThreadLocalLog::new(EVENT_LOG);
 
 thread_local! {
     static METADATA_LOG_LOG: log::Log<rc::Rc<dyn MetadataSource>> = log::Log::new();
@@ -37,44 +35,73 @@ pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>>
 /// Consumes all events that have happened up to this point; except in testing, this should only be
 /// done once.
 pub fn take_log() -> String {
-    let events = EVENTS.take_all();
-    let metadatas = METADATA_LOGS.clone_all();
-    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
-    let mut metadata_entries: Vec<_> =
-        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
+    let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
     let mut profile = format::Builder::new();
-    let mut id_map = std::collections::HashMap::<EventId, format::MeasurementId>::new();
-    id_map.insert(EventId::IMPLICIT, EventId::IMPLICIT);
-    id_map.insert(EventId::APP_LIFETIME, EventId::APP_LIFETIME);
+    let mut measurement_id = std::collections::HashMap::<EventId, format::MeasurementId>::new();
     profile.time_offset_ms(Timestamp::time_offset());
     profile.process("Ide");
     for (id, event) in events.into_iter().enumerate() {
         let id = EventId(id as u32);
         match event {
-            Event::Metadata(Timestamped { timestamp, data }) => {
+            Event::Metadata { timestamp, data } => {
                 let ExternalMetadata { type_id } = data;
                 let id = type_id as usize;
                 let name = metadata_names[id];
                 let data = metadata_entries[id].next().unwrap();
+                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
                 profile.metadata(timestamp, name, data);
             }
             Event::Start(Start { parent, start, label }) => {
-                let parent = id_map[&parent];
+                let parent = match parent {
+                    EventId::IMPLICIT => format::Parent::implicit(),
+                    EventId::APP_LIFETIME => format::Parent::root(),
+                    id => measurement_id[&id].into(),
+                };
                 let start = start.unwrap();
+                let start = format::Timestamp::from_ms(start.into_ms());
                 let interval = profile.start(start, parent, label.0);
-                id_map.insert(id, interval);
+                measurement_id.insert(id, interval);
             }
             Event::StartPaused(Start { parent, start, label }) => {
-                let parent = id_map[&parent];
+                let parent = match parent {
+                    EventId::IMPLICIT => format::Parent::implicit(),
+                    EventId::APP_LIFETIME => format::Parent::root(),
+                    id => measurement_id[&id].into(),
+                };
+                let start = start.map(|start| format::Timestamp::from_ms(start.into_ms()));
                 let interval = profile.start_paused(start, parent, label.0);
-                id_map.insert(id, interval);
+                measurement_id.insert(id, interval);
             }
-            Event::End { id, timestamp } => profile.end(timestamp, id_map[&id]),
-            Event::Pause { id, timestamp } => profile.pause(timestamp, id_map[&id]),
-            Event::Resume { id, timestamp } => profile.resume(timestamp, id_map[&id]),
+            Event::End { id, timestamp } => {
+                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
+                profile.end(timestamp, measurement_id[&id])
+            },
+            Event::Pause { id, timestamp } => {
+                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
+                profile.pause(timestamp, measurement_id[&id])
+            },
+            Event::Resume { id, timestamp } => {
+                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
+                profile.resume(timestamp, measurement_id[&id])
+            },
         }
     }
     profile.build_string()
+}
+
+pub struct LogData {
+    pub events: Vec<Event>,
+    metadata_names: Vec<&'static str>,
+    metadata_entries: Vec<Box<dyn Iterator<Item=Box<serde_json::value::RawValue>>>>,
+}
+
+pub fn take_raw_log() -> LogData {
+    let events = EVENTS.take_all();
+    let metadatas = METADATA_LOGS.clone_all();
+    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
+    let metadata_entries: Vec<_> =
+        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
+    LogData { events, metadata_names, metadata_entries }
 }
 
 
@@ -157,7 +184,7 @@ impl EventLog {
         let id = EVENTS.len() as u32;
         let timestamp = Timestamp::now();
         let data = ExternalMetadata { type_id };
-        let event = Event::Metadata(Timestamped { timestamp, data });
+        let event = Event::Metadata{ timestamp, data };
         EVENTS.append(event);
         EventId(id)
     }
@@ -182,12 +209,12 @@ pub enum StartState {
 // =============
 
 /// An entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Event<Metadata, LabelStorage> {
+#[derive(Debug, Clone)]
+pub enum Event {
     /// The beginning of a measurement.
-    Start(Start<LabelStorage>),
+    Start(Start<&'static str>),
     /// The beginning of a measurement that starts in the paused state.
-    StartPaused(Start<LabelStorage>),
+    StartPaused(Start<&'static str>),
     /// The end of a measurement.
     End {
         /// Identifies the measurement by the ID of its Start event.
@@ -210,7 +237,10 @@ pub enum Event<Metadata, LabelStorage> {
         timestamp: Timestamp,
     },
     /// Metadata: wrapper with dependency-injected contents.
-    Metadata(Timestamped<Metadata>),
+    Metadata {
+        timestamp: Timestamp,
+        data:      ExternalMetadata,
+    }
 }
 
 
@@ -220,7 +250,7 @@ pub enum Event<Metadata, LabelStorage> {
 // =============
 
 /// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Start<LabelStorage> {
     /// Specifies parent measurement by its [`Start`].
     pub parent: EventId,
@@ -235,7 +265,7 @@ pub struct Start<LabelStorage> {
 
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Label<Storage>(pub Storage);
 
 impl<Storage: fmt::Display> fmt::Display for Label<Storage> {
@@ -255,39 +285,31 @@ pub(crate) type StaticLabel = Label<&'static str>;
 
 /// Time elapsed since the [time origin](https://www.w3.org/TR/hr-time-2/#sec-time-origin).
 ///
-/// Stored in units of 100us, because that is maximum resolution of performance.now():
-/// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
-/// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
-pub struct Timestamp(num::NonZeroU64);
-
-/// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
-/// To maximize the supported range, this is the smallest positive integer.
-const TS_OFFSET: u64 = 1;
+/// Stored as the raw output of performance.now() (floating-point milliseconds).
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+pub struct Timestamp {
+    ms: f64
+}
 
 impl Timestamp {
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
-        Self::from_ms(now())
+        Self { ms: now() }
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
-    #[allow(unsafe_code)]
     pub fn from_ms(ms: f64) -> Self {
-        let ticks = (ms * 10.0).round() as u64;
-        // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
-        // It takes (2 ** 64) * 100us = 58_455_453 years for a Timestamp to wrap.
-        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + TS_OFFSET)) }
+        Self { ms }
     }
 
     /// Return the timestamp of the time origin.
     pub fn time_origin() -> Self {
-        Self::from_ms(0.0)
+        Self { ms: 0.0 }
     }
 
     /// Convert to an offset from the time origin, in ms.
     pub fn into_ms(self) -> f64 {
-        (self.0.get() - TS_OFFSET) as f64 / 10.0
+        self.ms
     }
 
     /// Return the offset of the time origin from a system timestamp.
@@ -332,25 +354,12 @@ fn time_origin() -> f64 {
 
 
 
-// === Timestamped ===
-
-/// Wrapper adding a timestamp to an object.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Timestamped<T> {
-    /// When the event occurred.
-    pub timestamp: Timestamp,
-    /// The data.
-    pub data:      T,
-}
-
-
-
 // ===============
 // === EventId ===
 // ===============
 
 /// Identifies an event in the profiling log.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EventId(pub u32);
 
 impl EventId {
@@ -377,7 +386,7 @@ impl EventId {
 
 /// Indicates where in the event log metadata from a particular external source should be inserted.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct ExternalMetadata {
+pub struct ExternalMetadata {
     type_id: u32,
 }
 

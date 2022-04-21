@@ -1,6 +1,7 @@
 //! Parsing implementation. `pub` contents are low-level error details.
 
 use enso_profiler as profiler;
+use profiler::format;
 use std::collections;
 use std::error;
 use std::fmt;
@@ -10,47 +11,24 @@ use std::str;
 
 
 // ===========================
-// === parse and interpret ===
+// === Parse and interpret ===
 // ===========================
 
 impl<M: serde::de::DeserializeOwned> str::FromStr for crate::Profile<M> {
     type Err = crate::Error<M>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let Parse { events, errors } = parse(s).map_err(crate::Error::FormatError)?;
-        let result = interpret(events);
-        if errors.is_empty() {
-            result.map_err(|e| crate::Error::DataError(e))
+        let events: Result<Vec<format::Event>, _> = serde_json::from_str(s);
+        let events = events.map_err(crate::Error::FormatError)?;
+        let Interpreted { profile, metadata_errors } =
+            interpret(events).map_err(crate::Error::DataError)?;
+        if metadata_errors.is_empty() {
+            Ok(profile)
         } else {
-            Err(crate::Error::RecoverableFormatError { errors, with_missing_data: result })
+            let errors = metadata_errors;
+            Err(crate::Error::RecoverableFormatError { errors, with_missing_data: profile })
         }
     }
-}
-
-
-// === parse ===
-
-pub(crate) struct Parse<M> {
-    pub events: Vec<profiler::internal::Event<M, OwnedLabel>>,
-    pub errors: Vec<crate::EventError<serde_json::Error>>,
-}
-
-/// Deserialize a log of events.
-///
-/// For each entry in the log, produces either a deserialized Event or an error.
-pub(crate) fn parse<M>(s: &str) -> Result<Parse<M>, serde_json::Error>
-where M: serde::de::DeserializeOwned {
-    // First just decode the array structure, so we can skip any metadata events that fail.
-    let log: Vec<&serde_json::value::RawValue> = serde_json::from_str(s)?;
-    let mut errors = Vec::new();
-    let mut events = Vec::with_capacity(log.len());
-    for (i, entry) in log.into_iter().enumerate() {
-        match serde_json::from_str::<profiler::internal::Event<M, String>>(entry.get()) {
-            Ok(event) => events.push(event),
-            Err(error) => errors.push(crate::EventError { log_pos: i, error }),
-        }
-    }
-    Ok(Parse { events, errors })
 }
 
 
@@ -60,19 +38,16 @@ where M: serde::de::DeserializeOwned {
 /// intervals.
 ///
 /// Returns an error if the log cannot be interpreted.
-pub(crate) fn interpret<M>(
-    events: impl IntoIterator<Item = profiler::internal::Event<M, OwnedLabel>>,
-) -> Result<crate::Profile<M>, crate::EventError<DataError>> {
+pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
+    events: impl IntoIterator<Item = format::Event<'a>>,
+) -> Result<Interpreted<M>, crate::EventError<DataError>> {
     // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, intervals, .. } = LogVisitor::visit(events)?;
+    let LogVisitor { builders, order, intervals, metadata_errors, .. } = LogVisitor::visit(events)?;
     // Build measurements from accumulated measurement data.
-    let mut measurement_ids = std::collections::HashMap::with_capacity(builders.len());
     let mut measurements = Vec::with_capacity(builders.len());
-    for (event_id, builder) in builders.into_iter() {
-        let measurement_id = crate::MeasurementId(measurements.len());
-        measurements.push(builder.into());
-        measurement_ids.insert(id::Explicit::Runtime(event_id), measurement_id);
-    }
+    let mut builders: Vec<_> = builders.into_iter().collect();
+    builders.sort_unstable_by_key(|(k, _)| *k);
+    measurements.extend(builders.into_iter().map(|(_, b)| b.into()));
     let root = crate::Measurement {
         label:     crate::Label { name: "APP_LIFETIME (?:?)".into(), pos: None },
         children:  Default::default(),
@@ -82,26 +57,38 @@ pub(crate) fn interpret<M>(
     };
     let root_measurement_id = crate::MeasurementId(measurements.len());
     measurements.push(root);
-    measurement_ids.insert(id::Explicit::AppLifetime, root_measurement_id);
-    for (child, parent) in order.into_iter() {
-        let child = measurement_ids.get(&id::Explicit::Runtime(child)).unwrap();
-        let parent = measurement_ids
-            .get(&parent)
+    for (child, (log_pos, parent)) in order.into_iter().enumerate() {
+        let log_pos = log_pos.0;
+        let parent = match parent {
+            format::ParentId::Measurement(id) => crate::MeasurementId(id.0),
+            format::ParentId::Root => root_measurement_id,
+        };
+        let parent = &mut measurements
+            .get_mut(parent.0)
             .ok_or(DataError::IdNotFound)
-            .map_err(|e| crate::EventError { log_pos: child.0, error: e })?;
-        measurements[parent.0].children.push(*child);
+            .map_err(|e| crate::EventError { log_pos, error: e })?;
+        let child = crate::MeasurementId(child);
+        parent.children.push(child);
     }
     let mut intervals_ = Vec::with_capacity(intervals.len());
     for builder in intervals.into_iter() {
         let IntervalBuilder { measurement, interval, children, metadata } = builder;
-        let measurement = *measurement_ids.get(&measurement).unwrap();
         let id = crate::IntervalId(intervals_.len());
+        let measurement = match measurement {
+            format::ParentId::Measurement(id) => crate::MeasurementId(id.0),
+            format::ParentId::Root => root_measurement_id,
+        };
         intervals_.push(crate::ActiveInterval { measurement, interval, children, metadata });
         measurements[measurement.0].intervals.push(id);
     }
     // TODO[kw]: Add headers to format and read this from the file.
     let time_offset = None;
-    Ok(crate::Profile { measurements, intervals: intervals_, time_offset })
+    let profile = crate::Profile { measurements, intervals: intervals_, time_offset };
+    Ok(Interpreted { profile, metadata_errors })
+}
+pub(crate) struct Interpreted<M> {
+    profile: crate::Profile<M>,
+    metadata_errors: Vec<MetadataError>,
 }
 
 
@@ -117,23 +104,21 @@ pub enum DataError {
     UnexpectedState(State),
     /// A reference was not able to be resolved.
     IdNotFound,
-    /// An EventId that should have been a runtime event was IMPLICIT or APP_LIFETIME.
-    RuntimeIdExpected(id::Event),
     /// A parse error.
     UnexpectedToken(Expected),
     /// An event that should only occur during the lifetime of a profiler didn't find any profiler.
     ActiveProfilerRequired,
-    /// An event expected to refer to a certain profiler referred to a different profiler.
-    /// This can occur for events that include a profiler ID as a consistency check, but only
-    /// have one valid referent (e.g. [`profiler::Event::End`] must end the current profiler.)
+    /// An event expected to refer to a certain measurement referred to a different measurement.
+    /// This can occur for events that include a measurement ID as a consistency check, but only
+    /// have one valid referent (e.g. [`profiler::Event::End`] must end the current measurement.)
     WrongProfiler {
-        /// The profiler that was referred to.
-        found:    id::Runtime,
-        /// The only valid profiler for the event to refer to.
-        expected: id::Runtime,
+        /// The measurement that was referred to.
+        found:    format::MeasurementId,
+        /// The only valid measurement for the event to refer to.
+        expected: format::ParentId,
     },
     /// Profiler(s) were active at a time none were expected.
-    ExpectedEmptyStack(Vec<id::Runtime>),
+    ExpectedEmptyStack(Vec<format::MeasurementId>),
     /// A profiler was expected to have started before a related event occurred.
     ExpectedStarted,
 }
@@ -197,19 +182,19 @@ impl From<MeasurementBuilder> for crate::Measurement {
 #[derive(Debug, Copy, Clone)]
 pub enum State {
     /// Started and not paused or ended; id of most recent Start or Resume event is included.
-    Active(id::Runtime),
+    Active(EventId),
     /// Paused. Id of Pause or StartPaused event is included.
-    Paused(id::Runtime),
+    Paused(EventId),
     /// Ended. Id of End event is included.
-    Ended(id::Runtime),
+    Ended(EventId),
 }
 
-impl State {
-    fn start(start_state: profiler::internal::StartState, pos: id::Runtime) -> Self {
-        match start_state {
-            profiler::internal::StartState::Active => Self::Active(pos),
-            profiler::internal::StartState::Paused => Self::Paused(pos),
-        }
+#[derive(Debug, Copy, Clone)]
+pub struct EventId(usize);
+
+impl From<EventId> for crate::Seq {
+    fn from(id: EventId) -> Self {
+        crate::Seq::runtime_event(id.0)
     }
 }
 
@@ -221,7 +206,7 @@ impl State {
 
 /// Holds information gathered during visitation.
 struct IntervalBuilder<M> {
-    measurement: id::Explicit,
+    measurement: format::ParentId,
     interval:    crate::Interval,
     children:    Vec<crate::IntervalId>,
     metadata:    Vec<crate::Metadata<M>>,
@@ -233,22 +218,24 @@ struct IntervalBuilder<M> {
 // === LogVisitor ===
 // ==================
 
-/// Gathers data while visiting a series of [`profiler::internal::Event`]s.
+/// Gathers data while visiting a series of [`format::Event`]s.
 struct LogVisitor<M> {
     /// Accumulated data pertaining to each profiler.
-    builders:  collections::HashMap<id::Runtime, MeasurementBuilder>,
+    builders:  collections::HashMap<format::MeasurementId, MeasurementBuilder>,
     /// Ids and parents, in same order as event log.
-    order:     Vec<(id::Runtime, id::Explicit)>,
+    order:     Vec<(EventId, format::ParentId)>,
     /// Intervals ended, in arbitrary order.
     intervals: Vec<IntervalBuilder<M>>,
     /// Intervals currently open, as a LIFO stack.
     active:    Vec<IntervalBuilder<M>>,
+    metadata_errors: Vec<MetadataError>,
 }
+type MetadataError = crate::EventError<serde_json::Error>;
 
 impl<M> Default for LogVisitor<M> {
     fn default() -> Self {
         let root_interval = IntervalBuilder {
-            measurement: id::Explicit::AppLifetime,
+            measurement: format::ParentId::Root,
             interval:    crate::Interval {
                 start: crate::Mark::time_origin(),
                 end:   Default::default(),
@@ -261,31 +248,31 @@ impl<M> Default for LogVisitor<M> {
             active:    vec![root_interval],
             builders:  Default::default(),
             order:     Default::default(),
+            metadata_errors: Default::default(),
         }
     }
 }
 
-impl<M> LogVisitor<M> {
+impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
     /// Convert the log into data about each measurement.
-    fn visit(
-        events: impl IntoIterator<Item = profiler::internal::Event<M, OwnedLabel>>,
+    fn visit<'a>(
+        events: impl IntoIterator<Item = format::Event<'a>>,
     ) -> Result<Self, crate::EventError<DataError>> {
         let mut visitor = Self::default();
         let mut event_count = 0;
         for (i, event) in events.into_iter().enumerate() {
-            let log_pos = id::Runtime(i as u32);
+            let log_pos = EventId(i);
             let result = match event {
-                profiler::internal::Event::Start(event) =>
-                    visitor.visit_start(log_pos, event, profiler::internal::StartState::Active),
-                profiler::internal::Event::StartPaused(event) =>
-                    visitor.visit_start(log_pos, event, profiler::internal::StartState::Paused),
-                profiler::internal::Event::End { id, timestamp } =>
+                format::Event::Start { id, timestamp } =>
+                    visitor.visit_start(log_pos, id.into(), timestamp),
+                format::Event::Create(event) => visitor.visit_create(log_pos, event),
+                format::Event::End { id, timestamp } =>
                     visitor.visit_end(log_pos, id.into(), timestamp),
-                profiler::internal::Event::Pause { id, timestamp } =>
+                format::Event::Pause { id, timestamp } =>
                     visitor.visit_pause(log_pos, id.into(), timestamp),
-                profiler::internal::Event::Resume { id, timestamp } =>
+                format::Event::Resume { id, timestamp } =>
                     visitor.visit_resume(log_pos, id.into(), timestamp),
-                profiler::internal::Event::Metadata(metadata) =>
+                format::Event::Metadata(metadata) =>
                     visitor.visit_metadata(log_pos, metadata),
             };
             result.map_err(|error| crate::EventError { log_pos: i, error })?;
@@ -315,43 +302,55 @@ impl<M> LogVisitor<M> {
 
 // === Handlers for each event ===
 
-impl<M> LogVisitor<M> {
-    fn visit_start(
+impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
+    fn visit_create(
         &mut self,
-        pos: id::Runtime,
-        event: profiler::internal::Start<OwnedLabel>,
-        start_state: profiler::internal::StartState,
+        pos: EventId,
+        event: format::Start<'_>,
     ) -> Result<(), DataError> {
-        let parent = match event.parent.into() {
-            id::Event::Explicit(parent) => parent,
-            id::Event::Implicit => self.current_profiler(),
+        let parent = match event.parent {
+            format::Parent::Explicit(parent) => parent,
+            format::Parent::Implicit => self.current_profiler(),
         };
         let start = match event.start {
             Some(time) => crate::Mark { seq: pos.into(), time },
             None => self.inherit_start(parent)?,
         };
         let builder = MeasurementBuilder {
-            label:    event.label.to_string().parse()?,
+            label:    event.label.as_str().parse()?,
             created:  start,
-            state:    State::start(start_state, pos),
+            state:    State::Paused(pos),
             finished: Default::default(),
         };
-        if start_state == profiler::internal::StartState::Active {
-            self.start_interval(pos, start);
-        }
         self.order.push((pos, parent));
-        let old = self.builders.insert(pos, builder);
+        let id = format::MeasurementId(self.builders.len());
+        let old = self.builders.insert(id, builder);
         assert!(old.is_none());
+        Ok(())
+    }
+
+    fn visit_start(
+        &mut self,
+        pos: EventId,
+        id: format::MeasurementId,
+        time: format::Timestamp,
+    ) -> Result<(), DataError> {
+        let mark = crate::Mark { seq: pos.into(), time };
+        self.start_interval(id, mark);
+        let measurement = &mut self.builders.get_mut(&id).unwrap();
+        match mem::replace(&mut measurement.state, State::Active(pos)) {
+            State::Paused(_) => (),
+            state => return Err(DataError::UnexpectedState(state)),
+        }
         Ok(())
     }
 
     fn visit_end(
         &mut self,
-        pos: id::Runtime,
-        id: id::Event,
-        time: profiler::internal::Timestamp,
+        pos: EventId,
+        id: format::MeasurementId,
+        time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let id = id.try_into()?;
         let measurement = &mut self.builders.get_mut(&id).unwrap();
         measurement.finished = true;
         let end = crate::Mark { seq: pos.into(), time };
@@ -368,11 +367,10 @@ impl<M> LogVisitor<M> {
 
     fn visit_pause(
         &mut self,
-        pos: id::Runtime,
-        id: id::Event,
-        time: profiler::internal::Timestamp,
+        pos: EventId,
+        id: format::MeasurementId,
+        time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let id = id.try_into()?;
         let mark = crate::Mark { seq: pos.into(), time };
         self.end_interval(id, mark)?;
         let measurement = &mut self.builders.get_mut(&id).unwrap();
@@ -385,11 +383,10 @@ impl<M> LogVisitor<M> {
 
     fn visit_resume(
         &mut self,
-        pos: id::Runtime,
-        id: id::Event,
-        time: profiler::internal::Timestamp,
+        pos: EventId,
+        id: format::MeasurementId,
+        time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let id = id.try_into()?;
         let mark = crate::Mark { seq: pos.into(), time };
         self.start_interval(id, mark);
         let measurement = &mut self.builders.get_mut(&id).ok_or(DataError::IdNotFound)?;
@@ -402,24 +399,29 @@ impl<M> LogVisitor<M> {
 
     fn visit_metadata(
         &mut self,
-        pos: id::Runtime,
-        metadata: profiler::internal::Timestamped<M>,
+        pos: EventId,
+        metadata: format::Timestamped<format::AnyMetadata>,
     ) -> Result<(), DataError> {
-        let profiler::internal::Timestamped { timestamp, data } = metadata;
-        let mark = crate::Mark { seq: pos.into(), time: timestamp };
-        self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data });
+        let format::Timestamped { time, data } = metadata;
+        let mark = crate::Mark { seq: pos.into(), time };
+        match serde_json::from_str(data.get()) {
+            Ok(data) =>
+                self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data }),
+            Err(error) => {
+                let log_pos = pos.0;
+                self.metadata_errors.push(MetadataError { log_pos, error })
+            },
+        }
         Ok(())
     }
 }
 
 
-// === Helper types, functions, and methods ===
-
-type OwnedLabel = String;
+// === Visitation helpers ===
 
 impl<M> LogVisitor<M> {
-    fn start_interval(&mut self, id: id::Runtime, start: crate::Mark) {
-        let measurement = id::Explicit::Runtime(id);
+    fn start_interval(&mut self, measurement: format::MeasurementId, start: crate::Mark) {
+        let measurement = format::ParentId::Measurement(measurement);
         let end = Default::default();
         let children = Default::default();
         let metadata = Default::default();
@@ -427,14 +429,11 @@ impl<M> LogVisitor<M> {
         self.active.push(IntervalBuilder { measurement, interval, children, metadata });
     }
 
-    fn end_interval(&mut self, id: id::Runtime, end: crate::Mark) -> Result<(), DataError> {
+    fn end_interval(&mut self, id: format::MeasurementId, end: crate::Mark) -> Result<(), DataError> {
         let mut builder = self.active.pop().unwrap();
         builder.interval.end = Some(end);
-        let expected = match builder.measurement {
-            id::Explicit::Runtime(id) => id,
-            id => return Err(DataError::RuntimeIdExpected(id::Event::Explicit(id))),
-        };
-        if id != expected {
+        let expected = builder.measurement;
+        if format::ParentId::Measurement(id) != expected {
             let found = id;
             return Err(DataError::WrongProfiler { found, expected });
         }
@@ -447,16 +446,16 @@ impl<M> LogVisitor<M> {
         Ok(())
     }
 
-    fn current_profiler(&self) -> id::Explicit {
+    fn current_profiler(&self) -> format::ParentId {
         // We can unwrap here because there is always an active interval during visiting;
         // the root interval doesn't end until visiting is finished.
         self.active.last().unwrap().measurement
     }
 
-    fn inherit_start(&self, parent: id::Explicit) -> Result<crate::Mark, DataError> {
+    fn inherit_start(&self, parent: format::ParentId) -> Result<crate::Mark, DataError> {
         Ok(match parent {
-            id::Explicit::AppLifetime => crate::Mark::time_origin(),
-            id::Explicit::Runtime(pos) =>
+            format::ParentId::Root => crate::Mark::time_origin(),
+            format::ParentId::Measurement(pos) =>
                 self.builders.get(&pos).ok_or(DataError::IdNotFound)?.created,
         })
     }
@@ -492,79 +491,5 @@ impl crate::CodePos {
                 line: line.parse().map_err(|_| Expected("line number"))?,
             })
         })
-    }
-}
-
-
-
-// ==========
-// === id ===
-// ==========
-
-/// Facilities for classifying an event ID into subtypes.
-///
-/// The [`profiler::internal::EventId`] type can be logically broken down into different subtypes,
-/// but in the event log subtypes are not differentiated so that all EventIDs can be easily packed
-/// into a small scalar. This module supports unpacking an EventID.
-pub mod id {
-    use enso_profiler as profiler;
-
-    /// An reference to an event. This type classifies [`profiler::EventId`]; they have a 1:1
-    /// correspondence.
-    #[derive(Copy, Clone, Debug)]
-    pub enum Event {
-        /// An unspecified ID that must be inferred from context.
-        Implicit,
-        /// A specific, context-independent ID.
-        Explicit(Explicit),
-    }
-
-    impl From<profiler::internal::EventId> for Event {
-        fn from(id: profiler::internal::EventId) -> Self {
-            if id == profiler::internal::EventId::IMPLICIT {
-                Event::Implicit
-            } else {
-                Event::Explicit(if id == profiler::internal::EventId::APP_LIFETIME {
-                    Explicit::AppLifetime
-                } else {
-                    Explicit::Runtime(Runtime(id.0))
-                })
-            }
-        }
-    }
-
-    /// An explicit reference to an event.
-    #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-    pub enum Explicit {
-        /// The parent of the real roots.
-        AppLifetime,
-        /// An event logged at runtime.
-        Runtime(Runtime),
-    }
-
-    /// An explicit reference to an event in the log.
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-    pub struct Runtime(pub u32);
-
-    impl From<Runtime> for Explicit {
-        fn from(id: Runtime) -> Self {
-            Explicit::Runtime(id)
-        }
-    }
-
-    impl From<Runtime> for crate::Seq {
-        fn from(pos: Runtime) -> Self {
-            Self::runtime_event(pos.0)
-        }
-    }
-
-    impl TryFrom<Event> for Runtime {
-        type Error = super::DataError;
-        fn try_from(id: Event) -> Result<Self, Self::Error> {
-            match id {
-                Event::Explicit(Explicit::Runtime(id)) => Ok(id),
-                id => Err(super::DataError::RuntimeIdExpected(id)),
-            }
-        }
     }
 }
