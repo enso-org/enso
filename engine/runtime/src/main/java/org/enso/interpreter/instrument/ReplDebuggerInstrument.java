@@ -10,7 +10,7 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-
+import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
@@ -151,6 +151,19 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       } catch (Exception e) {
         nodeState = savedState;
         TruffleStackTrace.fillIn(e);
+        return new Left<>(e);
+      }
+    }
+
+    /**
+     * Returns the String representation of the provided object as defined by Enso {@code to_text}
+     * operation.
+     */
+    public Either<Exception, String> showObject(Object o) {
+      try {
+        InteropLibrary interop = InteropLibrary.getUncached();
+        return new Right<>(interop.asString(interop.toDisplayString(o)));
+      } catch (Exception e) {
         return new Left<>(e);
       }
     }
