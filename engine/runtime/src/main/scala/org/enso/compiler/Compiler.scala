@@ -179,33 +179,42 @@ class Compiler(
     module
   }
 
+  /** Run the compiler on the list of modules.
+    *
+    * The compilation may load the libraries defining component groups. To ensure
+    * that the symbols defined by the component groups are also compiled, this
+    * method is called recursively.
+    */
   private def runInternal(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
   ): CompilerResult = {
-    val output         = runInternal1(modules, generateCode, shouldCompileDependencies)
-    val pendingModules = packageRepository.getPendingModules
-    println(s"!!! PENDING_MODULES=${pendingModules.map(_.getName)}")
-    val compiledModules =
-      if (pendingModules.nonEmpty) {
-        val result = runInternal(
-          pendingModules.toList,
-          generateCode,
-          shouldCompileDependencies
-        )
-        output.append(result.compiledModules)
-      } else {
-        output
+    @scala.annotation.tailrec
+    def go(
+      modulesToCompile: List[Module],
+      compiledModules: List[Module]
+    ): CompilerResult =
+      if (modulesToCompile.isEmpty) CompilerResult(compiledModules)
+      else {
+        val newCompiled =
+          runCompilerPipeline(
+            modulesToCompile,
+            generateCode,
+            shouldCompileDependencies
+          )
+        val pending = packageRepository.getPendingModules.toList
+        go(pending, compiledModules ++ newCompiled)
       }
-    CompilerResult(compiledModules)
+
+    go(modules, List())
   }
 
-  private def runInternal1(
+  private def runCompilerPipeline(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
-  ): CompiledModules = {
+  ): List[Module] = {
     initialize()
     modules.foreach(m => parseModule(m))
 
@@ -331,7 +340,7 @@ class Compiler(
       }
     }
 
-    CompiledModules(requiredModules)
+    requiredModules
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {

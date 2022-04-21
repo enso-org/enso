@@ -268,7 +268,6 @@ object PackageRepository {
       pkg: Package[TruffleFile],
       isLibrary: Boolean
     ): Unit = {
-      println(s"REGISTER_PACKAGE $libraryName")
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
 
@@ -371,9 +370,6 @@ object PackageRepository {
       library: LibraryName,
       newGroups: List[ComponentGroup]
     ): Unit = {
-      println(
-        s"REGISTER_COMPONENT_GROUP ${newGroups.map(_.group.name)} of $library"
-      )
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(newGroups = groups.newGroups ::: newGroups))
@@ -391,9 +387,6 @@ object PackageRepository {
       library: LibraryName,
       group: ExtendedComponentGroup
     ): Unit = {
-      println(
-        s"REGISTER_EXTENDED_COMPONENT_GROUP ${group.group.groupName.name} of $library"
-      )
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(extendedGroups = groups.extendedGroups :+ group))

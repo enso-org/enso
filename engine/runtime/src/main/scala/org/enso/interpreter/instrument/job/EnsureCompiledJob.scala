@@ -114,12 +114,12 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           // global (library) modules, so we need to check if the global
           // suggestions are enabled as well.
           if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
-            compilerResult.compiledModules.modules.foreach(analyzeModuleInScope)
+            compilerResult.compiledModules.foreach(analyzeModuleInScope)
           } else {
             // When the global suggestions are disabled, we will skip indexing
             // of external libraries, but still want to index the modules that
             // belongs to the project.
-            val projectModules = compilerResult.compiledModules.modules
+            val projectModules = compilerResult.compiledModules
               .filter(m => rootName(m.getName) == rootName(module.getName))
             projectModules.foreach(analyzeModuleInScope)
           }
@@ -155,9 +155,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             CompilationStatus.Failure
           case Right(compilerResult) =>
             if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
-              compilerResult.compiledModules.modules.foreach(
-                analyzeModuleInScope
-              )
+              compilerResult.compiledModules.foreach(analyzeModuleInScope)
               analyzeModuleInScope(module)
             }
             runCompilationDiagnostics(module)
@@ -308,20 +306,17 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     */
   private def compile(
     module: Module
-  )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] = {
-    val prevStage = module.getCompilationStage
-    val compilationResult = Either.catchNonFatal {
-      module.compileScope(ctx.executionService.getContext).getCompilerResult
+  )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
+    Either.catchNonFatal {
+      val compilationStage = module.getCompilationStage
+      if (!compilationStage.isAtLeast(Module.CompilationStage.AFTER_CODEGEN)) {
+        ctx.executionService.getLogger
+          .log(Level.FINEST, s"Compiling ${module.getName}.")
+        ctx.executionService.getContext.getCompiler.run(module)
+      } else {
+        CompilerResult.empty
+      }
     }
-    if (prevStage != module.getCompilationStage) {
-      ctx.executionService.getLogger
-        .log(
-          Level.FINEST,
-          s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
-        )
-    }
-    compilationResult
-  }
 
   /** Apply pending edits to the file.
     *
