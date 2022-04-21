@@ -6,41 +6,51 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use crate::State::Active;
-use crate::State::Paused;
-
 use enso_profiler as profiler;
 use enso_profiler_data as data;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+type RowNumber = i32;
 
 
 // ==================
 // === Block Data ===
 // ==================
 
-/// Indicates whether a block indicates an active interval or a paused interval. Paused intervals
-/// are used to represent async tasks that are started and awaited, but that have made no progress.
 #[derive(Copy, Clone, Debug)]
-pub enum State {
+pub enum Activity {
     Active,
     Paused,
 }
 
-/// A `Block` contains the data required to render a single block of a frame graph.
-#[derive(Clone, Debug)]
-pub struct Block {
-    /// Start x coordinate of the block.
-    pub start: f64,
-    /// End x coordinate of the block.
-    pub end:   f64,
-    /// Row that the block should be placed in.
-    pub row:   u32,
-    /// The label to be displayed with the block.
-    pub label: String,
-    /// Indicates what state this block represents (active/paused).
-    pub state: State,
+#[derive(Copy, Clone, Debug)]
+pub enum Performance {
+    Good,
+    Medium,
+    Bad,
 }
 
-impl Block {
+/// A `Block` contains the data required to render a single block of a frame graph.
+#[derive(Clone, Debug)]
+pub struct Block<T> {
+    /// Start x coordinate of the block.
+    pub start:      f64,
+    /// End x coordinate of the block.
+    pub end:        f64,
+    /// Row that the block should be placed in.
+    pub row:        RowNumber,
+    /// The label to be displayed with the block.
+    pub label:      String,
+    /// Indicates the type of the block.
+    pub block_type: T,
+}
+
+impl<T> Block<T> {
     /// Width of the block.
     pub fn width(&self) -> f64 {
         self.end - self.start
@@ -72,9 +82,11 @@ pub struct Mark {
 #[derive(Debug, Default)]
 pub struct Graph {
     /// Collection of all blocks making up the flame graph.
-    pub blocks: Vec<Block>,
+    pub activity_blocks:    Vec<Block<Activity>>,
+    /// Collection of all blocks indicating performance characteristics.
+    pub performance_blocks: Vec<Block<Performance>>,
     /// Collection of marks that can be shown in the flame graph.
-    pub marks:  Vec<Mark>,
+    pub marks:              Vec<Mark>,
 }
 
 impl Graph {
@@ -115,7 +127,7 @@ impl Graph {
 /// Build a graph that illustrates the call stack over time.
 struct CallgraphBuilder<'p, Metadata> {
     profile: &'p data::Profile<Metadata>,
-    blocks:  Vec<Block>,
+    blocks:  Vec<Block<Activity>>,
 }
 
 impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
@@ -128,14 +140,17 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             builder.visit_interval(*child, 0);
         }
         let Self { blocks, .. } = builder;
-        let marks = Vec::default();
-        Graph { blocks, marks }
+        Graph {
+            activity_blocks:    blocks,
+            marks:              Vec::default(),
+            performance_blocks: Vec::default(),
+        }
     }
 }
 
 impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
     /// Create a block for an interval; recurse into children.
-    fn visit_interval(&mut self, active: data::IntervalId, row: u32) {
+    fn visit_interval(&mut self, active: data::IntervalId, row: RowNumber) {
         let active = &self.profile[active];
         let start = active.interval.start.into_ms();
         let end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
@@ -144,7 +159,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        self.blocks.push(Block { start, end, label, row, state: Active });
+        self.blocks.push(Block { start, end, label, row, block_type: Activity::Active });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
         }
@@ -160,8 +175,8 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
 /// Build a graph that illustrates async tasks over time.
 struct RungraphBuilder<'p, Metadata> {
     profile:  &'p data::Profile<Metadata>,
-    blocks:   Vec<Block>,
-    next_row: u32,
+    blocks:   Vec<Block<Activity>>,
+    next_row: RowNumber,
 }
 
 impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
@@ -175,8 +190,11 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
             builder.visit_measurement(*child);
         }
         let Self { blocks, .. } = builder;
-        let marks = Vec::default();
-        Graph { blocks, marks }
+        Graph {
+            activity_blocks:    blocks,
+            marks:              Vec::default(),
+            performance_blocks: Vec::default(),
+        }
     }
 }
 
@@ -211,7 +229,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: active_interval[1],
                         label: label_active,
                         row,
-                        state: Active,
+                        block_type: Activity::Active,
                     });
 
                     self.blocks.push(Block {
@@ -219,7 +237,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                         end: sleep_interval[1],
                         label: label_sleep,
                         row,
-                        state: Paused,
+                        block_type: Activity::Paused,
                     });
                 }
             }
@@ -232,7 +250,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 end: first.interval.start.into_ms(),
                 label: self.profile[first.measurement].label.to_string(),
                 row,
-                state: Paused,
+                block_type: Activity::Paused,
             });
 
             // Add last active interval.
@@ -243,7 +261,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                 end: last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
                 label: self.profile[last.measurement].label.to_string(),
                 row,
-                state: Active,
+                block_type: Activity::Active,
             });
         }
 
@@ -271,8 +289,11 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
         callgraph.visit_interval(*child, next_row);
     }
     let CallgraphBuilder { blocks, .. } = callgraph;
-    let marks = Vec::default();
-    Graph { blocks, marks }
+    Graph {
+        activity_blocks:    blocks,
+        marks:              Vec::default(),
+        performance_blocks: Vec::default(),
+    }
 }
 
 
@@ -302,23 +323,26 @@ impl From<FlamegraphBuilder> for Graph {
             grapher.visit_frame(frame, label.to_string(), 0);
         }
         let FlamegraphGrapher { blocks, .. } = grapher;
-        let marks = Vec::default();
-        Self { blocks, marks }
+        Graph {
+            activity_blocks:    blocks,
+            marks:              Vec::default(),
+            performance_blocks: Vec::default(),
+        }
     }
 }
 
 /// Builds a flamegraph [`Graph`] from [`data::aggregate::Frame`]s.
 #[derive(Default)]
 struct FlamegraphGrapher {
-    blocks: Vec<Block>,
+    blocks: Vec<Block<Activity>>,
     time:   f64,
 }
 
 impl FlamegraphGrapher {
-    fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: u32) {
+    fn visit_frame(&mut self, frame: &data::aggregate::Frame, label: String, row: RowNumber) {
         let start = self.time;
         let end = self.time + frame.total_duration();
-        self.blocks.push(Block { start, end, label, row, state: State::Active });
+        self.blocks.push(Block { start, end, label, row, block_type: Activity::Active });
         for (label, frame) in &frame.children {
             self.visit_frame(frame, label.to_string(), row + 1);
         }
@@ -351,11 +375,11 @@ mod tests {
         let profile: data::Profile<data::OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
         let flame_graph = Graph::new_callgraph(&profile);
-        assert_eq!(flame_graph.blocks.len(), 2);
+        assert_eq!(flame_graph.activity_blocks.len(), 2);
 
-        assert_eq!(flame_graph.blocks[1].row, 1);
-        assert!(flame_graph.blocks[1].label.contains("profiled_b"));
-        assert_eq!(flame_graph.blocks[0].row, 0);
-        assert!(flame_graph.blocks[0].label.contains("profiled_a"));
+        assert_eq!(flame_graph.activity_blocks[1].row, 1);
+        assert!(flame_graph.activity_blocks[1].label.contains("profiled_b"));
+        assert_eq!(flame_graph.activity_blocks[0].row, 0);
+        assert!(flame_graph.activity_blocks[0].label.contains("profiled_a"));
     }
 }
