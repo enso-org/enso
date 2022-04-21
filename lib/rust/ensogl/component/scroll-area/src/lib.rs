@@ -40,6 +40,8 @@ ensogl_core::define_endpoints! {
     Input {
         /// Set the width and height in px.
         resize             (Vector2),
+        /// Set the corners radius (in pixels) of the visible area.
+        set_corner_radius  (f32),
         /// Set the content width in px. Affects how far one can scroll horizontally.
         set_content_width  (f32),
         /// Set the content height in px. Affects how far one can scroll vertically.
@@ -71,8 +73,11 @@ ensogl_core::define_endpoints! {
 mod mask {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style) {
-            Plane().fill(color::Rgba::new(1.0,1.0,1.0,1.0)).into()
+        (style:Style, corner_radius: f32) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = "input_size.y".into();
+            let color = color::Rgba::new(1.0, 1.0, 1.0, 1.0);
+            Rect((&width, &height)).corners_radius(corner_radius).fill(color).into()
         }
     }
 }
@@ -158,6 +163,8 @@ impl ScrollArea {
                 mask.set_position_x(size.x / 2.0);
                 mask.set_position_y(-size.y / 2.0);
             });
+
+            eval frp.set_corner_radius((radius) mask.corner_radius.set(*radius));
 
 
             // === Scrolling ===

@@ -111,6 +111,7 @@ fn init(app: &Application) {
     scroll_area.resize(Vector2(200.0, 200.0));
     scroll_area.set_content_width(300.0);
     scroll_area.set_content_height(1000.0);
+    scroll_area.set_corner_radius(5.5);
 
 
     // === Content ===
