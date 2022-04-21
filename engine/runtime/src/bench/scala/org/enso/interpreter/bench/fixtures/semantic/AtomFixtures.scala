@@ -52,13 +52,13 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethodsCode =
     """from Standard.Base.Data.List import all
       |
-      |Cons.reverse = acc -> case this of
+      |Cons.rev = acc -> case this of
       |    Cons h t -> @Tail_Call t.reverse (Cons h acc)
       |
-      |Nil.reverse = acc -> acc
+      |Nil.rev = acc -> acc
       |
       |main = list ->
-      |    res = list.reverse Nil
+      |    res = list.rev Nil
       |    res
       |""".stripMargin
   val reverseListMethods = getMain(reverseListMethodsCode)
