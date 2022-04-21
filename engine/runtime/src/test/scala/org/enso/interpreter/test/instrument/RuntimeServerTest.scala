@@ -1384,16 +1384,16 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(118, 88)
-    val id1      = metadata.addItem(127, 15)
-    val id2      = metadata.addItem(147, 18)
-    val id3      = metadata.addItem(170, 15)
+    val idMain   = metadata.addItem(113, 88)
+    val id1      = metadata.addItem(122, 15)
+    val id2      = metadata.addItem(142, 18)
+    val id3      = metadata.addItem(165, 15)
     // Note that Nothing.Nothing is on purpose.
     // If not provided the full name it will resolve the
     // expression type of Nothing to a Nothing module
     val code =
       """from Standard.Builtins import Number
-        |from Standard.Base.Data.Text.Text import all
+        |from Standard.Base.Data.Text import all
         |import Standard.Base.Nothing
         |
         |main =

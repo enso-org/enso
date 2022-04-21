@@ -727,7 +727,7 @@ class RuntimeSuggestionUpdatesTest
 
     val contents =
       """from Standard.Builtins import Number
-        |from Standard.Base.Data.Text.Text import all
+        |import Standard.Base.Data.Text
         |import Standard.Base.Nothing
         |
         |main =

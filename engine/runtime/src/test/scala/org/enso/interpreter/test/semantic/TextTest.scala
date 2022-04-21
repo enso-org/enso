@@ -108,7 +108,7 @@ class TextTest extends InterpreterTest {
         """
           |from Standard.Base.Data.List import Cons
           |from Standard.Base.Error.Common import all
-          |from Standard.Base.Data.Text.Text import all
+          |import Standard.Base.Data.Text
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |

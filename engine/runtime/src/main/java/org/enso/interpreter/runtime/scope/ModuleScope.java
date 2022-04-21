@@ -17,7 +17,6 @@ public class ModuleScope implements TruffleObject {
   private final Module module;
   private Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
-  private List<AtomConstructor> builtins = new ArrayList<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Map<AtomConstructor, Map<AtomConstructor, Function>> conversions = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
