@@ -156,6 +156,8 @@ spec =
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
             "แมวมีสี่ขา".words . should_equal ['แมว', 'มี', 'สี่', 'ขา']
             sentences.words . should_equal sentence_words
+            "I ❤️ Unicode! 🙂🙂".words . should_equal ['I', '❤️', 'Unicode', '!', '🙂', '🙂']
+            '"แมวมีสี่ขา" means that a cat has four legs.'.words . should_equal ['"', 'แมว', 'มี', 'สี่', 'ขา', '"', 'means', 'that', 'a', 'cat', 'has', 'four', 'legs', '.']
 
         Test.specify "should be able to split the text into lines" <|
             utf_8_vertical = 'foo\n   bar \r\n baz \r quux'
@@ -172,6 +174,12 @@ spec =
             'abc\n'.lines . should_equal ['abc']
             'abc\n'.lines keep_endings=True . should_equal ['abc\n']
             '\na'.lines . should_equal ['', 'a']
+
+            multiline = """
+               Hello
+               world
+            multiline.lines . should_equal ['Hello', 'world']
+            '🚀🚧\n\u{301}a\u{301}\r건반'.lines . should_equal ['🚀🚧', '\u{301}a\u{301}', '건반']
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split . should_equal utf_8_whitespace_split
