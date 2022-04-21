@@ -195,6 +195,10 @@ spec = Test.group "Vectors" <|
         vec.take_start 4 . should_equal first_four
         vec.take_end 4 . should_equal last_four
 
+        [1, 3, 5, 6, 8, 9, 10, 11, 13].drop_while (x-> x%2 == 1) . should_equal [6, 8, 9, 10, 11, 13]
+        [1, 2, 3] . drop_while (_ > 10) . should_equal [1, 2, 3]
+        [1, 2, 3] . drop_while (_ < 10) . should_equal []
+
     Test.specify "should allow getting the head element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
         singleton_vec = [1]

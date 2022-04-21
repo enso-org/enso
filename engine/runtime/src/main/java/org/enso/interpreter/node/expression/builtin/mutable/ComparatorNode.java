@@ -35,11 +35,7 @@ public class ComparatorNode extends Node {
     return Context.get(this).getBuiltins().ordering();
   }
 
-  public int execute(
-      VirtualFrame frame,
-      Object comparator,
-      Object l,
-      Object r) {
+  public int execute(VirtualFrame frame, Object comparator, Object l, Object r) {
     Stateful result = invokeNode.execute(comparator, frame, EmptyMap.create(), new Object[] {l, r});
     Object atom = result.getValue();
     if (atom == getOrdering().less()) {
@@ -52,7 +48,8 @@ public class ComparatorNode extends Node {
       CompilerDirectives.transferToInterpreter();
       var ordering = getOrdering().ordering();
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeTypeError(ordering, atom, "comparator"), this);
+          Context.get(this).getBuiltins().error().makeTypeError(ordering, atom, "comparator"),
+          this);
     }
   }
 }

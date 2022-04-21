@@ -1003,15 +1003,15 @@ impl SceneData {
             eval self.mouse.frp.down ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 pressed.borrow_mut().insert(*button,current_target);
-                shapes.with_mouse_target(current_target, |t| t.mouse_down.emit(button));
+                shapes.with_mouse_target(current_target, |t| t.emit_mouse_down(*button));
             });
 
             eval self.mouse.frp.up ([shapes,target,pressed](button) {
                 let current_target = target.get();
                 if let Some(last_target) = pressed.borrow_mut().remove(button) {
-                    shapes.with_mouse_target(last_target, |t| t.mouse_release.emit(button));
+                    shapes.with_mouse_target(last_target, |t| t.emit_mouse_release(*button));
                 }
-                shapes.with_mouse_target(current_target, |t| t.mouse_up.emit(button));
+                shapes.with_mouse_target(current_target, |t| t.emit_mouse_up(*button));
             });
 
             eval_ self.mouse.frp.position (pointer_position_changed.set(true));

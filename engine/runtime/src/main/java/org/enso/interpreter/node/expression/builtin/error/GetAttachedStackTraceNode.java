@@ -19,7 +19,8 @@ public class GetAttachedStackTraceNode extends Node {
       return GetStackTraceNode.stackTraceToArray((Throwable) error);
     } else {
       Builtins builtins = Context.get(this).getBuiltins();
-      throw new PanicException(builtins.error().makeTypeError("Throwable", error, "throwable"), this);
+      throw new PanicException(
+          builtins.error().makeTypeError("Throwable", error, "throwable"), this);
     }
   }
 }

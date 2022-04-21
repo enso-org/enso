@@ -24,10 +24,7 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean doAtom(
-      Atom _this,
-      Atom that,
-      @Cached("getBooleanConstructor()") AtomConstructor boolCons
-  ) {
+      Atom _this, Atom that, @Cached("getBooleanConstructor()") AtomConstructor boolCons) {
     var thisCons = _this.getConstructor();
     var thatCons = that.getConstructor();
     return (thatCons == boolCons) && (thisCons == thatCons);

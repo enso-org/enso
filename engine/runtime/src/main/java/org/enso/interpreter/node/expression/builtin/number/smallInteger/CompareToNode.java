@@ -24,9 +24,7 @@ public abstract class CompareToNode extends Node {
   abstract Atom execute(long _this, Object that);
 
   @Specialization
-  Atom doLong(
-      long _this,
-      long that) {
+  Atom doLong(long _this, long that) {
     if (_this == that) {
       return getOrdering().newEqual();
     } else if (_this > that) {
@@ -37,16 +35,12 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doBigInt(
-      long _this,
-      EnsoBigInteger that) {
+  Atom doBigInt(long _this, EnsoBigInteger that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(_this, that.getValue()));
   }
 
   @Specialization
-  Atom doDecimal(
-      long _this,
-      double that) {
+  Atom doDecimal(long _this, double that) {
     if (_this == that) {
       return getOrdering().newEqual();
     } else if (_this > that) {
@@ -57,8 +51,7 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Atom doOther(
-      long _this, Object that) {
+  Atom doOther(long _this, Object that) {
     CompilerDirectives.transferToInterpreter();
     var number = Context.get(this).getBuiltins().number().getNumber().newInstance();
     var typeError = Context.get(this).getBuiltins().error().makeTypeError(that, number, "that");

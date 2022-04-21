@@ -8,7 +8,7 @@ CHANGELOG.md
 rust-toolchain.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 rustfmt.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
 Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
-Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon
+Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
 /lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon

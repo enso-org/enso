@@ -2049,7 +2049,7 @@ object IR {
       override def children: List[IR] = List()
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = s"\"$text\""
+      override def showCode(indent: Int): String = s""""$text""""
     }
   }
 
@@ -4312,7 +4312,7 @@ object IR {
         res
       }
 
-      override def withName(ir: Name): DefinitionArgument = copy(name=ir)
+      override def withName(ir: Name): DefinitionArgument = copy(name = ir)
 
       /** @inheritdoc */
       override def duplicate(
