@@ -241,7 +241,7 @@ fn get_nodes_in_bounding_box(bounding_box: &BoundingBox, nodes: &Nodes) -> Vec<N
 
 /// Return an FRP endpoint that indicates the current selection mode. This method sets up the logic
 /// for deriving the selection mode from the graph editor FRP.
-pub fn get_mode(network: &frp::Network, editor: &crate::FrpEndpoints) -> frp::stream::Stream<Mode> {
+pub fn get_mode(network: &frp::Network, editor: &crate::Frp) -> frp::stream::Stream<Mode> {
     frp::extend! { network
 
     let multi_select_flag = crate::enable_disable_toggle
@@ -307,7 +307,7 @@ pub struct Controller {
 
 impl Controller {
     pub fn new(
-        editor: &crate::FrpEndpoints,
+        editor: &crate::Frp,
         cursor: &Cursor,
         mouse: &frp::io::Mouse,
         touch: &TouchState,
@@ -317,6 +317,7 @@ impl Controller {
         let selection_mode = get_mode(&network, editor);
         let cursor_selection_nodes = node_set::Set::new();
 
+        let editor = &editor.private;
 
         frp::extend! { network
             deselect_all_nodes      <- any_(...);
@@ -324,16 +325,16 @@ impl Controller {
             enable_area_selection  <- source();
 
             // ===  Graph Editor Internal API ===
-            eval editor.select_node   ((node_id) nodes.select(node_id));
-            eval editor.deselect_node ((node_id)  nodes.select(node_id));
-            editor.source.node_selected   <+  editor.select_node;
-            editor.source.node_deselected <+ editor.deselect_node;
+            eval editor.input.select_node   ((node_id) nodes.select(node_id));
+            eval editor.input.deselect_node ((node_id)  nodes.select(node_id));
+            editor.output.node_selected   <+  editor.input.select_node;
+            editor.output.node_deselected <+ editor.input.deselect_node;
 
             // ===  Selection Box & Mouse IO ===
             on_press_style   <- mouse.down_primary . constant(cursor::Style::new_press());
             on_release_style <- mouse.up_primary . constant(cursor::Style::default());
 
-            edit_mode          <- bool(&editor.edit_mode_off,&editor.edit_mode_on);
+            edit_mode          <- bool(&editor.input.edit_mode_off,&editor.input.edit_mode_on);
             not_edit_mode      <- edit_mode.not();
             should_area_select <- not_edit_mode && enable_area_selection;
 
@@ -399,20 +400,20 @@ impl Controller {
                 |info,mode| mode.area_should_deselect(info.was_selected)
             );
 
-            editor.source.node_selected   <+ node_added.gate(&should_select);
-            editor.source.node_deselected <+ node_added.gate(&should_deselect);
+            editor.output.node_selected   <+ node_added.gate(&should_select);
+            editor.output.node_deselected <+ node_added.gate(&should_deselect);
 
             // Node leaves selection area, revert to previous selection state.
             node_removed <- cursor_selection_nodes.removed.map(f!([](node_info) {
                 if !node_info.was_selected { Some(node_info.node) } else {None}
             })).unwrap();
 
-            editor.source.node_deselected <+ node_removed;
+            editor.output.node_deselected <+ node_removed;
 
 
             // ===  Single Node Selection Box & Mouse IO ===
 
-            should_not_select       <- edit_mode || editor.some_edge_endpoints_unset;
+            should_not_select       <- edit_mode || editor.output.some_edge_endpoints_unset;
             node_to_select_non_edit <- touch.nodes.selected.gate_not(&should_not_select);
             node_to_select_edit     <- touch.nodes.down.gate(&edit_mode);
             node_to_select          <- any(node_to_select_non_edit,
@@ -429,17 +430,17 @@ impl Controller {
 
             deselect_on_select      <- node_to_select.gate_not(&keep_selection);
             deselect_all_nodes      <+ deselect_on_select;
-            deselect_all_nodes      <+ editor.deselect_all_nodes;
+            deselect_all_nodes      <+ editor.input.deselect_all_nodes;
 
             deselect_on_bg_press    <- touch.background.selected.gate_not(&keep_selection);
             deselect_all_nodes      <+ deselect_on_bg_press;
             all_nodes_to_deselect   <= deselect_all_nodes.map(f_!(nodes.selected.mem_take()));
-            editor.source.node_deselected <+ all_nodes_to_deselect;
+            editor.output.node_deselected <+ all_nodes_to_deselect;
 
             node_selected           <- node_to_select.gate(&should_select);
             node_deselected         <- node_to_select.gate(&should_deselect);
-            editor.source.node_selected   <+ node_selected;
-            editor.source.node_deselected <+ node_deselected;
+            editor.output.node_selected   <+ node_selected;
+            editor.output.node_deselected <+ node_deselected;
 
             // ===  Output bindings ===
             cursor_style <- any(on_press_style,on_release_style,cursor_selection);

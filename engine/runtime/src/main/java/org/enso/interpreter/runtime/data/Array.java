@@ -154,8 +154,7 @@ public class Array implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Array _this, UnresolvedSymbol symbol)
+    static Function resolve(Array _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -204,10 +203,7 @@ public class Array implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Array _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+    static Function resolve(Array _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

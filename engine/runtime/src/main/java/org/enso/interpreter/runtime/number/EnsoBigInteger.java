@@ -89,9 +89,7 @@ public class EnsoBigInteger implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        EnsoBigInteger _this,
-        UnresolvedSymbol symbol)
+    static Function resolve(EnsoBigInteger _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -147,9 +145,7 @@ public class EnsoBigInteger implements TruffleObject {
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-        EnsoBigInteger _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+        EnsoBigInteger _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {

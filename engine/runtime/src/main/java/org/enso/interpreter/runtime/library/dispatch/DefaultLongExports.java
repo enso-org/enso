@@ -54,8 +54,7 @@ public class DefaultLongExports {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Long _this, UnresolvedSymbol symbol)
+    static Function resolve(Long _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
@@ -81,11 +80,12 @@ public class DefaultLongExports {
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
       Number number = context.getBuiltins().number();
-      return conversion.resolveFor(target,
-              number.getSmallInteger(),
-              number.getInteger(),
-              number.getNumber(),
-              context.getBuiltins().any());
+      return conversion.resolveFor(
+          target,
+          number.getSmallInteger(),
+          number.getInteger(),
+          number.getNumber(),
+          context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -95,29 +95,26 @@ public class DefaultLongExports {
     static final int CACHE_SIZE = 10;
 
     @Specialization(
-            guards = {
-                    "!getContext().isInlineCachingDisabled()",
-                    "cachedConversion == conversion",
-                    "cachedTarget == target",
-                    "function != null"
-            },
-            limit = "CACHE_SIZE")
+        guards = {
+          "!getContext().isInlineCachingDisabled()",
+          "cachedConversion == conversion",
+          "cachedTarget == target",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
     static Function resolveCached(
-            Long _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion,
-            @Cached("conversion") UnresolvedConversion cachedConversion,
-            @Cached("target") AtomConstructor cachedTarget,
-            @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
+        Long _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @Cached("conversion") UnresolvedConversion cachedConversion,
+        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-            Long _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion)
-            throws MethodDispatchLibrary.NoSuchConversionException {
+    static Function resolve(Long _this, AtomConstructor target, UnresolvedConversion conversion)
+        throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();
