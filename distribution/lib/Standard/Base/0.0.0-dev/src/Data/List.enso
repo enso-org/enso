@@ -17,17 +17,14 @@ import Standard.Base.Nothing
 type List
 
     ## The type that indicates the end of a cons list.
-    @Builtin_Type
     type Nil
 
     ## A cons cell for a cons list.
 
        Arguments:
-       - head: The element at this position in the list.
-       - tail: The rest of the list.
-    @Builtin_Type
-    type Cons head tail
-
+       - x: The element at this position in the list.
+       - xs: The rest of the list.
+    type Cons x xs
 
     ## Computes the number of elements in the list.
 
@@ -278,7 +275,7 @@ type List
 
              import Standard.Examples
 
-             example_head = Examples.list.head
+             example_head = Examples.list.x
     head : Any ! Empty_Error
     head = case this of
         Cons a _ -> a
