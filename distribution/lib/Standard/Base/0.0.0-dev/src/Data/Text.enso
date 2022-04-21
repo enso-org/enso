@@ -23,18 +23,3 @@ type Text
              "Hello" + ", world!"
     + : Text -> Text
     + that = @Builtin_Method "Text.+"
-
-## Internal text utilities for inspecting text primitives.
-type Prim_Text_Helper
-
-    ## PRIVATE
-
-       A container for primitive text operations.
-    @Builtin_Type
-    type Prim_Text_Helper
-
-    ## PRIVATE
-
-       Forces flattening of a text value.
-    optimize : Text
-    optimize = @Builtin_Method "Prim_Text_Helpers.optimize"

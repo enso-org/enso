@@ -51,7 +51,7 @@ public abstract class GetStateNode extends Node {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       return DataflowError.withoutTrace(
-          Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+          Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
     } else {
       return state.getValues()[idx];
     }
@@ -61,13 +61,13 @@ public abstract class GetStateNode extends Node {
   Object doEmpty(
       EmptyMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 
   @Specialization
   Object doSingletonError(
       SingletonMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 }

@@ -649,8 +649,7 @@ class IrToTruffle(
         ErrorNode.build(
           context.getBuiltins
             .error()
-            .syntaxError()
-            .newInstance(
+            .makeSyntaxError(
               Text.create(
                 "Type operators are not currently supported at runtime."
               )
@@ -695,8 +694,7 @@ class IrToTruffle(
 
             val error = context.getBuiltins
               .error()
-              .compileError()
-              .newInstance(Text.create(message))
+              .makeCompileError(Text.create(message))
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
@@ -1093,53 +1091,43 @@ class IrToTruffle(
         case err: Error.Syntax =>
           context.getBuiltins
             .error()
-            .syntaxError()
-            .newInstance(Text.create(err.message))
+            .makeSyntaxError(Text.create(err.message))
         case err: Error.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Method =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Atom =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.ThisArg =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Resolution =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Conversion =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case _: Error.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -1330,8 +1318,7 @@ class IrToTruffle(
             ErrorNode.build(
               context.getBuiltins
                 .error()
-                .syntaxError()
-                .newInstance(
+                .makeSyntaxError(
                   Text.create(
                     "Typeset literals are not yet supported at runtime."
                   )

@@ -24,9 +24,6 @@ import org.enso.interpreter.node.expression.builtin.bool.False;
 import org.enso.interpreter.node.expression.builtin.bool.True;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
-import org.enso.interpreter.node.expression.builtin.error.Panic;
-import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
@@ -63,10 +60,8 @@ public class Builtins {
     }
   }
 
-  private HashMap<String,Map<String, Class<BuiltinRootNode>>> builtinNodes;
-  // TODO Consider dropping the map and just assigning to a single variable since builtin types
-  //      should be unique
-  private HashMap<String, AtomConstructor> builtinTypes;
+  private final Map<String,Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
+  private final Map<String, AtomConstructor> builtins;
 
   private final AtomConstructor debug;
   private final AtomConstructor projectDescription;
@@ -80,6 +75,40 @@ public class Builtins {
   private final System system;
   private final Special special;
 
+  // Builtin types
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor any;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor nothing;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor function;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor polyglot;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor text;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor array;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor bool;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor trueConstructor;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor falseConstructor;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor dataflowError;
+
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor ref;
+
   /**
    * Creates an instance with builtin methods installed.
    *
@@ -89,9 +118,15 @@ public class Builtins {
     Language language = context.getLanguage();
     module = Module.empty(QualifiedName.fromString(MODULE_NAME), null);
     scope = module.compileScope(context);
-    builtinNodes = new HashMap<>();
-    builtinTypes = new HashMap<>();
 
+    builtins = new HashMap<>();
+    List<AtomConstructor> builtinTypes = readBuiltinTypesMetadata(scope);
+    builtinMethodNodes = readBuiltinMethodsMetadata(scope);
+    registerBuiltinMethods(builtinTypes, scope, language);
+
+    error = new Error(this);
+
+    // TODO: Builtins that are not yet moved to stdlib
     debug = new AtomConstructor("Debug", scope).initializeFields();
     Warning.initWarningMethods(language, scope);
     projectDescription =
@@ -100,7 +135,7 @@ public class Builtins {
                 new ArgumentDefinition(
                     0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
-    error = new Error(this);
+
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
     resource = new Resource(language, scope);
@@ -140,15 +175,13 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
-    readBuiltinsMetadata(scope);
-    assignMethodsToBuiltins(readBuiltinTypesMetadata(scope), scope, language);
   }
 
-  public void assignMethodsToBuiltins(List<AtomConstructor> builtins, ModuleScope scope, Language language) {
+  public void registerBuiltinMethods(List<AtomConstructor> builtins, ModuleScope scope, Language language) {
     for (AtomConstructor atom: builtins) {
       String tpeName = atom.getName();
-      builtinTypes.put(tpeName, atom);
-      Map<String, Class<BuiltinRootNode>> methods = builtinNodes.get(tpeName);
+      this.builtins.put(tpeName, atom);
+      Map<String, Class<BuiltinRootNode>> methods = builtinMethodNodes.get(tpeName);
       if (methods != null) {
         methods.forEach((methodName, clazz) -> {
           Optional<Function> fun;
@@ -164,6 +197,7 @@ public class Builtins {
       }
     }
   }
+
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */
   public boolean isIrInitialized() {
     return this.module.getIr() != null;
@@ -220,6 +254,7 @@ public class Builtins {
 
       AtomConstructor builtin;
       builtin = new AtomConstructor(builtinMeta[0], scope, true);
+
       if (builtinMeta.length == 2) {
         builtin = builtin.initializeFields();
       } else {
@@ -234,8 +269,8 @@ public class Builtins {
       return builtin;
     }).filter(b -> b != null).collect(Collectors.toList());
   }
-  
-  private void readBuiltinsMetadata(ModuleScope scope) {
+
+  private Map<String, Map<String, Class<BuiltinRootNode>>> readBuiltinMethodsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
     try (InputStream resource = classLoader.getResourceAsStream(MethodDefinition.META_PATH)) {
@@ -244,6 +279,7 @@ public class Builtins {
       lines = new ArrayList<>();
       ioe.printStackTrace();
     }
+    Map<String,Map<String, Class<BuiltinRootNode>>> methodNodes = new HashMap<>();
 
     lines.forEach(line -> {
         String[] builtinMeta = line.split(":");
@@ -259,19 +295,19 @@ public class Builtins {
           String builtinMethodOwner = builtinName[0];
           String builtinMethodName = builtinName[1];
           scope.getLocalConstructor(builtinMethodOwner).ifPresentOrElse(constr -> {
-            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+            Map<String, Class<BuiltinRootNode>> atomNodes = methodNodes.get(builtinMethodOwner);
             if (atomNodes == null) {
               atomNodes = new HashMap<>();
               // TODO: move away from String Map once Builtins are gone
-              builtinNodes.put(constr.getName(), atomNodes);
+              methodNodes.put(constr.getName(), atomNodes);
             }
             atomNodes.put(builtinMethodName, clazz);
           }, () -> {
-            Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(builtinMethodOwner);
+            Map<String, Class<BuiltinRootNode>> atomNodes = methodNodes.get(builtinMethodOwner);
             if (atomNodes == null) {
               atomNodes = new HashMap<>();
               // TODO: move away from String Map once Builtins are gone
-              builtinNodes.put(builtinMethodOwner, atomNodes);
+              methodNodes.put(builtinMethodOwner, atomNodes);
             }
             atomNodes.put(builtinMethodName, clazz);
           });
@@ -279,11 +315,12 @@ public class Builtins {
           e.printStackTrace();
         }
     });
+    return methodNodes;
   }
 
   public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
-    Map<String, Class<BuiltinRootNode>> atomNodes = builtinNodes.get(atom.getName());
+    Map<String, Class<BuiltinRootNode>> atomNodes = builtinMethodNodes.get(atom.getName());
     if (atomNodes == null)
       return Optional.empty();
     Class<BuiltinRootNode> clazz = atomNodes.get(methodName);
@@ -304,7 +341,7 @@ public class Builtins {
   }
 
   public AtomConstructor getBuiltinType(String name) {
-    return builtinTypes.get(name);
+    return builtins.get(name);
   }
 
   /**
@@ -313,7 +350,11 @@ public class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public AtomConstructor nothing() {
-    return getBuiltinType(Nothing.class);
+    if (nothing == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      nothing = getBuiltinType(Nothing.class);
+    }
+    return nothing;
   }
 
   /**
@@ -322,7 +363,11 @@ public class Builtins {
    * @return the {@code Text} part of builtins.
    */
   public AtomConstructor text() {
-    return getBuiltinType(Text.class);
+    if (text == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      text = getBuiltinType(Text.class);
+    }
+    return text;
   }
 
   /**
@@ -331,7 +376,11 @@ public class Builtins {
    * @return the {@code Function} atom constructor
    */
   public AtomConstructor function() {
-    return getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
+    if (function == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      function = getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
+    }
+    return function;
   }
 
   /**
@@ -345,17 +394,29 @@ public class Builtins {
 
   /** @return the Boolean constructor. */
   public AtomConstructor bool() {
-    return this.getBuiltinType(Boolean.class);
+    if (bool == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      bool = getBuiltinType(Boolean.class);
+    }
+    return bool;
   }
 
   /** @return the True constructor. */
   public AtomConstructor trueAtom() {
-    return this.getBuiltinType(True.class);
+    if (trueConstructor == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      trueConstructor = getBuiltinType(True.class);
+    }
+    return trueConstructor;
   }
 
   /** @return the False constructor. */
   public AtomConstructor falseAtom() {
-    return this.getBuiltinType(False.class);
+    if (falseConstructor == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      falseConstructor = getBuiltinType(False.class);
+    }
+    return falseConstructor;
   }
 
 
@@ -370,7 +431,11 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public AtomConstructor any() {
-    return this.getBuiltinType(Any.class);
+    if (any == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      any = getBuiltinType(Any.class);
+    }
+    return any;
   }
 
   /**
@@ -394,27 +459,39 @@ public class Builtins {
 
   /** @return the Array constructor. */
   public AtomConstructor array() {
-    return this.getBuiltinType(Array.class);
+    if (array == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      array = getBuiltinType(Array.class);
+    }
+    return array;
   }
 
   /** @return the Ref constructor. */
   public AtomConstructor ref() {
-    return this.getBuiltinType(Ref.class);
+    if (ref == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      ref = getBuiltinType(Ref.class);
+    }
+    return ref;
   }
 
   /** @return the container for polyglot-related builtins. */
   public AtomConstructor polyglot() {
-    return this.getBuiltinType(Polyglot.class);
+    if (polyglot == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      polyglot = getBuiltinType(Polyglot.class);
+    }
+    return polyglot;
   }
 
   /** @return the {@code Caught_Panic} atom constructor */
   public AtomConstructor caughtPanic() {
-    return this.getBuiltinType(CaughtPanic.class);
+    return this.error.caughtPanic();
   }
 
   /** @return the {@code Panic} atom constructor */
   public AtomConstructor panic() {
-    return this.getBuiltinType(Panic.class);
+    return this.error.panic();
   }
 
   /** @return the container for ordering-related builtins */
@@ -424,7 +501,11 @@ public class Builtins {
 
   /** @return the container for the dataflow error-related builtins */
   public AtomConstructor dataflowError() {
-    return this.getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
+    if (dataflowError == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      dataflowError = getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
+    }
+    return dataflowError;
   }
 
   public Special special() {

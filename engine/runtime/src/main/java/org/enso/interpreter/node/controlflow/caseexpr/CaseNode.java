@@ -96,8 +96,7 @@ public abstract class CaseNode extends ExpressionNode {
           Context.get(this)
               .getBuiltins()
               .error()
-              .inexhaustivePatternMatchError()
-              .newInstance(object),
+              .makeInexhaustivePatternMatchError(object),
           this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
