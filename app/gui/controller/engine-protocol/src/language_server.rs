@@ -129,12 +129,12 @@ trait API {
     fn push_to_execution_context(&self, context_id:ContextId, stack_item:StackItem) -> ();
 
     /// Move the execution context up the stack.
-    #[MethodInput=PopFromExecutionContextInput,rpc_name="executionContext/pop"]
-    fn pop_from_execution_context(&self, context_id:ContextId) -> ();
+    #[MethodInput=PopFromExecutionContextInput, rpc_name="executionContext/pop"]
+    fn pop_from_execution_context(&self, context_id: ContextId) -> ();
 
     /// Attach a visualisation, potentially preprocessed by some arbitrary Enso code, to a given
     /// node in the program.
-    #[MethodInput=AttachVisualisationInput,rpc_name="executionContext/attachVisualisation"]
+    #[MethodInput=AttachVisualisationInput, rpc_name="executionContext/attachVisualisation"]
     fn attach_visualisation
     ( &self
     , visualisation_id     : Uuid
@@ -144,12 +144,12 @@ trait API {
     /// Detach a visualisation from the executing code.
     #[MethodInput=DetachVisualisationInput,rpc_name="executionContext/detachVisualisation"]
     fn detach_visualisation
-    (&self, context_id:Uuid, visualisation_id:Uuid, expression_id:Uuid) -> ();
+    (&self, context_id:Uuid, visualisation_id: Uuid, expression_id: Uuid) -> ();
 
     /// Modify the configuration for an existing visualisation.
     #[MethodInput=ModifyVisualisationInput,rpc_name="executionContext/modifyVisualisation"]
     fn modify_visualisation
-    (&self, visualisation_id:Uuid, visualisation_config:VisualisationConfiguration) -> ();
+    (&self, visualisation_id:Uuid, visualisation_config: VisualisationConfiguration) -> ();
 
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput,rpc_name="search/getSuggestionsDatabase"]
@@ -170,6 +170,10 @@ trait API {
     , return_type : Option<String>
     , tags        : Option<Vec<SuggestionEntryType>>
     ) -> response::Completion;
+
+    /// Get the list of component groups available in runtime.
+    #[MethodInput=GetComponentGroups,rpc_name="executionContext/getComponentGroups"]
+    fn get_component_groups(&self, context_id: ContextId) -> response::GetComponentGroups;
 }}
 
 
