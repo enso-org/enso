@@ -331,6 +331,7 @@ where E::Model: Default
         let default_background_color = style.get_color(list_view_style::background);
 
         frp::extend! { network
+
             // === Background ===
 
             init <- source_();
@@ -422,15 +423,18 @@ where E::Model: Default
                 if id.is_some() {entry::HEIGHT} else {0.0}
             ));
             was_selected <- frp.selected_entry.previous().map(|e| e.is_some());
-            _eval <- target_selection_y.map3(&was_selected, &any_entry_selected,
-                 f!([selection_y](target, &was_selected, &is_selected) {
-                        if is_selected {
-                            selection_y.set_target_value(*target);
-                        }
-                        if !was_selected {
-                            selection_y.skip();
-                        }
-                 }));
+            _eval <- target_selection_y.map3(
+                &was_selected,
+                &any_entry_selected,
+                f!([selection_y](target, &was_selected, &is_selected) {
+                       if is_selected {
+                           selection_y.set_target_value(*target);
+                       }
+                       if !was_selected {
+                           selection_y.skip();
+                       }
+                }),
+            );
             eval target_selection_height ((h) selection_height.set_target_value(*h));
             eval frp.set_entries         ([selection_y,selection_height](_) {
                 selection_y.skip();

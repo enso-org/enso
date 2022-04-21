@@ -1,11 +1,11 @@
 //! A multi-column [Component Group] without header.
 //!
-//! [Component Group]: crate::component_group::View
-//!
 //! The widget is defined by the [`View`].
 //!
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//!
+//! [Component Group]: crate::component_group::View
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -119,10 +119,10 @@ impl component::Frp<Model> for Frp {
         let output = &api.output;
         let background_height = Animation::new(network);
         frp::extend! { network
-            eval input.set_background_color((c)
-                model.background.color.set(c.into()));
+            eval input.set_background_color((c) model.background.color.set(c.into()));
             selected_entry <- any_mut();
             eval selected_entry ((group) model.on_selected_entry(*group));
+
 
             // === Background size ===
 
@@ -131,11 +131,8 @@ impl component::Frp<Model> for Frp {
 
             entry_count <- input.set_entries.map(|p| p.entry_count());
             background_height.target <+ entry_count.map(|c| Model::background_height(*c));
-
             size <- all_with(&background_width, &background_height.value,
-                             |width, height| {
-                                Vector2(*width, *height)
-                            });
+                             |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
             output.size <+ size;
 
