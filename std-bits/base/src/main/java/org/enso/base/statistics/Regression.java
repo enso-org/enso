@@ -1,7 +1,12 @@
-package org.enso.table.model;
+package org.enso.base.statistics;
 
-public class LeastSquares {
-  public static double RSquared(double[] known_ys, double[] fitted_ys) {
+import org.enso.base.statistics.models.Linear;
+
+public class Regression {
+  /**
+   * Given a set of known y-values and a set of fitted values, compute the R² (coefficient of determination)
+   **/
+  public static double rSquared(double[] known_ys, double[] fitted_ys) {
     double n = 0, y = 0, yy = 0, ff = 0, fy = 0;
 
     for (int i = 0; i < known_ys.length; i++) {
@@ -15,7 +20,7 @@ public class LeastSquares {
     return 1 - (yy - y * y / n) / (yy - 2 * fy + ff);
   }
 
-  public static LinearFit Linear(double[] known_xs, double[] known_ys) throws FitError {
+  public static Linear linear(double[] known_xs, double[] known_ys) throws FitError {
     double n = 0, x = 0, xy = 0, y = 0, xx = 0, yy = 0;
 
     for (int i = 0; i < known_xs.length; i++) {
@@ -47,6 +52,6 @@ public class LeastSquares {
             + 2 * slope * intercept * x
             + slope * slope * xx;
 
-    return new LinearFit(slope, intercept, 1 - ssres / sstot);
+    return new Linear(slope, intercept, 1 - ssres / sstot);
   }
 }

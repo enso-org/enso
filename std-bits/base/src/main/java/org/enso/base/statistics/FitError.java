@@ -1,4 +1,4 @@
-package org.enso.table.model;
+package org.enso.base.statistics;
 
 /*
   Exception class when fitting a model

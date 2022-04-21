@@ -1,29 +1,19 @@
 from Standard.Base import all
 
-polyglot java import org.enso.base.statistics.Single_Value as Java_Statistic
+polyglot java import org.enso.base.statistics.SingleValue
+polyglot java import org.enso.base.statistics.Regression
 
 type Statistic
-    ## Compute a set of statistics on a vector like object
-
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistics: Set of statistics to calculate.
-    compute : Any -> [Statistics] -> [Pair Statistics Number]
-    compute data statistics=[Count, Sum] =
-        java_statistics = statistics.map .to_java
-        stats_array = Java_Statistic.compute data.to_array java_statistics
-        statistics.map_with_index idx->stat->(Pair stat (stats_array.at idx))
-
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent
-    to_java : Java_Statistic
+    to_java : SingleValue
     to_java = case this of
-        Count -> Java_Statistic.COUNT
-        Minimum -> Java_Statistic.MINIMUM
-        Maximum -> Java_Statistic.MAXIMUM
-        Sum -> Java_Statistic.SUM
-        Mean -> Java_Statistic.MEAN
-        Variance p -> if p then Java_Statistic.VARIANCE_POPULATION else Java_Statistic.VARIANCE
+        Count -> SingleValue.COUNT
+        Sum -> SingleValue.SUM
+        Mean -> SingleValue.MEAN
+        Variance p -> if p then SingleValue.VARIANCE_POPULATION else SingleValue.VARIANCE
+        Standard_Deviation p -> if p then SingleValue.STANDARD_DEVIATION_POPULATION else SingleValue.STANDARD_DEVIATION
+        _ -> Nothing
 
     ## Count the number of non-Nothing values
     type Count
@@ -42,10 +32,36 @@ type Statistic
 
     ## The variance of the values
        Arguments:
-       - population:
+       - population: specifies if data is a sample or the population
     type Variance (population:Boolean=False)
 
+    ## The standard deviation of the values
+       Arguments:
+       - population: specifies if data is a sample or the population
+    type Standard_Deviation (population:Boolean=False)
+
+## Compute a set of statistics on a vector like object
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistics: Set of statistics to calculate.
+compute : Any -> [Statistics] -> [Pair Statistics Number]
+compute data statistics=[Count, Sum] =
+    SingleValues = statistics.map .to_java . to_array
+    stats_array = SingleValue.compute data.to_array SingleValues
+    statistics.map_with_index idx->stat->(Pair stat (stats_array.at idx))
+
+## Given a set of known y-values and a set of fitted values, compute the R²
+   (coefficient of determination) value.
+
+   Arguments:
+   - known: `Vector` of known values
+   - fitted: `Vector` of fitted values
+r_squared : [Number] -> [Number] -> Number
+r_squared known fitted :
+    Regression.rSquared known.to_array fitted.to_array
+
 ## Compute statistics on the vector
-Vector.Vector.compute_statistics : [Statistic] -> [Number]
-Vector.Vector.compute_statistics statistics=[Count, Sum] =
-    Statistics.compute this statistics
+Vector.Vector.compute : [Statistic] -> [Number]
+Vector.Vector.compute statistics=[Count, Sum] =
+    here.compute this statistics
