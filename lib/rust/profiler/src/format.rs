@@ -24,10 +24,12 @@ pub type AnyMetadata = Box<serde_json::value::RawValue>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "e")]
 pub enum Event<'a> {
+    /// Registers a label to be referenced by ID.
+    #[serde(rename = "L")]
+    Label(&'a str),
     /// The beginning of a measurement that starts in the paused state.
-    #[serde(borrow)]
     #[serde(rename = "C")]
-    Create(Start<'a>),
+    Create(Start),
     /// The beginning of a measurement.
     #[serde(rename = "S")]
     Start {
@@ -81,7 +83,7 @@ pub enum Event<'a> {
 
 /// A measurement-start entry in the profiling log.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Start<'a> {
+pub struct Start {
     /// Specifies parent measurement.
     #[serde(rename = "p")]
     pub parent: Parent,
@@ -89,9 +91,8 @@ pub struct Start<'a> {
     #[serde(rename = "t")]
     pub start:  Option<Timestamp>,
     /// Identifies where in the code this measurement originates.
-    #[serde(borrow)]
     #[serde(rename = "l")]
-    pub label:  Label<'a>,
+    pub label:  Label,
 }
 
 
@@ -100,11 +101,11 @@ pub struct Start<'a> {
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Label<'a>(&'a str);
+pub struct Label(usize);
 
-impl<'a> Label<'a> {
-    /// Get the raw string data.
-    pub fn as_str(self) -> &'a str {
+impl Label {
+    /// Return an index into the label table.
+    pub fn id(self) -> usize {
         self.0
     }
 }

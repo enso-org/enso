@@ -6,6 +6,7 @@ use std::collections;
 use std::error;
 use std::fmt;
 use std::mem;
+use std::rc::Rc;
 use std::str;
 
 
@@ -49,7 +50,7 @@ pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
     builders.sort_unstable_by_key(|(k, _)| *k);
     measurements.extend(builders.into_iter().map(|(_, b)| b.into()));
     let root = crate::Measurement {
-        label:     crate::Label { name: "APP_LIFETIME (?:?)".into(), pos: None },
+        label:     Rc::new(crate::Label { name: "APP_LIFETIME (?:?)".into(), pos: None }),
         children:  Default::default(),
         intervals: Default::default(),
         finished:  Default::default(),
@@ -121,6 +122,10 @@ pub enum DataError {
     ExpectedEmptyStack(Vec<format::MeasurementId>),
     /// A profiler was expected to have started before a related event occurred.
     ExpectedStarted,
+    /// A label ID referred beyond the end of the label table (at the time is was used).
+    ///
+    /// This could only occur due to a logic error in the application that wrote the profile.
+    UndefinedLabel(usize),
 }
 
 impl fmt::Display for DataError {
@@ -160,7 +165,7 @@ impl error::Error for Expected {}
 
 /// Used while gathering information about a profiler.
 struct MeasurementBuilder {
-    label:    crate::Label,
+    label:    Rc<crate::Label>,
     created:  crate::Mark,
     state:    State,
     finished: bool,
@@ -229,6 +234,7 @@ struct LogVisitor<M> {
     /// Intervals currently open, as a LIFO stack.
     active:    Vec<IntervalBuilder<M>>,
     metadata_errors: Vec<MetadataError>,
+    profilers:   Vec<Rc<crate::Label>>,
 }
 type MetadataError = crate::EventError<serde_json::Error>;
 
@@ -249,6 +255,7 @@ impl<M> Default for LogVisitor<M> {
             builders:  Default::default(),
             order:     Default::default(),
             metadata_errors: Default::default(),
+            profilers:     Default::default(),
         }
     }
 }
@@ -274,6 +281,7 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
                     visitor.visit_resume(log_pos, id.into(), timestamp),
                 format::Event::Metadata(metadata) =>
                     visitor.visit_metadata(log_pos, metadata),
+                format::Event::Label(label) => visitor.visit_label(log_pos, label),
             };
             result.map_err(|error| crate::EventError { log_pos: i, error })?;
             event_count += 1;
@@ -306,7 +314,7 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
     fn visit_create(
         &mut self,
         pos: EventId,
-        event: format::Start<'_>,
+        event: format::Start,
     ) -> Result<(), DataError> {
         let parent = match event.parent {
             format::Parent::Explicit(parent) => parent,
@@ -316,8 +324,10 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
             Some(time) => crate::Mark { seq: pos.into(), time },
             None => self.inherit_start(parent)?,
         };
+        let label = event.label.id();
+        let label = self.profilers.get(label).ok_or(DataError::UndefinedLabel(label))?.clone();
         let builder = MeasurementBuilder {
-            label:    event.label.as_str().parse()?,
+            label,
             created:  start,
             state:    State::Paused(pos),
             finished: Default::default(),
@@ -412,6 +422,16 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
                 self.metadata_errors.push(MetadataError { log_pos, error })
             },
         }
+        Ok(())
+    }
+
+    fn visit_label(
+        &mut self,
+        _pos: EventId,
+        label: &'_ str,
+    ) -> Result<(), DataError> {
+        let label = label.parse()?;
+        self.profilers.push(Rc::new(label));
         Ok(())
     }
 }

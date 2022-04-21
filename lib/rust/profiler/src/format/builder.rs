@@ -2,6 +2,8 @@
 
 use crate::format;
 
+use std::collections::HashMap;
+
 
 
 // ===============
@@ -12,7 +14,8 @@ use crate::format;
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
     events: Vec<format::Event<'a>>,
-    next_id: usize,
+    next_measurement: usize,
+    labels: HashMap<&'a str, format::Label>
 }
 
 impl<'a> Builder<'a> {
@@ -49,12 +52,18 @@ impl<'a> Builder<'a> {
         parent: format::Parent,
         label: &'b str,
     ) -> format::MeasurementId {
+        // Get or register label.
+        let next_label_id = self.labels.len();
+        let label = *self.labels.entry(label).or_insert_with(|| {
+            self.events.push(format::Event::Label(label));
+            format::Label(next_label_id)
+        });
+        // Create event.
         let start = time;
-        let label = format::Label(label);
         let event = format::Start { parent, start, label };
         self.events.push(format::Event::Create(event));
-        let id = self.next_id;
-        self.next_id += 1;
+        let id = self.next_measurement;
+        self.next_measurement += 1;
         format::MeasurementId(id)
     }
 

@@ -106,6 +106,7 @@ use enso_profiler as profiler;
 use profiler::format;
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
 
 // ==============
@@ -296,7 +297,7 @@ impl<M> std::ops::Index<IntervalId> for Profile<M> {
 #[derive(Clone, Debug)]
 pub struct Measurement {
     /// Identifies the profiler's source and scope to the user.
-    pub label:     Label,
+    pub label:     Rc<Label>,
     /// Profilers started by this profiler, ordered by time created.
     pub children:  Vec<MeasurementId>,
     /// When the profiler was created.
