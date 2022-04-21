@@ -10,12 +10,7 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventNode;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
@@ -32,7 +27,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -169,20 +163,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     public Either<Exception, String> showObject(Object o) {
       try {
-        InteropLibrary atoms = InteropLibrary.getUncached();
-        String toTextIdentifier = "to_text";
-        if (atoms.isMemberInvocable(o, toTextIdentifier)) {
-          Object repr = atoms.invokeMember(o, toTextIdentifier);
-          if (repr instanceof Text) {
-            return new Right<>(toJavaStringNode.execute((Text) repr));
-          } else if (repr instanceof String) {
-            return new Right<>((String) repr);
-          }
-        }
-
-        return new Right<>(o.toString());
-      } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
-        return new Right<>(o.toString());
+        InteropLibrary interop = InteropLibrary.getUncached();
+        return new Right<>(interop.asString(interop.toDisplayString(o)));
       } catch (Exception e) {
         return new Left<>(e);
       }

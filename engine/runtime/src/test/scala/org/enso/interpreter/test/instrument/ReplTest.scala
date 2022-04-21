@@ -103,11 +103,7 @@ class ReplTest
         }
         inside(executor.evaluate("Pattern.compile 'foo'")) {
           case Right(result) =>
-            result.toString shouldEqual "JavaObject[foo (java.util.regex.Pattern)]"
-        }
-        inside(executor.evaluate("Array.new_2 1 (Array.new 0)")) {
-          case Right(result) =>
-            result.toString shouldEqual "[1, []]"
+            result.toString shouldEqual "foo"
         }
         inside(executor.evaluate("Foo 2 'a'")) { case Right(result) =>
           result.toString shouldEqual "{2: a}"
