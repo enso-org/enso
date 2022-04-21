@@ -7,12 +7,12 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
+#![allow(unused_qualifications)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
-#![allow(unused_qualifications)]
 
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -42,6 +42,8 @@ use ensogl_flame_graph::COLOR_PERFORMANCE_MEDIUM;
 // =================
 // === Constants ===
 // =================
+
+
 
 /// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
 /// generated and rendered.  The file must be located in the assets subdirectory that is

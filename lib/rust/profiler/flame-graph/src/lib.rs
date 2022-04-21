@@ -18,6 +18,7 @@ use enso_profiler_data as data;
 type RowNumber = i32;
 
 
+
 // ==================
 // === Block Data ===
 // ==================
