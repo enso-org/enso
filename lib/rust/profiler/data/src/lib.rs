@@ -231,8 +231,8 @@ pub struct Profile<M> {
     /// The hierarchy of intervals. A parent-child relationship indicates that the child is
     /// contained within the parent.
     pub intervals:    Vec<ActiveInterval<M>>,
-    /// Offset of [`Mark`]s in this profile from system time, in milliseconds, if known.
-    pub time_offset:  Option<f64>,
+    /// Optional information about this profile.
+    pub headers:      Headers,
 }
 
 impl<M> Profile<M> {
@@ -260,6 +260,15 @@ impl<M> Profile<M> {
     pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
         self.intervals.iter().flat_map(|interval| interval.metadata.iter())
     }
+}
+
+
+// === Headers ===
+
+#[derive(Clone, Debug, Default)]
+pub struct Headers {
+    pub time_offset: Option<format::Timestamp>,
+    pub process:     Option<String>,
 }
 
 

@@ -90,13 +90,20 @@ impl<'a> Builder<'a> {
 
     /// Attach a header to the profile indicating the offset of the file's timestamps from system
     /// time.
-    pub fn time_offset_ms(&mut self, _offset: f64) {
-        // TODO[kw]
+    pub fn time_offset_ms(&mut self, offset: f64) {
+        self.header(format::Header::TimeOffset(format::Timestamp::from_ms(offset)));
     }
 
     /// Attach a header to the profile identifying its process.
-    pub fn process<'b: 'a>(&mut self, _process: &'b str) {
-        // TODO[kw]
+    pub fn process<'b: 'a>(&mut self, process: &'b str) {
+        self.header(format::Header::Process(process.to_string()));
+    }
+
+    fn header<'b: 'a>(&mut self, data: format::Header) {
+        let data = serde_json::value::to_raw_value(&data).unwrap();
+        let time = format::Timestamp::default();
+        let event = format::Timestamped { time, data };
+        self.events.push(format::Event::Metadata(event));
     }
 
     /// Render the profile to a file.

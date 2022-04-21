@@ -43,7 +43,8 @@ pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
     events: impl IntoIterator<Item = format::Event<'a>>,
 ) -> Result<Interpreted<M>, crate::EventError<DataError>> {
     // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, intervals, metadata_errors, .. } = LogVisitor::visit(events)?;
+    let LogVisitor { builders, order, intervals, metadata_errors, headers, .. } =
+        LogVisitor::visit(events)?;
     // Build measurements from accumulated measurement data.
     let mut measurements = Vec::with_capacity(builders.len());
     let mut builders: Vec<_> = builders.into_iter().collect();
@@ -82,9 +83,7 @@ pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
         intervals_.push(crate::ActiveInterval { measurement, interval, children, metadata });
         measurements[measurement.0].intervals.push(id);
     }
-    // TODO[kw]: Add headers to format and read this from the file.
-    let time_offset = None;
-    let profile = crate::Profile { measurements, intervals: intervals_, time_offset };
+    let profile = crate::Profile { measurements, intervals: intervals_, headers };
     Ok(Interpreted { profile, metadata_errors })
 }
 pub(crate) struct Interpreted<M> {
@@ -235,6 +234,7 @@ struct LogVisitor<M> {
     active:    Vec<IntervalBuilder<M>>,
     metadata_errors: Vec<MetadataError>,
     profilers:   Vec<Rc<crate::Label>>,
+    headers: crate::Headers,
 }
 type MetadataError = crate::EventError<serde_json::Error>;
 
@@ -256,6 +256,7 @@ impl<M> Default for LogVisitor<M> {
             order:     Default::default(),
             metadata_errors: Default::default(),
             profilers:     Default::default(),
+            headers:     Default::default(),
         }
     }
 }
@@ -414,13 +415,20 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
     ) -> Result<(), DataError> {
         let format::Timestamped { time, data } = metadata;
         let mark = crate::Mark { seq: pos.into(), time };
-        match serde_json::from_str(data.get()) {
-            Ok(data) =>
-                self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data }),
-            Err(error) => {
-                let log_pos = pos.0;
-                self.metadata_errors.push(MetadataError { log_pos, error })
-            },
+        if let Ok(data) = serde_json::from_str(data.get()) {
+            match data {
+                format::Header::Process(process) => self.headers.process = Some(process),
+                format::Header::TimeOffset(offset) => self.headers.time_offset = Some(offset),
+            }
+        } else {
+            match serde_json::from_str(data.get()) {
+                Ok(data) =>
+                    self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data }),
+                Err(error) => {
+                    let log_pos = pos.0;
+                    self.metadata_errors.push(MetadataError { log_pos, error })
+                },
+            }
         }
         Ok(())
     }

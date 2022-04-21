@@ -262,3 +262,20 @@ pub struct Timestamped<T> {
     #[serde(rename = "d")]
     pub data: T,
 }
+
+
+
+// ==============
+// === Header ===
+// ==============
+
+/// Standard file headers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Header {
+    /// Value that can be added to a [`Timestamp`] to translate it to an offset from the Unix Epoch.
+    #[serde(rename = "$TimeOffset")]
+    TimeOffset(Timestamp),
+    /// Application-specific identifier used to distinguish log data from different processes.
+    #[serde(rename = "$Process")]
+    Process(String),
+}
