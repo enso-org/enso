@@ -322,6 +322,11 @@ public class Number {
             language));
     scope.registerMethod(
         decimal,
+        "%",
+        org.enso.interpreter.node.expression.builtin.number.decimal.ModMethodGen.makeFunction(
+            language));
+    scope.registerMethod(
+        decimal,
         "negate",
         org.enso.interpreter.node.expression.builtin.number.decimal.NegateMethodGen.makeFunction(
             language));

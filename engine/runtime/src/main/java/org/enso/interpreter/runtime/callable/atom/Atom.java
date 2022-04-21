@@ -216,7 +216,8 @@ public class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  LocalDate asDate(@CachedLibrary(limit = "3") InteropLibrary iop) throws UnsupportedMessageException {
+  LocalDate asDate(@CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
     return iop.asDate(fields[0]);
   }
 

@@ -3,23 +3,59 @@ from Standard.Base import all
 import Standard.Test
 
 spec = Test.group "Range" <|
-    Test.specify "should be created with a start and an end" <|
+    Test.specify "should be created with a start, an end and a step" <|
         range = 1.up_to 100
         range.start . should_equal 1
         range.end . should_equal 100
+        range.step  . should_equal 1
+
+        range_2 = 0.up_to 10 . with_step 2
+        range_2.start . should_equal 0
+        range_2.end . should_equal 10
+        range_2.step  . should_equal 2
+
+        range_3 = 2.down_to 0
+        range_3.start . should_equal 2
+        range_3.end . should_equal 0
+        range_3.step  . should_equal -1
+
+    Test.specify "should allow setting a new step magnitude" <|
+        1.up_to 2 . with_step 3 . should_equal (Range 1 2 3)
+
+        0.up_to 10 . with_step 2 . should_equal (Range 0 10 2)
+        0.up_to 10 . with_step 2 . to_vector . should_equal [0, 2, 4, 6, 8]
+
+        10.down_to 0 . with_step 2 . should_equal (Range 10 0 -2)
+        10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
+
+        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error
+        0.up_to 2.0 . should_fail_with Illegal_Argument_Error
+        0.down_to 2.0 . should_fail_with Illegal_Argument_Error
+        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error
+        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error
+
     Test.specify "should have a length" <|
-        range = 0.up_to 100
-        range.length . should_equal 100
+        0.up_to 100 . length . should_equal 100
+        100.down_to 0 . length . should_equal 100
+        0.up_to 0 . length . should_equal 0
+        0.up_to -5 . length . should_equal 0
+        0.down_to 1 . length . should_equal 0
+        0.up_to 10 . with_step 2 . length . should_equal 5
+        10.down_to 0 . with_step 2 . length . should_equal 5
+        0.up_to 10 . with_step 3 . length . should_equal 4
     Test.specify "should allow checking for emptiness" <|
         0.up_to 0 . is_empty . should_be_true
         0.up_to -100 . is_empty . should_be_true
         0.up_to 1 . is_empty . should_be_false
         0.up_to 5 . is_empty . should_be_false
+        5.down_to 0 . is_empty . should_be_false
     Test.specify "should allow checking for non emptiness" <|
         0.up_to 0 . not_empty . should_be_false
         0.up_to -100 . not_empty . should_be_false
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
+        5.down_to 0 . not_empty . should_be_true
     Test.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
         empty.map *2 . should_equal []
@@ -29,6 +65,13 @@ spec = Test.group "Range" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
         vec_mut.to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should allow efficient iteration" <|
+        cell = Ref.new 0
+        n = 100000000
+        0.up_to n . each _->
+            x = Ref.get cell
+            Ref.put cell x+1
+        Ref.get cell . should_equal n
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
     Test.specify "should check all" <|
@@ -55,5 +98,245 @@ spec = Test.group "Range" <|
         0.up_to 0 . contains 0 . should_be_false
         3.up_to 5 . contains 2 . should_be_false
         0.up_to 10 . contains -3 . should_be_false
+
+        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument_Error
+        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument_Error
+
+        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument_Error
+        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument_Error
+
+
+    verify_contains range expected unexpected =
+        expected.each x->
+            if range.contains x . not then
+                Test.fail "Range "+range.to_text+" did not contain "+x.to_text+"."
+        unexpected.each x->
+            if range.contains x then
+                Test.fail "Range "+range.to_text+" unexpectedly contained "+x.to_text+"."
+    build_with_each range =
+        builder = Vector.new_builder
+        range.each builder.append
+        builder.to_vector
+    Test.specify "should behave correctly if it is empty" <|
+        check_empty_range r =
+            r.is_empty . should_be_true
+            r.not_empty . should_be_false
+            r.length . should_equal 0
+            r.to_vector . should_equal []
+            build_with_each r . should_equal []
+            r.map x->x+1 . should_equal []
+            r.fold 0 (+) .  should_equal 0
+            r.any _->True . should_equal False
+            r.all _->False . should_equal True
+            r.find _->True . should_equal Nothing
+            verify_contains r [] [-1, 0, 1, 2, 10]
+
+        check_empty_range (0.up_to 0)
+        check_empty_range (Range 1 1)
+        check_empty_range (Range 2 2 4)
+        check_empty_range (Range 0 -1 2)
+        check_empty_range (Range 0 -10 2)
+        check_empty_range (Range 10 0 2)
+        check_empty_range (Range -1 0 -1)
+        check_empty_range (Range 0 10 -1)
+        check_empty_range (Range -1 0 -2)
+
+    Test.specify "should behave correctly when containing exactly one element" <|
+        r1 = Range 10 11
+        r1.is_empty . should_be_false
+        r1.not_empty . should_be_true
+        r1.length . should_equal 1
+        r1.to_vector . should_equal [10]
+        build_with_each r1 . should_equal [10]
+        r1.map x->x*2 . should_equal [20]
+        r1.fold 0 (-) .  should_equal -10
+        r1.any (_ == 10) . should_equal True
+        r1.any (_ == 11) . should_equal False
+        r1.all (_ == 10) . should_equal True
+        r1.all (_ == 11) . should_equal False
+        r1.find (x-> x*x == 100) . should_equal 10
+        r1.find (x-> x*x == 25) . should_equal Nothing
+        verify_contains r1 [10] [-1, 0, 1, 2, 9, 11, 12]
+
+    Test.specify "should behave correctly with step greater than 1" <|
+        r1 = Range 0 10 2
+        r1.is_empty . should_be_false
+        r1.not_empty . should_be_true
+        r1.length . should_equal 5
+        r1.to_vector . should_equal [0, 2, 4, 6, 8]
+        build_with_each r1 . should_equal [0, 2, 4, 6, 8]
+        r1.map x->x+1 . should_equal [1, 3, 5, 7, 9]
+        r1.fold 0 (+) .  should_equal 20
+        r1.any (_ == 2) . should_equal True
+        r1.any (_ == 3) . should_equal False
+        r1.all (x-> x % 2 == 0) . should_equal True
+        r1.all (_ == 2) . should_equal False
+        r1.find (x-> x*x == 16) . should_equal 4
+        r1.find (x-> x*x == 25) . should_equal Nothing
+        verify_contains r1 [0, 2, 4, 6, 8] [-3, -2, -1, 1, 3, 5, 7, 11, 12, 13, 14]
+
+        r2 = Range 0 3 2
+        r2.is_empty . should_be_false
+        r2.not_empty . should_be_true
+        r2.length . should_equal 2
+        r2.to_vector . should_equal [0, 2]
+        build_with_each r2 . should_equal [0, 2]
+        r2.map x->x+1 . should_equal [1, 3]
+        r2.fold 0 (+) .  should_equal 2
+        r2.any (_ == 2) . should_equal True
+        r2.any (_ == 3) . should_equal False
+        r2.all (x-> x % 2 == 0) . should_equal True
+        r2.all (_ == 2) . should_equal False
+        r2.find (x-> x*x == 16) . should_equal Nothing
+        r2.find (x-> x*x == 4) . should_equal 2
+        verify_contains r2 [0, 2] [-3, -2, -1, 1, 3, 4, 5]
+
+        r3 = Range 5 6 200
+        r3.is_empty . should_be_false
+        r3.not_empty . should_be_true
+        r3.length . should_equal 1
+        r3.to_vector . should_equal [5]
+        build_with_each r3 . should_equal [5]
+        r3.map x->x+1 . should_equal [6]
+        r3.fold 0 (+) .  should_equal 5
+        r3.any (_ == 5) . should_equal True
+        r3.any (_ == 3) . should_equal False
+        r3.all (_ == 5) . should_equal True
+        r3.all (_ == 3) . should_equal False
+        r3.find (x-> x*x == 16) . should_equal Nothing
+        r3.find (x-> x*x == 25) . should_equal 5
+        verify_contains r3 [5] [0, 1, 4, 6, 7, 10]
+
+        r4 = Range 5 8 2
+        r4.is_empty . should_be_false
+        r4.not_empty . should_be_true
+        r4.length . should_equal 2
+        r4.to_vector . should_equal [5, 7]
+        build_with_each r4 . should_equal [5, 7]
+        r4.map x->x+1 . should_equal [6, 8]
+        r4.fold 0 (+) .  should_equal 12
+        r4.any (_ == 5) . should_equal True
+        r4.any (_ == 6) . should_equal False
+        r4.all (x-> x % 2 == 1) . should_equal True
+        r4.all (_ == 5) . should_equal False
+        r4.find (x-> x*x == 25) . should_equal 5
+        r4.find (x-> x*x == 4) . should_equal Nothing
+        verify_contains r4 [5, 7] [0, 1, 4, 6, 8, 10]
+
+        r5 = Range 5 7 2
+        r5.is_empty . should_be_false
+        r5.not_empty . should_be_true
+        r5.length . should_equal 1
+        r5.to_vector . should_equal [5]
+        build_with_each r5 . should_equal [5]
+        r5.map x->x+1 . should_equal [6]
+        r5.fold 0 (+) .  should_equal 5
+        r5.any (_ == 5) . should_equal True
+        r5.any (_ == 6) . should_equal False
+        r5.all (x-> x % 2 == 1) . should_equal True
+        r5.all (_ == 5) . should_equal True
+        r5.find (x-> x*x == 25) . should_equal 5
+        r5.find (x-> x*x == 4) . should_equal Nothing
+        verify_contains r5 [5] [0, 1, 4, 6, 7, 10]
+
+        r6 = Range 0 10 3
+        r6.is_empty . should_be_false
+        r6.not_empty . should_be_true
+        r6.length . should_equal 4
+        r6.to_vector . should_equal [0, 3, 6, 9]
+        build_with_each r6 . should_equal [0, 3, 6, 9]
+        r6.map x->x+1 . should_equal [1, 4, 7, 10]
+        r6.fold 0 (+) .  should_equal 18
+        r6.any (_ == 3) . should_equal True
+        r6.any (_ == 2) . should_equal False
+        r6.all (x-> x % 2 == 0) . should_equal False
+        r6.all (x-> x % 3 == 0) . should_equal True
+        r6.find (x-> x*x == 9) . should_equal 3
+        r6.find (x-> x*x == 25) . should_equal Nothing
+        verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
+
+    Test.specify "should behave correctly with negative step" <|
+        r1 = Range 4 0 -1
+        r1.is_empty . should_be_false
+        r1.not_empty . should_be_true
+        r1.length . should_equal 4
+        r1.to_vector . should_equal [4, 3, 2, 1]
+        build_with_each r1 . should_equal [4, 3, 2, 1]
+        r1.map x->x+1 . should_equal [5, 4, 3, 2]
+        r1.fold 0 (+) .  should_equal 10
+        r1.any (_ == 2) . should_equal True
+        r1.any (_ == 0) . should_equal False
+        r1.all (x-> x % 2 == 0) . should_equal False
+        r1.all (_ > 0) . should_equal True
+        r1.find (x-> x*x == 16) . should_equal 4
+        r1.find (x-> x*x == 0) . should_equal Nothing
+        verify_contains r1 [4, 3, 2, 1] [-2, -1, 0, 5, 6, 7, 10]
+
+        r2 = Range 4 0 -2
+        r2.is_empty . should_be_false
+        r2.not_empty . should_be_true
+        r2.length . should_equal 2
+        r2.to_vector . should_equal [4, 2]
+        build_with_each r2 . should_equal [4, 2]
+        r2.map x->x+1 . should_equal [5, 3]
+        r2.fold 0 (+) .  should_equal 6
+        r2.any (_ == 2) . should_equal True
+        r2.any (_ == 0) . should_equal False
+        r2.all (x-> x % 2 == 0) . should_equal True
+        r2.all (_ > 2) . should_equal False
+        r2.find (x-> x*x == 16) . should_equal 4
+        r2.find (x-> x*x == 0) . should_equal Nothing
+        verify_contains r2 [4, 2] [-2, -1, 0, 1, 3, 5, 6, 7, 10]
+
+        r3 = Range 4 0 -10
+        r3.is_empty . should_be_false
+        r3.not_empty . should_be_true
+        r3.length . should_equal 1
+        r3.to_vector . should_equal [4]
+        build_with_each r3 . should_equal [4]
+        r3.map x->x+1 . should_equal [5]
+        r3.fold 0 (+) .  should_equal 4
+        r3.any (_ == 2) . should_equal False
+        r3.any (_ == 4) . should_equal True
+        r3.all (x-> x % 2 == 0) . should_equal True
+        r3.all (_ > 4) . should_equal False
+        r3.find (x-> x*x == 16) . should_equal 4
+        r3.find (x-> x*x == 0) . should_equal Nothing
+        verify_contains r3 [4] [-2, -1, 0, 1, 2, 3, 5, 6, 7, 10]
+
+        r4 = Range 3 0 -3
+        r4.is_empty . should_be_false
+        r4.not_empty . should_be_true
+        r4.length . should_equal 1
+        r4.to_vector . should_equal [3]
+        build_with_each r4 . should_equal [3]
+        r4.map x->x+1 . should_equal [4]
+        r4.fold 0 (+) .  should_equal 3
+        r4.any (_ == 3) . should_equal True
+        r4.any (_ == 2) . should_equal False
+        r4.all (x-> x % 2 == 0) . should_equal False
+        r4.all (_ > 0) . should_equal True
+        r4.find (x-> x*x == 9) . should_equal 3
+        r4.find (x-> x*x == 0) . should_equal Nothing
+        verify_contains r4 [3] [-3, -2, -1, 0, 1, 2, 4, 5, 6, 7, 10]
+
+    Test.specify "should report errors if trying to set step to 0" <|
+        0.up_to 0 . with_step 0 . should_fail_with Illegal_State_Error
+        invalid_range = Range 0 0 0
+        invalid_range . length . should_fail_with Illegal_State_Error
+        invalid_range . is_empty . should_fail_with Illegal_State_Error
+        invalid_range . not_empty . should_fail_with Illegal_State_Error
+        invalid_range . each x->x . should_fail_with Illegal_State_Error
+        invalid_range . fold 0 (+) . should_fail_with Illegal_State_Error
+        ## FIXME [RW] These tests are disabled because they fail in an
+           unexpected way due to a codegen issue (noted below). They should be
+           enabled once that is resolved.
+           See: https://www.pivotaltracker.com/story/show/181652841
+        #invalid_range . map x->x . should_fail_with Illegal_State_Error
+        #invalid_range . to_vector . should_fail_with Illegal_State_Error
+        invalid_range . any _->True . should_fail_with Illegal_State_Error
+        invalid_range . all _->True . should_fail_with Illegal_State_Error
+        invalid_range . find _->True . should_fail_with Illegal_State_Error
+        invalid_range . contains 0 . should_fail_with Illegal_State_Error
 
 main = Test.Suite.run_main here.spec

@@ -52,12 +52,11 @@ public abstract class HostMethodCallNode extends Node {
     NOT_SUPPORTED;
 
     /**
-     * Directly use {@link InteropLibrary}, or not. Types that return false are
-     * either {@link #NOT_SUPPORTED unsupported} or require
-     * additional conversions like {@link #CONVERT_TO_TEXT} and {@link #CONVERT_TO_DATE}.
+     * Directly use {@link InteropLibrary}, or not. Types that return false are either {@link
+     * #NOT_SUPPORTED unsupported} or require additional conversions like {@link #CONVERT_TO_TEXT}
+     * and {@link #CONVERT_TO_DATE}.
      *
-     * @return true if one can directly pass this object to
-     * {@link InteropLibrary}
+     * @return true if one can directly pass this object to {@link InteropLibrary}
      */
     public boolean isInteropLibrary() {
       return this != NOT_SUPPORTED && this != CONVERT_TO_TEXT && this != CONVERT_TO_DATE;
