@@ -29,10 +29,6 @@ import org.enso.base.text.Utf16Span;
 
 /** Utils for standard library operations on Text. */
 public class Text_Utils {
-  private static final Pattern whitespace =
-      Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
-  private static final Pattern vertical_space =
-      Pattern.compile("\\v+", Pattern.UNICODE_CHARACTER_CLASS);
   private static final String INVALID_CHARACTER = "\uFFFD";
 
   /**
@@ -170,10 +166,36 @@ public class Text_Utils {
    * an array.
    *
    * @param str the string to split
+   * @param keep_whitespace whether to keep the whitespace as separate entries
    * @return the array of substrings of {@code str}
    */
-  public static String[] split_on_whitespace(String str) {
-    return whitespace.split(str);
+  public static List<String> split_on_whitespace(String str, boolean keep_whitespace) {
+    ArrayList<String> acc = new ArrayList<>();
+    int length = str.length();
+    int currentStart = 0;
+    boolean isAccumulatingWhitespace = UCharacter.isWhitespace(str.charAt(0));
+    int currentPos = 1;
+    while (currentPos < length) {
+      boolean encounteredWhitespace = UCharacter.isWhitespace(str.charAt(currentPos));
+      if (encounteredWhitespace != isAccumulatingWhitespace) {
+        if (currentPos > currentStart) {
+          if (!isAccumulatingWhitespace || keep_whitespace) {
+            acc.add(str.substring(currentStart, currentPos));
+          }
+        }
+
+        currentStart = currentPos;
+        isAccumulatingWhitespace = encounteredWhitespace;
+      }
+
+      currentPos++;
+    }
+
+    if (!isAccumulatingWhitespace || keep_whitespace) {
+      acc.add(str.substring(currentStart));
+    }
+
+    return acc;
   }
 
   /**
