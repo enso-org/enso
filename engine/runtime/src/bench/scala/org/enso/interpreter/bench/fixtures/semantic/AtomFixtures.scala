@@ -1,8 +1,6 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
 import org.enso.interpreter.test.DefaultInterpreterRunner
-import org.enso.interpreter.runtime.builtin.Builtins
-import org.graalvm.polyglot.Value
 
 class AtomFixtures extends DefaultInterpreterRunner {
   val million: Long = 1000000
