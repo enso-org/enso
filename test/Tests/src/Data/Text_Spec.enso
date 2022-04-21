@@ -181,12 +181,36 @@ spec =
             multiline.lines . should_equal ['Hello', 'world']
             '🚀🚧\n\u{301}a\u{301}\r건반'.lines . should_equal ['🚀🚧', '\u{301}a\u{301}', '건반']
 
-        Test.specify "should be able to split the text on UTF-8 whitespace" <|
-            utf_8_whitespace.split . should_equal utf_8_whitespace_split
-
         Test.specify "should be able to split the text on arbitrary text sequence" <|
             "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
+            text = "Namespace::package::package::Type"
+            text.split "::" . should_equal ["Namespace", "package", "package", "Type"]
+            "..a.b.c.d" . split "." . should_equal ["", "", "a", "b", "c", "d"]
+            "abc".split "." . should_equal ["abc"]
+            "aaa".split "a" . should_equal []
+            ".a.".split "." . should_equal ["", "a", ""]
+            "".split "." . should_equal []
 
+        Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
+            matcher = Text_Matcher Case_Insensitive
+            "AbCdABCDabDCba" . split "ab" matcher . should_equal ["Cd", "CD", "DCba"]
+            "abc".split "d" matcher . should_equal ["abc"]
+            "AAA".split "a" matcher . should_equal []
+            "baB".split "b" matcher . should_equal ["", "a", ""]
+            "".split "a" matcher . should_equal []
+
+        Test.specify "should be able to split the text on Regex patterns" <|
+            "cababdabe" . split "ab" Regex_Matcher . should_equal ["c", "", "d", "e"]
+            "cababdabe" . split "(ab)+" Regex_Matcher . should_equal ["c", "d", "e"]
+            "cababdabe" . split "[a-z]" Regex_Matcher . should_equal []
+            "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
+            "abc".split "." Regex_Matcher . should_equal []
+            "abc".split "d" Regex_Matcher . should_equal ["abc"]
+            ".a.".split "\." Regex_Matcher . should_equal ["", "a", ""]
+            "".split "a" Regex_Matcher . should_equal []
+
+        Test.specify "should be able to split the text on UTF-8 whitespace" <|
+            utf_8_whitespace.split "\s+" Regex_Matcher . should_equal utf_8_whitespace_split
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto (Manual 123) . to_text
@@ -1151,34 +1175,34 @@ spec =
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
-            splits = "abcde".split "[bd]"
+            splits = "abcde".split "[bd]" Regex_Matcher
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반 (hangul)".split " "
+            match = "Korean: 건반 (hangul)".split " " Regex_Matcher
             match.length . should_equal 3
             match.at 0 . should_equal "Korean:"
             match.at 1 . should_equal "건반"
             match.at 2 . should_equal "(hangul)"
 
         Test.specify "should be possible in ascii mode" <|
-            splits = "İiİ".split "\w" match_ascii=True
+            splits = "İiİ".split "\w" (Regex_Matcher match_ascii=True)
             splits.length . should_equal 2
             splits.at 0 . should_equal "İ"
             splits.at 1 . should_equal "İ"
 
         Test.specify "should be possible in case-insensitive mode" <|
-            splits = "abaBa".split "b" case_insensitive=True
+            splits = "abaBa".split "b" (Regex_Matcher case_sensitive=Case_Insensitive)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            splits = 'ab\nabcd'.split "b." dot_matches_newline=True
+            splits = 'ab\nabcd'.split "b." (Regex_Matcher dot_matches_newline=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
@@ -1188,11 +1212,11 @@ spec =
             text = """
                 Foo
                 bar
-            match = text.split "$" multiline=True
+            match = text.split "$" (Regex_Matcher multiline=True)
             match.length . should_equal 2
 
         Test.specify "should be possible in comments mode" <|
-            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" comments=True
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" (Regex_Matcher comments=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
