@@ -28,13 +28,14 @@ use std::fmt::Formatter;
 // ================
 
 /// Metadata that is logged within the Enso core libraries.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Metadata {
     /// A message received by the IDE from the Language Server.
     RpcEvent(String),
     /// A message between the Language Server and the Engine.
-    #[serde(rename = "BackendMessage")]
     BackendMessage(backend::Message),
+    /// Performance stats gathered from the EnsoGL rendering engine.
+    RenderStats(ensogl_core::debug::StatsData),
 }
 
 impl Display for Metadata {
@@ -42,6 +43,7 @@ impl Display for Metadata {
         match self {
             Metadata::RpcEvent(name) => f.collect_str(name),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
+            Metadata::RenderStats(stats) => f.collect_str(&format!("{:#?}", stats)),
         }
     }
 }
