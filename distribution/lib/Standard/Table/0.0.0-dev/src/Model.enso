@@ -2,6 +2,9 @@ from Standard.Base import all
 
 from Standard.Table import Column, Table
 
+from Standard.Table.Model.Linear as Linear_Module import Linear
+from Standard.Table.Model.Linear as Linear_Module export Linear
+
 ## Compute the linear regression between the x and y coordinates, returning a
    vector containing the slope in the first position and the bias in the second.
 

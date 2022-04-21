@@ -1,0 +1,22 @@
+from Standard.Base import all
+from Standard.Table.Model import Fit_Error
+
+polyglot java import org.enso.table.model.LeastSquares
+polyglot java import org.enso.table.model.FitError
+
+type Linear
+    type Linear slope intercept r_squared=0
+
+    predict : Number -> Number | Vector -> Vector
+    predict x_values =
+        case x_values of
+            Number -> this.intercept + x_values * this.slope
+            Vector.Vector _ -> x_values.map this.predict
+
+    fit : Vector -> Vector -> Linear
+    fit known_xs known_ys =
+        n = known_xs.length
+        if n != known_ys.length then Error.throw (Fit_Error "Known values have different lengths.") else
+            fitted = Panic.catch FitError handler=(caught_panic -> (Error.throw (Fit_Error caught_panic.payload.cause.getMessage)))
+                LeastSquares.Linear known_xs.to_array known_ys.to_array
+            Linear fitted.slope fitted.intercept fitted.rSquared

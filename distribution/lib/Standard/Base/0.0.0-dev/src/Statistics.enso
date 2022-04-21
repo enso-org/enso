@@ -1,0 +1,51 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.statistics.Single_Value as Java_Statistic
+
+type Statistic
+    ## Compute a set of statistics on a vector like object
+
+       Arguments:
+       - data: Vector like object which has a `to_array` method.
+       - statistics: Set of statistics to calculate.
+    compute : Any -> [Statistics] -> [Pair Statistics Number]
+    compute data statistics=[Count, Sum] =
+        java_statistics = statistics.map .to_java
+        stats_array = Java_Statistic.compute data.to_array java_statistics
+        statistics.map_with_index idx->stat->(Pair stat (stats_array.at idx))
+
+    ## PRIVATE
+       Convert the Enso Statistic into Java equivalent
+    to_java : Java_Statistic
+    to_java = case this of
+        Count -> Java_Statistic.COUNT
+        Minimum -> Java_Statistic.MINIMUM
+        Maximum -> Java_Statistic.MAXIMUM
+        Sum -> Java_Statistic.SUM
+        Mean -> Java_Statistic.MEAN
+        Variance p -> if p then Java_Statistic.VARIANCE_POPULATION else Java_Statistic.VARIANCE
+
+    ## Count the number of non-Nothing values
+    type Count
+
+    ## The minimum value
+    type Minimum
+
+    ## The maximum value
+    type Maximum
+
+    ## Sum the non-Nothing values
+    type Sum
+
+    ## The sample mean of the values
+    type Mean
+
+    ## The variance of the values
+       Arguments:
+       - population:
+    type Variance (population:Boolean=False)
+
+## Compute statistics on the vector
+Vector.Vector.compute_statistics : [Statistic] -> [Number]
+Vector.Vector.compute_statistics statistics=[Count, Sum] =
+    Statistics.compute this statistics
