@@ -11,8 +11,8 @@ crate-type = ["cdylib", "rlib"]
 enso-frp = { path = "../../../frp" }
 enso-profiler = { path = "../../../profiler" }
 enso-profiler-data = { path = "../../../profiler/data" }
-enso-profiler-metadata = { path = "../../../../../app/gui/enso-profiler-metadata" }
 enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
+enso-profiler-metadata = { path = "../../../../../app/gui/enso-profiler-metadata" }
 enso-web = { path = "../../../web" }
 ensogl-core = { path = "../../core" }
 ensogl-flame-graph = { path = "../../component/flame-graph" }

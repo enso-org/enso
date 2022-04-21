@@ -287,8 +287,9 @@ type Syntax_Error message
    Arguments:
    - expected: The expected type at the error location.
    - actual: The actual type at the error location.
+   - name: The name of the argument whose type is mismatched.
 @Builtin_Type
-type Type_Error expected actual
+type Type_Error expected actual name
 
 ## The runtime representation of a compilation error.
 
@@ -1599,6 +1600,26 @@ type Decimal
              10 / 4.5
     / : Number -> Number
     / that = @Builtin_Method "Decimal./"
+
+    ## Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Computing the remainder when dividing 3.5 by 2.
+
+             3.5 % 2 == 1.5
+
+       > Example
+         Computing the fractional part of a number.
+
+             10.5 % 1.0 == 0.5
+    % : Number -> Number ! Arithmetic_Error
+    % that = @Builtin_Method "Decimal.%"
 
     ## Compute the result of raising this to the power that.
 

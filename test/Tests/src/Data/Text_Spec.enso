@@ -212,11 +212,13 @@ spec =
             "Hello World!".take (Range 5 12) . should_equal " World!"
             "Hello World!".take (Range 12 12) . should_equal ""
 
-        Test.specify "take should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+        Test.specify "take should report errors for invalid Ranges" <|
             "Hello World!".take (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".take (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".take (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".take (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".take (Range 0 10 2) . should_fail_with Illegal_Argument_Error
+            "Hello World!".take (Range 0 10 -1) . should_fail_with Illegal_Argument_Error
 
         Test.specify "take should work on grapheme clusters" <|
             'He\u{302}llo\u{308} Wo\u{301}rld!'.take (First 2) . should_equal 'He\u{302}'
@@ -311,11 +313,13 @@ spec =
             "Hello World!".drop (Range 5 12) . should_equal "Hello"
             "Hello World!".drop (Range 12 12) . should_equal "Hello World!"
 
-        Test.specify "drop should report Index_Out_Of_Bounds_Error for invalid Ranges" <|
+        Test.specify "drop should report errors for invalid Ranges" <|
             "Hello World!".drop (Range 0 14) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".drop (Range 13 12) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".drop (Range -13 10) . should_fail_with Index_Out_Of_Bounds_Error
             "Hello World!".drop (Range 0 -20) . should_fail_with Index_Out_Of_Bounds_Error
+            "Hello World!".drop (Range 0 10 2) . should_fail_with Illegal_Argument_Error
+            "Hello World!".drop (Range 0 10 -1) . should_fail_with Illegal_Argument_Error
 
         Test.specify "drop should work on grapheme clusters" <|
             'He\u{302}llo\u{308} Wo\u{301}rld!'.drop (First 2) . should_equal 'llo\u{308} Wo\u{301}rld!'

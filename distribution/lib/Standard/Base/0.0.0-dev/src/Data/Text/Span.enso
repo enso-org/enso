@@ -149,8 +149,8 @@ type Utf_16_Span
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
    to a range on the underlying code units.
-range_to_char_indices : Text -> Range -> Range ! Index_Out_Of_Bounds_Error
-range_to_char_indices text range =
+range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds_Error | Illegal_Argument_Error)
+range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_Argument_Error "Text indexing only supports ranges with step equal to 1.") else
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
     end = if range.end == Nothing then len else (if range.end < 0 then range.end + len else range.end)
