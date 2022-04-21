@@ -163,11 +163,20 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
+    let allowExtraMb = 0
     // Use the environment-variable API provided by the `enso_profiler_macros` library to implement
     // the public interface to profiling-level configuration
     // (see: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
     if (argv['profiling-level']) {
         process.env.ENSO_MAX_PROFILING_LEVEL = argv['profiling-level']
+        // Enabling more profiling can increase the binary size a bit. Since profiling must be
+        // performed in release mode for accuracy, builds with profiling enabled will tend to be
+        // subject to the binary size check below.
+        // Because builds with a profiling-level set are not true release builds, we could disable
+        // the limit here; instead we set an extra allowance, as a sanity check on the size increase
+        // caused by high profiling levels. This value is chosen to be higher than extensive profiling
+        // should ever exceed.
+        allowExtraMb = 0.5
     }
     args.push('--')
     // Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file and line
@@ -198,7 +207,8 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const limitMb = 4.06
+        const releaseLimitMb = 4.06
+        let limitMb = releaseLimitMb + allowExtraMb
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
