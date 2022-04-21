@@ -22,50 +22,99 @@ pub struct Node<T> {
     tail: List<T>,
 }
 
+impl<T> Node<T> {
+    pub fn singleton(head: T) -> Self {
+        let tail = default();
+        Self { head, tail }
+    }
+}
 
 
-#[derive(Derivative)]
+#[derive(Derivative, Deref)]
+#[derivative(Clone(bound = ""))]
+pub struct NonEmptyList<T> {
+    node: Rc<Node<T>>,
+}
+
+#[derive(Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
 pub struct List<T> {
-    node: Option<Rc<Node<T>>>,
+    data: Option<NonEmptyList<T>>,
 }
 
-impl<T> List<T> {
-    pub fn with_head(self, head: T) -> Self {
-        let tail = self;
-        let node = Some(Rc::new(Node { head, tail }));
+impl<T> NonEmptyList<T> {
+    pub fn singleton(head: T) -> Self {
+        let node = Rc::new(Node::singleton(head));
         Self { node }
     }
 
-    pub fn head(&self) -> Option<&T> {
-        self.node.as_ref().map(|t| &t.head)
+    pub fn into_list(self) -> List<T> {
+        let data = Some(self);
+        List { data }
     }
 
-    pub fn tail(&self) -> Option<&List<T>> {
-        self.node.as_ref().map(|t| &t.tail)
+    pub fn with_head(self, head: T) -> Self {
+        self.into_list().with_head(head)
+    }
+
+    pub fn head(&self) -> &T {
+        &self.head
+    }
+
+    pub fn tail(&self) -> &List<T> {
+        &self.tail
     }
 
     pub fn is_empty(&self) -> bool {
-        self.node.is_none()
+        false
     }
 
     fn to_vec(&self) -> Vec<&T> {
-        let mut out: Vec<&T> = default();
-        let mut this = self;
+        let mut out: Vec<&T> = vec![&self.head];
+        let mut list = self.tail();
         loop {
-            match this.head() {
+            match list.head() {
                 None => break,
                 Some(head) => {
                     out.push(head);
-                    match this.tail() {
+                    match list.tail() {
                         None => break,
-                        Some(tail) => this = tail,
+                        Some(tail) => list = tail,
                     }
                 }
             }
         }
         out
+    }
+}
+impl<T> List<T> {
+    pub fn with_head(self, head: T) -> NonEmptyList<T> {
+        let tail = self;
+        let node = Rc::new(Node { head, tail });
+        NonEmptyList { node }
+    }
+
+    pub fn head(&self) -> Option<&T> {
+        self.as_ref().map(|t| t.head())
+    }
+
+    pub fn tail(&self) -> Option<&List<T>> {
+        self.as_ref().map(|t| t.tail())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.is_none()
+    }
+
+    fn to_vec(&self) -> Vec<&T> {
+        self.data.as_ref().map(|t| t.to_vec()).unwrap_or_default()
+    }
+}
+
+impl<T> From<NonEmptyList<T>> for List<T> {
+    fn from(list: NonEmptyList<T>) -> Self {
+        list.into_list()
     }
 }
 
@@ -147,8 +196,7 @@ impl Pattern {
 #[derive(Debug)]
 pub struct Macro<'a> {
     prefix:   Option<Pattern>,
-    section:  MacroSegment<'a>,
-    segments: List<MacroSegment<'a>>,
+    segments: NonEmptyList<MacroSegment<'a>>,
 }
 
 #[derive(Clone, Debug)]
@@ -171,21 +219,25 @@ fn macro_if_then_else<'a>() -> Macro<'a> {
     let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
     Macro {
         prefix:   None,
-        section:  section1,
-        segments: List::default().with_head(section3).with_head(section2),
+        segments: NonEmptyList::singleton(section3).with_head(section2).with_head(section1),
     }
 }
 
 fn macro_if_then<'a>() -> Macro<'a> {
     let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
     let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    Macro { prefix: None, section: section1, segments: List::default().with_head(section2) }
+    Macro { prefix: None, segments: NonEmptyList::singleton(section2).with_head(section1) }
 }
 
+#[derive(Debug)]
+pub struct MacroSegmentTreeDataRecord<'a> {
+    list: List<MacroSegment<'a>>,
+    def:  Rc<Macro<'a>>,
+}
 
 #[derive(Default, Debug)]
 pub struct MacroSegmentTreeData<'a> {
-    subsections: HashMap<&'a str, Vec<List<MacroSegment<'a>>>>,
+    subsections: HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>,
     parent:      Option<Box<MacroSegmentTreeData<'a>>>,
 }
 
@@ -201,22 +253,28 @@ pub struct MacroResolver {
 }
 
 #[derive(Default, Debug)]
-pub struct Resolver {
+pub struct Resolver<'a> {
     leading_tokens: Vec<Token>,
     current_macro:  Option<MacroResolver>,
     macro_stack:    Vec<MacroResolver>,
-    is_final_state: bool,
+    matched_macro:  Option<Rc<Macro<'a>>>,
 }
 
-impl Resolver {
+impl<'a> Resolver<'a> {
     pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) {
         let mut segment_tree = MacroSegmentTree::default();
         let mut root_segment_tree = MacroSegmentTree::default();
 
         let if_then = macro_if_then();
         let if_then_else = macro_if_then_else();
-        root_segment_tree.subsections.entry("if").or_default().push(if_then.segments);
-        root_segment_tree.subsections.entry("if").or_default().push(if_then_else.segments);
+        let if_then =
+            MacroSegmentTreeDataRecord { list: if_then.segments.clone(), def: Rc::new(if_then) };
+        let if_then_else = MacroSegmentTreeDataRecord {
+            list: if_then_else.segments.clone(),
+            def:  Rc::new(if_then_else),
+        };
+        root_segment_tree.subsections.entry("if").or_default().push(if_then);
+        root_segment_tree.subsections.entry("if").or_default().push(if_then_else);
 
         println!("{:#?}", root_segment_tree);
 
@@ -237,13 +295,15 @@ impl Resolver {
     }
 
     pub fn finish(&mut self) {
+        println!("FINISH");
         let current_macro = mem::take(&mut self.current_macro).unwrap();
         let mut segments = current_macro.segments;
         segments.push(current_macro.current_segment);
         println!("{:#?}", segments);
+        println!("{:#?}", self.matched_macro);
     }
 
-    pub fn enter<'a>(
+    pub fn enter(
         &mut self,
         lexer: &Lexer,
         stack: &mut MacroSegmentTree<'a>,
@@ -276,15 +336,17 @@ impl Resolver {
 
         let out = list.is_some();
         if let Some(list) = list {
-            self.is_final_state = false;
+            self.matched_macro = None;
             let mut new_section_tree = MacroSegmentTreeData::default();
             for v in list {
-                if v.is_empty() {
-                    self.is_final_state = true;
+                if v.list.is_empty() {
+                    self.matched_macro = Some(v.def.clone_ref());
                 }
-                if let Some(first) = v.head() {
-                    let tail = v.tail().cloned().unwrap_or_default();
-                    new_section_tree.subsections.entry(&first.repr).or_default().push(tail);
+                if let Some(first) = v.list.head() {
+                    let tail = v.list.tail().cloned().unwrap_or_default();
+                    let def = v.def.clone_ref();
+                    let x = MacroSegmentTreeDataRecord { list: tail, def };
+                    new_section_tree.subsections.entry(&first.repr).or_default().push(x);
                 } else {
                     // todo!()
                 }
