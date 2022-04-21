@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ensogl-core = { path = "../../../lib/rust/ensogl/core"}
 enso-profiler = { path = "../../../lib/rust/profiler"}
 serde = { version = "1" }
 

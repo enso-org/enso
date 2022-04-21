@@ -3,6 +3,7 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use super::BASE_TEXT_SIZE;
 use ensogl::frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -11,8 +12,6 @@ use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::ComponentView;
 use ensogl_text as text;
-
-use super::BASE_TEXT_SIZE;
 
 
 
