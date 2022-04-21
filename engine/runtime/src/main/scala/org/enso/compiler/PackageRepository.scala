@@ -71,6 +71,7 @@ trait PackageRepository {
   /** Get the loaded library components. */
   def getComponents: PackageRepository.ComponentsMap
 
+  /** Modules required for compilation after loading the component groups. */
   def getPendingModules: Set[Module]
 
   /** Get a loaded module by its qualified name. */
@@ -328,7 +329,7 @@ object PackageRepository {
 
     private def resolveComponentGroups(
       pkg: Package[TruffleFile]
-    ): Either[Error, Unit] = {
+    ): Either[Error, Unit] =
       if (loadedComponents.contains(pkg.libraryName)) Right(())
       else {
         pkg.config.componentGroups match {
@@ -359,7 +360,6 @@ object PackageRepository {
               }
         }
       }
-    }
 
     /** Register the list of component groups defined by a library.
       *
@@ -369,14 +369,13 @@ object PackageRepository {
     private def registerComponentGroups(
       library: LibraryName,
       newGroups: List[ComponentGroup]
-    ): Unit = {
+    ): Unit =
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(newGroups = groups.newGroups ::: newGroups))
         case None =>
           Some(ComponentGroups(newGroups, List()))
       }
-    }
 
     /** Register a component group extended by a library.
       *
@@ -386,14 +385,13 @@ object PackageRepository {
     private def registerExtendedComponentGroup(
       library: LibraryName,
       group: ExtendedComponentGroup
-    ): Unit = {
+    ): Unit =
       loadedComponents.updateWith(library) {
         case Some(groups) =>
           Some(groups.copy(extendedGroups = groups.extendedGroups :+ group))
         case None =>
           Some(ComponentGroups(List(), List(group)))
       }
-    }
 
     /** @inheritdoc */
     override def ensurePackageIsLoaded(

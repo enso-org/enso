@@ -1,33 +1,27 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.logging.Level
 import cats.implicits._
 import org.enso.compiler.CompilerResult
-import org.enso.compiler.context.{
-  Changeset,
-  ExportsBuilder,
-  ModuleContext,
-  ModuleExportsDiff,
-  SuggestionBuilder,
-  SuggestionDiff
-}
+import org.enso.compiler.context._
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   GatherDiagnostics
 }
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
 }
+import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.runtime.Module
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.text.buffer.Rope
+
+import java.io.File
+import java.util.logging.Level
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._

@@ -1,7 +1,5 @@
 package org.enso.compiler
 
-import java.io.StringReader
-import java.util.logging.Level
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
@@ -25,6 +23,9 @@ import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+
+import java.io.StringReader
+import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
 
