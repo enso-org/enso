@@ -2,7 +2,6 @@ package org.enso.compiler
 
 import java.io.StringReader
 import java.util.logging.Level
-
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
@@ -114,7 +113,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(module: Module): Unit = {
+  def run(module: Module): CompilerResult = {
     runInternal(
       List(module),
       generateCode              = true,
@@ -180,29 +179,33 @@ class Compiler(
     module
   }
 
-  @scala.annotation.tailrec
   private def runInternal(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
-  ): Unit = {
-    runInternal1(modules, generateCode, shouldCompileDependencies)
+  ): CompilerResult = {
+    val output         = runInternal1(modules, generateCode, shouldCompileDependencies)
     val pendingModules = packageRepository.getPendingModules
     println(s"!!! PENDING_MODULES=${pendingModules.map(_.getName)}")
-    if (pendingModules.nonEmpty) {
-      runInternal(
-        pendingModules.toList,
-        generateCode,
-        shouldCompileDependencies
-      )
-    }
+    val compiledModules =
+      if (pendingModules.nonEmpty) {
+        val result = runInternal(
+          pendingModules.toList,
+          generateCode,
+          shouldCompileDependencies
+        )
+        output.append(result.compiledModules)
+      } else {
+        output
+      }
+    CompilerResult(compiledModules)
   }
 
   private def runInternal1(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
-  ): Unit = {
+  ): CompiledModules = {
     initialize()
     modules.foreach(m => parseModule(m))
 
@@ -327,6 +330,8 @@ class Compiler(
         }
       }
     }
+
+    CompiledModules(requiredModules)
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {

@@ -15,6 +15,8 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
+
+import org.enso.compiler.CompilerResult;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.phase.StubIrBuilder;
@@ -73,6 +75,36 @@ public class Module implements TruffleObject {
      */
     public boolean isBefore(CompilationStage stage) {
       return ordinal < stage.ordinal;
+    }
+  }
+
+  /**
+   * Represents the module after the compilation.
+   */
+  public static class CompiledModule {
+
+    private final Module module;
+    private final CompilerResult compilerResult;
+
+    /**
+     * Creates a new compiled module.
+     *
+     * @param module the compiled module.
+     * @param compilerResult the result of the compilation.
+     */
+    public CompiledModule(Module module, CompilerResult compilerResult) {
+      this.module = module;
+      this.compilerResult = compilerResult;
+    }
+
+    /** @return the compilation result. */
+    public CompilerResult getCompilerResult() {
+      return this.compilerResult;
+    }
+
+    /** @return the compiled module scope. */
+    public ModuleScope getScope() {
+      return this.module.getScope();
     }
   }
 
@@ -235,15 +267,16 @@ public class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope compileScope(Context context) {
+  public CompiledModule compileScope(Context context) {
     ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
-        compile(context);
+        CompilerResult result = compile(context);
+        return new CompiledModule(this, result);
       } catch (IOException ignored) {
       }
     }
-    return scope;
+    return new CompiledModule(this, CompilerResult.empty());
   }
 
   /** Create scope if it does not exist. */
@@ -272,13 +305,13 @@ public class Module implements TruffleObject {
     return cachedSource;
   }
 
-  private void compile(Context context) throws IOException {
+  private CompilerResult compile(Context context) throws IOException {
     ensureScopeExists();
     Source source = getSource();
-    if (source == null) return;
+    if (source == null) return CompilerResult.empty();
     scope.reset();
     compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(this);
+    return context.getCompiler().run(this);
   }
 
   /** @return IR defined by this module. */
@@ -504,11 +537,11 @@ public class Module implements TruffleObject {
         case MethodNames.Module.GET_NAME:
           return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
-          scope = module.compileScope(context);
+          scope = module.compileScope(context).getScope();
           Function result = getMethod(scope, arguments);
           return result == null ? context.getBuiltins().nothing().newInstance() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
-          scope = module.compileScope(context);
+          scope = module.compileScope(context).getScope();
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
@@ -521,10 +554,10 @@ public class Module implements TruffleObject {
         case MethodNames.Module.SET_SOURCE_FILE:
           return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
-          scope = module.compileScope(context);
+          scope = module.compileScope(context).getScope();
           return getAssociatedConstructor(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
-          scope = module.compileScope(context);
+          scope = module.compileScope(context).getScope();
           return evalExpression(scope, arguments, context, callOptimiserNode);
         default:
           throw UnknownIdentifierException.create(member);

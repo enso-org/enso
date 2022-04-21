@@ -12,7 +12,6 @@ component-groups:
   extends:
     - Standard.Base.Input:
         exports:
-          - Standard.Base.System.File.read
           - Standard.Table.Data.Table.new
           - Standard.Table.Data.Table.from_rows
           - Standard.Table.Data.Column.from_vector

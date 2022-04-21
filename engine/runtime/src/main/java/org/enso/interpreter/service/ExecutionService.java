@@ -94,7 +94,7 @@ public class ExecutionService {
   private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String consName, String methodName)
       throws ConstructorNotFoundException, MethodNotFoundException {
-    ModuleScope scope = module.compileScope(context);
+    ModuleScope scope = module.compileScope(context).getScope();
     AtomConstructor atomConstructor =
         scope
             .getConstructor(consName)

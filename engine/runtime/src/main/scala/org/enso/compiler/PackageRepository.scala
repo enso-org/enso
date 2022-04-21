@@ -71,7 +71,7 @@ trait PackageRepository {
   /** Get the loaded library components. */
   def getComponents: PackageRepository.ComponentsMap
 
-  def getPendingModules: Iterable[Module]
+  def getPendingModules: Set[Module]
 
   /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
@@ -195,14 +195,16 @@ object PackageRepository {
       collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
     }
 
-    private def getComponentModules: Iterable[Module] =
-      for {
+    private def getComponentModules: Set[Module] = {
+      val modules = for {
         componentGroups <- loadedComponents.readOnlySnapshot().values
         newComponents      = componentGroups.newGroups.flatMap(_.exports)
         extendedComponents = componentGroups.extendedGroups.flatMap(_.exports)
         component <- newComponents ++ extendedComponents
         module    <- findComponentModule(component)
       } yield module
+      modules.toSet
+    }
 
     private def findComponentModule(component: Component): Option[Module] = {
       def mkModuleName(path: Array[String]): String =
@@ -217,16 +219,7 @@ object PackageRepository {
           }
         }
 
-      val r = go(component.name.split(LibraryName.separator))
-//      if (component.name.startsWith("Standard.Database"))
-//        println(
-//          s"findComponentModule $component = ${r.map(_.getName)} "
-//          + s",path=${component.name.split(LibraryName.separator).tail.mkString(LibraryName.separator.toString)}"
-//          + s",loadedModules=${loadedModules
-//            .get(mkModuleName(component.name.split(LibraryName.separator).tail))}"
-//        )
-
-      r
+      go(component.name.split(LibraryName.separator))
     }
 
     /** @inheritdoc */
@@ -240,7 +233,7 @@ object PackageRepository {
       loadedComponents.readOnlySnapshot().toMap
 
     /** @inheritdoc */
-    override def getPendingModules: Iterable[Module] =
+    override def getPendingModules: Set[Module] =
       for {
         module <- getComponentModules
         isCompiled =
