@@ -76,6 +76,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
 
   val nestedThunkSumCode =
     """from Standard.Builtins import all
+      |import Standard.Base.Nothing
       |
       |doNTimes = n -> ~block ->
       |    block
