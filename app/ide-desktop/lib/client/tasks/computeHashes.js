@@ -1,7 +1,6 @@
 const crypto = require('crypto')
 const fs = require('fs')
-const glob = require('glob')
-const paths = require('../../../../../build/paths')
+const path = require('path')
 
 // =================
 // === Constants ===
@@ -28,9 +27,16 @@ function getChecksum(path, type) {
     })
 }
 
+// Based on https://stackoverflow.com/a/57371333
+function changeExtension(file, extension) {
+    const basename = path.basename(file, path.extname(file))
+    return path.join(path.dirname(file), `${basename}.${extension}`)
+}
+
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)
-    let targetPath = `${path}.${type}`
+    let targetPath = changeExtension(path, type)
+    console.log(`Writing ${targetPath}.`)
     fs.writeFile(targetPath, checksum, 'utf8', err => {
         if (err) {
             throw err
