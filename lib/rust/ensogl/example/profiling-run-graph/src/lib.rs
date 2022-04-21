@@ -144,23 +144,25 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    let render_stats = profile
-        .iter_metadata()
-        .filter(|metadata| matches!(metadata.data, Metadata::RenderStats(_)));
-    for (prev, current) in render_stats.tuple_windows() {
-        if let Metadata::RenderStats(data) = current.data {
-            let start = prev.mark.into_ms();
-            let end = current.mark.into_ms();
-            let row = -1;
-            let label = format!("{:#?}", data);
-            let block_type = match data.fps {
-                fps if fps > 55.0 => Performance::Good,
-                fps if fps > 25.0 => Performance::Medium,
-                _ => Performance::Bad,
-            };
-            let block = profiler_flame_graph::Block { start, end, row, label, block_type };
-            blocks.push(block);
+    let render_stats = profile.iter_metadata().filter_map(|metadata| match metadata.data {
+        Metadata::RenderStats(data) => {
+            let mark = metadata.mark;
+            Some(enso_profiler_data::Metadata { mark, data })
         }
+        _ => None,
+    });
+    for (prev, current) in render_stats.tuple_windows() {
+        let start = prev.mark.into_ms();
+        let end = current.mark.into_ms();
+        let row = -1;
+        let label = format!("{:#?}", current.data);
+        let block_type = match current.data.fps {
+            fps if fps > 55.0 => Performance::Good,
+            fps if fps > 25.0 => Performance::Medium,
+            _ => Performance::Bad,
+        };
+        let block = profiler_flame_graph::Block { start, end, row, label, block_type };
+        blocks.push(block);
     }
     blocks
 }
