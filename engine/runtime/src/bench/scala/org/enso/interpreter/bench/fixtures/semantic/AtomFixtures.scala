@@ -53,7 +53,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """from Standard.Base.Data.List import all
       |
       |Cons.rev = acc -> case this of
-      |    Cons h t -> @Tail_Call t.reverse (Cons h acc)
+      |    Cons h t -> @Tail_Call t.rev (Cons h acc)
       |
       |Nil.rev = acc -> acc
       |
