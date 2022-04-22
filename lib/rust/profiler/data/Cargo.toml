@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
+derivative = "2.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 enso-prelude = { path = "../../prelude" }

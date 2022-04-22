@@ -43,51 +43,67 @@ pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
     events: impl IntoIterator<Item = format::Event<'a>>,
 ) -> Result<Interpreted<M>, crate::EventError<DataError>> {
     // Process log into data about each measurement, and data about relationships.
-    let LogVisitor { builders, order, intervals, metadata_errors, headers, .. } =
-        LogVisitor::visit(events)?;
+    let LogVisitor {
+        builders,
+        order,
+        intervals,
+        metadata_errors,
+        headers,
+        root_intervals,
+        root_metadata,
+        ..
+    } = LogVisitor::visit(events)?;
     // Build measurements from accumulated measurement data.
-    let mut measurements = Vec::with_capacity(builders.len());
+    let extra_measurements = 1; // Root measurement.
+    let mut measurements = Vec::with_capacity(builders.len() + extra_measurements);
     let mut builders: Vec<_> = builders.into_iter().collect();
     builders.sort_unstable_by_key(|(k, _)| *k);
     measurements.extend(builders.into_iter().map(|(_, b)| b.into()));
-    let root = crate::Measurement {
+    let mut root = crate::Measurement {
         label:     Rc::new(crate::Label { name: "APP_LIFETIME (?:?)".into(), pos: None }),
         children:  Default::default(),
         intervals: Default::default(),
         finished:  Default::default(),
-        created:   crate::Mark::time_origin(),
+        created:   crate::Timestamp::time_origin(),
     };
     let root_measurement_id = crate::MeasurementId(measurements.len());
-    measurements.push(root);
     for (child, (log_pos, parent)) in order.into_iter().enumerate() {
         let log_pos = log_pos.0;
         let parent = match parent {
-            format::ParentId::Measurement(id) => crate::MeasurementId(id.0),
-            format::ParentId::Root => root_measurement_id,
+            format::ParentId::Measurement(id) => measurements
+                .get_mut(id.0)
+                .ok_or(DataError::MeasurementNotFound(id))
+                .map_err(|e| crate::EventError { log_pos, error: e })?,
+            format::ParentId::Root => &mut root,
         };
-        let parent = &mut measurements
-            .get_mut(parent.0)
-            .ok_or(DataError::IdNotFound)
-            .map_err(|e| crate::EventError { log_pos, error: e })?;
-        let child = crate::MeasurementId(child);
-        parent.children.push(child);
+        parent.children.push(crate::MeasurementId(child));
     }
-    let mut intervals_ = Vec::with_capacity(intervals.len());
+    measurements.push(root);
+    let extra_intervals = 1; // Root interval.
+    let mut intervals_ = Vec::with_capacity(intervals.len() + extra_intervals);
     for builder in intervals.into_iter() {
         let IntervalBuilder { measurement, interval, children, metadata } = builder;
         let id = crate::IntervalId(intervals_.len());
-        let measurement = match measurement {
-            format::ParentId::Measurement(id) => crate::MeasurementId(id.0),
-            format::ParentId::Root => root_measurement_id,
-        };
+        let format::MeasurementId(measurement) = measurement;
+        let measurement = crate::MeasurementId(measurement);
         intervals_.push(crate::ActiveInterval { measurement, interval, children, metadata });
         measurements[measurement.0].intervals.push(id);
     }
+    let root = crate::ActiveInterval {
+        measurement: root_measurement_id,
+        interval:    crate::Interval {
+            start: crate::Timestamp::time_origin(),
+            end:   Default::default(),
+        },
+        children:    root_intervals,
+        metadata:    root_metadata,
+    };
+    intervals_.push(root);
     let profile = crate::Profile { measurements, intervals: intervals_, headers };
     Ok(Interpreted { profile, metadata_errors })
 }
 pub(crate) struct Interpreted<M> {
-    profile: crate::Profile<M>,
+    profile:         crate::Profile<M>,
     metadata_errors: Vec<MetadataError>,
 }
 
@@ -102,8 +118,8 @@ pub(crate) struct Interpreted<M> {
 pub enum DataError {
     /// A profiler was in the wrong state for a certain event to occur.
     UnexpectedState(State),
-    /// A reference was not able to be resolved.
-    IdNotFound,
+    /// An ID referred to an undefined measurement.
+    MeasurementNotFound(format::MeasurementId),
     /// A parse error.
     UnexpectedToken(Expected),
     /// An event that should only occur during the lifetime of a profiler didn't find any profiler.
@@ -115,7 +131,7 @@ pub enum DataError {
         /// The measurement that was referred to.
         found:    format::MeasurementId,
         /// The only valid measurement for the event to refer to.
-        expected: format::ParentId,
+        expected: format::MeasurementId,
     },
     /// Profiler(s) were active at a time none were expected.
     ExpectedEmptyStack(Vec<format::MeasurementId>),
@@ -165,7 +181,7 @@ impl error::Error for Expected {}
 /// Used while gathering information about a profiler.
 struct MeasurementBuilder {
     label:    Rc<crate::Label>,
-    created:  crate::Mark,
+    created:  crate::Timestamp,
     state:    State,
     finished: bool,
 }
@@ -193,6 +209,7 @@ pub enum State {
     Ended(EventId),
 }
 
+/// An index into the event log. Mainly used for error reporting.
 #[derive(Debug, Copy, Clone)]
 pub struct EventId(usize);
 
@@ -210,10 +227,12 @@ impl From<EventId> for crate::Seq {
 
 /// Holds information gathered during visitation.
 struct IntervalBuilder<M> {
-    measurement: format::ParentId,
+    // The interval itself.
+    measurement: format::MeasurementId,
     interval:    crate::Interval,
+    // Data attached to interval.
     children:    Vec<crate::IntervalId>,
-    metadata:    Vec<crate::Metadata<M>>,
+    metadata:    Vec<crate::Timestamped<M>>,
 }
 
 
@@ -223,43 +242,29 @@ struct IntervalBuilder<M> {
 // ==================
 
 /// Gathers data while visiting a series of [`format::Event`]s.
+#[derive(derivative::Derivative)]
+#[derivative(Default(bound = ""))]
 struct LogVisitor<M> {
     /// Accumulated data pertaining to each profiler.
-    builders:  collections::HashMap<format::MeasurementId, MeasurementBuilder>,
+    builders:        collections::HashMap<format::MeasurementId, MeasurementBuilder>,
     /// Ids and parents, in same order as event log.
-    order:     Vec<(EventId, format::ParentId)>,
+    order:           Vec<(EventId, format::ParentId)>,
     /// Intervals ended, in arbitrary order.
-    intervals: Vec<IntervalBuilder<M>>,
+    intervals:       Vec<IntervalBuilder<M>>,
     /// Intervals currently open, as a LIFO stack.
-    active:    Vec<IntervalBuilder<M>>,
+    active:          Vec<IntervalBuilder<M>>,
+    /// Top-level intervals.
+    root_intervals:  Vec<crate::IntervalId>,
+    /// Top-level metadata.
+    root_metadata:   Vec<crate::Timestamped<M>>,
+    /// Errors for metadata objects that could not be deserialized as type [`M`].
     metadata_errors: Vec<MetadataError>,
-    profilers:   Vec<Rc<crate::Label>>,
-    headers: crate::Headers,
+    /// References to the locations in code that measurements measure.
+    profilers:       Vec<Rc<crate::Label>>,
+    /// Properties of the whole profile.
+    headers:         crate::Headers,
 }
 type MetadataError = crate::EventError<serde_json::Error>;
-
-impl<M> Default for LogVisitor<M> {
-    fn default() -> Self {
-        let root_interval = IntervalBuilder {
-            measurement: format::ParentId::Root,
-            interval:    crate::Interval {
-                start: crate::Mark::time_origin(),
-                end:   Default::default(),
-            },
-            children:    Default::default(),
-            metadata:    Default::default(),
-        };
-        Self {
-            intervals: Default::default(),
-            active:    vec![root_interval],
-            builders:  Default::default(),
-            order:     Default::default(),
-            metadata_errors: Default::default(),
-            profilers:     Default::default(),
-            headers:     Default::default(),
-        }
-    }
-}
 
 impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
     /// Convert the log into data about each measurement.
@@ -272,17 +277,13 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
             let log_pos = EventId(i);
             let result = match event {
                 format::Event::Start { id, timestamp } =>
-                    visitor.visit_start(log_pos, id.into(), timestamp),
+                    visitor.visit_resume(log_pos, id, timestamp),
                 format::Event::Create(event) => visitor.visit_create(log_pos, event),
-                format::Event::End { id, timestamp } =>
-                    visitor.visit_end(log_pos, id.into(), timestamp),
+                format::Event::End { id, timestamp } => visitor.visit_end(log_pos, id, timestamp),
                 format::Event::Pause { id, timestamp } =>
-                    visitor.visit_pause(log_pos, id.into(), timestamp),
-                format::Event::Resume { id, timestamp } =>
-                    visitor.visit_resume(log_pos, id.into(), timestamp),
-                format::Event::Metadata(metadata) =>
-                    visitor.visit_metadata(log_pos, metadata),
-                format::Event::Label(label) => visitor.visit_label(log_pos, label),
+                    visitor.visit_pause(log_pos, id, timestamp),
+                format::Event::Metadata(metadata) => visitor.visit_metadata(log_pos, metadata),
+                format::Event::Label { label } => visitor.visit_label(log_pos, label),
             };
             result.map_err(|error| crate::EventError { log_pos: i, error })?;
             event_count += 1;
@@ -312,25 +313,21 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
 // === Handlers for each event ===
 
 impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
-    fn visit_create(
-        &mut self,
-        pos: EventId,
-        event: format::Start,
-    ) -> Result<(), DataError> {
+    fn visit_create(&mut self, pos: EventId, event: format::Start) -> Result<(), DataError> {
         let parent = match event.parent {
             format::Parent::Explicit(parent) => parent,
             format::Parent::Implicit => self.current_profiler(),
         };
         let start = match event.start {
-            Some(time) => crate::Mark { seq: pos.into(), time },
+            Some(time) => crate::Timestamp { seq: pos.into(), time },
             None => self.inherit_start(parent)?,
         };
         let label = event.label.id();
         let label = self.profilers.get(label).ok_or(DataError::UndefinedLabel(label))?.clone();
         let builder = MeasurementBuilder {
             label,
-            created:  start,
-            state:    State::Paused(pos),
+            created: start,
+            state: State::Paused(pos),
             finished: Default::default(),
         };
         self.order.push((pos, parent));
@@ -340,31 +337,15 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
         Ok(())
     }
 
-    fn visit_start(
-        &mut self,
-        pos: EventId,
-        id: format::MeasurementId,
-        time: format::Timestamp,
-    ) -> Result<(), DataError> {
-        let mark = crate::Mark { seq: pos.into(), time };
-        self.start_interval(id, mark);
-        let measurement = &mut self.builders.get_mut(&id).unwrap();
-        match mem::replace(&mut measurement.state, State::Active(pos)) {
-            State::Paused(_) => (),
-            state => return Err(DataError::UnexpectedState(state)),
-        }
-        Ok(())
-    }
-
     fn visit_end(
         &mut self,
         pos: EventId,
         id: format::MeasurementId,
         time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let measurement = &mut self.builders.get_mut(&id).unwrap();
+        let measurement = self.measurement_mut(id)?;
         measurement.finished = true;
-        let end = crate::Mark { seq: pos.into(), time };
+        let end = crate::Timestamp { seq: pos.into(), time };
         match mem::replace(&mut measurement.state, State::Ended(pos)) {
             // Typical case: The current profiler ends.
             State::Active(_) => self.end_interval(id, end)?,
@@ -382,10 +363,9 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
         id: format::MeasurementId,
         time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let mark = crate::Mark { seq: pos.into(), time };
-        self.end_interval(id, mark)?;
-        let measurement = &mut self.builders.get_mut(&id).unwrap();
-        match mem::replace(&mut measurement.state, State::Paused(pos)) {
+        let time = crate::Timestamp { seq: pos.into(), time };
+        self.end_interval(id, time)?;
+        match mem::replace(&mut self.measurement_mut(id)?.state, State::Paused(pos)) {
             State::Active(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
         }
@@ -398,10 +378,9 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
         id: format::MeasurementId,
         time: format::Timestamp,
     ) -> Result<(), DataError> {
-        let mark = crate::Mark { seq: pos.into(), time };
-        self.start_interval(id, mark);
-        let measurement = &mut self.builders.get_mut(&id).ok_or(DataError::IdNotFound)?;
-        match mem::replace(&mut measurement.state, State::Active(pos)) {
+        let time = crate::Timestamp { seq: pos.into(), time };
+        self.start_interval(id, time);
+        match mem::replace(&mut self.measurement_mut(id)?.state, State::Active(pos)) {
             State::Paused(_) => (),
             state => return Err(DataError::UnexpectedState(state)),
         }
@@ -414,7 +393,7 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
         metadata: format::Timestamped<format::AnyMetadata>,
     ) -> Result<(), DataError> {
         let format::Timestamped { time, data } = metadata;
-        let mark = crate::Mark { seq: pos.into(), time };
+        let time = crate::Timestamp { seq: pos.into(), time };
         if let Ok(data) = serde_json::from_str(data.get()) {
             match data {
                 format::Header::Process(process) => self.headers.process = Some(process),
@@ -422,22 +401,23 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
             }
         } else {
             match serde_json::from_str(data.get()) {
-                Ok(data) =>
-                    self.active.last_mut().unwrap().metadata.push(crate::Metadata { mark, data }),
+                Ok(data) => {
+                    let container = match self.active.last_mut() {
+                        Some(parent) => &mut parent.metadata,
+                        None => &mut self.root_metadata,
+                    };
+                    container.push(crate::Timestamped { time, data });
+                }
                 Err(error) => {
                     let log_pos = pos.0;
                     self.metadata_errors.push(MetadataError { log_pos, error })
-                },
+                }
             }
         }
         Ok(())
     }
 
-    fn visit_label(
-        &mut self,
-        _pos: EventId,
-        label: &'_ str,
-    ) -> Result<(), DataError> {
+    fn visit_label(&mut self, _pos: EventId, label: &'_ str) -> Result<(), DataError> {
         let label = label.parse()?;
         self.profilers.push(Rc::new(label));
         Ok(())
@@ -448,8 +428,7 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
 // === Visitation helpers ===
 
 impl<M> LogVisitor<M> {
-    fn start_interval(&mut self, measurement: format::MeasurementId, start: crate::Mark) {
-        let measurement = format::ParentId::Measurement(measurement);
+    fn start_interval(&mut self, measurement: format::MeasurementId, start: crate::Timestamp) {
         let end = Default::default();
         let children = Default::default();
         let metadata = Default::default();
@@ -457,35 +436,51 @@ impl<M> LogVisitor<M> {
         self.active.push(IntervalBuilder { measurement, interval, children, metadata });
     }
 
-    fn end_interval(&mut self, id: format::MeasurementId, end: crate::Mark) -> Result<(), DataError> {
-        let mut builder = self.active.pop().unwrap();
+    fn end_interval(
+        &mut self,
+        id: format::MeasurementId,
+        end: crate::Timestamp,
+    ) -> Result<(), DataError> {
+        let mut builder = self.active.pop().ok_or(DataError::ActiveProfilerRequired)?;
         builder.interval.end = Some(end);
         let expected = builder.measurement;
-        if format::ParentId::Measurement(id) != expected {
+        if id != expected {
             let found = id;
             return Err(DataError::WrongProfiler { found, expected });
         }
         let id = crate::IntervalId(self.intervals.len());
         self.intervals.push(builder);
-        // This can't fail, because we checked above that we aren't trying to end the root interval,
-        // and only the root interval occurs at top level.
-        let parent = self.active.last_mut().unwrap();
-        parent.children.push(id);
+        let container = match self.active.last_mut() {
+            Some(parent) => &mut parent.children,
+            None => &mut self.root_intervals,
+        };
+        container.push(id);
         Ok(())
     }
 
     fn current_profiler(&self) -> format::ParentId {
-        // We can unwrap here because there is always an active interval during visiting;
-        // the root interval doesn't end until visiting is finished.
-        self.active.last().unwrap().measurement
+        match self.active.last() {
+            Some(interval) => format::ParentId::Measurement(interval.measurement),
+            None => format::ParentId::Root,
+        }
     }
 
-    fn inherit_start(&self, parent: format::ParentId) -> Result<crate::Mark, DataError> {
+    fn inherit_start(&self, parent: format::ParentId) -> Result<crate::Timestamp, DataError> {
         Ok(match parent {
-            format::ParentId::Root => crate::Mark::time_origin(),
-            format::ParentId::Measurement(pos) =>
-                self.builders.get(&pos).ok_or(DataError::IdNotFound)?.created,
+            format::ParentId::Root => crate::Timestamp::time_origin(),
+            format::ParentId::Measurement(pos) => self.measurement(pos)?.created,
         })
+    }
+
+    fn measurement(&self, id: format::MeasurementId) -> Result<&MeasurementBuilder, DataError> {
+        self.builders.get(&id).ok_or(DataError::MeasurementNotFound(id))
+    }
+
+    fn measurement_mut(
+        &mut self,
+        id: format::MeasurementId,
+    ) -> Result<&mut MeasurementBuilder, DataError> {
+        self.builders.get_mut(&id).ok_or(DataError::MeasurementNotFound(id))
     }
 }
 

@@ -30,16 +30,73 @@ thread_local! {
 pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>> =
     log::ThreadLocalLog::new(METADATA_LOG_LOG);
 
+/// Translates types and IDs.
+#[derive(Debug)]
+struct LogTranslator<'a> {
+    profile: format::Builder<'a>,
+    ids:     std::collections::HashMap<EventId, format::MeasurementId>,
+}
+
+macro_rules! translate_transition {
+    ($name:ident) => {
+        fn $name(&mut self, time: Timestamp, id: EventId) {
+            self.profile.$name(time.into(), self.ids[&id]);
+        }
+    };
+}
+
+impl<'a> LogTranslator<'a> {
+    fn new() -> Self {
+        let mut profile = format::Builder::new();
+        profile.time_offset(Timestamp::time_offset().into());
+        profile.process("Ide");
+        let ids = Default::default();
+        Self { profile, ids }
+    }
+
+    fn finish(self) -> String {
+        self.profile.build_string()
+    }
+
+    fn metadata(&mut self, time: Timestamp, name: &'static str, data: format::AnyMetadata) {
+        self.profile.metadata(time.into(), name, data);
+    }
+
+    fn create(
+        &mut self,
+        time: Option<Timestamp>,
+        parent: EventId,
+        label: Label<&'static str>,
+        id: EventId,
+    ) {
+        let parent = match parent {
+            EventId::IMPLICIT => format::Parent::implicit(),
+            EventId::APP_LIFETIME => format::Parent::root(),
+            id => self.ids[&id].into(),
+        };
+        let time = time.map(|t| t.into());
+        let interval = self.profile.create(time, parent, label.0);
+        self.ids.insert(id, interval);
+    }
+
+    translate_transition!(start);
+    translate_transition!(end);
+    translate_transition!(pause);
+}
+
+impl From<Timestamp> for format::Timestamp {
+    fn from(time: Timestamp) -> Self {
+        Self::from_ms(time.into_ms())
+    }
+}
+
 /// Produce a JSON-formatted event log from the internal event logs.
 ///
 /// Consumes all events that have happened up to this point; except in testing, this should only be
 /// done once.
 pub fn take_log() -> String {
     let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
-    let mut profile = format::Builder::new();
-    let mut measurement_id = std::collections::HashMap::<EventId, format::MeasurementId>::new();
-    profile.time_offset_ms(Timestamp::time_offset());
-    profile.process("Ide");
+    let mut out = LogTranslator::new();
     for (id, event) in events.into_iter().enumerate() {
         let id = EventId(id as u32);
         match event {
@@ -48,54 +105,32 @@ pub fn take_log() -> String {
                 let id = type_id as usize;
                 let name = metadata_names[id];
                 let data = metadata_entries[id].next().unwrap();
-                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
-                profile.metadata(timestamp, name, data);
+                out.metadata(timestamp, name, data);
             }
             Event::Start(Start { parent, start, label }) => {
-                let parent = match parent {
-                    EventId::IMPLICIT => format::Parent::implicit(),
-                    EventId::APP_LIFETIME => format::Parent::root(),
-                    id => measurement_id[&id].into(),
-                };
-                let start = start.unwrap();
-                let start = format::Timestamp::from_ms(start.into_ms());
-                let interval = profile.start(start, parent, label.0);
-                measurement_id.insert(id, interval);
+                out.create(start, parent, label, id);
+                out.start(start.unwrap(), id);
             }
-            Event::StartPaused(Start { parent, start, label }) => {
-                let parent = match parent {
-                    EventId::IMPLICIT => format::Parent::implicit(),
-                    EventId::APP_LIFETIME => format::Parent::root(),
-                    id => measurement_id[&id].into(),
-                };
-                let start = start.map(|start| format::Timestamp::from_ms(start.into_ms()));
-                let interval = profile.start_paused(start, parent, label.0);
-                measurement_id.insert(id, interval);
-            }
-            Event::End { id, timestamp } => {
-                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
-                profile.end(timestamp, measurement_id[&id])
-            },
-            Event::Pause { id, timestamp } => {
-                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
-                profile.pause(timestamp, measurement_id[&id])
-            },
-            Event::Resume { id, timestamp } => {
-                let timestamp = format::Timestamp::from_ms(timestamp.into_ms());
-                profile.resume(timestamp, measurement_id[&id])
-            },
+            Event::StartPaused(Start { parent, start, label }) =>
+                out.create(start, parent, label, id),
+            Event::End { id, timestamp } => out.end(timestamp, id),
+            Event::Pause { id, timestamp } => out.pause(timestamp, id),
+            Event::Resume { id, timestamp } => out.start(timestamp, id),
         }
     }
-    profile.build_string()
+    out.finish()
 }
 
-pub struct LogData {
-    pub events: Vec<Event>,
-    metadata_names: Vec<&'static str>,
-    metadata_entries: Vec<Box<dyn Iterator<Item=Box<serde_json::value::RawValue>>>>,
+/// A snapshot of the internal event log.
+/// Contains all the information necessary to produce a profile.
+pub(crate) struct LogData {
+    pub events:       Vec<Event>,
+    metadata_names:   Vec<&'static str>,
+    metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
 }
 
-pub fn take_raw_log() -> LogData {
+/// Obtain the data from the internal event log.
+pub(crate) fn take_raw_log() -> LogData {
     let events = EVENTS.take_all();
     let metadatas = METADATA_LOGS.clone_all();
     let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
@@ -184,7 +219,7 @@ impl EventLog {
         let id = EVENTS.len() as u32;
         let timestamp = Timestamp::now();
         let data = ExternalMetadata { type_id };
-        let event = Event::Metadata{ timestamp, data };
+        let event = Event::Metadata { timestamp, data };
         EVENTS.append(event);
         EventId(id)
     }
@@ -238,9 +273,11 @@ pub enum Event {
     },
     /// Metadata: wrapper with dependency-injected contents.
     Metadata {
-        timestamp: Timestamp,
+        /// Application-specific data associated with a point in time.
         data:      ExternalMetadata,
-    }
+        /// When the event occurred.
+        timestamp: Timestamp,
+    },
 }
 
 
@@ -288,7 +325,7 @@ pub(crate) type StaticLabel = Label<&'static str>;
 /// Stored as the raw output of performance.now() (floating-point milliseconds).
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub struct Timestamp {
-    ms: f64
+    ms: f64,
 }
 
 impl Timestamp {
@@ -313,8 +350,8 @@ impl Timestamp {
     }
 
     /// Return the offset of the time origin from a system timestamp.
-    pub fn time_offset() -> f64 {
-        time_origin()
+    pub fn time_offset() -> Self {
+        Self::from_ms(time_origin())
     }
 }
 

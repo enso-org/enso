@@ -81,8 +81,8 @@
 //!     assert_eq!(&action.label.name, "action_producing_metadata");
 //!     assert_eq!(interval.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
 //!     assert_eq!(interval.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
-//!     // Marks can be used to compare the order of events.
-//!     assert!(interval.metadata[0].mark < interval.metadata[1].mark);
+//!     // Timestamps can be used to compare the order of events.
+//!     assert!(interval.metadata[0].time < interval.metadata[1].time);
 //! }
 //!
 //! store_and_retrieve_metadata();
@@ -257,7 +257,7 @@ impl<M> Profile<M> {
     }
 
     /// Iterate over only the metadata stored in the profile.
-    pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
+    pub fn iter_metadata(&self) -> impl Iterator<Item = &Timestamped<M>> {
         self.intervals.iter().flat_map(|interval| interval.metadata.iter())
     }
 }
@@ -265,9 +265,12 @@ impl<M> Profile<M> {
 
 // === Headers ===
 
+/// Information about the profile.
 #[derive(Clone, Debug, Default)]
 pub struct Headers {
+    /// A value that can be used to translate a timestamp to system time.
     pub time_offset: Option<format::Timestamp>,
+    /// An application-specific identifier used to distinguish logs from different processes.
     pub process:     Option<String>,
 }
 
@@ -310,7 +313,7 @@ pub struct Measurement {
     /// Profilers started by this profiler, ordered by time created.
     pub children:  Vec<MeasurementId>,
     /// When the profiler was created.
-    pub created:   Mark,
+    pub created:   Timestamp,
     /// Whether the profiler logged its completion at the end of its last active interval.
     pub finished:  bool,
     /// When the profiler was running.
@@ -340,17 +343,34 @@ pub enum Class {
 
 
 
-// ================
-// === Metadata ===
-// ================
+// ===================
+// === Timestamped ===
+// ===================
 
-/// Wrapper adding a timestamp to dependency-injected contents.
+/// Wrapper adding a timestamp to contents.
 #[derive(Clone, Debug)]
-pub struct Metadata<M> {
+pub struct Timestamped<M> {
     /// Time the data was logged.
-    pub mark: Mark,
+    pub time: Timestamp,
     /// The actual data.
     pub data: M,
+}
+
+impl<M> Timestamped<M> {
+    /// Convert from &[`Timestamped<M>`] to [`Timestamped<&M>`].
+    pub fn as_ref(&self) -> Timestamped<&M> {
+        let Self { time, data } = self;
+        let time = *time;
+        Timestamped { time, data }
+    }
+
+    /// Use a function to transform the contained data, preserving the timestamp.
+    pub fn map<F, N>(self, f: F) -> Timestamped<N>
+    where F: FnOnce(M) -> N {
+        let Self { time, data } = self;
+        let data = f(data);
+        Timestamped { time, data }
+    }
 }
 
 
@@ -366,29 +386,29 @@ pub enum OpaqueMetadata {
 
 
 
-// ============
-// === Mark ===
-// ============
+// =================
+// === Timestamp ===
+// =================
 
-/// A timestamp that can be used for distinguishing event order.
+/// A timestamp. Supports distinguishing order of all events within a process.
 ///
 /// Note that while an [`Ord`] implementation is provided for convenience (e.g. for use with
 /// data structures that require it), the results of comparisons should only be considered
-/// meaningful when comparing [`Mark`]s that were recorded by the same process.
+/// meaningful when comparing [`Timestamp`]s that were recorded by the same process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct Mark {
-    /// Time of the mark.
+pub struct Timestamp {
+    /// The time.
     time: format::Timestamp,
-    /// Sequence number of the mark. Used to resolve timestamp collisions.
+    /// Indicates event order; used to resolve timestamp collisions.
     seq:  Seq,
 }
 
-impl Mark {
+impl Timestamp {
     fn time_origin() -> Self {
         Self::default()
     }
 
-    /// Time of the mark in milliseconds.
+    /// Offset from the time origin, in milliseconds.
     pub fn into_ms(self) -> f64 {
         self.time.into_ms()
     }
@@ -424,7 +444,7 @@ pub struct ActiveInterval<M> {
     /// Active intervals that occurred during this interval.
     pub children:    Vec<IntervalId>,
     /// Metadata emitted while this was the active interval.
-    pub metadata:    Vec<Metadata<M>>,
+    pub metadata:    Vec<Timestamped<M>>,
 }
 
 
@@ -437,9 +457,9 @@ pub struct ActiveInterval<M> {
 #[derive(Copy, Clone, Debug)]
 pub struct Interval {
     /// The time the interval began.
-    pub start: Mark,
+    pub start: Timestamp,
     /// The time the interval ended, or None if no end was logged.
-    pub end:   Option<Mark>,
+    pub end:   Option<Timestamp>,
 }
 
 impl Interval {
@@ -596,14 +616,18 @@ mod tests {
         assert!(!profile[roots[0]].finished);
     }
 
-    #[test]
-    fn unfinished_still_running() {
+    fn start_profiler(label: &'static str) -> profiler::internal::EventId {
         profiler::internal::EventLog.start(
             profiler::internal::EventId::implicit(),
-            profiler::internal::Label("unfinished (?:?)"),
+            profiler::internal::Label(label),
             Some(profiler::internal::Timestamp::now()),
             profiler::internal::StartState::Active,
-        );
+        )
+    }
+
+    #[test]
+    fn unfinished_still_running() {
+        start_profiler("unfinished (?:?)");
         let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
@@ -612,12 +636,7 @@ mod tests {
 
     #[test]
     fn unfinished_paused_never_resumed() {
-        let id = profiler::internal::EventLog.start(
-            profiler::internal::EventId::implicit(),
-            profiler::internal::Label("unfinished (?:?)"),
-            Some(profiler::internal::Timestamp::now()),
-            profiler::internal::StartState::Active,
-        );
+        let id = start_profiler("unfinished (?:?)");
         profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
         let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();

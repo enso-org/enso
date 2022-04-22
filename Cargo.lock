@@ -1168,6 +1168,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "derivative",
  "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",

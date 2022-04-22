@@ -13,9 +13,9 @@ use std::collections::HashMap;
 /// Constructs a profile document for serialization into the JSON format (see [`crate::format`]).
 #[derive(Debug, Default)]
 pub struct Builder<'a> {
-    events: Vec<format::Event<'a>>,
+    events:           Vec<format::Event<'a>>,
     next_measurement: usize,
-    labels: HashMap<&'a str, format::Label>
+    labels:           HashMap<&'a str, format::Label>,
 }
 
 impl<'a> Builder<'a> {
@@ -33,20 +33,8 @@ impl<'a> Builder<'a> {
         self.events.push(format::Event::Metadata(event));
     }
 
-    /// Log a profiler-start event to the profile.
-    pub fn start<'b: 'a>(
-        &mut self,
-        timestamp: format::Timestamp,
-        parent: format::Parent,
-        label: &'b str,
-    ) -> format::MeasurementId {
-        let id = self.start_paused(Some(timestamp), parent, label);
-        self.events.push(format::Event::Start { id, timestamp });
-        id
-    }
-
     /// Log a profiler-creation event to the profile.
-    pub fn start_paused<'b: 'a>(
+    pub fn create<'b: 'a>(
         &mut self,
         time: Option<format::Timestamp>,
         parent: format::Parent,
@@ -55,7 +43,7 @@ impl<'a> Builder<'a> {
         // Get or register label.
         let next_label_id = self.labels.len();
         let label = *self.labels.entry(label).or_insert_with(|| {
-            self.events.push(format::Event::Label(label));
+            self.events.push(format::Event::Label { label });
             format::Label(next_label_id)
         });
         // Create event.
@@ -67,31 +55,25 @@ impl<'a> Builder<'a> {
         format::MeasurementId(id)
     }
 
+    /// Log a profiler-start event to the profile.
+    pub fn start(&mut self, timestamp: format::Timestamp, id: format::MeasurementId) {
+        self.events.push(format::Event::Start { id, timestamp });
+    }
+
     /// Log a profiler-end event to the profile.
-    pub fn end(&mut self, time: format::Timestamp, measurement: format::MeasurementId) {
-        let id = measurement;
-        let timestamp = time;
+    pub fn end(&mut self, timestamp: format::Timestamp, id: format::MeasurementId) {
         self.events.push(format::Event::End { id, timestamp });
     }
 
     /// Log a profiler-pause event to the profile.
-    pub fn pause(&mut self, time: format::Timestamp, measurement: format::MeasurementId) {
-        let id = measurement;
-        let timestamp = time;
+    pub fn pause(&mut self, timestamp: format::Timestamp, id: format::MeasurementId) {
         self.events.push(format::Event::Pause { id, timestamp });
-    }
-
-    /// Log a profiler-resume event to the profile.
-    pub fn resume(&mut self, time: format::Timestamp, measurement: format::MeasurementId) {
-        let id = measurement;
-        let timestamp = time;
-        self.events.push(format::Event::Resume { id, timestamp });
     }
 
     /// Attach a header to the profile indicating the offset of the file's timestamps from system
     /// time.
-    pub fn time_offset_ms(&mut self, offset: f64) {
-        self.header(format::Header::TimeOffset(format::Timestamp::from_ms(offset)));
+    pub fn time_offset(&mut self, offset: format::Timestamp) {
+        self.header(format::Header::TimeOffset(offset));
     }
 
     /// Attach a header to the profile identifying its process.
@@ -99,7 +81,7 @@ impl<'a> Builder<'a> {
         self.header(format::Header::Process(process.to_string()));
     }
 
-    fn header<'b: 'a>(&mut self, data: format::Header) {
+    fn header(&mut self, data: format::Header) {
         let data = serde_json::value::to_raw_value(&data).unwrap();
         let time = format::Timestamp::default();
         let event = format::Timestamped { time, data };

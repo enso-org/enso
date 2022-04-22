@@ -3,7 +3,8 @@
 //! See: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md#profiling-data
 
 use serde;
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 
 
@@ -26,11 +27,15 @@ pub type AnyMetadata = Box<serde_json::value::RawValue>;
 pub enum Event<'a> {
     /// Registers a label to be referenced by ID.
     #[serde(rename = "L")]
-    Label(&'a str),
+    Label {
+        /// The text content of the label.
+        #[serde(rename = "l")]
+        label: &'a str,
+    },
     /// The beginning of a measurement that starts in the paused state.
     #[serde(rename = "C")]
     Create(Start),
-    /// The beginning of a measurement.
+    /// The beginning of a measurement, or the continuation after an interruption.
     #[serde(rename = "S")]
     Start {
         /// Identifies the measurement.
@@ -60,16 +65,6 @@ pub enum Event<'a> {
         #[serde(rename = "t")]
         timestamp: Timestamp,
     },
-    /// The end of an interruption to an a measurement, e.g. an await point.
-    #[serde(rename = "R")]
-    Resume {
-        /// Identifies the measurement.
-        #[serde(rename = "i")]
-        id:        MeasurementId,
-        /// When the event occurred.
-        #[serde(rename = "t")]
-        timestamp: Timestamp,
-    },
     /// Metadata: wrapper with dependency-injected contents.
     #[serde(rename = "X")]
     Metadata(Timestamped<AnyMetadata>),
@@ -82,10 +77,11 @@ pub enum Event<'a> {
 // =============
 
 /// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Start {
     /// Specifies parent measurement.
     #[serde(rename = "p")]
+    #[serde(skip_serializing_if = "Parent::is_implicit")]
     pub parent: Parent,
     /// Start time, or None to indicate it is the same as `parent`.
     #[serde(rename = "t")]
@@ -119,15 +115,24 @@ impl Label {
 /// Specifies how the parent of a measurement is identified.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Parent {
+    /// Unspecified parent, to be identified from context.
     Implicit,
+    /// Specific parent.
     Explicit(ParentId),
 }
 
 impl Parent {
+    /// Unspecified parent, to be identified from context.
     pub fn implicit() -> Self {
         Parent::Implicit
     }
 
+    /// Return whether the parent is implicit.
+    pub fn is_implicit(&self) -> bool {
+        *self == Parent::Implicit
+    }
+
+    /// Returns the special parent of top-level measurements.
     pub fn root() -> Self {
         Parent::Explicit(ParentId::Root)
     }
@@ -145,7 +150,9 @@ impl From<MeasurementId> for Parent {
 /// Identifies a parent for a measurement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ParentId {
+    /// The root of top-level measurements.
     Root,
+    /// A runtime measurement.
     Measurement(MeasurementId),
 }
 
@@ -153,62 +160,34 @@ pub enum ParentId {
 // === Serialized representation ===
 
 impl Serialize for Parent {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::ser::Serializer,
-    {
-        let parent = parent_repr::Parent::from(*self);
-        Serialize::serialize(&parent, serializer)
+    fn serialize<S>(&self, ser: S) -> Result<S::Ok, S::Error>
+    where S: serde::ser::Serializer {
+        match *self {
+            Parent::Implicit => ser.serialize_none(),
+            Parent::Explicit(ParentId::Root) => ser.serialize_i64(-1),
+            Parent::Explicit(ParentId::Measurement(MeasurementId(id))) =>
+                ser.serialize_u64(id as u64),
+        }
     }
 }
 
 impl<'de> Deserialize<'de> for Parent {
     fn deserialize<D>(deserializer: D) -> Result<Parent, D::Error>
-        where
-            D: serde::de::Deserializer<'de>,
-    {
-        let parent: parent_repr::Parent = Deserialize::deserialize(deserializer)?;
-        parent.try_into().map_err(|id| {
-            let found = serde::de::Unexpected::Signed(id);
-            let wanted = "a positive integer or the special value -1";
-            serde::de::Error::invalid_value(found, &wanted)
+    where D: serde::de::Deserializer<'de> {
+        let parent: Option<i64> = Deserialize::deserialize(deserializer)?;
+        Ok(match parent {
+            None => Parent::Implicit,
+            Some(-1) => Parent::Explicit(ParentId::Root),
+            Some(id) => {
+                let id = id.try_into().map_err(|_| {
+                    let found = serde::de::Unexpected::Signed(id);
+                    let wanted =
+                        format!("an integer between 0 and {}, or the special value -1", usize::MAX);
+                    serde::de::Error::invalid_value(found, &wanted.as_str())
+                })?;
+                Parent::Explicit(ParentId::Measurement(MeasurementId(id)))
+            }
         })
-    }
-}
-
-mod parent_repr {
-    use super::*;
-
-    /// Used to derive a serialization for [`Parent`].
-    #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-    pub(super) struct Parent(
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub Option<i64>
-    );
-
-    impl TryFrom<Parent> for super::Parent {
-        type Error = i64;
-        fn try_from(parent: Parent) -> Result<Self, Self::Error> {
-            Ok(match parent.0 {
-                None => super::Parent::Implicit,
-                Some(-1) => super::Parent::Explicit(ParentId::Root),
-                Some(id) => {
-                    let id = id.try_into().map_err(|_| id)?;
-                    super::Parent::Explicit(ParentId::Measurement(MeasurementId(id)))
-                },
-            })
-        }
-    }
-
-    impl From<super::Parent> for Parent {
-        fn from(parent: crate::format::Parent) -> Self {
-            Parent(match parent {
-                super::Parent::Implicit => None,
-                super::Parent::Explicit(ParentId::Root) => Some(-1),
-                super::Parent::Explicit(ParentId::Measurement(MeasurementId(id))) =>
-                    Some(id.try_into().expect("64-bit ID overflow should not be possible!")),
-            })
-        }
     }
 }
 
@@ -272,7 +251,8 @@ pub struct Timestamped<T> {
 /// Standard file headers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Header {
-    /// Value that can be added to a [`Timestamp`] to translate it to an offset from the Unix Epoch.
+    /// Value that can be added to a [`Timestamp`] to translate it to an offset from the Unix
+    /// Epoch.
     #[serde(rename = "$TimeOffset")]
     TimeOffset(Timestamp),
     /// Application-specific identifier used to distinguish log data from different processes.

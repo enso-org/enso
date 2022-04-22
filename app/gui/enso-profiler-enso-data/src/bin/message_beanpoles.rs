@@ -85,7 +85,7 @@ fn main() {
     let mut offset1 = None;
     for meta in metadata0.into_iter() {
         if let enso_data::Metadata::RpcEvent(message) = meta.data {
-            let abs_time = meta.mark.into_ms();
+            let abs_time = meta.time.into_ms();
             let offset = offset0.get_or_insert(abs_time);
             let time = abs_time - *offset;
             dia.message(ls, frontend, time, message);
@@ -93,7 +93,7 @@ fn main() {
     }
     for meta in metadata1.into_iter() {
         if let enso_data::Metadata::BackendMessage(message) = meta.data {
-            let abs_time = meta.mark.into_ms();
+            let abs_time = meta.time.into_ms();
             let offset = offset1.get_or_insert(abs_time);
             let time = abs_time - *offset;
             let (p0, p1) = match message.direction {
@@ -109,7 +109,7 @@ fn main() {
 fn collect_metadata<M: Clone>(
     profile: &data::Profile<M>,
     interval: data::IntervalId,
-    metadata: &mut Vec<data::Metadata<M>>,
+    metadata: &mut Vec<data::Timestamped<M>>,
 ) {
     let interval = &profile[interval];
     metadata.extend(interval.metadata.iter().cloned());

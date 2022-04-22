@@ -532,10 +532,7 @@ mod bench {
     }
 
     /// For comparison with time taken by [`log_measurements`].
-    fn push_vec(
-        count: usize,
-        log: &mut Vec<profiler::Event>,
-    ) {
+    fn push_vec(count: usize, log: &mut Vec<profiler::Event>) {
         for _ in 0..count {
             log.push(profiler::Event::Start(profiler::Start {
                 parent: profiler::EventId::APP_LIFETIME,
