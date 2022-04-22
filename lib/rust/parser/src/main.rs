@@ -8,7 +8,8 @@ use crate::prelude::*;
 
 pub mod lexer;
 
-use enso_data_structures::hash_map_tree::HashMapTree;
+use enso_data_structures::list;
+use enso_data_structures::list::List;
 use lexer::Token;
 
 pub mod prelude {
@@ -16,113 +17,6 @@ pub mod prelude {
 }
 
 
-#[derive(Clone, Debug)]
-pub struct Node<T> {
-    head: T,
-    tail: List<T>,
-}
-
-impl<T> Node<T> {
-    pub fn singleton(head: T) -> Self {
-        let tail = default();
-        Self { head, tail }
-    }
-}
-
-
-#[derive(Derivative, Deref)]
-#[derivative(Clone(bound = ""))]
-pub struct NonEmptyList<T> {
-    node: Rc<Node<T>>,
-}
-
-#[derive(Derivative, Deref)]
-#[derivative(Clone(bound = ""))]
-#[derivative(Default(bound = ""))]
-pub struct List<T> {
-    data: Option<NonEmptyList<T>>,
-}
-
-impl<T> NonEmptyList<T> {
-    pub fn singleton(head: T) -> Self {
-        let node = Rc::new(Node::singleton(head));
-        Self { node }
-    }
-
-    pub fn into_list(self) -> List<T> {
-        let data = Some(self);
-        List { data }
-    }
-
-    pub fn with_head(self, head: T) -> Self {
-        self.into_list().with_head(head)
-    }
-
-    pub fn head(&self) -> &T {
-        &self.head
-    }
-
-    pub fn tail(&self) -> &List<T> {
-        &self.tail
-    }
-
-    pub fn is_empty(&self) -> bool {
-        false
-    }
-
-    fn to_vec(&self) -> Vec<&T> {
-        let mut out: Vec<&T> = vec![&self.head];
-        let mut list = self.tail();
-        loop {
-            match list.head() {
-                None => break,
-                Some(head) => {
-                    out.push(head);
-                    match list.tail() {
-                        None => break,
-                        Some(tail) => list = tail,
-                    }
-                }
-            }
-        }
-        out
-    }
-}
-impl<T> List<T> {
-    pub fn with_head(self, head: T) -> NonEmptyList<T> {
-        let tail = self;
-        let node = Rc::new(Node { head, tail });
-        NonEmptyList { node }
-    }
-
-    pub fn head(&self) -> Option<&T> {
-        self.as_ref().map(|t| t.head())
-    }
-
-    pub fn tail(&self) -> Option<&List<T>> {
-        self.as_ref().map(|t| t.tail())
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.is_none()
-    }
-
-    fn to_vec(&self) -> Vec<&T> {
-        self.data.as_ref().map(|t| t.to_vec()).unwrap_or_default()
-    }
-}
-
-impl<T> From<NonEmptyList<T>> for List<T> {
-    fn from(list: NonEmptyList<T>) -> Self {
-        list.into_list()
-    }
-}
-
-impl<T: Debug> Debug for List<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.to_vec(), f)
-    }
-}
 
 // ==================================
 
@@ -196,7 +90,7 @@ impl Pattern {
 #[derive(Debug)]
 pub struct Macro<'a> {
     prefix:   Option<Pattern>,
-    segments: NonEmptyList<MacroSegment<'a>>,
+    segments: list::NonEmpty<MacroSegment<'a>>,
 }
 
 #[derive(Clone, Debug)]
@@ -219,14 +113,14 @@ fn macro_if_then_else<'a>() -> Macro<'a> {
     let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
     Macro {
         prefix:   None,
-        segments: NonEmptyList::singleton(section3).with_head(section2).with_head(section1),
+        segments: list::NonEmpty::singleton(section3).with_head(section2).with_head(section1),
     }
 }
 
 fn macro_if_then<'a>() -> Macro<'a> {
     let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
     let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    Macro { prefix: None, segments: NonEmptyList::singleton(section2).with_head(section1) }
+    Macro { prefix: None, segments: list::NonEmpty::singleton(section2).with_head(section1) }
 }
 
 #[derive(Debug)]
@@ -267,10 +161,12 @@ impl<'a> Resolver<'a> {
 
         let if_then = macro_if_then();
         let if_then_else = macro_if_then_else();
-        let if_then =
-            MacroSegmentTreeDataRecord { list: if_then.segments.clone(), def: Rc::new(if_then) };
+        let if_then = MacroSegmentTreeDataRecord {
+            list: if_then.segments.tail.clone(),
+            def:  Rc::new(if_then),
+        };
         let if_then_else = MacroSegmentTreeDataRecord {
-            list: if_then_else.segments.clone(),
+            list: if_then_else.segments.tail.clone(),
             def:  Rc::new(if_then_else),
         };
         root_segment_tree.subsections.entry("if").or_default().push(if_then);
