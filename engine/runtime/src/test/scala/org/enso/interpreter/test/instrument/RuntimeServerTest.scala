@@ -732,12 +732,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(66, 41)
-    val idMainBar = metadata.addItem(98, 8)
+    val idMain    = metadata.addItem(101, 41)
+    val idMainBar = metadata.addItem(133, 8)
 
     val code =
       """from Standard.Builtins import all
         |import Standard.Base.IO
+        |import Standard.Base.Runtime.State
         |
         |main = IO.println (State.run Number 42 this.bar)
         |
@@ -792,12 +793,13 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(66, 40)
-    val idMainBar = metadata.addItem(97, 8)
+    val idMain    = metadata.addItem(101, 40)
+    val idMainBar = metadata.addItem(132, 8)
 
     val code =
       """from Standard.Builtins import all
         |import Standard.Base.IO
+        |import Standard.Base.Runtime.State
         |
         |main = IO.println (State.run Number 0 this.bar)
         |

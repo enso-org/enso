@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
+from Standard.Base.Runtime.Resource import all
 
 export Standard.Base.System.File.Option
 

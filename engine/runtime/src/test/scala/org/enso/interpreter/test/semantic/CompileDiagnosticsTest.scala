@@ -37,7 +37,6 @@ class CompileDiagnosticsTest extends InterpreterTest {
   "surface redefinition errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
-          |from Standard.Builtins import Nothing
           |
           |foo =
           |    x = 1
@@ -51,7 +50,6 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface non-existent variable errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
-          |from Standard.Builtins import Nothing
           |
           |foo =
           |    my_var = 10

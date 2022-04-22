@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Json
-from Standard.Base.Runtime.Extensions as Runtime_Extensions import Stack_Trace_Element
+import Standard.Base.Runtime
 
 ## Dataflow errors.
 type Error
@@ -136,7 +136,7 @@ type Error
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    stack_trace : Vector.Vector Stack_Trace_Element
+    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
     stack_trace =
         Panic.get_attached_stack_trace this
 
@@ -202,7 +202,7 @@ type Caught_Panic
     convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
 
     ## Returns the stack trace of the caught panic.
-    stack_trace : Vector.Vector Stack_Trace_Element
+    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
     stack_trace =
         Panic.get_attached_stack_trace this
 
@@ -275,14 +275,14 @@ type Panic
 
        The ordering of the resulting vector is such that the top stack frame is the
        first element.
-    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Stack_Trace_Element
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
             Caught_Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
         stack_with_prims = Vector.Vector prim_stack
-        stack_with_prims.map Runtime_Extensions.wrap_primitive_stack_trace_element
+        stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
 
     ## Takes any value, and if it is a dataflow error, throws it as a Panic,
        otherwise, returns the original value unchanged.

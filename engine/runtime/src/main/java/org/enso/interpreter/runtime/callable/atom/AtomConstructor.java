@@ -53,6 +53,14 @@ public final class AtomConstructor implements TruffleObject {
     this(name, definitionScope, false);
   }
 
+  /**
+   * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
+   * AtomConstructor#initializeFields(LocalScope,ExpressionNode[],ExpressionNode[],ArgumentDefinition...)} is called.
+   *
+   * @param name the name of the Atom constructor
+   * @param definitionScope the scope in which this constructor was defined
+   * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
+   */
   public AtomConstructor(String name, ModuleScope definitionScope, Boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;

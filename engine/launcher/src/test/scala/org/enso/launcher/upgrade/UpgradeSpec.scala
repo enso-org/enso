@@ -292,7 +292,7 @@ class UpgradeSpec
       val script  = getTestDirectory / "script.enso"
       val message = "Hello from test"
       val content =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |main = IO.println "$message"
            |""".stripMargin
       FileSystem.writeTextFile(script, content)

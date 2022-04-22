@@ -22,20 +22,11 @@ import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.bool.False;
 import org.enso.interpreter.node.expression.builtin.bool.True;
-import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
-import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
+import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
-import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
-import org.enso.interpreter.node.expression.builtin.runtime.GetStackTraceMethodGen;
-import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
-import org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMethodGen;
-import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
-import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
-import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
 import org.enso.interpreter.node.expression.builtin.text.Text;
-import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
-import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -63,15 +54,16 @@ public class Builtins {
   private final Map<String,Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
   private final Map<String, AtomConstructor> builtins;
 
-  private final AtomConstructor debug;
-  private final AtomConstructor projectDescription;
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor debug;
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor projectDescription;
 
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
   private final Number number;
   private final Ordering ordering;
-  private final Resource resource;
   private final System system;
   private final Special special;
 
@@ -109,6 +101,9 @@ public class Builtins {
   @CompilerDirectives.CompilationFinal
   private AtomConstructor ref;
 
+  @CompilerDirectives.CompilationFinal
+  private AtomConstructor managedResource;
+
   /**
    * Creates an instance with builtin methods installed.
    *
@@ -125,59 +120,25 @@ public class Builtins {
     registerBuiltinMethods(builtinTypes, scope, language);
 
     error = new Error(this);
+    ordering = new Ordering(this);
+    system = new System(this);
 
     // TODO: Builtins that are not yet moved to stdlib
-    debug = new AtomConstructor("Debug", scope).initializeFields();
     Warning.initWarningMethods(language, scope);
-    projectDescription =
-        new AtomConstructor("Project_Description", scope)
-            .initializeFields(
-                new ArgumentDefinition(
-                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
-
     number = new Number(language, scope);
-    ordering = new Ordering(language, scope);
-    resource = new Resource(language, scope);
-    system = new System(language, scope);
     special = new Special(language);
-
-    AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
-    AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
-
-    AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
-
-    AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
-
-    scope.registerConstructor(state);
-    scope.registerConstructor(debug);
-    scope.registerConstructor(projectDescription);
-    scope.registerConstructor(runtime);
-    scope.registerConstructor(thread);
-
-    scope.registerConstructor(unsafe);
-
-    scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
-    scope.registerMethod(
-        runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
-    scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
-    scope.registerMethod(
-        runtime, "primitive_get_stack_trace", GetStackTraceMethodGen.makeFunction(language));
-
-    scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
-    scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
-    scope.registerMethod(state, "run", RunStateMethodGen.makeFunction(language));
-
-    scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalMethodGen.makeFunction(language));
-    scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
-
-    scope.registerMethod(
-        thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
-
-    scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
   }
 
-  public void registerBuiltinMethods(List<AtomConstructor> builtins, ModuleScope scope, Language language) {
+  /**
+   * Registers builtin methods with their corresponding Atom Constructor's owners.
+   * That way "special" builtin types have builtin methods in the scope without requiring
+   * everyone to always import full stdlib
+   *
+   * @param builtins List of Builtin Types
+   * @param scope Builtins scope
+   * @param language The language the resulting function nodes should be associated with
+   */
+  private void registerBuiltinMethods(List<AtomConstructor> builtins, ModuleScope scope, Language language) {
     for (AtomConstructor atom: builtins) {
       String tpeName = atom.getName();
       this.builtins.put(tpeName, atom);
@@ -236,6 +197,16 @@ public class Builtins {
     }
   }
 
+  /**
+   * Returns a list of supported builtins.
+   *
+   * Builtin types are marked via @BuiltinType annotation. THe metdata file represents a single
+   * builtin type per row. The format of the row is as follows:
+   * <Enso name of the builtin type>:<Name of the class representing it>:[<field1>,<field2>,...]
+   * where the last column gives a list of optional type's fields.
+   *
+   * @param scope Builtins scope
+   */
   private List<AtomConstructor> readBuiltinTypesMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
@@ -270,6 +241,16 @@ public class Builtins {
     }).filter(b -> b != null).collect(Collectors.toList());
   }
 
+  /**
+   * Returns a Map of builtin method nodes.
+   *
+   * Builtin types are marked via @BuiltinMethod annotation. THe metdata file represents a single
+   * builtin method per row. The format of the row is as follows:
+   * <Fully qualified name of the builtin method>:<Class name of the builtin method representing it>
+   *
+   * @param scope Builtins scope
+   * @return A map of builtin method nodes per builtin type name
+   */
   private Map<String, Map<String, Class<BuiltinRootNode>>> readBuiltinMethodsMetadata(ModuleScope scope) {
     ClassLoader classLoader = getClass().getClassLoader();
     List<String> lines;
@@ -317,6 +298,15 @@ public class Builtins {
     });
     return methodNodes;
   }
+
+  /**
+   * Returns a builtin method for the provided Atom Constructor and the name, if it exists.
+   *
+   * @param atom Atom Constructor owner of the function
+   * @param methodName Name of the method
+   * @param language The language the resulting function nodes should be associated with
+   * @return A non-empty function under the given name, if it exists. An empty value if no such builtin method was ever registerd
+   */
 
   public Optional<Function> getBuiltinFunction(AtomConstructor atom, String methodName, Language language) {
     // TODO: move away from String mapping once Builtins is gone
@@ -419,6 +409,15 @@ public class Builtins {
     return falseConstructor;
   }
 
+  /** @return the ManagedResource constructor. */
+  private AtomConstructor managedResource() {
+    if (managedResource == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      managedResource = getBuiltinType(ManagedResource.class);
+    }
+    return managedResource;
+  }
+
 
   /** @return the builtin Error types container. */
   public Error error() {
@@ -440,15 +439,24 @@ public class Builtins {
 
   /**
    * Returns the {@code Debug} atom constructor.
+   * TODO: this is redundant, figure out a way to avoid createing spurious Debug builtin type
    *
    * @return the {@code Debug} atom constructor
    */
   public AtomConstructor debug() {
+    if (debug == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      debug = getBuiltinType(Debug.class);
+    }
     return debug;
   }
 
-  /** @return the {@code Enso_Project} atom constructor */
+  /** @return the {@code Project_Description} atom constructor */
   public AtomConstructor getProjectDescription() {
+    if (projectDescription == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      projectDescription = getBuiltinType(ProjectDescription.class);
+    }
     return projectDescription;
   }
 
@@ -549,7 +557,7 @@ public class Builtins {
       case Constants.INTEGER:
         return number.getInteger().newInstance();
       case Constants.MANAGED_RESOURCE:
-        return resource.getManagedResource().newInstance();
+        return managedResource().newInstance();
       case Constants.NOTHING:
         return nothing().newInstance();
       case Constants.NUMBER:

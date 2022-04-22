@@ -156,13 +156,11 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val mainBody = metadata.addItem(42, 14)
+    val mainBody = metadata.addItem(7, 14)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main = "Hello World!"
-        |""".stripMargin.linesIterator.mkString("\n")
+      """|main = "Hello World!"
+         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -384,16 +382,14 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val mainBody = metadata.addItem(41, 28)
-    val fExpr    = metadata.addItem(50, 10)
+    val mainBody = metadata.addItem(6, 28)
+    val fExpr    = metadata.addItem(15, 10)
     // f body
-    metadata.addItem(55, 5)
-    val mainResExpr = metadata.addItem(65, 4)
+    metadata.addItem(20, 5)
+    val mainResExpr = metadata.addItem(30, 4)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    f = x -> x + 1
         |    f 42
         |""".stripMargin.linesIterator.mkString("\n")
@@ -442,14 +438,12 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val fExpr       = metadata.addItem(50, 5)
-    val xExpr       = metadata.addItem(64, 4)
-    val mainResExpr = metadata.addItem(73, 1)
+    val fExpr       = metadata.addItem(15, 5)
+    val xExpr       = metadata.addItem(29, 4)
+    val mainResExpr = metadata.addItem(38, 1)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    f = _ + 1
         |    x = f 42
         |    x
@@ -499,14 +493,13 @@ class RuntimeInstrumentTest
     val metadata   = new Metadata
 
     // f expression
-    metadata.addItem(41, 5)
-    val xExpr    = metadata.addItem(63, 8)
-    val mainRes  = metadata.addItem(76, 1)
-    val mainExpr = metadata.addItem(54, 23)
+    metadata.addItem(7, 5)
+    val xExpr    = metadata.addItem(29, 8)
+    val mainRes  = metadata.addItem(42, 1)
+    val mainExpr = metadata.addItem(20, 23)
 
     val code =
-      """from Standard.Builtins import all
-        |
+      """
         |f x = x + 1
         |
         |main =
@@ -741,12 +734,12 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(49, 33)
+    val xExpr = metadata.addItem(14, 33)
     // function body
-    metadata.addItem(64, 5)
+    metadata.addItem(29, 5)
     // x result
-    metadata.addItem(78, 4)
-    val mainRes = metadata.addItem(87, 1)
+    metadata.addItem(43, 4)
+    val mainRes = metadata.addItem(52, 1)
 
     val code =
       """from Standard.Builtins import all
@@ -801,19 +794,17 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(49, 36)
+    val xExpr = metadata.addItem(14, 36)
     // lambda
-    metadata.addItem(62, 10)
+    metadata.addItem(27, 10)
     // lambda body
-    metadata.addItem(67, 5)
+    metadata.addItem(32, 5)
     // x result
-    metadata.addItem(81, 4)
-    val mainRes = metadata.addItem(90, 1)
+    metadata.addItem(46, 4)
+    val mainRes = metadata.addItem(55, 1)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    x =
         |        f = x -> x + 1
         |        f 42
@@ -863,17 +854,15 @@ class RuntimeInstrumentTest
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(49, 31)
+    val xExpr = metadata.addItem(14, 31)
     // lambda
-    metadata.addItem(62, 5)
+    metadata.addItem(27, 5)
     // x result
-    metadata.addItem(76, 4)
-    val mainRes = metadata.addItem(85, 1)
+    metadata.addItem(41, 4)
+    val mainRes = metadata.addItem(50, 1)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    x =
         |        f = _ + 1
         |        f 42
@@ -923,24 +912,23 @@ class RuntimeInstrumentTest
     val metadata   = new Metadata
 
     // body of id method
-    metadata.addItem(51, 1)
+    metadata.addItem(17, 1)
     // body of id1 function
-    metadata.addItem(87, 3)
+    metadata.addItem(53, 3)
     // default lambda argument a->a in id method
-    metadata.addItem(43, 4)
+    metadata.addItem(9, 4)
     // default lambda argument a->a in id1 function
-    metadata.addItem(79, 4)
+    metadata.addItem(45, 4)
     // first x->x argument
-    metadata.addItem(103, 4)
+    metadata.addItem(79, 4)
     // second x->x argument
-    metadata.addItem(157, 4)
-    val arg1 = metadata.addItem(99, 2)
-    val arg2 = metadata.addItem(110, 2)
-    val arg3 = metadata.addItem(142, 2)
+    metadata.addItem(123, 4)
+    val arg1 = metadata.addItem(65, 2)
+    val arg2 = metadata.addItem(76, 2)
+    val arg3 = metadata.addItem(108, 2)
 
     val code =
-      """from Standard.Builtins import all
-        |
+      """
         |id (x = a->a) = x
         |
         |main =

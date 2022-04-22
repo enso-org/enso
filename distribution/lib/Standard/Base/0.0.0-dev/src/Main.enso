@@ -29,7 +29,10 @@ import project.Meta
 import project.Meta.Enso_Project
 import project.Polyglot
 import project.Polyglot.Java
+import project.Runtime
 import project.Runtime.Extensions
+import project.Runtime.State
+import project.Runtime.Resource
 import project.System.Environment
 import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
@@ -51,6 +54,8 @@ export project.IO.Prim_Io
 export project.Math
 export project.Meta
 export project.Polyglot.Java
+export project.Runtime
+export project.Runtime.State
 export project.System.Environment
 export project.System.File
 export project.Data.Text.Regex.Mode as Regex_Mode
@@ -81,5 +86,6 @@ from project.Meta.Enso_Project export all
 from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
+from project.Runtime.Resource export all
 
-from Standard.Builtins export all hiding Less, Equal, Greater, Ordering
+from Standard.Builtins export all

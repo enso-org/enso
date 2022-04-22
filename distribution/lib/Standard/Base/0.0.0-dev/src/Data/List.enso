@@ -1,7 +1,8 @@
-from Standard.Builtins import all
+from Standard.Builtins import Number,Integer
 from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Nothing
+import Standard.Base.Runtime.Unsafe
 
 ## The basic cons-list type.
 
