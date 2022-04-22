@@ -16,7 +16,6 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl_core::display::shape;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -27,6 +26,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer::MaskedLayer;
+use ensogl_core::display::shape;
 use ensogl_scrollbar as scrollbar;
 use ensogl_scrollbar::Scrollbar;
 
