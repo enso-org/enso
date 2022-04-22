@@ -157,36 +157,8 @@ class DemandAnalysisTest extends CompilerTest {
 
       vec.items(0) shouldBe an[IR.Application.Force]
       vec.items(1) shouldBe an[IR.Application.Force]
-      vec.items(2) shouldBe an[IR.Name]
+      vec.items(2) shouldBe an[IR.Application.Force]
 
-    }
-  }
-
-  "Non-suspended arguments" should {
-    implicit val ctx: InlineContext = mkInlineContext
-
-    val ir =
-      """x -> y ->
-        |  a = x
-        |  foo x a
-        |""".stripMargin.preprocessExpression.get.analyse
-
-    val body = ir
-      .asInstanceOf[IR.Function.Lambda]
-      .body
-      .asInstanceOf[IR.Expression.Block]
-
-    "be left alone by demand analysis" in {
-      body.expressions.head
-        .asInstanceOf[IR.Expression.Binding]
-        .expression shouldBe an[IR.Name]
-
-      body.returnValue
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments
-        .head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
     }
   }
 

@@ -169,49 +169,29 @@ case object DemandAnalysis extends IRPass {
     name: IR.Name,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
-    val usesLazyTerm = true
-
     if (isInsideCallArgument) {
       name
     } else {
-      if (usesLazyTerm) {
-        val forceLocation   = name.location
-        val newNameLocation = name.location.map(l => l.copy(id = None))
-
-        val newName = name match {
-          case lit: IR.Name.Literal => lit.copy(location = newNameLocation)
-          case ths: IR.Name.This    => ths.copy(location = newNameLocation)
-          case here: IR.Name.Here   => here.copy(location = newNameLocation)
-          case special: IR.Name.Special =>
-            special.copy(location = newNameLocation)
-          case _: IR.Name.Annotation =>
-            throw new CompilerError(
-              "Annotations should not be present by the time demand analysis" +
-              " runs."
-            )
-          case _: IR.Name.MethodReference =>
-            throw new CompilerError(
-              "Method references should not be present by the time demand " +
-              "analysis runs."
-            )
-          case _: IR.Name.Qualified =>
-            throw new CompilerError(
-              "Qualified names should not be present by the time demand " +
-              "analysis runs."
-            )
-          case err: IR.Error.Resolution => err
-          case err: IR.Error.Conversion => err
-          case _: IR.Name.Blank =>
-            throw new CompilerError(
-              "Blanks should not be present by the time demand analysis runs."
-            )
-        }
-
-        IR.Application.Force(newName, forceLocation)
-      } else {
-        name
+      name match {
+        case lit: IR.Name.Literal if isDefined(lit) =>
+          val forceLocation   = name.location
+          val newNameLocation = name.location.map(l => l.copy(id = None))
+          val newName         = lit.copy(location = newNameLocation)
+          IR.Application.Force(newName, forceLocation)
+        case _ => name
       }
     }
+  }
+
+  private def isDefined(name: IR.Name): Boolean = {
+    val aliasInfo = name
+      .unsafeGetMetadata(
+        AliasAnalysis,
+        "Missing alias occurrence information for a name usage"
+      )
+      .unsafeAs[AliasAnalysis.Info.Occurrence]
+
+    aliasInfo.graph.defLinkFor(aliasInfo.id).isDefined
   }
 
   /** Performs demand analysis on an application.
@@ -229,10 +209,10 @@ case object DemandAnalysis extends IRPass {
       case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
         val newFun = fn match {
           case n: IR.Name => n
-          case e => analyseExpression(e, isInsideCallArgument = false)
+          case e          => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
-          function = newFun,
+          function  = newFun,
           arguments = args.map(analyseCallArgument)
         )
       case force @ IR.Application.Force(target, _, _, _) =>
@@ -278,7 +258,7 @@ case object DemandAnalysis extends IRPass {
           value = analyseExpression(
             expr,
             isInsideCallArgument = true
-          ),
+          )
         )
     }
   }
