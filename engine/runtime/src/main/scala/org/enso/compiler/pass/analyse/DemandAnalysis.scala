@@ -262,43 +262,6 @@ case object DemandAnalysis extends IRPass {
         )
     }
 
-  /** Determines whether a particular piece of IR represents the usage of a
-    * suspended term (and hence requires forcing).
-    *
-    * @param expr the expression to check
-    * @return `true` if `expr` represents the usage of a suspended term, `false`
-    *         otherwise
-    */
-  def isUsageOfSuspendedTerm(expr: IR.Expression): Boolean = {
-    expr match {
-      case name: IR.Name =>
-        val aliasInfo = name
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "Missing alias occurrence information for a name usage"
-          )
-          .unsafeAs[AliasAnalysis.Info.Occurrence]
-
-        aliasInfo.graph
-          .defLinkFor(aliasInfo.id)
-          .flatMap(link => {
-            aliasInfo.graph
-              .getOccurrence(link.target)
-              .getOrElse(
-                throw new CompilerError(
-                  s"Malformed aliasing link with target ${link.target}"
-                )
-              ) match {
-              case AliasAnalysis.Graph.Occurrence.Def(_, _, _, _, isLazy) =>
-                if (isLazy) Some(true) else None
-              case _ => None
-            }
-          })
-          .isDefined
-      case _ => false
-    }
-  }
-
   /** Performs demand analysis on a function call argument.
     *
     * In keeping with the requirement by the runtime to pass all function
@@ -310,13 +273,12 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseCallArgument(arg: IR.CallArgument): IR.CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+      case spec @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         spec.copy(
           value = analyseExpression(
             expr,
             isInsideCallArgument = true
           ),
-          shouldBeSuspended = Some(!isUsageOfSuspendedTerm(expr))
         )
     }
   }
