@@ -23,7 +23,6 @@ pub type AnyMetadata = Box<serde_json::value::RawValue>;
 
 /// An entry in the profiling log.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "e")]
 pub enum Event<'a> {
     /// Registers a label to be referenced by ID.
     #[serde(rename = "L")]
