@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
-use crate::display::navigation::navigator::NavigatorSettings;
+use crate::display::navigation::navigator::Settings;
 
 use nalgebra::zero;
 use nalgebra::Vector2;
@@ -78,7 +78,7 @@ enum MovementType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct NavigatorEventsProperties {
-    settings:            Rc<NavigatorSettings>,
+    settings:            Rc<Settings>,
     movement_type:       Option<MovementType>,
     last_mouse_position: Vector2<f32>,
     mouse_position:      Vector2<f32>,
@@ -103,7 +103,7 @@ impl NavigatorEventsData {
     fn new(
         pan_callback: Box<dyn FnPanEvent>,
         zoom_callback: Box<dyn FnZoomEvent>,
-        settings: Rc<NavigatorSettings>,
+        settings: Rc<Settings>,
     ) -> Rc<Self> {
         let mouse_position = zero();
         let last_mouse_position = zero();
@@ -204,7 +204,7 @@ impl NavigatorEvents {
         mouse_manager: &MouseManager,
         pan_callback: P,
         zoom_callback: Z,
-        settings: Rc<NavigatorSettings>,
+        settings: Rc<Settings>,
     ) -> Self
     where
         P: FnPanEvent,

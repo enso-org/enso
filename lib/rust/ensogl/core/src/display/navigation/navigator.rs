@@ -30,13 +30,13 @@ const DEFAULT_PAN_SPEED: f32 = 1.0;
 
 
 
-// =========================
-// === NavigatorSettings ===
-// =========================
+// ================
+// === Settings ===
+// ================
 
 /// Enabling/disabling Navigator and changing its settings.
 #[derive(Debug, Clone)]
-pub struct NavigatorSettings {
+pub struct Settings {
     is_enabled:           Cell<bool>,
     zoom_speed:           Cell<Switch<f32>>,
     pan_speed:            Cell<Switch<f32>>,
@@ -44,7 +44,7 @@ pub struct NavigatorSettings {
     max_zoom:             Cell<Option<f32>>,
 }
 
-impl Default for NavigatorSettings {
+impl Default for Settings {
     fn default() -> Self {
         Self {
             zoom_speed:           Cell::new(Switch::new(DEFAULT_ZOOM_SPEED, true)),
@@ -56,7 +56,7 @@ impl Default for NavigatorSettings {
     }
 }
 
-impl NavigatorSettings {
+impl Settings {
     // === Getters ===
 
     pub fn zoom_speed(&self) -> f32 {
@@ -121,7 +121,7 @@ impl NavigatorSettings {
 #[derive(Debug, Deref)]
 pub struct NavigatorModel {
     #[deref]
-    settings:        Rc<NavigatorSettings>,
+    settings:        Rc<Settings>,
     events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
@@ -129,7 +129,7 @@ pub struct NavigatorModel {
 
 impl NavigatorModel {
     pub fn new(scene: &Scene, camera: &Camera2d) -> Self {
-        let settings = Rc::new(NavigatorSettings::default());
+        let settings = Rc::new(Settings::default());
         let (simulator, resize_callback, events) =
             Self::start_navigator_events(scene, camera, settings.clone_ref());
         Self { events, simulator, resize_callback, settings }
@@ -150,7 +150,7 @@ impl NavigatorModel {
     fn start_navigator_events(
         scene: &Scene,
         camera: &Camera2d,
-        settings: Rc<NavigatorSettings>,
+        settings: Rc<Settings>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
         let distance_to_zoom_factor_of_1 = |camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
