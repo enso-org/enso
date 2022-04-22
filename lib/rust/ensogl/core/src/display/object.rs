@@ -34,7 +34,7 @@ pub mod traits {
 // === InstanceWithLayer ===
 // =========================
 
-/// A display object with a set of layers. When [`Instance`] is added to a scene layer, the `layer`
+/// A display object with a layer. When [`Instance`] is added to a scene layer, the `layer`
 /// is attached to that new layer using [Layer::add_sublayer]. Likewise, when the instance is
 /// removed from a layer, the `layer` is detached using [Layer::remove_sublayer].
 ///
@@ -59,8 +59,9 @@ pub struct InstanceWithLayer<L> {
 impl<L: CloneRef + AsRef<Layer> + 'static> InstanceWithLayer<L> {
     /// Constructor. Sets a `on_scene_layers_changed` callback for `instance`.
     ///
-    /// Calling this method does not immediately attaches `layer` to the `instance`'s layer, so it
-    /// should be called before changing the layer of the `instance`.
+    /// This function does not act on layers itself, it just sets a callback for future use. This
+    /// callback ensures that the `layer` will always be attached to the same layer the
+    /// `instance` is attached to.
     pub fn new(instance: Instance, layer: L) -> Self {
         instance.set_on_scene_layer_changed(f!([layer](_, source, destination) {
             for src_layer in source {

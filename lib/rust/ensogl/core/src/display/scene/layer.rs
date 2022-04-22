@@ -659,6 +659,9 @@ impl LayerModel {
     }
 
     /// Remove previously attached sublayer.
+    ///
+    /// The implementation is a reverse of [`LayerModel::add_sublayer`]: we modify both fields of
+    /// [`SublayersModel`] and also unset parent.
     pub fn remove_sublayer(&self, layer: &Layer) {
         self.sublayers.borrow_mut().remove(layer.id());
         layer.remove_parent(&self.sublayers);
@@ -917,8 +920,8 @@ impl SublayersModel {
 // === Masked ===
 // ==============
 
-/// A layer with an attached mask. Each opaque shape in the `mask_layer` defines the renderable area
-/// of the `masked_layer`.
+/// A layer with an attached mask. Each shape in the `mask_layer` defines the renderable area
+/// of the `masked_layer`. See [`Layer`] docs for the info about masking.
 ///
 /// One of the use cases might be an `ensogl_scroll_area::ScrollArea` component
 /// implementation. To clip the area's content (so that it is displayed only inside its borders) we
