@@ -124,7 +124,6 @@ public class Builtins {
     system = new System(this);
 
     // TODO: Builtins that are not yet moved to stdlib
-    Warning.initWarningMethods(language, scope);
     number = new Number(language, scope);
     special = new Special(language);
   }

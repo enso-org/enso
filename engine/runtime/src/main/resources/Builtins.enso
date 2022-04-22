@@ -4,38 +4,6 @@
 # for that builtin in this file. If that is not done, it will fail to resolve
 # properly at runtime.
 
-@Builtin_Type
-type Prim_Warning
-    type Prim_Warning
-
-    ## PRIVATE
-    attach : Any -> Any -> Any -> Any
-    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
-
-    ## PRIVATE
-    create : Any -> Any -> Prim_Warning
-    create payload origin = @Builtin_Method "Prim_Warning.create"
-
-    ## PRIVATE
-    get_all : Any -> Array Prim_Warning
-    get_all value = @Builtin_Method "Prim_Warning.get_all"
-
-    ## PRIVATE
-    set : Any -> Array Prim_Warning -> Any
-    set value warnings = @Builtin_Method "Prim_Warning.set"
-
-    ## PRIVATE
-    get_origin : Prim_Warning -> Any
-    get_origin warn = @Builtin_Method "Prim_Warning.get_origin"
-
-    ## PRIVATE
-    get_value : Prim_Warning -> Any
-    get_value warn = @Builtin_Method "Prim_Warning.get_value"
-
-    ## PRIVATE
-    get_reassignments : Prim_Warning -> Any
-    get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"
-
 ## The root type of the Enso numeric hierarchy.
 
    If a Number is expected, then the program can provide either a Decimal or
