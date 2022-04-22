@@ -7,10 +7,12 @@
 use crate::prelude::*;
 
 pub mod lexer;
+pub mod source;
 
 use enso_data_structures::list;
 use enso_data_structures::list::List;
 use lexer::Token;
+use source::WithSources;
 
 pub mod prelude {
     pub use enso_prelude::*;
@@ -273,26 +275,63 @@ impl<'a> MacroSegmentTreeData<'a> {
 
 pub type Ast = Token<AstData>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AstData {
     Ident,
     MultiSegmentApp(MultiSegmentApp),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MultiSegmentApp {
     segments: Vec<MultiSegmentAppSegment>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MultiSegmentAppSegment {
     header: Token,
     body:   Ast,
 }
 
 
+impl<'s> Debug for WithSources<'s, &AstData> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.data {
+            AstData::Ident => f.debug_tuple("Ident").finish(),
+            AstData::MultiSegmentApp(t) =>
+                f.debug_tuple("MultiSegmentApp").field(&self.trans(|_| t)).finish(),
+        }
+    }
+}
+
+impl<'s> Debug for WithSources<'s, &MultiSegmentApp> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.segments.iter().map(|t| self.trans(|_| t))).finish()
+    }
+}
+
+impl<'s> Debug for WithSources<'s, &MultiSegmentAppSegment> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MultiSegmentAppSegment")
+            .field("header", &self.trans(|_| &self.header))
+            .field("body", &self.body)
+            .finish()
+    }
+}
+
 fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
-    tokens[0].with_elem(AstData::Ident)
+    let mut tokens = tokens.into_iter();
+    match tokens.next() {
+        None => panic!(),
+        Some(first) => {
+            if let Some(elem) = tokens.next() {
+                panic!("Got element: {:#?}", elem);
+            }
+            match first.elem {
+                lexer::Kind::Ident(ident) => first.with_elem(AstData::Ident),
+                _ => panic!(),
+            }
+        }
+    }
 }
 
 fn macro_if_then_else<'a>() -> Macro<'a> {
@@ -312,8 +351,10 @@ fn macro_if_then_else<'a>() -> Macro<'a> {
                 })
                 .collect_vec();
             if let Some(first) = segments.first_mut() {
-                let data = MultiSegmentApp { segments };
-                panic!()
+                let (left, right) = first.header.split_at_start();
+                first.header = right;
+                let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
+                left.with_elem(data)
             } else {
                 panic!()
             }
@@ -332,8 +373,9 @@ fn macro_if_then<'a>() -> Macro<'a> {
 }
 
 
+
 fn main() {
-    let str = "if a then b c else d e f";
+    let str = "if a then b else c";
     let mut lexer = Lexer::new(str);
     println!("{:#?}", lexer.run());
     println!("{:#?}", lexer.output);
@@ -346,7 +388,7 @@ fn main() {
 
     println!("\n---\n");
 
-    println!("{:#?}", ast);
+    println!("{:#?}", WithSources::new(str, &ast));
 }
 
 // var1 = if (a > b) then if x then y else z else w

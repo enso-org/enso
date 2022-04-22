@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::source::WithSources;
 use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
@@ -107,16 +108,26 @@ impl BytesStrOps for str {
 #[derive(Clone, Copy, Deref, PartialEq, Eq)]
 pub struct Token<T = Kind> {
     #[deref]
-    elem:                T,
-    left_visible_offset: usize,
-    left_offset:         Bytes,
-    start:               Bytes,
-    len:                 Bytes,
+    pub elem:                T,
+    pub left_visible_offset: usize,
+    pub left_offset:         Bytes,
+    pub start:               Bytes,
+    pub len:                 Bytes,
 }
 
 impl<T: Debug> Debug for Token<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}{{off:{},len:{}}}", self.elem, self.left_visible_offset, self.len)
+        write!(f, "[off:{}, len:{}] {:#?}", self.left_visible_offset, self.len, self.elem)
+    }
+}
+
+impl<'s, 't, T> Debug for WithSources<'s, &'t Token<T>>
+where for<'x> WithSources<'x, &'t T>: Debug
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let off = self.left_visible_offset;
+        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
+        Debug::fmt(&self.trans(|t| &t.elem), f)
     }
 }
 
@@ -144,26 +155,53 @@ impl<T> Token<T> {
     }
 
     #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> Option<(Token<()>, Token<()>)> {
-        (offset <= self.len).as_some_from(|| {
-            let token_left = {
-                let left_visible_offset = self.left_visible_offset;
-                let left_offset = self.left_offset;
-                let start = self.start;
-                let len = self.len - offset;
-                let elem = ();
-                Token { left_visible_offset, left_offset, start, len, elem }
-            };
-            let token_right = {
-                let left_visible_offset = 0;
-                let left_offset = Bytes::from(0);
-                let start = self.start + offset;
-                let len = self.len - offset;
-                let elem = ();
-                Token { left_visible_offset, left_offset, start, len, elem }
-            };
-            (token_left, token_right)
-        })
+    pub fn split_at(self, offset: Bytes) -> (Token<()>, Token<()>) {
+        let (_, token_left, token_right) = self.split_at_internal(offset);
+        (token_left, token_right)
+    }
+
+    #[inline(always)]
+    fn split_at_internal(self, offset: Bytes) -> (T, Token<()>, Token<()>) {
+        let token_left = {
+            let left_visible_offset = self.left_visible_offset;
+            let left_offset = self.left_offset;
+            let start = self.start;
+            let len = self.len - offset;
+            let elem = ();
+            Token { left_visible_offset, left_offset, start, len, elem }
+        };
+        let token_right = {
+            let left_visible_offset = 0;
+            let left_offset = Bytes::from(0);
+            let start = self.start + offset;
+            let len = self.len - offset;
+            let elem = ();
+            Token { left_visible_offset, left_offset, start, len, elem }
+        };
+        (self.elem, token_left, token_right)
+    }
+
+    pub fn split_at_start(self) -> (Token<()>, Token<T>) {
+        let left_offset = self.left_offset;
+        let (elem, token_left, token_right) = self.split_at_internal(left_offset);
+        let token_right = token_right.with_elem(elem);
+        (token_left, token_right)
+    }
+
+    pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
+        source.slice(self.start..self.start + self.len)
+    }
+}
+
+impl<'s, T> WithSources<'s, Token<T>> {
+    pub fn repr(&self) -> &str {
+        self.data.source_slice(&self.source)
+    }
+}
+
+impl<'s, T> WithSources<'s, &Token<T>> {
+    pub fn repr(&self) -> &str {
+        self.data.source_slice(&self.source)
     }
 }
 
@@ -283,7 +321,7 @@ impl<'s> Lexer<'s> {
 
     #[inline(always)]
     pub fn repr<T>(&self, token: Token<T>) -> &str {
-        self.input.slice(token.start..token.start + token.len)
+        token.source_slice(&self.input)
     }
 }
 
@@ -491,7 +529,7 @@ macro_rules! tagged_enum {
     ($name:ident {
         $($variant:ident $({$($arg:ident : $arg_tp:ty),* $(,)?})? ),* $(,)?
     }) => {paste! {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[derive(Clone, Copy, PartialEq, Eq)]
         pub enum $name {
             $($variant($variant)),*
         }
@@ -531,6 +569,14 @@ macro_rules! tagged_enum {
             )*
         }
 
+        impl Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $(Self::$variant(t) => Debug::fmt(&t,f)),*
+                }
+            }
+        }
+
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         pub enum [<$name Variant>] {
             $($variant),*
@@ -565,6 +611,13 @@ tagged_enum!(Kind {
     TextSection,
     TextEscape,
 });
+
+
+impl<'s> Debug for WithSources<'s, &Kind> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.data, f)
+    }
+}
 
 
 
@@ -687,7 +740,7 @@ impl<'s> Lexer<'s> {
         if let Some(tok) = tok {
             let repr = self.repr(tok);
             if repr == "+-" {
-                let (left, right) = tok.split_at(Bytes::from(1)).unwrap();
+                let (left, right) = tok.split_at(Bytes::from(1));
                 self.submit_token(left.with_elem(Kind::operator()));
                 self.submit_token(right.with_elem(Kind::operator()));
             } else {
