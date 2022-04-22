@@ -3,7 +3,7 @@
 //! ListView a displayed list of entries with possibility of selecting one and "choosing" by
 //! clicking or pressing enter - similar to the HTML `<select>`.
 
-#![recursion_limit = "512"]
+#![recursion_limit = "1024"]
 // === Features ===
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
@@ -43,7 +43,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
-use ensogl_core::DEPRECATED_Animation;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
 
@@ -262,6 +262,8 @@ ensogl_core::define_endpoints! {
         /// Deselect all entries.
         deselect_entries(),
 
+        hide_selection(),
+
         resize(Vector2<f32>),
         scroll_jump(f32),
         set_entries(entry::AnyModelProvider<E>),
@@ -277,6 +279,8 @@ ensogl_core::define_endpoints! {
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
         scroll_position(f32),
+        selection_position(Vector2<f32>),
+        selection_size(Vector2<f32>),
     }
 }
 
@@ -323,9 +327,9 @@ where E::Model: Default
         let model = &self.model;
         let scene = &app.display.default_scene;
         let mouse = &scene.mouse.frp;
-        let view_y = DEPRECATED_Animation::<f32>::new(network);
-        let selection_y = DEPRECATED_Animation::<f32>::new(network);
-        let selection_height = DEPRECATED_Animation::<f32>::new(network);
+        let view_y = Animation::<f32>::new(network);
+        let selection_y = Animation::<f32>::new(network);
+        let selection_height = Animation::<f32>::new(network);
         let style = StyleWatchFrp::new(&scene.style_sheet);
         use theme::widget::list_view as list_view_style;
         let default_background_color = style.get_color(list_view_style::background);
@@ -415,27 +419,24 @@ where E::Model: Default
 
             // === Selection Size and Position ===
 
-            target_selection_y <- frp.selected_entry.map(|id|
+            selection_y.target <+ frp.selected_entry.map(|id|
                 id.map_or(0.0,entry::List::<E>::position_y_of_entry)
             );
-            target_selection_height <- frp.selected_entry.map(f!([](id)
+            selection_height.target <+ frp.selected_entry.map(f!([](id)
                 if id.is_some() {entry::HEIGHT} else {0.0}
             ));
-            eval target_selection_y      ((y) selection_y.set_target_value(*y));
-            eval target_selection_height ((h) selection_height.set_target_value(*h));
-            eval frp.set_entries         ([selection_y,selection_height](_) {
-                selection_y.skip();
-                selection_height.skip();
-            });
-            selectin_sprite_y <- all_with(&selection_y.value,&selection_height.value,
-                |y,h| y + (entry::HEIGHT - h) / 2.0
+            selection_y.skip <+ frp.set_entries.constant(());
+            selection_height.skip <+ frp.set_entries.constant(());
+            selection_sprite_y <- all_with(&selection_y.value, &selection_height.value,
+                |y, h| y + (entry::HEIGHT - h) / 2.0
             );
-            eval selectin_sprite_y ((y) model.selection.set_position_y(*y));
-            selection_size <- all_with(&frp.size,&selection_height.value,f!([](size,height) {
+            eval selection_sprite_y ((y) model.selection.set_position_y(*y));
+            frp.source.selection_size <+ all_with(&frp.size,&selection_height.value,f!([](size,height) {
                 let width = size.x;
                 Vector2(width,*height)
             }));
-            eval selection_size ((size) model.selection.size.set(*size));
+            eval frp.selection_size ((size) model.selection.size.set(*size));
+            eval_ frp.hide_selection (model.selection.unset_parent());
 
 
             // === Scrolling ===
@@ -462,11 +463,11 @@ where E::Model: Default
             frp.source.scroll_position <+ scroll_after_move_down;
             frp.source.scroll_position <+ frp.scroll_jump;
             frp.source.scroll_position <+ frp.set_entries.constant(MAX_SCROLL);
-            eval frp.scroll_position ((scroll_y) view_y.set_target_value(*scroll_y));
-            eval frp.set_entries     ((_) {
-                view_y.set_target_value(MAX_SCROLL);
-                view_y.skip();
-            });
+            view_y.target <+ frp.scroll_position;
+            view_y.target <+ frp.set_entries.constant(MAX_SCROLL);
+            view_y.skip <+ frp.set_entries.constant(());
+            view_y.target <+ init.constant(MAX_SCROLL);
+            view_y.skip <+ init;
 
 
             // === Resize ===
@@ -485,11 +486,14 @@ where E::Model: Default
             _new_entries <- frp.set_entries.map2(&view_info, f!((entries,view)
                 model.set_entries(entries.clone_ref(),view)
             ));
+
+
+            frp.source.selection_position <+ all_with(&selection_sprite_y, &view_info, |selection_y, view|
+                Vector2(0.0, view.position_y + selection_y)
+            );
         }
 
         init.emit(());
-        view_y.set_target_value(MAX_SCROLL);
-        view_y.skip();
         frp.scroll_jump(MAX_SCROLL);
 
         self
