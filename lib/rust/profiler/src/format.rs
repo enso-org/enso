@@ -259,3 +259,16 @@ pub enum Header {
     #[serde(rename = "$Process")]
     Process(String),
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn format_stability() {
+        todo!();
+    }
+}

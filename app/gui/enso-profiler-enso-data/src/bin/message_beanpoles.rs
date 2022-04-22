@@ -80,22 +80,27 @@ fn main() {
     let frontend = dia.process("Ide");
     let ls = dia.process("LanguageServer");
     let engine = dia.process("Engine");
-    // TODO[kw]: Add metadata to format and read these fields from the file.
-    let mut offset0 = None;
-    let mut offset1 = None;
+    let offset_required = "Cannot chart profile without `TimeOffset` headers.";
+    let abs_offset0 = profiles[0].headers.time_offset.expect(offset_required).into_ms();
+    let abs_offset1 = profiles[1].headers.time_offset.expect(offset_required).into_ms();
+    let base_offset = match abs_offset1.partial_cmp(&abs_offset0) {
+        Some(std::cmp::Ordering::Less) => abs_offset1,
+        Some(_) => abs_offset0,
+        None => panic!("`TimeOffset` header must only contain real numbers."),
+    };
+    let offset0 = abs_offset0 - base_offset;
+    let offset1 = abs_offset1 - base_offset;
     for meta in metadata0.into_iter() {
         if let enso_data::Metadata::RpcEvent(message) = meta.data {
             let abs_time = meta.time.into_ms();
-            let offset = offset0.get_or_insert(abs_time);
-            let time = abs_time - *offset;
+            let time = abs_time + offset0;
             dia.message(ls, frontend, time, message);
         }
     }
     for meta in metadata1.into_iter() {
         if let enso_data::Metadata::BackendMessage(message) = meta.data {
             let abs_time = meta.time.into_ms();
-            let offset = offset1.get_or_insert(abs_time);
-            let time = abs_time - *offset;
+            let time = abs_time + offset1;
             let (p0, p1) = match message.direction {
                 enso_data::backend::Direction::Request => (ls, engine),
                 enso_data::backend::Direction::Response => (engine, ls),
