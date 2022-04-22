@@ -30,7 +30,71 @@ thread_local! {
 pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>> =
     log::ThreadLocalLog::new(METADATA_LOG_LOG);
 
-/// Translates types and IDs.
+
+
+// =========================
+// === Capturing the log ===
+// =========================
+
+/// Produce a JSON-formatted event log from the internal event logs.
+///
+/// Consumes all events that have happened up to this point; except in testing, this should only be
+/// done once.
+pub fn take_log() -> String {
+    let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
+    let mut out = LogTranslator::new();
+    for (id, event) in events.into_iter().enumerate() {
+        let id = EventId(id as u32);
+        match event {
+            Event::Metadata { timestamp, data } => {
+                let ExternalMetadata { type_id } = data;
+                let id = type_id as usize;
+                let name = metadata_names[id];
+                let data = metadata_entries[id].next().unwrap();
+                out.metadata(timestamp, name, data);
+            }
+            Event::Start(Start { parent, start, label }) => {
+                out.create(start, parent, label, id);
+                out.start(start.unwrap(), id);
+            }
+            Event::StartPaused(Start { parent, start, label }) =>
+                out.create(start, parent, label, id),
+            Event::End { id, timestamp } => out.end(timestamp, id),
+            Event::Pause { id, timestamp } => out.pause(timestamp, id),
+            Event::Resume { id, timestamp } => out.start(timestamp, id),
+        }
+    }
+    out.finish()
+}
+
+
+// === Capture raw log data ===
+
+/// Obtain the data from the internal event log.
+pub(crate) fn take_raw_log() -> LogData {
+    let events = EVENTS.take_all();
+    let metadatas = METADATA_LOGS.clone_all();
+    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
+    let metadata_entries: Vec<_> =
+        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
+    LogData { events, metadata_names, metadata_entries }
+}
+
+/// A snapshot of the internal event log.
+/// Contains all the information necessary to produce a profile.
+pub(crate) struct LogData {
+    pub events:       Vec<Event>,
+    metadata_names:   Vec<&'static str>,
+    metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
+}
+
+
+
+// =====================
+// === LogTranslator ===
+// =====================
+
+/// Translates [`profiler::internal`] types and IDs to [`profiler::format`] equivalents.
 #[derive(Debug)]
 struct LogTranslator<'a> {
     profile: format::Builder<'a>,
@@ -82,61 +146,6 @@ impl<'a> LogTranslator<'a> {
     translate_transition!(start);
     translate_transition!(end);
     translate_transition!(pause);
-}
-
-impl From<Timestamp> for format::Timestamp {
-    fn from(time: Timestamp) -> Self {
-        Self::from_ms(time.into_ms())
-    }
-}
-
-/// Produce a JSON-formatted event log from the internal event logs.
-///
-/// Consumes all events that have happened up to this point; except in testing, this should only be
-/// done once.
-pub fn take_log() -> String {
-    let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
-    let mut out = LogTranslator::new();
-    for (id, event) in events.into_iter().enumerate() {
-        let id = EventId(id as u32);
-        match event {
-            Event::Metadata { timestamp, data } => {
-                let ExternalMetadata { type_id } = data;
-                let id = type_id as usize;
-                let name = metadata_names[id];
-                let data = metadata_entries[id].next().unwrap();
-                out.metadata(timestamp, name, data);
-            }
-            Event::Start(Start { parent, start, label }) => {
-                out.create(start, parent, label, id);
-                out.start(start.unwrap(), id);
-            }
-            Event::StartPaused(Start { parent, start, label }) =>
-                out.create(start, parent, label, id),
-            Event::End { id, timestamp } => out.end(timestamp, id),
-            Event::Pause { id, timestamp } => out.pause(timestamp, id),
-            Event::Resume { id, timestamp } => out.start(timestamp, id),
-        }
-    }
-    out.finish()
-}
-
-/// A snapshot of the internal event log.
-/// Contains all the information necessary to produce a profile.
-pub(crate) struct LogData {
-    pub events:       Vec<Event>,
-    metadata_names:   Vec<&'static str>,
-    metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
-}
-
-/// Obtain the data from the internal event log.
-pub(crate) fn take_raw_log() -> LogData {
-    let events = EVENTS.take_all();
-    let metadatas = METADATA_LOGS.clone_all();
-    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
-    let metadata_entries: Vec<_> =
-        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
-    LogData { events, metadata_names, metadata_entries }
 }
 
 
@@ -387,6 +396,15 @@ fn time_origin() -> f64 {
     use enso_web as web;
     use enso_web::traits::*;
     web::window.performance_or_panic().time_origin()
+}
+
+
+// === Conversions to related types ===
+
+impl From<Timestamp> for format::Timestamp {
+    fn from(time: Timestamp) -> Self {
+        Self::from_ms(time.into_ms())
+    }
 }
 
 

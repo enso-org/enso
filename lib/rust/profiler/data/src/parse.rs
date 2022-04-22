@@ -102,6 +102,8 @@ pub(crate) fn interpret<'a, M: serde::de::DeserializeOwned>(
     let profile = crate::Profile { measurements, intervals: intervals_, headers };
     Ok(Interpreted { profile, metadata_errors })
 }
+
+/// Result of a successful [`interpret()`].
 pub(crate) struct Interpreted<M> {
     profile:         crate::Profile<M>,
     metadata_errors: Vec<MetadataError>,
