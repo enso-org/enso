@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::source;
 use crate::source::WithSources;
 use bumpalo::Bump;
 use ouroboros::self_referencing;
@@ -124,10 +125,18 @@ impl<T: Debug> Debug for Token<T> {
 impl<'s, 't, T> Debug for WithSources<'s, &'t Token<T>>
 where for<'x> WithSources<'x, &'t T>: Debug
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let off = self.left_visible_offset;
         write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
         Debug::fmt(&self.trans(|t| &t.elem), f)
+    }
+}
+
+impl<'s, 't, T: Debug> Debug for source::DebugLeaf<WithSources<'s, &'t Token<T>>> {
+    default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let off = self.left_visible_offset;
+        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
+        Debug::fmt(&self.elem, f)
     }
 }
 
@@ -190,6 +199,17 @@ impl<T> Token<T> {
 
     pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
         source.slice(self.start..self.start + self.len)
+    }
+
+    /// Please note that the [`other`] token's position has to be bigger than self's one. This
+    /// condition is not checked.
+    pub fn extend_to<S>(&mut self, other: &Token<S>) {
+        self.len = (other.start - self.start + other.len);
+    }
+
+    pub fn extended_to<S>(mut self, other: &Token<S>) -> Self {
+        self.extend_to(other);
+        self
     }
 }
 
@@ -551,6 +571,12 @@ macro_rules! tagged_enum {
                 #[inline(always)]
                 fn eq(&self, other: &$variant) -> bool {
                     $variant::eq(*self, other)
+                }
+            }
+
+            impl<'s> Debug for WithSources<'s, &$variant> {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    Debug::fmt(&self.data, f)
                 }
             }
         )*

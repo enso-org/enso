@@ -3,6 +3,7 @@
 #![feature(test)]
 #![feature(generic_associated_types)]
 #![recursion_limit = "256"]
+#![feature(specialization)]
 
 use crate::prelude::*;
 
@@ -277,13 +278,13 @@ pub type Ast = Token<AstData>;
 
 #[derive(Clone, Debug)]
 pub enum AstData {
-    Ident,
+    Ident(Token<lexer::Ident>),
     MultiSegmentApp(MultiSegmentApp),
 }
 
 #[derive(Clone, Debug)]
 pub struct MultiSegmentApp {
-    segments: Vec<MultiSegmentAppSegment>,
+    segments: NonEmptyVec<MultiSegmentAppSegment>,
 }
 
 #[derive(Clone, Debug)]
@@ -292,11 +293,10 @@ pub struct MultiSegmentAppSegment {
     body:   Ast,
 }
 
-
 impl<'s> Debug for WithSources<'s, &AstData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.data {
-            AstData::Ident => f.debug_tuple("Ident").finish(),
+            AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
             AstData::MultiSegmentApp(t) =>
                 f.debug_tuple("MultiSegmentApp").field(&self.trans(|_| t)).finish(),
         }
@@ -313,7 +313,7 @@ impl<'s> Debug for WithSources<'s, &MultiSegmentAppSegment> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MultiSegmentAppSegment")
             .field("header", &self.trans(|_| &self.header))
-            .field("body", &self.body)
+            .field("body", &self.trans(|_| &self.body))
             .finish()
     }
 }
@@ -327,7 +327,8 @@ fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
                 panic!("Got element: {:#?}", elem);
             }
             match first.elem {
-                lexer::Kind::Ident(ident) => first.with_elem(AstData::Ident),
+                lexer::Kind::Ident(ident) =>
+                    first.with_elem(AstData::Ident(first.with_elem(ident))),
                 _ => panic!(),
             }
         }
@@ -350,11 +351,14 @@ fn macro_if_then_else<'a>() -> Macro<'a> {
                     MultiSegmentAppSegment { header, body }
                 })
                 .collect_vec();
-            if let Some(first) = segments.first_mut() {
-                let (left, right) = first.header.split_at_start();
-                first.header = right;
+            if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
+                let first = segments.first_mut();
+                let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
+                first.header = left_trimmed_token;
+                let last_segment = segments.last();
+                let total = left_offset_token.extended_to(&last_segment.body);
                 let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
-                left.with_elem(data)
+                total.with_elem(data)
             } else {
                 panic!()
             }
@@ -368,7 +372,7 @@ fn macro_if_then<'a>() -> Macro<'a> {
     Macro {
         prefix:   None,
         segments: list::NonEmpty::singleton(section2).with_head(section1),
-        body:     Rc::new(|tokens| tokens[0].1[0].with_elem(AstData::Ident)),
+        body:     Rc::new(|tokens| panic!()),
     }
 }
 

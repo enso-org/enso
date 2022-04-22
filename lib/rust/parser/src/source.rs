@@ -1,6 +1,9 @@
 use crate::prelude::*;
 
 #[derive(Deref)]
+pub struct DebugLeaf<T>(pub T);
+
+#[derive(Deref)]
 pub struct WithSources<'s, T> {
     #[deref]
     pub data:   T,

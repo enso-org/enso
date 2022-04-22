@@ -56,7 +56,8 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(vec.len(), 1);
     /// ```
     pub fn singleton(first: T) -> NonEmptyVec<T> {
-        NonEmptyVec::new(first, vec![])
+        let elems = vec![first];
+        Self { elems }
     }
 
     /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the provided
@@ -315,5 +316,12 @@ impl<T> NonEmptyVec<T> {
 impl<T: Default> Default for NonEmptyVec<T> {
     fn default() -> Self {
         Self::singleton(default())
+    }
+}
+
+impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
+    type Error = ();
+    fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
+        (elems.len() > 0).as_result_from(|| NonEmptyVec { elems }, || ())
     }
 }
