@@ -1,0 +1,13 @@
+[package]
+name = "enso-profiler-enso-data"
+version = "0.1.0"
+edition = "2021"
+authors = ["Enso Team <contact@enso.org>"]
+
+[dependencies]
+chrono = { version = "0.4.19", features = ["serde"] }
+csv = "1.1"
+serde = { version = "1", features = ["derive"] }
+enso-profiler = { path = "../../../lib/rust/profiler"}
+enso-profiler-data = { path = "../../../lib/rust/profiler/data"}
+ensogl-core = { path = "../../../lib/rust/ensogl/core"}
