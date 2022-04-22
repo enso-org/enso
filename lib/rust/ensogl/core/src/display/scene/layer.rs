@@ -913,9 +913,9 @@ impl SublayersModel {
 
 
 
-// ===================
-// === MaskedLayer ===
-// ===================
+// ==============
+// === Masked ===
+// ==============
 
 /// A layer with an attached mask. Each opaque shape in the `mask_layer` defines the renderable area
 /// of the `masked_layer`.
@@ -929,19 +929,19 @@ impl SublayersModel {
 /// so the [`Layer`] would be deallocated otherwise.
 #[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
-pub struct MaskedLayer {
+pub struct Masked {
     #[deref]
     pub masked_layer: Layer,
     pub mask_layer:   Layer,
 }
 
-impl AsRef<Layer> for MaskedLayer {
+impl AsRef<Layer> for Masked {
     fn as_ref(&self) -> &Layer {
         &self.masked_layer
     }
 }
 
-impl MaskedLayer {
+impl Masked {
     /// Constructor. The passed [`camera`] is used to render created layers.
     pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
         let masked_layer = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
