@@ -119,7 +119,7 @@ fn init(app: &Application) {
     // === Content ===
 
     let content = content::View::new(&logger);
-    scroll_area.content.add_child(&content);
+    scroll_area.content().add_child(&content);
     content.size.set(Vector2::new(100.0, 100.0));
     content.set_position_x(100.0);
     content.set_position_y(-100.0);
