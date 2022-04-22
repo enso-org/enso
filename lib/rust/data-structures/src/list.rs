@@ -55,7 +55,7 @@ impl<T> NonEmpty<T> {
     }
 
     fn to_vec(&self) -> Vec<&T> {
-        let mut out: Vec<&T> = vec![&self.head];
+        let mut out = vec![&self.head];
         let mut list = self.tail();
         loop {
             match list.head() {
@@ -94,6 +94,14 @@ impl<T> List<T> {
     fn to_vec(&self) -> Vec<&T> {
         self.data.as_ref().map(|t| t.to_vec()).unwrap_or_default()
     }
+
+    pub fn try_to_non_empty(&self) -> &Option<NonEmpty<T>> {
+        &self.data
+    }
+
+    pub fn try_into_non_empty(self) -> Option<NonEmpty<T>> {
+        self.data
+    }
 }
 
 impl<T> From<NonEmpty<T>> for List<T> {
@@ -105,5 +113,23 @@ impl<T> From<NonEmpty<T>> for List<T> {
 impl<T: Debug> Debug for List<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.to_vec(), f)
+    }
+}
+
+impl<'a, T> IntoIterator for &'a List<T> {
+    type Item = &'a T;
+    type IntoIter = std::vec::IntoIter<&'a T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.to_vec().into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonEmpty<T> {
+    type Item = &'a T;
+    type IntoIter = std::vec::IntoIter<&'a T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.to_vec().into_iter()
     }
 }

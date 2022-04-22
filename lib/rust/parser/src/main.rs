@@ -62,35 +62,40 @@ pub enum Pattern {
 }
 
 impl Pattern {
-    pub fn next(&self, stream: &mut Stream) -> bool {
-        stream
-            .first()
-            .map(|token| match self {
-                Self::TokenVariant(token_variant_pattern) =>
+    pub fn resolve(&self, stream: &[Token]) -> Vec<Token> {
+        let mut stream = stream.into_iter();
+        self.resolve_internal(&mut stream)
+    }
+
+    fn resolve_internal(&self, stream: &mut slice::Iter<Token>) -> Vec<Token> {
+        match self {
+            Self::Everything => stream.copied().collect(),
+            Self::TokenVariant(token_variant_pattern) =>
+                if let Some(token) = stream.next() {
+                    let token = *token;
                     if token.variant() == *token_variant_pattern {
-                        stream.next();
-                        true
+                        vec![token]
                     } else {
-                        false
-                    },
-                Self::Seq(first, second) =>
-                    if first.next(stream) {
-                        second.next(stream)
-                    } else {
-                        false
-                    },
-                _ => false,
-            })
-            .unwrap_or(false)
+                        panic!()
+                    }
+                } else {
+                    default()
+                },
+            Self::Seq(first, second) =>
+                first.resolve_internal(stream).extended(second.resolve_internal(stream)),
+        }
     }
 }
 
 
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Macro<'a> {
     prefix:   Option<Pattern>,
     segments: list::NonEmpty<MacroSegment<'a>>,
+    #[derivative(Debug = "ignore")]
+    body:     Rc<dyn Fn(Vec<(Token, Vec<Token>)>) -> Ast>,
 }
 
 #[derive(Clone, Debug)]
@@ -107,21 +112,7 @@ pub struct MatchedSegment {
 
 use lexer::Lexer;
 
-fn macro_if_then_else<'a>() -> Macro<'a> {
-    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
-    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
-    Macro {
-        prefix:   None,
-        segments: list::NonEmpty::singleton(section3).with_head(section2).with_head(section1),
-    }
-}
 
-fn macro_if_then<'a>() -> Macro<'a> {
-    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
-    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    Macro { prefix: None, segments: list::NonEmpty::singleton(section2).with_head(section1) }
-}
 
 #[derive(Debug)]
 pub struct MacroSegmentTreeDataRecord<'a> {
@@ -148,14 +139,14 @@ pub struct MacroResolver {
 
 #[derive(Default, Debug)]
 pub struct Resolver<'a> {
-    leading_tokens: Vec<Token>,
-    current_macro:  Option<MacroResolver>,
-    macro_stack:    Vec<MacroResolver>,
-    matched_macro:  Option<Rc<Macro<'a>>>,
+    leading_tokens:    Vec<Token>,
+    current_macro:     Option<MacroResolver>,
+    macro_stack:       Vec<MacroResolver>,
+    matched_macro_def: Option<Rc<Macro<'a>>>,
 }
 
 impl<'a> Resolver<'a> {
-    pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) {
+    pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
         let mut segment_tree = MacroSegmentTree::default();
         let mut root_segment_tree = MacroSegmentTree::default();
 
@@ -187,16 +178,32 @@ impl<'a> Resolver<'a> {
             }
             println!("{:#?}", segment_tree);
         }
-        self.finish();
+        self.finish()
     }
 
-    pub fn finish(&mut self) {
+    pub fn finish(&mut self) -> Ast {
         println!("FINISH");
         let current_macro = mem::take(&mut self.current_macro).unwrap();
         let mut segments = current_macro.segments;
         segments.push(current_macro.current_segment);
         println!("{:#?}", segments);
-        println!("{:#?}", self.matched_macro);
+        println!("{:#?}", self.matched_macro_def);
+
+        if let Some(macro_def) = &self.matched_macro_def {
+            let matched_sections = macro_def
+                .segments
+                .into_iter()
+                .zip(segments)
+                .map(|(segment_def, segment_match)| {
+                    let pattern = &segment_def.pattern;
+                    let token_stream = &segment_match.body;
+                    (segment_match.header, pattern.resolve(&token_stream))
+                })
+                .collect_vec();
+            (macro_def.body)(matched_sections)
+        } else {
+            panic!()
+        }
     }
 
     pub fn enter(
@@ -232,11 +239,11 @@ impl<'a> Resolver<'a> {
 
         let out = list.is_some();
         if let Some(list) = list {
-            self.matched_macro = None;
+            self.matched_macro_def = None;
             let mut new_section_tree = MacroSegmentTreeData::default();
             for v in list {
                 if v.list.is_empty() {
-                    self.matched_macro = Some(v.def.clone_ref());
+                    self.matched_macro_def = Some(v.def.clone_ref());
                 }
                 if let Some(first) = v.list.head() {
                     let tail = v.list.tail().cloned().unwrap_or_default();
@@ -264,35 +271,82 @@ impl<'a> MacroSegmentTreeData<'a> {
 }
 
 
+pub type Ast = Token<AstData>;
 
-pub struct Ast {}
+#[derive(Debug)]
+pub enum AstData {
+    Ident,
+    MultiSegmentApp(MultiSegmentApp),
+}
+
+#[derive(Debug)]
+pub struct MultiSegmentApp {
+    segments: Vec<MultiSegmentAppSegment>,
+}
+
+#[derive(Debug)]
+pub struct MultiSegmentAppSegment {
+    header: Token,
+    body:   Ast,
+}
+
+
+fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
+    tokens[0].with_elem(AstData::Ident)
+}
+
+fn macro_if_then_else<'a>() -> Macro<'a> {
+    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
+    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
+    let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
+    Macro {
+        prefix:   None,
+        segments: list::NonEmpty::singleton(section3).with_head(section2).with_head(section1),
+        body:     Rc::new(|matched_segments| {
+            let mut segments = matched_segments
+                .into_iter()
+                .map(|segment| {
+                    let header = segment.0;
+                    let body = tokens_to_ast(segment.1);
+                    MultiSegmentAppSegment { header, body }
+                })
+                .collect_vec();
+            if let Some(first) = segments.first_mut() {
+                let data = MultiSegmentApp { segments };
+                panic!()
+            } else {
+                panic!()
+            }
+        }),
+    }
+}
+
+fn macro_if_then<'a>() -> Macro<'a> {
+    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
+    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
+    Macro {
+        prefix:   None,
+        segments: list::NonEmpty::singleton(section2).with_head(section1),
+        body:     Rc::new(|tokens| tokens[0].1[0].with_elem(AstData::Ident)),
+    }
+}
+
 
 fn main() {
     let str = "if a then b c else d e f";
     let mut lexer = Lexer::new(str);
     println!("{:#?}", lexer.run());
     println!("{:#?}", lexer.output);
-    // let mut stream = Stream::new(lexer.output.borrow_vec().as_slice());
-    // let pattern = Pattern::Seq(
-    //     Box::new(Pattern::TokenVariant(lexer::KindVariant::Ident)),
-    //     Box::new(Pattern::Seq(
-    //         Box::new(Pattern::TokenVariant(lexer::KindVariant::Operator)),
-    //         Box::new(Pattern::TokenVariant(lexer::KindVariant::Ident)),
-    //     )),
-    // );
 
     println!("\n---\n");
 
 
     let mut resolver = Resolver::default();
-    resolver.run(&lexer, lexer.output.borrow_vec());
+    let ast = resolver.run(&lexer, lexer.output.borrow_vec());
 
     println!("\n---\n");
 
-    println!("{:#?}", resolver);
-    // println!("{:#?}", segment_tree);
-    // let if_then_else =
-    // println!("{:#?}", pattern.next(&mut stream))
+    println!("{:#?}", ast);
 }
 
 // var1 = if (a > b) then if x then y else z else w

@@ -116,7 +116,7 @@ pub struct Token<T = Kind> {
 
 impl<T: Debug> Debug for Token<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}({},{})", self.elem, self.left_visible_offset, self.len)
+        write!(f, "{:?}{{off:{},len:{}}}", self.elem, self.left_visible_offset, self.len)
     }
 }
 
