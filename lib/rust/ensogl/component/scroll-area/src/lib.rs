@@ -16,7 +16,7 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl_core::display::shape::*;
+use ensogl_core::display::shape;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -77,7 +77,7 @@ mod mask {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
             let color = color::Rgba::new(1.0, 1.0, 1.0, 1.0);
-            Rect((&width, &height)).corners_radius(corner_radius).fill(color).into()
+            shape::Rect((&width, &height)).corners_radius(corner_radius).fill(color).into()
         }
     }
 }
