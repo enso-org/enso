@@ -94,16 +94,6 @@ fn init(app: &Application) {
     navigator.disable_wheel_panning();
     std::mem::forget(navigator);
 
-    // === Background ===
-
-    let background = background::View::new(&logger);
-    scene.add_child(&background);
-    scene.layers.below_main.add_exclusive(&background);
-    background.size.set(Vector2::new(200.0, 200.0));
-    background.set_position_x(100.0);
-    background.set_position_y(-100.0);
-    std::mem::forget(background);
-
 
     // === Scroll Area ===
 
@@ -113,6 +103,17 @@ fn init(app: &Application) {
     scroll_area.set_content_width(300.0);
     scroll_area.set_content_height(1000.0);
     scroll_area.set_corner_radius(5.5);
+
+
+    // === Background ===
+
+    let background = background::View::new(&logger);
+    scroll_area.add_child(&background);
+    scene.layers.below_main.add_exclusive(&background);
+    background.size.set(Vector2::new(200.0, 200.0));
+    background.set_position_x(100.0);
+    background.set_position_y(-100.0);
+    std::mem::forget(background);
 
 
     // === Content ===
