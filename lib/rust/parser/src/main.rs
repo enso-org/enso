@@ -60,30 +60,31 @@ impl<'a> Stream<'a> {
 #[derive(Clone, Debug)]
 pub enum Pattern {
     Everything,
-    TokenVariant(lexer::KindVariant),
+    // TokenVariant(lexer::KindVariant),
     Seq(Box<Pattern>, Box<Pattern>),
 }
 
 impl Pattern {
-    pub fn resolve(&self, stream: &[Token]) -> Vec<Token> {
+    pub fn resolve(&self, stream: &[TokenOrAst]) -> Vec<TokenOrAst> {
         let mut stream = stream.into_iter();
         self.resolve_internal(&mut stream)
     }
 
-    fn resolve_internal(&self, stream: &mut slice::Iter<Token>) -> Vec<Token> {
+    fn resolve_internal(&self, stream: &mut slice::Iter<TokenOrAst>) -> Vec<TokenOrAst> {
         match self {
-            Self::Everything => stream.copied().collect(),
-            Self::TokenVariant(token_variant_pattern) =>
-                if let Some(token) = stream.next() {
-                    let token = *token;
-                    if token.variant() == *token_variant_pattern {
-                        vec![token]
-                    } else {
-                        panic!()
-                    }
-                } else {
-                    default()
-                },
+            // todo:perf of clone?
+            Self::Everything => stream.cloned().collect(),
+            // Self::TokenVariant(token_variant_pattern) =>
+            //     if let Some(token) = stream.next() {
+            //         let token = *token;
+            //         if token.variant() == *token_variant_pattern {
+            //             vec![token]
+            //         } else {
+            //             panic!()
+            //         }
+            //     } else {
+            //         default()
+            //     },
             Self::Seq(first, second) =>
                 first.resolve_internal(stream).extended(second.resolve_internal(stream)),
         }
@@ -98,7 +99,7 @@ pub struct Macro<'a> {
     prefix:   Option<Pattern>,
     segments: list::NonEmpty<MacroSegment<'a>>,
     #[derivative(Debug = "ignore")]
-    body:     Rc<dyn Fn(Vec<(Token, Vec<Token>)>) -> Ast>,
+    body:     Rc<dyn Fn(Vec<(Token, Vec<TokenOrAst>)>) -> Ast>,
 }
 
 #[derive(Clone, Debug)]
@@ -110,12 +111,28 @@ pub struct MacroSegment<'a> {
 #[derive(Debug)]
 pub struct MatchedSegment {
     header: Token,
-    body:   Vec<Token>,
+    body:   Vec<TokenOrAst>,
 }
 
 use lexer::Lexer;
 
+#[derive(Clone, Debug)]
+pub enum TokenOrAst {
+    Token(Token),
+    Ast(Ast),
+}
 
+impl From<Token> for TokenOrAst {
+    fn from(t: Token) -> Self {
+        Self::Token(t)
+    }
+}
+
+impl From<Ast> for TokenOrAst {
+    fn from(t: Ast) -> Self {
+        Self::Ast(t)
+    }
+}
 
 #[derive(Debug)]
 pub struct MacroSegmentTreeDataRecord<'a> {
@@ -126,7 +143,7 @@ pub struct MacroSegmentTreeDataRecord<'a> {
 #[derive(Default, Debug)]
 pub struct MacroSegmentTreeData<'a> {
     subsections: HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>,
-    parent:      Option<Box<MacroSegmentTreeData<'a>>>,
+    parents:     Vec<HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>>,
 }
 
 #[derive(Default, Debug, Deref, DerefMut)]
@@ -146,6 +163,13 @@ pub struct Resolver<'a> {
     current_macro:     Option<MacroResolver>,
     macro_stack:       Vec<MacroResolver>,
     matched_macro_def: Option<Rc<Macro<'a>>>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum ResolverStep {
+    NormalToken,
+    NewSegmentStarted,
+    MacroStackPop,
 }
 
 impl<'a> Resolver<'a> {
@@ -168,18 +192,30 @@ impl<'a> Resolver<'a> {
 
         println!("{:#?}", root_segment_tree);
 
-        for token in tokens {
-            let token = *token;
-            let repr = lexer.repr(token);
-            println!("\n>> '{}' = {:#?}", repr, token);
-            println!("reserved: {}", segment_tree.is_reserved(repr));
-            if !self.enter(lexer, &mut segment_tree, &root_segment_tree, token) {
-                match self.current_macro.as_mut() {
-                    Some(current_macro) => current_macro.current_segment.body.push(token),
-                    None => self.leading_tokens.push(token),
+        let mut stream = tokens.into_iter();
+        let mut opt_token = stream.next().copied();
+        loop {
+            if let Some(token) = opt_token {
+                let repr = lexer.repr(token);
+                println!("\n>> '{}' = {:#?}", repr, token);
+                match self.enter(lexer, &mut segment_tree, &root_segment_tree, token) {
+                    ResolverStep::NormalToken => {
+                        match self.current_macro.as_mut() {
+                            Some(current_macro) =>
+                                current_macro.current_segment.body.push(token.into()),
+                            None => self.leading_tokens.push(token),
+                        }
+                        opt_token = stream.next().copied();
+                    }
+                    ResolverStep::NewSegmentStarted => {
+                        opt_token = stream.next().copied();
+                    }
+                    ResolverStep::MacroStackPop => {}
                 }
+                println!("{:#?}", segment_tree);
+            } else {
+                break;
             }
-            println!("{:#?}", segment_tree);
         }
         self.finish()
     }
@@ -215,8 +251,9 @@ impl<'a> Resolver<'a> {
         stack: &mut MacroSegmentTree<'a>,
         root: &MacroSegmentTree<'a>,
         token: Token,
-    ) -> bool {
+    ) -> ResolverStep {
         let repr = lexer.repr(token);
+        let mut new_root = false;
         let list = match stack.subsections.get(repr) {
             Some(list) => {
                 let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
@@ -225,19 +262,36 @@ impl<'a> Resolver<'a> {
                 current_macro.segments.push(current_segment);
                 Some(list)
             }
-            None => match root.subsections.get(repr) {
-                Some(list) => {
-                    let current_segment = MatchedSegment { header: token, body: default() };
-                    let mut current_macro =
-                        Some(MacroResolver { current_segment, segments: default() });
-                    mem::swap(&mut self.current_macro, &mut current_macro);
-                    if let Some(current_macro) = current_macro {
-                        self.macro_stack.push(current_macro);
+            None =>
+                if stack.is_reserved(repr) {
+                    println!("RESERVED");
+                    if let Some(mut current_macro) = self.macro_stack.pop() {
+                        stack.subsections = stack.parents.pop().unwrap();
+                        let ast = self.finish();
+                        current_macro.current_segment.body.push(ast.into());
+                        self.current_macro = Some(current_macro);
+                        return ResolverStep::MacroStackPop;
+                    } else {
+                        panic!()
                     }
-                    Some(list)
-                }
-                None => None,
-            },
+                } else {
+                    match root.subsections.get(repr) {
+                        Some(list) => {
+                            new_root = true;
+                            println!("NEW ROOT macro started");
+                            let current_segment =
+                                MatchedSegment { header: token, body: default() };
+                            let mut current_macro =
+                                Some(MacroResolver { current_segment, segments: default() });
+                            mem::swap(&mut self.current_macro, &mut current_macro);
+                            if let Some(current_macro) = current_macro {
+                                self.macro_stack.push(current_macro);
+                            }
+                            Some(list)
+                        }
+                        None => None,
+                    }
+                },
         };
 
         let out = list.is_some();
@@ -257,19 +311,21 @@ impl<'a> Resolver<'a> {
                     // todo!()
                 }
             }
+            // fixme: new_section_tree is created which is too much, we are using only subsections
             mem::swap(&mut new_section_tree, &mut stack.tree);
-            stack.tree.parent = Some(Box::new(new_section_tree));
+            stack.parents.push(new_section_tree.subsections);
         }
-        out
+        if out {
+            ResolverStep::NewSegmentStarted
+        } else {
+            ResolverStep::NormalToken
+        }
     }
 }
 
 impl<'a> MacroSegmentTreeData<'a> {
     pub fn is_reserved(&self, repr: &'a str) -> bool {
-        self.parent
-            .as_ref()
-            .map(|parent| parent.subsections.contains_key(repr) || parent.is_reserved(repr))
-            .unwrap_or(false)
+        self.parents.iter().any(|p| p.contains_key(repr))
     }
 }
 
@@ -318,7 +374,7 @@ impl<'s> Debug for WithSources<'s, &MultiSegmentAppSegment> {
     }
 }
 
-fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
+fn tokens_to_ast(tokens: Vec<TokenOrAst>) -> Ast {
     let mut tokens = tokens.into_iter();
     match tokens.next() {
         None => panic!(),
@@ -326,12 +382,37 @@ fn tokens_to_ast(tokens: Vec<Token>) -> Ast {
             if let Some(elem) = tokens.next() {
                 panic!("Got element: {:#?}", elem);
             }
-            match first.elem {
-                lexer::Kind::Ident(ident) =>
-                    first.with_elem(AstData::Ident(first.with_elem(ident))),
-                _ => panic!(),
+            match first {
+                TokenOrAst::Token(token) => match token.elem {
+                    lexer::Kind::Ident(ident) =>
+                        token.with_elem(AstData::Ident(token.with_elem(ident))),
+                    _ => panic!(),
+                },
+                TokenOrAst::Ast(ast) => ast,
             }
         }
+    }
+}
+
+fn matched_segments_into_multi_segment_app(matched_segments: Vec<(Token, Vec<TokenOrAst>)>) -> Ast {
+    let mut segments = matched_segments
+        .into_iter()
+        .map(|segment| {
+            let header = segment.0;
+            let body = tokens_to_ast(segment.1);
+            MultiSegmentAppSegment { header, body }
+        })
+        .collect_vec();
+    if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
+        let first = segments.first_mut();
+        let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
+        first.header = left_trimmed_token;
+        let last_segment = segments.last();
+        let total = left_offset_token.extended_to(&last_segment.body);
+        let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
+        total.with_elem(data)
+    } else {
+        panic!()
     }
 }
 
@@ -342,27 +423,7 @@ fn macro_if_then_else<'a>() -> Macro<'a> {
     Macro {
         prefix:   None,
         segments: list::NonEmpty::singleton(section3).with_head(section2).with_head(section1),
-        body:     Rc::new(|matched_segments| {
-            let mut segments = matched_segments
-                .into_iter()
-                .map(|segment| {
-                    let header = segment.0;
-                    let body = tokens_to_ast(segment.1);
-                    MultiSegmentAppSegment { header, body }
-                })
-                .collect_vec();
-            if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
-                let first = segments.first_mut();
-                let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
-                first.header = left_trimmed_token;
-                let last_segment = segments.last();
-                let total = left_offset_token.extended_to(&last_segment.body);
-                let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
-                total.with_elem(data)
-            } else {
-                panic!()
-            }
-        }),
+        body:     Rc::new(|t| matched_segments_into_multi_segment_app(t)),
     }
 }
 
@@ -372,14 +433,15 @@ fn macro_if_then<'a>() -> Macro<'a> {
     Macro {
         prefix:   None,
         segments: list::NonEmpty::singleton(section2).with_head(section1),
-        body:     Rc::new(|tokens| panic!()),
+        body:     Rc::new(|t| matched_segments_into_multi_segment_app(t)),
     }
 }
 
 
 
 fn main() {
-    let str = "if a then b else c";
+    // let str = "if a then b else c";
+    let str = "if if x then y then b";
     let mut lexer = Lexer::new(str);
     println!("{:#?}", lexer.run());
     println!("{:#?}", lexer.output);
