@@ -141,14 +141,8 @@ pub struct MacroSegmentTreeDataRecord<'a> {
 }
 
 #[derive(Default, Debug)]
-pub struct MacroSegmentTreeData<'a> {
-    subsections: HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>,
-    parents:     Vec<HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>>,
-}
-
-#[derive(Default, Debug, Deref, DerefMut)]
 pub struct MacroSegmentTree<'a> {
-    tree: MacroSegmentTreeData<'a>,
+    subsections: HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>,
 }
 
 #[derive(Debug)]
@@ -157,12 +151,15 @@ pub struct MacroResolver {
     segments:        Vec<MatchedSegment>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct Resolver<'a> {
-    leading_tokens:    Vec<Token>,
-    current_macro:     Option<MacroResolver>,
-    macro_stack:       Vec<MacroResolver>,
-    matched_macro_def: Option<Rc<Macro<'a>>>,
+    leading_tokens:       Vec<Token>,
+    current_macro:        Option<MacroResolver>,
+    macro_stack:          Vec<MacroResolver>,
+    matched_macro_def:    Option<Rc<Macro<'a>>>,
+    parent_segment_trees: Vec<MacroSegmentTree<'a>>,
+    segment_tree:         MacroSegmentTree<'a>,
+    root_segment_tree:    MacroSegmentTree<'a>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -173,8 +170,13 @@ pub enum ResolverStep {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
-        let mut segment_tree = MacroSegmentTree::default();
+    pub fn new() -> Self {
+        let leading_tokens = default();
+        let current_macro = default();
+        let macro_stack = default();
+        let matched_macro_def = default();
+        let parent_segment_trees = default();
+        let segment_tree = MacroSegmentTree::default();
         let mut root_segment_tree = MacroSegmentTree::default();
 
         let if_then = macro_if_then();
@@ -191,14 +193,25 @@ impl<'a> Resolver<'a> {
         root_segment_tree.subsections.entry("if").or_default().push(if_then_else);
 
         println!("{:#?}", root_segment_tree);
+        Self {
+            leading_tokens,
+            current_macro,
+            macro_stack,
+            matched_macro_def,
+            segment_tree,
+            root_segment_tree,
+            parent_segment_trees,
+        }
+    }
 
+    pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
         let mut stream = tokens.into_iter();
         let mut opt_token = stream.next().copied();
         loop {
             if let Some(token) = opt_token {
                 let repr = lexer.repr(token);
                 println!("\n>> '{}' = {:#?}", repr, token);
-                match self.enter(lexer, &mut segment_tree, &root_segment_tree, token) {
+                match self.enter(lexer, token) {
                     ResolverStep::NormalToken => {
                         match self.current_macro.as_mut() {
                             Some(current_macro) =>
@@ -212,7 +225,7 @@ impl<'a> Resolver<'a> {
                     }
                     ResolverStep::MacroStackPop => {}
                 }
-                println!("{:#?}", segment_tree);
+                println!("{:#?}", self.segment_tree);
             } else {
                 break;
             }
@@ -245,16 +258,14 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn enter(
-        &mut self,
-        lexer: &Lexer,
-        stack: &mut MacroSegmentTree<'a>,
-        root: &MacroSegmentTree<'a>,
-        token: Token,
-    ) -> ResolverStep {
+    pub fn is_reserved(&self, repr: &'a str) -> bool {
+        self.parent_segment_trees.iter().any(|p| p.subsections.contains_key(repr))
+    }
+
+    pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
         let mut new_root = false;
-        let list = match stack.subsections.get(repr) {
+        let list = match self.segment_tree.subsections.get(repr) {
             Some(list) => {
                 let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
                 let mut current_segment = MatchedSegment { header: token, body: default() };
@@ -263,10 +274,10 @@ impl<'a> Resolver<'a> {
                 Some(list)
             }
             None =>
-                if stack.is_reserved(repr) {
+                if self.is_reserved(repr) {
                     println!("RESERVED");
                     if let Some(mut current_macro) = self.macro_stack.pop() {
-                        stack.subsections = stack.parents.pop().unwrap();
+                        self.segment_tree = self.parent_segment_trees.pop().unwrap();
                         let ast = self.finish();
                         current_macro.current_segment.body.push(ast.into());
                         self.current_macro = Some(current_macro);
@@ -275,7 +286,7 @@ impl<'a> Resolver<'a> {
                         panic!()
                     }
                 } else {
-                    match root.subsections.get(repr) {
+                    match self.root_segment_tree.subsections.get(repr) {
                         Some(list) => {
                             new_root = true;
                             println!("NEW ROOT macro started");
@@ -297,7 +308,7 @@ impl<'a> Resolver<'a> {
         let out = list.is_some();
         if let Some(list) = list {
             self.matched_macro_def = None;
-            let mut new_section_tree = MacroSegmentTreeData::default();
+            let mut new_section_tree = MacroSegmentTree::default();
             for v in list {
                 if v.list.is_empty() {
                     self.matched_macro_def = Some(v.def.clone_ref());
@@ -312,8 +323,8 @@ impl<'a> Resolver<'a> {
                 }
             }
             // fixme: new_section_tree is created which is too much, we are using only subsections
-            mem::swap(&mut new_section_tree, &mut stack.tree);
-            stack.parents.push(new_section_tree.subsections);
+            mem::swap(&mut new_section_tree, &mut self.segment_tree);
+            self.parent_segment_trees.push(new_section_tree);
         }
         if out {
             ResolverStep::NewSegmentStarted
@@ -323,11 +334,11 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> MacroSegmentTreeData<'a> {
-    pub fn is_reserved(&self, repr: &'a str) -> bool {
-        self.parents.iter().any(|p| p.contains_key(repr))
-    }
-}
+// impl<'a> MacroSegmentTreeData<'a> {
+//     pub fn is_reserved(&self, repr: &'a str) -> bool {
+//         self.parents.iter().any(|p| p.contains_key(repr))
+//     }
+// }
 
 
 pub type Ast = Token<AstData>;
@@ -448,7 +459,7 @@ fn main() {
     println!("\n---\n");
 
 
-    let mut resolver = Resolver::default();
+    let mut resolver = Resolver::new();
     let ast = resolver.run(&lexer, lexer.output.borrow_vec());
 
     println!("\n---\n");
