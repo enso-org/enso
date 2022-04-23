@@ -8,11 +8,13 @@
 use crate::prelude::*;
 
 pub mod lexer;
+pub mod macros;
 pub mod source;
 
 use enso_data_structures::list;
 use enso_data_structures::list::List;
 use lexer::Token;
+use macros::Pattern;
 use source::WithSources;
 
 pub mod prelude {
@@ -57,62 +59,7 @@ impl<'a> Stream<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Pattern {
-    Everything,
-    // TokenVariant(lexer::KindVariant),
-    Seq(Box<Pattern>, Box<Pattern>),
-}
 
-impl Pattern {
-    pub fn resolve(&self, stream: &[TokenOrAst]) -> Vec<TokenOrAst> {
-        let mut stream = stream.into_iter();
-        self.resolve_internal(&mut stream)
-    }
-
-    fn resolve_internal(&self, stream: &mut slice::Iter<TokenOrAst>) -> Vec<TokenOrAst> {
-        match self {
-            // todo:perf of clone?
-            Self::Everything => stream.cloned().collect(),
-            // Self::TokenVariant(token_variant_pattern) =>
-            //     if let Some(token) = stream.next() {
-            //         let token = *token;
-            //         if token.variant() == *token_variant_pattern {
-            //             vec![token]
-            //         } else {
-            //             panic!()
-            //         }
-            //     } else {
-            //         default()
-            //     },
-            Self::Seq(first, second) =>
-                first.resolve_internal(stream).extended(second.resolve_internal(stream)),
-        }
-    }
-}
-
-
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub struct Macro<'a> {
-    prefix:   Option<Pattern>,
-    segments: list::NonEmpty<MacroSegment<'a>>,
-    #[derivative(Debug = "ignore")]
-    body:     Rc<dyn Fn(Vec<(Token, Vec<TokenOrAst>)>) -> Ast>,
-}
-
-#[derive(Clone, Debug)]
-pub struct MacroSegment<'a> {
-    repr:    &'a str,
-    pattern: Pattern,
-}
-
-#[derive(Debug)]
-pub struct MatchedSegment {
-    header: Token,
-    body:   Vec<TokenOrAst>,
-}
 
 use lexer::Lexer;
 
@@ -134,16 +81,28 @@ impl From<Ast> for TokenOrAst {
     }
 }
 
-#[derive(Debug)]
-pub struct MacroSegmentTreeDataRecord<'a> {
-    list: List<MacroSegment<'a>>,
-    def:  Rc<Macro<'a>>,
-}
+
+
+// ======================
+// === MacroMatchTree ===
+// ======================
 
 #[derive(Default, Debug)]
-pub struct MacroSegmentTree<'a> {
-    subsections: HashMap<&'a str, Vec<MacroSegmentTreeDataRecord<'a>>>,
+pub struct MacroMatchTree<'a> {
+    subsections: HashMap<&'a str, Vec<PartiallyMatchedMacro<'a>>>,
 }
+
+#[derive(Debug)]
+pub struct PartiallyMatchedMacro<'a> {
+    required_segments: List<macros::SegmentDefinition<'a>>,
+    definition:        Rc<macros::Definition<'a>>,
+}
+
+
+
+// =====================
+// === MacroResolver ===
+// =====================
 
 #[derive(Debug)]
 pub struct MacroResolver {
@@ -152,14 +111,22 @@ pub struct MacroResolver {
 }
 
 #[derive(Debug)]
+pub struct MatchedSegment {
+    header: Token,
+    body:   Vec<TokenOrAst>,
+}
+
+
+
+#[derive(Debug)]
 pub struct Resolver<'a> {
     leading_tokens:       Vec<Token>,
     current_macro:        Option<MacroResolver>,
     macro_stack:          Vec<MacroResolver>,
-    matched_macro_def:    Option<Rc<Macro<'a>>>,
-    parent_segment_trees: Vec<MacroSegmentTree<'a>>,
-    segment_tree:         MacroSegmentTree<'a>,
-    root_segment_tree:    MacroSegmentTree<'a>,
+    matched_macro_def:    Option<Rc<macros::Definition<'a>>>,
+    parent_segment_trees: Vec<MacroMatchTree<'a>>,
+    macro_match_tree:     MacroMatchTree<'a>,
+    root_segment_tree:    MacroMatchTree<'a>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -176,18 +143,18 @@ impl<'a> Resolver<'a> {
         let macro_stack = default();
         let matched_macro_def = default();
         let parent_segment_trees = default();
-        let segment_tree = MacroSegmentTree::default();
-        let mut root_segment_tree = MacroSegmentTree::default();
+        let macro_match_tree = MacroMatchTree::default();
+        let mut root_segment_tree = MacroMatchTree::default();
 
         let if_then = macro_if_then();
         let if_then_else = macro_if_then_else();
-        let if_then = MacroSegmentTreeDataRecord {
-            list: if_then.segments.tail.clone(),
-            def:  Rc::new(if_then),
+        let if_then = PartiallyMatchedMacro {
+            required_segments: if_then.segments.tail.clone(),
+            definition:        Rc::new(if_then),
         };
-        let if_then_else = MacroSegmentTreeDataRecord {
-            list: if_then_else.segments.tail.clone(),
-            def:  Rc::new(if_then_else),
+        let if_then_else = PartiallyMatchedMacro {
+            required_segments: if_then_else.segments.tail.clone(),
+            definition:        Rc::new(if_then_else),
         };
         root_segment_tree.subsections.entry("if").or_default().push(if_then);
         root_segment_tree.subsections.entry("if").or_default().push(if_then_else);
@@ -198,7 +165,7 @@ impl<'a> Resolver<'a> {
             current_macro,
             macro_stack,
             matched_macro_def,
-            segment_tree,
+            macro_match_tree,
             root_segment_tree,
             parent_segment_trees,
         }
@@ -225,7 +192,7 @@ impl<'a> Resolver<'a> {
                     }
                     ResolverStep::MacroStackPop => {}
                 }
-                println!("{:#?}", self.segment_tree);
+                println!("{:#?}", self.macro_match_tree);
             } else {
                 break;
             }
@@ -265,7 +232,7 @@ impl<'a> Resolver<'a> {
     pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
         let mut new_root = false;
-        let list = match self.segment_tree.subsections.get(repr) {
+        let list = match self.macro_match_tree.subsections.get(repr) {
             Some(list) => {
                 let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
                 let mut current_segment = MatchedSegment { header: token, body: default() };
@@ -277,7 +244,7 @@ impl<'a> Resolver<'a> {
                 if self.is_reserved(repr) {
                     println!("RESERVED");
                     if let Some(mut current_macro) = self.macro_stack.pop() {
-                        self.segment_tree = self.parent_segment_trees.pop().unwrap();
+                        self.macro_match_tree = self.parent_segment_trees.pop().unwrap();
                         let ast = self.finish();
                         current_macro.current_segment.body.push(ast.into());
                         self.current_macro = Some(current_macro);
@@ -308,22 +275,22 @@ impl<'a> Resolver<'a> {
         let out = list.is_some();
         if let Some(list) = list {
             self.matched_macro_def = None;
-            let mut new_section_tree = MacroSegmentTree::default();
+            let mut new_section_tree = MacroMatchTree::default();
             for v in list {
-                if v.list.is_empty() {
-                    self.matched_macro_def = Some(v.def.clone_ref());
+                if v.required_segments.is_empty() {
+                    self.matched_macro_def = Some(v.definition.clone_ref());
                 }
-                if let Some(first) = v.list.head() {
-                    let tail = v.list.tail().cloned().unwrap_or_default();
-                    let def = v.def.clone_ref();
-                    let x = MacroSegmentTreeDataRecord { list: tail, def };
-                    new_section_tree.subsections.entry(&first.repr).or_default().push(x);
+                if let Some(first) = v.required_segments.head() {
+                    let tail = v.required_segments.tail().cloned().unwrap_or_default();
+                    let definition = v.definition.clone_ref();
+                    let x = PartiallyMatchedMacro { required_segments: tail, definition };
+                    new_section_tree.subsections.entry(&first.header).or_default().push(x);
                 } else {
                     // todo!()
                 }
             }
             // fixme: new_section_tree is created which is too much, we are using only subsections
-            mem::swap(&mut new_section_tree, &mut self.segment_tree);
+            mem::swap(&mut new_section_tree, &mut self.macro_match_tree);
             self.parent_segment_trees.push(new_section_tree);
         }
         if out {
@@ -333,12 +300,6 @@ impl<'a> Resolver<'a> {
         }
     }
 }
-
-// impl<'a> MacroSegmentTreeData<'a> {
-//     pub fn is_reserved(&self, repr: &'a str) -> bool {
-//         self.parents.iter().any(|p| p.contains_key(repr))
-//     }
-// }
 
 
 pub type Ast = Token<AstData>;
@@ -426,24 +387,26 @@ fn matched_segments_into_multi_segment_app(matched_segments: Vec<(Token, Vec<Tok
     }
 }
 
-fn macro_if_then_else<'a>() -> Macro<'a> {
-    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
-    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    let section3 = MacroSegment { repr: "else", pattern: Pattern::Everything };
-    Macro {
-        prefix:   None,
-        segments: list::NonEmpty::singleton(section3).with_head(section2).with_head(section1),
-        body:     Rc::new(|t| matched_segments_into_multi_segment_app(t)),
+fn macro_if_then_else<'a>() -> macros::Definition<'a> {
+    let section1 = macros::SegmentDefinition::new("if", Pattern::Everything);
+    let section2 = macros::SegmentDefinition::new("then", Pattern::Everything);
+    let section3 = macros::SegmentDefinition::new("else", Pattern::Everything);
+    macros::Definition {
+        rev_prefix_pattern: None,
+        segments:           list::NonEmpty::singleton(section3)
+            .with_head(section2)
+            .with_head(section1),
+        body:               Rc::new(|t| matched_segments_into_multi_segment_app(t)),
     }
 }
 
-fn macro_if_then<'a>() -> Macro<'a> {
-    let section1 = MacroSegment { repr: "if", pattern: Pattern::Everything };
-    let section2 = MacroSegment { repr: "then", pattern: Pattern::Everything };
-    Macro {
-        prefix:   None,
-        segments: list::NonEmpty::singleton(section2).with_head(section1),
-        body:     Rc::new(|t| matched_segments_into_multi_segment_app(t)),
+fn macro_if_then<'a>() -> macros::Definition<'a> {
+    let section1 = macros::SegmentDefinition::new("if", Pattern::Everything);
+    let section2 = macros::SegmentDefinition::new("then", Pattern::Everything);
+    macros::Definition {
+        rev_prefix_pattern: None,
+        segments:           list::NonEmpty::singleton(section2).with_head(section1),
+        body:               Rc::new(|t| matched_segments_into_multi_segment_app(t)),
     }
 }
 
