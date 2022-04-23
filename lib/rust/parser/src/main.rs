@@ -334,7 +334,7 @@ pub type Ast = Token<AstData>;
 
 #[derive(Clone, Debug)]
 pub enum AstData {
-    Ident(Token<lexer::Ident>),
+    Ident(lexer::Ident),
     MultiSegmentApp(MultiSegmentApp),
 }
 
@@ -384,8 +384,7 @@ fn tokens_to_ast(tokens: Vec<TokenOrAst>) -> Ast {
             }
             match first {
                 TokenOrAst::Token(token) => match token.elem {
-                    lexer::Kind::Ident(ident) =>
-                        token.with_elem(AstData::Ident(token.with_elem(ident))),
+                    lexer::Kind::Ident(ident) => token.with_elem(AstData::Ident(ident)),
                     _ => panic!(),
                 },
                 TokenOrAst::Ast(ast) => ast,

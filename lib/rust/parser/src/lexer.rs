@@ -192,7 +192,7 @@ impl<T> Token<T> {
 
     pub fn split_at_start(self) -> (Token<()>, Token<T>) {
         let left_offset = self.left_offset;
-        let (elem, token_left, token_right) = self.split_at_internal(left_offset);
+        let (elem, token_left, token_right) = self.split_at_internal(Bytes::from(0));
         let token_right = token_right.with_elem(elem);
         (token_left, token_right)
     }
