@@ -13,8 +13,12 @@ use std::marker::PhantomData;
 
 /// Common traits for built-in units.
 pub mod traits {
+    pub use super::BytesStrOps;
     pub use super::DurationNumberOps;
     pub use super::DurationOps;
+    pub use super::IntoUncheckedRawRange;
+    pub use super::UncheckedFrom;
+    pub use super::UncheckedInto;
 }
 
 mod ops {
@@ -25,27 +29,40 @@ mod ops {
 
 
 // =====================
-// === UncheckedInto ===
+// === UncheckedFrom ===
 // =====================
 
 /// Unchecked unit conversion. You should use it only for unit conversion definition, never in
 /// unit-usage code.
 #[allow(missing_docs)]
+pub trait UncheckedFrom<T> {
+    fn unchecked_from(t: T) -> Self;
+}
+
+impl<T> const UncheckedFrom<T> for T {
+    fn unchecked_from(t: T) -> Self {
+        t
+    }
+}
+
+impl<V, R> const UncheckedFrom<R> for UnitData<V, R> {
+    fn unchecked_from(repr: R) -> Self {
+        let variant = PhantomData;
+        UnitData { repr, variant }
+    }
+}
+
+/// Unchecked unit conversion. See [`UncheckedFrom`] to learn more.
+#[allow(missing_docs)]
 pub trait UncheckedInto<T> {
     fn unchecked_into(self) -> T;
 }
 
-impl<T> const UncheckedInto<T> for T {
+impl<T, S> const UncheckedInto<T> for S
+where T: ~const UncheckedFrom<S>
+{
     fn unchecked_into(self) -> T {
-        self
-    }
-}
-
-impl<V, R> const UncheckedInto<UnitData<V, R>> for R {
-    fn unchecked_into(self) -> UnitData<V, R> {
-        let repr = self;
-        let variant = PhantomData;
-        UnitData { repr, variant }
+        T::unchecked_from(self)
     }
 }
 
@@ -74,6 +91,7 @@ pub trait Variant {
 }
 
 /// Internal representation of every unit.
+#[repr(transparent)]
 pub struct UnitData<V, R> {
     repr:    R,
     variant: PhantomData<V>,
@@ -193,6 +211,25 @@ where R: Copy
 
 
 
+// =============================
+// === IntoUncheckedRawRange ===
+// =============================
+
+/// Allows transmuting [`Range<UnitData<V,R>>`] to [`Range<R>`].
+pub trait IntoUncheckedRawRange {
+    type InnerType;
+    fn into_unchecked_raw_range(self) -> std::ops::Range<Self::InnerType>;
+}
+
+impl<V, R> IntoUncheckedRawRange for std::ops::Range<UnitData<V, R>> {
+    type InnerType = R;
+    fn into_unchecked_raw_range(self) -> std::ops::Range<Self::InnerType> {
+        self.start.repr..self.end.repr
+    }
+}
+
+
+
 // ===============
 // === gen_ops ===
 // ===============
@@ -288,6 +325,34 @@ macro_rules! gen_ops {
             }
         }
 
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
+        impl<V, R> const ops::$trait<UnitData<V, R>> for f64
+        where
+            R: Copy,
+            V: $rev_trait<f64>,
+            f64: ~const ops::$trait<R>,
+        {
+            type Output = UnitData<<V as $rev_trait<f64>>::Output, <f64 as ops::$trait<R>>::Output>;
+            fn $op(self, rhs: UnitData<V, R>) -> Self::Output {
+                self.$op(rhs.repr).unchecked_into()
+            }
+        }
+
+        // Please note that this impl is not as generic as the following ones because Rust compiler
+        // is unable to compile the more generic version.
+        impl<V> const ops::$trait<UnitData<V, usize>> for usize
+        where
+            V: $rev_trait<usize>,
+            usize: ~const ops::$trait<usize>,
+        {
+            type Output =
+                UnitData<<V as $rev_trait<usize>>::Output, <usize as ops::$trait<usize>>::Output>;
+            fn $op(self, rhs: UnitData<V, usize>) -> Self::Output {
+                self.$op(rhs.repr).unchecked_into()
+            }
+        }
+
         impl<V, R, T> const ops::$trait<T> for UnitData<V, R>
         where
             UnitData<V, R>: $trait<T>,
@@ -331,6 +396,29 @@ macro_rules! gen_ops_mut {
                 self.$op(rhs.repr)
             }
         }
+
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for f64
+        where
+            f64: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
+
+        impl<V, R> const ops::$trait_mut<UnitData<V, R>> for usize
+        where
+            usize: ~const ops::$trait_mut<R>,
+            R: Copy,
+            UnitData<V, R>: $rev_trait<f32>,
+        {
+            fn $op(&mut self, rhs: UnitData<V, R>) {
+                self.$op(rhs.repr)
+            }
+        }
+
         impl<V, R, T> const ops::$trait_mut<T> for UnitData<V, R>
         where
             T: IsNotUnit,
@@ -341,6 +429,7 @@ macro_rules! gen_ops_mut {
                 self.repr.$op(rhs)
             }
         }
+
         impl<V1, V2, R1, R2> const ops::$trait_mut<UnitData<V2, R2>> for UnitData<V1, R1>
         where
             R1: ~const ops::$trait_mut<R2>,
@@ -478,6 +567,9 @@ macro_rules! define_single_op_switch {
     };
     (f64 $op:tt $rhs:ident = $out:ident) => {
         $crate::define_single_rev_op! {f64 $op $rhs = $out}
+    };
+    (usize $op:tt $rhs:ident = $out:ident) => {
+        $crate::define_single_rev_op! {usize $op $rhs = $out}
     };
     ($lhs:ident $op:tt $rhs:ident = $out:ident) => {
         $crate::define_single_op! {$lhs $op $rhs = $out}
@@ -651,5 +743,37 @@ impl From<std::time::Duration> for Duration {
 impl From<Duration> for std::time::Duration {
     fn from(duration: Duration) -> Self {
         std::time::Duration::from_millis(duration.as_ms() as u64)
+    }
+}
+
+
+
+// =============
+// === Bytes ===
+// =============
+
+define! {
+    Bytes: usize = 0
+}
+define_ops![
+    Bytes [+,-] Bytes = Bytes,
+    Bytes * usize = Bytes,
+    usize * Bytes = Bytes,
+];
+
+impl From<usize> for Bytes {
+    fn from(t: usize) -> Self {
+        Bytes::unchecked_from(t)
+    }
+}
+
+pub trait BytesStrOps {
+    fn slice(&self, range: std::ops::Range<Bytes>) -> &str;
+}
+
+impl BytesStrOps for str {
+    #[inline(always)]
+    fn slice(&self, range: std::ops::Range<Bytes>) -> &str {
+        &self[range.into_unchecked_raw_range()]
     }
 }
