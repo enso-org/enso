@@ -21,39 +21,8 @@ use source::WithSources;
 
 pub mod prelude {
     pub use enso_prelude::*;
-}
-
-
-
-// =============
-// === Bytes ===
-// =============
-
-#[derive(
-    Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, PartialOrd, Ord, Sub
-)]
-pub struct Bytes(usize);
-
-impl Display for Bytes {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-#[inline(always)]
-fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
-    unsafe { mem::transmute(range) }
-}
-
-pub trait BytesStrOps {
-    fn slice(&self, range: Range<Bytes>) -> &str;
-}
-
-impl BytesStrOps for str {
-    #[inline(always)]
-    fn slice(&self, range: Range<Bytes>) -> &str {
-        &self[bytes_range_into_usize_range(range)]
-    }
+    pub use enso_types::traits::*;
+    pub use enso_types::Bytes;
 }
 
 

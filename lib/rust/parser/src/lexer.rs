@@ -6,8 +6,6 @@ use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
 
-use crate::Bytes;
-use crate::BytesStrOps;
 
 
 // =================
