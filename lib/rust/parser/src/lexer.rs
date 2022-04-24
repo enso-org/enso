@@ -1,3 +1,4 @@
+use crate::location;
 use crate::prelude::*;
 use crate::source;
 use crate::source::WithSources;
@@ -5,6 +6,8 @@ use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
 
+use crate::Bytes;
+use crate::BytesStrOps;
 
 
 // =================
@@ -70,59 +73,20 @@ impl<T: Debug> Debug for BumpVec<T> {
 
 
 // =============
-// === Bytes ===
-// =============
-
-#[derive(
-    Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, PartialOrd, Ord, Sub
-)]
-pub struct Bytes(usize);
-
-impl Display for Bytes {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-#[inline(always)]
-fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
-    unsafe { mem::transmute(range) }
-}
-
-pub trait BytesStrOps {
-    fn slice(&self, range: Range<Bytes>) -> &str;
-}
-
-impl BytesStrOps for str {
-    #[inline(always)]
-    fn slice(&self, range: Range<Bytes>) -> &str {
-        &self[bytes_range_into_usize_range(range)]
-    }
-}
-
-
-
-// =============
 // === Token ===
 // =============
 
-#[derive(Clone, Copy, Deref, PartialEq, Eq)]
-pub struct Token<T = Kind> {
-    #[deref]
-    pub elem:                T,
-    pub left_visible_offset: usize,
-    pub left_offset:         Bytes,
-    pub start:               Bytes,
-    pub len:                 Bytes,
-}
+pub type Token = location::With<Kind>;
 
-impl<T: Debug> Debug for Token<T> {
+
+
+impl<T: Debug> Debug for location::With<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[off:{}, len:{}] {:#?}", self.left_visible_offset, self.len, self.elem)
     }
 }
 
-impl<'s, 't, T> Debug for WithSources<'s, &'t Token<T>>
+impl<'s, 't, T> Debug for WithSources<'s, &'t location::With<T>>
 where for<'x> WithSources<'x, &'t T>: Debug
 {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -132,7 +96,7 @@ where for<'x> WithSources<'x, &'t T>: Debug
     }
 }
 
-impl<'s, 't, T: Debug> Debug for source::DebugLeaf<WithSources<'s, &'t Token<T>>> {
+impl<'s, 't, T: Debug> Debug for source::DebugLeaf<WithSources<'s, &'t location::With<T>>> {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let off = self.left_visible_offset;
         write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
@@ -140,7 +104,7 @@ impl<'s, 't, T: Debug> Debug for source::DebugLeaf<WithSources<'s, &'t Token<T>>
     }
 }
 
-impl<T> Token<T> {
+impl<T> location::With<T> {
     #[inline(always)]
     pub fn new_no_offset(start: Bytes, len: Bytes, elem: T) -> Self {
         let left_visible_offset = 0;
@@ -155,29 +119,29 @@ impl<T> Token<T> {
     }
 
     #[inline(always)]
-    pub fn with_elem<S>(self, elem: S) -> Token<S> {
+    pub fn with_elem<S>(self, elem: S) -> location::With<S> {
         let left_visible_offset = self.left_visible_offset;
         let left_offset = self.left_offset;
         let start = self.start;
         let len = self.len;
-        Token { left_visible_offset, left_offset, start, len, elem }
+        location::With { left_visible_offset, left_offset, start, len, elem }
     }
 
     #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> (Token<()>, Token<()>) {
+    pub fn split_at(self, offset: Bytes) -> (location::Info, location::Info) {
         let (_, token_left, token_right) = self.split_at_internal(offset);
         (token_left, token_right)
     }
 
     #[inline(always)]
-    fn split_at_internal(self, offset: Bytes) -> (T, Token<()>, Token<()>) {
+    fn split_at_internal(self, offset: Bytes) -> (T, location::Info, location::Info) {
         let token_left = {
             let left_visible_offset = self.left_visible_offset;
             let left_offset = self.left_offset;
             let start = self.start;
             let len = self.len - offset;
             let elem = ();
-            Token { left_visible_offset, left_offset, start, len, elem }
+            location::With { left_visible_offset, left_offset, start, len, elem }
         };
         let token_right = {
             let left_visible_offset = 0;
@@ -185,13 +149,12 @@ impl<T> Token<T> {
             let start = self.start + offset;
             let len = self.len - offset;
             let elem = ();
-            Token { left_visible_offset, left_offset, start, len, elem }
+            location::With { left_visible_offset, left_offset, start, len, elem }
         };
         (self.elem, token_left, token_right)
     }
 
-    pub fn split_at_start(self) -> (Token<()>, Token<T>) {
-        let left_offset = self.left_offset;
+    pub fn split_at_start(self) -> (location::Info, location::With<T>) {
         let (elem, token_left, token_right) = self.split_at_internal(Bytes::from(0));
         let token_right = token_right.with_elem(elem);
         (token_left, token_right)
@@ -203,23 +166,23 @@ impl<T> Token<T> {
 
     /// Please note that the [`other`] token's position has to be bigger than self's one. This
     /// condition is not checked.
-    pub fn extend_to<S>(&mut self, other: &Token<S>) {
+    pub fn extend_to<S>(&mut self, other: &location::With<S>) {
         self.len = (other.start - self.start + other.len);
     }
 
-    pub fn extended_to<S>(mut self, other: &Token<S>) -> Self {
+    pub fn extended_to<S>(mut self, other: &location::With<S>) -> Self {
         self.extend_to(other);
         self
     }
 }
 
-impl<'s, T> WithSources<'s, Token<T>> {
+impl<'s, T> WithSources<'s, location::With<T>> {
     pub fn repr(&self) -> &str {
         self.data.source_slice(&self.source)
     }
 }
 
-impl<'s, T> WithSources<'s, &Token<T>> {
+impl<'s, T> WithSources<'s, &location::With<T>> {
     pub fn repr(&self) -> &str {
         self.data.source_slice(&self.source)
     }
@@ -340,40 +303,45 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn repr<T>(&self, token: Token<T>) -> &str {
+    pub fn repr<T>(&self, token: location::With<T>) -> &str {
         token.source_slice(&self.input)
     }
 }
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<T>> {
+    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<location::With<T>> {
         let start = self.offset;
         let (elem, len) = self.run_and_check_offset(f);
         (len > Bytes::from(0)).as_some_from(|| self.token_with_start_and_len(start, len, elem))
     }
 
     #[inline(always)]
-    pub fn phantom_token<T>(&mut self, elem: T) -> Token<T> {
+    pub fn phantom_token<T>(&mut self, elem: T) -> location::With<T> {
         let start = self.offset;
         self.token_with_start_and_len(start, Bytes::from(0), elem)
     }
 
     #[inline(always)]
-    pub fn marker_token<T>(&mut self, elem: T) -> Token<T> {
+    pub fn marker_token<T>(&mut self, elem: T) -> location::With<T> {
         let left_offset = Bytes::from(0);
         let left_visible_offset = 0;
         let start = self.offset - self.last_spaces_offset;
         let len = Bytes::from(0);
-        Token { left_visible_offset, left_offset, start, len, elem }
+        location::With { left_visible_offset, left_offset, start, len, elem }
     }
 
     #[inline(always)]
-    pub fn token_with_start_and_len<T>(&mut self, start: Bytes, len: Bytes, elem: T) -> Token<T> {
+    pub fn token_with_start_and_len<T>(
+        &mut self,
+        start: Bytes,
+        len: Bytes,
+        elem: T,
+    ) -> location::With<T> {
         let left_offset = self.last_spaces_offset;
         let left_visible_offset = self.last_spaces_visible_offset;
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
-        Token { left_visible_offset, left_offset, start, len, elem }
+        location::With { left_visible_offset, left_offset, start, len, elem }
     }
 
 
@@ -462,7 +430,7 @@ pub trait Validator {
 }
 
 impl<'s> Lexer<'s> {
-    pub fn validate<T: Copy + Validator>(&self, token: Token<T>) -> Vec<T::Output> {
+    pub fn validate<T: Copy + Validator>(&self, token: location::With<T>) -> Vec<T::Output> {
         let repr = self.repr(token);
         token.elem.validate(repr)
     }

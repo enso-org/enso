@@ -9,6 +9,7 @@
 use crate::prelude::*;
 
 pub mod lexer;
+pub mod location;
 pub mod macros;
 pub mod source;
 
@@ -20,6 +21,39 @@ use source::WithSources;
 
 pub mod prelude {
     pub use enso_prelude::*;
+}
+
+
+
+// =============
+// === Bytes ===
+// =============
+
+#[derive(
+    Add, AddAssign, Clone, Copy, Debug, Default, Eq, From, Hash, PartialEq, PartialOrd, Ord, Sub
+)]
+pub struct Bytes(usize);
+
+impl Display for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+#[inline(always)]
+fn bytes_range_into_usize_range(range: Range<Bytes>) -> Range<usize> {
+    unsafe { mem::transmute(range) }
+}
+
+pub trait BytesStrOps {
+    fn slice(&self, range: Range<Bytes>) -> &str;
+}
+
+impl BytesStrOps for str {
+    #[inline(always)]
+    fn slice(&self, range: Range<Bytes>) -> &str {
+        &self[bytes_range_into_usize_range(range)]
+    }
 }
 
 
@@ -88,9 +122,9 @@ impl From<Ast> for TokenOrAst {
 // === MacroMatchTree ===
 // ======================
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Deref, DerefMut)]
 pub struct MacroMatchTree<'a> {
-    subsections: HashMap<&'a str, Vec<PartiallyMatchedMacro<'a>>>,
+    map: HashMap<&'a str, Vec<PartiallyMatchedMacro<'a>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -106,9 +140,10 @@ pub struct PartiallyMatchedMacro<'a> {
 // =====================
 
 #[derive(Debug)]
-pub struct MacroResolver {
-    current_segment:   MatchedSegment,
-    resolved_segments: Vec<MatchedSegment>,
+pub struct MacroResolver<'a> {
+    current_segment:        MatchedSegment,
+    resolved_segments:      Vec<MatchedSegment>,
+    possible_next_segments: MacroMatchTree<'a>,
 }
 
 #[derive(Debug)]
@@ -121,13 +156,11 @@ pub struct MatchedSegment {
 
 #[derive(Debug)]
 pub struct Resolver<'a> {
-    leading_tokens:       Vec<Token>,
-    current_macro:        Option<MacroResolver>,
-    macro_stack:          Vec<MacroResolver>,
-    matched_macro_def:    Option<Rc<macros::Definition<'a>>>,
-    parent_segment_trees: Vec<MacroMatchTree<'a>>,
-    macro_match_tree:     MacroMatchTree<'a>,
-    root_segment_tree:    MacroMatchTree<'a>,
+    leading_tokens:    Vec<Token>,
+    current_macro:     Option<MacroResolver<'a>>,
+    macro_stack:       Vec<MacroResolver<'a>>,
+    matched_macro_def: Option<Rc<macros::Definition<'a>>>,
+    root_macro_map:    MacroMatchTree<'a>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -143,9 +176,7 @@ impl<'a> Resolver<'a> {
         let current_macro = default();
         let macro_stack = default();
         let matched_macro_def = default();
-        let parent_segment_trees = default();
-        let macro_match_tree = MacroMatchTree::default();
-        let mut root_segment_tree = MacroMatchTree::default();
+        let mut root_macro_map = MacroMatchTree::default();
 
         let if_then = macro_if_then();
         let if_then_else = macro_if_then_else();
@@ -157,19 +188,11 @@ impl<'a> Resolver<'a> {
             required_segments: if_then_else.segments.tail.clone(),
             definition:        Rc::new(if_then_else),
         };
-        root_segment_tree.subsections.entry("if").or_default().push(if_then);
-        root_segment_tree.subsections.entry("if").or_default().push(if_then_else);
+        root_macro_map.entry("if").or_default().push(if_then);
+        root_macro_map.entry("if").or_default().push(if_then_else);
 
-        println!("{:#?}", root_segment_tree);
-        Self {
-            leading_tokens,
-            current_macro,
-            macro_stack,
-            matched_macro_def,
-            macro_match_tree,
-            root_segment_tree,
-            parent_segment_trees,
-        }
+        println!("{:#?}", root_macro_map);
+        Self { leading_tokens, current_macro, macro_stack, matched_macro_def, root_macro_map }
     }
 
     pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
@@ -193,8 +216,8 @@ impl<'a> Resolver<'a> {
                     }
                     ResolverStep::MacroStackPop => {}
                 }
-                println!("{:#?}", self.macro_match_tree);
-                println!("{:#?}", self.parent_segment_trees);
+                println!("{:#?}", self.current_macro);
+                println!("{:#?}", self.macro_stack);
             } else {
                 break;
             }
@@ -228,25 +251,25 @@ impl<'a> Resolver<'a> {
     }
 
     pub fn is_reserved(&self, repr: &'a str) -> bool {
-        self.parent_segment_trees.iter().any(|p| p.subsections.contains_key(repr))
+        self.macro_stack.iter().any(|p| p.possible_next_segments.contains_key(repr))
     }
 
     pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
-        match self.macro_match_tree.subsections.get(repr) {
+        match self.current_macro.as_ref().and_then(|t| t.possible_next_segments.get(repr)) {
             Some(list) => {
+                let mut new_match_tree = Self::enter_path(&mut self.matched_macro_def, list);
                 let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
+                mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 let mut current_segment = MatchedSegment { header: token, body: default() };
                 mem::swap(&mut current_macro.current_segment, &mut current_segment);
                 current_macro.resolved_segments.push(current_segment);
-                self.enter_path(list.clone());
                 ResolverStep::NewSegmentStarted
             }
             None =>
                 if self.is_reserved(repr) {
                     println!("RESERVED");
                     if let Some(mut current_macro) = self.macro_stack.pop() {
-                        self.macro_match_tree = self.parent_segment_trees.pop().unwrap();
                         let ast = self.finish();
                         current_macro.current_segment.body.push(ast.into());
                         self.current_macro = Some(current_macro);
@@ -255,21 +278,22 @@ impl<'a> Resolver<'a> {
                         panic!()
                     }
                 } else {
-                    match self.root_segment_tree.subsections.get(repr) {
+                    match self.root_macro_map.get(repr) {
                         Some(list) => {
                             println!("NEW ROOT macro started");
+                            let possible_next_segments =
+                                Self::enter_path(&mut self.matched_macro_def, list);
                             let current_segment =
                                 MatchedSegment { header: token, body: default() };
                             let mut current_macro = Some(MacroResolver {
                                 current_segment,
                                 resolved_segments: default(),
+                                possible_next_segments,
                             });
-                            let old_match_tree = self.enter_path(list.clone());
                             mem::swap(&mut self.current_macro, &mut current_macro);
                             if let Some(current_macro) = current_macro {
                                 self.macro_stack.push(current_macro);
                             }
-                            self.parent_segment_trees.push(old_match_tree);
                             ResolverStep::NewSegmentStarted
                         }
                         None => ResolverStep::NormalToken,
@@ -278,30 +302,31 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn enter_path(&mut self, path: Vec<PartiallyMatchedMacro<'a>>) -> MacroMatchTree<'a> {
-        self.matched_macro_def = None;
+    fn enter_path(
+        matched_macro_def: &mut Option<Rc<macros::Definition<'a>>>,
+        path: &[PartiallyMatchedMacro<'a>],
+    ) -> MacroMatchTree<'a> {
+        *matched_macro_def = None;
         let mut new_section_tree = MacroMatchTree::default();
         for v in path {
             if let Some(first) = v.required_segments.head() {
                 let tail = v.required_segments.tail().cloned().unwrap_or_default();
                 let definition = v.definition.clone_ref();
                 let x = PartiallyMatchedMacro { required_segments: tail, definition };
-                new_section_tree.subsections.entry(&first.header).or_default().push(x);
+                new_section_tree.entry(&first.header).or_default().push(x);
             } else {
-                if self.matched_macro_def.is_some() {
+                if matched_macro_def.is_some() {
                     // warning
                 }
-                self.matched_macro_def = Some(v.definition.clone_ref());
+                *matched_macro_def = Some(v.definition.clone_ref());
             }
         }
-        // fixme: new_section_tree is created which is too much, we are using only subsections
-        mem::swap(&mut new_section_tree, &mut self.macro_match_tree);
         new_section_tree
     }
 }
 
 
-pub type Ast = Token<AstData>;
+pub type Ast = location::With<AstData>;
 
 #[derive(Clone, Debug)]
 pub enum AstData {
