@@ -29,40 +29,6 @@ pub mod prelude {
 
 // ==================================
 
-pub struct Stream<'a> {
-    in_bounds: bool,
-    index:     usize,
-    tokens:    &'a [Token],
-}
-
-impl<'a> Stream<'a> {
-    pub fn new(tokens: &'a [Token]) -> Self {
-        let in_bounds = default();
-        let index = default();
-        Self { in_bounds, index, tokens }.init()
-    }
-
-    fn init(mut self) -> Self {
-        self.check_current_bounds();
-        self
-    }
-
-    fn check_current_bounds(&mut self) {
-        self.in_bounds = self.index < self.tokens.len();
-    }
-
-    pub fn first(&self) -> Option<&'a Token> {
-        self.in_bounds.as_some_from(|| &self.tokens[self.index])
-    }
-
-    pub fn next(&mut self) {
-        if self.in_bounds {
-            self.index += 1;
-            self.check_current_bounds();
-        }
-    }
-}
-
 
 
 use lexer::Lexer;
@@ -121,6 +87,12 @@ pub struct MatchedSegment {
     body:   Vec<TokenOrAst>,
 }
 
+impl MatchedSegment {
+    pub fn new(header: Token) -> Self {
+        let body = default();
+        Self { header, body }
+    }
+}
 
 
 #[derive(Debug)]
@@ -137,6 +109,25 @@ pub enum ResolverStep {
     NormalToken,
     NewSegmentStarted,
     MacroStackPop,
+}
+
+macro_rules! if_let {
+    (($match1_cons:ident($($match1:tt)*), $match2_cons:ident($($match2:tt)*))
+        = ($expr1:expr, $expr2:expr) $matched:tt else $($not_matched:tt)*) => {
+            let mut matched = false;
+            let mut out = None;
+            if let $match1_cons($($match1)*) = $expr1 {
+                if let $match2_cons($($match2)*) = $expr2 {
+                    matched = true;
+                    out = Some($matched);
+                }
+            }
+            if matched {
+                out.unwrap()
+            } else {
+                $($not_matched)*
+            }
+    };
 }
 
 impl<'a> Resolver<'a> {
@@ -191,10 +182,10 @@ impl<'a> Resolver<'a> {
                 break;
             }
         }
-        self.finish()
+        self.resolve_current_macro()
     }
 
-    pub fn finish(&mut self) -> Ast {
+    pub fn resolve_current_macro(&mut self) -> Ast {
         println!("FINISH");
         let current_macro = mem::take(&mut self.current_macro).unwrap();
         let mut segments = current_macro.resolved_segments;
@@ -219,56 +210,52 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn is_reserved(&self, repr: &'a str) -> bool {
-        self.macro_stack.iter().any(|p| p.possible_next_segments.contains_key(repr))
+    pub fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'a>> {
+        let reserved = self.macro_stack.iter().any(|p| p.possible_next_segments.contains_key(repr));
+        if reserved {
+            self.macro_stack.pop()
+        } else {
+            None
+        }
     }
 
     pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
-        match self.current_macro.as_ref().and_then(|t| t.possible_next_segments.get(repr)) {
-            Some(list) => {
-                let mut new_match_tree = Self::enter_path(&mut self.matched_macro_def, list);
-                let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
+        let mut out = None;
+        if let Some(current_macro) = self.current_macro.as_mut() {
+            if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
+                // Entering subsegments of the current macro.
+                let mut new_match_tree = Self::enter_path(&mut self.matched_macro_def, subsegments);
+                let mut current_segment = MatchedSegment::new(token);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
-                let mut current_segment = MatchedSegment { header: token, body: default() };
                 mem::swap(&mut current_macro.current_segment, &mut current_segment);
                 current_macro.resolved_segments.push(current_segment);
-                ResolverStep::NewSegmentStarted
+                out = Some(ResolverStep::NewSegmentStarted);
             }
-            None =>
-                if self.is_reserved(repr) {
-                    println!("RESERVED");
-                    if let Some(mut current_macro) = self.macro_stack.pop() {
-                        let ast = self.finish();
-                        current_macro.current_segment.body.push(ast.into());
-                        self.current_macro = Some(current_macro);
-                        ResolverStep::MacroStackPop
-                    } else {
-                        panic!()
-                    }
-                } else {
-                    match self.root_macro_map.get(repr) {
-                        Some(list) => {
-                            println!("NEW ROOT macro started");
-                            let possible_next_segments =
-                                Self::enter_path(&mut self.matched_macro_def, list);
-                            let current_segment =
-                                MatchedSegment { header: token, body: default() };
-                            let mut current_macro = Some(MacroResolver {
-                                current_segment,
-                                resolved_segments: default(),
-                                possible_next_segments,
-                            });
-                            mem::swap(&mut self.current_macro, &mut current_macro);
-                            if let Some(current_macro) = current_macro {
-                                self.macro_stack.push(current_macro);
-                            }
-                            ResolverStep::NewSegmentStarted
-                        }
-                        None => ResolverStep::NormalToken,
-                    }
-                },
         }
+        out.unwrap_or_else(|| {
+            if let Some(mut current_macro) = self.pop_macro_stack_if_reserved(repr) {
+                // Finishing the current macro because next token is reserved (by parent macro).
+                let ast = self.resolve_current_macro();
+                current_macro.current_segment.body.push(ast.into());
+                self.current_macro = Some(current_macro);
+                ResolverStep::MacroStackPop
+            } else if let Some(segments) = self.root_macro_map.get(repr) {
+                // Starting a new nested macro (the current token is the first token of a root
+                // macro).
+                println!("NEW ROOT macro started");
+                let mut current_macro = Some(MacroResolver {
+                    current_segment:        MatchedSegment { header: token, body: default() },
+                    resolved_segments:      default(),
+                    possible_next_segments: Self::enter_path(&mut self.matched_macro_def, segments),
+                });
+                mem::swap(&mut self.current_macro, &mut current_macro);
+                current_macro.map(|t| self.macro_stack.push(t));
+                ResolverStep::NewSegmentStarted
+            } else {
+                ResolverStep::NormalToken
+            }
+        })
     }
 
     fn enter_path(
