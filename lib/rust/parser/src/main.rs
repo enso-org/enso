@@ -151,7 +151,7 @@ impl<'a> Resolver<'a> {
         root_macro_map.entry("if").or_default().push(if_then);
         root_macro_map.entry("if").or_default().push(if_then_else);
 
-        println!("{:#?}", root_macro_map);
+        event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
         Self { leading_tokens, current_macro, macro_stack, matched_macro_def, root_macro_map }
     }
 
@@ -161,7 +161,7 @@ impl<'a> Resolver<'a> {
         loop {
             if let Some(token) = opt_token {
                 let repr = lexer.repr(token);
-                println!("\n>> '{}' = {:#?}", repr, token);
+                event!(TRACE, "New token '{}' = {:#?}", repr, token);
                 match self.enter(lexer, token) {
                     ResolverStep::NormalToken => {
                         match self.current_macro.as_mut() {
@@ -176,8 +176,8 @@ impl<'a> Resolver<'a> {
                     }
                     ResolverStep::MacroStackPop => {}
                 }
-                println!("{:#?}", self.current_macro);
-                println!("{:#?}", self.macro_stack);
+                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
+                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
             } else {
                 break;
             }
@@ -186,13 +186,10 @@ impl<'a> Resolver<'a> {
     }
 
     pub fn resolve_current_macro(&mut self) -> Ast {
-        println!("FINISH");
+        event!(TRACE, "Resolving current macro.");
         let current_macro = mem::take(&mut self.current_macro).unwrap();
         let mut segments = current_macro.resolved_segments;
         segments.push(current_macro.current_segment);
-        println!("{:#?}", segments);
-        println!("{:#?}", self.matched_macro_def);
-
         if let Some(macro_def) = &self.matched_macro_def {
             let matched_sections = macro_def
                 .segments
@@ -224,7 +221,7 @@ impl<'a> Resolver<'a> {
         let mut out = None;
         if let Some(current_macro) = self.current_macro.as_mut() {
             if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
-                // Entering subsegments of the current macro.
+                event!(TRACE, "Entering next segment of the current macro.");
                 let mut new_match_tree = Self::enter_path(&mut self.matched_macro_def, subsegments);
                 let mut current_segment = MatchedSegment::new(token);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
@@ -235,15 +232,13 @@ impl<'a> Resolver<'a> {
         }
         out.unwrap_or_else(|| {
             if let Some(mut current_macro) = self.pop_macro_stack_if_reserved(repr) {
-                // Finishing the current macro because next token is reserved (by parent macro).
+                event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
                 let ast = self.resolve_current_macro();
                 current_macro.current_segment.body.push(ast.into());
                 self.current_macro = Some(current_macro);
                 ResolverStep::MacroStackPop
             } else if let Some(segments) = self.root_macro_map.get(repr) {
-                // Starting a new nested macro (the current token is the first token of a root
-                // macro).
-                println!("NEW ROOT macro started");
+                event!(TRACE, "Starting a new nested macro resolution.");
                 let mut current_macro = Some(MacroResolver {
                     current_segment:        MatchedSegment { header: token, body: default() },
                     resolved_segments:      default(),
@@ -253,6 +248,7 @@ impl<'a> Resolver<'a> {
                 current_macro.map(|t| self.macro_stack.push(t));
                 ResolverStep::NewSegmentStarted
             } else {
+                event!(TRACE, "Consuming token as current segment body.");
                 ResolverStep::NormalToken
             }
         })
@@ -393,21 +389,13 @@ fn macro_if_then<'a>() -> macros::Definition<'a> {
 
 
 fn main() {
+    init_tracing(TRACE);
     // let str = "if a then b else c";
     let str = "if if x then y then b";
     let mut lexer = Lexer::new(str);
-    println!("{:#?}", lexer.run());
-    println!("{:#?}", lexer.output);
-
-    println!("\n---\n");
-
+    lexer.run();
 
     let mut resolver = Resolver::new();
     let ast = resolver.run(&lexer, lexer.output.borrow_vec());
-
-    println!("\n---\n");
-
     println!("{:#?}", WithSources::new(str, &ast));
 }
-
-// var1 = if (a > b) then if x then y else z else w
