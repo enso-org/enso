@@ -17,7 +17,6 @@ use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use lexer::Token;
 use macros::Pattern;
-use source::WithSources;
 
 pub mod prelude {
     pub use enso_prelude::*;
@@ -104,7 +103,7 @@ pub struct Resolver<'a> {
     root_macro_map:    MacroMatchTree<'a>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResolverStep {
     NormalToken,
     NewSegmentStarted,
@@ -138,30 +137,30 @@ impl<'a> Resolver<'a> {
 
     pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
         let mut stream = tokens.into_iter();
-        let mut opt_token = stream.next().copied();
-        loop {
-            if let Some(token) = opt_token {
-                let repr = lexer.repr(token);
-                event!(TRACE, "New token '{}' = {:#?}", repr, token);
-                match self.enter(lexer, token) {
-                    ResolverStep::NormalToken => {
-                        match self.current_macro.as_mut() {
-                            Some(current_macro) =>
-                                current_macro.current_segment.body.push(token.into()),
-                            None => self.leading_tokens.push(token),
-                        }
-                        opt_token = stream.next().copied();
-                    }
-                    ResolverStep::NewSegmentStarted => {
-                        opt_token = stream.next().copied();
-                    }
-                    ResolverStep::MacroStackPop => {}
+        let mut opt_token: Option<Token>;
+        macro_rules! next_token {
+            () => {
+                opt_token = stream.next().copied();
+                if let Some(token) = opt_token {
+                    let repr = lexer.repr(token);
+                    event!(TRACE, "New token '{}' = {:#?}", repr, token);
                 }
-                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
-                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
-            } else {
-                break;
+            };
+        }
+        next_token!();
+        while let Some(token) = opt_token {
+            let step_result = self.process_token(lexer, token);
+            if step_result == ResolverStep::NormalToken {
+                match self.current_macro.as_mut() {
+                    Some(m) => m.current_segment.body.push(token.into()),
+                    None => self.leading_tokens.push(token),
+                }
             }
+            if step_result != ResolverStep::MacroStackPop {
+                next_token!();
+            }
+            event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
+            event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
         }
         self.resolve_current_macro()
     }
@@ -197,13 +196,13 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
+    pub fn process_token(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
         let mut out = None;
         if let Some(current_macro) = self.current_macro.as_mut() {
             if let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
                 event!(TRACE, "Entering next segment of the current macro.");
-                let mut new_match_tree = Self::enter_path(&mut self.matched_macro_def, subsegments);
+                let mut new_match_tree = Self::enter(&mut self.matched_macro_def, subsegments);
                 let mut current_segment = MatchedSegment::new(token);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 mem::swap(&mut current_macro.current_segment, &mut current_segment);
@@ -223,7 +222,7 @@ impl<'a> Resolver<'a> {
                 let mut current_macro = Some(MacroResolver {
                     current_segment:        MatchedSegment { header: token, body: default() },
                     resolved_segments:      default(),
-                    possible_next_segments: Self::enter_path(&mut self.matched_macro_def, segments),
+                    possible_next_segments: Self::enter(&mut self.matched_macro_def, segments),
                 });
                 mem::swap(&mut self.current_macro, &mut current_macro);
                 current_macro.map(|t| self.macro_stack.push(t));
@@ -235,7 +234,7 @@ impl<'a> Resolver<'a> {
         })
     }
 
-    fn enter_path(
+    fn enter(
         matched_macro_def: &mut Option<Rc<macros::Definition<'a>>>,
         path: &[PartiallyMatchedMacro<'a>],
     ) -> MacroMatchTree<'a> {
@@ -249,7 +248,7 @@ impl<'a> Resolver<'a> {
                 new_section_tree.entry(&first.header).or_default().push(x);
             } else {
                 if matched_macro_def.is_some() {
-                    // warning
+                    event!(ERROR, "Internal error. Duplicate macro definition.");
                 }
                 *matched_macro_def = Some(v.definition.clone_ref());
             }
@@ -278,7 +277,7 @@ pub struct MultiSegmentAppSegment {
     body:   Ast,
 }
 
-impl<'s> Debug for WithSources<'s, &AstData> {
+impl<'s> Debug for source::With<'s, &AstData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.data {
             AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
@@ -288,13 +287,13 @@ impl<'s> Debug for WithSources<'s, &AstData> {
     }
 }
 
-impl<'s> Debug for WithSources<'s, &MultiSegmentApp> {
+impl<'s> Debug for source::With<'s, &MultiSegmentApp> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.segments.iter().map(|t| self.trans(|_| t))).finish()
     }
 }
 
-impl<'s> Debug for WithSources<'s, &MultiSegmentAppSegment> {
+impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MultiSegmentAppSegment")
             .field("header", &self.trans(|_| &self.header))
@@ -378,5 +377,5 @@ fn main() {
 
     let mut resolver = Resolver::new();
     let ast = resolver.run(&lexer, lexer.output.borrow_vec());
-    println!("{:#?}", WithSources::new(str, &ast));
+    println!("{:#?}", source::With::new(str, &ast));
 }

@@ -1,7 +1,6 @@
 use crate::location;
 use crate::prelude::*;
 use crate::source;
-use crate::source::WithSources;
 use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
@@ -84,8 +83,8 @@ impl<T: Debug> Debug for location::With<T> {
     }
 }
 
-impl<'s, 't, T> Debug for WithSources<'s, &'t location::With<T>>
-where for<'x> WithSources<'x, &'t T>: Debug
+impl<'s, 't, T> Debug for source::With<'s, &'t location::With<T>>
+where for<'x> source::With<'x, &'t T>: Debug
 {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let off = self.left_visible_offset;
@@ -94,7 +93,7 @@ where for<'x> WithSources<'x, &'t T>: Debug
     }
 }
 
-impl<'s, 't, T: Debug> Debug for source::DebugLeaf<WithSources<'s, &'t location::With<T>>> {
+impl<'s, 't, T: Debug> Debug for source::DebugLeaf<source::With<'s, &'t location::With<T>>> {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let off = self.left_visible_offset;
         write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
@@ -174,13 +173,13 @@ impl<T> location::With<T> {
     }
 }
 
-impl<'s, T> WithSources<'s, location::With<T>> {
+impl<'s, T> source::With<'s, location::With<T>> {
     pub fn repr(&self) -> &str {
         self.data.source_slice(&self.source)
     }
 }
 
-impl<'s, T> WithSources<'s, &location::With<T>> {
+impl<'s, T> source::With<'s, &location::With<T>> {
     pub fn repr(&self) -> &str {
         self.data.source_slice(&self.source)
     }
@@ -541,7 +540,7 @@ macro_rules! tagged_enum {
                 }
             }
 
-            impl<'s> Debug for WithSources<'s, &$variant> {
+            impl<'s> Debug for source::With<'s, &$variant> {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     Debug::fmt(&self.data, f)
                 }
@@ -606,7 +605,7 @@ tagged_enum!(Kind {
 });
 
 
-impl<'s> Debug for WithSources<'s, &Kind> {
+impl<'s> Debug for source::With<'s, &Kind> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.data, f)
     }
