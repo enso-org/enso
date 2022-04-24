@@ -233,14 +233,14 @@ impl<'a> Resolver<'a> {
 
     pub fn enter(&mut self, lexer: &Lexer, token: Token) -> ResolverStep {
         let repr = lexer.repr(token);
-        let mut new_root = false;
-        let list = match self.macro_match_tree.subsections.get(repr) {
+        match self.macro_match_tree.subsections.get(repr) {
             Some(list) => {
                 let current_macro = self.current_macro.as_mut().unwrap(); // has to be there
                 let mut current_segment = MatchedSegment { header: token, body: default() };
                 mem::swap(&mut current_macro.current_segment, &mut current_segment);
                 current_macro.resolved_segments.push(current_segment);
-                Some(list)
+                self.enter_path(list.clone());
+                ResolverStep::NewSegmentStarted
             }
             None =>
                 if self.is_reserved(repr) {
@@ -250,44 +250,35 @@ impl<'a> Resolver<'a> {
                         let ast = self.finish();
                         current_macro.current_segment.body.push(ast.into());
                         self.current_macro = Some(current_macro);
-                        return ResolverStep::MacroStackPop;
+                        ResolverStep::MacroStackPop
                     } else {
                         panic!()
                     }
                 } else {
                     match self.root_segment_tree.subsections.get(repr) {
                         Some(list) => {
-                            new_root = true;
-                            // println!("NEW ROOT macro started");
+                            println!("NEW ROOT macro started");
                             let current_segment =
                                 MatchedSegment { header: token, body: default() };
                             let mut current_macro = Some(MacroResolver {
                                 current_segment,
                                 resolved_segments: default(),
                             });
+                            let old_match_tree = self.enter_path(list.clone());
                             mem::swap(&mut self.current_macro, &mut current_macro);
                             if let Some(current_macro) = current_macro {
                                 self.macro_stack.push(current_macro);
                             }
-                            Some(list)
+                            self.parent_segment_trees.push(old_match_tree);
+                            ResolverStep::NewSegmentStarted
                         }
-                        None => None,
+                        None => ResolverStep::NormalToken,
                     }
                 },
-        };
-
-        let out = list.is_some();
-        if let Some(list) = list {
-            self.enter_path(list.to_vec(), new_root);
-        }
-        if out {
-            ResolverStep::NewSegmentStarted
-        } else {
-            ResolverStep::NormalToken
         }
     }
 
-    fn enter_path(&mut self, path: Vec<PartiallyMatchedMacro<'a>>, new_root: bool) {
+    fn enter_path(&mut self, path: Vec<PartiallyMatchedMacro<'a>>) -> MacroMatchTree<'a> {
         self.matched_macro_def = None;
         let mut new_section_tree = MacroMatchTree::default();
         for v in path {
@@ -305,9 +296,7 @@ impl<'a> Resolver<'a> {
         }
         // fixme: new_section_tree is created which is too much, we are using only subsections
         mem::swap(&mut new_section_tree, &mut self.macro_match_tree);
-        if new_root {
-            self.parent_segment_trees.push(new_section_tree);
-        }
+        new_section_tree
     }
 }
 

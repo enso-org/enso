@@ -38,6 +38,7 @@ import project.Data.Text.Utils_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
 import project.Data.Text.Matching_Spec
 import project.Data.Text.Span_Spec
+import project.Data.Text.Encoding_Spec
 
 import project.Network.Http.Header_Spec as Http_Header_Spec
 import project.Network.Http.Request_Spec as Http_Request_Spec
@@ -89,6 +90,7 @@ main = Test.Suite.run_main <|
     Matching_Spec.spec
     Runtime_Spec.spec
     Span_Spec.spec
+    Encoding_Spec.spec
     Bracket_Spec.spec
     Stack_Traces_Spec.spec
     Utils_Spec.spec

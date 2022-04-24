@@ -28,9 +28,7 @@ public abstract class BitShiftRightNode extends Node {
 
   @Specialization
   Object doBigInteger(
-      EnsoBigInteger _this,
-      EnsoBigInteger that,
-      @Cached("build()") BitShiftNode bitShiftNode) {
+      EnsoBigInteger _this, EnsoBigInteger that, @Cached("build()") BitShiftNode bitShiftNode) {
     return bitShiftNode.execute(_this, new EnsoBigInteger(BigIntegerOps.negate(that.getValue())));
   }
 

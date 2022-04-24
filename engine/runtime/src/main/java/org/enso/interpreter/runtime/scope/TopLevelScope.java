@@ -110,9 +110,7 @@ public class TopLevelScope implements TruffleObject {
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
-    private static Module getModule(
-        TopLevelScope scope,
-        Object[] arguments)
+    private static Module getModule(TopLevelScope scope, Object[] arguments)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);
 
@@ -161,10 +159,7 @@ public class TopLevelScope implements TruffleObject {
     }
 
     @Specialization
-    static Object doInvoke(
-        TopLevelScope scope,
-        String member,
-        Object[] arguments)
+    static Object doInvoke(TopLevelScope scope, String member, Object[] arguments)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case MethodNames.TopScope.GET_MODULE:

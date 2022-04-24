@@ -47,5 +47,5 @@ main =
         Bench.measure (here.compare_all_adjacent big_early_difference) suite_prefix+"big - early difference" 10 10
         Bench.measure (here.compare_all_adjacent big_late_difference) suite_prefix+"big - late difference" 10 10
 
-    bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.utf_16) 'ę\u{301}'
+    bench_strcmp "strcmp Unicode " (Faker.upper_case_letters + 'ę\u{301}\u{302}'.char_vector) 'ę\u{301}'
     bench_strcmp "strcmp ASCII " Faker.upper_case_letters 'A'

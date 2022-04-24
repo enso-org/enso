@@ -12,7 +12,7 @@ spec =
         facepalm = '\u{1F926}\u{1F3FC}\u200D\u2642\uFE0F'
         text = "a"+kshi+facepalm+'e\u{301}Z'
         codepoints_to_graphemes = _.flatten <| text.characters.map_with_index ix-> grapheme->
-            codepoints_count = grapheme.utf_16.length
+            codepoints_count = grapheme.char_vector.length
             Vector.new codepoints_count _->ix
 
         Test.specify "should correctly translate an codepoint index to a grapheme index" <|
@@ -20,7 +20,7 @@ spec =
                 found_grapheme_ix = Text_Utils.utf16_index_to_grapheme_index text codepoint_ix
                 found_grapheme_ix.should_equal grapheme_ix
 
-            Text_Utils.utf16_index_to_grapheme_index text text.utf_16.length . should_equal text.length
+            Text_Utils.utf16_index_to_grapheme_index text text.char_vector.length . should_equal text.length
             Text_Utils.utf16_index_to_grapheme_index "" 0 . should_equal 0
 
             Text_Utils.utf16_index_to_grapheme_index 'ą' 0 . should_equal 0
@@ -37,7 +37,7 @@ spec =
         Test.specify "should correctly translate a series of codepoint indices to a grapheme indices in a batch" <|
             translate_indices text ixes =
                 Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices text ixes.to_array
-            codepoint_indices = Vector.new text.utf_16.length ix->ix
+            codepoint_indices = Vector.new text.char_vector.length ix->ix
             translate_indices text codepoint_indices . should_equal codepoints_to_graphemes
 
             translate_indices "" [0] . should_equal [0]
@@ -50,12 +50,12 @@ spec =
             folded = CaseFoldedString.fold text Locale.default.java_locale
             folded.getFoldedString . should_equal 'a\u{301}azssffią'
 
-            codeunits = Vector.new folded.getFoldedString.utf_16.length+1 ix->ix
+            codeunits = Vector.new folded.getFoldedString.char_vector.length+1 ix->ix
             grapheme_ixes = codeunits.map ix->
                 folded.findGrapheme ix . index
             grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
 
             Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error
-            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.utf_16.length+1) Polyglot_Error
+            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error
 
 main = Test.Suite.run_main here.spec

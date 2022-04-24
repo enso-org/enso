@@ -5,6 +5,6 @@ public class MaskingFactory {
 
   /** @return the masking instance. */
   public static Masking$ getInstance() {
-      return Masking$.MODULE$;
+    return Masking$.MODULE$;
   }
 }

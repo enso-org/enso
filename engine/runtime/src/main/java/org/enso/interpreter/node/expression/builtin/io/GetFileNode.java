@@ -23,11 +23,9 @@ public abstract class GetFileNode extends Node {
 
   @Specialization
   Object doGetFile(
-      Object _this,
-      Object path,
-      @Cached("build()") ExpectStringNode expectStringNode) {
+      Object _this, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
     String pathStr = expectStringNode.execute(path);
-    var context= Context.get(this);
+    var context = Context.get(this);
     TruffleFile file = context.getEnvironment().getPublicTruffleFile(pathStr);
     EnsoFile ensoFile = new EnsoFile(file);
     return context.getEnvironment().asGuestValue(ensoFile);

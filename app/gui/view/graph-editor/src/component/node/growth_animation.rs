@@ -7,6 +7,7 @@
 
 use ensogl::prelude::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::GraphEditorModelWithNetwork;
 use crate::NodeId;
 
@@ -37,7 +38,7 @@ pub fn initialize_edited_node_animator(
     frp: &crate::Frp,
     scene: &Scene,
 ) {
-    let network = &frp.network;
+    let network = &frp.network();
     let out = &frp.output;
     let searcher_cam = scene.layers.node_searcher.camera();
     let edited_node_cam = scene.layers.edited_node.camera();

@@ -129,4 +129,3 @@ type Invalid_Format_Error input message
 Invalid_Format_Error.to_display_text : Text
 Invalid_Format_Error.to_display_text =
     "The input " + this.input.to_text + " had an invalid format due to: " + this.message.to_text + "."
-
