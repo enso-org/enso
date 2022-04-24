@@ -224,6 +224,7 @@ where R: Copy
 // =============================
 
 /// Allows transmuting [`Range<UnitData<V,R>>`] to [`Range<R>`].
+#[allow(missing_docs)]
 pub trait IntoUncheckedRawRange {
     type InnerType;
     fn into_unchecked_raw_range(self) -> std::ops::Range<Self::InnerType>;
@@ -674,7 +675,7 @@ define_ops![
     f32 * Duration = Duration,
 ];
 
-/// Methods for the [`Duration`] unit.
+/// Methods of the [`Duration`] unit.
 #[allow(missing_docs)]
 pub trait DurationOps {
     fn ms(t: f32) -> Duration;
@@ -761,6 +762,7 @@ impl From<Duration> for std::time::Duration {
 // =============
 
 define! {
+    /// Number of bytes.
     Bytes: usize = 0
 }
 define_ops![
@@ -775,6 +777,8 @@ impl From<usize> for Bytes {
     }
 }
 
+/// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
+#[allow(missing_docs)]
 pub trait BytesStrOps {
     fn slice(&self, range: std::ops::Range<Bytes>) -> &str;
 }

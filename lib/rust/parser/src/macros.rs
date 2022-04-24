@@ -2,8 +2,7 @@ use crate::prelude::*;
 use crate::Ast;
 use crate::Token;
 use crate::TokenOrAst;
-use enso_data_structures::list;
-use enso_data_structures::list::List;
+use enso_data_structures::im_list;
 
 
 #[derive(Clone, Debug)]
@@ -46,7 +45,7 @@ impl Pattern {
 #[derivative(Debug)]
 pub struct Definition<'a> {
     pub rev_prefix_pattern: Option<Pattern>,
-    pub segments:           list::NonEmpty<SegmentDefinition<'a>>,
+    pub segments:           im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
     pub body:               Rc<dyn Fn(Vec<(Token, Vec<TokenOrAst>)>) -> Ast>,
 }

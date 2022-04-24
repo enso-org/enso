@@ -4,7 +4,7 @@
 #![feature(generic_associated_types)]
 #![recursion_limit = "256"]
 #![feature(specialization)]
-
+#![allow(incomplete_features)]
 
 use crate::prelude::*;
 
@@ -13,8 +13,8 @@ pub mod location;
 pub mod macros;
 pub mod source;
 
-use enso_data_structures::list;
-use enso_data_structures::list::List;
+use enso_data_structures::im_list;
+use enso_data_structures::im_list::List;
 use lexer::Token;
 use macros::Pattern;
 use source::WithSources;
@@ -109,25 +109,6 @@ pub enum ResolverStep {
     NormalToken,
     NewSegmentStarted,
     MacroStackPop,
-}
-
-macro_rules! if_let {
-    (($match1_cons:ident($($match1:tt)*), $match2_cons:ident($($match2:tt)*))
-        = ($expr1:expr, $expr2:expr) $matched:tt else $($not_matched:tt)*) => {
-            let mut matched = false;
-            let mut out = None;
-            if let $match1_cons($($match1)*) = $expr1 {
-                if let $match2_cons($($match2)*) = $expr2 {
-                    matched = true;
-                    out = Some($matched);
-                }
-            }
-            if matched {
-                out.unwrap()
-            } else {
-                $($not_matched)*
-            }
-    };
 }
 
 impl<'a> Resolver<'a> {
@@ -342,7 +323,7 @@ fn tokens_to_ast(tokens: Vec<TokenOrAst>) -> Ast {
 }
 
 fn matched_segments_into_multi_segment_app(matched_segments: Vec<(Token, Vec<TokenOrAst>)>) -> Ast {
-    let mut segments = matched_segments
+    let segments = matched_segments
         .into_iter()
         .map(|segment| {
             let header = segment.0;
@@ -369,7 +350,7 @@ fn macro_if_then_else<'a>() -> macros::Definition<'a> {
     let section3 = macros::SegmentDefinition::new("else", Pattern::Everything);
     macros::Definition {
         rev_prefix_pattern: None,
-        segments:           list::NonEmpty::singleton(section3)
+        segments:           im_list::NonEmpty::singleton(section3)
             .with_head(section2)
             .with_head(section1),
         body:               Rc::new(|t| matched_segments_into_multi_segment_app(t)),
@@ -381,7 +362,7 @@ fn macro_if_then<'a>() -> macros::Definition<'a> {
     let section2 = macros::SegmentDefinition::new("then", Pattern::Everything);
     macros::Definition {
         rev_prefix_pattern: None,
-        segments:           list::NonEmpty::singleton(section2).with_head(section1),
+        segments:           im_list::NonEmpty::singleton(section2).with_head(section1),
         body:               Rc::new(|t| matched_segments_into_multi_segment_app(t)),
     }
 }

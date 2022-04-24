@@ -24,8 +24,8 @@
 pub mod dependency_graph;
 pub mod diet;
 pub mod hash_map_tree;
+pub mod im_list;
 pub mod index;
-pub mod list;
 pub mod opt_vec;
 
 pub use enso_prelude as prelude;

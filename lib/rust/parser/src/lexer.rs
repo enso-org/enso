@@ -165,7 +165,7 @@ impl<T> location::With<T> {
     /// Please note that the [`other`] token's position has to be bigger than self's one. This
     /// condition is not checked.
     pub fn extend_to<S>(&mut self, other: &location::With<S>) {
-        self.len = (other.start - self.start + other.len);
+        self.len = other.start - self.start + other.len;
     }
 
     pub fn extended_to<S>(mut self, other: &location::With<S>) -> Self {
@@ -443,6 +443,7 @@ impl<'s> Lexer<'s> {
 /// Based on https://en.wikipedia.org/wiki/Whitespace_character.
 const OTHER_UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
 const OTHER_UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
+#[test]
 const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 #[inline(always)]
