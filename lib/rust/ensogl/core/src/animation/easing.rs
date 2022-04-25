@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::animation;
 use crate::data::function::Fn1;
+use crate::types::unit2::Duration;
 
 use core::f32::consts::PI;
 
@@ -188,7 +189,7 @@ impl<T, F, OnStep, OnEnd> Debug for Animator<T, F, OnStep, OnEnd> {
 #[derivative(Debug(bound = "T:Debug+Copy"))]
 #[allow(missing_docs)]
 pub struct AnimatorData<T, F, OnStep, OnEnd> {
-    pub duration:     Cell<f32>,
+    pub duration:     Cell<Duration>,
     pub start_value:  Cell<T>,
     pub target_value: Cell<T>,
     pub value:        Cell<T>,
@@ -208,7 +209,7 @@ where
     OnEnd: Callback<EndStatus>,
 {
     fn new(start: T, end: T, tween_fn: F, callback: OnStep, on_end: OnEnd) -> Self {
-        let duration = Cell::new(1000.0);
+        let duration = Cell::new(1.0.s());
         let value = Cell::new(start);
         let start_value = Cell::new(start);
         let target_value = Cell::new(end);
@@ -216,7 +217,7 @@ where
         Self { duration, start_value, target_value, value, active, tween_fn, callback, on_end }
     }
 
-    fn step(&self, time: f32) {
+    fn step(&self, time: Duration) {
         let sample = (time / self.duration.get()).min(1.0);
         let weight = (self.tween_fn)(sample);
         let value = self.start_value.get() * (1.0 - weight) + self.target_value.get() * weight;
@@ -350,7 +351,7 @@ where
         self.data.target_value.set(t);
     }
 
-    pub fn set_duration(&self, t: f32) {
+    pub fn set_duration(&self, t: Duration) {
         self.data.duration.set(t);
     }
 }
@@ -422,7 +423,7 @@ where
     let animation_loop = easing.animation_loop.downgrade();
     move |time: animation::TimeInfo| {
         if data.active.get() {
-            data.step(time.local)
+            data.step(time.since_animation_loop_started)
         } else if let Some(animation_loop) = animation_loop.upgrade() {
             animation_loop.set(None);
         }

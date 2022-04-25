@@ -11,6 +11,8 @@ import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Base.Data.Text.Span as Span_Module import Span
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
@@ -184,10 +186,10 @@ Text.characters =
    - comments: Enables or disables the comments mode for the regular expression.
      In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
+       character class or when preceded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
      - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
+       preceded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
    - extra_opts: Specifies additional options in a vector. This allows options
@@ -421,52 +423,21 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
             pattern.split this mode=mode
 
 ## ALIAS Replace Text
-
-   Replaces each occurrence of `old_sequence` with `new_sequence`, returning
-   `this` unchanged if no matches are found.
+   Replaces the first, last, or all occurrences of term with new_text in the
+   input. If `term` is empty, the function returns the input unchanged.
 
    Arguments:
-   - old_sequence: The pattern to search for in `this`.
-   - new_sequence: The text to replace every occurrence of `old_sequence` with.
-   - mode: This argument specifies how many matches the engine will try to
-     replace.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII then you can enable this for a
-     performance boost on some regex engines.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it will match all
-     characters _except_ newlines.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as well as the start and end of the input respectively.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
-       grouping constructs (e.g. `(?...)`).
-     - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
-       such `#` to the end of the line are ignored. That is to say, they act
-       as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. This allows options
-     to be supplied and computed without having to break them out into arguments
-     to the function. Where these overlap with one of the flags (`match_ascii`,
-     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
-     flags take precedence.
-
-   ! Boolean Flags and Extra Options
-     This function contains a number of arguments that are boolean flags that
-     enable or disable common options for the regex. At the same time, it also
-     provides the ability to specify options in the `extra_opts` argument.
-
-     Where one of the flags is _set_ (has the value `True` or `False`), the
-     value of the flag takes precedence over the value in `extra_opts` when
-     merging the options to the engine. The flags are _unset_ (have value
-     `Nothing`) by default.
+   - term: The term to find.
+   - new_text: The new text to replace occurrences of `term` with.
+     If `matcher` is a `Regex_Matcher`, `new_text` can include replacement
+     patterns (such as `$<n>`) for a marked group.
+   - mode: Specifies which instances of term the engine tries to find. When the
+     mode is `First` or `Last`, this method replaces the first or last instance
+     of term in the input. If set to `All`, it replaces all instances of term in
+     the input.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
 
    > Example
      Replace letters in the text "aaa".
@@ -474,15 +445,87 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
          'aaa'.replace 'aa' 'b' == 'ba'
 
    > Example
-     Replace every word of two letters or less with the string "SMOL".
+     Replace all occurrences of letters 'l' and 'o' with '#'.
 
-         example_replace =
-             text = "I am a very smol word."
-             text.replace "\w\w(?!\w)"
-Text.replace : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
-Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-    compiled_pattern.replace this new_sequence mode
+         "Hello World!".replace "[lo]" "#" matcher=Regex_Matcher == "He### W#r#d!"
+
+   > Example
+     Replace the first occurrence of letter 'l' with '#'.
+
+         "Hello World!".replace "l" "#" mode=Matching_Mode.First == "He#lo World!"
+
+   > Example
+     Replace texts in quotes with parentheses.
+
+          '"abc" foo "bar" baz'.replace '"(.*?)"' '($1)' matcher=Regex_Matcher == '(abc) foo (bar) baz'
+
+   ! Matching Grapheme Clusters
+     In case-insensitive mode, a single character can match multiple characters,
+     for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
+     `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
+     match only a part of some single grapheme cluster, for example in the text
+     `ﬃa` the term `ia` will match just one-third of the first grapheme `ﬃ`.
+     Since we do not have the resolution to distinguish such partial matches, a
+     match which matched just a part of some grapheme cluster is extended and
+     treated as if it matched the whole grapheme cluster. Thus the whole
+     grapheme cluster may be replaced with the replacement text even if just a
+     part of it was matched.
+
+   > Example
+     Extended partial matches in case-insensitive mode.
+
+          # The ß symbol matches the letter `S` twice in case-insensitive mode, because it folds to `ss`.
+         'ß'.replace 'S' 'A' matcher=(Text_Matcher Case_Insensitive) . should_equal 'AA'
+         # The 'ﬃ' ligature is a single grapheme cluster, so even if just a part of it is matched, the whole grapheme is replaced.
+         'aﬃb'.replace 'i' 'X' matcher=(Text_Matcher Case_Insensitive) . should_equal 'aXb'
+
+   ! Last Match in Regex Mode
+     Regex always performs the search from the front and matching the last
+     occurrence means selecting the last of the matches while still generating
+     matches from the beginning. This will lead to slightly different behavior
+     for overlapping occurrences of a pattern in Regex mode than in exact text
+     matching mode where the matches are searched for from the back.
+
+   > Example
+     Comparing Matching in Last Mode in Regex and Text mode
+
+         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "ac"
+         "aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "ca"
+
+         "aaa aaa".replace "aa" "c" matcher=Text_Matcher . should_equal "ca ca"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Text_Matcher . should_equal "ca aaa"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Text_Matcher . should_equal "aaa ac"
+         "aaa aaa".replace "aa" "c" matcher=Regex_Matcher . should_equal "ca ca"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.First matcher=Regex_Matcher . should_equal "ca aaa"
+         "aaa aaa".replace "aa" "c" mode=Matching_Mode.Last matcher=Regex_Matcher . should_equal "aaa ca"
+Text.replace : Text -> Text -> (Matching_Mode.First | Matching_Mode.Last | Mode.All) -> (Text_Matcher | Regex_Matcher) -> Text
+Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is_empty then this else
+    case matcher of
+        Text_Matcher case_sensitivity ->
+            array_from_single_result result = case result of
+                Nothing -> Array.empty
+                _ -> Array.new_1 result
+            spans_array = case case_sensitivity of
+                True -> case mode of
+                    Mode.All ->
+                        Text_Utils.span_of_all this term
+                    Matching_Mode.First ->
+                        array_from_single_result <| Text_Utils.span_of this term
+                    Matching_Mode.Last ->
+                        array_from_single_result <| Text_Utils.last_span_of this term
+                Case_Insensitive locale -> case mode of
+                    Mode.All ->
+                        Text_Utils.span_of_all_case_insensitive this term locale.java_locale
+                    Matching_Mode.First ->
+                        array_from_single_result <|
+                            Text_Utils.span_of_case_insensitive this term locale.java_locale False
+                    Matching_Mode.Last ->
+                        array_from_single_result <|
+                            Text_Utils.span_of_case_insensitive this term locale.java_locale True
+            Text_Utils.replace_spans this spans_array new_text
+        Regex_Matcher _ _ _ _ _ ->
+            compiled_pattern = matcher.compile term
+            compiled_pattern.replace this new_text mode=mode
 
 ## ALIAS Get Words
 
@@ -673,23 +716,82 @@ Text.is_whitespace : Boolean
 Text.is_whitespace =
     Text_Utils.is_all_whitespace this
 
+## Returns a vector containing bytes representing the specified encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding.
+
+   Arguments:
+   - encoding: The text encoding to encode this with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
+Text.bytes encoding on_problems=Report_Warning =
+    result = Text_Utils.get_bytes this (encoding . to_java_charset)
+    vector = Vector.Vector result.result
+    if result.warnings.is_nothing then vector else
+        on_problems.attach_problems_after vector [Encoding_Error result.warnings]
+
+## Takes a vector of bytes and returns Text resulting from decoding it using the
+   specified encoding.
+
+   Arguments:
+   - bytes: The vector of UTF-8 bytes.
+   - encoding: The text encoding to decode the bytes with. Defaults to UTF-8.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
+   > Example
+     Get the ASCII bytes of the text "Hello".
+
+         "Hello".bytes (Encoding.ascii)
+Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
+Text.from_bytes bytes encoding on_problems=Report_Warning =
+    result = Text_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    if result.warnings.is_nothing then result.result else
+        on_problems.attach_problems_after result.result [Encoding_Error result.warnings]
+
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
+   Arguments:
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+
    > Example
      Get the UTF-8 bytes of the text "Hello".
 
          "Hello".utf_8
-Text.utf_8 : Vector.Vector Byte
-Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
+Text.utf_8 : Problem_Behavior -> Vector.Vector Byte
+Text.utf_8 on_problems=Report_Warning =
+    this.bytes Encoding.utf_8 on_problems
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
    Arguments:
    - bytes: The vector of UTF-8 bytes.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     function.
+     By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
@@ -698,35 +800,31 @@ Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
      Decoding the bytes to get a text.
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
-Text.from_utf_8 : Vector.Vector Byte -> Text
-Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
+Text.from_utf_8 : Vector.Vector Byte -> Problem_Behavior -> Text
+Text.from_utf_8 bytes on_problems=Report_Warning =
+    Text.from_bytes bytes Encoding.utf_8 on_problems
 
-## ADVANCED
-
-   Returns a vector containing the UTF-16 characters that encode the input text.
+## Returns a vector containing the UTF-16 characters that encode the input text.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 
    > Example
-     Get the UTF-16 bytes of the text "Hello".
+     Get the character vector of the text "Hello".
 
-         "Hello".utf_16
-Text.utf_16 : Vector.Vector Integer
-Text.utf_16 = Vector.Vector (Text_Utils.get_chars this)
+         "Hello".char_vector
+Text.char_vector : Vector.Vector Integer
+Text.char_vector = Vector.Vector (Text_Utils.get_chars this)
 
-## ADVANCED
-
-   Takes a vector of UTF-16 characters and returns the text that results from
-   decoding it as UTF-16.
+## Takes a vector of characters and returns the text that results from it.
 
    Arguments:
    - chars: The vector of UTF-16 characters.
 
    This is useful for low-level operations, such as binary data encoding and
    decoding.
-Text.from_utf_16 : Vector.Vector Integer -> Text
-Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
+Text.from_char_vector : Vector.Vector Integer -> Text
+Text.from_char_vector chars = Text_Utils.from_chars chars.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
@@ -990,7 +1088,7 @@ Text.repeat count=1 =
 Text.take : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.take range =
     char_range = case range of
-        Range _ _ -> Span_Module.range_to_char_indices this range
+        Range _ _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     Text_Utils.substring this char_range.start char_range.end
 
@@ -1030,7 +1128,7 @@ Text.take range =
 Text.drop : (Text_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
 Text.drop range =
     char_range = case range of
-        Range _ _ -> Span_Module.range_to_char_indices this range
+        Range _ _ _ -> Span_Module.range_to_char_indices this range
         _ -> range.to_char_range this
     if char_range.start == 0 then Text_Utils.drop_first this char_range.end else
         prefix = Text_Utils.substring this 0 char_range.start
@@ -1199,16 +1297,16 @@ Text.trim where=Location.Both what=_.is_whitespace =
      which contains both the start and end indices, allowing to determine the
      length of the match. This is useful not only with regex matches (where a
      regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case insensitive mode, a single character can
+     insensitive matching. In case-insensitive mode, a single character can
      match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
      mode, the length of the match can be shorter or longer than the term that
      was being matched, so it is extremely important to not rely on the length
      of the matched term when analysing the matches as they may have different
      lengths.
 
    > Example
-     Match length differences in case insensitive matching.
+     Match length differences in case-insensitive matching.
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
@@ -1217,7 +1315,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
          match.length == 7
 
    ! Matching Grapheme Clusters
-     In case insensitive mode, a single character can match multiple characters,
+     In case-insensitive mode, a single character can match multiple characters,
      for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
      `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
      match only a part of some single grapheme cluster, for example in the text
@@ -1242,6 +1340,22 @@ Text.trim where=Location.Both what=_.is_whitespace =
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
          match_1 == match_2
+
+   ! Last Match in Regex Mode
+     Regex always performs the search from the front and matching the last
+     occurrence means selecting the last of the matches while still generating
+     matches from the beginning. This will lead to slightly different behavior
+     for overlapping occurrences of a pattern in Regex mode than in exact text
+     matching mode where the matches are searched for from the back.
+
+   > Example
+     Comparing Matching in Last Mode in Regex and Text mode
+
+         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 1 3) "aaa"
+         "aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 0 2) "aaa"
+
+         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
+         "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
 Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
@@ -1250,7 +1364,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
                 Matching_Mode.First -> Text_Utils.span_of this term
                 Matching_Mode.Last -> Text_Utils.last_span_of this term
             if codepoint_span.is_nothing then Nothing else
-                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_span.start
+                start = Text_Utils.utf16_index_to_grapheme_index this codepoint_span.codeunit_start
                 ## While the codepoint_span may have different code unit length
                    from our term, the `length` counted in grapheme clusters is
                    guaranteed to be the same.
@@ -1269,7 +1383,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
                 case Text_Utils.span_of_case_insensitive this term locale.java_locale search_for_last of
                     Nothing -> Nothing
                     grapheme_span ->
-                        Span (Range grapheme_span.start grapheme_span.end) this
+                        Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) this
     Regex_Matcher _ _ _ _ _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match this Mode.First of
@@ -1308,16 +1422,16 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
      which contains both the start and end indices, allowing to determine the
      length of the match. This is useful not only with regex matches (where a
      regular expression can have matches of various lengths) but also for case
-     insensitive matching. In case insensitive mode, a single character can
+     insensitive matching. In case-insensitive mode, a single character can
      match multiple characters, for example `ß` will match `ss` and `SS`, and
-     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case insensitive
+     the ligature `ﬃ` will match `ffi` or `f` etc. Thus in case-insensitive
      mode, the length of the match can be shorter or longer than the term that
      was being matched, so it is extremely important to not rely on the length
      of the matched term when analysing the matches as they may have different
      lengths.
 
    > Example
-     Match length differences in case insensitive matching.
+     Match length differences in case-insensitive matching.
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
@@ -1326,7 +1440,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
          match . map .length == [7, 6]
 
    ! Matching Grapheme Clusters
-     In case insensitive mode, a single character can match multiple characters,
+     In case-insensitive mode, a single character can match multiple characters,
      for example `ß` will match `ss` and `SS`, and the ligature `ﬃ` will match
      `ffi` or `f` etc. Thus in this mode, it is sometimes possible for a term to
      match only a part of some single grapheme cluster, for example in the text
@@ -1350,7 +1464,7 @@ Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
     Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of
         True ->
             codepoint_spans = Vector.Vector <| Text_Utils.span_of_all this term
-            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .start).to_array
+            grahpeme_ixes = Vector.Vector <| Text_Utils.utf16_indices_to_grapheme_indices this (codepoint_spans.map .codeunit_start).to_array
             ## While the codepoint_spans may have different code unit lengths
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
@@ -1361,7 +1475,7 @@ Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
         Case_Insensitive locale ->
             grapheme_spans = Vector.Vector <| Text_Utils.span_of_all_case_insensitive this term locale.java_locale
             grapheme_spans.map grapheme_span->
-                Span (Range grapheme_span.start grapheme_span.end) this
+                Span (Range grapheme_span.grapheme_start grapheme_span.grapheme_end) this
     Regex_Matcher _ _ _ _ _ ->
         case matcher.compile term . match this Mode.All of
             Nothing -> []

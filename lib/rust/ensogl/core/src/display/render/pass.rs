@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use crate::system::gpu::*;
 
+use crate::display::scene::UpdateStatus;
 use crate::system::gpu::data::texture::class::TextureOps;
 
 
@@ -18,7 +19,7 @@ use crate::system::gpu::data::texture::class::TextureOps;
 #[allow(missing_docs)]
 pub trait Definition: CloneBoxedForDefinition + Debug + 'static {
     fn initialize(&mut self, _instance: &Instance) {}
-    fn run(&mut self, _instance: &Instance);
+    fn run(&mut self, _instance: &Instance, update_status: UpdateStatus);
 }
 
 clone_boxed!(Definition);
@@ -75,24 +76,28 @@ impl Instance {
         let native = self.context.create_framebuffer().unwrap();
         let target = Context::FRAMEBUFFER;
         let draw_buffers = js_sys::Array::new();
-        context.bind_framebuffer(target, Some(&native));
+        context.bind_framebuffer(*target, Some(&native));
         for (index, texture) in textures.iter().enumerate() {
             let texture_target = Context::TEXTURE_2D;
-            let attachment_point = Context::COLOR_ATTACHMENT0 + index as u32;
+            let attachment_point = *Context::COLOR_ATTACHMENT0 + index as u32;
             let gl_texture = texture.gl_texture();
             let gl_texture = Some(&gl_texture);
             let level = 0;
             draw_buffers.push(&attachment_point.into());
             context.framebuffer_texture_2d(
-                target,
+                *target,
                 attachment_point,
-                texture_target,
+                *texture_target,
                 gl_texture,
                 level,
             );
         }
         context.draw_buffers(&draw_buffers);
-        context.bind_framebuffer(target, None);
+        context.bind_framebuffer(*target, None);
+        let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
+        if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
+            WARNING!("Framebuffer incomplete (status: {framebuffer_status}).")
+        }
         Framebuffer { context, native }
     }
 }
@@ -161,6 +166,6 @@ impl Deref for Framebuffer {
 impl Framebuffer {
     /// Bind the framebuffer to the current WebGL context.
     pub fn bind(&self) {
-        self.context.bind_framebuffer(Context::FRAMEBUFFER, Some(&self.native));
+        self.context.bind_framebuffer(*Context::FRAMEBUFFER, Some(&self.native));
     }
 }

@@ -13,6 +13,20 @@ import java.util.Locale;
  * indices back in the original string.
  */
 public class CaseFoldedString {
+  public static class Grapheme {
+    /** The grapheme index of the given grapheme in the string. */
+    public final int index;
+
+    /** The codeunit indices of start and end of the given grapheme in the original string. */
+    public final int codeunit_start, codeunit_end;
+
+    public Grapheme(int index, int codeunit_start, int codeunit_end) {
+      this.index = index;
+      this.codeunit_start = codeunit_start;
+      this.codeunit_end = codeunit_end;
+    }
+  }
+
   private final String foldedString;
 
   /**
@@ -25,32 +39,66 @@ public class CaseFoldedString {
   private final int[] graphemeIndexMapping;
 
   /**
+   * A mapping from code units in the transformed string to the first code-unit of the corresponding
+   * grapheme in the original string.
+   *
+   * <p>The mapping must be valid from indices from 0 to @{code foldedString.length()+1}
+   * (inclusive).
+   */
+  private final int[] codeunitStartIndexMapping;
+
+  /**
+   * A mapping from code units in the transformed string to the end code-unit of the corresponding
+   * grapheme in the original string.
+   *
+   * <p>The mapping must be valid from indices from 0 to @{code foldedString.length()+1}
+   * (inclusive).
+   */
+  private final int[] codeunitEndIndexMapping;
+
+  /**
    * Constructs a new instance of the folded string.
    *
    * @param foldeString the string after applying the case folding transformation
    * @param graphemeIndexMapping a mapping created during the transformation which maps code units
    *     in the transformed string to their corresponding graphemes in the original string
+   * @param codeunitStartIndexMapping a mapping created during the transformation which maps code
+   *     units in the transformed string to first codeunits of corresponding graphemes in the
+   *     original string
+   * @param codeunitStartIndexMapping a mapping created during the transformation which maps code
+   *     units in the transformed string to end codeunits of corresponding graphemes in the original
+   *     string
    */
-  private CaseFoldedString(String foldeString, int[] graphemeIndexMapping) {
+  private CaseFoldedString(
+      String foldeString,
+      int[] graphemeIndexMapping,
+      int[] codeunitStartIndexMapping,
+      int[] codeunitEndIndexMapping) {
     this.foldedString = foldeString;
     this.graphemeIndexMapping = graphemeIndexMapping;
+    this.codeunitStartIndexMapping = codeunitStartIndexMapping;
+    this.codeunitEndIndexMapping = codeunitEndIndexMapping;
   }
 
   /**
-   * Maps a code unit in the folded string to the corresponding grapheme in the original string.
+   * Finds the grapheme corresponding to a code unit in the folded string.
    *
    * @param codeunitIndex the index of the code unit in the folded string, valid indices range from
    *     0 to {@code getFoldedString().length()+1} (inclusive), allowing to also ask for the
    *     position of the end code unit which is located right after the end of the string - which
    *     should always map to the analogous end grapheme.
-   * @return the index of the grapheme from the original string that after applying the
-   *     transformation contains the requested code unit
+   * @return the index of the first code unit of the grapheme from the original string that after
+   *     applying the transformation contains the requested code unit
    */
-  public int codeUnitToGraphemeIndex(int codeunitIndex) {
+  public Grapheme findGrapheme(int codeunitIndex) {
     if (codeunitIndex < 0 || codeunitIndex > this.foldedString.length()) {
       throw new IndexOutOfBoundsException(codeunitIndex);
     }
-    return graphemeIndexMapping[codeunitIndex];
+
+    return new Grapheme(
+        graphemeIndexMapping[codeunitIndex],
+        codeunitStartIndexMapping[codeunitIndex],
+        codeunitEndIndexMapping[codeunitIndex]);
   }
 
   /** Returns the transformed string. */
@@ -74,7 +122,9 @@ public class CaseFoldedString {
     breakIterator.setText(charSequence);
     StringBuilder stringBuilder = new StringBuilder(charSequence.length());
     Fold foldAlgorithm = caseFoldAlgorithmForLocale(locale);
-    IntArrayBuilder index_mapping = new IntArrayBuilder(charSequence.length() + 1);
+    IntArrayBuilder grapheme_mapping = new IntArrayBuilder(charSequence.length() + 1);
+    IntArrayBuilder codeunit_start_mapping = new IntArrayBuilder(charSequence.length() + 1);
+    IntArrayBuilder codeunit_end_mapping = new IntArrayBuilder(charSequence.length() + 1);
 
     // We rely on the fact that ICU Case Folding is _not_ context-sensitive, i.e. the mapping of
     // each grapheme cluster is independent of surrounding ones. Regular casing is
@@ -87,7 +137,9 @@ public class CaseFoldedString {
       String foldedGrapheme = foldAlgorithm.apply(grapheme);
       stringBuilder.append(foldedGrapheme);
       for (int i = 0; i < foldedGrapheme.length(); ++i) {
-        index_mapping.add(grapheme_index);
+        grapheme_mapping.add(grapheme_index);
+        codeunit_start_mapping.add(current);
+        codeunit_end_mapping.add(next);
       }
 
       grapheme_index++;
@@ -96,10 +148,13 @@ public class CaseFoldedString {
 
     // The mapping should also be able to handle a {@code str.length()} query, so we add one more
     // element to the mapping pointing to a non-existent grapheme after the end of the text.
-    index_mapping.add(grapheme_index);
+    grapheme_mapping.add(grapheme_index);
 
     return new CaseFoldedString(
-        stringBuilder.toString(), index_mapping.unsafeGetStorageAndInvalidateTheBuilder());
+        stringBuilder.toString(),
+        grapheme_mapping.unsafeGetStorageAndInvalidateTheBuilder(),
+        codeunit_start_mapping.unsafeGetStorageAndInvalidateTheBuilder(),
+        codeunit_end_mapping.unsafeGetStorageAndInvalidateTheBuilder());
   }
 
   /**

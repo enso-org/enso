@@ -14,7 +14,6 @@
 
 // === Features ===
 #![feature(test)]
-#![feature(total_cmp)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -28,8 +27,8 @@
 #![warn(unused_import_braces)]
 
 use enso_prelude::*;
-use enso_profiler_data as data;
 
+use enso_profiler_data as data;
 use std::collections;
 
 

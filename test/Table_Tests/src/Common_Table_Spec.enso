@@ -376,7 +376,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             expect_column_names ["bar", "foo_001", "foo_1", "Foo_2", "foo_3", "foo_21", "foo_100"] <| table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
             expect_column_names ["foo_3", "foo_21", "foo_100", "foo_1", "foo_001", "bar", "Foo_2"] <| table.sort_columns (Sort_Method order=Sort_Order.Descending)
 
-        Test.specify "should correctly handle case insensitive sorting" <|
+        Test.specify "should correctly handle case-insensitive sorting" <|
             expect_column_names ["bar", "foo_001", "foo_1", "foo_100", "Foo_2", "foo_21", "foo_3"] <| table.sort_columns (Sort_Method case_sensitive=Case_Insensitive.new)
 
         Test.specify "should correctly handle natural order sorting" <|
@@ -412,7 +412,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 table.rename_columns (Column_Mapping.By_Name map (Text_Matcher True))
 
-        Test.specify "should work by name case insensitively" <|
+        Test.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
                 table.rename_columns (Column_Mapping.By_Name map (Text_Matcher Case_Insensitive.new))

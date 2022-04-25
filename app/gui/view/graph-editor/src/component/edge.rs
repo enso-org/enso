@@ -178,9 +178,9 @@ trait AnyEdgeShape {
             let event = shape.events();
             let id = shape.id();
             frp::extend! { network
-                eval_ event.mouse_down (frp.on_mouse_down.emit(id));
+                eval_ event.mouse_down_primary (frp.on_mouse_down.emit(id));
                 eval_ event.mouse_over (frp.on_mouse_over.emit(id));
-                eval_ event.mouse_out  (frp.on_mouse_out.emit(id));
+                eval_ event.mouse_out (frp.on_mouse_out.emit(id));
             }
         }
     }
@@ -1022,9 +1022,9 @@ impl SemanticSplit {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct PointerTargetProxy {
-    pub mouse_down: frp::Stream,
-    pub mouse_over: frp::Stream,
-    pub mouse_out:  frp::Stream,
+    pub mouse_down_primary: frp::Stream,
+    pub mouse_over:         frp::Stream,
+    pub mouse_out:          frp::Stream,
 
     on_mouse_down: frp::Source<display::object::Id>,
     on_mouse_over: frp::Source<display::object::Id>,
@@ -1039,12 +1039,19 @@ impl PointerTargetProxy {
             on_mouse_out  <- source();
             on_mouse_down <- source();
 
-            mouse_down <- on_mouse_down.constant(());
+            mouse_down_primary <- on_mouse_down.constant(());
             mouse_over <- on_mouse_over.constant(());
             mouse_out  <- on_mouse_out.constant(());
         }
 
-        Self { mouse_down, mouse_over, mouse_out, on_mouse_down, on_mouse_over, on_mouse_out }
+        Self {
+            mouse_down_primary,
+            mouse_over,
+            mouse_out,
+            on_mouse_down,
+            on_mouse_over,
+            on_mouse_out,
+        }
     }
 }
 

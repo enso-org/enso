@@ -901,10 +901,10 @@ class IrToTruffle(
                 )
               } else if (atomCons == number.getNumber) {
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
-              } else if (atomCons == polyglot) {
-                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
                 ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
+              } else if (atomCons == polyglot) {
+                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == any) {
                 CatchAllBranchNode.build(branchCodeNode.getCallTarget)
               } else {

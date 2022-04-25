@@ -75,16 +75,8 @@ mod deja_vu {
         std::io::copy(&mut input_stream, &mut output_stream).unwrap();
     }
 
-    pub const FONTS_TO_EXTRACT: &[&str] = &[
-        "DejaVuSans",
-        "DejaVuSans-ExtraLight",
-        "DejaVuSansMono",
-        "DejaVuSansMono-Bold",
-        "DejaVuSansMono-Oblique",
-        "DejaVuSansCondensed",
-        "DejaVuSerif",
-        "DejaVuSerifCondensed",
-    ];
+    pub const FONTS_TO_EXTRACT: &[&str] =
+        &["DejaVuSans", "DejaVuSans-Bold", "DejaVuSansMono", "DejaVuSansMono-Bold"];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
         for font_name in FONTS_TO_EXTRACT {

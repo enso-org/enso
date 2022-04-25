@@ -55,6 +55,22 @@ impl Uniforms {
 }
 
 
+// =========================
+// === Metadata Profiler ===
+// =========================
+
+
+thread_local! {
+    /// Profiling metadata logger for `StatsData`.
+    static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
+}
+
+/// Log rendering stats to the profiling framework.
+pub fn log_render_stats(stats: StatsData) {
+    RENDER_STATS_LOGGER.with(|logger| logger.log(stats));
+}
+
+
 
 // =============
 // === World ===
@@ -136,7 +152,7 @@ impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
         let data = WorldData::new();
-        let main_loop = MainLoop::new(Box::new(f!([data](t) data.go_to_next_frame_with_time(t))));
+        let main_loop = MainLoop::new(Box::new(f!([data](t) data.run_next_frame(t))));
         Self { main_loop, data }
     }
 }
@@ -204,9 +220,9 @@ impl WorldData {
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
-
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
+            log_render_stats(*stats)
         }));
 
         Self {
@@ -291,17 +307,17 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
-    pub fn go_to_next_frame_with_time(&self, time: animation::TimeInfo) {
+    pub fn run_next_frame(&self, time: animation::TimeInfo) {
         let previous_frame_stats = self.stats.begin_frame();
         if let Some(stats) = previous_frame_stats {
             self.on.prev_frame_stats.run_all(&stats);
         }
         self.on.before_frame.run_all(time);
-        self.uniforms.time.set(time.local);
+        self.uniforms.time.set(time.since_animation_loop_started.unchecked_raw());
         self.scene_dirty.unset_all();
-        self.default_scene.update(time);
+        let update_status = self.default_scene.update(time);
         self.garbage_collector.mouse_events_handled();
-        self.default_scene.render();
+        self.default_scene.render(update_status);
         self.on.after_frame.run_all(time);
         self.stats.end_frame();
     }

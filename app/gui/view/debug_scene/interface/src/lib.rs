@@ -45,9 +45,9 @@ use uuid::Uuid;
 const STUB_MODULE: &str = "from Base import all\n\nmain = IO.println \"Hello\"\n";
 
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code)]
-pub fn entry_point_interface() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);

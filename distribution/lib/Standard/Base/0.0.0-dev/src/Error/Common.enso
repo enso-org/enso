@@ -398,8 +398,9 @@ type Syntax_Error message
    Arguments:
    - expected: The expected type at the error location.
    - actual: The actual type at the error location.
+   - name: The name of the argument whose type is mismatched.
 @Builtin_Type
-type Type_Error expected actual
+type Type_Error expected actual name
 
 ## The runtime representation of a compilation error.
 
@@ -536,11 +537,11 @@ type No_Such_Conversion_Error
    - message: The message describing what implementation is missing.
 type Unimplemented_Error message
 
-    ## UNSTABLE
+## UNSTABLE
 
-       Converts the unimplemented error to a human-readable error message.
-    to_display_text : Text
-    to_display_text = "An implementation is missing: " + this.message
+   Converts the unimplemented error to a human-readable error message.
+Unimplemented_Error.to_display_text : Text
+Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
 
 ## ADVANCED
 

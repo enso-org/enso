@@ -7,7 +7,7 @@ polyglot java import java.lang.NumberFormatException
 import Standard.Base.Data.Json
 from Standard.Base.Data.Boolean import all
 from Standard.Base.Data.Range import all
-from Standard.Base.Error.Common import Panic,Error
+from Standard.Base.Error.Common import Panic,Error,Illegal_Argument_Error
 ## The root type of the Enso numeric hierarchy.
 
    If a Number is expected, then the program can provide either a Decimal or
@@ -356,6 +356,12 @@ type Number
         Decimal -> Double.isNaN this
         _ -> False
 
+    ## Returns the sign of the number.
+    signum : Integer
+    signum =
+        if this > 0 then 1 else
+            if this < 0 then -1 else 0
+
 
 ###################
 ## Decimal
@@ -428,6 +434,26 @@ type Decimal
              10 / 4.5
     / : Number -> Number
     / that = @Builtin_Method "Decimal./"
+
+    ## Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Computing the remainder when dividing 3.5 by 2.
+
+             3.5 % 2 == 1.5
+
+       > Example
+         Computing the fractional part of a number.
+
+             10.5 % 1.0 == 0.5
+    % : Number -> Number ! Arithmetic_Error
+    % that = @Builtin_Method "Decimal.%"
 
     ## Compute the result of raising this to the power that.
 
@@ -954,7 +980,7 @@ type Integer
 
     ## ALIAS Range
 
-       Creates a new right-exclusive range of integers from `this` to `n`.
+       Creates an increasing right-exclusive range of integers from `this` to `n`.
 
        Arguments:
        - n: The end of the range.
@@ -964,7 +990,25 @@ type Integer
 
              0.up_to 5
     up_to : Integer -> Range
-    up_to n = Range.Range this n
+    up_to n = case n of
+        Integer -> Range.Range this n
+        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+
+    ## ALIAS Range
+
+       Creates a decreasing right-exclusive range of integers from `this` to `n`.
+
+       Arguments:
+       - n: The end of the range.
+
+       > Example
+         Create a range containing the numbers 5, 4, 3, 2, 1.
+
+             5.down_to 0
+    down_to : Integer -> Range
+    down_to n = case n of
+        Integer -> Range.Range this n -1
+        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
 
     ## ALIAS From Text
 
