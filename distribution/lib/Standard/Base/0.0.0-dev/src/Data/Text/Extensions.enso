@@ -379,15 +379,12 @@ Text.split delimiter="," matcher=Text_Matcher = case matcher of
         Case_Insensitive locale ->
             delimiters = Vector.Vector <|
                 Text_Utils.span_of_all_case_insensitive this delimiter locale.java_locale
-            current_start = Ref.new 0
-            acc = Vector.new_builder
-            delimiters.each span->
-                if Ref.get current_start <= span.codeunit_start then
-                    acc.append (Text_Utils.substring this (Ref.get current_start) span.codeunit_start)
-                Ref.put current_start span.codeunit_end
-            if Ref.get current_start <= Text_Utils.char_length this then
-                acc.append (Text_Utils.substring this (Ref.get current_start) (Text_Utils.char_length this))
-            acc.to_vector
+            Vector.new delimiters.length+1 i->
+                start = if i == 0 then 0 else
+                    delimiters.at i-1 . codeunit_end
+                end = if i == delimiters.length then (Text_Utils.char_length this) else
+                    delimiters.at i . codeunit_start
+                Text_Utils.substring this start end
     Regex_Matcher _ _ _ _ _ ->
         compiled_pattern = matcher.compile delimiter
         compiled_pattern.split this mode=Mode.All
