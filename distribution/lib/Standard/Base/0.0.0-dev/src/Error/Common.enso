@@ -536,11 +536,11 @@ type No_Such_Conversion_Error
    - message: The message describing what implementation is missing.
 type Unimplemented_Error message
 
-## UNSTABLE
+    ## UNSTABLE
 
-   Converts the unimplemented error to a human-readable error message.
-Unimplemented_Error.to_display_text : Text
-Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
+       Converts the unimplemented error to a human-readable error message.
+    to_display_text : Text
+    to_display_text = "An implementation is missing: " + this.message
 
 ## ADVANCED
 
