@@ -111,8 +111,7 @@ class Compiler(
     * given scope.
     *
     * @param module the scope into which new bindings are registered
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
+    * @return a compiler result containing the list of compiled modules
     */
   def run(module: Module): CompilerResult = {
     runInternal(
