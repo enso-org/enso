@@ -938,9 +938,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         (row.scopeStartLine === ScopeColumn.EMPTY) ||
         (
           row.scopeStartLine <= value.line &&
-          row.scopeStartOffset <= value.character &&
-          row.scopeEndLine >= value.line &&
-          row.scopeEndOffset >= value.character
+          row.scopeEndLine >= value.line
         )
       }
   }

@@ -1385,7 +1385,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       res.isEmpty shouldEqual true
     }
 
-    "search suggestion global by scope" taggedAs Retry in withRepo { repo =>
+    "search suggestion outside of scope" taggedAs Retry in withRepo { repo =>
       val action = for {
         id0 <- repo.insert(suggestion.module)
         id1 <- repo.insert(suggestion.atom)
@@ -1407,7 +1407,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       res should contain theSameElementsAs Seq(id0, id1, id2, id3).flatten
     }
 
-    "search suggestion local by scope" taggedAs Retry in withRepo { repo =>
+    "search suggestion by scope begin" taggedAs Retry in withRepo { repo =>
       val action = for {
         id0 <- repo.insert(suggestion.module)
         id1 <- repo.insert(suggestion.atom)
@@ -1421,6 +1421,88 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
       val (id0, id1, id2, id3, id4, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id0, id1, id2, id3, id4).flatten
+    }
+
+    "search suggestion by scope end" taggedAs Retry in withRepo { repo =>
+      val action = for {
+        id0 <- repo.insert(suggestion.module)
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        id3 <- repo.insert(suggestion.conversion)
+        id4 <- repo.insert(suggestion.function)
+        id5 <- repo.insert(suggestion.local)
+        res <-
+          repo.search(None, Seq(), None, None, Some(Suggestion.Position(6, 0)))
+      } yield (id0, id1, id2, id3, id4, id5, res._2)
+
+      val (id0, id1, id2, id3, id4, id5, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(
+        id0,
+        id1,
+        id2,
+        id3,
+        id4,
+        id5
+      ).flatten
+    }
+
+    "search suggestion inside the function scope" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          id0 <- repo.insert(suggestion.module)
+          id1 <- repo.insert(suggestion.atom)
+          id2 <- repo.insert(suggestion.method)
+          id3 <- repo.insert(suggestion.conversion)
+          id4 <- repo.insert(suggestion.function)
+          id5 <- repo.insert(suggestion.local)
+          res <-
+            repo.search(
+              None,
+              Seq(),
+              None,
+              None,
+              Some(Suggestion.Position(2, 0))
+            )
+        } yield (id0, id1, id2, id3, id4, id5, res._2)
+
+        val (id0, id1, id2, id3, id4, _, res) = Await.result(action, Timeout)
+        res should contain theSameElementsAs Seq(
+          id0,
+          id1,
+          id2,
+          id3,
+          id4
+        ).flatten
+    }
+
+    "search suggestion inside the local scope" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          id0 <- repo.insert(suggestion.module)
+          id1 <- repo.insert(suggestion.atom)
+          id2 <- repo.insert(suggestion.method)
+          id3 <- repo.insert(suggestion.conversion)
+          id4 <- repo.insert(suggestion.function)
+          id5 <- repo.insert(suggestion.local)
+          res <-
+            repo.search(
+              None,
+              Seq(),
+              None,
+              None,
+              Some(Suggestion.Position(4, 0))
+            )
+        } yield (id0, id1, id2, id3, id4, id5, res._2)
+
+        val (id0, id1, id2, id3, id4, id5, res) = Await.result(action, Timeout)
+        res should contain theSameElementsAs Seq(
+          id0,
+          id1,
+          id2,
+          id3,
+          id4,
+          id5
+        ).flatten
     }
 
     "search suggestion by module and self type" taggedAs Retry in withRepo {
@@ -1475,19 +1557,19 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           _   <- repo.insert(suggestion.atom)
           _   <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.conversion)
-          _   <- repo.insert(suggestion.function)
+          id3 <- repo.insert(suggestion.function)
           id4 <- repo.insert(suggestion.local)
           res <- repo.search(
             None,
             Seq(),
             Some("Test.Main.MyType"),
             None,
-            Some(Suggestion.Position(42, 0))
+            Some(Suggestion.Position(6, 0))
           )
-        } yield (id4, res._2)
+        } yield (id3, id4, res._2)
 
-        val (id, res) = Await.result(action, Timeout)
-        res should contain theSameElementsAs Seq(id).flatten
+        val (id1, id2, res) = Await.result(action, Timeout)
+        res should contain theSameElementsAs Seq(id1, id2).flatten
     }
 
     "search suggestion by kind and scope" taggedAs Retry in withRepo { repo =>
@@ -1572,7 +1654,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             Seq(),
             Some("Test.Main.MyType"),
             Some(kinds),
-            Some(Suggestion.Position(42, 0))
+            Some(Suggestion.Position(6, 0))
           )
         } yield (id4, res._2)
 
@@ -1659,7 +1741,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         ),
         returnType = "Test.Main.MyType",
         scope =
-          Suggestion.Scope(Suggestion.Position(1, 5), Suggestion.Position(1, 9))
+          Suggestion.Scope(Suggestion.Position(1, 5), Suggestion.Position(6, 0))
       )
 
     val local: Suggestion.Local =
@@ -1669,8 +1751,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         name       = "bazz",
         returnType = "Test.Main.MyType",
         scope = Suggestion.Scope(
-          Suggestion.Position(32, 0),
-          Suggestion.Position(84, 0)
+          Suggestion.Position(3, 4),
+          Suggestion.Position(6, 0)
         )
       )
   }
