@@ -140,14 +140,17 @@ case object UnusedBindings extends IRPass {
           if (isBuiltin) args
           else args.map(lintFunctionArgument(_, context))
         val body1 = runExpression(body, context)
-        val lintedBody = if (isBuiltin)
-          body match {
-            case _: IR.Literal.Text =>
-              body1
-            case _ =>
-              body1.addDiagnostic(IR.Warning.WrongBuiltinMethod(body.location))
-          }
-        else body1
+        val lintedBody =
+          if (isBuiltin)
+            body match {
+              case _: IR.Literal.Text =>
+                body1
+              case _ =>
+                body1.addDiagnostic(
+                  IR.Warning.WrongBuiltinMethod(body.location)
+                )
+            }
+          else body1
 
         lam.copy(
           arguments = lintedArgs,
@@ -282,8 +285,9 @@ case object UnusedBindings extends IRPass {
   private def isBuiltinMethod(expression: IR.Expression): Boolean = {
     expression
       .getMetadata(ExpressionAnnotations)
-      .exists(_.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName))
+      .exists(
+        _.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName)
+      )
   }
-
 
 }

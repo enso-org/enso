@@ -1569,7 +1569,7 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
       TestMessages.update(
-         contextId,
+        contextId,
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
@@ -2675,8 +2675,8 @@ class RuntimeServerTest
 
     val code =
       """main =
-         |    x = 1
-         |""".stripMargin.linesIterator.mkString("\n")
+        |    x = 1
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -2784,10 +2784,10 @@ class RuntimeServerTest
   }
 
   it should "return compiler error variable redefined" in {
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val metadata = new Metadata
+    val metadata   = new Metadata
 
     val code =
       """main =
@@ -3164,7 +3164,7 @@ class RuntimeServerTest
   }
 
   it should "send the type graph" in {
-    val requestId = UUID.randomUUID()
+    val requestId                = UUID.randomUUID()
     val expectedGraph: TypeGraph = Types.getTypeHierarchy
 
     context.send(Api.Request(requestId, Api.GetTypeGraphRequest()))

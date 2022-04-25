@@ -2049,7 +2049,7 @@ object IR {
       override def children: List[IR] = List()
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = s"\"$text\""
+      override def showCode(indent: Int): String = s""""$text""""
     }
   }
 
@@ -4312,7 +4312,7 @@ object IR {
         res
       }
 
-      override def withName(ir: Name): DefinitionArgument = copy(name=ir)
+      override def withName(ir: Name): DefinitionArgument = copy(name = ir)
 
       /** @inheritdoc */
       override def duplicate(
@@ -6373,8 +6373,9 @@ object IR {
       * with unexpected body.
       * @param location the location of the annotated application
       */
-    case class WrongBuiltinMethod(override val location: Option[IdentifiedLocation])
-      extends Warning {
+    case class WrongBuiltinMethod(
+      override val location: Option[IdentifiedLocation]
+    ) extends Warning {
       override def message: String =
         "A @Builtin_Method annotation allows only the name of the builtin node in the body."
     }

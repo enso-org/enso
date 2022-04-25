@@ -9,10 +9,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface BuiltinType {
-    /**
-     * Comma-separated list of parameters of builting type
-     * @return list of params
-     */
-    // FIXME:
-    String params() default "";
+  /**
+   * Comma-separated list of parameters of builting type
+   *
+   * @return list of params
+   */
+  // FIXME:
+  String params() default "";
 }

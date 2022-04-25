@@ -13,21 +13,15 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** A container for builtin ordering types. */
 public class Ordering {
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor ordering;
+  @CompilerDirectives.CompilationFinal private AtomConstructor ordering;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor less;
+  @CompilerDirectives.CompilationFinal private AtomConstructor less;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor equal;
+  @CompilerDirectives.CompilationFinal private AtomConstructor equal;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor greater;
+  @CompilerDirectives.CompilationFinal private AtomConstructor greater;
 
-  @CompilerDirectives.CompilationFinal
-  private Builtins builtins;
-
+  @CompilerDirectives.CompilationFinal private Builtins builtins;
 
   public Ordering(Builtins builtins) {
     this.builtins = builtins;
@@ -68,7 +62,9 @@ public class Ordering {
   public AtomConstructor ordering() {
     if (ordering == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      ordering = builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.ordering.Ordering.class);
+      ordering =
+          builtins.getBuiltinType(
+              org.enso.interpreter.node.expression.builtin.ordering.Ordering.class);
     }
     return ordering;
   }

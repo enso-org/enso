@@ -131,7 +131,7 @@ public class ModuleScope implements TruffleObject {
    * @param cons the constructor for which method map is requested
    * @return a list containing all the defined conversions in definition order
    */
-  private Map<AtomConstructor,Function> ensureConversionsFor(AtomConstructor cons) {
+  private Map<AtomConstructor, Function> ensureConversionsFor(AtomConstructor cons) {
     return conversions.computeIfAbsent(cons, k -> new HashMap<>());
   }
 
@@ -143,7 +143,6 @@ public class ModuleScope implements TruffleObject {
     return result;
   }
 
-
   /**
    * Registers a conversion method for a given type
    *
@@ -151,7 +150,8 @@ public class ModuleScope implements TruffleObject {
    * @param fromType type the conversion was defined from
    * @param function the {@link Function} associated with this definition
    */
-  public void registerConversionMethod(AtomConstructor toType, AtomConstructor fromType, Function function) {
+  public void registerConversionMethod(
+      AtomConstructor toType, AtomConstructor fromType, Function function) {
     Map<AtomConstructor, Function> sourceMap = ensureConversionsFor(toType);
     if (sourceMap.containsKey(fromType)) {
       throw new RedefinedConversionException(toType.getName(), fromType.getName());
@@ -207,7 +207,8 @@ public class ModuleScope implements TruffleObject {
     if (atom.isBuiltin()) {
       // Unfortunately locally defined extensions get associated with the module rather than a type
       // within a module.
-      // BindingsMap would need to be enhanced to resolve to the constructor rather than a module but
+      // BindingsMap would need to be enhanced to resolve to the constructor rather than a module
+      // but
       // that will likely break some use-cases as it could become ambiguous.
       AtomConstructor moduleTypeInStdLib = atom.getDefinitionScope().associatedType;
       definedHere = getMethodMapFor(moduleTypeInStdLib).get(lowerName);
@@ -233,11 +234,10 @@ public class ModuleScope implements TruffleObject {
       return definedHere;
     }
     return imports.stream()
-            .map(scope -> scope.getExportedConversion(atom, target))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
-
+        .map(scope -> scope.getExportedConversion(atom, target))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 
   private Function getExportedMethod(AtomConstructor atom, String name) {
@@ -258,10 +258,10 @@ public class ModuleScope implements TruffleObject {
       return here;
     }
     return exports.stream()
-            .map(scope -> scope.getConversionsFor(target).get(atom))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
+        .map(scope -> scope.getConversionsFor(target).get(atom))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
   }
 
   /**

@@ -1,7 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.number;
+
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
-public class Decimal extends Builtin {
-}
+public class Decimal extends Builtin {}

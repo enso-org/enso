@@ -67,12 +67,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
           generateCode(def);
           String tpe = def.getType().toLowerCase();
           if (tpe.isEmpty()) {
-            throw new InternalError("Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+            throw new InternalError(
+                "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
           }
           String fullClassName = def.getPackageName() + "." + def.getClassName();
           registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
           if (def.hasAliases()) {
-            for (String alias: def.aliases()) {
+            for (String alias : def.aliases()) {
               registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
             }
           }
@@ -87,7 +88,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
   }
 
   protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
-    for (Filer f: builtinMethods.keySet()) {
+    for (Filer f : builtinMethods.keySet()) {
       for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
         writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
         if (pastEntries.containsKey(entry.getKey())) {

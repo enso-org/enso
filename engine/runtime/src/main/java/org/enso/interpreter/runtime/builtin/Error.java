@@ -13,65 +13,45 @@ import org.enso.interpreter.runtime.data.text.Text;
 /** Container for builtin Error types */
 public class Error {
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor syntaxError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor syntaxError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor typeError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor typeError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor compileError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor compileError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor inexhaustivePatternMatchError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor inexhaustivePatternMatchError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor uninitializedState;
+  @CompilerDirectives.CompilationFinal private AtomConstructor uninitializedState;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor noSuchMethodError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor noSuchMethodError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor noSuchConversionError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor noSuchConversionError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor polyglotError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor polyglotError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor moduleNotInPackageError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor moduleNotInPackageError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor arithmeticError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor arithmeticError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor invalidArrayIndexError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor invalidArrayIndexError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor arityError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor arityError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor unsupportedArgumentsError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor unsupportedArgumentsError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor moduleDoesNotExistError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor moduleDoesNotExistError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor notInvokableError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor notInvokableError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor invalidConversionTargetError;
+  @CompilerDirectives.CompilationFinal private AtomConstructor invalidConversionTargetError;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor panic;
+  @CompilerDirectives.CompilationFinal private AtomConstructor panic;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor caughtPanic;
+  @CompilerDirectives.CompilationFinal private AtomConstructor caughtPanic;
 
-  @CompilerDirectives.CompilationFinal
-  private Atom arithmeticErrorShiftTooBig;
+  @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
-  @CompilerDirectives.CompilationFinal
-  private Atom arithmeticErrorDivideByZero;
+  @CompilerDirectives.CompilationFinal private Atom arithmeticErrorDivideByZero;
 
   private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
   private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");

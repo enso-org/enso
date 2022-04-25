@@ -6,8 +6,16 @@ import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
-import org.enso.compiler.pass.resolve.{MethodDefinitions, ModuleAnnotations, Patterns}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies
+}
+import org.enso.compiler.pass.resolve.{
+  MethodDefinitions,
+  ModuleAnnotations,
+  Patterns
+}
 
 import scala.annotation.unused
 

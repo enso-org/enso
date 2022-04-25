@@ -12,20 +12,15 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A container for all number-related builtins. */
 public class Number {
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor smallInteger;
+  @CompilerDirectives.CompilationFinal private AtomConstructor smallInteger;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor bigInteger;
+  @CompilerDirectives.CompilationFinal private AtomConstructor bigInteger;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor integer;
+  @CompilerDirectives.CompilationFinal private AtomConstructor integer;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor number;
+  @CompilerDirectives.CompilationFinal private AtomConstructor number;
 
-  @CompilerDirectives.CompilationFinal
-  private AtomConstructor decimal;
+  @CompilerDirectives.CompilationFinal private AtomConstructor decimal;
 
   private final Builtins builtins;
 
@@ -70,7 +65,8 @@ public class Number {
   public AtomConstructor getNumber() {
     if (number == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      number = builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.number.Number.class);
+      number =
+          builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.number.Number.class);
     }
     return number;
   }

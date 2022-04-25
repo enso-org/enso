@@ -20,19 +20,24 @@ class InstrumentTestContext {
     Option(messageQueue.poll(timeoutSeconds, TimeUnit.SECONDS))
   }
 
-  def receiveN(n: Int, timeoutSeconds: Long=10): List[Api.Response] = {
-    Iterator.continually(receiveWithTimeout(timeoutSeconds)).take(n).flatten.toList
+  def receiveN(n: Int, timeoutSeconds: Long = 10): List[Api.Response] = {
+    Iterator
+      .continually(receiveWithTimeout(timeoutSeconds))
+      .take(n)
+      .flatten
+      .toList
   }
 
   def receiveNIgnoreStdLib(n: Int): List[Api.Response] = {
-    receiveN(n+1, 50).filter(excludeLibraryLoadingPayload)
+    receiveN(n + 1, 50).filter(excludeLibraryLoadingPayload)
   }
 
-  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean = response match {
-    case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
-      false
-    case _ =>
-      true
-  }
+  private def excludeLibraryLoadingPayload(response: Api.Response): Boolean =
+    response match {
+      case Api.Response(None, Api.LibraryLoaded(_, _, _, _)) =>
+        false
+      case _ =>
+        true
+    }
 
 }

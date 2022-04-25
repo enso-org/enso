@@ -201,7 +201,7 @@ class DataflowErrorsTest extends InterpreterTest {
       eval(code)
       consumeOut shouldEqual List(
         "(Error: (Syntax_Error 'Unrecognized token.'))",
-        "(Syntax_Error 'Unrecognized token.')",
+        "(Syntax_Error 'Unrecognized token.')"
       )
     }
   }

@@ -248,7 +248,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "emit visualisation update when expression is computed" in {
-    val idMainRes     = context.Main.metadata.addItem(107, 1)
+    val idMainRes  = context.Main.metadata.addItem(107, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1689,7 +1689,7 @@ class RuntimeVisualisationsTest
     )
     val responses = context.receiveN(n = 4, timeoutSeconds = 60)
 
-    responses should contain allOf(
+    responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,

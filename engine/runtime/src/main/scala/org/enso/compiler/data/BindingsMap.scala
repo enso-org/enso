@@ -720,7 +720,12 @@ object BindingsMap {
     * @param allFieldsDefaulted whether all fields provide a default value.
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
-  case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean, builtinType: Boolean = false)
+  case class Cons(
+    name: String,
+    arity: Int,
+    allFieldsDefaulted: Boolean,
+    builtinType: Boolean = false
+  )
 
   /** A representation of an imported polyglot symbol.
     *

@@ -4,5 +4,4 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
-public class Integer extends Builtin {
-}
+public class Integer extends Builtin {}

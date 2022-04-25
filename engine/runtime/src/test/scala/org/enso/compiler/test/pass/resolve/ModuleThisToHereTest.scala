@@ -89,7 +89,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children       = method2.preorder
+      val children        = method2.preorder
       val thisOccurrences = children.collect { case n: IR.Name.This => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 0
@@ -103,7 +103,7 @@ class ModuleThisToHereTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children       = method1.preorder
+      val children        = method1.preorder
       val thisOccurrences = children.collect { case n: IR.Name.This => n }
       val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 6
@@ -117,9 +117,9 @@ class ModuleThisToHereTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children = conv1.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n}
-      val hereOccurrences = children.collect { case n: IR.Name.Here => n}
+      val children        = conv1.preorder
+      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 0
       hereOccurrences.length shouldEqual 7
     }
@@ -131,9 +131,9 @@ class ModuleThisToHereTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children = conv2.preorder
-      val thisOccurrences = children.collect { case n: IR.Name.This => n}
-      val hereOccurrences = children.collect { case n: IR.Name.Here => n}
+      val children        = conv2.preorder
+      val thisOccurrences = children.collect { case n: IR.Name.This => n }
+      val hereOccurrences = children.collect { case n: IR.Name.Here => n }
       thisOccurrences.length shouldEqual 6
       hereOccurrences.length shouldEqual 1
     }

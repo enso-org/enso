@@ -5,4 +5,3 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType(params = "name")
 public class ModuleDoesNotExist extends Builtin {}
-

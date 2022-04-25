@@ -119,8 +119,13 @@ case object ComplexType extends IRPass {
             // Annotations of Atoms in Complex Types were being overwritten. We want to make sure that
             // we only append the annotations of complex types without errasing the former.
             // FIXME check if there is a nicer way of doing this
-            val old = atom.getMetadata(ModuleAnnotations).map(_.annotations).getOrElse(Nil)
-            atom.updateMetadata(ModuleAnnotations -->> ann.copy(ann.annotations ++ old))
+            val old = atom
+              .getMetadata(ModuleAnnotations)
+              .map(_.annotations)
+              .getOrElse(Nil)
+            atom.updateMetadata(
+              ModuleAnnotations -->> ann.copy(ann.annotations ++ old)
+            )
           })
           .getOrElse(atom)
       )

@@ -472,7 +472,7 @@ class RuntimeErrorsTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq (
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(

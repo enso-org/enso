@@ -19,10 +19,11 @@ public abstract class BooleanConstructorBranchNode extends BranchNode {
   private final AtomConstructor falseCons;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  BooleanConstructorBranchNode(AtomConstructor bool,
-                               AtomConstructor trueAtom,
-                               AtomConstructor falseAtom,
-                               RootCallTarget branch) {
+  BooleanConstructorBranchNode(
+      AtomConstructor bool,
+      AtomConstructor trueAtom,
+      AtomConstructor falseAtom,
+      RootCallTarget branch) {
     super(branch);
     this.boolCons = bool;
     this.trueCons = trueAtom;
@@ -37,11 +38,11 @@ public abstract class BooleanConstructorBranchNode extends BranchNode {
    * @return a node for matching in a case expression
    */
   public static BooleanConstructorBranchNode build(
-          AtomConstructor bool,
-          AtomConstructor trueAtom,
-          AtomConstructor falseAtom,
-          RootCallTarget branch) {
-    return BooleanConstructorBranchNodeGen.create(bool,trueAtom, falseAtom, branch);
+      AtomConstructor bool,
+      AtomConstructor trueAtom,
+      AtomConstructor falseAtom,
+      RootCallTarget branch) {
+    return BooleanConstructorBranchNodeGen.create(bool, trueAtom, falseAtom, branch);
   }
 
   @Specialization

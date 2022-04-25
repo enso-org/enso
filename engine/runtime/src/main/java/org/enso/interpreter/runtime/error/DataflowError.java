@@ -124,29 +124,27 @@ public class DataflowError extends AbstractTruffleException {
     }
 
     @Specialization(
-            guards = {
-                    "!getContext().isInlineCachingDisabled()",
-                    "cachedTarget == target",
-                    "cachedConversion == conversion",
-                    "function != null"
-            },
-            limit = "CACHE_SIZE")
+        guards = {
+          "!getContext().isInlineCachingDisabled()",
+          "cachedTarget == target",
+          "cachedConversion == conversion",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
     static Function resolveCached(
-            DataflowError _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion,
-            @Cached("conversion") UnresolvedConversion cachedConversion,
-            @Cached("target") AtomConstructor cachedTarget,
-            @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
+        DataflowError _this,
+        AtomConstructor target,
+        UnresolvedConversion conversion,
+        @Cached("conversion") UnresolvedConversion cachedConversion,
+        @Cached("target") AtomConstructor cachedTarget,
+        @Cached("doResolve(cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(
-            DataflowError _this,
-            AtomConstructor target,
-            UnresolvedConversion conversion)
-            throws MethodDispatchLibrary.NoSuchConversionException {
+        DataflowError _this, AtomConstructor target, UnresolvedConversion conversion)
+        throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(target, conversion);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchConversionException();

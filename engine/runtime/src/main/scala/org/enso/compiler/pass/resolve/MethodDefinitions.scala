@@ -7,7 +7,11 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies
+}
 
 import scala.annotation.unused
 

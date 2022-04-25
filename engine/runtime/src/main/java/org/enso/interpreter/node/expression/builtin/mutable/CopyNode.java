@@ -27,12 +27,7 @@ public abstract class CopyNode extends Node {
 
   @Specialization
   Object doArray(
-      Object _this,
-      Array src,
-      long source_index,
-      Array dest,
-      long dest_index,
-      long count) {
+      Object _this, Array src, long source_index, Array dest, long dest_index, long count) {
     System.arraycopy(
         src.getItems(), (int) source_index, dest.getItems(), (int) dest_index, (int) count);
     return Context.get(this).getBuiltins().nothing().newInstance();
@@ -50,16 +45,20 @@ public abstract class CopyNode extends Node {
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     try {
       for (int i = 0; i < count; i++) {
-        dest.getItems()[(int) dest_index + i] = hostValueToEnsoNode.execute(
-            arrays.readArrayElement(src, source_index + i));
+        dest.getItems()[(int) dest_index + i] =
+            hostValueToEnsoNode.execute(arrays.readArrayElement(src, source_index + i));
       }
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Unreachable");
     } catch (InvalidArrayIndexException e) {
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInvalidArrayIndexError(src, e.getInvalidIndex()), this);
+          Context.get(this)
+              .getBuiltins()
+              .error()
+              .makeInvalidArrayIndexError(src, e.getInvalidIndex()),
+          this);
     }
-    return  Context.get(this).getBuiltins().nothing().newInstance();
+    return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
   @Fallback

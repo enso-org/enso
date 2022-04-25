@@ -54,7 +54,9 @@ public class UnresolvedConversion implements TruffleObject {
   }
 
   @Override
-  public String toString() { return "UnresolvedConversion"; }
+  public String toString() {
+    return "UnresolvedConversion";
+  }
 
   @ExportMessage
   String toDisplayString(boolean allowSideEffects) {

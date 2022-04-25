@@ -16,7 +16,11 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ImportStatic(BigIntegerOps.class)
-@BuiltinMethod(type = "Big_Integer", name = "bit_shift", description = "Bitwise shift.", aliases = "bit_shift_l")
+@BuiltinMethod(
+    type = "Big_Integer",
+    name = "bit_shift",
+    description = "Bitwise shift.",
+    aliases = "bit_shift_l")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
   private final ConditionProfile fitsInIntProfileLeftShift =
@@ -36,9 +40,7 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = "that >= 0", replaces = "doBigIntShiftLeft")
-  Object doBigIntShiftLeftExplicit(
-      EnsoBigInteger _this,
-      long that) {
+  Object doBigIntShiftLeftExplicit(EnsoBigInteger _this, long that) {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(_this, that);
     } else {
@@ -62,9 +64,7 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization
-  Object doBigIntThat(
-      EnsoBigInteger _this,
-      EnsoBigInteger that) {
+  Object doBigIntThat(EnsoBigInteger _this, EnsoBigInteger that) {
     if (!BigIntegerOps.nonNegative(that.getValue())) {
       return BigIntegerOps.nonNegative(_this.getValue()) ? 0L : -1L;
     } else {

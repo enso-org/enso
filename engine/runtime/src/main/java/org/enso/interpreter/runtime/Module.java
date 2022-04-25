@@ -470,14 +470,16 @@ public class Module implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String expr = Types.extractArguments(args, String.class);
       Builtins builtins = context.getBuiltins();
-      Function eval = builtins.getBuiltinFunction(
-              builtins.debug(),
-              Builtins.MethodNames.Debug.EVAL,
-              context.getLanguage()).orElseThrow();
+      Function eval =
+          builtins
+              .getBuiltinFunction(
+                  builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
+              .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       Object state = context.getBuiltins().nothing().newInstance();
       return callOptimiserNode
-          .executeDispatch(eval, callerInfo, state, new Object[] {builtins.debug(), Text.create(expr)})
+          .executeDispatch(
+              eval, callerInfo, state, new Object[] {builtins.debug(), Text.create(expr)})
           .getValue();
     }
 
