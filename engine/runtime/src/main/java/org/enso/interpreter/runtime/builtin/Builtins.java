@@ -41,7 +41,6 @@ import org.enso.pkg.QualifiedName;
 public class Builtins {
   public static final String PACKAGE_NAME = "Builtins";
   public static final String NAMESPACE = "Standard";
-  public static final String SOURCE_NAME = PACKAGE_NAME + ".enso";
   public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
 
   /** Container for method names needed outside this class. */
@@ -122,9 +121,7 @@ public class Builtins {
     error = new Error(this);
     ordering = new Ordering(this);
     system = new System(this);
-
-    // TODO: Builtins that are not yet moved to stdlib
-    number = new Number(this);//language, scope);
+    number = new Number(this);
     special = new Special(language);
   }
 
@@ -166,16 +163,7 @@ public class Builtins {
   /** Initialize the source file for the builtins module. */
   @CompilerDirectives.TruffleBoundary
   public void initializeBuiltinsSource() {
-    try {
-      var builtinsModuleBytes =
-          Objects.requireNonNull(
-                  getClass().getClassLoader().getResourceAsStream(Builtins.SOURCE_NAME))
-              .readAllBytes();
-      String source = new String(builtinsModuleBytes, StandardCharsets.UTF_8);
-      module.setLiteralSource(source);
-    } catch (IOException e) {
-      throw new CompilerError("Fatal, unable to read Builtins source file.");
-    }
+    module.setLiteralSource("");
   }
 
   /**

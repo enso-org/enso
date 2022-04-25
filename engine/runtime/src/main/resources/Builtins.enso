@@ -1,5 +1,0 @@
-# NOTE TO DEVELOPERS
-# ==================
-# When adding a new builtin it is very important that you also define the stub
-# for that builtin in this file. If that is not done, it will fail to resolve
-# properly at runtime.
