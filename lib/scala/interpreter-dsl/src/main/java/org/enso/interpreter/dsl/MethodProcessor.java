@@ -17,7 +17,10 @@ import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** The processor used to generate code from the {@link BuiltinMethod} annotation. */
+/**
+ * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
+ * metadata necessary for automatic builtin methods initialization.
+ */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
@@ -27,6 +30,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
 
   /**
    * Processes annotated elements, generating code for each of them.
+   * The method also records information about builtin method in an internal map that
+   * will be dumped on the last round of processing.
    *
    * @param annotations annotation being processed this round.
    * @param roundEnv additional round information.
@@ -85,17 +90,6 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
     }
 
     return true;
-  }
-
-  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
-    for (Filer f : builtinMethods.keySet()) {
-      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
-        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
-        if (pastEntries.containsKey(entry.getKey())) {
-          pastEntries.remove(entry.getKey());
-        }
-      }
-    }
   }
 
   private final List<String> necessaryImports =
@@ -416,6 +410,29 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
         out.println("    }");
       }
       return true;
+    }
+  }
+
+  /**
+   * Dumps the information about the collected builtin methods to {@link MethodProcessor#metadataPath()}
+   * resource file.
+   *
+   * The format of a single row in the metadata file:
+   * <full name of the method>:<class name of the root node>
+   *
+   * @param writer a writer to the metadata resource
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that should
+   *                    not be appended to {@code writer} should be removed
+   * @throws IOException
+   */
+  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+    for (Filer f : builtinMethods.keySet()) {
+      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
+      }
     }
   }
 

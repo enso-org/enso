@@ -13,15 +13,25 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * The base class of Builtins processors.
+ * Apart from any associated with a given annotation, such as generating code,
+ * {@code BuiltinsMetadataProcessor} detects when the processing of the last annotation in the round
+ * is being processed and allows for dumping any collected metadata once.
+ */
 public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
 
-  protected abstract String metadataPath();
-
-  protected abstract void cleanup();
-
-  protected abstract void storeMetadata(Writer writer, Map<String, String> pastEntries)
-      throws IOException;
-
+  /**
+   * Processes annotated elements, generating code for each of them, if necessary.
+   *
+   * Compared to regular annotations processor, it will detect the last round of processing,
+   * read any existing metadata (for diff to handle separate compilation) and call
+   * @{code storeMetadata} to dump any metadata, if needed.
+   *
+   * @param annotations annotation being processed this round.
+   * @param roundEnv additional round information.
+   * @return {@code true}
+   */
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     if (roundEnv.errorRaised()) {
@@ -29,14 +39,17 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
     }
     if (roundEnv.processingOver()) {
       // A hack to improve support for separate compilation.
+      //
       // Since one cannot open the existing resource file in Append mode,
-      // we read the whole file and provide to the function that does the update.
-      // Deletes/renaming is still not gonna work but that would be the same case
+      // we read the exisitng metadata.
+      // Deletes/renaming are still not going to work nicely but that would be the same case
       // if we were writing metadata information per source file anyway.
       Map<String, String> pastEntries;
       try {
         FileObject existingFile =
-            processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", metadataPath());
+            processingEnv
+                    .getFiler()
+                    .getResource(StandardLocation.CLASS_OUTPUT, "", metadataPath());
         try (InputStream resource = existingFile.openInputStream()) {
           pastEntries =
               new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
@@ -44,6 +57,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
                   .collect(Collectors.toMap(l -> l.split(":")[0], Function.identity()));
         }
       } catch (NoSuchFileException notFoundException) {
+        // This is the first time we are generating the metadata file, ignore the exception.
         pastEntries = new HashMap<>();
       } catch (Exception e) {
         e.printStackTrace();
@@ -57,7 +71,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
         Writer writer = res.openWriter();
         try {
           storeMetadata(writer, pastEntries);
-          // Separate compilation hack
+          // Dump past entries, to workaround separate compilation + annotation processing issues
           for (String value : pastEntries.values()) {
             writer.append(value + "\n");
           }
@@ -74,9 +88,29 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
     }
   }
 
+
   /**
-   * The regular body of {@link #process}. Called during regular rounds if there are no outstanding
-   * errors. In the last round, one of the processors will dump all builtin metadata
+   * A name of the resource where metadata collected during the processing should be written to.
+   *
+   * @return a relative path to the resource file
+   */
+  protected abstract String metadataPath();
+
+  /**
+   * The method called at the end of the round of annotation processing. It allows to write any
+   * collected metadata to a related resoource (see {@link BuiltinsMetadataProcessor#metadataPath()}).
+   *
+   * @param writer a writer to the metadata resource
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that should
+   *                    not be appended to {@code writer} should be removed
+   * @throws IOException
+   */
+  protected abstract void storeMetadata(Writer writer, Map<String, String> pastEntries)
+          throws IOException;
+
+  /**
+   * The main body of {@link #process} that needs to be implemented by the processors.
+   * The method is called during regular rounds if there are no outstanding errors.
    *
    * @param annotations as in {@link #process}
    * @param roundEnv as in {@link #process}
@@ -84,4 +118,11 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
    */
   protected abstract boolean handleProcess(
       Set<? extends TypeElement> annotations, RoundEnvironment roundEnv);
+
+  /**
+   * Cleanup any metadata information collected during annotation processing.
+   * Called when all processing is done.
+   */
+  protected abstract void cleanup();
+
 }
