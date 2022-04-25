@@ -158,7 +158,7 @@ public class Text_Utils {
    * @return array of substrings of {@code str} contained between occurences of {@code sep}
    */
   public static String[] split_by_literal(String str, String sep) {
-    return str.split(Pattern.quote(sep));
+    return str.split(Pattern.quote(sep), -1);
   }
 
   /**
