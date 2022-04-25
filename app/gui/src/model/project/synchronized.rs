@@ -33,7 +33,7 @@ use parser::Parser;
 // =================
 
 thread_local! {
-    /// A common preamble used to start every shader program.
+    /// Profiling metadata logger for RPC event names..
     static RPC_EVENT_LOGGER: enso_profiler::MetadataLogger<& 'static str> = enso_profiler::MetadataLogger::new("RpcEvent");
 }
 

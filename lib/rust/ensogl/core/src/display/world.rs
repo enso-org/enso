@@ -55,6 +55,22 @@ impl Uniforms {
 }
 
 
+// =========================
+// === Metadata Profiler ===
+// =========================
+
+
+thread_local! {
+    /// Profiling metadata logger for `StatsData`.
+    static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
+}
+
+/// Log rendering stats to the profiling framework.
+pub fn log_render_stats(stats: StatsData) {
+    RENDER_STATS_LOGGER.with(|logger| logger.log(stats));
+}
+
+
 
 // =============
 // === World ===
@@ -204,9 +220,9 @@ impl WorldData {
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
         let garbage_collector = default();
-
         let stats_draw_handle = on.prev_frame_stats.add(f!([stats_monitor] (stats: &StatsData) {
             stats_monitor.sample_and_draw(stats);
+            log_render_stats(*stats)
         }));
 
         Self {
