@@ -885,7 +885,6 @@ dependencies = [
  "enso-data-structures",
  "enso-logger",
  "enso-prelude",
- "enso-profiler",
  "enso-shapely",
  "enso-text",
  "enso-web",
