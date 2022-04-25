@@ -135,6 +135,7 @@ impl<'a> Resolver<'a> {
         Self { leading_tokens, current_macro, macro_stack, matched_macro_def, root_macro_map }
     }
 
+    // can we make it consume "self"?
     pub fn run(&mut self, lexer: &Lexer, tokens: &[Token]) -> Ast {
         let mut stream = tokens.into_iter();
         let mut opt_token: Option<Token>;
@@ -162,29 +163,32 @@ impl<'a> Resolver<'a> {
             event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
             event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
         }
-        self.resolve_current_macro()
+        match self.resolve_current_macro() {
+            Some(ast) => ast,
+            None => resolve_operator_precedence(&self.leading_tokens),
+        }
     }
 
-    pub fn resolve_current_macro(&mut self) -> Ast {
-        event!(TRACE, "Resolving current macro.");
-        let current_macro = mem::take(&mut self.current_macro).unwrap();
-        let mut segments = current_macro.resolved_segments;
-        segments.push(current_macro.current_segment);
-        if let Some(macro_def) = &self.matched_macro_def {
-            let matched_sections = macro_def
-                .segments
-                .into_iter()
-                .zip(segments)
-                .map(|(segment_def, segment_match)| {
-                    let pattern = &segment_def.pattern;
-                    let token_stream = &segment_match.body;
-                    (segment_match.header, pattern.resolve(&token_stream))
-                })
-                .collect_vec();
-            (macro_def.body)(matched_sections)
-        } else {
-            panic!()
-        }
+    pub fn resolve_current_macro(&mut self) -> Option<Ast> {
+        mem::take(&mut self.current_macro).map(|current_macro| {
+            let mut segments = current_macro.resolved_segments;
+            segments.push(current_macro.current_segment);
+            if let Some(macro_def) = &self.matched_macro_def {
+                let matched_sections = macro_def
+                    .segments
+                    .into_iter()
+                    .zip(segments)
+                    .map(|(segment_def, segment_match)| {
+                        let pattern = &segment_def.pattern;
+                        let token_stream = &segment_match.body;
+                        (segment_match.header, pattern.resolve(&token_stream))
+                    })
+                    .collect_vec();
+                (macro_def.body)(matched_sections)
+            } else {
+                panic!()
+            }
+        })
     }
 
     pub fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'a>> {
@@ -213,7 +217,7 @@ impl<'a> Resolver<'a> {
         out.unwrap_or_else(|| {
             if let Some(mut current_macro) = self.pop_macro_stack_if_reserved(repr) {
                 event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
-                let ast = self.resolve_current_macro();
+                let ast = self.resolve_current_macro().unwrap(); // todo: nice error
                 current_macro.current_segment.body.push(ast.into());
                 self.current_macro = Some(current_macro);
                 ResolverStep::MacroStackPop
@@ -255,6 +259,21 @@ impl<'a> Resolver<'a> {
         }
         new_section_tree
     }
+}
+
+// TODO:
+// Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
+// foo +(a * b) - OK
+// foo +if a then b else c - NOT OK
+pub fn resolve_operator_precedence(tokens: &[TokenOrAst]) -> Ast {
+    let pub output:Vec<TokenOrAst> = default();
+    for token in tokens {
+        match token.elem.variant() {
+            lexer::I
+        }
+    }
+    println!("{:#?}", tokens);
+    panic!()
 }
 
 
@@ -371,7 +390,8 @@ fn macro_if_then<'a>() -> macros::Definition<'a> {
 fn main() {
     init_tracing(TRACE);
     // let str = "if a then b else c";
-    let str = "if if x then y then b";
+    // let str = "if if x then y then b";
+    let str = "a + b * c";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
