@@ -670,7 +670,6 @@ mod tests {
         let root = match root {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {
                 assert_eq!(errors.len(), 1);
-                assert_eq!(errors[0].log_pos, 1);
                 with_missing_data
             }
             other => panic!("Expected RecoverableFormatError, found: {:?}", other),
