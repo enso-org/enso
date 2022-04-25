@@ -57,7 +57,7 @@ class InteropTest extends InterpreterTest {
 
     "work with unresolved symbols" in {
       val code =
-        """from Standard.Builtins import Number
+        """from Standard.Base.Data.Number.Internal import all
           |from Standard.Base.Data.Text import all
           |
           |Number.add x = x + this

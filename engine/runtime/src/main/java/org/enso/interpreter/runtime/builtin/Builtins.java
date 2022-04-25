@@ -124,7 +124,7 @@ public class Builtins {
     system = new System(this);
 
     // TODO: Builtins that are not yet moved to stdlib
-    number = new Number(language, scope);
+    number = new Number(this);//language, scope);
     special = new Special(language);
   }
 

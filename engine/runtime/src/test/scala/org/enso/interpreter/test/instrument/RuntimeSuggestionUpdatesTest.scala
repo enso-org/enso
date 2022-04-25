@@ -726,7 +726,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val contents =
-      """from Standard.Builtins import Number
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.Data.Text
         |import Standard.Base.Nothing
         |
@@ -909,7 +909,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Builtins import Integer
+      """from Standard.Base.Data.Number.Internal import Integer
         |
         |type MyType
         |    type MkA a

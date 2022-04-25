@@ -51,6 +51,22 @@ public class MethodDefinition {
     this.constructorExpression = initConstructor(element);
   }
 
+  public boolean hasAliases() {
+    return !annotation.aliases().isEmpty();
+  }
+
+  public String[] aliases() {
+    if (annotation.aliases().isEmpty()) {
+      return new String[0];
+    } else {
+      String[] methodNames = annotation.aliases().split(",");
+      for (int i=0; i<methodNames.length; i++) {
+        methodNames[i] = annotation.type()  + "." + methodNames[i];
+      }
+      return methodNames;
+    }
+  }
+
   private String initConstructor(TypeElement element) {
     boolean useBuild =
         element.getEnclosedElements().stream()

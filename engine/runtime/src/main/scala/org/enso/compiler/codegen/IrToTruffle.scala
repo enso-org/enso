@@ -39,6 +39,7 @@ import org.enso.compiler.core.IR.Name.Special
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.OptionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
  * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -245,8 +246,18 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function if isBuiltinMethod(fn.body) =>
-            val builtinFunction = context.getBuiltins.getBuiltinFunction(cons, methodDef.methodName.name, language)
-            builtinFunction.orElseThrow(() => new CompilerError(s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"))
+            // Builtin Types Number and Integer have methods only for documentation purposes
+            val ignore =
+              cons == context.getBuiltins.number().getNumber ||
+              cons == context.getBuiltins.number().getInteger
+            if (ignore) Right(None)
+            else {
+              val builtinFunction = context.getBuiltins.getBuiltinFunction(cons, methodDef.methodName.name, language)
+              builtinFunction
+                .toScala
+                .map(Some(_))
+                .toRight(new CompilerError(s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"))
+            }
           case fn: IR.Function =>
             val (body, arguments) =
               expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
@@ -260,17 +271,24 @@ class IrToTruffle(
               methodDef.methodName.name
             )
             val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-            new RuntimeFunction(
+            Right(Some(new RuntimeFunction(
               callTarget,
               null,
               new FunctionSchema(arguments: _*)
-            )
+            )))
           case _ =>
-            throw new CompilerError(
+            Left(new CompilerError(
               "Method bodies must be functions at the point of codegen."
-            )
+            ))
         }
-        moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+        function match {
+          case Left(failure) =>
+            throw failure
+          case Right(Some(fun)) =>
+            moduleScope.registerMethod(cons, methodDef.methodName.name, fun)
+          case _ =>
+            // Don't register dummy function nodes
+        }
       }
     })
 

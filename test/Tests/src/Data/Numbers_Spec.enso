@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Number.Extensions import Parse_Error
+from Standard.Base.Data.Number.Internal import Parse_Error
 
 import Standard.Test
 

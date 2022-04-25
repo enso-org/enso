@@ -110,16 +110,16 @@ class RuntimeServerTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(51, 1)
-      val idMainY = metadata.addItem(61, 7)
-      val idMainZ = metadata.addItem(77, 5)
-      val idFooY  = metadata.addItem(116, 8)
-      val idFooZ  = metadata.addItem(133, 5)
+      val idMainX = metadata.addItem(71, 1)
+      val idMainY = metadata.addItem(81, 7)
+      val idMainZ = metadata.addItem(97, 5)
+      val idFooY  = metadata.addItem(136, 8)
+      val idFooZ  = metadata.addItem(153, 5)
 
       def code =
         metadata.appendToCode(
           """
-            |from Standard.Builtins import all
+            |from Standard.Base.Data.Number.Internal import Number
             |
             |main =
             |    x = 6
@@ -361,7 +361,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -732,11 +732,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(101, 41)
-    val idMainBar = metadata.addItem(133, 8)
+    val idMain    = metadata.addItem(121, 41)
+    val idMainBar = metadata.addItem(153, 8)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
@@ -793,11 +793,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(101, 40)
-    val idMainBar = metadata.addItem(132, 8)
+    val idMain    = metadata.addItem(121, 40)
+    val idMainBar = metadata.addItem(152, 8)
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
@@ -1033,7 +1033,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(42, 47)
+    val idMain     = context.Main.metadata.addItem(62, 47)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1063,7 +1063,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1180,19 +1180,19 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(65, 35)
-    val idMainA  = metadata.addItem(74, 8)
-    val idMainP  = metadata.addItem(87, 12)
+    val idMain   = metadata.addItem(85, 35)
+    val idMainA  = metadata.addItem(94, 8)
+    val idMainP  = metadata.addItem(107, 12)
     // pie id
-    metadata.addItem(99 + 8, 1)
+    metadata.addItem(127, 1)
     // uwu id
-    metadata.addItem(107 + 8, 1)
+    metadata.addItem(135, 1)
     // hie id
-    metadata.addItem(115 + 8, 6)
+    metadata.addItem(143, 6)
     // Number.x id
-    metadata.addItem(135 + 8, 1)
+    metadata.addItem(163, 1)
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.IO
         |
         |main =
@@ -1386,15 +1386,15 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(113, 88)
-    val id1      = metadata.addItem(122, 15)
-    val id2      = metadata.addItem(142, 18)
-    val id3      = metadata.addItem(165, 15)
+    val idMain   = metadata.addItem(130, 88)
+    val id1      = metadata.addItem(139, 15)
+    val id2      = metadata.addItem(159, 18)
+    val id3      = metadata.addItem(182, 15)
     // Note that Nothing.Nothing is on purpose.
     // If not provided the full name it will resolve the
     // expression type of Nothing to a Nothing module
     val code =
-      """from Standard.Builtins import Number
+      """from Standard.Base.Data.Number.Internal import Number
         |from Standard.Base.Data.Text import all
         |import Standard.Base.Nothing
         |
@@ -1575,7 +1575,7 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
       TestMessages.update(
-        contextId,
+         contextId,
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
@@ -1770,7 +1770,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(42, 47)
+    val idMain     = context.Main.metadata.addItem(62, 47)
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -1795,7 +1795,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1849,7 +1849,7 @@ class RuntimeServerTest
     )
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
@@ -1886,7 +1886,7 @@ class RuntimeServerTest
 
     /*
       Modify the file:
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.IO
         |
         |Number.lucky = 42
@@ -1950,7 +1950,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -1996,7 +1996,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2048,7 +2048,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -2154,7 +2154,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -2205,7 +2205,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionFailed(
@@ -2448,7 +2448,7 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Number.Internal import Number
         |
         |main = Number.pi
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2481,7 +2481,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -3127,7 +3127,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),

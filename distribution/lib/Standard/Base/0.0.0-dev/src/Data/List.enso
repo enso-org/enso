@@ -1,4 +1,4 @@
-from Standard.Builtins import Number,Integer
+from Standard.Base.Data.Number.Internal import all
 from Standard.Base.Error.Common import Error
 from Standard.Base.Data.Boolean import True, False
 import Standard.Base.Nothing

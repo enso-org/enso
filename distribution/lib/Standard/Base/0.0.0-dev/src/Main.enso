@@ -8,7 +8,7 @@ import project.Data.Locale
 import project.Data.Map
 import project.Data.Maybe
 import project.Data.Noise
-import project.Data.Number.Extensions
+import project.Data.Number.Internal
 import project.Data.Ordering
 import project.Data.Ordering.Sort_Order
 import project.Data.Pair
@@ -38,8 +38,6 @@ import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
 
-from Standard.Builtins import Number, Integer
-
 export project.Data.Interval
 export project.Data.Json
 export project.Data.Locale
@@ -65,10 +63,10 @@ from project.Data.Array export Array
 from project.Data.Any export all
 from project.Data.Boolean export all
 from project.Data.List export Nil, Cons, List
-from project.Data.Number.Extensions export all hiding Math, String, Double
+from project.Data.Number.Internal export all hiding Math, String, Double, Parse_Error
 from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair
-from project.Data.Range export Range
+from project.Data.Range export all
 ## TODO [RW] Once autoscoping is implemented or automatic imports for ADTs are
    fixed in the IDE, we should revisit if we want to export ADTs like `Case` by
    default. It may be unnecessary pollution of scope, but until the issues are
@@ -87,5 +85,3 @@ from project.Nothing export all
 from project.Polyglot export all
 from project.Runtime.Extensions export all
 from project.Runtime.Resource export all
-
-from Standard.Builtins export all

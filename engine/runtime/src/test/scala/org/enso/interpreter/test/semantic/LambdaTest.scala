@@ -134,7 +134,7 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated lambdas returned with TCO" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.Number.Internal import Number
           |
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |

@@ -71,6 +71,12 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
           }
           String fullClassName = def.getPackageName() + "." + def.getClassName();
           registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+          if (def.hasAliases()) {
+            for (String alias: def.aliases()) {
+              registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+            }
+          }
+
         } catch (IOException e) {
           e.printStackTrace();
         }
