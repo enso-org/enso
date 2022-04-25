@@ -367,7 +367,12 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
    > Example
      Split the text on a regex pattern.
 
-             "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
+         "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
+
+   > Example
+     Split the text on any whitespace.
+
+         'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
 Text.split delimiter="," matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
@@ -541,8 +546,10 @@ Text.words keep_whitespace=False =
 
    Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
 
-   Empty lines are added for leading and trailing newlines. Multiple consecutive
-   newlines will also yield additional empty lines.
+   Empty lines are added for leading newlines. Multiple consecutive
+   newlines will also yield additional empty lines. A line ending at the end of
+   the line is not required, but if it is present it will not cause an empty
+   line to be added at the end.
 
    > Example
      Split the text 'a\nb\nc' into lines.
@@ -552,7 +559,7 @@ Text.words keep_whitespace=False =
    > Example
      Split the text '\na\n\nb\n\n' into lines.
 
-        'a\nb\nc'.lines == ['', 'a', '', 'b', '', '']
+        '\na\n\nb\n\n\n'.lines == ['', 'a', '', 'b', '', '']
 
    > Example
      Split the text '\na\nb\n' into lines, keeping the line endings.

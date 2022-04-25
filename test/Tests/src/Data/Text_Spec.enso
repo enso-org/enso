@@ -164,6 +164,10 @@ spec =
             utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
             utf_8_vertical.lines . should_equal utf_8_vertical_split
 
+            'a\nb\nc'.lines . should_equal ['a', 'b', 'c']
+            '\na\n\nb\n\n\n'.lines . should_equal ['', 'a', '', 'b', '', '']
+            '\na\nb\n'.lines keep_endings=True . should_equal ['\n', 'a\n', 'b\n']
+
             '\n\n\n'.lines . should_equal ['', '', '']
             '\r\r\r'.lines . should_equal ['', '', '']
             '\r\n\r\n\r\n'.lines . should_equal ['', '', '']
@@ -190,6 +194,7 @@ spec =
             "aaa".split "a" . should_equal ["", "", "", ""]
             ".a.".split "." . should_equal ["", "a", ""]
             "".split "." . should_equal [""]
+            "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
             matcher = Text_Matcher Case_Insensitive
@@ -211,6 +216,7 @@ spec =
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split "\s+" Regex_Matcher . should_equal utf_8_whitespace_split
+            'abc  def\tghi'.split '\\s+' Regex_Matcher . should_equal ["abc", "def", "ghi"]
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto (Manual 123) . to_text
