@@ -219,9 +219,9 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
 pub trait Parent<T: Profiler + Copy> {
     /// Start a new profiler, with `self` as its parent.
-    fn new_child(&self, label: StaticLabel) -> Started<T>;
+    fn new_child(&self, label: Label) -> Started<T>;
     /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
-    fn new_child_same_start(&self, label: StaticLabel) -> Started<T>;
+    fn new_child_same_start(&self, label: Label) -> Started<T>;
 }
 
 

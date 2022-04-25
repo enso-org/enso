@@ -126,13 +126,7 @@ impl<'a> LogTranslator<'a> {
         self.profile.metadata(time.into(), name, data);
     }
 
-    fn create(
-        &mut self,
-        time: Option<Timestamp>,
-        parent: EventId,
-        label: Label<&'static str>,
-        id: EventId,
-    ) {
+    fn create(&mut self, time: Option<Timestamp>, parent: EventId, label: Label, id: EventId) {
         let parent = match parent {
             EventId::IMPLICIT => format::Parent::implicit(),
             EventId::APP_LIFETIME => format::Parent::root(),
@@ -191,7 +185,7 @@ impl EventLog {
     pub fn start(
         self,
         parent: EventId,
-        label: StaticLabel,
+        label: Label,
         start: Option<Timestamp>,
         state: StartState,
     ) -> EventId {
@@ -253,12 +247,12 @@ pub enum StartState {
 // =============
 
 /// An entry in the profiling log.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Event {
     /// The beginning of a measurement.
-    Start(Start<&'static str>),
+    Start(Start),
     /// The beginning of a measurement that starts in the paused state.
-    StartPaused(Start<&'static str>),
+    StartPaused(Start),
     /// The end of a measurement.
     End {
         /// Identifies the measurement by the ID of its Start event.
@@ -296,14 +290,14 @@ pub enum Event {
 // =============
 
 /// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone)]
-pub struct Start<LabelStorage> {
+#[derive(Debug, Clone, Copy)]
+pub struct Start {
     /// Specifies parent measurement by its [`Start`].
     pub parent: EventId,
     /// Start time, or None to indicate it is the same as `parent`.
     pub start:  Option<Timestamp>,
     /// Identifies where in the code this measurement originates.
-    pub label:  Label<LabelStorage>,
+    pub label:  Label,
 }
 
 
@@ -311,17 +305,14 @@ pub struct Start<LabelStorage> {
 
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
-#[derive(Debug, Clone)]
-pub struct Label<Storage>(pub Storage);
+#[derive(Debug, Clone, Copy)]
+pub struct Label(pub &'static str);
 
-impl<Storage: fmt::Display> fmt::Display for Label<Storage> {
+impl fmt::Display for Label {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
-
-/// Static-str label, suitable for writing.
-pub(crate) type StaticLabel = Label<&'static str>;
 
 
 
@@ -456,12 +447,7 @@ pub trait Profiler {
     /// Log the beginning of a measurement.
     ///
     /// Return an object that can be used to manage the measurement's lifetime.
-    fn start(
-        parent: EventId,
-        label: StaticLabel,
-        time: Option<Timestamp>,
-        start: StartState,
-    ) -> Self;
+    fn start(parent: EventId, label: Label, time: Option<Timestamp>, start: StartState) -> Self;
     /// Log the end of a measurement.
     fn finish(self);
     /// Log the beginning of an interval in which the profiler is not active.
@@ -492,11 +478,11 @@ where
     U: crate::Parent<T> + Profiler + Copy,
     T: Profiler + Copy,
 {
-    fn new_child(&self, label: StaticLabel) -> Started<T> {
+    fn new_child(&self, label: Label) -> Started<T> {
         self.0.new_child(label)
     }
 
-    fn new_child_same_start(&self, label: StaticLabel) -> Started<T> {
+    fn new_child_same_start(&self, label: Label) -> Started<T> {
         self.0.new_child_same_start(label)
     }
 }
