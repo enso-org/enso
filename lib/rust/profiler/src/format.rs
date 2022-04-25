@@ -264,10 +264,33 @@ pub enum Header {
 // =============
 // === Tests ===
 // =============
+
 #[cfg(test)]
 mod tests {
+    use crate::format;
+
+    /// Verify that the current implementation can still deserialize the format as of the first
+    /// stable release.
     #[test]
     fn format_stability() {
-        todo!();
+        // Example data containing every type of event and every encoding of each field.
+        const LOG: &str = "[\
+{\"C\":{\"p\":-1,\"t\":5210200,\"l\":3}},\
+{\"C\":{\"p\":0,\"t\":5210000,\"l\":1}},\
+{\"C\":{\"t\":5196300,\"l\":0}},\
+{\"C\":{\"t\":null,\"l\":0}},\
+{\"E\":{\"i\":0,\"t\":5199800}},\
+{\"L\":{\"l\":\"entry_point_ide (app/gui/src/lib.rs:134)\"}},\
+{\"P\":{\"i\":2,\"t\":5210200}},\
+{\"S\":{\"i\":0,\"t\":5196300}},\
+{\"X\":{\"t\":0,\"d\":{\"$Process\":\"Ide\"}}},\
+{\"X\":{\"t\":0,\"d\":{\"$TimeOffset\":1650900741301300}}}\
+]";
+        // Check that we can deserialize the data.
+        let events: Vec<format::Event> = serde_json::from_str(LOG).unwrap();
+        // Check that the deserialized structures contain all the information that was in the JSON.
+        // As an easy way of implementing this, we check a stricter property here: That
+        // re-serializing the data structures produces the same blob as the input.
+        assert_eq!(LOG, serde_json::to_string(&events).unwrap());
     }
 }
