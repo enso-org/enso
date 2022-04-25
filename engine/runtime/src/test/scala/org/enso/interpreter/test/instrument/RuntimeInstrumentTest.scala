@@ -742,9 +742,7 @@ class RuntimeInstrumentTest
     val mainRes = metadata.addItem(52, 1)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    x =
         |        f x = x + 1
         |        f 42

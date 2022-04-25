@@ -2,8 +2,6 @@ from Standard.Base import all
 import Standard.Base.Runtime.State
 import Standard.Base.System
 
-import Standard.Builtins
-
 ## Creates a new test group, desribing properties of the object
    described by `this`.
 

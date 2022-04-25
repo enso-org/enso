@@ -42,8 +42,6 @@ import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Polyglot.Java
 from Standard.Base.Data.Text.Span as Span_Module import Utf_16_Span
 
-import Standard.Base.Error.Extensions as Errors
-
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import java.lang.StringBuffer

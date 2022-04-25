@@ -14,8 +14,6 @@ import Standard.Base.Data.Text.Text_Sub_Range
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
 
-from Standard.Builtins export Text
-
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Location

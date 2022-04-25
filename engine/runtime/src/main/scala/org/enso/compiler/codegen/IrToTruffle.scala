@@ -246,18 +246,15 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function if isBuiltinMethod(fn.body) =>
-            // Builtin Types Number and Integer have methods only for documentation purposes
-            val ignore =
-              cons == context.getBuiltins.number().getNumber ||
-              cons == context.getBuiltins.number().getInteger
-            if (ignore) Right(None)
-            else {
-              val builtinFunction = context.getBuiltins.getBuiltinFunction(cons, methodDef.methodName.name, language)
-              builtinFunction
-                .toScala
-                .map(Some(_))
-                .toRight(new CompilerError(s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"))
-            }
+            val builtinFunction = context.getBuiltins.getBuiltinFunction(cons, methodDef.methodName.name, language)
+            builtinFunction
+              .toScala
+              .map(Some(_))
+              .toRight(new CompilerError(s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"))
+              .left.flatMap( l =>
+                // Builtin Types Number and Integer have methods only for documentation purposes
+                if (cons == context.getBuiltins.number().getNumber ||
+                  cons == context.getBuiltins.number().getInteger) Right(None) else Left(l))
           case fn: IR.Function =>
             val (body, arguments) =
               expressionProcessor.buildFunctionBody(fn.arguments, fn.body)

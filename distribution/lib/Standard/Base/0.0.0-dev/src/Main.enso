@@ -19,7 +19,6 @@ import project.Data.Text.Extensions
 import project.Data.Text.Matching
 import project.Data.Vector
 import project.Error.Common
-import project.Error.Extensions
 import project.Function
 import project.IO.Prim_Io
 import project.IO
@@ -78,7 +77,6 @@ from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style, Ca
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
 from project.Data.Text export all
 from project.Error.Common export all
-from project.Error.Extensions export all
 from project.Function export all
 from project.Meta.Enso_Project export all
 from project.Nothing export all

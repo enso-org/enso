@@ -16,7 +16,7 @@ public class Constants {
   public static final String NUMBER = "Standard.Base.Data.Number.Internal.Number";
   public static final String PANIC = "Standard.Base.Error.Common.Panic";
   public static final String REF = "Standard.Base.Data.Ref.Ref";
-  public static final String TEXT = "Standard.Base.Data.Text";
+  public static final String TEXT = "Standard.Base.Data.Text.Text";
   public static final String THUNK = "Standard.Builtins.Main.Thunk";
   public static final String UNRESOLVED_SYMBOL = "Standard.Builtins.Main.Unresolved_Symbol";
 }

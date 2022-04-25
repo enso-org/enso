@@ -78,8 +78,7 @@ class TextTest extends InterpreterTest {
 
     "support printing to standard error" in {
       val code =
-        s"""from Standard.Builtins import all
-           |import Standard.Base.IO
+        s"""import Standard.Base.IO
            |
            |main = IO.print_err "My error string"
            |""".stripMargin

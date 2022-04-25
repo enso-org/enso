@@ -497,17 +497,16 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(137, 121)
-    val idMainX  = metadata.addItem(164, 8)
-    val idMainY  = metadata.addItem(181, 8)
-    val idMainM  = metadata.addItem(198, 5)
-    val idMainP  = metadata.addItem(212, 5)
-    val idMainQ  = metadata.addItem(226, 5)
-    val idMainF  = metadata.addItem(248, 9)
+    val idMain   = metadata.addItem(103, 121)
+    val idMainX  = metadata.addItem(130, 8)
+    val idMainY  = metadata.addItem(147, 8)
+    val idMainM  = metadata.addItem(164, 5)
+    val idMainP  = metadata.addItem(178, 5)
+    val idMainQ  = metadata.addItem(192, 5)
+    val idMainF  = metadata.addItem(214, 9)
 
     val code =
-      """from Standard.Builtins import all
-        |import Standard.Base.IO
+      """import Standard.Base.IO
         |import Enso_Test.Test.A
         |
         |type Quux
@@ -530,8 +529,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(contents)
 
     val aCode =
-      """from Standard.Builtins import all
-        |
+      """
         |type A
         |    type A un_a
         |
@@ -613,13 +611,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(58, 17)
-    val idMainFoo = metadata.addItem(63, 12)
+    val idMain    = metadata.addItem(23, 17)
+    val idMainFoo = metadata.addItem(28, 12)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |foo a b = a + b
+      """foo a b = a + b
         |
         |main =
         |    this.foo 1 2
@@ -856,13 +852,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(58, 23)
-    val idMainFoo = metadata.addItem(63, 12)
+    val idMain    = metadata.addItem(23, 23)
+    val idMainFoo = metadata.addItem(28, 12)
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |foo a b = a + b
+      """foo a b = a + b
         |
         |main =
         |    this.foo 1 2
@@ -2577,9 +2571,8 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main = this.foo
+      """main =
+        |    this.foo
         |
         |foo =
         |    x = this.bar
@@ -2637,7 +2630,7 @@ class RuntimeServerTest
                   "Main.baz",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(11, 8), model.Position(11, 17))
+                    model.Range(model.Position(10, 8), model.Position(10, 17))
                   ),
                   None
                 ),
@@ -2645,7 +2638,7 @@ class RuntimeServerTest
                   "Main.bar",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(8, 8), model.Position(8, 16))
+                    model.Range(model.Position(7, 8), model.Position(7, 16))
                   ),
                   None
                 ),
@@ -2653,7 +2646,7 @@ class RuntimeServerTest
                   "Main.foo",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(5, 8), model.Position(5, 16))
+                    model.Range(model.Position(4, 8), model.Position(4, 16))
                   ),
                   None
                 ),
@@ -2661,7 +2654,7 @@ class RuntimeServerTest
                   "Main.main",
                   Some(mainFile),
                   Some(
-                    model.Range(model.Position(2, 7), model.Position(2, 15))
+                    model.Range(model.Position(1, 4), model.Position(1, 12))
                   ),
                   None
                 )
@@ -2681,10 +2674,9 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main = x = 1
-        |""".stripMargin.linesIterator.mkString("\n")
+      """main =
+         |    x = 1
+         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -2723,7 +2715,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 7), model.Position(2, 8))),
+              Some(model.Range(model.Position(1, 4), model.Position(1, 5))),
               None
             )
           )
@@ -2740,9 +2732,7 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |foo x = 1
+      """foo x = 1
         |
         |main = 42
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2784,7 +2774,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.warning(
               "Unused function argument x.",
               Some(mainFile),
-              Some(model.Range(model.Position(2, 4), model.Position(2, 5)))
+              Some(model.Range(model.Position(0, 4), model.Position(0, 5)))
             )
           )
         )
@@ -2800,9 +2790,7 @@ class RuntimeServerTest
     val metadata = new Metadata
 
     val code =
-      """from Standard.Builtins import all
-        |
-        |main =
+      """main =
         |    x = 1
         |    x = 2
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2844,12 +2832,12 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.warning(
               "Unused variable x.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
+              Some(model.Range(model.Position(1, 4), model.Position(1, 5)))
             ),
             Api.ExecutionResult.Diagnostic.error(
               "Variable x is being redefined.",
               Some(mainFile),
-              Some(model.Range(model.Position(4, 4), model.Position(4, 9)))
+              Some(model.Range(model.Position(2, 4), model.Position(2, 9)))
             )
           )
         )

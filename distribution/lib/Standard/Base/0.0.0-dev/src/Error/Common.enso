@@ -553,8 +553,8 @@ Unimplemented_Error.to_display_text = "An implementation is missing: " + this.me
    > Example
      Throwing an error to show that something is unimplemented.
 
-         import Standard.Base.Error.Extensions
+         import Standard.Base.Error.Common as Errors
 
-         example_unimplemented = Extensions.unimplemented
+         example_unimplemented = Errors.unimplemented
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error message)
