@@ -10,7 +10,6 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Base.Data.Text.Span as Span_Module import Span
-import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
@@ -22,7 +21,6 @@ from Standard.Builtins export Text
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Location
-export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
 polyglot java import com.ibm.icu.lang.UCharacter

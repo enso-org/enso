@@ -3,7 +3,6 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
-import Standard.Base.Data.Text.Split_Kind
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Base.Data.Text.Regex.Mode
