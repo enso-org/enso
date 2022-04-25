@@ -84,14 +84,21 @@ object DistributionPackage {
 
   def downloadFileToLocation(
     address: String,
-    location: File
-  ): File = {
-    val exitCode = (url(address) #> location).!
-    if (exitCode != 0) {
-      throw new RuntimeException(s"Downloading the file at $address failed.")
+    location: File,
+    log: Logger,
+    incremental: Boolean = true
+  ): File =
+    if (incremental && location.isFile) {
+      log.debug(s"Using cached [$location].")
+      location
+    } else {
+      log.info(s"Downloading [$address] to [$location].")
+      val exitCode = (url(address) #> location).!
+      if (exitCode != 0) {
+        throw new RuntimeException(s"Downloading the file at $address failed.")
+      }
+      location
     }
-    location
-  }
 
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
@@ -154,7 +161,7 @@ object DistributionPackage {
       cacheFactory    = cacheFactory.sub("engine-libraries"),
       log             = log
     )
-    getStdlibDataFiles(distributionRoot, targetStdlibVersion)
+    getStdlibDataFiles(file("distribution"), targetStdlibVersion, log)
 
     copyDirectoryIncremental(
       file("distribution/bin"),
@@ -240,14 +247,16 @@ object DistributionPackage {
 
   private def getStdlibDataFiles(
     distributionRoot: File,
-    stdlibVersion: String
+    stdlibVersion: String,
+    log: Logger
   ): Unit = {
     val exampleImageUrl =
       "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/" +
       "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     downloadFileToLocation(
       exampleImageUrl,
-      distributionRoot / s"lib/Standard/Examples/$stdlibVersion/data/image.png"
+      distributionRoot / s"lib/Standard/Examples/$stdlibVersion/data/image.png",
+      log
     )
   }
 
