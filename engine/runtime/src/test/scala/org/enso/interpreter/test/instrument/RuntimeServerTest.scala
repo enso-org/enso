@@ -1385,8 +1385,9 @@ class RuntimeServerTest
     val id2      = metadata.addItem(159, 18)
     val id3      = metadata.addItem(182, 15)
     // Note that Nothing.Nothing is on purpose.
-    // If not provided the full name it will resolve the
-    // expression type of Nothing to a Nothing module
+    // If not provided the full name it will resolve the expression Nothing to a Nothing module.
+    // Similarly Text.Text. That in turn will mismatch the expectations for method types which actually
+    // return proper types.
     val code =
       """from Standard.Base.Data.Number.Internal import Number
         |from Standard.Base.Data.Text import all
@@ -1398,7 +1399,7 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.overloaded arg = arg + 1
+        |Text.Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)

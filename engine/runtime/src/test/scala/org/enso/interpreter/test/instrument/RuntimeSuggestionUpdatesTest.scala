@@ -725,6 +725,9 @@ class RuntimeSuggestionUpdatesTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
+    // Note that Text.Text.overloaded is only to ensure that tests match expectations.
+    // In general Text.overloaded would also work because method resolution would assign it
+    // to the module rather than a type
     val contents =
       """from Standard.Base.Data.Number.Internal import Number
         |import Standard.Base.Data.Text
@@ -736,7 +739,7 @@ class RuntimeSuggestionUpdatesTest
         |    10.overloaded x
         |    Nothing
         |
-        |Text.overloaded arg = arg + 1
+        |Text.Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val version  = contentsVersion(contents)

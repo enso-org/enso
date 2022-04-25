@@ -72,8 +72,8 @@ class ReplTest
     "allow to access Text representations of the returned values" in {
       val code =
         """
-          |from Standard.Builtins import all
           |polyglot java import java.util.regex.Pattern
+          |import Standard.Base.Runtime.Debug
           |
           |type Foo a b
           |
