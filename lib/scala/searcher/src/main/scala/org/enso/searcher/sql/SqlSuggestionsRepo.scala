@@ -68,9 +68,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(
-      searchQuery(module, selfType, returnType, kinds, position)
-    )
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
