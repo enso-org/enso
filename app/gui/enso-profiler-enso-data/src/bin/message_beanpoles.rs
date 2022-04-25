@@ -87,9 +87,12 @@ fn main() {
     offset1 -= offset0;
     offset0 -= offset0;
     for meta in metadata0.into_iter() {
-        if let enso_data::Metadata::RpcEvent(message) = meta.data {
-            let time = meta.time.into_ms() + offset0;
-            dia.message(ls, frontend, time, message);
+        let time = meta.time.into_ms() + offset0;
+        match meta.data {
+            enso_data::Metadata::RpcEvent(message) => dia.message(ls, frontend, time, message),
+            enso_data::Metadata::RpcRequest(message) =>
+                dia.message(frontend, ls, time, message.to_string()),
+            _ => {}
         }
     }
     for meta in metadata1.into_iter() {
