@@ -17,6 +17,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
+#![recursion_limit = "256"]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -38,6 +39,23 @@ use ensogl_text as text;
 
 const HEADER_FONT: &str = "DejaVuSans-Bold";
 
+
+
+// ===============
+// === EntryId ===
+// ===============
+
+#[derive(Copy, Clone, Debug)]
+pub enum EntryId {
+    Component { list_entry: list_view::entry::Id },
+    Header,
+}
+
+impl Default for EntryId {
+    fn default() -> Self {
+        Self::Header
+    }
+}
 
 
 // ==========================
@@ -112,7 +130,12 @@ ensogl_core::define_endpoints_2! {
         set_background_color(Rgba),
         set_size(Vector2),
     }
-    Output {}
+    Output {
+        selected_entry(Option<EntryId>),
+        chosen_entry(EntryId),
+        selection_size(Vector2<f32>),
+        selection_position(Vector2<f32>),
+    }
 }
 
 impl component::Frp<Model> for Frp {
@@ -120,6 +143,7 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         let header_text_size = style.get_number(theme::header::text::size);
+
         frp::extend! { network
 
             // === Geometry ===
@@ -151,6 +175,16 @@ impl component::Frp<Model> for Frp {
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
+
+
+            // === Selection ===
+
+            selected_entry_after_jumping_out <- model.entries.jumped_above.constant(EntryId::Header);
+            selected_entry_inside_list <- model.entries.selected_entry.filter_map(|&entry| entry.map(|e| EntryId::Component {list_entry: e}));
+            selected_entry <- any(selected_entry_after_jumping_out, selected_entry_inside_list);
+            api.output.selected_entry <+ selected_entry.map(|&entry| Some(entry));
+
+            api.output.selection_position <+ all_with(&selected_entry, &model.entries.selection_position, f!((id, esp) model.selection_position(*id, *esp)));
         }
         init.emit(());
     }
@@ -197,6 +231,8 @@ impl component::Model for Model {
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
+        entries.hide_selection();
+
         Model { display_object, header, header_text, background, entries }
     }
 }
@@ -232,6 +268,13 @@ impl Model {
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
         self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+    }
+
+    fn selection_position(&self, id: EntryId, entries_selection_position: Vector2) -> Vector2 {
+        match id {
+            EntryId::Header => self.header.position().xy(),
+            EntryId::Component { .. } => self.entries.position().xy() + entries_selection_position,
+        }
     }
 }
 

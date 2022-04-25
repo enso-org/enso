@@ -128,6 +128,19 @@ struct View {
     size:       Vector2<f32>,
 }
 
+#[derive(Copy, Clone, Debug)]
+enum JumpTarget {
+    Entry(entry::Id),
+    Above,
+    Below,
+}
+
+impl Default for JumpTarget {
+    fn default() -> Self {
+        Self::Entry(default())
+    }
+}
+
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
 struct Model<E: Entry> {
@@ -217,21 +230,32 @@ impl<E: Entry> Model<E> {
         x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
     }
 
+    fn jump_target(&self, current_entry: Option<entry::Id>, jump: isize) -> JumpTarget {
+        if jump < 0 {
+            match current_entry.and_then(|entry| entry.checked_sub(-jump as usize)) {
+                Some(new_entry) => JumpTarget::Entry(new_entry),
+                None => JumpTarget::Above,
+            }
+        } else {
+            let new_entry = current_entry.map_or(0, |entry| entry + jump as usize);
+            if new_entry >= self.entries.entry_count() {
+                JumpTarget::Below
+            } else {
+                JumpTarget::Entry(new_entry)
+            }
+        }
+    }
+
     fn selected_entry_after_jump(
         &self,
         current_entry: Option<entry::Id>,
-        jump: isize,
+        jump_target: JumpTarget,
     ) -> Option<entry::Id> {
-        if jump < 0 {
-            let current_entry = current_entry?;
-            if current_entry == 0 {
-                None
-            } else {
-                Some(current_entry.saturating_sub(-jump as usize))
-            }
-        } else {
-            let max_entry = self.entries.entry_count().checked_sub(1)?;
-            Some(current_entry.map_or(0, |id| id + (jump as usize)).min(max_entry))
+        match jump_target {
+            JumpTarget::Entry(entry) => Some(entry),
+            JumpTarget::Above if current_entry == Some(0) => None,
+            JumpTarget::Above => Some(0),
+            JumpTarget::Below => self.entries.entry_count().checked_sub(1),
         }
     }
 }
@@ -281,6 +305,8 @@ ensogl_core::define_endpoints! {
         scroll_position(f32),
         selection_position(Vector2<f32>),
         selection_size(Vector2<f32>),
+        jumped_above(),
+        jumped_below(),
     }
 }
 
@@ -370,17 +396,20 @@ where E::Model: Default
 
             frp.source.selected_entry <+ frp.select_entry.map(|id| Some(*id));
 
-            selection_jump_on_one_up  <- frp.move_selection_up.constant(-1);
+            selection_jump_on_one_up <- frp.move_selection_up.constant(-1);
             selection_jump_on_page_up <- frp.move_selection_page_up.map(f_!([model]
                 -(model.entries.visible_entry_count() as isize)
             ));
-            selection_jump_on_one_down  <- frp.move_selection_down.constant(1);
+            selection_jump_on_one_down <- frp.move_selection_down.constant(1);
             selection_jump_on_page_down <- frp.move_selection_page_down.map(f_!(
                 model.entries.visible_entry_count() as isize
             ));
-            selection_jump_up   <- any(selection_jump_on_one_up,selection_jump_on_page_up);
+            selection_jump_up <- any(selection_jump_on_one_up,selection_jump_on_page_up);
             selection_jump_down <- any(selection_jump_on_one_down,selection_jump_on_page_down);
-            selected_entry_after_jump_up <- selection_jump_up.map2(&frp.selected_entry,
+            jump_up_target <- selection_jump_up.map2(&frp.selected_entry,
+                f!((jump,id) model.jump_target(*id,*jump))
+            );
+            selected_entry_after_jump_up <- jump_up_target.map2(&frp.selected_entry,
                 f!((jump,id) model.selected_entry_after_jump(*id,*jump))
             );
             selected_entry_after_moving_first <- frp.move_selection_to_first.map(f!([model](())
@@ -389,7 +418,10 @@ where E::Model: Default
             selected_entry_after_moving_last  <- frp.move_selection_to_last.map(f!([model] (())
                 model.entries.entry_count().checked_sub(1)
             ));
-            selected_entry_after_jump_down <- selection_jump_down.map2(&frp.selected_entry,
+            jump_down_target <- selection_jump_down.map2(&frp.selected_entry,
+                f!((jump,id) model.jump_target(*id,*jump))
+            );
+            selected_entry_after_jump_down <- jump_down_target.map2(&frp.selected_entry,
                 f!((jump,id) model.selected_entry_after_jump(*id,*jump))
             );
             selected_entry_after_move_up <-
@@ -404,6 +436,8 @@ where E::Model: Default
             frp.source.selected_entry <+ mouse_selected_entry;
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
+            frp.source.jumped_above <+ jump_up_target.filter(|t| matches!(t, JumpTarget::Above)).constant(());
+            frp.source.jumped_below <+ jump_down_target.filter(|t| matches!(t, JumpTarget::Below)).constant(());
 
 
             // === Chosen Entry ===
@@ -542,4 +576,51 @@ impl<E: Entry> application::View for ListView<E> {
             .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
             .collect()
     }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::entry::AnyModelProvider;
+    use enso_frp::future::EventOutputExt;
+
+    #[test]
+    fn navigating_list_view_with_keyboard() {
+        let app = Application::new("root");
+        let list_view = ListView::<entry::Label>::new(&app);
+        let provider = AnyModelProvider::<entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
+        list_view.set_entries(provider);
+
+        // Going down:
+        assert_eq!(list_view.selected_entry.value(), None);
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(0));
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(1));
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(2));
+        let jumped_below = list_view.jumped_below.next_event();
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(2));
+        jumped_below.expect();
+
+        // Going up:
+        list_view.move_selection_up();
+        assert_eq!(list_view.selected_entry.value(), Some(1));
+        list_view.move_selection_up();
+        assert_eq!(list_view.selected_entry.value(), Some(0));
+        let jumped_above = list_view.jumped_above.next_event();
+        list_view.move_selection_up();
+        assert_eq!(list_view.selected_entry.value(), None);
+        jumped_above.expect();
+    }
+
+    #[test]
+    fn selection_position() {}
 }
