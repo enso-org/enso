@@ -81,13 +81,13 @@ spec = Test.group "Meta-Value Manipulation" <|
         _ -> Nothing
     Test.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Meta.get_source_location 0
-        loc = "Meta_Spec.enso:85:15-40"
+        loc = "Meta_Spec.enso:83:15-40"
         src.take (Last loc.length) . should_equal loc
 
     Test.specify "should allow to get qualified type names of values" <|
         x = 42
         y = My_Type 1 2 3
-        Meta.get_qualified_type_name x . should_equal "Standard.Builtins.Main.Integer"
+        Meta.get_qualified_type_name x . should_equal "Standard.Base.Data.Number.Internal.Integer"
         Meta.get_qualified_type_name y . should_equal "enso_dev.Tests.Semantic.Meta_Spec.My_Type"
 
     Test.specify "should allow access to package names" <|
