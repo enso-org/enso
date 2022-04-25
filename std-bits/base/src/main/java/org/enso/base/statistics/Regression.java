@@ -20,6 +20,13 @@ public class Regression {
     return 1 - (yy - y * y / n) / (yy - 2 * fy + ff);
   }
 
+  /**
+   * Performs a
+   * @param known_xs
+   * @param known_ys
+   * @return
+   * @throws FitError
+   */
   public static Linear linear(double[] known_xs, double[] known_ys) throws FitError {
     double n = 0, x = 0, xy = 0, y = 0, xx = 0, yy = 0;
 
