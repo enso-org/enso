@@ -3,6 +3,7 @@ package org.enso.table.format.xlsx;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFName;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
@@ -215,4 +216,33 @@ public class Reader {
     }
     return null;
   }
+
+  public static String[] SheetNames(InputStream stream)
+      throws IOException
+  {
+    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+    int sheetCount = workbook.getNumberOfSheets();
+    var output = new String[sheetCount];
+    for (int i = 0; i < sheetCount; i++) {
+      output[i] = workbook.getSheetName(i);
+    }
+    return output;
+  }
+
+  public static String[] RangeNames(InputStream stream)
+      throws IOException
+  {
+    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+    return workbook.getAllNames().stream().map(XSSFName::getNameName).toArray(String[]::new);
+  }
+
+  public static Table ReadRangeByName(InputStream stream, String nameOrAddress)
+      throws IOException
+  {
+    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+
+    // Sheet!From[:To]
+  }
+
+
 }
