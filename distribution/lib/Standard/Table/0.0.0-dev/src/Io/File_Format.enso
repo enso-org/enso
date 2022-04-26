@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Table
+
 import Standard.Base.Error.Extensions as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
@@ -95,19 +97,31 @@ type Delimited
     read : File -> Problem_Behavior -> Any
     read file on_problems =
         java_headers = case this.headers of
-            True -> DelimitedReader.Headers.USE_FIRST_ROW_AS_HEADERS
+            True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
             Infer -> Errors.unimplemented "Inferring headers is not implemented yet."
-            False -> DelimitedReader.Headers.GENERATE_HEADERS
-        if parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
-            if encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
-                reader = DelimitedReader.new this.delimiter this.quote java_headers
+            False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
+        skip_rows = case this.skip_rows of
+            Nothing -> 0
+            Integer -> skip_rows
+            _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
+        row_limit = case this.row_limit of
+            Nothing -> -1
+            Integer -> row_limit
+            _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
+        if this.parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
+            if this.encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
+                reader = DelimitedReader.new this.delimiter this.quote java_headers skip_rows row_limit
                 ## TODO test and handle errors like file not found or access denied etc.
-                Panic.catch Illegal_Argument_Error handler=(caught-> Error.throw (Illegal_Argument_Error caught.payload.cause.getMessage)) <|
+                translate_illegal_argument caught =
+                    Error.throw (Illegal_Argument_Error caught.payload.cause.getMessage)
+                #wrap_invalid_row caught =
+                #    Error.throw (Invalid_Row)
+                Panic.catch Illegal_Argument_Error handler=translate_illegal_argument <|
                     file.with_input_stream [File.Option.Read] stream->
                         stream.with_java_stream java_stream->
                             Table.Table (reader.read java_stream)
 
 ## FIXME [RW] where to put these?
 type Infer
-type Invalid_Row (index:Integer) (row:Text)
+type Invalid_Row (index : Integer) (row : [Text])
 type Mismatched_Quote
