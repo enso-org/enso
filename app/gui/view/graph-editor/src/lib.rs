@@ -3632,7 +3632,7 @@ impl display::Object for GraphEditor {
 // =============
 
 #[cfg(test)]
-mod graph_editor_tests {
+mod tests {
     use super::*;
     use application::test_utils::ApplicationExt;
     use ensogl::control::io::mouse::PrimaryButton;

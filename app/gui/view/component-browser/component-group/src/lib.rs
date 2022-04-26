@@ -134,7 +134,7 @@ ensogl_core::define_endpoints_2! {
         selected_entry(Option<EntryId>),
         chosen_entry(EntryId),
         selection_size(Vector2<f32>),
-        selection_position(Vector2<f32>),
+        selection_position_target(Vector2<f32>),
     }
 }
 
@@ -184,7 +184,8 @@ impl component::Frp<Model> for Frp {
             selected_entry <- any(selected_entry_after_jumping_out, selected_entry_inside_list);
             api.output.selected_entry <+ selected_entry.map(|&entry| Some(entry));
 
-            api.output.selection_position <+ all_with(&selected_entry, &model.entries.selection_position, f!((id, esp) model.selection_position(*id, *esp)));
+            api.output.selection_position_target <+ all_with4(&selected_entry, &input.set_size, &header_geometry, &model.entries.selection_position_target,
+                f!((id, size, header_geom, esp) model.selection_position(*id, *size, *header_geom, *esp)));
         }
         init.emit(());
     }
@@ -222,7 +223,7 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
-        let entries = list_view::ListView::new(app);
+        let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
         display_object.add_child(&background);
         display_object.add_child(&header);
         display_object.add_child(&entries);
@@ -270,9 +271,15 @@ impl Model {
         self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
     }
 
-    fn selection_position(&self, id: EntryId, entries_selection_position: Vector2) -> Vector2 {
+    fn selection_position(
+        &self,
+        id: EntryId,
+        size: Vector2,
+        header_geometry: HeaderGeometry,
+        entries_selection_position: Vector2,
+    ) -> Vector2 {
         match id {
-            EntryId::Header => self.header.position().xy(),
+            EntryId::Header => Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0),
             EntryId::Component { .. } => self.entries.position().xy() + entries_selection_position,
         }
     }

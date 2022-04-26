@@ -19,6 +19,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -95,6 +96,7 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
     let selection = list_view::selection::View::new(Logger::new("Selection"));
+    let selection_animation = Animation::<Vector2>::new(&network);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     let component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
@@ -107,7 +109,8 @@ fn init(app: &Application) {
     app.display.add_child(&selection);
 
     frp::extend! { network
-        eval component_group.selection_position ((pos) selection.set_position_xy(*pos));
+        selection_animation.target <+ component_group.selection_position_target;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
     }
 
     std::mem::forget(network);

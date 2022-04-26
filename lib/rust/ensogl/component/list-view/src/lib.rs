@@ -303,7 +303,7 @@ ensogl_core::define_endpoints! {
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
         scroll_position(f32),
-        selection_position(Vector2<f32>),
+        selection_position_target(Vector2<f32>),
         selection_size(Vector2<f32>),
         jumped_above(),
         jumped_below(),
@@ -522,8 +522,10 @@ where E::Model: Default
             ));
 
 
-            frp.source.selection_position <+ all_with(&selection_sprite_y, &view_info, |selection_y, view|
-                Vector2(0.0, view.position_y + selection_y)
+            frp.source.selection_position_target <+ all_with3(&selection_y.target, &view_y.target, &frp.size, |selection_y, view_y, size| {
+                DEBUG!("-- {selection_y} {view_y}");
+                Vector2(0.0, (size.y / 2.0) - view_y + selection_y)
+                }
             );
         }
 
@@ -587,7 +589,10 @@ impl<E: Entry> application::View for ListView<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::entry::AnyModelProvider;
+
+    use approx::assert_relative_eq;
     use enso_frp::future::EventOutputExt;
 
     #[test]
@@ -622,5 +627,25 @@ mod tests {
     }
 
     #[test]
-    fn selection_position() {}
+    fn selection_position() {
+        let app = Application::new("root");
+        let list_view = ListView::<entry::Label>::new(&app);
+        let provider =
+            AnyModelProvider::<entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3", "Entry 4"]);
+        list_view.resize(Vector2(100.0, entry::HEIGHT * 3.0));
+        list_view.set_entries(provider);
+        DEBUG!("START");
+        list_view.select_entry(0);
+        assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
+        assert_relative_eq!(list_view.selection_position_target.value().y, entry::HEIGHT);
+        list_view.move_selection_down(); // Selected entry 1.
+        assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
+        assert_relative_eq!(list_view.selection_position_target.value().y, 0.0);
+        list_view.move_selection_down(); // Selected entry 2.
+        assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
+        assert_relative_eq!(list_view.selection_position_target.value().y, -entry::HEIGHT);
+        list_view.move_selection_down(); // Selected entry 3 (should scroll).
+        assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
+        assert_relative_eq!(list_view.selection_position_target.value().y, -entry::HEIGHT);
+    }
 }
