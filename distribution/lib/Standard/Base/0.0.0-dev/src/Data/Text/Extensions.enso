@@ -372,22 +372,23 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
 
          'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
-Text.split delimiter="," matcher=Text_Matcher = case matcher of
-    Text_Matcher case_sensitivity -> case case_sensitivity of
-        True ->
-            Vector.Vector (Text_Utils.split_by_literal this delimiter)
-        Case_Insensitive locale ->
-            delimiters = Vector.Vector <|
-                Text_Utils.span_of_all_case_insensitive this delimiter locale.java_locale
+Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
+    case matcher of
+        Text_Matcher case_sensitivity ->
+            delimiters = Vector.Vector <| case case_sensitivity of
+                True ->
+                    Text_Utils.span_of_all this delimiter
+                Case_Insensitive locale ->
+                    Text_Utils.span_of_all_case_insensitive this delimiter locale.java_locale
             Vector.new delimiters.length+1 i->
                 start = if i == 0 then 0 else
                     delimiters.at i-1 . codeunit_end
                 end = if i == delimiters.length then (Text_Utils.char_length this) else
                     delimiters.at i . codeunit_start
                 Text_Utils.substring this start end
-    Regex_Matcher _ _ _ _ _ ->
-        compiled_pattern = matcher.compile delimiter
-        compiled_pattern.split this mode=Mode.All
+        Regex_Matcher _ _ _ _ _ ->
+            compiled_pattern = matcher.compile delimiter
+            compiled_pattern.split this mode=Mode.All
 
 ## ALIAS Replace Text
    Replaces the first, last, or all occurrences of term with new_text in the

@@ -194,6 +194,8 @@ spec =
             ".a.".split "." . should_equal ["", "a", ""]
             "".split "." . should_equal [""]
             "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
+            'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
+            'abc'.split '' . should_fail_with Illegal_Argument_Error
 
         Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
             matcher = Text_Matcher Case_Insensitive
@@ -202,6 +204,8 @@ spec =
             "AAA".split "a" matcher . should_equal ["", "", "", ""]
             "baB".split "b" matcher . should_equal ["", "a", ""]
             "".split "a" matcher . should_equal [""]
+            'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
+            'abc'.split '' matcher . should_fail_with Illegal_Argument_Error
 
         Test.specify "should be able to split the text on Regex patterns" <|
             "cababdabe" . split "ab" Regex_Matcher . should_equal ["c", "", "d", "e"]
@@ -212,6 +216,8 @@ spec =
             "abc".split "d" Regex_Matcher . should_equal ["abc"]
             ".a.".split "\." Regex_Matcher . should_equal ["", "a", ""]
             "".split "a" Regex_Matcher . should_equal [""]
+            'aśbs\u{301}c'.split 'ś' Regex_Matcher . should_equal ['a', 'b', 'c']
+            'abc'.split '' Regex_Matcher . should_fail_with Illegal_Argument_Error
 
         Test.specify "should be able to split the text on UTF-8 whitespace" <|
             utf_8_whitespace.split "\s+" Regex_Matcher . should_equal utf_8_whitespace_split

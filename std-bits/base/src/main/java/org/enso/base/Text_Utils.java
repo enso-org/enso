@@ -150,18 +150,6 @@ public class Text_Utils {
   }
 
   /**
-   * Splits the string on each occurrence of {@code sep}, returning the resulting substrings in an
-   * array.
-   *
-   * @param str the string to split
-   * @param sep the separator string
-   * @return array of substrings of {@code str} contained between occurences of {@code sep}
-   */
-  public static String[] split_by_literal(String str, String sep) {
-    return str.split(Pattern.quote(sep), -1);
-  }
-
-  /**
    * Splits the string on each occurrence of UTF-8 vertical whitespace, returning the resulting
    * substrings in an array.
    *
