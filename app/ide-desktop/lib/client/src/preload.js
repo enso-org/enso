@@ -1,3 +1,4 @@
+const { contextBridge, ipcRenderer } = require('electron')
 const remote = require('electron').remote
 
 let win
@@ -46,3 +47,23 @@ if (win !== undefined) {
 
 // TODO[WD] Enable after making preload configurable (we do not want to load it always)
 // require('devtron').install()
+
+
+
+// =====================
+// === Lifecycle API ===
+// =====================
+
+contextBridge.exposeInMainWorld('enso_lifecycle', {
+    quit: (data) => ipcRenderer.send('quit-ide')
+})
+
+
+
+// ==========================
+// === Profiling Data API ===
+// ==========================
+
+contextBridge.exposeInMainWorld('enso_profiling_data', {
+    saveProfile: (data) => ipcRenderer.send('save-profile', data)
+})

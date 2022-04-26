@@ -259,8 +259,10 @@ impl WorldData {
                 } else if key == "Digit2" {
                     display_mode.set(2)
                 } else if key == "KeyP" {
-                    let log = profiler::internal::take_log();
-                    web_sys::console::log_1(&log.into());
+                    enso_debug_api::save_profile();
+                } else if key == "KeyQ" {
+                    enso_debug_api::save_profile();
+                    enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 }
             }
         });

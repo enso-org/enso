@@ -59,6 +59,7 @@
 use wasm_bindgen::prelude::*;
 
 
+
 // ==============
 // === Export ===
 // ==============
@@ -68,6 +69,7 @@ pub mod constants;
 pub mod controller;
 pub mod executor;
 pub mod ide;
+pub mod integration_test;
 pub mod model;
 pub mod notification;
 pub mod presenter;
@@ -126,6 +128,8 @@ mod examples {
 }
 #[allow(unused_imports)]
 use examples::*;
+// This module defines an entry point for batch-mode profiling.
+mod profile_workflow;
 
 use prelude::profiler;
 use prelude::profiler::prelude::*;

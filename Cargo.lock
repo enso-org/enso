@@ -954,6 +954,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-debug-api"
+version = "0.1.0"
+dependencies = [
+ "derivative",
+ "enso-profiler",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
@@ -1029,6 +1040,7 @@ dependencies = [
  "enso-callback",
  "enso-config",
  "enso-data-structures",
+ "enso-debug-api",
  "enso-debug-scene",
  "enso-frp",
  "enso-logger",
@@ -1062,6 +1074,7 @@ dependencies = [
  "span-tree",
  "uuid",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
  "websocket",
@@ -1337,6 +1350,7 @@ dependencies = [
  "console_error_panic_hook",
  "enso-callback",
  "enso-data-structures",
+ "enso-debug-api",
  "enso-frp",
  "enso-generics",
  "enso-logger",

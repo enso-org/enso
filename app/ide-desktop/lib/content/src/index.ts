@@ -816,6 +816,7 @@ class Config {
     public authentication_enabled: boolean
     public email: string
     public application_config_url: string
+    public workflow: string
 
     static default() {
         let config = new Config()
@@ -878,6 +879,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
+        this.workflow = ok(other.workflow)
+            ? tryAsString(other.workflow)
+            : this.workflow
     }
 }
 

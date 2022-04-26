@@ -85,7 +85,7 @@ impl Initializer {
         // We are doing it early, because Controllers initialization
         // takes some time and Welcome Screen might be visible for a brief moment while
         // controllers are not ready.
-        if self.config.project_name.is_some() {
+        if self.config.open_to_project_view {
             view.switch_view_to_project();
         }
 
