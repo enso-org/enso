@@ -6,6 +6,8 @@ use enso_gui::controller::project::MAIN_DEFINITION_NAME;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
 use enso_integration_test::prelude::*;
+use enso_web::sleep;
+use std::time::Duration;
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -47,6 +49,7 @@ async fn communication_with_language_server() {
         positional_arguments_expressions: vec![],
     });
     ls_json_connection.push_to_execution_context(&execution_ctx.context_id, &frame).await.unwrap();
+    sleep(Duration::from_secs(15)).await;
     let groups = ls_json_connection.get_component_groups(&execution_ctx.context_id).await.unwrap();
     DEBUG!("{groups:?}");
 }
