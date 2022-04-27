@@ -24,12 +24,14 @@ use ensogl_core::display;
 mod block;
 mod mark;
 
-use enso_profiler_flame_graph::State;
+use enso_profiler_flame_graph::Activity;
+use enso_profiler_flame_graph::Performance;
 use ensogl_core::data::color;
 use ensogl_core::display::shape::StyleWatchFrp;
-use mark::Mark;
+use ensogl_core::display::style;
 
 pub use block::Block;
+pub use mark::Mark;
 
 
 
@@ -40,6 +42,61 @@ pub use block::Block;
 const ROW_HEIGHT: f64 = 20.0;
 const ROW_PADDING: f64 = 5.0;
 pub(crate) const BASE_TEXT_SIZE: f32 = 18.0;
+
+
+
+// ==============
+// === Colors ===
+// ==============
+
+/// Theme path for the color of an activity block that is active.
+pub const COLOR_BLOCK_ACTIVE: &str = "flame_graph_block_color_active";
+/// Theme path for the color of an activity block that is paused.
+pub const COLOR_BLOCK_PAUSED: &str = "flame_graph_block_color_paused";
+
+/// Theme path for the color of a performance block that indicates good performance.
+pub const COLOR_PERFORMANCE_GOOD: &str = "flame_graph_block_color_performance_good";
+/// Theme path for the color of a performance block that indicates medium performance.
+pub const COLOR_PERFORMANCE_MEDIUM: &str = "flame_graph_block_color_performance_medium";
+/// Theme path for the color of a performance block that indicates bad performance..
+pub const COLOR_PERFORMANCE_BAD: &str = "flame_graph_block_color_performance_bad";
+
+/// Theme path for the color that is sued to color a mark.
+pub const COLOR_MARK_DEFAULT: &str = "flame_graph_mark_color";
+
+
+/// Trait that allows retrieval of a style::Path.
+pub trait IntoThemePath {
+    /// Return the `style::Path` associated with this object.
+    fn theme_path(&self) -> style::Path;
+}
+
+impl IntoThemePath for Activity {
+    fn theme_path(&self) -> style::Path {
+        match self {
+            Activity::Active => COLOR_BLOCK_ACTIVE,
+            Activity::Paused => COLOR_BLOCK_PAUSED,
+        }
+        .into()
+    }
+}
+
+impl IntoThemePath for Performance {
+    fn theme_path(&self) -> style::Path {
+        match self {
+            Performance::Good => COLOR_PERFORMANCE_GOOD,
+            Performance::Medium => COLOR_PERFORMANCE_MEDIUM,
+            Performance::Bad => COLOR_PERFORMANCE_BAD,
+        }
+        .into()
+    }
+}
+
+impl<BlockType: IntoThemePath> IntoThemePath for profiler_flame_graph::Block<BlockType> {
+    fn theme_path(&self) -> style::Path {
+        self.block_type.theme_path()
+    }
+}
 
 
 
@@ -55,11 +112,21 @@ pub struct FlameGraph {
     display_object: display::object::Instance,
     blocks:         Vec<Block>,
     marks:          Vec<Mark>,
+    origin_x:       f64,
+    app:            Application,
 }
 
 /// Instantiate a `Block` shape for the given block data from the profiler.
-fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Block {
+pub fn shape_from_block<BlockType: IntoThemePath>(
+    block: profiler_flame_graph::Block<BlockType>,
+    app: &Application,
+) -> Block {
     let component = app.new_view::<Block>();
+
+    let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+    let color: color::Rgba = style.get_color(block.theme_path()).value();
+    let color: color::Lcha = color.into();
+    component.set_color(color);
 
     let size = Vector2::new(block.width() as f32, ROW_HEIGHT as f32);
     let x = block.start + block.width() / 2.0;
@@ -69,15 +136,6 @@ fn shape_from_block(block: profiler_flame_graph::Block, app: &Application) -> Bl
     component.set_content.emit(block.label);
     component.set_size.emit(size);
     component.set_position_xy(pos);
-
-    let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-
-    let color: color::Rgba = match block.state {
-        State::Active => style.get_color("flame_graph_block_color_active").value(),
-        State::Paused => style.get_color("flame_graph_block_color_paused").value(),
-    };
-    let color: color::Lcha = color.into();
-    component.set_color(color);
 
     component
 }
@@ -100,41 +158,55 @@ fn shape_from_mark(mark: profiler_flame_graph::Mark, app: &Application) -> Mark 
 const MIN_INTERVAL_TIME_MS: f64 = 0.0;
 const X_SCALE: f64 = 1.0;
 
+fn align_block<BlockType>(
+    mut block: profiler_flame_graph::Block<BlockType>,
+    origin_x: f64,
+) -> profiler_flame_graph::Block<BlockType> {
+    // Shift
+    block.start -= origin_x;
+    block.end -= origin_x;
+    // Scale
+    block.start *= X_SCALE;
+    block.end *= X_SCALE;
+    block
+}
+
+fn align_mark(mut mark: profiler_flame_graph::Mark, origin_x: f64) -> profiler_flame_graph::Mark {
+    mark.position -= origin_x;
+    mark.position *= X_SCALE;
+    mark
+}
+
 impl FlameGraph {
     /// Create a `FlameGraph` EnsoGL component from the given graph data from the profiler.
     pub fn from_data(data: profiler_flame_graph::Graph, app: &Application) -> Self {
         let logger = Logger::new("FlameGraph");
         let display_object = display::object::Instance::new(&logger);
 
-        let blocks = data.blocks.into_iter().filter(|block| block.width() > MIN_INTERVAL_TIME_MS);
+        let activity_blocks =
+            data.activity_blocks.into_iter().filter(|block| block.width() > MIN_INTERVAL_TIME_MS);
+        let performance_blocks = data.performance_blocks.into_iter();
         let marks = data.marks;
 
-        let origin_x =
-            blocks.clone().map(|block| block.start.floor() as u32).min().unwrap_or_default();
+        let origin_x = activity_blocks
+            .clone()
+            .map(|block| block.start.floor() as u32)
+            .min()
+            .unwrap_or_default() as f64;
 
-        let blocks_zero_aligned = blocks.clone().map(|mut block| {
-            // Shift
-            block.start -= origin_x as f64;
-            block.end -= origin_x as f64;
-            // Scale
-            block.start *= X_SCALE;
-            block.end *= X_SCALE;
-            block
-        });
-        let blocks = blocks_zero_aligned.map(|block| shape_from_block(block, app)).collect_vec();
+        let activity_block_shapes =
+            activity_blocks.map(|block| shape_from_block(align_block(block, origin_x), app));
+        let performance_block_shapes =
+            performance_blocks.map(|block| shape_from_block(align_block(block, origin_x), app));
+
+        let blocks = activity_block_shapes.chain(performance_block_shapes).collect_vec();
         blocks.iter().for_each(|item| display_object.add_child(item));
 
-
-        let blocks_marks_aligned = marks.into_iter().map(|mut mark| {
-            mark.position -= origin_x as f64;
-            mark.position *= X_SCALE;
-            mark
-        });
-        let marks: Vec<_> =
-            blocks_marks_aligned.into_iter().map(|mark| shape_from_mark(mark, app)).collect();
+        let marks: Vec<_> = marks.into_iter().map(|mark| shape_from_mark(mark, app)).collect();
         marks.iter().for_each(|item| display_object.add_child(item));
 
-        Self { display_object, blocks, marks }
+        let app = app.clone_ref();
+        Self { display_object, blocks, marks, origin_x, app }
     }
 
     /// Return a reference to the blocks that make up the flame graph.
@@ -145,6 +217,25 @@ impl FlameGraph {
     /// Return a reference to the marks that make up the flame graph.
     pub fn marks(&self) -> &[Mark] {
         &self.marks
+    }
+
+    /// Add an additional activity block to the visualisation.
+    pub fn add_block<BlockType: IntoThemePath>(
+        &mut self,
+        block: profiler_flame_graph::Block<BlockType>,
+    ) {
+        let block = align_block(block, self.origin_x);
+        let shape = shape_from_block(block, &self.app);
+        self.display_object.add_child(&shape);
+        self.blocks.push(shape);
+    }
+
+    /// Add additional mark to the visualisation.
+    pub fn add_mark(&mut self, mark: profiler_flame_graph::Mark) {
+        let mark = align_mark(mark, self.origin_x);
+        let shape = shape_from_mark(mark, &self.app);
+        self.display_object.add_child(&shape);
+        self.marks.push(shape);
     }
 }
 
