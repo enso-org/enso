@@ -4,9 +4,12 @@ import Standard.Table
 import Standard.Base.Error.Extensions as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+
+## TODO [RW] Not sure if shouldn't move the impl. details of Delimited to a separate file
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.read.InvalidRow
+polyglot java import java.lang.IllegalArgumentException
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
@@ -123,15 +126,15 @@ type Delimited
                 translate_parsing_failure caught_panic =
                     Error.throw (translate_problem caught_panic.payload.cause.problem)
 
-                Panic.catch Illegal_Argument_Error handler=translate_illegal_argument <|
-                    Panic.catch ParsingFailedException handler=translate_parsing_failure
-                    file.with_input_stream [File.Option.Read] stream->
-                        stream.with_java_stream java_stream->
-                            warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                            reader = DelimitedReader.new java_stream this.delimiter this.quote this.quote_escape java_headers skip_rows row_limit this.keep_invalid_rows warnings_as_errors
-                            result = Table.Table reader.read
-                            problems = Vector.Vector reader.getReportedProblems . map translate_problem
-                            on_problems.attach_problems_after result problems
+                Panic.catch IllegalArgumentException handler=translate_illegal_argument <|
+                    Panic.catch ParsingFailedException handler=translate_parsing_failure <|
+                        file.with_input_stream [File.Option.Read] stream->
+                            stream.with_java_stream java_stream->
+                                warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+                                reader = DelimitedReader.new java_stream this.delimiter this.quote this.quote_escape java_headers skip_rows row_limit this.keep_invalid_rows warnings_as_errors
+                                result = Table.Table reader.read
+                                problems = Vector.Vector reader.getReportedProblems . map translate_problem
+                                on_problems.attach_problems_after result problems
 
 ## FIXME [RW] where to put these?
 type Infer

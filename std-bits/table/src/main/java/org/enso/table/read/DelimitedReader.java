@@ -129,11 +129,9 @@ public class DelimitedReader {
     }
   }
 
-  private long source_row = 0;
   private long target_table_index = 0;
 
   private String[] nextRow() {
-    source_row++;
     return parser.parseNext();
   }
 
@@ -169,12 +167,12 @@ public class DelimitedReader {
         throw new IllegalStateException("Impossible branch.");
     }
 
-    StorageBuilder[] builders = initBuilders(currentRow.length);
+    StorageBuilder[] builders = initBuilders(headerNames.size());
 
     while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
       if (currentRow.length != builders.length) {
         reportProblem(
-            new InvalidRow(source_row, keepInvalidRows ? target_table_index : null, currentRow));
+            new InvalidRow(parser.getContext().currentLine(), keepInvalidRows ? target_table_index : null, currentRow));
 
         if (keepInvalidRows) {
           for (int i = 0; i < builders.length && i < currentRow.length; i++) {
