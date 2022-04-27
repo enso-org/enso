@@ -5,6 +5,7 @@
 #![recursion_limit = "256"]
 #![feature(specialization)]
 #![allow(incomplete_features)]
+#![feature(let_chains)]
 
 use crate::prelude::*;
 
@@ -30,19 +31,23 @@ pub mod prelude {
 
 
 
+use crate::source::DebugLeaf;
 use crate::source::HasRepr;
 use lexer::Lexer;
 
+
+pub type TokenOrAst = location::With<TokenOrAstData>;
+
 #[derive(Clone, Debug)]
-pub enum TokenOrAst {
-    Token(Token),
-    Ast(Ast),
+pub enum TokenOrAstData {
+    Token(lexer::Kind),
+    Ast(AstData),
 }
 
 impl TokenOrAst {
     fn is_variant(&self, variant: lexer::KindVariant) -> bool {
-        match self {
-            Self::Token(token) => token.is(variant),
+        match self.elem {
+            TokenOrAstData::Token(token) => token.is(variant),
             _ => false,
         }
     }
@@ -54,33 +59,17 @@ impl TokenOrAst {
 
 impl From<Token> for TokenOrAst {
     fn from(t: Token) -> Self {
-        Self::Token(t)
+        t.with_elem(TokenOrAstData::Token(t.elem))
     }
 }
 
 impl From<Ast> for TokenOrAst {
     fn from(t: Ast) -> Self {
-        Self::Ast(t)
+        t.mod_elem(TokenOrAstData::Ast)
     }
 }
 
-impl<'s> HasRepr<'s> for &source::With<'s, &TokenOrAst> {
-    fn repr(&self) -> &'s str {
-        match self.data {
-            TokenOrAst::Ast(ast) => self.with_data(ast).repr(),
-            TokenOrAst::Token(token) => self.with_data(token).repr(),
-        }
-    }
-}
 
-impl<'s> HasRepr<'s> for source::With<'s, &TokenOrAst> {
-    fn repr(&self) -> &'s str {
-        match self.data {
-            TokenOrAst::Ast(ast) => self.with_data(ast).repr(),
-            TokenOrAst::Token(token) => self.with_data(token).repr(),
-        }
-    }
-}
 
 // ======================
 // === MacroMatchTree ===
@@ -300,26 +289,72 @@ impl<'a> Resolver<'a> {
 
 pub fn precedence_of(operator: &str) -> usize {
     match operator {
+        "+" => 3,
+        "-" => 3,
+        "*" => 7,
         _ => panic!("Operator not supported: {}", operator),
     }
 }
+
+#[derive(Clone, Copy, Debug, Deref, DerefMut)]
+pub struct WithPrecedence<T> {
+    #[deref]
+    #[deref_mut]
+    elem:       T,
+    precedence: usize,
+}
+
+impl<T> WithPrecedence<T> {
+    pub fn new(precedence: usize, elem: T) -> Self {
+        Self { elem, precedence }
+    }
+}
+
 // Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
 // foo +(a * b) - OK
 // foo +if a then b else c - NOT OK
 pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
     // Reverse-polish notation encoding.
     let mut output: Vec<TokenOrAst> = default();
-    let mut operator_stack: Vec<(Token, usize)> = default();
+    let mut operator_stack: Vec<WithPrecedence<location::With<lexer::Operator>>> = default();
+    let mut last_token_was_ast = false;
     for item in items {
-        if item.is_operator() {
-            let precedence = precedence_of(lexer.repr(&item));
-            panic!("Operator not supported yet")
+        if let TokenOrAstData::Token(token) = item.elem && let lexer::Kind::Operator(opr) = token {
+            last_token_was_ast = false;
+            let prec = precedence_of(lexer.repr(&item));
+            let opr = item.with_elem(opr);
+            while let Some(prev_opr) = operator_stack.last() && prev_opr.precedence >= prec {
+                let prev_opr = operator_stack.pop().unwrap(); //ok
+                let rhs = output.pop().unwrap(); //fixme
+                let lhs = output.pop().unwrap(); //fixme
+                let lhs = token_to_ast(lhs);
+                let rhs = token_to_ast(rhs);
+                let ast = Ast::opr_app(lhs, prev_opr.elem, rhs);
+                output.push(ast.into());
+            }
+            operator_stack.push(WithPrecedence::new(prec, opr));
+        } else if last_token_was_ast {
+            let lhs = output.pop().unwrap();
+            let lhs = token_to_ast(lhs);
+            let rhs = token_to_ast(item);
+            let ast = Ast::app(lhs, rhs);
+            output.push(ast.into());
         } else {
+            last_token_was_ast = true;
             output.push(item);
-            // panic!("Not supported yet: {:#?}", item)
         }
+        println!("OUTPUT:\n {:#?}", output);
     }
-    panic!()
+    // fixme
+    let mut rhs = token_to_ast(output.pop().unwrap());
+    while let Some(opr) = operator_stack.pop() {
+        let lhs = token_to_ast(output.pop().unwrap()); // fixme
+        rhs = Ast::opr_app(lhs, opr.elem, rhs);
+    }
+    if !output.is_empty() {
+        panic!("Internal error.");
+    }
+    rhs
 }
 
 
@@ -329,6 +364,37 @@ pub type Ast = location::With<AstData>;
 pub enum AstData {
     Ident(lexer::Ident),
     MultiSegmentApp(MultiSegmentApp),
+    OprApp(Box<OprApp>),
+    App(Box<App>),
+}
+
+impl Ast {
+    fn app(func: Ast, arg: Ast) -> Ast {
+        let (left_offset_token, func) = func.split_at_start();
+        let total = left_offset_token.extended_to(&arg);
+        let ast_data = AstData::App(Box::new(App { func, arg }));
+        total.with_elem(ast_data)
+    }
+
+    fn opr_app(lhs: Ast, opr: location::With<lexer::Operator>, rhs: Ast) -> Ast {
+        let (left_offset_token, lhs) = lhs.split_at_start();
+        let total = left_offset_token.extended_to(&rhs);
+        let ast_data = AstData::OprApp(Box::new(OprApp { lhs, opr, rhs }));
+        total.with_elem(ast_data)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct App {
+    func: Ast,
+    arg:  Ast,
+}
+
+#[derive(Clone, Debug)]
+pub struct OprApp {
+    lhs: Option<Ast>,
+    opr: location::With<lexer::Operator>,
+    rhs: Option<Ast>,
 }
 
 #[derive(Clone, Debug)]
@@ -342,13 +408,40 @@ pub struct MultiSegmentAppSegment {
     body:   Ast,
 }
 
+impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
+where source::With<'s, &'t T>: Debug
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let t: &T = &**self.data;
+        Debug::fmt(&self.with_data(t), f)
+    }
+}
+
 impl<'s> Debug for source::With<'s, &AstData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.data {
+        match self.data {
             AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
             AstData::MultiSegmentApp(t) =>
                 f.debug_tuple("MultiSegmentApp").field(&self.trans(|_| t)).finish(),
+            AstData::OprApp(t) => f.debug_tuple("OprApp").field(&self.trans(|_| t)).finish(),
+            AstData::App(t) => f.debug_tuple("App").field(&self.trans(|_| t)).finish(),
         }
+    }
+}
+
+impl<'s> Debug for source::With<'s, &App> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entry(&self.with_data(&self.func)).entry(&self.with_data(&self.arg)).finish()
+    }
+}
+
+impl<'s> Debug for source::With<'s, &OprApp> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list()
+            .entry(&self.with_data(&self.lhs))
+            .entry(&DebugLeaf(self.with_data(&self.opr)))
+            .entry(&self.with_data(&self.rhs))
+            .finish()
     }
 }
 
@@ -375,14 +468,26 @@ fn tokens_to_ast(tokens: Vec<TokenOrAst>) -> Ast {
             if let Some(elem) = tokens.next() {
                 panic!("Got element: {:#?}", elem);
             }
-            match first {
-                TokenOrAst::Token(token) => match token.elem {
-                    lexer::Kind::Ident(ident) => token.with_elem(AstData::Ident(ident)),
+            let location = first.location();
+            match first.elem {
+                TokenOrAstData::Token(token) => match token {
+                    lexer::Kind::Ident(ident) => first.with_elem(AstData::Ident(ident)),
                     _ => panic!(),
                 },
-                TokenOrAst::Ast(ast) => ast,
+                TokenOrAstData::Ast(ast) => location.with_elem(ast),
             }
         }
+    }
+}
+
+fn token_to_ast(elem: TokenOrAst) -> Ast {
+    let location = elem.location();
+    match elem.elem {
+        TokenOrAstData::Token(token) => match token {
+            lexer::Kind::Ident(ident) => elem.with_elem(AstData::Ident(ident)),
+            _ => panic!(),
+        },
+        TokenOrAstData::Ast(ast) => location.with_elem(ast),
     }
 }
 
@@ -437,7 +542,7 @@ fn main() {
     init_tracing(TRACE);
     // let str = "if a then b else c";
     // let str = "if if x then y then b";
-    let str = "a + b * c";
+    let str = "x y + a b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 

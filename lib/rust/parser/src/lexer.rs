@@ -102,77 +102,7 @@ impl<'s, 't, T: Debug> Debug for source::DebugLeaf<source::With<'s, &'t location
     }
 }
 
-impl<T> location::With<T> {
-    #[inline(always)]
-    pub fn new_no_offset(start: Bytes, len: Bytes, elem: T) -> Self {
-        let left_visible_offset = 0;
-        let left_offset = Bytes::from(0);
-        Self { left_visible_offset, left_offset, start, len, elem }
-    }
 
-    #[inline(always)]
-    pub fn new_no_offset_phantom(start: Bytes, elem: T) -> Self {
-        let len = Bytes::from(0);
-        Self::new_no_offset(start, len, elem)
-    }
-
-    #[inline(always)]
-    pub fn with_elem<S>(self, elem: S) -> location::With<S> {
-        let left_visible_offset = self.left_visible_offset;
-        let left_offset = self.left_offset;
-        let start = self.start;
-        let len = self.len;
-        location::With { left_visible_offset, left_offset, start, len, elem }
-    }
-
-    #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> (location::Info, location::Info) {
-        let (_, token_left, token_right) = self.split_at_internal(offset);
-        (token_left, token_right)
-    }
-
-    #[inline(always)]
-    fn split_at_internal(self, offset: Bytes) -> (T, location::Info, location::Info) {
-        let token_left = {
-            let left_visible_offset = self.left_visible_offset;
-            let left_offset = self.left_offset;
-            let start = self.start;
-            let len = self.len - offset;
-            let elem = ();
-            location::With { left_visible_offset, left_offset, start, len, elem }
-        };
-        let token_right = {
-            let left_visible_offset = 0;
-            let left_offset = Bytes::from(0);
-            let start = self.start + offset;
-            let len = self.len - offset;
-            let elem = ();
-            location::With { left_visible_offset, left_offset, start, len, elem }
-        };
-        (self.elem, token_left, token_right)
-    }
-
-    pub fn split_at_start(self) -> (location::Info, location::With<T>) {
-        let (elem, token_left, token_right) = self.split_at_internal(Bytes::from(0));
-        let token_right = token_right.with_elem(elem);
-        (token_left, token_right)
-    }
-
-    pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
-        source.slice(self.start..self.start + self.len)
-    }
-
-    /// Please note that the [`other`] token's position has to be bigger than self's one. This
-    /// condition is not checked.
-    pub fn extend_to<S>(&mut self, other: &location::With<S>) {
-        self.len = other.start - self.start + other.len;
-    }
-
-    pub fn extended_to<S>(mut self, other: &location::With<S>) -> Self {
-        self.extend_to(other);
-        self
-    }
-}
 
 impl PartialEq<Token> for &Token {
     #[inline(always)]
