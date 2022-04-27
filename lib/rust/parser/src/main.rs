@@ -310,29 +310,53 @@ impl<T> WithPrecedence<T> {
     }
 }
 
+// pub struct MultipleOperatorError {
+//     oprs: Vec<location::With<lexer::Operator>>,
+// }
+
 // Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
 // foo +(a * b) - OK
 // foo +if a then b else c - NOT OK
 pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
     // Reverse-polish notation encoding.
     let mut output: Vec<TokenOrAst> = default();
-    let mut operator_stack: Vec<WithPrecedence<location::With<lexer::Operator>>> = default();
+    let mut operator_stack: Vec<
+        WithPrecedence<Result<location::With<lexer::Operator>, MultipleOperatorError>>,
+    > = default();
     let mut last_token_was_ast = false;
+    let mut last_token_was_opr = false;
     for item in items {
         if let TokenOrAstData::Token(token) = item.elem && let lexer::Kind::Operator(opr) = token {
+            let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
+            last_token_was_opr = true;
+
             let prec = precedence_of(lexer.repr(&item));
             let opr = item.with_elem(opr);
-            while let Some(prev_opr) = operator_stack.last() && prev_opr.precedence >= prec {
-                let prev_opr = operator_stack.pop().unwrap(); //ok
-                let rhs = output.pop().unwrap(); //fixme
-                let lhs = output.pop().unwrap(); //fixme
-                let lhs = token_to_ast(lhs);
-                let rhs = token_to_ast(rhs);
-                let ast = Ast::opr_app(lhs, prev_opr.elem, rhs);
-                output.push(ast.into());
+
+            if last_token_was_opr_copy {
+                let last_opr = operator_stack.pop().unwrap(); // ok
+                let last_opr_prec = last_opr.precedence;
+                match last_opr.elem {
+                    Ok(last_opr) => {
+                         let oprs = vec![last_opr, opr];
+                         let new_opr = MultipleOperatorError {oprs};
+                         let new_opr = WithPrecedence::new(last_opr_prec, Err(new_opr));
+                         operator_stack.push(new_opr);
+                    }
+                    _ => panic!()
+                }
+            } else {
+                while let Some(prev_opr) = operator_stack.last() && prev_opr.precedence >= prec {
+                    let prev_opr = operator_stack.pop().unwrap(); //ok
+                    let rhs = output.pop().unwrap(); //fixme
+                    let lhs = output.pop().map(|t| token_to_ast(t));
+                    let rhs = Some(token_to_ast(rhs));
+                    let ast = Ast::opr_app(lhs, prev_opr.elem, rhs);
+                    output.push(ast.into());
+                }
+                operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
             }
-            operator_stack.push(WithPrecedence::new(prec, opr));
         } else if last_token_was_ast {
             let lhs = output.pop().unwrap();
             let lhs = token_to_ast(lhs);
@@ -341,20 +365,22 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
             output.push(ast.into());
         } else {
             last_token_was_ast = true;
+            last_token_was_opr = false;
             output.push(item);
         }
         println!("OUTPUT:\n {:#?}", output);
     }
+    println!("---");
     // fixme
-    let mut rhs = token_to_ast(output.pop().unwrap());
+    let mut opt_rhs = last_token_was_ast.as_some_from(|| token_to_ast(output.pop().unwrap()));
     while let Some(opr) = operator_stack.pop() {
-        let lhs = token_to_ast(output.pop().unwrap()); // fixme
-        rhs = Ast::opr_app(lhs, opr.elem, rhs);
+        let opt_lhs = output.pop().map(|t| token_to_ast(t));
+        opt_rhs = Some(Ast::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
         panic!("Internal error.");
     }
-    rhs
+    opt_rhs.unwrap()
 }
 
 
@@ -376,9 +402,38 @@ impl Ast {
         total.with_elem(ast_data)
     }
 
-    fn opr_app(lhs: Ast, opr: location::With<lexer::Operator>, rhs: Ast) -> Ast {
-        let (left_offset_token, lhs) = lhs.split_at_start();
-        let total = left_offset_token.extended_to(&rhs);
+    fn opr_app(
+        mut lhs: Option<Ast>,
+        mut opr: Result<location::With<lexer::Operator>, MultipleOperatorError>,
+        rhs: Option<Ast>,
+    ) -> Ast {
+        let left_offset_token = if let Some(lhs_val) = lhs {
+            let (left_offset_token, new_lhs) = lhs_val.split_at_start();
+            lhs = Some(new_lhs);
+            left_offset_token
+        } else {
+            match &mut opr {
+                Ok(xopr) => {
+                    let (left_offset_token, new_opr) = xopr.split_at_start();
+                    *xopr = new_opr;
+                    left_offset_token
+                }
+                Err(e) => {
+                    let first = e.oprs.first_mut().unwrap(); // fixme
+                    let (left_offset_token, new_opr) = first.split_at_start();
+                    *first = new_opr;
+                    left_offset_token
+                }
+            }
+        };
+        let total = if let Some(ref rhs) = rhs {
+            left_offset_token.extended_to(&rhs)
+        } else {
+            match &opr {
+                Ok(xopr) => left_offset_token.extended_to(&xopr),
+                Err(e) => left_offset_token.extended_to(e.oprs.last().unwrap()), // fixme
+            }
+        };
         let ast_data = AstData::OprApp(Box::new(OprApp { lhs, opr, rhs }));
         total.with_elem(ast_data)
     }
@@ -393,8 +448,13 @@ pub struct App {
 #[derive(Clone, Debug)]
 pub struct OprApp {
     lhs: Option<Ast>,
-    opr: location::With<lexer::Operator>,
+    opr: Result<location::With<lexer::Operator>, MultipleOperatorError>,
     rhs: Option<Ast>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MultipleOperatorError {
+    oprs: Vec<location::With<lexer::Operator>>,
 }
 
 #[derive(Clone, Debug)]
@@ -435,13 +495,37 @@ impl<'s> Debug for source::With<'s, &App> {
     }
 }
 
+impl<'s, 't, T> Debug for source::With<'s, &'t Option<T>>
+where source::With<'s, &'t T>: Debug
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)), f)
+    }
+}
+
+impl<'s, 't, T, E> Debug for source::With<'s, &'t Result<T, E>>
+where
+    source::With<'s, &'t T>: Debug,
+    source::With<'s, &'t E>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)).map_err(|t| self.with_data(t)), f)
+    }
+}
+
 impl<'s> Debug for source::With<'s, &OprApp> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list()
             .entry(&self.with_data(&self.lhs))
-            .entry(&DebugLeaf(self.with_data(&self.opr)))
+            .entry(&self.with_data(&self.opr))
             .entry(&self.with_data(&self.rhs))
             .finish()
+    }
+}
+
+impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.oprs.iter().map(|t| self.trans(|_| t))).finish()
     }
 }
 
@@ -541,12 +625,20 @@ fn macro_if_then<'a>() -> macros::Definition<'a> {
 fn main() {
     init_tracing(TRACE);
     // let str = "if a then b else c";
-    // let str = "if if x then y then b";
-    let str = "x y + a b";
+    // let str = "if if * a + b * then y then b";
+    // let str = "* a + b *";
+    let str = "* a + * b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
     let mut resolver = Resolver::new();
     let ast = resolver.run(&lexer, lexer.output.borrow_vec());
     println!("{:#?}", source::With::new(str, &ast));
+
+    // let a = 5;
+    // let b = 5;
+    // let c = a + / b;
 }
+// (.foo a)
+// (* foo + bar)
+// a + * b
