@@ -185,6 +185,7 @@
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Functions with all-defaulted arguments now execute automatically][3414]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -195,6 +196,7 @@
 [3367]: https://github.com/enso-org/enso/pull/3367
 [3374]: https://github.com/enso-org/enso/pull/3374
 [3412]: https://github.com/enso-org/enso/pull/3412
+[3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
