@@ -1,8 +1,5 @@
 package org.enso.compiler
 
-import java.io.StringReader
-import java.util.logging.Level
-
 import com.oracle.truffle.api.TruffleLogger
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
@@ -26,6 +23,9 @@ import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+
+import java.io.StringReader
+import java.util.logging.Level
 
 import scala.jdk.OptionConverters._
 
@@ -111,10 +111,9 @@ class Compiler(
     * given scope.
     *
     * @param module the scope into which new bindings are registered
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
+    * @return a compiler result containing the list of compiled modules
     */
-  def run(module: Module): Unit = {
+  def run(module: Module): CompilerResult = {
     runInternal(
       List(module),
       generateCode              = true,
@@ -180,11 +179,42 @@ class Compiler(
     module
   }
 
+  /** Run the compiler on the list of modules.
+    *
+    * The compilation may load the libraries defining component groups. To ensure
+    * that the symbols defined by the component groups are also compiled, this
+    * method is called recursively.
+    */
   private def runInternal(
     modules: List[Module],
     generateCode: Boolean,
     shouldCompileDependencies: Boolean
-  ): Unit = {
+  ): CompilerResult = {
+    @scala.annotation.tailrec
+    def go(
+      modulesToCompile: List[Module],
+      compiledModules: List[Module]
+    ): CompilerResult =
+      if (modulesToCompile.isEmpty) CompilerResult(compiledModules)
+      else {
+        val newCompiled =
+          runCompilerPipeline(
+            modulesToCompile,
+            generateCode,
+            shouldCompileDependencies
+          )
+        val pending = packageRepository.getPendingModules.toList
+        go(pending, compiledModules ++ newCompiled)
+      }
+
+    go(modules, List())
+  }
+
+  private def runCompilerPipeline(
+    modules: List[Module],
+    generateCode: Boolean,
+    shouldCompileDependencies: Boolean
+  ): List[Module] = {
     initialize()
     modules.foreach(m => parseModule(m))
 
@@ -309,6 +339,8 @@ class Compiler(
         }
       }
     }
+
+    requiredModules
   }
 
   private def isModuleInRootPackage(module: Module): Boolean = {

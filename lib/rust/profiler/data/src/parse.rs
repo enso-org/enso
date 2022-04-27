@@ -99,7 +99,9 @@ pub(crate) fn interpret<M>(
         intervals_.push(crate::ActiveInterval { measurement, interval, children, metadata });
         measurements[measurement.0].intervals.push(id);
     }
-    Ok(crate::Profile { measurements, intervals: intervals_ })
+    // TODO[kw]: Add headers to format and read this from the file.
+    let time_offset = None;
+    Ok(crate::Profile { measurements, intervals: intervals_, time_offset })
 }
 
 
