@@ -128,13 +128,14 @@ struct View {
     size:       Vector2<f32>,
 }
 
-/// An internal structure describing where selection would go after jump, i.e. after navigating with
-/// arrows or PgUp/PgDown.
+/// An internal structure describing where selection would go after jump (i.e. after navigating with
+/// arrows or PgUp/PgDown), assuming it can leave the list (hence `AboveAll` and `BelowAll`
+/// variants).
 #[derive(Copy, Clone, Debug)]
 enum JumpTarget {
     Entry(entry::Id),
-    Above,
-    Below,
+    AboveAll,
+    BelowAll,
 }
 
 impl Default for JumpTarget {
@@ -236,12 +237,12 @@ impl<E: Entry> Model<E> {
         if jump < 0 {
             match current_entry.and_then(|entry| entry.checked_sub(-jump as usize)) {
                 Some(new_entry) => JumpTarget::Entry(new_entry),
-                None => JumpTarget::Above,
+                None => JumpTarget::AboveAll,
             }
         } else {
             let new_entry = current_entry.map_or(0, |entry| entry + jump as usize);
             if new_entry >= self.entries.entry_count() {
-                JumpTarget::Below
+                JumpTarget::BelowAll
             } else {
                 JumpTarget::Entry(new_entry)
             }
@@ -255,9 +256,9 @@ impl<E: Entry> Model<E> {
     ) -> Option<entry::Id> {
         match jump_target {
             JumpTarget::Entry(entry) => Some(entry),
-            JumpTarget::Above if current_entry == Some(0) => None,
-            JumpTarget::Above => Some(0),
-            JumpTarget::Below => self.entries.entry_count().checked_sub(1),
+            JumpTarget::AboveAll if current_entry == Some(0) => None,
+            JumpTarget::AboveAll => Some(0),
+            JumpTarget::BelowAll => self.entries.entry_count().checked_sub(1),
         }
     }
 }
@@ -448,8 +449,10 @@ where E::Model: Default
             frp.source.selected_entry <+ mouse_selected_entry;
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
-            frp.source.tried_to_move_out_above <+ jump_up_target.filter(|t| matches!(t, JumpTarget::Above)).constant(());
-            frp.source.tried_to_move_out_below <+ jump_down_target.filter(|t| matches!(t, JumpTarget::Below)).constant(());
+            jump_target_above <- jump_up_target.filter(|t| matches!(t, JumpTarget::AboveAll));
+            jump_target_below <- jump_down_target.filter(|t| matches!(t, JumpTarget::BelowAll));
+            frp.source.tried_to_move_out_above <+ jump_target_above.constant(());
+            frp.source.tried_to_move_out_below <+ jump_target_below.constant(());
 
 
             // === Chosen Entry ===

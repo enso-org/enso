@@ -24,8 +24,8 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
+use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
-use ensogl_core::application::View as TRAIT_View;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
@@ -342,13 +342,13 @@ impl Model {
 // === View ===
 // ============
 
-/// A widget for displaying the entries and name of a component group.
+/// A widget for displaying the entries and name of a Component Group.
 ///
 /// The widget is rendered as a header label, a list of entries below it, and a colored background.
-/// It does not display the selection widget - because the selection jump between various component
-/// groups, the parent (Component List Panel) should own the selection widget; the Component Group
-/// View provide the information, where the widget should be placed when it's focused.
+/// It does not display the selection widget - because the selection jump between various Component
+/// Groups, the parent (Component List Panel) should own the selection widget; the Component Group
+/// View provides the information where the widget should be placed when it's focused.
 ///
-/// To learn more about component groups, see the [Component Browser Design
+/// To learn more about Component Groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type View = component::ComponentView<Model, Frp>;
