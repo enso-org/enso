@@ -68,9 +68,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(
-      searchQuery(module, selfType, returnType, kinds, position)
-    )
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -800,28 +798,34 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ] = {
     def updateQuery(column: String) =
       sqlu"""update suggestions
-          set #$column = $newName || substr(#$column, length($oldName) + 1)
-          where #$column like '#$oldName.%'"""
+          set #$column =
+            substr(#$column, 0, instr(#$column, $oldName)) ||
+            $newName ||
+            substr(#$column, instr(#$column, $oldName) + length($oldName))
+          where #$column like '%.#$oldName.%'"""
     val argumentsUpdateQuery =
       sqlu"""update arguments
-          set type = $newName || substr(type, length($oldName) + 1)
-          where type like '#$oldName.%'"""
+          set type =
+            substr(type, 0, instr(type, $oldName)) ||
+            $newName ||
+            substr(type, instr(type, $oldName) + length($oldName))
+          where type like '%.#$oldName.%'"""
     def noop[A] = DBIO.successful(Seq[A]())
 
     val selectUpdatedModulesQuery = Suggestions
-      .filter(row => row.module.like(s"$newName.%"))
+      .filter(row => row.module.like(s"%.$newName.%"))
       .map(row => (row.id, row.module))
       .result
     val selectUpdatedSelfTypesQuery = Suggestions
-      .filter(_.selfType.like(s"$newName.%"))
+      .filter(_.selfType.like(s"%.$newName.%"))
       .map(row => (row.id, row.selfType))
       .result
     val selectUpdatedReturnTypesQuery = Suggestions
-      .filter(_.returnType.like(s"$newName.%"))
+      .filter(_.returnType.like(s"%.$newName.%"))
       .map(row => (row.id, row.returnType))
       .result
     val selectUpdatedArgumentsQuery = Arguments
-      .filter(_.tpe.like(s"$newName.%"))
+      .filter(_.tpe.like(s"%.$newName.%"))
       .map(row => (row.suggestionId, row.index, row.tpe))
       .result
 
@@ -938,9 +942,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         (row.scopeStartLine === ScopeColumn.EMPTY) ||
         (
           row.scopeStartLine <= value.line &&
-          row.scopeStartOffset <= value.character &&
-          row.scopeEndLine >= value.line &&
-          row.scopeEndOffset >= value.character
+          row.scopeEndLine >= value.line
         )
       }
   }

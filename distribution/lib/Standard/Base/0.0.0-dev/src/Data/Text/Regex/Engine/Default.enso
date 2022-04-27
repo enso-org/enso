@@ -476,7 +476,7 @@ type Pattern
                     Mode_Error "Cannot match a negative number of times."
 
                 mode + 1
-            Mode.All -> 0
+            Mode.All -> -1
             Mode.Full -> Panic.throw <|
                 Mode_Error "Splitting on a full match yields an empty text."
             Mode.Bounded _ _ _ -> Panic.throw <|

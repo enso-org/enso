@@ -12,7 +12,6 @@ import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
-import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Map
 
 import Standard.Base.Error.Extensions as Errors
