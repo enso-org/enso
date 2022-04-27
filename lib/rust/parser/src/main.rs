@@ -183,7 +183,10 @@ impl<'a> Resolver<'a> {
             event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
         }
         match self.resolve_current_macro() {
-            Some(ast) => ast,
+            Some(ast) => {
+                // todo: handle leading tokens
+                ast
+            }
             None => {
                 let tmp: Vec<TokenOrAst> =
                     self.leading_tokens.iter().map(|t| t.clone().into()).collect_vec();
@@ -310,9 +313,6 @@ impl<T> WithPrecedence<T> {
     }
 }
 
-// pub struct MultipleOperatorError {
-//     oprs: Vec<location::With<lexer::Operator>>,
-// }
 
 // Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
 // foo +(a * b) - OK
@@ -320,13 +320,12 @@ impl<T> WithPrecedence<T> {
 pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
     // Reverse-polish notation encoding.
     let mut output: Vec<TokenOrAst> = default();
-    let mut operator_stack: Vec<
-        WithPrecedence<Result<location::With<lexer::Operator>, MultipleOperatorError>>,
-    > = default();
+    let mut operator_stack: Vec<WithPrecedence<OprAppOpr>> = default();
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
         if let TokenOrAstData::Token(token) = item.elem && let lexer::Kind::Operator(opr) = token {
+            // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
             last_token_was_opr = true;
@@ -334,51 +333,46 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
             let prec = precedence_of(lexer.repr(&item));
             let opr = item.with_elem(opr);
 
-            if last_token_was_opr_copy {
-                let last_opr = operator_stack.pop().unwrap(); // ok
-                let last_opr_prec = last_opr.precedence;
-                match last_opr.elem {
-                    Ok(last_opr) => {
-                         let oprs = vec![last_opr, opr];
-                         let new_opr = MultipleOperatorError {oprs};
-                         let new_opr = WithPrecedence::new(last_opr_prec, Err(new_opr));
-                         operator_stack.push(new_opr);
-                    }
-                    _ => panic!()
+            if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
+                // Error. Multiple operators next to each other.
+                let prev_opr_prec = prev_opr.precedence;
+                match &mut prev_opr.elem {
+                    Err(err) => err.oprs.push(opr),
+                    Ok(prev) => prev_opr.elem = Err(MultipleOperatorError::new(vec![*prev, opr]))
                 }
             } else {
-                while let Some(prev_opr) = operator_stack.last() && prev_opr.precedence >= prec {
-                    let prev_opr = operator_stack.pop().unwrap(); //ok
-                    let rhs = output.pop().unwrap(); //fixme
-                    let lhs = output.pop().map(|t| token_to_ast(t));
-                    let rhs = Some(token_to_ast(rhs));
-                    let ast = Ast::opr_app(lhs, prev_opr.elem, rhs);
+                while let Some(prev_opr) = operator_stack.last()
+                   && prev_opr.precedence >= prec
+                   && let Some(prev_opr) = operator_stack.pop()
+                   && let Some(rhs) = output.pop()
+                {
+                    // Prev operator in the [`operator_stack`] has a higher precedence.
+                    let lhs = output.pop().map(token_to_ast);
+                    let ast = Ast::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
                     output.push(ast.into());
                 }
                 operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
             }
-        } else if last_token_was_ast {
-            let lhs = output.pop().unwrap();
+        } else if last_token_was_ast && let Some(lhs) = output.pop() {
+            // Multiple non-operators next to each other.
             let lhs = token_to_ast(lhs);
             let rhs = token_to_ast(item);
             let ast = Ast::app(lhs, rhs);
             output.push(ast.into());
         } else {
+            // Non-operator that follows previously consumed operator.
             last_token_was_ast = true;
             last_token_was_opr = false;
             output.push(item);
         }
-        println!("OUTPUT:\n {:#?}", output);
     }
-    println!("---");
-    // fixme
-    let mut opt_rhs = last_token_was_ast.as_some_from(|| token_to_ast(output.pop().unwrap()));
+    let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
     while let Some(opr) = operator_stack.pop() {
         let opt_lhs = output.pop().map(|t| token_to_ast(t));
         opt_rhs = Some(Ast::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
-        panic!("Internal error.");
+        panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
     opt_rhs.unwrap()
 }
@@ -445,16 +439,24 @@ pub struct App {
     arg:  Ast,
 }
 
+pub type OprAppOpr = Result<location::With<lexer::Operator>, MultipleOperatorError>;
+
 #[derive(Clone, Debug)]
 pub struct OprApp {
     lhs: Option<Ast>,
-    opr: Result<location::With<lexer::Operator>, MultipleOperatorError>,
+    opr: OprAppOpr,
     rhs: Option<Ast>,
 }
 
 #[derive(Clone, Debug)]
 pub struct MultipleOperatorError {
     oprs: Vec<location::With<lexer::Operator>>,
+}
+
+impl MultipleOperatorError {
+    pub fn new(oprs: Vec<location::With<lexer::Operator>>) -> Self {
+        Self { oprs }
+    }
 }
 
 #[derive(Clone, Debug)]
