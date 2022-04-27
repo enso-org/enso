@@ -8,9 +8,9 @@ import Standard.Test
 import project.Util
 
 spec =
-    c_1 = ["a", [1, 4, 7, 10]]
-    c_2 = ["b", [2, Nothing, 8, 11]]
-    c_3 = ["c", [Nothing, 6, 9, 12]]
+    c_1 = ["a", ['1', '4', '7', '10']]
+    c_2 = ["b", ['2', Nothing, '8', '11']]
+    c_3 = ["c", [Nothing, '6', '9', '12']]
     expected_table = Table.new [c_1, c_2, c_3]
 
     Test.group "Delimited File Parsing" <|
