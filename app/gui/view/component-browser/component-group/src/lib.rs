@@ -47,6 +47,9 @@ const HEADER_FONT: &str = "DejaVuSans-Bold";
 // === Aliases ===
 // ===============
 
+// Note[ao]: This could be `entry::Id` once we will have `entry` module with Component Group's
+// entries related structures (those are not quite the same as stuff in `list_view::entry` - that's
+// why we don't just import that module).
 type EntryId = list_view::entry::Id;
 
 
@@ -79,10 +82,12 @@ pub mod background {
 pub mod header_overlay {
     use super::*;
 
+    use ensogl_core::display::shape::constants::HOVER_COLOR;
+
     ensogl_core::define_shape_system! {
         above = [background];
         () {
-            let bg_color = Rgba::new(0.0,0.0,0.0,0.000_001);
+            let bg_color = HOVER_COLOR;
             Plane().fill(bg_color).into()
         }
     }
