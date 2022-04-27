@@ -376,12 +376,6 @@ macro_rules! _define_shape_system {
             use $crate::display::symbol::geometry::Sprite;
             use $crate::system::gpu;
             use $crate::system::gpu::data::Attribute;
-            use $crate::display::shape::DynamicParamInternals;
-            use $crate::display::shape::DynamicShapeInternals;
-            use $crate::display::shape::ShapeSystemId;
-            use $crate::display::shape::ShapeOps;
-            use $crate::display::shape::Var;
-            use $crate::display::shape::PixelDistance;
 
 
 

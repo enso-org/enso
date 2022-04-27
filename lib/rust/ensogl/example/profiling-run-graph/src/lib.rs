@@ -39,7 +39,6 @@ use ensogl_flame_graph::COLOR_PERFORMANCE_GOOD;
 use ensogl_flame_graph::COLOR_PERFORMANCE_MEDIUM;
 
 
-
 // =================
 // === Constants ===
 // =================
