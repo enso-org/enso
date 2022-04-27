@@ -597,6 +597,7 @@ impl HardcodedLayers {
         let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
+        node_searcher.set_mask(&node_searcher_mask);
 
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
         root.set_sublayers(&[
