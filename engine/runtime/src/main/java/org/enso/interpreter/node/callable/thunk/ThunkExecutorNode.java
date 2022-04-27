@@ -47,13 +47,13 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   @Specialization(
-      guards = {"function.isThunk()", "sameCallTarget(callNode, thunk)"},
+      guards = {"function.isThunk()", "sameCallTarget(callNode, function)"},
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   Stateful doCached(
       Function function,
       Object state,
       BaseNode.TailStatus isTail,
-      @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
+      @Cached("create(function.getCallTarget())") DirectCallNode callNode,
       @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     CompilerAsserts.partialEvaluationConstant(isTail);
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {

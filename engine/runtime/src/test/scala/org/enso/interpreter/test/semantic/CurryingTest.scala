@@ -44,7 +44,7 @@ class CurryingTest extends InterpreterTest {
           |main =
           |    fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
           |
-          |    fn.call 1 2 (z = 10)
+          |    fn 1 2 (z = 10)
           |""".stripMargin
 
       eval(code) shouldEqual 23
