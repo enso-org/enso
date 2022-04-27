@@ -58,7 +58,7 @@ from project.Data.Range export Range
    Relevant issues:
    https://www.pivotaltracker.com/story/show/181403340
    https://www.pivotaltracker.com/story/show/181309938
-from project.Data.Text.Extensions export Text, Split_Kind, Line_Ending_Style, Case, Location
+from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
 from project.Error.Common export all
 from project.Error.Extensions export all
