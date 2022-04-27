@@ -245,7 +245,7 @@ public final class CallArgumentInfo {
      *     the callable
      * @param postApplicationSchema the schema resulting from applying this mapping
      */
-     private ArgumentMapping(
+    private ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
         boolean[] isAppliedFlags,

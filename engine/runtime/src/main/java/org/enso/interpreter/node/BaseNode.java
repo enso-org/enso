@@ -20,7 +20,7 @@ public abstract class BaseNode extends Node {
     /** Node is not in a tail position. */
     NOT_TAIL;
 
-    private final static int NUMBER_OF_VALUES = values().length;
+    private static final int NUMBER_OF_VALUES = values().length;
 
     public static int numberOfValues() {
       return NUMBER_OF_VALUES;
