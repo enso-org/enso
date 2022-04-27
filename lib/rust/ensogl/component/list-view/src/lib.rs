@@ -72,15 +72,15 @@ pub mod selection {
     pub const CORNER_RADIUS_PX: f32 = 12.0;
 
     ensogl_core::define_shape_system! {
-        (style:Style) {
+        (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
-            let padding_inner_x = style.get_number(ensogl_hardcoded_theme::application::searcher::selection::padding::horizontal);
-            let padding_inner_y = style.get_number(ensogl_hardcoded_theme::application::searcher::selection::padding::vertical);
+            let padding_inner_x = style.get_number(theme::application::searcher::selection::padding::horizontal);
+            let padding_inner_y = style.get_number(theme::application::searcher::selection::padding::vertical);
             let width         = sprite_width  - 2.0.px() * SHAPE_PADDING + 2.0.px() * padding_inner_x;
             let height        = sprite_height - 2.0.px() * SHAPE_PADDING + 2.0.px() * padding_inner_y;
-            let color         = style.get_color(ensogl_hardcoded_theme::widget::list_view::highlight);
-            let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
+            let color         = Var::<color::Rgba>::from(color);
+            let rect          = Rect((&width,&height)).corners_radius(corner_radius);
             let shape         = rect.fill(color);
             shape.into()
         }
@@ -177,7 +177,7 @@ impl<E: Entry> Model<E> {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&self.app.display.default_scene.style_sheet);
-        styles.get_number(ensogl_hardcoded_theme::application::searcher::padding)
+        styles.get_number(theme::application::searcher::padding)
     }
 
     fn doubled_padding_with_shape_padding(&self) -> f32 {
@@ -359,6 +359,8 @@ where E::Model: Default
         let style = StyleWatchFrp::new(&scene.style_sheet);
         use theme::widget::list_view as list_view_style;
         let default_background_color = style.get_color(list_view_style::background);
+        let selection_color = style.get_color(list_view_style::highlight);
+        let selection_corner_radius = style.get_number(list_view_style::highlight::corner_radius);
 
         frp::extend! { network
 
@@ -522,11 +524,11 @@ where E::Model: Default
             ));
 
 
-            frp.source.selection_position_target <+ all_with3(&selection_y.target, &view_y.target, &frp.size, |selection_y, view_y, size| {
-                DEBUG!("-- {selection_y} {view_y}");
+            frp.source.selection_position_target <+ all_with3(&selection_y.target, &view_y.target, &frp.size, |selection_y, view_y, size|
                 Vector2(0.0, (size.y / 2.0) - view_y + selection_y)
-                }
             );
+            eval selection_color ((color) model.selection.color.set(color.into()));
+            eval selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
         }
 
         init.emit(());

@@ -23,7 +23,9 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
+use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::application::View as TRAIT_View;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
@@ -42,20 +44,10 @@ const HEADER_FONT: &str = "DejaVuSans-Bold";
 
 
 // ===============
-// === EntryId ===
+// === Aliases ===
 // ===============
 
-#[derive(Copy, Clone, Debug)]
-pub enum EntryId {
-    Component { list_entry: list_view::entry::Id },
-    Header,
-}
-
-impl Default for EntryId {
-    fn default() -> Self {
-        Self::Header
-    }
-}
+type EntryId = list_view::entry::Id;
 
 
 // ==========================
@@ -79,6 +71,19 @@ pub mod background {
             //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
             let shape = Rect((&sprite_width, &sprite_height)).fill(color);
             shape.into()
+        }
+    }
+}
+
+/// The transparent overlay over Component Group View Header, used for capturing mouse events.
+pub mod header_overlay {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        above = [background];
+        () {
+            let bg_color = Rgba::new(0.0,0.0,0.0,0.000_001);
+            Plane().fill(bg_color).into()
         }
     }
 }
@@ -125,14 +130,21 @@ impl HeaderGeometry {
 
 ensogl_core::define_endpoints_2! {
     Input {
+        /// Emit the `chose_header` event when it is selected
+        ///
+        // TODO[ao]: note about temporality
+        choose_header_if_selected(),
         set_header(String),
+        set_header_selectable(bool),
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_size(Vector2),
     }
     Output {
         selected_entry(Option<EntryId>),
-        chosen_entry(EntryId),
+        chose_entry(EntryId),
+        is_header_selected(bool),
+        chose_header(),
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
     }
@@ -142,6 +154,7 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
+        let out = &api.output;
         let header_text_size = style.get_number(theme::header::text::size);
 
         frp::extend! { network
@@ -176,18 +189,42 @@ impl component::Frp<Model> for Frp {
             model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
 
+            out.selected_entry <+ model.entries.selected_entry;
+            out.chose_entry <+ model.entries.chosen_entry.filter_map(|e| *e);
+
 
             // === Selection ===
 
-            selected_entry_after_jumping_out <- model.entries.jumped_above.constant(EntryId::Header);
-            selected_entry_inside_list <- model.entries.selected_entry.filter_map(|&entry| entry.map(|e| EntryId::Component {list_entry: e}));
-            selected_entry <- any(selected_entry_after_jumping_out, selected_entry_inside_list);
-            api.output.selected_entry <+ selected_entry.map(|&entry| Some(entry));
+            let is_header_selectable = &input.set_header_selectable;
+            select_header_after_jumping_out <- model.entries.jumped_above.gate(is_header_selectable);
+            select_header_after_hover <- model.header_overlay.events.mouse_over.gate(is_header_selectable);
+            select_inside_list <- model.entries.selected_entry.filter_map(|entry| *entry);
+            out.is_header_selected <+ select_header_after_jumping_out.constant(true);
+            out.is_header_selected <+ select_header_after_hover.constant(true);
+            out.is_header_selected <+ select_inside_list.constant(false);
 
-            api.output.selection_position_target <+ all_with4(&selected_entry, &input.set_size, &header_geometry, &model.entries.selection_position_target,
-                f!((id, size, header_geom, esp) model.selection_position(*id, *size, *header_geom, *esp)));
+            out.selection_position_target <+ all_with4(
+                &out.is_header_selected,
+                &input.set_size,
+                &header_geometry,
+                &model.entries.selection_position_target,
+                f!((h_sel, size, h, esp) model.selection_position(*h_sel, *size, *h, *esp))
+            );
+
+
+            // === Choosing Header ===
+
+            out.chose_header <+ input.choose_header_if_selected.gate(&out.is_header_selected);
         }
         init.emit(());
+    }
+
+    fn default_shortcuts() -> Vec<Shortcut> {
+        use ensogl_core::application::shortcut::ActionType::*;
+        (&[(Press, "enter", "choose_header_if_selected")])
+            .iter()
+            .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }
 
@@ -203,6 +240,7 @@ pub struct Model {
     display_object: display::object::Instance,
     header:         text::Area,
     header_text:    Rc<RefCell<String>>,
+    header_overlay: header_overlay::View,
     background:     background::View,
     entries:        list_view::ListView<list_view::entry::Label>,
 }
@@ -223,9 +261,11 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
+        let header_overlay = header_overlay::View::new(&logger);
         let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
         display_object.add_child(&background);
         display_object.add_child(&header);
+        display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
 
         header.set_font(HEADER_FONT);
@@ -234,7 +274,7 @@ impl component::Model for Model {
 
         entries.hide_selection();
 
-        Model { display_object, header, header_text, background, entries }
+        Model { display_object, header, header_text, header_overlay, background, entries }
     }
 }
 
@@ -252,10 +292,17 @@ impl Model {
         let header_text_height = self.header.height.value();
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
-        let header_bottom_y = size.y / 2.0 - header_height;
+        let header_center_y = size.y / 2.0 - header_height / 2.0;
+        let header_bottom_y = header_center_y - header_height / 2.0;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
+
+
+        // === Header Overlay ===
+
+        self.header_overlay.set_position_y(header_center_y);
+        self.header_overlay.size.set(Vector2(size.x, header_height));
 
 
         // === Entries ===
@@ -273,14 +320,15 @@ impl Model {
 
     fn selection_position(
         &self,
-        id: EntryId,
+        is_header_selected: bool,
         size: Vector2,
         header_geometry: HeaderGeometry,
         entries_selection_position: Vector2,
     ) -> Vector2 {
-        match id {
-            EntryId::Header => Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0),
-            EntryId::Component { .. } => self.entries.position().xy() + entries_selection_position,
+        if is_header_selected {
+            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0)
+        } else {
+            self.entries.position().xy() + entries_selection_position
         }
     }
 }

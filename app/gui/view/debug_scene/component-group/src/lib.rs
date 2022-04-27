@@ -96,8 +96,10 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
     let selection = list_view::selection::View::new(Logger::new("Selection"));
-    let selection_animation = Animation::<Vector2>::new(&network);
+    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    selection.corner_radius.set(5.0);
+    let selection_animation = Animation::<Vector2>::new(&network);
     let component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
     let group_name = "Long group name with text overflowing the width";
@@ -105,12 +107,16 @@ fn init(app: &Application) {
     component_group.set_entries(provider);
     component_group.set_size(Vector2(150.0, 200.0));
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    component_group.set_header_selectable(true);
     app.display.add_child(&component_group);
     app.display.add_child(&selection);
 
     frp::extend! { network
         selection_animation.target <+ component_group.selection_position_target;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+
+        eval component_group.chose_entry ([](id) DEBUG!("Chose Entry {id}"));
+        eval_ component_group.chose_header ([] DEBUG!("Chose Header"));
     }
 
     std::mem::forget(network);
