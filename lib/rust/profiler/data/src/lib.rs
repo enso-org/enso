@@ -377,12 +377,7 @@ impl<M> Timestamped<M> {
 // === OpaqueMetadata ===
 
 /// Black-box metadata object, for ignoring metadata contents.
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-pub enum OpaqueMetadata {
-    /// Anything.
-    #[serde(other)]
-    Unknown,
-}
+pub type OpaqueMetadata = format::AnyMetadata;
 
 
 
