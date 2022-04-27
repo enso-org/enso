@@ -132,7 +132,9 @@ ensogl_core::define_endpoints_2! {
     Input {
         /// Emit the `chose_header` event when it is selected
         ///
-        // TODO[ao]: note about temporality
+        /// The name reflects the current state of the List View. Used in debug scene, should
+        /// be changed when implementing https://www.pivotaltracker.com/story/show/181414807
+        /// and https://www.pivotaltracker.com/story/show/180892146.
         choose_header_if_selected(),
         set_header(String),
         set_header_selectable(bool),
@@ -178,7 +180,7 @@ impl component::Frp<Model> for Frp {
                 })
             );
             eval input.set_background_color((c)
-                model.background.color.set(c.into()));
+            model.background.color.set(c.into()));
 
 
             // === Entries ===
@@ -188,7 +190,6 @@ impl component::Frp<Model> for Frp {
             model.entries.set_background_corners_radius(0.0);
             model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
-
             out.selected_entry <+ model.entries.selected_entry;
             out.chose_entry <+ model.entries.chosen_entry.filter_map(|e| *e);
 
@@ -196,10 +197,12 @@ impl component::Frp<Model> for Frp {
             // === Selection ===
 
             let is_header_selectable = &input.set_header_selectable;
-            select_header_after_jumping_out <- model.entries.jumped_above.gate(is_header_selectable);
-            select_header_after_hover <- model.header_overlay.events.mouse_over.gate(is_header_selectable);
+            let moved_out_above = &model.entries.tried_to_move_out_above;
+            let mouse_over_header = &model.header_overlay.events.mouse_over;
+            select_header_after_moving_out <- moved_out_above.gate(is_header_selectable);
+            select_header_after_hover <- mouse_over_header.gate(is_header_selectable);
             select_inside_list <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ select_header_after_jumping_out.constant(true);
+            out.is_header_selected <+ select_header_after_moving_out.constant(true);
             out.is_header_selected <+ select_header_after_hover.constant(true);
             out.is_header_selected <+ select_inside_list.constant(false);
 
@@ -342,6 +345,9 @@ impl Model {
 /// A widget for displaying the entries and name of a component group.
 ///
 /// The widget is rendered as a header label, a list of entries below it, and a colored background.
+/// It does not display the selection widget - because the selection jump between various component
+/// groups, the parent (Component List Panel) should own the selection widget; the Component Group
+/// View provide the information, where the widget should be placed when it's focused.
 ///
 /// To learn more about component groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).

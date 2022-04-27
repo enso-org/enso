@@ -128,6 +128,8 @@ struct View {
     size:       Vector2<f32>,
 }
 
+/// An internal structure describing where selection would go after jump, i.e. after navigating with
+/// arrows or PgUp/PgDown.
 #[derive(Copy, Clone, Debug)]
 enum JumpTarget {
     Entry(entry::Id),
@@ -285,7 +287,9 @@ ensogl_core::define_endpoints! {
         chose_selected_entry(),
         /// Deselect all entries.
         deselect_entries(),
-
+        /// Hide selection widget. The entries still could be selected, and the navigation with
+        /// mouse and keyboard will work. Used in cases where the ListView user want to manage the
+        /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
 
         resize(Vector2<f32>),
@@ -303,10 +307,16 @@ ensogl_core::define_endpoints! {
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
         scroll_position(f32),
+        /// The position where the selection widget  is animated to. May be used in cases where the
+        /// ListView user want to manage the selection widget (e.g. when the selection is shared
+        /// between many lists).
         selection_position_target(Vector2<f32>),
+        /// The size of the selection widget to. May be used in cases where the ListView
+        /// user want to manage the selection widget (e.g. when the selection is shared between many
+        /// lists).
         selection_size(Vector2<f32>),
-        jumped_above(),
-        jumped_below(),
+        tried_to_move_out_above(),
+        tried_to_move_out_below(),
     }
 }
 
@@ -438,8 +448,8 @@ where E::Model: Default
             frp.source.selected_entry <+ mouse_selected_entry;
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
-            frp.source.jumped_above <+ jump_up_target.filter(|t| matches!(t, JumpTarget::Above)).constant(());
-            frp.source.jumped_below <+ jump_down_target.filter(|t| matches!(t, JumpTarget::Below)).constant(());
+            frp.source.tried_to_move_out_above <+ jump_up_target.filter(|t| matches!(t, JumpTarget::Above)).constant(());
+            frp.source.tried_to_move_out_below <+ jump_down_target.filter(|t| matches!(t, JumpTarget::Below)).constant(());
 
 
             // === Chosen Entry ===
@@ -524,8 +534,11 @@ where E::Model: Default
             ));
 
 
-            frp.source.selection_position_target <+ all_with3(&selection_y.target, &view_y.target, &frp.size, |selection_y, view_y, size|
-                Vector2(0.0, (size.y / 2.0) - view_y + selection_y)
+            frp.source.selection_position_target <+ all_with3(
+                &selection_y.target,
+                &view_y.target,
+                &frp.size,
+                |selection_y, view_y, size| Vector2(0.0, (size.y / 2.0) - view_y + selection_y)
             );
             eval selection_color ((color) model.selection.color.set(color.into()));
             eval selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
@@ -612,20 +625,20 @@ mod tests {
         assert_eq!(list_view.selected_entry.value(), Some(1));
         list_view.move_selection_down();
         assert_eq!(list_view.selected_entry.value(), Some(2));
-        let jumped_below = list_view.jumped_below.next_event();
+        let tried_to_move_out_below = list_view.tried_to_move_out_below.next_event();
         list_view.move_selection_down();
         assert_eq!(list_view.selected_entry.value(), Some(2));
-        jumped_below.expect();
+        tried_to_move_out_below.expect();
 
         // Going up:
         list_view.move_selection_up();
         assert_eq!(list_view.selected_entry.value(), Some(1));
         list_view.move_selection_up();
         assert_eq!(list_view.selected_entry.value(), Some(0));
-        let jumped_above = list_view.jumped_above.next_event();
+        let tried_to_move_out_above = list_view.tried_to_move_out_above.next_event();
         list_view.move_selection_up();
         assert_eq!(list_view.selected_entry.value(), None);
-        jumped_above.expect();
+        tried_to_move_out_above.expect();
     }
 
     #[test]
