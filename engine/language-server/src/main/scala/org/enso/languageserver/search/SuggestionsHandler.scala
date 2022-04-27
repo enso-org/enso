@@ -237,18 +237,53 @@ final class SuggestionsHandler(
         if state.isSuggestionUpdatesRunning =>
       state.suggestionUpdatesQueue.enqueue(msg)
 
+    case SuggestionUpdatesBatch(updates) if state.isSuggestionUpdatesRunning =>
+      state.suggestionUpdatesQueue.enqueueAll(updates)
+
+    case SuggestionUpdatesBatch(updates) =>
+      val modules = updates.map(_.module)
+      traverseSeq(updates)(applyUpdateIfVersionChanged)
+        .onComplete {
+          case Success(results) =>
+            logger.debug(
+              "Complete batch update of [{}] modules [{}].",
+              modules.length,
+              modules.mkString(", ")
+            )
+            results.foreach {
+              case Some(notification) =>
+                if (notification.updates.nonEmpty) {
+                  clients.foreach { clientId =>
+                    sessionRouter ! DeliverToJsonController(
+                      clientId,
+                      notification
+                    )
+                  }
+                }
+              case None =>
+            }
+            self ! SuggestionsHandler.SuggestionUpdatesCompleted
+          case Failure(ex) =>
+            logger.error(
+              "Error applying suggestion database updates batch of [{}] modules [{}]. ({})",
+              modules.length,
+              modules.mkString(", "),
+              ex.getMessage
+            )
+            self ! SuggestionsHandler.SuggestionUpdatesCompleted
+        }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionUpdatesRunning = true)
+        )
+      )
+
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       logger.debug("Got module update [{}].", msg.module)
-      val isVersionChanged =
-        versionsRepo.getVersion(msg.module).map { digestOpt =>
-          !digestOpt.map(ContentVersion(_)).contains(msg.version)
-        }
-      val applyUpdatesIfVersionChanged =
-        isVersionChanged.flatMap { isChanged =>
-          if (isChanged) applyDatabaseUpdates(msg).map(Some(_))
-          else Future.successful(None)
-        }
-      applyUpdatesIfVersionChanged
+      applyUpdateIfVersionChanged(msg)
         .onComplete {
           case Success(Some(notification)) =>
             logger.debug("Complete module update [{}].", msg.module)
@@ -266,7 +301,7 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}, {}]. {}",
+              "Error applying suggestion database updates [{}, {}] ({})",
               msg.module,
               msg.version,
               ex.getMessage
@@ -463,7 +498,7 @@ final class SuggestionsHandler(
 
     case SuggestionUpdatesCompleted =>
       if (state.suggestionUpdatesQueue.nonEmpty) {
-        self ! state.suggestionUpdatesQueue.dequeue()
+        self ! SuggestionUpdatesBatch(state.suggestionUpdatesQueue.removeAll())
       }
       context.become(
         initialized(
@@ -495,6 +530,19 @@ final class SuggestionsHandler(
           }
         context.become(verifying(name, graph))
         unstashAll()
+    }
+  }
+
+  private def applyUpdateIfVersionChanged(
+    msg: Api.SuggestionsDatabaseModuleUpdateNotification
+  ): Future[Option[SuggestionsDatabaseUpdateNotification]] = {
+    val isVersionChanged =
+      versionsRepo.getVersion(msg.module).map { digestOpt =>
+        !digestOpt.map(ContentVersion(_)).contains(msg.version)
+      }
+    isVersionChanged.flatMap { isChanged =>
+      if (isChanged) applyDatabaseUpdates(msg).map(Some(_))
+      else Future.successful(None)
     }
   }
 
@@ -741,6 +789,10 @@ object SuggestionsHandler {
   /** The notification that the suggestion updates are processed. */
   case object SuggestionUpdatesCompleted
 
+  case class SuggestionUpdatesBatch(
+    updates: Seq[Api.SuggestionsDatabaseModuleUpdateNotification]
+  )
+
   /** The initialization state of the handler.
     *
     * @param project the project name
@@ -777,6 +829,14 @@ object SuggestionsHandler {
     ]                                   = mutable.Queue.empty,
     isSuggestionUpdatesRunning: Boolean = false
   )
+
+  private def traverseSeq[A, B](xs: Seq[A])(f: A => Future[B]): Future[Seq[B]] =
+    xs.foldLeft(Future.successful(Seq.empty[B])) { (acc, a) =>
+      for {
+        bs <- acc
+        b  <- f(a)
+      } yield bs :+ b
+    }
 
   /** Creates a configuration object used to create a [[SuggestionsHandler]].
     *
