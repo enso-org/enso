@@ -164,12 +164,6 @@ impl Deref for Layer {
     }
 }
 
-impl AsRef<Layer> for Layer {
-    fn as_ref(&self) -> &Layer {
-        self
-    }
-}
-
 impl Debug for Layer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&*self.model, f)
@@ -266,24 +260,6 @@ impl WeakLayer {
     /// Upgrade to strong reference.
     pub fn upgrade(&self) -> Option<Layer> {
         self.model.upgrade().map(|model| Layer { model })
-    }
-
-    /// Attach a `layer` as a sublayer. Will do nothing if the layer does not exist.
-    pub fn add_sublayer(&self, sublayer: &Layer) {
-        if let Some(layer) = self.upgrade() {
-            layer.add_sublayer(sublayer)
-        } else {
-            warning!(sublayer.logger, "Attempt to add a sublayer to deallocated layer.");
-        }
-    }
-
-    /// Remove previously attached sublayer. Will do nothing if the layer does not exist.
-    pub fn remove_sublayer(&self, sublayer: &Layer) {
-        if let Some(layer) = self.upgrade() {
-            layer.remove_sublayer(sublayer)
-        } else {
-            warning!(sublayer.logger, "Attempt to remove a sublayer from deallocated layer.");
-        }
     }
 }
 
@@ -655,20 +631,10 @@ impl LayerModel {
         self.sublayers.borrow().all()
     }
 
-    /// Attach a `layer` as a sublayer.
-    pub fn add_sublayer(&self, layer: &Layer) {
+    fn add_sublayer(&self, layer: &Layer) {
         let ix = self.sublayers.borrow_mut().layers.insert(layer.downgrade());
         self.sublayers.borrow_mut().layer_placement.insert(layer.id(), ix);
         layer.add_parent(&self.sublayers);
-    }
-
-    /// Remove previously attached sublayer.
-    ///
-    /// The implementation is the opposite of [`LayerModel::add_sublayer`]: we modify both fields of
-    /// [`SublayersModel`] and also unset parent.
-    pub fn remove_sublayer(&self, layer: &Layer) {
-        self.sublayers.borrow_mut().remove(layer.id());
-        layer.remove_parent(&self.sublayers);
     }
 
     fn remove_all_sublayers(&self) {
@@ -915,46 +881,6 @@ impl SublayersModel {
     /// Query a [`Layer`] based on its [`LayerId`].
     pub fn get(&self, layer_id: LayerId) -> Option<Layer> {
         self.layer_ix(layer_id).and_then(|ix| self.layers.safe_index(ix).and_then(|t| t.upgrade()))
-    }
-}
-
-
-
-// ==============
-// === Masked ===
-// ==============
-
-/// A layer with an attached mask. Each shape in the `mask_layer` defines the renderable area
-/// of the `masked_layer`. See [`Layer`] docs for the info about masking.
-///
-/// One of the use cases might be an `ensogl_scroll_area::ScrollArea` component
-/// implementation. To clip the area's content (so that it is displayed only inside its borders) we
-/// place the area's content in the `masked_object` layer; and we place a rectangular mask in the
-/// `mask` layer.
-///
-/// We need to store `mask_layer`, because [`LayerModel::set_mask`] uses [`WeakLayer`] internally,
-/// so the [`Layer`] would be deallocated otherwise.
-#[derive(Debug, Clone, CloneRef, Deref)]
-#[allow(missing_docs)]
-pub struct Masked {
-    #[deref]
-    pub masked_layer: Layer,
-    pub mask_layer:   Layer,
-}
-
-impl AsRef<Layer> for Masked {
-    fn as_ref(&self) -> &Layer {
-        &self.masked_layer
-    }
-}
-
-impl Masked {
-    /// Constructor. The passed [`camera`] is used to render created layers.
-    pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
-        let masked_layer = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
-        let mask_layer = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
-        masked_layer.set_mask(&mask_layer);
-        Self { masked_layer, mask_layer }
     }
 }
 

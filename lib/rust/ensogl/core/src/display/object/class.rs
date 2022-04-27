@@ -568,7 +568,7 @@ impl<Host> Model<Host> {
     /// previously and is currently attached to .
     pub fn set_on_scene_layer_changed<F>(&self, f: F)
     where F: Fn(&Host, &[WeakLayer], &[WeakLayer]) + 'static {
-        self.callbacks.on_scene_layers_changed.set_if_empty_or_warn(Box::new(f))
+        self.callbacks.on_scene_layers_changed.set(Box::new(f))
     }
 }
 

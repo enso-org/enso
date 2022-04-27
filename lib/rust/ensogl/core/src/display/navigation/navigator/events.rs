@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
-use crate::display::navigation::navigator::Settings;
+use crate::display::navigation::navigator::SharedSwitch;
 
 use nalgebra::zero;
 use nalgebra::Vector2;
@@ -78,7 +78,9 @@ enum MovementType {
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct NavigatorEventsProperties {
-    settings:            Rc<Settings>,
+    zoom_speed:          SharedSwitch<f32>,
+    pan_speed:           SharedSwitch<f32>,
+    disable_events:      Rc<Cell<bool>>,
     movement_type:       Option<MovementType>,
     last_mouse_position: Vector2<f32>,
     mouse_position:      Vector2<f32>,
@@ -103,13 +105,17 @@ impl NavigatorEventsData {
     fn new(
         pan_callback: Box<dyn FnPanEvent>,
         zoom_callback: Box<dyn FnZoomEvent>,
-        settings: Rc<Settings>,
+        zoom_speed: SharedSwitch<f32>,
+        pan_speed: SharedSwitch<f32>,
+        disable_events: Rc<Cell<bool>>,
     ) -> Rc<Self> {
         let mouse_position = zero();
         let last_mouse_position = zero();
         let movement_type = None;
         let properties = RefCell::new(NavigatorEventsProperties {
-            settings,
+            zoom_speed,
+            pan_speed,
+            disable_events,
             movement_type,
             last_mouse_position,
             mouse_position,
@@ -141,23 +147,19 @@ impl NavigatorEventsData {
     }
 
     fn zoom_speed(&self) -> f32 {
-        self.properties.borrow().settings.zoom_speed()
+        self.properties.borrow().zoom_speed.get().into_on().unwrap_or(0.0)
     }
 
     fn pan_speed(&self) -> f32 {
-        self.properties.borrow().settings.pan_speed()
+        self.properties.borrow().pan_speed.get().into_on().unwrap_or(0.0)
     }
 
     fn movement_type(&self) -> Option<MovementType> {
         self.properties.borrow().movement_type
     }
 
-    fn is_navigator_enabled(&self) -> bool {
-        self.properties.borrow().settings.is_enabled()
-    }
-
-    fn is_wheel_panning_enabled(&self) -> bool {
-        self.properties.borrow().settings.is_wheel_panning_enabled()
+    fn events_disabled(&self) -> bool {
+        self.properties.borrow().disable_events.get()
     }
 }
 
@@ -204,7 +206,9 @@ impl NavigatorEvents {
         mouse_manager: &MouseManager,
         pan_callback: P,
         zoom_callback: Z,
-        settings: Rc<Settings>,
+        zoom_speed: SharedSwitch<f32>,
+        pan_speed: SharedSwitch<f32>,
+        disable_events: Rc<Cell<bool>>,
     ) -> Self
     where
         P: FnPanEvent,
@@ -218,7 +222,13 @@ impl NavigatorEvents {
         let mouse_down = default();
         let wheel_zoom = default();
         let mouse_leave = default();
-        let data = NavigatorEventsData::new(pan_callback, zoom_callback, settings);
+        let data = NavigatorEventsData::new(
+            pan_callback,
+            zoom_callback,
+            zoom_speed,
+            pan_speed,
+            disable_events,
+        );
         let mut event_handler =
             Self { data, mouse_manager, mouse_down, mouse_up, mouse_move, mouse_leave, wheel_zoom };
 
@@ -237,7 +247,7 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_wheel.add(move |event: &mouse::OnWheel| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
+                if data.events_disabled() {
                     event.prevent_default();
                 }
                 if event.ctrl_key() {
@@ -252,7 +262,7 @@ impl NavigatorEvents {
                     if let Some(event) = ZoomEvent::new(position, amount, zoom_speed) {
                         data.on_zoom(event);
                     }
-                } else if data.is_wheel_panning_enabled() {
+                } else {
                     let x = -event.delta_x() as f32;
                     let y = event.delta_y() as f32;
                     let pan_speed = data.pan_speed();
@@ -269,7 +279,7 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_down.add(move |event: &mouse::OnDown| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
+                if data.events_disabled() {
                     event.prevent_default();
                 }
                 match event.button() {
@@ -289,7 +299,7 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_up.add(move |event: &mouse::OnUp| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
+                if data.events_disabled() {
                     event.prevent_default();
                 }
                 data.set_movement_type(None);
@@ -300,7 +310,7 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_leave.add(move |event: &mouse::OnLeave| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
+                if data.events_disabled() {
                     event.prevent_default();
                 }
                 data.set_movement_type(None);
@@ -313,7 +323,7 @@ impl NavigatorEvents {
         let data = Rc::downgrade(&self.data);
         let listener = self.mouse_manager.on_move.add(move |event: &mouse::OnMove| {
             if let Some(data) = data.upgrade() {
-                if data.is_navigator_enabled() {
+                if data.events_disabled() {
                     event.prevent_default();
                 }
 

@@ -1,5 +1,6 @@
 //! Root module for GUI related components.
 
+use crate::display::object::traits::*;
 use crate::prelude::*;
 
 use crate::application::Application;
