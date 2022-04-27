@@ -5341,8 +5341,8 @@ object IR {
       override val name: Option[IR.Name],
       override val value: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: MetadataStorage          = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage     = DiagnosticStorage()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends CallArgument
         with IRKind.Primitive {
       override protected var id: Identifier = randomId

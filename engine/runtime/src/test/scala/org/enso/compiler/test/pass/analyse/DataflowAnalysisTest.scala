@@ -936,8 +936,8 @@ class DataflowAnalysisTest extends CompilerTest {
         fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
       val fnArgY =
         fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
-      val fnBody        = fn.body.asInstanceOf[IR.Application.Prefix]
-      val plusFn        = fnBody.function.asInstanceOf[IR.Name.Literal]
+      val fnBody = fn.body.asInstanceOf[IR.Application.Prefix]
+      val plusFn = fnBody.function.asInstanceOf[IR.Name.Literal]
       val plusArgX =
         fnBody.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       val plusArgXExpr = plusArgX.value.asInstanceOf[IR.Name.Literal]
@@ -946,15 +946,15 @@ class DataflowAnalysisTest extends CompilerTest {
       val plusArgYExpr = plusArgY.value.asInstanceOf[IR.Name.Literal]
 
       // Identifiers
-      val fnId            = mkStaticDep(fn.getId)
-      val fnArgXId        = mkStaticDep(fnArgX.getId)
-      val fnArgYId        = mkStaticDep(fnArgY.getId)
-      val fnBodyId        = mkStaticDep(fnBody.getId)
-      val plusFnId        = mkStaticDep(plusFn.getId)
-      val plusArgXId      = mkStaticDep(plusArgX.getId)
-      val plusArgXExprId  = mkStaticDep(plusArgXExpr.getId)
-      val plusArgYId      = mkStaticDep(plusArgY.getId)
-      val plusArgYExprId  = mkStaticDep(plusArgYExpr.getId)
+      val fnId           = mkStaticDep(fn.getId)
+      val fnArgXId       = mkStaticDep(fnArgX.getId)
+      val fnArgYId       = mkStaticDep(fnArgY.getId)
+      val fnBodyId       = mkStaticDep(fnBody.getId)
+      val plusFnId       = mkStaticDep(plusFn.getId)
+      val plusArgXId     = mkStaticDep(plusArgX.getId)
+      val plusArgXExprId = mkStaticDep(plusArgXExpr.getId)
+      val plusArgYId     = mkStaticDep(plusArgY.getId)
+      val plusArgYExprId = mkStaticDep(plusArgYExpr.getId)
 
       // Dynamic Symbols
       val plusSym = mkDynamicDep("+")
