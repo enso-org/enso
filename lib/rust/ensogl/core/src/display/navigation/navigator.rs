@@ -23,94 +23,7 @@ use crate::display::Scene;
 const DEFAULT_MAX_ZOOM: f32 = 100.0;
 /// Default minimum zoom factor (0.15x).
 const MIN_ZOOM: f32 = 0.001;
-/// Default speed for zoom events.
-const DEFAULT_ZOOM_SPEED: f32 = 0.01;
-/// Default speed for panning events.
-const DEFAULT_PAN_SPEED: f32 = 1.0;
 
-
-
-// ================
-// === Settings ===
-// ================
-
-/// Enabling/disabling Navigator and changing its settings.
-#[derive(Debug, Clone)]
-pub struct Settings {
-    is_enabled:           Cell<bool>,
-    zoom_speed:           Cell<Switch<f32>>,
-    pan_speed:            Cell<Switch<f32>>,
-    enable_wheel_panning: Cell<bool>,
-    max_zoom:             Cell<Option<f32>>,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            zoom_speed:           Cell::new(Switch::new(DEFAULT_ZOOM_SPEED, true)),
-            pan_speed:            Cell::new(Switch::new(DEFAULT_PAN_SPEED, true)),
-            is_enabled:           Cell::new(true),
-            enable_wheel_panning: Cell::new(true),
-            max_zoom:             Cell::new(None),
-        }
-    }
-}
-
-impl Settings {
-    // === Getters ===
-
-    pub fn zoom_speed(&self) -> f32 {
-        self.zoom_speed.get().into_on().unwrap_or(0.0)
-    }
-
-    pub fn pan_speed(&self) -> f32 {
-        self.pan_speed.get().into_on().unwrap_or(0.0)
-    }
-
-    pub fn max_zoom(&self) -> f32 {
-        self.max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM)
-    }
-
-    pub fn is_wheel_panning_enabled(&self) -> bool {
-        self.enable_wheel_panning.get()
-    }
-
-    pub fn is_enabled(&self) -> bool {
-        self.is_enabled.get()
-    }
-
-    // === Setters ===
-
-    /// Enable scene panning with mouse wheel or two-finger gesture on touchpad.
-    pub fn enable_wheel_panning(&self) {
-        self.enable_wheel_panning.set(true);
-    }
-
-    /// Disable scene panning with mouse wheel or two-finger gesture on touchpad.
-    pub fn disable_wheel_panning(&self) {
-        self.enable_wheel_panning.set(false);
-    }
-
-    /// Enable all [`Navigator`] capabilities.
-    pub fn enable(&self) {
-        self.is_enabled.set(true);
-        self.zoom_speed.update(|switch| switch.switched(true));
-        self.pan_speed.update(|switch| switch.switched(true));
-    }
-
-    /// Disable all [`Navigator`] capabilities.
-    pub fn disable(&self) {
-        self.is_enabled.set(false);
-        self.zoom_speed.update(|switch| switch.switched(false));
-        self.pan_speed.update(|switch| switch.switched(false));
-    }
-
-    /// Enable or disable the restriction of maximum zoom factor. Enabling it does change camera
-    /// zoom immediately, but the restriction will be applied on the next zoom event.
-    pub fn set_max_zoom(&self, value: Option<f32>) {
-        self.max_zoom.set(value);
-    }
-}
 
 
 // ======================
@@ -118,21 +31,34 @@ impl Settings {
 // ======================
 
 /// Navigator enables camera navigation with mouse interactions.
-#[derive(Debug, Deref)]
+#[derive(Debug)]
 pub struct NavigatorModel {
-    #[deref]
-    settings:        Rc<Settings>,
     events:          NavigatorEvents,
     simulator:       physics::inertia::DynSimulator<Vector3>,
     resize_callback: callback::Handle,
+    zoom_speed:      SharedSwitch<f32>,
+    pan_speed:       SharedSwitch<f32>,
+    /// Indicates whether events handled the navigator should be stopped from propagating further
+    /// after being handled by the Navigator.
+    disable_events:  Rc<Cell<bool>>,
+    max_zoom:        Rc<Cell<Option<f32>>>,
 }
 
 impl NavigatorModel {
     pub fn new(scene: &Scene, camera: &Camera2d) -> Self {
-        let settings = Rc::new(Settings::default());
-        let (simulator, resize_callback, events) =
-            Self::start_navigator_events(scene, camera, settings.clone_ref());
-        Self { events, simulator, resize_callback, settings }
+        let zoom_speed = Rc::new(Cell::new(Switch::On(10.0 / 1000.0)));
+        let pan_speed = Rc::new(Cell::new(Switch::On(1.0)));
+        let disable_events = Rc::new(Cell::new(true));
+        let max_zoom: Rc<Cell<_>> = default();
+        let (simulator, resize_callback, events) = Self::start_navigator_events(
+            scene,
+            camera,
+            zoom_speed.clone_ref(),
+            pan_speed.clone_ref(),
+            disable_events.clone_ref(),
+            max_zoom.clone_ref(),
+        );
+        Self { events, simulator, resize_callback, zoom_speed, pan_speed, disable_events, max_zoom }
     }
 
     fn create_simulator(camera: &Camera2d) -> physics::inertia::DynSimulator<Vector3> {
@@ -150,7 +76,10 @@ impl NavigatorModel {
     fn start_navigator_events(
         scene: &Scene,
         camera: &Camera2d,
-        settings: Rc<Settings>,
+        zoom_speed: SharedSwitch<f32>,
+        pan_speed: SharedSwitch<f32>,
+        disable_events: Rc<Cell<bool>>,
+        max_zoom: Rc<Cell<Option<f32>>>,
     ) -> (physics::inertia::DynSimulator<Vector3>, callback::Handle, NavigatorEvents) {
         let distance_to_zoom_factor_of_1 = |camera: &Camera2d| {
             let fovy_slope = camera.half_fovy_slope();
@@ -158,10 +87,10 @@ impl NavigatorModel {
         };
 
         let simulator = Self::create_simulator(camera);
-        let panning_callback = f!([camera,simulator,settings] (pan: PanEvent) {
+        let panning_callback = f!([camera,simulator,pan_speed] (pan: PanEvent) {
             let distance = camera.position().z;
             let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
-            let pan_speed = settings.pan_speed();
+            let pan_speed = pan_speed.get().into_on().unwrap_or(0.0);
             let movement_scale_for_distance = distance / distance_to_zoom_factor_of_1;
             let movement = Vector3::new(pan.movement.x, pan.movement.y, 0.0);
             let diff = pan_speed * movement * movement_scale_for_distance;
@@ -176,7 +105,7 @@ impl NavigatorModel {
                 simulator.set_velocity(default());
             }));
 
-        let zoom_callback = f!([camera,simulator,settings] (zoom:ZoomEvent) {
+        let zoom_callback = f!([camera,simulator,max_zoom] (zoom:ZoomEvent) {
             let point = zoom.focus;
             let normalized = normalize_point2(point,camera.screen().into());
             let normalized = normalized_to_range2(normalized, -1.0, 1.0);
@@ -192,7 +121,7 @@ impl NavigatorModel {
             let translation = direction * zoom_amount;
 
             let distance_to_zoom_factor_of_1 = distance_to_zoom_factor_of_1(&camera);
-            let max_zoom = settings.max_zoom();
+            let max_zoom = max_zoom.get().unwrap_or(DEFAULT_MAX_ZOOM);
             // Usage of min/max prefixes might be confusing here. Remember that the max zoom means
             // the maximum visible size, thus the minimal distance from the camera and vice versa.
             let min_distance = distance_to_zoom_factor_of_1 / max_zoom + camera.clipping().near;
@@ -220,9 +149,29 @@ impl NavigatorModel {
                 &scene.mouse.mouse_manager,
                 panning_callback,
                 zoom_callback,
-                settings,
+                zoom_speed,
+                pan_speed,
+                disable_events,
             ),
         )
+    }
+
+    pub fn enable(&self) {
+        self.pan_speed.update(|switch| switch.switched(true));
+        self.zoom_speed.update(|switch| switch.switched(true));
+        self.disable_events.set(true);
+    }
+
+    pub fn disable(&self) {
+        self.pan_speed.update(|switch| switch.switched(false));
+        self.zoom_speed.update(|switch| switch.switched(false));
+        self.disable_events.set(false);
+    }
+
+    /// Enable or disable the restriction of maximum zoom factor. Enabling it does change camera
+    /// zoom immediately, but the restriction will be applied on the next zoom event.
+    pub fn set_max_zoom(&self, value: Option<f32>) {
+        self.max_zoom.set(value);
     }
 
     /// Emit zoom event. This function could be used in the tests to simulate user interactions.
@@ -261,6 +210,8 @@ impl Navigator {
 // =============
 // === Utils ===
 // =============
+
+type SharedSwitch<T> = Rc<Cell<Switch<T>>>;
 
 /// Normalize a `point` in (0..dimension.x, 0..dimension.y) to (0..1, 0..1).
 fn normalize_point2(point: Vector2<f32>, dimension: Vector2<f32>) -> Vector2<f32> {

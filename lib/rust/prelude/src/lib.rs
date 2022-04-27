@@ -324,33 +324,14 @@ impl<T: Default> Default for CloneRefCell<T> {
 pub trait RefCellOptionOps<T> {
     fn clear(&self);
     fn set(&self, val: T);
-    fn set_if_empty_or_warn(&self, val: T);
 }
 
 impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
-    default fn clear(&self) {
+    fn clear(&self) {
         *self.borrow_mut() = None;
     }
 
-    default fn set(&self, val: T) {
-        *self.borrow_mut() = Some(val);
-    }
-
-    default fn set_if_empty_or_warn(&self, val: T) {
-        if self.borrow().is_some() {
-            WARNING!("Trying to set value that was already set.")
-        }
-        *self.borrow_mut() = Some(val);
-    }
-}
-
-impl<T: Debug> RefCellOptionOps<T> for RefCell<Option<T>> {
-    fn set_if_empty_or_warn(&self, val: T) {
-        if let Some(ref current) = *self.borrow() {
-            WARNING!(
-                "Trying to set value that was already set (current: {current:?}; new: {val:?})."
-            )
-        }
+    fn set(&self, val: T) {
         *self.borrow_mut() = Some(val);
     }
 }
