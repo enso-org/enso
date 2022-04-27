@@ -328,17 +328,28 @@ pub trait RefCellOptionOps<T> {
 }
 
 impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
-    fn clear(&self) {
+    default fn clear(&self) {
         *self.borrow_mut() = None;
     }
 
-    fn set(&self, val: T) {
+    default fn set(&self, val: T) {
         *self.borrow_mut() = Some(val);
     }
 
-    fn set_if_empty_or_warn(&self, val: T) {
+    default fn set_if_empty_or_warn(&self, val: T) {
         if self.borrow().is_some() {
             WARNING!("Trying to set value that was already set.")
+        }
+        *self.borrow_mut() = Some(val);
+    }
+}
+
+impl<T: Debug> RefCellOptionOps<T> for RefCell<Option<T>> {
+    fn set_if_empty_or_warn(&self, val: T) {
+        if let Some(ref current) = *self.borrow() {
+            WARNING!(
+                "Trying to set value that was already set (current: {current:?}; new: {val:?})."
+            )
         }
         *self.borrow_mut() = Some(val);
     }
