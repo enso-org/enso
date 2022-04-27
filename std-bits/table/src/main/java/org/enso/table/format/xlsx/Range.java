@@ -55,12 +55,12 @@ public class Range {
       return Optional.empty();
     }
 
-    int[] tl = parser.apply(matcher.group(0));
+    int[] tl = parser.apply(matcher.group(1));
     if (matcher.group(2) == null) {
       return Optional.of(new int[] {tl[0], tl[1], tl[0], tl[1]});
     }
 
-    int[] br = parser.apply(matcher.group(1));
+    int[] br = parser.apply(matcher.group(2));
     return Optional.of(
         new int[] {
           Math.min(tl[0], br[0]),

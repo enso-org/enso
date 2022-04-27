@@ -123,6 +123,7 @@ type Infer
 type Excel
     type Excel (section:Excel_Section=Excel_Section.Sheet_Names)
 
+    ## Given a string parse into an Excel Range
     parse_address : String -> Pair String Vector
     parse_address address =
         parsed = Panic.catch IllegalArgumentException (Range.new address) _->
