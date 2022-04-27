@@ -32,9 +32,6 @@ object FrgaalJavaCompiler {
     val frgaalOptions = Seq("-source", source, "-target", target)
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
-    //println("All params: " + options)
-    //println("All Files: " + sources0)
-
     withArgumentFile(allArguments) { argsFile =>
       val forkArgs = (jArgs ++ Seq("--limit-modules", "java.base,jdk.zipfs", "-jar", compilerJar.toString)) :+ s"@${normalizeSlash(argsFile.getAbsolutePath)}"
       val exe = getJavaExecutable(javaHome, "java")

@@ -950,7 +950,7 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+    libraryDependencies += "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
   )
 
 // ============================================================================
@@ -1138,7 +1138,7 @@ lazy val runtime = (project in file("engine/runtime"))
       }
       val local = javax.tools.ToolProvider.getSystemJavaCompiler
       val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
-      val frgaalJavac = new FrgaalJavaCompiler(javaHome, frgaalOnClasspath.get)
+      val frgaalJavac = new FrgaalJavaCompiler(javaHome, frgaalOnClasspath.get, source = "16")
       val javaTools = sbt.internal.inc.javac.JavaTools(frgaalJavac, compilers.value.javaTools.javadoc())
       xsbti.compile.Compilers.of(compilers.value.scalac, javaTools)
     },
@@ -1162,7 +1162,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "eu.timepit"         %% "refined"               % refinedVersion,
-      "org.frgaal"          % "compiler"              % "18.0.0" % "provided"
+      // This dependency is needed only so that developers don't download Frgaal manually.
+      // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+      // accessible from the non-meta build definition.
+      "org.frgaal"          % "compiler"              % "18.0.0"          % "provided"
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,

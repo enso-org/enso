@@ -7,4 +7,3 @@ addSbtPlugin("com.lightbend.sbt"  % "sbt-java-formatter"       % "0.7.0")
 addSbtPlugin("org.scalameta"      % "sbt-scalafmt"             % "2.4.6")
 
 libraryDependencies += "io.circe" %% "circe-yaml" % "0.14.1"
-libraryDependencies += "org.frgaal" % "compiler" % "18.0.0"
