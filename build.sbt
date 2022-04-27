@@ -3,13 +3,11 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
+import java.nio.file.Paths
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -1128,6 +1126,22 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    compilers := {
+      val cp = (Compile / dependencyClasspath).value
+      val frgaalCheck = (module: ModuleID) => module.organization == "org.frgaal" && module.name == "compiler"
+      val frgaalOnClasspath =
+        cp.find(f => f.metadata.get(AttributeKey[ModuleID]("moduleID")).map(frgaalCheck).getOrElse(false))
+          .map(_.data.toPath)
+
+      if (frgaalOnClasspath.isEmpty) {
+        throw new RuntimeException("Failed to resolve Frgaal compiler. Aborting!")
+      }
+      val local = javax.tools.ToolProvider.getSystemJavaCompiler
+      val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
+      val frgaalJavac = new FrgaalJavaCompiler(javaHome, frgaalOnClasspath.get)
+      val javaTools = sbt.internal.inc.javac.JavaTools(frgaalJavac, compilers.value.javaTools.javadoc())
+      xsbti.compile.Compilers.of(compilers.value.scalac, javaTools)
+    },
     Test / parallelExecution := false,
     Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
@@ -1147,7 +1161,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
+      "org.frgaal"          % "compiler"              % "18.0.0" % "provided"
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
