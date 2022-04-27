@@ -91,11 +91,11 @@ class CurryingTest extends InterpreterTest {
     "allow to pass suspended functions in arguments with `...`" in {
       val code =
         """main =
-          |    foo f = f 1
+          |    foo f = f 2
           |    bar x=1 = x + 1
           |    foo (bar ...)
           |""".stripMargin
-      eval(code) shouldEqual 2
+      eval(code) shouldEqual 3
     }
 
     "allow to pass suspended functions in arguments with `...` but still auto-execute them" in {

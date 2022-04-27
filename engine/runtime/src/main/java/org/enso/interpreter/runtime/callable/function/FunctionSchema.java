@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
  * Holds the definition site argument information together with information on the partially applied
  * arguments positions.
  */
-public class FunctionSchema {
+public final class FunctionSchema {
   /** Denotes the caller frame access functions with this schema require to run properly. */
   public enum CallerFrameAccess {
     /** Requires full access to the (materialized) caller frame. */
@@ -38,7 +38,7 @@ public class FunctionSchema {
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
 
-  public final boolean isFullyApplied;
+  private final boolean isFullyApplied;
 
   /**
    * Creates an {@link FunctionSchema} instance.

@@ -190,9 +190,7 @@ public class Builtins {
 
     scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalMethodGen.makeFunction(language));
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
-
-    scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
-
+    
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_display_text", AnyToDisplayTextMethodGen.makeFunction(language));
 

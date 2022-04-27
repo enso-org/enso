@@ -47,20 +47,20 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   @Specialization(
-      guards = {"thunk.isThunk()", "sameCallTarget(callNode, thunk)"},
+      guards = {"function.isThunk()", "sameCallTarget(callNode, thunk)"},
       limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   Stateful doCached(
-      Function thunk,
+      Function function,
       Object state,
       BaseNode.TailStatus isTail,
       @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
       @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     CompilerAsserts.partialEvaluationConstant(isTail);
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
-      return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+      return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
     } else {
       try {
-        return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+        return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
@@ -68,9 +68,9 @@ public abstract class ThunkExecutorNode extends Node {
     }
   }
 
-  @Specialization(replaces = "doCached", guards = "thunk.isThunk()")
+  @Specialization(replaces = "doCached", guards = "function.isThunk()")
   Stateful doUncached(
-      Function thunk,
+      Function function,
       Object state,
       BaseNode.TailStatus isTail,
       @Cached IndirectCallNode callNode,
@@ -78,12 +78,12 @@ public abstract class ThunkExecutorNode extends Node {
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return (Stateful)
           callNode.call(
-              thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));
+              function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
     } else {
       try {
         return (Stateful)
             callNode.call(
-                thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));
+                function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
@@ -101,9 +101,13 @@ public abstract class ThunkExecutorNode extends Node {
     return node;
   }
 
+  static int numberOfTailStatuses() {
+    return BaseNode.TailStatus.numberOfValues();
+  }
+
   @Specialization(
       guards = {"!fn.isThunk()", "fn.isFullyApplied()", "isTail == cachedIsTail"},
-      limit = "3" /* limit is 3 because that's the number of different values for isTail */)
+      limit = "numberOfTailStatuses()")
   Stateful doCachedFn(
       Function fn,
       Object state,
