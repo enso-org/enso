@@ -272,6 +272,8 @@ impl WeakLayer {
     pub fn add_sublayer(&self, sublayer: &Layer) {
         if let Some(layer) = self.upgrade() {
             layer.add_sublayer(sublayer)
+        } else {
+            warning!(sublayer.logger, "Attempt to add a sublayer to deallocated layer.");
         }
     }
 
@@ -279,6 +281,8 @@ impl WeakLayer {
     pub fn remove_sublayer(&self, sublayer: &Layer) {
         if let Some(layer) = self.upgrade() {
             layer.remove_sublayer(sublayer)
+        } else {
+            warning!(sublayer.logger, "Attempt to remove a sublayer from deallocated layer.");
         }
     }
 }
@@ -660,7 +664,7 @@ impl LayerModel {
 
     /// Remove previously attached sublayer.
     ///
-    /// The implementation is a reverse of [`LayerModel::add_sublayer`]: we modify both fields of
+    /// The implementation is the opposite of [`LayerModel::add_sublayer`]: we modify both fields of
     /// [`SublayersModel`] and also unset parent.
     pub fn remove_sublayer(&self, layer: &Layer) {
         self.sublayers.borrow_mut().remove(layer.id());

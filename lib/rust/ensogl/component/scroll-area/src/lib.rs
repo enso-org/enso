@@ -114,7 +114,7 @@ impl Model {
 /// set through `set_content_height` and `set_content_width`. The component is anchored at the top
 /// left corner. All scroll coordinates describe the point of the `content` object at that corner.
 /// The scrollbars are only active when the content is actually larger than the viewport on the
-/// respective axis.
+/// respective axis. The component does not have a background.
 #[derive(Debug, Clone, CloneRef)]
 pub struct ScrollArea {
     model: Model,

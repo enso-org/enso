@@ -35,7 +35,7 @@ pub mod traits {
 // =========================
 
 /// A display object with a layer. When [`Instance`] is added to a scene layer, the `layer`
-/// is attached to that new layer using [Layer::add_sublayer]. Likewise, when the instance is
+/// is attached to that layer using [Layer::add_sublayer]. Likewise, when the instance is
 /// removed from a layer, the `layer` is detached using [Layer::remove_sublayer].
 ///
 /// Most UI components are relying on predefined set of scene layers in
