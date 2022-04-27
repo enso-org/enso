@@ -21,7 +21,7 @@ class RuntimeStubsGenerator() {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    localBindings.types.foreach { tp =>
+    localBindings.constructors.foreach { tp =>
       val constructor = new AtomConstructor(tp.name, scope)
       scope.registerConstructor(constructor)
     }

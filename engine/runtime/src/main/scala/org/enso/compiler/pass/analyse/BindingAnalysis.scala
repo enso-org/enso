@@ -85,6 +85,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
+        List(),
         definedConstructors,
         importedPolyglot,
         methodsWithAutogen,

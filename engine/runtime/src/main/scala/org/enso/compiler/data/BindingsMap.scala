@@ -16,13 +16,14 @@ import scala.annotation.unused
 
 /** A utility structure for resolving symbols in a given module.
   *
-  * @param types the types defined in the current module
+  * @param constructors the types defined in the current module
   * @param polyglotSymbols the polyglot symbols imported into the scope
   * @param moduleMethods the methods defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  types: List[BindingsMap.Cons],
+  types: List[BindingsMap.Type],
+  constructors: List[BindingsMap.Cons],
   polyglotSymbols: List[BindingsMap.PolyglotSymbol],
   moduleMethods: List[BindingsMap.ModuleMethod],
   currentModule: ModuleReference
@@ -130,7 +131,7 @@ case class BindingsMap(
   private def findConstructorCandidates(
     name: String
   ): List[ResolvedConstructor] = {
-    types
+    constructors
       .filter(_.name == name)
       .map(ResolvedConstructor(currentModule, _))
   }
@@ -720,6 +721,8 @@ object BindingsMap {
     * @param allFieldsDefaulted whether all fields provide a default value.
     */
   case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
+
+  case class Type(name: String, members: Seq[Cons])
 
   /** A representation of an imported polyglot symbol.
     *

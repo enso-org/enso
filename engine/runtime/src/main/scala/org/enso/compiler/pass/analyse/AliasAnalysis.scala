@@ -252,6 +252,7 @@ case object AliasAnalysis extends IRPass {
           "analysis."
         )
       case err: IR.Error => err
+      case ut: IR.Module.Scope.Definition.UnionType => ut
     }
   }
 
