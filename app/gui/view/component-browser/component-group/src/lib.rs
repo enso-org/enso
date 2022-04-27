@@ -197,8 +197,8 @@ impl component::Frp<Model> for Frp {
             // === Selection ===
 
             let is_header_selectable = &input.set_header_selectable;
-            let moved_out_above = &model.entries.tried_to_move_out_above;
-            let mouse_over_header = &model.header_overlay.events.mouse_over;
+            let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
+            let mouse_over_header = model.header_overlay.events.mouse_over.clone_ref();
             select_header_after_moving_out <- moved_out_above.gate(is_header_selectable);
             select_header_after_hover <- mouse_over_header.gate(is_header_selectable);
             select_inside_list <- model.entries.selected_entry.filter_map(|entry| *entry);
