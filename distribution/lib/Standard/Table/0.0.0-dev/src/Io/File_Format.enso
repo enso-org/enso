@@ -6,6 +6,12 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Table.Internal.Delimited_Reader
 
+from Standard.Table.Error import Invalid_Location
+import Standard.Table.Io.Excel_Section
+
+polyglot java import org.enso.table.format.xlsx.Range
+polyglot java import java.lang.IllegalArgumentException
+
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
    expanded by additional implementations in Standard.Table.
@@ -112,3 +118,18 @@ type Delimited
 ## A setting to infer the default behaviour of some option.
 type Infer
 
+
+## Read the file to a `Table` from an Excel file
+type Excel
+    type Excel (section:Excel_Section=Excel_Section.Sheet_Names)
+
+    parse_address : String -> Pair String Vector
+    parse_address address =
+        parsed = Panic.catch IllegalArgumentException (Range.new address) _->
+            Error.throw (Invalid_Location address)
+        Pair parsed.getSheetName [parsed.getTopRow, parsed.getLeftColumn, parsed.getBottomRow, parsed.getRightColumn]
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read file on_problems =
+        Panic.throw "To Do"

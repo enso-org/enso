@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Range {
-  private static final Pattern FULL_ADDRESS = Pattern.compile("^('[^']+'|[^'!]+)!(.*)$");
+  private static final Pattern FULL_ADDRESS = Pattern.compile("^('[^']+'|[^'!]+)!(.+)$");
 
   private static String[] parseFullAddress(String fullAddress) {
     if (fullAddress == null) {
@@ -18,7 +18,7 @@ public class Range {
       throw new IllegalArgumentException("'" + fullAddress + "' is not valid format.");
     }
 
-    return new String[] {matcher.group(0), matcher.group(1)};
+    return new String[] {matcher.group(1), matcher.group(2)};
   }
 
   private static final String ADDRESS_A1 = "\\$?[A-Z]{1,3}\\$?\\d+";
