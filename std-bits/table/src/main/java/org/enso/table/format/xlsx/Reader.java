@@ -1,7 +1,12 @@
 package org.enso.table.format.xlsx;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFName;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -240,9 +245,6 @@ public class Reader {
       throws IOException
   {
     XSSFWorkbook workbook = new XSSFWorkbook(stream);
-
-    // Sheet!From[:To]
+    return null;
   }
-
-
 }
