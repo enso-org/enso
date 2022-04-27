@@ -1,4 +1,9 @@
+use crate::location;
 use crate::prelude::*;
+
+pub mod traits {
+    pub use super::HasRepr;
+}
 
 #[derive(Deref)]
 pub struct DebugLeaf<T>(pub T);
@@ -19,5 +24,26 @@ impl<'s, T> With<'s, T> {
         let source = self.source;
         let data = f(&self.data);
         With { source, data }
+    }
+
+    pub fn with_data<S>(&self, data: S) -> With<'s, S> {
+        let source = self.source;
+        With { source, data }
+    }
+}
+
+pub trait HasRepr<'s> {
+    fn repr(&self) -> &'s str;
+}
+
+impl<'s, T> HasRepr<'s> for With<'s, location::With<T>> {
+    fn repr(&self) -> &'s str {
+        self.source_slice(&self.source)
+    }
+}
+
+impl<'s, T> HasRepr<'s> for With<'s, &location::With<T>> {
+    fn repr(&self) -> &'s str {
+        self.source_slice(&self.source)
     }
 }

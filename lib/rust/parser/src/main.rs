@@ -30,12 +30,26 @@ pub mod prelude {
 
 
 
+use crate::source::HasRepr;
 use lexer::Lexer;
 
 #[derive(Clone, Debug)]
 pub enum TokenOrAst {
     Token(Token),
     Ast(Ast),
+}
+
+impl TokenOrAst {
+    fn is_variant(&self, variant: lexer::KindVariant) -> bool {
+        match self {
+            Self::Token(token) => token.is(variant),
+            _ => false,
+        }
+    }
+
+    fn is_operator(&self) -> bool {
+        self.is_variant(lexer::KindVariant::Operator)
+    }
 }
 
 impl From<Token> for TokenOrAst {
@@ -50,7 +64,23 @@ impl From<Ast> for TokenOrAst {
     }
 }
 
+impl<'s> HasRepr<'s> for &source::With<'s, &TokenOrAst> {
+    fn repr(&self) -> &'s str {
+        match self.data {
+            TokenOrAst::Ast(ast) => self.with_data(ast).repr(),
+            TokenOrAst::Token(token) => self.with_data(token).repr(),
+        }
+    }
+}
 
+impl<'s> HasRepr<'s> for source::With<'s, &TokenOrAst> {
+    fn repr(&self) -> &'s str {
+        match self.data {
+            TokenOrAst::Ast(ast) => self.with_data(ast).repr(),
+            TokenOrAst::Token(token) => self.with_data(token).repr(),
+        }
+    }
+}
 
 // ======================
 // === MacroMatchTree ===
@@ -165,7 +195,11 @@ impl<'a> Resolver<'a> {
         }
         match self.resolve_current_macro() {
             Some(ast) => ast,
-            None => resolve_operator_precedence(&self.leading_tokens),
+            None => {
+                let tmp: Vec<TokenOrAst> =
+                    self.leading_tokens.iter().map(|t| t.clone().into()).collect_vec();
+                resolve_operator_precedence(lexer, tmp)
+            }
         }
     }
 
@@ -261,18 +295,30 @@ impl<'a> Resolver<'a> {
     }
 }
 
-// TODO:
+// TODO: cargo build --timings
+
+
+pub fn precedence_of(operator: &str) -> usize {
+    match operator {
+        _ => panic!("Operator not supported: {}", operator),
+    }
+}
 // Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
 // foo +(a * b) - OK
 // foo +if a then b else c - NOT OK
-pub fn resolve_operator_precedence(tokens: &[TokenOrAst]) -> Ast {
-    let pub output:Vec<TokenOrAst> = default();
-    for token in tokens {
-        match token.elem.variant() {
-            lexer::I
+pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
+    // Reverse-polish notation encoding.
+    let mut output: Vec<TokenOrAst> = default();
+    let mut operator_stack: Vec<(Token, usize)> = default();
+    for item in items {
+        if item.is_operator() {
+            let precedence = precedence_of(lexer.repr(&item));
+            panic!("Operator not supported yet")
+        } else {
+            output.push(item);
+            // panic!("Not supported yet: {:#?}", item)
         }
     }
-    println!("{:#?}", tokens);
     panic!()
 }
 

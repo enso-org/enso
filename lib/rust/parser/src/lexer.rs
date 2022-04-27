@@ -1,6 +1,7 @@
 use crate::location;
 use crate::prelude::*;
 use crate::source;
+use crate::source::traits::*;
 use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
@@ -173,18 +174,6 @@ impl<T> location::With<T> {
     }
 }
 
-impl<'s, T> source::With<'s, location::With<T>> {
-    pub fn repr(&self) -> &str {
-        self.data.source_slice(&self.source)
-    }
-}
-
-impl<'s, T> source::With<'s, &location::With<T>> {
-    pub fn repr(&self) -> &str {
-        self.data.source_slice(&self.source)
-    }
-}
-
 impl PartialEq<Token> for &Token {
     #[inline(always)]
     fn eq(&self, other: &Token) -> bool {
@@ -300,8 +289,9 @@ impl<'s> Lexer<'s> {
     }
 
     #[inline(always)]
-    pub fn repr<T>(&self, token: location::With<T>) -> &str {
-        token.source_slice(&self.input)
+    pub fn repr<'t, T: 't>(&'t self, element: T) -> &str
+    where source::With<'s, T>: source::HasRepr<'s> {
+        source::With::new(&self.input, element).repr()
     }
 }
 
@@ -548,8 +538,14 @@ macro_rules! tagged_enum {
         )*
 
         impl $name {
+            /// Variant of this element.
             pub fn variant(&self) -> [<$name Variant>] {
                 self.into()
+            }
+
+            /// Check whether this element is the given variant.
+            pub fn is(&self, variant:[<$name Variant>]) -> bool {
+                self.variant() == variant
             }
 
             $(
@@ -557,6 +553,12 @@ macro_rules! tagged_enum {
                 #[inline(always)]
                 pub fn [<$variant:snake:lower>]($($($arg : $arg_tp),*)?) -> Self {
                     Self::$variant($variant { $($($arg),*)? })
+                }
+
+                /// Check whether this element is the given variant.
+                #[inline(always)]
+                pub fn [<is_ $variant:snake:lower>](&self) -> bool {
+                    self.is([<$name Variant>]::$variant)
                 }
             )*
         }
