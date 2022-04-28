@@ -9,6 +9,7 @@ use enso_data_structures::im_list;
 #[derive(Clone, Debug)]
 pub enum Pattern {
     Everything,
+    Nothing,
     // TokenVariant(lexer::KindVariant),
     Seq(Box<Pattern>, Box<Pattern>),
 }
@@ -21,6 +22,7 @@ impl Pattern {
 
     fn resolve_internal(&self, stream: &mut slice::Iter<TokenOrAst>) -> Vec<TokenOrAst> {
         match self {
+            Self::Nothing => default(),
             // todo:perf of clone?
             Self::Everything => stream.cloned().collect(),
             // Self::TokenVariant(token_variant_pattern) =>

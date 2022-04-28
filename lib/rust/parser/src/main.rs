@@ -372,7 +372,7 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
-    Ast::opr_section_boundary(opt_rhs.unwrap())
+    Ast::opr_section_boundary(opt_rhs.unwrap_or_else(|| Ast::fixme()))
 }
 
 
@@ -385,9 +385,14 @@ pub enum AstData {
     OprSectionBoundary(Box<Ast>),
     OprApp(Box<OprApp>),
     App(Box<App>),
+    Fixme,
 }
 
 impl Ast {
+    fn fixme() -> Ast {
+        location::With::new_no_offset_phantom(Bytes::from(0), AstData::Fixme)
+    }
+
     fn opr_section_boundary(section: Ast) -> Ast {
         let (left_offset_token, section) = section.split_at_start();
         let total = left_offset_token.extended_to(&section);
@@ -488,6 +493,7 @@ where source::With<'s, &'t T>: Debug
 impl<'s> Debug for source::With<'s, &AstData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.data {
+            AstData::Fixme => f.debug_tuple("Fixme").finish(),
             AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
             AstData::MultiSegmentApp(t) =>
                 f.debug_tuple("MultiSegmentApp").field(&self.trans(|_| t)).finish(),
@@ -613,6 +619,16 @@ fn macro_if_then<'a>() -> macros::Definition<'a> {
     }
 }
 
+fn macro_group<'a>() -> macros::Definition<'a> {
+    let section1 = macros::SegmentDefinition::new("(", Pattern::Everything);
+    let section2 = macros::SegmentDefinition::new(")", Pattern::Nothing);
+    macros::Definition {
+        rev_prefix_pattern: None,
+        segments:           im_list::NonEmpty::singleton(section2).with_head(section1),
+        body:               Rc::new(matched_segments_into_multi_segment_app),
+    }
+}
+
 
 
 fn main() {
@@ -621,7 +637,7 @@ fn main() {
     // let str = "if if * a + b * then y then b";
     // let str = "* a + b *";
     // let str = "* a + * b";
-    let str = "if a b then b";
+    let str = "(a) b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
@@ -640,12 +656,23 @@ fn main() {
     root_macro_map.entry("if").or_default().push(if_then);
     root_macro_map.entry("if").or_default().push(if_then_else);
 
-    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
+
+
+    let group = macro_group();
+    let group = PartiallyMatchedMacro {
+        required_segments: group.segments.tail.clone(),
+        definition:        Rc::new(group),
+    };
+
+    let mut root_macro_map2 = MacroMatchTree::default();
+    root_macro_map2.entry("(").or_default().push(group);
+
+    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map2);
 
     let mut resolver = Resolver::new();
     let ast = resolver.run(
         &lexer,
-        &root_macro_map,
+        &root_macro_map2,
         lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
     );
     println!("{:#?}", source::With::new(str, &ast));
@@ -657,3 +684,7 @@ fn main() {
 // (.foo a)
 // (* foo + bar)
 // a + * b
+
+
+// (a b) x -> y
+// (a b) x -> y -)
