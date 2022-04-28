@@ -201,7 +201,6 @@ impl component::Frp<Model> for Frp {
             header_accepted_by_frp <- input.accept_suggestion.gate(&out.is_header_selected);
             header_accepted_by_mouse <- model.header_overlay.events.mouse_down.constant(());
             header_accepted <- any(header_accepted_by_frp, header_accepted_by_mouse);
-            model.entries.select_entry <+ header_accepted.constant(None);
             out.header_accepted <+ header_accepted;
             out.expression_accepted <+ model.entries.chosen_entry.filter_map(|e| *e);
         }
@@ -221,11 +220,10 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             let mouse_over_header = model.header_overlay.events.mouse_over.clone_ref();
-            select_inside_list <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ moved_out_above.constant(true);
-            out.is_header_selected <+ mouse_over_header.constant(true);
-            out.is_header_selected <+ header_accepted.constant(true);
-            out.is_header_selected <+ select_inside_list.constant(false);
+            select_header <- any(moved_out_above, mouse_over_header);
+            deselect_header <- model.entries.selected_entry.filter_map(|entry| *entry);
+            out.is_header_selected <+ bool(&deselect_header, &select_header);
+            model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with4(
                 &out.is_header_selected,
@@ -382,7 +380,61 @@ pub type View = component::ComponentView<Model, Frp>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ensogl_list_view::entry::AnyModelProvider;
+
+    macro_rules! expect_entry_selected {
+        ($cgv:ident, $id:expr$(, $argv:tt)?) => {
+            assert_eq!($cgv.selected_entry.value(), Some($id)$(, $argv)?);
+            assert!(!$cgv.is_header_selected.value()$(, $argv)?);
+        };
+    }
+
+    macro_rules! expect_header_selected {
+        ($cgv:ident$(, $argv:tt)?) => {
+            assert_eq!($cgv.selected_entry.value(), None$(, $argv)?);
+            assert!($cgv.is_header_selected.value()$(, $argv)?);
+        };
+    }
 
     #[test]
-    fn component_browser_size() {}
+    fn navigating_entries_with_keyboard() {
+        let app = Application::new("root");
+        let cgv = View::new(&app);
+        let entries =
+            AnyModelProvider::<list_view::entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
+        cgv.set_entries(entries);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 1);
+        cgv.model().entries.move_selection_up();
+        expect_entry_selected!(cgv, 0);
+        cgv.model().entries.move_selection_up();
+        expect_header_selected!(cgv);
+        cgv.model().entries.move_selection_up();
+        expect_header_selected!(cgv);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+    }
+
+    #[test]
+    fn navigating_entries_with_keyboard_after_hovering_header() {
+        let app = Application::new("root");
+        let cgv = View::new(&app);
+        let entries =
+            AnyModelProvider::<list_view::entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
+        cgv.set_entries(entries);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+        cgv.model().header_overlay.events.mouse_over.emit(());
+        expect_header_selected!(cgv);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 1);
+        cgv.model().header_overlay.events.mouse_over.emit(());
+        expect_header_selected!(cgv);
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+    }
 }
