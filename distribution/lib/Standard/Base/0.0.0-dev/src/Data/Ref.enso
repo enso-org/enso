@@ -5,8 +5,6 @@ type Ref
     @Builtin_Type
     type Ref
 
-## FIXME consider moving this as methods of Ref, currently a lot of stuff depends
-##       on the current design
 ## Gets the contents of the mutable reference ref.
 
    Arguments:
