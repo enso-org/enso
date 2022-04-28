@@ -66,6 +66,10 @@ impl<T> StyleValue<T> {
 #[macro_export]
 /// Create struct called `Style` that can hold updatable style information.
 macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $(,)? ) => {
+
+    #[allow(unused_imports)]
+    use $crate::prelude::*;
+
     /// Set of cursor style parameters. You can construct this object in FRP network, merge it using
     /// its `Semigroup` instance, and finally pass to the cursor to apply the style. Please note
     /// that cursor does not implement any complex style management (like pushing or popping a style

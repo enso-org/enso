@@ -71,49 +71,6 @@ fn main() {
     }
     let profiles = profiles_;
     assert_eq!(profiles.len(), 2);
-
-    let mut metadata0 = vec![];
-    let mut metadata1 = vec![];
-    collect_metadata(&profiles[0], profiles[0].root_interval_id(), &mut metadata0);
-    collect_metadata(&profiles[1], profiles[1].root_interval_id(), &mut metadata1);
-    let mut dia = beanpole::Diagram::default();
-    let frontend = dia.process("Ide");
-    let ls = dia.process("LanguageServer");
-    let engine = dia.process("Engine");
-    // TODO[kw]: Add metadata to format and read these fields from the file.
-    let mut offset0 = None;
-    let mut offset1 = None;
-    for meta in metadata0.into_iter() {
-        if let enso_data::Metadata::RpcEvent(message) = meta.data {
-            let abs_time = meta.mark.into_ms();
-            let offset = offset0.get_or_insert(abs_time);
-            let time = abs_time - *offset;
-            dia.message(ls, frontend, time, message);
-        }
-    }
-    for meta in metadata1.into_iter() {
-        if let enso_data::Metadata::BackendMessage(message) = meta.data {
-            let abs_time = meta.mark.into_ms();
-            let offset = offset1.get_or_insert(abs_time);
-            let time = abs_time - *offset;
-            let (p0, p1) = match message.direction {
-                enso_data::backend::Direction::Request => (ls, engine),
-                enso_data::backend::Direction::Response => (engine, ls),
-            };
-            dia.message(p0, p1, time, message.endpoint);
-        }
-    }
+    let dia = beanpole::Diagram::from_profiles(&[&profiles[0], &profiles[1]]);
     beanpole::svg::write_diagram(&dia, std::io::stdout()).unwrap();
-}
-
-fn collect_metadata<M: Clone>(
-    profile: &data::Profile<M>,
-    interval: data::IntervalId,
-    metadata: &mut Vec<data::Metadata<M>>,
-) {
-    let interval = &profile[interval];
-    metadata.extend(interval.metadata.iter().cloned());
-    for &child in &interval.children {
-        collect_metadata(profile, child, metadata);
-    }
 }
