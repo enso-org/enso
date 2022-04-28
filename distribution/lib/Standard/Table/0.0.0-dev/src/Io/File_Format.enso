@@ -4,12 +4,7 @@ import Standard.Table
 import Standard.Base.Error.Extensions as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
-
-## TODO [RW] Not sure if shouldn't move the impl. details of Delimited to a separate file
-polyglot java import org.enso.table.read.DelimitedReader
-polyglot java import org.enso.table.read.ParsingFailedException
-polyglot java import org.enso.table.read.InvalidRow
-polyglot java import java.lang.IllegalArgumentException
+import Standard.Table.Io.Delimited_Reader
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
@@ -103,40 +98,8 @@ type Delimited
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        java_headers = case this.headers of
-            True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-            Infer -> Errors.unimplemented "Inferring headers is not implemented yet."
-            False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
-        skip_rows = case this.skip_rows of
-            Nothing -> 0
-            Integer -> skip_rows
-            _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
-        row_limit = case this.row_limit of
-            Nothing -> -1
-            Integer -> row_limit
-            _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
-        if this.parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
-            if this.encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
-                ## TODO test and handle errors like file not found or access denied etc.
-                translate_illegal_argument caught_panic =
-                    Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-                translate_problem java_problem =
-                    if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
-                        java_problem
-                translate_parsing_failure caught_panic =
-                    Error.throw (translate_problem caught_panic.payload.cause.problem)
+        Delimited_Reader.read_file this file on_problems
 
-                Panic.catch IllegalArgumentException handler=translate_illegal_argument <|
-                    Panic.catch ParsingFailedException handler=translate_parsing_failure <|
-                        file.with_input_stream [File.Option.Read] stream->
-                            stream.with_java_stream java_stream->
-                                warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                                reader = DelimitedReader.new java_stream this.delimiter this.quote this.quote_escape java_headers skip_rows row_limit this.keep_invalid_rows warnings_as_errors
-                                result = Table.Table reader.read
-                                problems = Vector.Vector reader.getReportedProblems . map translate_problem
-                                on_problems.attach_problems_after result problems
-
-## FIXME [RW] where to put these?
+## A setting to infer the default behaviour of some option.
 type Infer
-type Invalid_Row (source_file_row : Integer) (index : Integer | Nothing) (row : [Text])
-type Mismatched_Quote
+

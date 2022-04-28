@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
@@ -30,7 +29,7 @@ public class DelimitedReader {
   private final HeaderBehavior headerBehavior;
   private final long skipRows;
   private final long rowLimit;
-  private final InputStream inputStream;
+  private final int maxColumns;
   private final List<ParsingProblem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final boolean keepInvalidRows;
@@ -50,6 +49,7 @@ public class DelimitedReader {
       HeaderBehavior headerBehavior,
       long skipRows,
       long rowLimit,
+      int maxColumns,
       boolean keepInvalidRows,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
@@ -98,9 +98,9 @@ public class DelimitedReader {
     this.headerBehavior = headerBehavior;
     this.skipRows = skipRows;
     this.rowLimit = rowLimit;
+    this.maxColumns = maxColumns;
     this.keepInvalidRows = keepInvalidRows;
     this.warningsAsErrors = warningsAsErrors;
-    this.inputStream = inputStream;
 
     parser = setupCsvParser(inputStream);
   }
@@ -114,6 +114,7 @@ public class DelimitedReader {
     format.setQuoteEscape(quoteEscapeCharacter);
     settings.setFormat(format);
     settings.setMaxCharsPerColumn(-1);
+    settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
     settings.setKeepQuotes(false);
     CsvParser parser = new CsvParser(settings);
