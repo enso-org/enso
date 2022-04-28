@@ -118,6 +118,18 @@ spec =
             problems_dropped = [Invalid_Row 2 Nothing ['1', '2', '3', '4'], Invalid_Row 4 Nothing ['1', '2'], Invalid_Row 5 Nothing [Nothing], Invalid_Row 6 Nothing ['1'], Invalid_Row 7 Nothing ['1', '2', '3', '4', '5', '6', '7', '8']]
             Problems.test_problem_handling (action keep_invalid_rows=False) problems_dropped tester_dropped
 
+        Test.specify "should aggregate invalid rows over some limit" <|
+            action on_problems =
+                (File_Format.Delimited "," headers=True keep_invalid_rows=False).read (Enso_Project.data / "many_invalid_rows.csv") on_problems
+
+            tester table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['0', '5']
+                table.at 'b' . to_vector . should_equal ['x', 'u']
+                table.at 'c' . to_vector . should_equal ['y', 'v']
+            problems = [Invalid_Row 3 Nothing ['1'], Invalid_Row 4 Nothing ['2'], Invalid_Row 5 Nothing ['3'], Invalid_Row 6 Nothing ['4'], Invalid_Row 8 Nothing ['6'], Invalid_Row 9 Nothing ['7'], Invalid_Row 10 Nothing ['8'], Invalid_Row 11 Nothing ['9'], Invalid_Row 12 Nothing ['10'], Invalid_Row 13 Nothing ['11'], Additional_Invalid_Rows 3]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should allow to skip rows" <|
             t1 = (File_Format.Delimited "," headers=False skip_rows=3).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
             t1.at "Column_1" . to_vector . should_equal ['7', '10']

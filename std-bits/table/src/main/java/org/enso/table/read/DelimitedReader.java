@@ -162,12 +162,24 @@ public class DelimitedReader {
     reportProblem(new MismatchedQuote());
   }
 
+  private long invalidRowsCount = 0;
+  private final static long invalidRowsLimit = 10;
+
   private void reportInvalidRow(long source_row, Long table_index, String[] row) {
-    reportProblem(new InvalidRow(source_row, table_index, row));
+    if (invalidRowsCount < invalidRowsLimit) {
+      reportProblem(new InvalidRow(source_row, table_index, row));
+    }
+
+    invalidRowsCount++;
   }
 
   public List<ParsingProblem> getReportedProblems() {
-    return warnings;
+    List<ParsingProblem> result = new ArrayList<>(warnings);
+    if (invalidRowsCount > invalidRowsLimit) {
+      long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
+      result.add(new AdditionalInvalidRows(additionalInvalidRows));
+    }
+    return result;
   }
 
   private void reportProblem(ParsingProblem problem) {
