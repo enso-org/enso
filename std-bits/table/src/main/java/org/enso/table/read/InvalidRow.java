@@ -1,5 +1,6 @@
 package org.enso.table.read;
 
+/** A problem indicating that a row contained more or less columns than expected. */
 public class InvalidRow implements ParsingProblem {
   public final long source_row;
   public final Long table_index;

@@ -17,7 +17,15 @@ polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import java.io.InputStream
 
-## Reads a file according to the provided format.
+## Reads a delimited file according to the provided format.
+
+   Arguments:
+   - format: The specification of the delimited file format.
+   - file: The file to read.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
 read_file : Delimited -> File -> Problem_Behavior -> Any
 read_file format file on_problems =
     if format.encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
@@ -32,15 +40,21 @@ read_file format file on_problems =
 ## PRIVATE
    Reads an input stream according to the provided format.
 
-   The `encoding` parameter is ignored, the provided stream should handle any
-   necessary decoding.
+   The `encoding` parameter is ignored, instead the provided stream should
+   handle any necessary decoding.
 
    Arguments:
-   - format:
-   - java_stream:
-   - on_problems:
-   - max_columns:
-   - related_file:
+   - format: The specification of the delimited file format.
+   - java_stream: A Java `InputStream` used as the data source.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - max_columns: Specifies the limit of columns to read. The limit is set to
+     avoid `OutOfMemory` errors on malformed files. It must be a positive
+     integer.
+   - related_file: The file related to the provided `java_stream`, if available,
+     or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> Any
 read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
     java_headers = case format.headers of

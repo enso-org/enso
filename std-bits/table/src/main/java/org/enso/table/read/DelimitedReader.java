@@ -16,12 +16,24 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.util.NameDeduplicator;
 
+/** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
+
+  /** Specifies how to set the headers for the returned table. */
   public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
     INFER,
+
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
     USE_FIRST_ROW_AS_HEADERS,
+
+    /**
+     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
+     */
     GENERATE_HEADERS
   }
+
+  private static final String COLUMN_NAME = "Column";
 
   private final char delimiter;
   private final char quoteCharacter;
@@ -37,10 +49,28 @@ public class DelimitedReader {
 
   private static final char noQuoteCharacter = '\0';
 
-  boolean hasQuote() {
-    return quoteCharacter != noQuoteCharacter;
-  }
-
+  /**
+   * Creates a new reader.
+   *
+   * @param inputStream the stream to read from
+   * @param delimiter the delimiter, should be a single character, but is a String for proper
+   *     interoperability with Enso; if a string that does not fit in a single character is
+   *     provided, an exception is raised
+   * @param quote the quote character to use, should be a single character or {@code null}, but is a
+   *     String for proper interoperability with Enso; if a string that does not fit in a single
+   *     character is provided, an exception is raised
+   * @param quoteEscape the quote escape character to use, should be a single character or {@code
+   *     null}, but is a * String for proper interoperability with Enso; if a string that does not
+   *     fit in a single * character is provided, an exception is raised
+   * @param headerBehavior specifies how to set the header for the resulting table
+   * @param skipRows specifies how many rows from the input to skip
+   * @param rowLimit specifies how many rows to read (does not include the header row)
+   * @param maxColumns specifies how many columns can be expected at most
+   * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
+   * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
+   *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
+   *     to be discarded anyway)
+   */
   public DelimitedReader(
       InputStream inputStream,
       String delimiter,
@@ -105,6 +135,7 @@ public class DelimitedReader {
     parser = setupCsvParser(inputStream);
   }
 
+  /** Creates a {@code CsvParser} according to the settings specified at construction. */
   private CsvParser setupCsvParser(InputStream inputStream) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
@@ -122,6 +153,12 @@ public class DelimitedReader {
     return parser;
   }
 
+  /**
+   * Parses a cell.
+   *
+   * <p>Currently just handles quotes. In the future it will be extended to delegate to a parsing
+   * strategy for values.
+   */
   private String parseCell(String cell) {
     if (cell == null) return null;
 
@@ -135,8 +172,9 @@ public class DelimitedReader {
     return cell;
   }
 
+  /** Parses a header cell, removing surrounding quotes. */
   private String parseHeader(String cell) {
-    if (cell == null) return "Column";
+    if (cell == null) return COLUMN_NAME;
 
     if (cell.isEmpty()) return cell;
     if (cell.charAt(0) == quoteCharacter) {
@@ -146,6 +184,12 @@ public class DelimitedReader {
     return cell;
   }
 
+  /**
+   * If the first character of a string is a quote, will remove the surrounding quotes.
+   *
+   * <p>If the first character of a string is a quote but the last one is not, mismatched quote
+   * problem is reported.
+   */
   private String stripQuotes(String cell) {
     assert cell.charAt(0) == quoteCharacter;
 
@@ -163,7 +207,7 @@ public class DelimitedReader {
   }
 
   private long invalidRowsCount = 0;
-  private final static long invalidRowsLimit = 10;
+  private static final long invalidRowsLimit = 10;
 
   private void reportInvalidRow(long source_row, Long table_index, String[] row) {
     if (invalidRowsCount < invalidRowsLimit) {
@@ -173,6 +217,7 @@ public class DelimitedReader {
     invalidRowsCount++;
   }
 
+  /** Returns a list of currently reported problems encountered when parsing the input. */
   public List<ParsingProblem> getReportedProblems() {
     List<ParsingProblem> result = new ArrayList<>(warnings);
     if (invalidRowsCount > invalidRowsLimit) {
@@ -191,13 +236,21 @@ public class DelimitedReader {
   }
 
   private long target_table_index = 0;
+
+  /** The line number of the start of the current row in the input file. */
   private long current_line = 0;
 
+  /**
+   * Reads the next row and updates the current line accordingly.
+   *
+   * <p>Will return {@code null} if no more rows are available.
+   */
   private String[] nextRow() {
     current_line = parser.getContext().currentLine() + 1;
     return parser.parseNext();
   }
 
+  /** Reads the input stream and returns a Table. */
   public Table read() {
     List<String> headerNames;
     String[] currentRow = nextRow();
@@ -225,7 +278,7 @@ public class DelimitedReader {
       case GENERATE_HEADERS:
         headerNames = new ArrayList<>(currentRow.length);
         for (int i = 0; i < currentRow.length; ++i) {
-          headerNames.add("Column_" + (i + 1));
+          headerNames.add(COLUMN_NAME + "_" + (i + 1));
         }
         break;
       default:
@@ -236,10 +289,7 @@ public class DelimitedReader {
 
     while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
       if (currentRow.length != builders.length) {
-        reportInvalidRow(
-            current_line,
-            keepInvalidRows ? target_table_index : null,
-            currentRow);
+        reportInvalidRow(current_line, keepInvalidRows ? target_table_index : null, currentRow);
 
         if (keepInvalidRows) {
           for (int i = 0; i < builders.length && i < currentRow.length; i++) {
@@ -269,7 +319,6 @@ public class DelimitedReader {
       currentRow = nextRow();
     }
 
-    // FIXME [RW] check if this should be a try-finally
     parser.stopParsing();
 
     Column[] columns = new Column[builders.length];

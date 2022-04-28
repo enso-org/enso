@@ -7,7 +7,6 @@ package org.enso.table.read;
 public class ParsingFailedException extends RuntimeException {
   public final ParsingProblem problem;
 
-
   public ParsingFailedException(ParsingProblem problem) {
     this.problem = problem;
   }
