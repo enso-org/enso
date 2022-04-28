@@ -7,10 +7,15 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Table.Internal.Delimited_Reader
 
 from Standard.Table.Error import Invalid_Location
+
+import Standard.Table.Data.Table
 import Standard.Table.Io.Excel_Section
 
+polyglot java import org.enso.table.format.xlsx.Reader
 polyglot java import org.enso.table.format.xlsx.Range
 polyglot java import java.lang.IllegalArgumentException
+
+polyglot java import java.io.IOException
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
@@ -133,4 +138,14 @@ type Excel
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        Panic.throw "To Do"
+        reader stream = case this.section of
+            Excel_Section.Sheet_Names -> Vector.Vector (Reader.readSheetNames stream)
+            Excel_Section.Range_Names -> Vector.Vector (Reader.readRangeNames stream)
+            Excel_Section.Sheet sheet skip_rows row_limit ->
+                Table.Table <|
+                    if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit) else
+                        Reader.readSheetByName stream sheet skip_rows row_limit
+            Excel_Section.Range address skip_rows row_limit -> Table.Table (Reader.readRange stream address skip_rows row_limit)
+
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream reader

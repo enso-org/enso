@@ -2,13 +2,14 @@ package org.enso.table.format.xlsx;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFName;
+import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
@@ -23,7 +24,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /** A table reader for MS Excel files. */
 public class Reader {
@@ -182,7 +185,11 @@ public class Reader {
         if (cell == null) {
           builders.get(j - minCol).append(null);
         } else {
-          builders.get(j - minCol).append(getCellValue(cell, mkDate));
+          Object value = getCellValue(cell);
+          if (value instanceof LocalDate) {
+            value = mkDate.apply((LocalDate) value);
+          }
+          builders.get(j - minCol).append(getCellValue(cell));
         }
       }
     }
@@ -193,38 +200,108 @@ public class Reader {
     return new Table(columns);
   }
 
-  private static Object getCellValue(Cell cell, Function<LocalDate, Value> mkDate) {
-    return getCellValue(cell, cell.getCellType(), mkDate);
+  private static Table readSheetToTable(Sheet sheet, Range range, int skipRows, int rowCount) {
+    // Row Range
+    int firstRow = sheet.getFirstRowNum() + 1;
+    int lastRow = sheet.getLastRowNum() + 1;
+    int startRow = (range == null || range.isWholeColumn() ? 1 : range.getTopRow()) + skipRows;
+    int endRow =
+        Math.min(
+            range == null || range.isWholeColumn() ? lastRow : range.getBottomRow(),
+            startRow + rowCount - 1);
+
+    // Columns
+    int startCol = (range == null || range.isWholeRow() ? 1 : range.getLeftColumn());
+    int endCol = (range == null || range.isWholeRow() ? -1 : range.getRightColumn());
+    List<Builder> builders =
+        endCol == -1
+            ? new ArrayList<>()
+            : IntStream.range(startCol, endCol + 1)
+                .mapToObj(i -> new InferredBuilder(endRow - startRow + 1))
+                .collect(Collectors.toList());
+
+    // Read Cell Data
+    for (int row = startRow; row <= endRow; row++) {
+      if (row < firstRow || row > lastRow) {
+        builders.forEach(b -> b.append(null));
+      } else {
+        Row currentRow = sheet.getRow(row - 1);
+
+        int currentEndCol = endCol == -1 ? currentRow.getLastCellNum() + 1 : endCol;
+        for (int i = builders.size(); i <= currentEndCol - startCol; i++) {
+          Builder builder = new InferredBuilder(endRow - startRow + 1);
+          builder.appendNulls(row - startRow);
+          builders.add(builder);
+        }
+
+        int firstCol = currentRow.getFirstCellNum() + 1;
+        int lastCol = currentRow.getLastCellNum();
+        for (int col = startCol; col <= currentEndCol; col++) {
+          Object value =
+              col < firstCol || col > lastCol ? null : getCellValue(currentRow.getCell(col - 1));
+          builders.get(col - startCol).append(value);
+        }
+      }
+    }
+
+    // Create Table
+    Column[] columns =
+        IntStream.range(0, builders.size())
+            .mapToObj(
+                idx ->
+                    new Column(
+                        CellReference.convertNumToColString(startCol + idx),
+                        builders.get(idx).seal()))
+            .toArray(Column[]::new);
+
+    return new Table(columns);
   }
 
-  private static Object getCellValue(
-      Cell cell, CellType cellType, Function<LocalDate, Value> mkDate) {
+  private static String getRefersTo(Workbook workbook, String rangeName) {
+    for (Name name : workbook.getAllNames()) {
+      if (name.getNameName().equalsIgnoreCase(rangeName)) {
+        return name.getRefersToFormula();
+      }
+    }
+    return null;
+  }
+
+  private static int getSheetIndex(Workbook workbook, String sheetName) {
+    int sheetCount = workbook.getNumberOfSheets();
+    for (int i = 0; i < sheetCount; i++) {
+      if (workbook.getSheetName(i).equalsIgnoreCase(sheetName)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private static Object getCellValue(Cell cell) {
+    CellType cellType = cell.getCellType();
+    if (cellType == CellType.FORMULA) {
+      cellType = cell.getCachedFormulaResultType();
+    }
+
     switch (cellType) {
-      case FORMULA:
-        return getCellValue(cell, cell.getCachedFormulaResultType(), mkDate);
       case NUMERIC:
         if (DateUtil.isCellDateFormatted(cell)) {
-          return mkDate.apply(cell.getLocalDateTimeCellValue().toLocalDate());
+          return cell.getLocalDateTimeCellValue().toLocalDate();
         } else {
           return cell.getNumericCellValue();
         }
       case STRING:
         return cell.getStringCellValue();
-      case ERROR:
-        return null;
       case BOOLEAN:
         return cell.getBooleanCellValue();
+      case ERROR:
       case BLANK:
-        return null;
       case _NONE:
         return null;
     }
     return null;
   }
 
-  public static String[] SheetNames(InputStream stream)
-      throws IOException
-  {
+  public static String[] readSheetNames(InputStream stream) throws IOException {
     XSSFWorkbook workbook = new XSSFWorkbook(stream);
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
@@ -234,17 +311,57 @@ public class Reader {
     return output;
   }
 
-  public static String[] RangeNames(InputStream stream)
-      throws IOException
-  {
-    XSSFWorkbook workbook = new XSSFWorkbook(stream);
-    return workbook.getAllNames().stream().map(XSSFName::getNameName).toArray(String[]::new);
+  public static String[] readRangeNames(InputStream stream) throws IOException {
+    Workbook workbook = new XSSFWorkbook(stream);
+    return workbook.getAllNames().stream().map(Name::getNameName).toArray(String[]::new);
   }
 
-  public static Table ReadRangeByName(InputStream stream, String nameOrAddress)
-      throws IOException
-  {
+  public static Table readSheetByName(
+      InputStream stream, String sheetName, Integer skip_rows, Integer row_limit)
+      throws IOException, IllegalArgumentException {
+    Workbook workbook = new XSSFWorkbook(stream);
+
+    int sheetIndex = getSheetIndex(workbook, sheetName);
+    if (sheetIndex == -1) {
+      throw new IllegalArgumentException("Unknown sheet '" + sheetName + "'.");
+    }
+
+    Sheet sheet = workbook.getSheetAt(sheetIndex);
+    return readSheetToTable(sheet, null, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
+  }
+
+  public static Table readSheetByIndex(
+      InputStream stream, int index, Integer skip_rows, Integer row_limit)
+      throws IOException, IllegalArgumentException {
     XSSFWorkbook workbook = new XSSFWorkbook(stream);
-    return null;
+
+    int sheetCount = workbook.getNumberOfSheets();
+    if (index < 1 || index > sheetCount) {
+      throw new IllegalArgumentException(
+          "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
+    }
+
+    Sheet sheet = workbook.getSheetAt(index - 1);
+    return readSheetToTable(sheet, null, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
+  }
+
+  public static Table readRange(
+      InputStream stream, String nameOrAddress, Integer skip_rows, Integer row_limit)
+      throws IOException {
+    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+
+    String refersTo = getRefersTo(workbook, nameOrAddress);
+    if (refersTo == null) {
+      refersTo = nameOrAddress;
+    }
+    Range range = new Range(refersTo);
+
+    int sheetIndex = getSheetIndex(workbook, range.getSheetName());
+    if (sheetIndex == -1) {
+      throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
+    }
+
+    Sheet sheet = workbook.getSheetAt(sheetIndex);
+    return readSheetToTable(sheet, range, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 }
