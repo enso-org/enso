@@ -4,12 +4,6 @@ import Standard.Base.Nothing
 from Standard.Base.Runtime.Extensions import Source_Location
 
 ## Utilities for interacting with the runtime.
-##type Runtime
-##
-##    ## A container type for utility methods that allow interacting with the Enso
-##       runtime.
-##    @Builtin_Type
-##    type Runtime
 
 ## PRIVATE
 
