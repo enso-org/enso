@@ -3,10 +3,8 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -40,7 +38,6 @@ import org.enso.polyglot.data.TypeGraph;
   Function.class,
   Atom.class,
   AtomConstructor.class,
-  Thunk.class,
   DataflowError.class,
   UnresolvedConversion.class,
   UnresolvedSymbol.class,
@@ -124,8 +121,6 @@ public class Types {
       return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
     } else if (TypesGen.isAtomConstructor(value)) {
       return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
-    } else if (TypesGen.isThunk(value)) {
-      return Constants.THUNK;
     } else if (TypesGen.isDataflowError(value)) {
       return Constants.ERROR;
     } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
