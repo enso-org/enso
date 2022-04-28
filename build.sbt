@@ -1356,6 +1356,8 @@ lazy val launcher = project
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
       case x =>
         MergeStrategy.first
     }
