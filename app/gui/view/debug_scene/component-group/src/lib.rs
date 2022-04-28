@@ -105,9 +105,8 @@ fn init(app: &Application) {
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
     component_group.set_entries(provider);
-    component_group.set_size(Vector2(150.0, 200.0));
+    component_group.set_width(150.0);
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
-    component_group.set_header_selectable(true);
     app.display.add_child(&component_group);
     app.display.add_child(&selection);
 
@@ -115,9 +114,12 @@ fn init(app: &Application) {
         selection_animation.target <+ component_group.selection_position_target;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
 
-        eval component_group.chose_entry ([](id) DEBUG!("Chose Entry {id}"));
-        eval_ component_group.chose_header ([] DEBUG!("Chose Header"));
+        eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
+        eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+        eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
     }
+    selection_animation.target.emit(component_group.selection_position_target.value());
+    selection_animation.skip.emit(());
 
     std::mem::forget(network);
     std::mem::forget(selection);

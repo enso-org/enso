@@ -17,7 +17,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -135,25 +135,24 @@ impl HeaderGeometry {
 
 ensogl_core::define_endpoints_2! {
     Input {
-        /// Emit the `chose_header` event when it is selected
-        ///
-        /// The name reflects the current state of the List View. Used in debug scene, should
-        /// be changed when implementing https://www.pivotaltracker.com/story/show/181414807
-        /// and https://www.pivotaltracker.com/story/show/180892146.
-        choose_header_if_selected(),
+        /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
+        /// described in
+        /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
+        accept_suggestion(),
         set_header(String),
-        set_header_selectable(bool),
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
-        set_size(Vector2),
+        set_width(f32),
     }
     Output {
         selected_entry(Option<EntryId>),
-        chose_entry(EntryId),
+        suggestion_accepted(EntryId),
+        expression_accepted(EntryId),
         is_header_selected(bool),
-        chose_header(),
+        header_accepted(),
         selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
+        size(Vector2<f32>)
     }
 }
 
@@ -164,17 +163,23 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_size = style.get_number(theme::header::text::size);
 
+
+        // === Geometry ===
+
         frp::extend! { network
-
-            // === Geometry ===
-
             let header_geometry = HeaderGeometry::from_style(style, network);
-            size_and_header_geometry <- all(&input.set_size, &header_geometry);
+            height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
+                entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
+            });
+            out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
+            size_and_header_geometry <- all(&out.size, &header_geometry);
             eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
+        }
 
 
-            // === Header ===
+        // === Header ===
 
+        frp::extend! { network
             init <- source_();
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
@@ -184,52 +189,59 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            eval input.set_background_color((c)
-            model.background.color.set(c.into()));
+            eval input.set_background_color((c) model.background.color.set(c.into()));
+        }
 
 
-            // === Entries ===
+        // === Suggestion Acceptance ===
 
-            model.entries.set_background_color(HOVER_COLOR);
-            model.entries.show_background_shadow(false);
-            model.entries.set_background_corners_radius(0.0);
+        frp::extend! { network
+            accepted_entry <- model.entries.selected_entry.sample(&input.accept_suggestion);
+            out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e);
+            header_accepted_by_frp <- input.accept_suggestion.gate(&out.is_header_selected);
+            header_accepted_by_mouse <- model.header_overlay.events.mouse_down.constant(());
+            header_accepted <- any(header_accepted_by_frp, header_accepted_by_mouse);
+            model.entries.select_entry <+ header_accepted.constant(None);
+            out.header_accepted <+ header_accepted;
+            out.expression_accepted <+ model.entries.chosen_entry.filter_map(|e| *e);
+        }
+
+
+        // === Entries ===
+
+        frp::extend! { network
             model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
-            out.chose_entry <+ model.entries.chosen_entry.filter_map(|e| *e);
+        }
 
 
-            // === Selection ===
+        // === Selection ===
 
-            let is_header_selectable = &input.set_header_selectable;
+        frp::extend! { network
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             let mouse_over_header = model.header_overlay.events.mouse_over.clone_ref();
-            select_header_after_moving_out <- moved_out_above.gate(is_header_selectable);
-            select_header_after_hover <- mouse_over_header.gate(is_header_selectable);
             select_inside_list <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ select_header_after_moving_out.constant(true);
-            out.is_header_selected <+ select_header_after_hover.constant(true);
+            out.is_header_selected <+ moved_out_above.constant(true);
+            out.is_header_selected <+ mouse_over_header.constant(true);
+            out.is_header_selected <+ header_accepted.constant(true);
             out.is_header_selected <+ select_inside_list.constant(false);
 
             out.selection_position_target <+ all_with4(
                 &out.is_header_selected,
-                &input.set_size,
+                &out.size,
                 &header_geometry,
                 &model.entries.selection_position_target,
                 f!((h_sel, size, h, esp) model.selection_position(*h_sel, *size, *h, *esp))
             );
-
-
-            // === Choosing Header ===
-
-            out.chose_header <+ input.choose_header_if_selected.gate(&out.is_header_selected);
         }
+
         init.emit(());
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
         use ensogl_core::application::shortcut::ActionType::*;
-        (&[(Press, "enter", "choose_header_if_selected")])
+        (&[(Press, "tab", "accept_suggestion")])
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
             .collect()
@@ -271,6 +283,9 @@ impl component::Model for Model {
         let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
         let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
+        entries.set_background_color(HOVER_COLOR);
+        entries.show_background_shadow(false);
+        entries.set_background_corners_radius(0.0);
         display_object.add_child(&background);
         display_object.add_child(&header);
         display_object.add_child(&header_overlay);
@@ -357,3 +372,17 @@ impl Model {
 /// To learn more about Component Groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type View = component::ComponentView<Model, Frp>;
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn component_browser_size() {}
+}

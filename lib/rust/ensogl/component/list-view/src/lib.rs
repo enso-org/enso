@@ -296,7 +296,7 @@ ensogl_core::define_endpoints! {
         resize(Vector2<f32>),
         scroll_jump(f32),
         set_entries(entry::AnyModelProvider<E>),
-        select_entry(entry::Id),
+        select_entry(Option<entry::Id>),
         chose_entry(entry::Id),
         show_background_shadow(bool),
         set_background_corners_radius(f32),
@@ -407,7 +407,7 @@ where E::Model: Default
 
             // === Selected Entry ===
 
-            frp.source.selected_entry <+ frp.select_entry.map(|id| Some(*id));
+            frp.source.selected_entry <+ frp.select_entry;
 
             selection_jump_on_one_up <- frp.move_selection_up.constant(-1);
             selection_jump_on_page_up <- frp.move_selection_page_up.map(f_!([model]
@@ -543,6 +543,8 @@ where E::Model: Default
                 &frp.size,
                 |selection_y, view_y, size| Vector2(0.0, (size.y / 2.0) - view_y + selection_y)
             );
+            selection_color <- all(&selection_color, &init)._0();
+            selection_corner_radius <- all(&selection_corner_radius, &init)._0();
             eval selection_color ((color) model.selection.color.set(color.into()));
             eval selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
         }
@@ -652,8 +654,7 @@ mod tests {
             AnyModelProvider::<entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3", "Entry 4"]);
         list_view.resize(Vector2(100.0, entry::HEIGHT * 3.0));
         list_view.set_entries(provider);
-        DEBUG!("START");
-        list_view.select_entry(0);
+        list_view.select_entry(Some(0));
         assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
         assert_relative_eq!(list_view.selection_position_target.value().y, entry::HEIGHT);
         list_view.move_selection_down(); // Selected entry 1.
