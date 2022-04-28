@@ -470,23 +470,6 @@ type Function
     @Builtin_Type
     type Function
 
-    ## Forces evaluation of a fully-applied but not evaluated function.
-
-       This is particularly useful when you want to call a function that is
-       fully applied with default arguments.
-
-       This is usually _not_ the correct solution to a problem, and so should be
-       used sparingly.
-
-       > Example
-         Evaluate a fully applied function to get 4.
-
-            example_call =
-                f (a = 2) = a * a
-                f.call
-    call : Any
-    call = @Builtin_Method "Function.call"
-
 ## Generic utilities for interacting with other languages.
 type Polyglot
 

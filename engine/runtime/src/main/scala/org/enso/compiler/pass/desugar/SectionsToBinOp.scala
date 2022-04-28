@@ -105,7 +105,7 @@ case object SectionsToBinOp extends IRPass {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None, None)
+          IR.CallArgument.Specified(None, rightArgName, None)
         val rightDefArg = IR.DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
@@ -117,7 +117,7 @@ case object SectionsToBinOp extends IRPass {
         if (arg.value.isInstanceOf[IR.Name.Blank]) {
           val leftArgName = freshNameSupply.newName()
           val leftCallArg =
-            IR.CallArgument.Specified(None, leftArgName, None, None)
+            IR.CallArgument.Specified(None, leftArgName, None)
           val leftDefArg = IR.DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
@@ -165,7 +165,7 @@ case object SectionsToBinOp extends IRPass {
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None, None)
+          IR.CallArgument.Specified(None, leftArgName, None)
         val leftDefArg = IR.DefinitionArgument.Specified(
           leftArgName.duplicate(),
           None,
@@ -176,7 +176,7 @@ case object SectionsToBinOp extends IRPass {
 
         val rightArgName = freshNameSupply.newName()
         val rightCallArg =
-          IR.CallArgument.Specified(None, rightArgName, None, None)
+          IR.CallArgument.Specified(None, rightArgName, None)
         val rightDefArg = IR.DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
@@ -228,7 +228,7 @@ case object SectionsToBinOp extends IRPass {
       case Section.Right(op, arg, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
-          IR.CallArgument.Specified(None, leftArgName, None, None)
+          IR.CallArgument.Specified(None, leftArgName, None)
         val leftDefArg =
           IR.DefinitionArgument.Specified(
             leftArgName.duplicate(),
@@ -242,7 +242,7 @@ case object SectionsToBinOp extends IRPass {
           // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =
-            IR.CallArgument.Specified(None, rightArgName, None, None)
+            IR.CallArgument.Specified(None, rightArgName, None)
           val rightDefArg = IR.DefinitionArgument.Specified(
             rightArgName.duplicate(),
             None,

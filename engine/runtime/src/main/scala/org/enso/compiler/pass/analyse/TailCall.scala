@@ -271,7 +271,7 @@ case object TailCall extends IRPass {
     */
   def analyseCallArg(argument: IR.CallArgument): IR.CallArgument = {
     argument match {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]
