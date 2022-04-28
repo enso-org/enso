@@ -18,12 +18,33 @@ import xsbti.{PathBasedFile, Reporter, VirtualFile, Logger => XLogger}
 import xsbti.compile.{IncToolOptions, Output, JavaCompiler => XJavaCompiler}
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import scala.sys.process.Process
 
 object FrgaalJavaCompiler {
 
   val frgaal = "org.frgaal" % "compiler" % "18.0.0" % "provided"
+
+  def compilers(classpath: sbt.Keys.Classpath, sbtCompilers: xsbti.compile.Compilers, javaVersion: String) = {
+    // Enable Java 11+ features by invoking Frgaal instead of regular javac
+    val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
+
+    // Locate frgaal compiler jar from the list of dependencies
+    val frgaalModule = FrgaalJavaCompiler.frgaal
+    val frgaalCheck = (module: ModuleID) =>
+      module.organization == frgaalModule.organization &&
+        module.name == frgaalModule.name &&
+        module.revision == frgaalModule.revision
+    val frgaalOnClasspath =
+      classpath.find(f => f.metadata.get(AttributeKey[ModuleID]("moduleID")).map(frgaalCheck).getOrElse(false))
+        .map(_.data.toPath)
+    if (frgaalOnClasspath.isEmpty) {
+      throw new RuntimeException("Failed to resolve Frgaal compiler. Aborting!")
+    }
+    val frgaalJavac = new FrgaalJavaCompiler(javaHome, frgaalOnClasspath.get, target = javaVersion)
+    val javaTools = sbt.internal.inc.javac.JavaTools(frgaalJavac, sbtCompilers.javaTools.javadoc())
+    xsbti.compile.Compilers.of(sbtCompilers.scalac, javaTools)
+  }
 
   /** Helper method to launch programs. */
   def launch(

@@ -1126,28 +1126,8 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh
-    Compile/compile/compilers := {
-      // Enable Java 11+ features by invoking Frgaal instead of regular javac
-      val javaHome = Option(System.getProperty("java.home")).map(Paths.get(_))
-
-      // Locate frgaal compiler jar from the list of dependencies
-      val cp = (Compile / dependencyClasspath).value
-      val frgaalModule = FrgaalJavaCompiler.frgaal
-      val frgaalCheck = (module: ModuleID) =>
-        module.organization == frgaalModule.organization &&
-          module.name == frgaalModule.name &&
-          module.revision == frgaalModule.revision
-      val frgaalOnClasspath =
-        cp.find(f => f.metadata.get(AttributeKey[ModuleID]("moduleID")).map(frgaalCheck).getOrElse(false))
-          .map(_.data.toPath)
-      if (frgaalOnClasspath.isEmpty) {
-        throw new RuntimeException("Failed to resolve Frgaal compiler. Aborting!")
-      }
-      val frgaalJavac = new FrgaalJavaCompiler(javaHome, frgaalOnClasspath.get, target = javaVersion)
-      val javaTools = sbt.internal.inc.javac.JavaTools(frgaalJavac, compilers.value.javaTools.javadoc())
-      xsbti.compile.Compilers.of(compilers.value.scalac, javaTools)
-    },
+    inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
+    Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
