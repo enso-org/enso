@@ -192,6 +192,11 @@ define_themes! { [light:0, dark:1]
                         bottom = 5.0, 5.0;
                     }
                 }
+                entries {
+                    text {
+                        size = 12.0, 12.0;
+                    }
+                }
             }
         }
         searcher {

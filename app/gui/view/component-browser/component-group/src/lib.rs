@@ -146,6 +146,7 @@ impl component::Frp<Model> for Frp {
 
             // === Entries ===
 
+            model.entries.set_style_prefix(theme::entries::HERE.str);
             model.entries.set_background_color(HOVER_COLOR);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);
