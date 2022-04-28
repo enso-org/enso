@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Table
 import Standard.Table.Data.Column
-from Standard.Table.Error import Invalid_Row
+from Standard.Table.Error import all
 import Standard.Table.Io.File_Format
 import Standard.Base.Error.Problem_Behavior
 import Standard.Test
@@ -75,13 +75,35 @@ spec =
             t1.at 'b' . to_vector . should_equal ['start\n\ncontinue', '5']
             t1.at 'c' . to_vector . should_equal ['3', '6']
 
+        Test.specify "should behave correctly in presence of a mismatched quote" <|
+            action_1 on_problems =
+                (File_Format.Delimited "," headers=True).read (Enso_Project.data / "mismatched_quote.csv") on_problems
+
+            tester_1 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['1', 'abc']
+                table.at 'b' . to_vector . should_equal ['2', 'def']
+                table.at 'c' . to_vector . should_equal ['3', 'g h i\n7,8,9\n']
+            problems_1 = [Mismatched_Quote]
+            Problems.test_problem_handling action_1 problems_1 tester_1
+
+            action_2 on_problems =
+                (File_Format.Delimited "," headers=True).read (Enso_Project.data / "mismatched_quote2.csv") on_problems
+
+            tester_2 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['1', 'abc']
+                table.at 'b' . to_vector . should_equal ['2', 'def,g h i\n7,8,9\n']
+                table.at 'c' . to_vector . should_equal ['3', Nothing]
+            problems_2 = [Invalid_Row 3 1 ['abc', '"def,g h i\n7,8,9\n'], Mismatched_Quote]
+            Problems.test_problem_handling action_2 problems_2 tester_2
+
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
                 (File_Format.Delimited "," headers=True keep_invalid_rows=keep_invalid_rows).read (Enso_Project.data / "varying_rows.csv") on_problems
 
             tester_kept table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
-                # FIXME [RW] A completely empty line is ignored instead of being treated as empty row. OK?
                 table.at 'a' . to_vector . should_equal ['1', '1', '1', Nothing, '1', '1']
                 table.at 'b' . to_vector . should_equal ['2', '2', '2', Nothing, Nothing, '2']
                 table.at 'c' . to_vector . should_equal ['3', '3', Nothing, Nothing, Nothing, '3']

@@ -3,13 +3,14 @@ import Standard.Table
 
 import Standard.Base.Error.Extensions as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
-from Standard.Table.Error as Table_Errors import Invalid_Row, Parser_Error
+from Standard.Table.Error as Table_Errors import Invalid_Row, Mismatched_Quote, Parser_Error
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 from Standard.Table.Io.File_Format import Infer
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.read.InvalidRow
+polyglot java import org.enso.table.read.MismatchedQuote
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
@@ -58,7 +59,8 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
             Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
         translate_problem java_problem =
             if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
-                java_problem
+                if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
+                    java_problem
         translate_parsing_failure caught_panic =
             Error.throw (translate_problem caught_panic.payload.cause.problem)
         translate_parsing_exception caught_panic =

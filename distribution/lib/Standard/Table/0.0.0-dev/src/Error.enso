@@ -100,7 +100,7 @@ Additional_Warnings.to_display_text =
 
    Only the first 10 rows are reported, any additional ones are aggregated into
    a single instance of `Additional_Invalid_Rows`.
-type Invalid_Row (source_file_row : Integer) (index : Integer | Nothing) (row : [Text])
+type Invalid_Row (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
 
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows (count : Integer)

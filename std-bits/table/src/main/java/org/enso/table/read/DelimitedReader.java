@@ -116,10 +116,54 @@ public class DelimitedReader {
     settings.setMaxCharsPerColumn(-1);
     settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
-    settings.setKeepQuotes(false);
+    settings.setKeepQuotes(true);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(inputStream);
     return parser;
+  }
+
+  private String parseCell(String cell) {
+    if (cell == null) return null;
+
+    // TODO [RW] here we can plug-in some more complex parsing logic, to be done
+    //  as part of https://www.pivotaltracker.com/story/show/181824146
+    if (cell.isEmpty()) return cell;
+    if (cell.charAt(0) == quoteCharacter) {
+      return stripQuotes(cell);
+    }
+
+    return cell;
+  }
+
+  private String parseHeader(String cell) {
+    if (cell == null) return "Column";
+
+    if (cell.isEmpty()) return cell;
+    if (cell.charAt(0) == quoteCharacter) {
+      return stripQuotes(cell);
+    }
+
+    return cell;
+  }
+
+  private String stripQuotes(String cell) {
+    assert cell.charAt(0) == quoteCharacter;
+
+    if (cell.length() < 2 || cell.charAt(cell.length() - 1) != quoteCharacter) {
+      reportMismatchedQuote();
+      return cell.substring(1);
+    } else {
+      // Strip quotes.
+      return cell.substring(1, cell.length() - 1);
+    }
+  }
+
+  private void reportMismatchedQuote() {
+    reportProblem(new MismatchedQuote());
+  }
+
+  private void reportInvalidRow(long source_row, Long table_index, String[] row) {
+    reportProblem(new InvalidRow(source_row, table_index, row));
   }
 
   public List<ParsingProblem> getReportedProblems() {
@@ -135,8 +179,10 @@ public class DelimitedReader {
   }
 
   private long target_table_index = 0;
+  private long current_line = 0;
 
   private String[] nextRow() {
+    current_line = parser.getContext().currentLine() + 1;
     return parser.parseNext();
   }
 
@@ -158,7 +204,8 @@ public class DelimitedReader {
       case INFER:
         throw new IllegalStateException("Inferring headers is not yet implemented");
       case USE_FIRST_ROW_AS_HEADERS:
-        List<String> preprocessedHeaders = Arrays.stream(currentRow).map(s -> s == null ? "Column" : s).collect(Collectors.toList());
+        List<String> preprocessedHeaders =
+            Arrays.stream(currentRow).map(this::parseHeader).collect(Collectors.toList());
         headerNames = NameDeduplicator.deduplicate(preprocessedHeaders, "_");
         // We have 'used up' the first row, so we load a next one.
         currentRow = nextRow();
@@ -177,16 +224,19 @@ public class DelimitedReader {
 
     while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
       if (currentRow.length != builders.length) {
-        reportProblem(
-            new InvalidRow(parser.getContext().currentLine(), keepInvalidRows ? target_table_index : null, currentRow));
+        reportInvalidRow(
+            current_line,
+            keepInvalidRows ? target_table_index : null,
+            currentRow);
 
         if (keepInvalidRows) {
           for (int i = 0; i < builders.length && i < currentRow.length; i++) {
-            String item = currentRow[i];
+            String item = parseCell(currentRow[i]);
             builders[i] = builders[i].parseAndAppend(item);
           }
 
-          // If the current row had less columns than expected, nulls are inserted for the missing values.
+          // If the current row had less columns than expected, nulls are inserted for the missing
+          // values.
           // If it had more columns, the excess columns are discarded.
           for (int i = currentRow.length; i < builders.length; i++) {
             builders[i] = builders[i].parseAndAppend(null);
@@ -196,9 +246,8 @@ public class DelimitedReader {
         }
       } else {
         for (int i = 0; i < builders.length; i++) {
-          // TODO [RW] here we can plug-in some parsing logic, to be done as part of
-          // https://www.pivotaltracker.com/story/show/181824146
-          String item = currentRow[i];
+
+          String item = parseCell(currentRow[i]);
           builders[i] = builders[i].parseAndAppend(item);
         }
 
