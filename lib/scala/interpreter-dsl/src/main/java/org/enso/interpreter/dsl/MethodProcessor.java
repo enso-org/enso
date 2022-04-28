@@ -29,9 +29,9 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
   private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
 
   /**
-   * Processes annotated elements, generating code for each of them.
-   * The method also records information about builtin method in an internal map that
-   * will be dumped on the last round of processing.
+   * Processes annotated elements, generating code for each of them. The method also records
+   * information about builtin method in an internal map that will be dumped on the last round of
+   * processing.
    *
    * @param annotations annotation being processed this round.
    * @param roundEnv additional round information.
@@ -414,15 +414,15 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
   }
 
   /**
-   * Dumps the information about the collected builtin methods to {@link MethodProcessor#metadataPath()}
-   * resource file.
+   * Dumps the information about the collected builtin methods to {@link
+   * MethodProcessor#metadataPath()} resource file.
    *
-   * The format of a single row in the metadata file:
-   * <full name of the method>:<class name of the root node>
+   * <p>The format of a single row in the metadata file: <full name of the method>:<class name of
+   * the root node>
    *
    * @param writer a writer to the metadata resource
-   * @param pastEntries entries from the previously created metadata file, if any. Entries that should
-   *                    not be appended to {@code writer} should be removed
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that
+   *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
   protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {

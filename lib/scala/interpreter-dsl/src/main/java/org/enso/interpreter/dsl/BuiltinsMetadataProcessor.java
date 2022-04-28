@@ -14,19 +14,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * The base class of Builtins processors.
- * Apart from any associated with a given annotation, such as generating code,
- * {@code BuiltinsMetadataProcessor} detects when the processing of the last annotation in the round
- * is being processed and allows for dumping any collected metadata once.
+ * The base class of Builtins processors. Apart from any associated with a given annotation, such as
+ * generating code, {@code BuiltinsMetadataProcessor} detects when the processing of the last
+ * annotation in the round is being processed and allows for dumping any collected metadata once.
  */
 public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
 
   /**
    * Processes annotated elements, generating code for each of them, if necessary.
    *
-   * Compared to regular annotations processor, it will detect the last round of processing,
-   * read any existing metadata (for diff to handle separate compilation) and call
-   * @{code storeMetadata} to dump any metadata, if needed.
+   * <p>Compared to regular annotations processor, it will detect the last round of processing, read
+   * any existing metadata (for diff to handle separate compilation) and call @{code storeMetadata}
+   * to dump any metadata, if needed.
    *
    * @param annotations annotation being processed this round.
    * @param roundEnv additional round information.
@@ -47,9 +46,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
       Map<String, String> pastEntries;
       try {
         FileObject existingFile =
-            processingEnv
-                    .getFiler()
-                    .getResource(StandardLocation.CLASS_OUTPUT, "", metadataPath());
+            processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", metadataPath());
         try (InputStream resource = existingFile.openInputStream()) {
           pastEntries =
               new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
@@ -88,7 +85,6 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
     }
   }
 
-
   /**
    * A name of the resource where metadata collected during the processing should be written to.
    *
@@ -98,19 +94,20 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
 
   /**
    * The method called at the end of the round of annotation processing. It allows to write any
-   * collected metadata to a related resoource (see {@link BuiltinsMetadataProcessor#metadataPath()}).
+   * collected metadata to a related resoource (see {@link
+   * BuiltinsMetadataProcessor#metadataPath()}).
    *
    * @param writer a writer to the metadata resource
-   * @param pastEntries entries from the previously created metadata file, if any. Entries that should
-   *                    not be appended to {@code writer} should be removed
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that
+   *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
   protected abstract void storeMetadata(Writer writer, Map<String, String> pastEntries)
-          throws IOException;
+      throws IOException;
 
   /**
-   * The main body of {@link #process} that needs to be implemented by the processors.
-   * The method is called during regular rounds if there are no outstanding errors.
+   * The main body of {@link #process} that needs to be implemented by the processors. The method is
+   * called during regular rounds if there are no outstanding errors.
    *
    * @param annotations as in {@link #process}
    * @param roundEnv as in {@link #process}
@@ -120,9 +117,8 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
       Set<? extends TypeElement> annotations, RoundEnvironment roundEnv);
 
   /**
-   * Cleanup any metadata information collected during annotation processing.
-   * Called when all processing is done.
+   * Cleanup any metadata information collected during annotation processing. Called when all
+   * processing is done.
    */
   protected abstract void cleanup();
-
 }

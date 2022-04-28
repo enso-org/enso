@@ -45,37 +45,37 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
 
   @Override
   protected boolean handleProcess(
-          Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+      Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
         TypeElement element = (TypeElement) elt;
         BuiltinType builtinTypeAnnotation = element.getAnnotation(BuiltinType.class);
         String pkgName =
-                processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+            processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
         String clazzName = element.getSimpleName().toString();
         // Replace CamelCase class name to Snake_Case used in Enso
         String ensoTypeName = clazzName.replaceAll("([^_A-Z])([A-Z])", "$1_$2");
         registerBuiltinType(
-                processingEnv.getFiler(),
-                ensoTypeName,
-                pkgName + "." + clazzName,
-                builtinTypeAnnotation.params());
+            processingEnv.getFiler(),
+            ensoTypeName,
+            pkgName + "." + clazzName,
+            builtinTypeAnnotation.params());
       }
     }
     return true;
   }
 
   /**
-   * Dumps the information about the collected builtin types to {@link MethodProcessor#metadataPath()}
-   * resource file.
+   * Dumps the information about the collected builtin types to {@link
+   * MethodProcessor#metadataPath()} resource file.
    *
-   * The format of a single row in the metadata file:
-   * <Enso name of the builtin type>:<class representing the builtin type>:[<builtin type's comma separated fields>]
+   * <p>The format of a single row in the metadata file: <Enso name of the builtin type>:<class
+   * representing the builtin type>:[<builtin type's comma separated fields>]
    *
    * @param writer a writer to the metadata resource
-   * @param pastEntries entries from the previously created metadata file, if any. Entries that should
-   *                    not be appended to {@code writer} should be removed
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that
+   *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
   @Override
@@ -84,7 +84,12 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
       for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
         BuiltinTypeConstr constr = entry.getValue();
         writer.append(
-            entry.getKey() + ":" + constr.getTpeName() + ":" + StringUtils.join(Arrays.asList(constr.getParamNames()), ",") + "\n");
+            entry.getKey()
+                + ":"
+                + constr.getTpeName()
+                + ":"
+                + StringUtils.join(Arrays.asList(constr.getParamNames()), ",")
+                + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
         }
@@ -101,7 +106,6 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
     classes.put(name, new BuiltinTypeConstr(clazzName, params));
   }
 
-
   @Override
   protected String metadataPath() {
     return META_PATH;
@@ -111,5 +115,4 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
   protected void cleanup() {
     builtinTypes.clear();
   }
-
 }
