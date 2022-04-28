@@ -26,11 +26,20 @@ spec =
             simple_empty = (File_Format.Delimited "," headers=False).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
             simple_empty.should_equal expected_table
 
+        Test.specify "should work in presence of missing headers" <|
+            table = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "missing_header.csv") Problem_Behavior.Report_Error
+            table.columns.map .name . should_equal ["a", "Column", "c", "Column_1", "d"]
+            table.at "a" . to_vector . should_equal ["1"]
+            table.at "Column" . to_vector . should_equal ["2"]
+            table.at "c" . to_vector . should_equal ["3"]
+            table.at "Column_1" . to_vector . should_equal ["4"]
+            table.at "d" . to_vector . should_equal ["5"]
+
         Test.specify "should handle duplicated columns" <|
             table = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "duplicated_columns.csv") Problem_Behavior.Report_Error
-            table.columns.map .name . should_equal ['a', 'b', 'c', 'a 1']
+            table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
             table.at 'a' . to_vector . should_equal ['1']
-            table.at 'a 1' . to_vector . should_equal ['4']
+            table.at 'a_1' . to_vector . should_equal ['4']
 
         Test.specify "should handle quotes" <|
             t1 = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "double_quoted.csv") Problem_Behavior.Report_Error
@@ -46,6 +55,9 @@ spec =
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
 
+        Test.specify "should support rows spanning multiple lines if quoted" <|
+            Nothing
+
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
                 (File_Format.Delimited "," headers=True keep_invalid_rows=keep_invalid_rows).read (Enso_Project.data / "varying_rows.csv") on_problems
@@ -53,10 +65,10 @@ spec =
             tester_kept table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 # FIXME [RW] A completely empty line is ignored instead of being treated as empty row. OK?
-                table.at 'a' . to_vector . should_equal ['1', '1', '1', '1', '1']
-                table.at 'b' . to_vector . should_equal ['2', '2', '2', Nothing, '2']
-                table.at 'c' . to_vector . should_equal ['3', '3', Nothing, Nothing, '3']
-            problems_kept = [Invalid_Row 2 0 ['1', '2', '3', '4'], Invalid_Row 4 2 ['1', '2'], Invalid_Row 6 3 ['1'], Invalid_Row 7 4 ['1', '2', '3', '4', '5', '6', '7', '8']]
+                table.at 'a' . to_vector . should_equal ['1', '1', '1', Nothing, '1', '1']
+                table.at 'b' . to_vector . should_equal ['2', '2', '2', Nothing, Nothing, '2']
+                table.at 'c' . to_vector . should_equal ['3', '3', Nothing, Nothing, Nothing, '3']
+            problems_kept = [Invalid_Row 2 0 ['1', '2', '3', '4'], Invalid_Row 4 2 ['1', '2'], Invalid_Row 5 3 [Nothing], Invalid_Row 6 4 ['1'], Invalid_Row 7 5 ['1', '2', '3', '4', '5', '6', '7', '8']]
             Problems.test_problem_handling (action keep_invalid_rows=True) problems_kept tester_kept
 
             tester_dropped table =
@@ -64,7 +76,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['1']
                 table.at 'b' . to_vector . should_equal ['2']
                 table.at 'c' . to_vector . should_equal ['3']
-            problems_dropped = [Invalid_Row 2 Nothing ['1', '2', '3', '4'], Invalid_Row 4 Nothing ['1', '2'], Invalid_Row 6 Nothing ['1'], Invalid_Row 7 Nothing ['1', '2', '3', '4', '5', '6', '7', '8']]
+            problems_dropped = [Invalid_Row 2 Nothing ['1', '2', '3', '4'], Invalid_Row 4 Nothing ['1', '2'], Invalid_Row 5 Nothing [Nothing], Invalid_Row 6 Nothing ['1'], Invalid_Row 7 Nothing ['1', '2', '3', '4', '5', '6', '7', '8']]
             Problems.test_problem_handling (action keep_invalid_rows=False) problems_dropped tester_dropped
 
         Test.specify "should allow to skip rows" <|

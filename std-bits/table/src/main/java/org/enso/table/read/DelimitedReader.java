@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
@@ -112,6 +114,8 @@ public class DelimitedReader {
     format.setQuoteEscape(quoteEscapeCharacter);
     settings.setFormat(format);
     settings.setMaxCharsPerColumn(-1);
+    settings.setSkipEmptyLines(false);
+    settings.setKeepQuotes(false);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(inputStream);
     return parser;
@@ -153,7 +157,8 @@ public class DelimitedReader {
       case INFER:
         throw new IllegalStateException("Inferring headers is not yet implemented");
       case USE_FIRST_ROW_AS_HEADERS:
-        headerNames = NameDeduplicator.deduplicate(Arrays.asList(currentRow));
+        List<String> preprocessedHeaders = Arrays.stream(currentRow).map(s -> s == null ? "Column" : s).collect(Collectors.toList());
+        headerNames = NameDeduplicator.deduplicate(preprocessedHeaders, "_");
         // We have 'used up' the first row, so we load a next one.
         currentRow = nextRow();
         break;
