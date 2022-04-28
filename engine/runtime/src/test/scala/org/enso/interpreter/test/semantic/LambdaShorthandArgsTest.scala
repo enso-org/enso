@@ -85,7 +85,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
         """
           |main =
           |    f = (x = _) -> x
-          |    g = f.call
+          |    g = f
           |    h = _
           |    res1 = g 10
           |    res2 = h 10

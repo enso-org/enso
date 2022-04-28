@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
  * Holds the definition site argument information together with information on the partially applied
  * arguments positions.
  */
-public class FunctionSchema {
+public final class FunctionSchema {
   /** Denotes the caller frame access functions with this schema require to run properly. */
   public enum CallerFrameAccess {
     /** Requires full access to the (materialized) caller frame. */
@@ -29,12 +29,16 @@ public class FunctionSchema {
     }
   }
 
+  public static final FunctionSchema THUNK = new FunctionSchema();
+
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
+
+  private final boolean isFullyApplied;
 
   /**
    * Creates an {@link FunctionSchema} instance.
@@ -66,6 +70,7 @@ public class FunctionSchema {
 
     this.hasAnyPreApplied = hasAnyPreApplied;
     this.hasOversaturatedArguments = this.oversaturatedArguments.length > 0;
+    this.isFullyApplied = isFullyApplied(InvokeCallableNode.DefaultsExecutionMode.EXECUTE);
   }
 
   /**
@@ -210,5 +215,9 @@ public class FunctionSchema {
       }
     }
     return functionIsFullyApplied;
+  }
+
+  public boolean isFullyApplied() {
+    return isFullyApplied;
   }
 }

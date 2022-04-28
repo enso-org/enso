@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
  * Tracks simple information about call-site arguments, used to make processing of caller argument
  * lists much more simple.
  */
-public class CallArgumentInfo {
+public final class CallArgumentInfo {
   private final String name;
 
   /**
@@ -228,10 +228,10 @@ public class CallArgumentInfo {
    * A class that represents the partitioned mapping of the arguments applied to a given callable.
    */
   public static class ArgumentMapping {
-    private @CompilationFinal(dimensions = 1) int[] appliedArgumentMapping;
-    private @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
-    private @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
-    private @CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
+    private final @CompilationFinal(dimensions = 1) int[] appliedArgumentMapping;
+    private final @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
+    private final @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
+    private final @CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
     private final FunctionSchema postApplicationSchema;
 
     /**
@@ -245,7 +245,7 @@ public class CallArgumentInfo {
      *     the callable
      * @param postApplicationSchema the schema resulting from applying this mapping
      */
-    public ArgumentMapping(
+    private ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
         boolean[] isAppliedFlags,
