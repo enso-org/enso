@@ -20,7 +20,6 @@ import project.Data.Text.Matching
 import project.Data.Vector
 import project.Error.Common
 import project.Function
-import project.IO.Prim_Io
 import project.IO
 import project.Nothing
 import project.Math
@@ -47,7 +46,6 @@ export project.Data.Ordering.Sort_Order
 export project.Data.Ref
 export project.Data.Vector
 export project.IO
-export project.IO.Prim_Io
 export project.Math
 export project.Meta
 export project.Polyglot.Java

@@ -1,8 +1,4 @@
-## Built in IO operations.
-type IO
-
-    ## A type containing basic operations for performing input and output.
-    type IO
+## Builtin IO operations.
 
 ## Prints the provided message to standard error.
 
