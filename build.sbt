@@ -1348,7 +1348,17 @@ lazy val launcher = project
       )
       .value,
     assembly / test := {},
-    assembly / assemblyOutputPath := file("launcher.jar")
+    assembly / assemblyOutputPath := file("launcher.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case x =>
+        MergeStrategy.first
+    }
   )
   .settings(
     (Test / test) := (Test / test)
