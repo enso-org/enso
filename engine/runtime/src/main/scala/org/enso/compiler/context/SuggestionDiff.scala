@@ -118,7 +118,7 @@ object SuggestionDiff {
       op = op.copy(name = Some(b.name))
     }
     if (a.reprType != b.reprType) {
-      op = op.copy(reprType = Some(b.reprType))
+      op = op.copy(reprType = Some(b.reprType.toLegacy.contents))
     }
     if (a.isSuspended != b.isSuspended) {
       op.copy(isSuspended = Some(b.isSuspended))
@@ -155,7 +155,7 @@ object SuggestionDiff {
       op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(e2.returnType.toLegacy.contents))
     }
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
@@ -175,7 +175,7 @@ object SuggestionDiff {
       op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(e2.returnType.toLegacy.contents))
     }
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
@@ -195,7 +195,7 @@ object SuggestionDiff {
       op = op.copy(arguments = Some(diffArguments(e1.arguments, e2.arguments)))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(e2.returnType.toLegacy.contents))
     }
     if (e1.scope != e2.scope) {
       op = op.copy(scope = Some(e2.scope))
@@ -212,7 +212,7 @@ object SuggestionDiff {
       op = op.copy(externalId = Some(e2.externalId))
     }
     if (e1.returnType != e2.returnType) {
-      op = op.copy(returnType = Some(e2.returnType))
+      op = op.copy(returnType = Some(e2.returnType.toLegacy.contents))
     }
     if (e1.scope != e2.scope) {
       op = op.copy(scope = Some(e2.scope))
