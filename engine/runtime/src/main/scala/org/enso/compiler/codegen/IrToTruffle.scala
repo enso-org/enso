@@ -293,6 +293,11 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function if isBuiltinMethod(fn.body) =>
+            // For builtin types that own the builtin method  we only check that
+            // the method has been registered during the initialization of builtins
+            // and not attempt to register it in the scope (can't redefined methods).
+            // For non-builtin types (or modules) that own the builtin method
+            // we have to look up the function and register it in the scope.
             val builtinFunction = context.getBuiltins
               .getBuiltinFunction(cons, methodDef.methodName.name, language)
             builtinFunction.toScala
@@ -311,6 +316,7 @@ class IrToTruffle(
                 ) Right(None)
                 else Left(l)
               )
+              .map(_.filterNot(_ => cons.isBuiltin))
           case fn: IR.Function =>
             val (body, arguments) =
               expressionProcessor.buildFunctionBody(fn.arguments, fn.body)

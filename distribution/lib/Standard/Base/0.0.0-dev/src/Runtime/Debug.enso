@@ -1,7 +1,4 @@
 ## Debug utilities.
-## A type on which debugging functionality is exposed.
-@Builtin_Type
-type Debug
 
 ## TEXT_ONLY
 

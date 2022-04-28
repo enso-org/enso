@@ -191,9 +191,9 @@ merge_matched_warnings value matcher merger =
             Warning.attach warning acc
 
 ## PRIVATE
-
 type Prim_Warning
 
+    ## PRIVATE
     type Prim_Warning
 
     ## PRIVATE

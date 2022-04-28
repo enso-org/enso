@@ -8,9 +8,12 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
@@ -20,9 +23,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
 
   private class BuiltinTypeConstr {
     private String tpeName;
-    private String paramNames;
+    private String[] paramNames;
 
-    BuiltinTypeConstr(String tpeName, String params) {
+    BuiltinTypeConstr(String tpeName, String[] params) {
       this.tpeName = tpeName;
       this.paramNames = params;
     }
@@ -31,7 +34,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
       return tpeName;
     }
 
-    public String getParamNames() {
+    public String[] getParamNames() {
       return paramNames;
     }
   }
@@ -81,7 +84,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
       for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
         BuiltinTypeConstr constr = entry.getValue();
         writer.append(
-            entry.getKey() + ":" + constr.getTpeName() + ":" + constr.getParamNames() + "\n");
+            entry.getKey() + ":" + constr.getTpeName() + ":" + StringUtils.join(Arrays.asList(constr.getParamNames()), ",") + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
         }
@@ -89,7 +92,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
     }
   }
 
-  protected void registerBuiltinType(Filer f, String name, String clazzName, String params) {
+  protected void registerBuiltinType(Filer f, String name, String clazzName, String[] params) {
     Map<String, BuiltinTypeConstr> classes = builtinTypes.get(f);
     if (classes == null) {
       classes = new HashMap<>();

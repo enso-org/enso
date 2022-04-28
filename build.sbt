@@ -952,7 +952,10 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+    libraryDependencies ++= Seq(
+      "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
+      "com.google.auto.service" % "auto-service"  % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+    )
   )
 
 // ============================================================================
