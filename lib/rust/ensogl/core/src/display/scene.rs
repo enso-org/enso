@@ -558,7 +558,6 @@ pub struct HardcodedLayers {
     pub node_searcher_text: Layer,
     pub edited_node:        Layer,
     pub edited_node_text:   Layer,
-    pub node_searcher_mask: Layer,
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
@@ -593,7 +592,6 @@ impl HardcodedLayers {
         let edited_node_cam = edited_node.camera();
         let edited_node_text_logger = logger.sub("edited_node_text");
         let edited_node_text = Layer::new_with_cam(edited_node_text_logger, &edited_node_cam);
-        let node_searcher_mask = Layer::new(logger.sub("node_searcher_mask"));
         let tooltip = Layer::new_with_cam(logger.sub("tooltip"), main_cam);
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
@@ -632,7 +630,6 @@ impl HardcodedLayers {
             node_searcher_text,
             edited_node,
             edited_node_text,
-            node_searcher_mask,
             tooltip,
             tooltip_text,
             cursor,

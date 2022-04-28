@@ -10,7 +10,6 @@ import Standard.Base.Data.Text.Case
 import Standard.Base.Data.Text.Location
 import Standard.Base.Data.Text.Line_Ending_Style
 from Standard.Base.Data.Text.Span as Span_Module import Span
-import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
@@ -22,7 +21,6 @@ from Standard.Builtins export Text
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case
 export Standard.Base.Data.Text.Location
-export Standard.Base.Data.Text.Split_Kind
 export Standard.Base.Data.Text.Line_Ending_Style
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -348,82 +346,49 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
 
 ## ALIAS Split Text
 
-   Takes a separator and returns the vector that results from splitting `this`
-   on the configured number of occurrences of `separator`.
+   Takes a delimiter and returns the vector that results from splitting `this`
+   on each of its occurrences.
 
    Arguments:
-   - separator: The pattern used to split the text.
-   - mode: This argument specifies how many matches the engine will try and
-     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
-     will return either a single `Text` or `Nothing`. If set to an `Integer` or
-     `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII then you can enable this for a
-     performance boost on some regex engines.
-   - case_insensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalises the case of all input
-     text before matching on it.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it will match all
-     characters _except_ newlines.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as well as the start and end of the input respectively.
-   - verbose: Enables or disables the verbose mode for the regular expression.
-     In verbose mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
-       grouping constructs (e.g. `(?...)`).
-     - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
-       such `#` to the end of the line are ignored. That is to say, they act
-       as _comments_ in the regex.
-   - extra_opts: Specifies additional options in a vector. This allows options
-     to be supplied and computed without having to break them out into arguments
-     to the function. Where these overlap with one of the flags (`match_ascii`,
-     `case_insensitive`, `dot_matches_newline`, `multiline` and `verbose`), the
-     flags take precedence.
-
-   ! Boolean Flags and Extra Options
-     This function contains a number of arguments that are boolean flags that
-     enable or disable common options for the regex. At the same time, it also
-     provides the ability to specify options in the `extra_opts` argument.
-
-     Where one of the flags is _set_ (has the value `True` or `False`), the
-     value of the flag takes precedence over the value in `extra_opts` when
-     merging the options to the engine. The flags are _unset_ (have value
-     `Nothing`) by default.
-
-   > Example
-     Split the comma-separated text into a vector of items.
-
-         "ham,eggs,cheese,tomatoes".split ","
-
-   > Example
-     Split the text on whitespace into a vector of items.
-
-         "ham eggs cheese tomatoes".split Split_Kind.Whitespace
+   - delimiter: The pattern used to split the text.
+   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
+     rules specified in the matcher. If a `Regex_Matcher`, the term is used as a
+     regular expression and matched using the associated options.
 
    > Example
      Split the text on any occurrence of the separator `"::"`.
 
          example_split =
              text = "Namespace::package::package::Type"
-             text.split ":::"
-Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
-Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
-    case separator of
-        Split_Kind.Words -> Vector.Vector this.words
-        Split_Kind.Whitespace ->
-            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-            pattern.split this mode=mode
-        Split_Kind.Lines ->
-            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-            pattern.split this mode=mode
-        Text ->
-            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dot_matches_newline=dot_matches_newline multiline=multiline comments=comments extra_opts=extra_opts
-            pattern.split this mode=mode
+             text.split "::" == ["Namespace", "package", "package", "Type"]
+
+   > Example
+     Split the text on a regex pattern.
+
+         "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
+
+   > Example
+     Split the text on any whitespace.
+
+         'abc  def\tghi'.split '\\s+' Regex_Matcher == ["abc", "def", "ghi"]
+Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector.Vector Text
+Text.split delimiter="," matcher=Text_Matcher = if delimiter.is_empty then Error.throw (Illegal_Argument_Error "The delimiter cannot be empty.") else
+    case matcher of
+        Text_Matcher case_sensitivity ->
+            delimiters = Vector.Vector <| case case_sensitivity of
+                True ->
+                    Text_Utils.span_of_all this delimiter
+                Case_Insensitive locale ->
+                    Text_Utils.span_of_all_case_insensitive this delimiter locale.java_locale
+            Vector.new delimiters.length+1 i->
+                start = if i == 0 then 0 else
+                    delimiters.at i-1 . codeunit_end
+                end = if i == delimiters.length then (Text_Utils.char_length this) else
+                    delimiters.at i . codeunit_start
+                Text_Utils.substring this start end
+        Regex_Matcher _ _ _ _ _ ->
+            compiled_pattern = matcher.compile delimiter
+            compiled_pattern.split this mode=Mode.All
 
 ## ALIAS Replace Text
    Replaces the first, last, or all occurrences of term with new_text in the
@@ -547,7 +512,12 @@ Text.replace term="" new_text="" mode=Mode.All matcher=Text_Matcher = if term.is
    > Example
      Getting the words in the sentence "I have not one, but two cats."
 
-        "I have not one, but two cats.".words
+        "I have not one, but two cats.".words == ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
+
+   > Example
+     Getting the words in the Thai sentence "แมวมีสี่ขา"
+
+         "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
 Text.words : Boolean -> Vector.Vector Text
 Text.words keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
@@ -559,9 +529,7 @@ Text.words keep_whitespace=False =
     build prev nxt = if nxt == -1 then Nothing else
         word = Text_Utils.substring this prev nxt
         word_not_whitespace = (Text_Utils.is_all_whitespace word).not
-        if word_not_whitespace then bldr.append word else
-            if keep_whitespace then
-                bldr.append word
+        if word_not_whitespace || keep_whitespace then bldr.append word
 
         next_nxt = iterator.next
         @Tail_Call build nxt next_nxt
@@ -569,6 +537,33 @@ Text.words keep_whitespace=False =
     build fst nxt
 
     bldr.to_vector
+
+## ALIAS Get Lines
+
+   Splits the text into lines, based on '\n', '\r' or '\r\n' line endings.
+
+   Empty lines are added for leading newlines. Multiple consecutive
+   newlines will also yield additional empty lines. A line ending at the end of
+   the line is not required, but if it is present it will not cause an empty
+   line to be added at the end.
+
+   > Example
+     Split the text 'a\nb\nc' into lines.
+
+        'a\nb\nc'.lines == ['a', 'b', 'c']
+
+   > Example
+     Split the text '\na\n\nb\n\n' into lines.
+
+        '\na\n\nb\n\n\n'.lines == ['', 'a', '', 'b', '', '']
+
+   > Example
+     Split the text '\na\nb\n' into lines, keeping the line endings.
+
+        '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
+Text.lines : Boolean -> Vector.Vector Text
+Text.lines keep_endings=False =
+    Vector.Vector (Text_Utils.split_on_lines this keep_endings)
 
 ## Checks whether `this` is equal to `that`.
 
