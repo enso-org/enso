@@ -493,7 +493,7 @@ case object AliasAnalysis extends IRPass {
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
-    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
         case _: IR.Literal => parentScope
         case _             => parentScope.addChild()

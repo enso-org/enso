@@ -5310,15 +5310,6 @@ object IR {
     /** The expression of the argument, if present. */
     val value: Expression
 
-    /** Whether or not the argument should be suspended at code generation time.
-      *
-      * A value of `Some(true)` implies that code generation should suspend the
-      * argument. A value of `Some(false)` implies that code generation should
-      * _not_ suspend the argument. A value of [[None]] implies that the
-      * information is missing.
-      */
-    val shouldBeSuspended: Option[Boolean]
-
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): CallArgument
 
@@ -5340,21 +5331,18 @@ object IR {
       * A [[CallArgument]] where the `value` is an [[IR.Name.Blank]] is a
       * representation of a lambda shorthand argument.
       *
-      * @param name the name of the argument being called, if present
-      * @param value the expression being passed as the argument's value
-      * @param location the source location that the node corresponds to
-      * @param shouldBeSuspended whether or not the argument should be passed
-      *        suspended
-      * @param passData the pass metadata associated with this node
+      * @param name        the name of the argument being called, if present
+      * @param value       the expression being passed as the argument's value
+      * @param location    the source location that the node corresponds to
+      * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
       override val name: Option[IR.Name],
       override val value: Expression,
       override val location: Option[IdentifiedLocation],
-      override val shouldBeSuspended: Option[Boolean] = None,
-      override val passData: MetadataStorage          = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage     = DiagnosticStorage()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends CallArgument
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -5375,7 +5363,6 @@ object IR {
         name: Option[IR.Name]                = name,
         value: Expression                    = value,
         location: Option[IdentifiedLocation] = location,
-        shouldBeSuspended: Option[Boolean]   = shouldBeSuspended,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
@@ -5384,7 +5371,6 @@ object IR {
           name,
           value,
           location,
-          shouldBeSuspended,
           passData,
           diagnostics
         )
@@ -5439,7 +5425,6 @@ object IR {
         |name = $name,
         |value = $value,
         |location = $location,
-        |shouldBeSuspended = $shouldBeSuspended,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
         |id = $id

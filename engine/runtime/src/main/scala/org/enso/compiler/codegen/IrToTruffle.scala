@@ -1356,6 +1356,8 @@ class IrToTruffle(
       */
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
+        case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
+          run(fn)
         case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
           val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
@@ -1446,7 +1448,6 @@ class IrToTruffle(
               name,
               value,
               _,
-              shouldBeSuspended,
               _,
               _
             ) =>
@@ -1461,12 +1462,7 @@ class IrToTruffle(
             case _: IR.Name           => false
             case _: IR.Literal.Text   => false
             case _: IR.Literal.Number => false
-            case _ =>
-              shouldBeSuspended.getOrElse(
-                throw new CompilerError(
-                  "Demand analysis information missing from call argument."
-                )
-              )
+            case _                    => true
           }
 
           val childScope = if (shouldSuspend) {

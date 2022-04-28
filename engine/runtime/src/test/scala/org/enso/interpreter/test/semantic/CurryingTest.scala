@@ -32,8 +32,7 @@ class CurryingTest extends InterpreterTest {
           |    fn1 = fn ...
           |    fn2 = fn1 1 2 ...
           |    fn3 = fn2 3 ...
-          |
-          |    fn3.call
+          |    fn3
           |""".stripMargin
 
       eval(code) shouldEqual 26
@@ -45,7 +44,7 @@ class CurryingTest extends InterpreterTest {
           |main =
           |    fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
           |
-          |    fn.call 1 2 (z = 10)
+          |    fn 1 2 (z = 10)
           |""".stripMargin
 
       eval(code) shouldEqual 23
@@ -74,11 +73,63 @@ class CurryingTest extends InterpreterTest {
           |    fn1 = Nothing.fn ...
           |    fn2 = fn1 1 2 ...
           |    fn3 = fn2 3 ...
-          |
-          |    fn3.call
+          |    fn3
           |""".stripMargin
 
       eval(code) shouldEqual 26
     }
+
+    "automatically force functions with all-defaulted arguments" in {
+      val code =
+        """main =
+          |     foo (x=1) = x
+          |     foo + 1
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "allow to pass suspended functions in arguments with `...`" in {
+      val code =
+        """main =
+          |    foo f = f 2
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 3
+    }
+
+    "allow to pass suspended functions in arguments with `...` but still auto-execute them" in {
+      val code =
+        """main =
+          |    foo f = f
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "should handle a defaulted-suspended combo" in {
+      val code =
+        """main =
+          |    foo ~f = f
+          |    bar x=1 = x + 1
+          |    foo (bar ...)
+          |""".stripMargin
+      eval(code) shouldEqual 2
+    }
+
+    "should make `...` an identity on Atom Constructors" in {
+      val code =
+        """
+          |type My_Atom x=1
+          |
+          |My_Atom.my_static = "hello"
+          |
+          |main =
+          |    (My_Atom ...).my_static
+          |""".stripMargin
+      eval(code) shouldEqual "hello"
+    }
+
   }
 }
