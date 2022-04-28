@@ -50,7 +50,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with mixfix functions" in {
       val code =
-        """from Standard.Base.Data.Number.Internal import all
+        """from Standard.Base.Data.Numbers import all
           |
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
@@ -142,7 +142,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used with dot notation" in {
       val code =
         """
-          |from Standard.Base.Data.Number.Internal import Number
+          |from Standard.Base.Data.Numbers import Number
           |
           |Number.f = this + 10
           |

@@ -109,16 +109,16 @@ class RuntimeVisualisationsTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(71, 1)
-      val idMainY = metadata.addItem(81, 7)
-      val idMainZ = metadata.addItem(97, 5)
-      val idFooY  = metadata.addItem(136, 8)
-      val idFooZ  = metadata.addItem(153, 5)
+      val idMainX = metadata.addItem(63, 1)
+      val idMainY = metadata.addItem(83, 7)
+      val idMainZ = metadata.addItem(89, 5)
+      val idFooY  = metadata.addItem(128, 8)
+      val idFooZ  = metadata.addItem(145, 5)
 
       def code =
         metadata.appendToCode(
           """
-            |from Standard.Base.Data.Number.Internal import Number
+            |from Standard.Base.Data.Numbers import Number
             |
             |main =
             |    x = 6

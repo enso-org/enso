@@ -729,7 +729,7 @@ class RuntimeSuggestionUpdatesTest
     // In general Text.overloaded would also work because method resolution would assign it
     // to the module rather than a type
     val contents =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.Data.Text
         |import Standard.Base.Nothing
         |
@@ -912,7 +912,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Base.Data.Number.Internal import Integer
+      """from Standard.Base.Data.Numbers import Integer
         |
         |type MyType
         |    type MkA a

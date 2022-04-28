@@ -153,7 +153,7 @@ class ReplTest
         """
           |import Standard.Base.Runtime.Debug
           |import Standard.Base.Runtime.State
-          |from Standard.Base.Data.Number.Internal import Number
+          |from Standard.Base.Data.Numbers import Number
           |
           |run =
           |    State.put Number 10

@@ -119,7 +119,7 @@ class RuntimeServerTest
       def code =
         metadata.appendToCode(
           """
-            |from Standard.Base.Data.Number.Internal import Number
+            |from Standard.Base.Data.Numbers import Number
             |
             |main =
             |    x = 6
@@ -728,11 +728,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(121, 41)
-    val idMainBar = metadata.addItem(153, 8)
+    val idMain    = metadata.addItem(113, 41)
+    val idMainBar = metadata.addItem(145, 8)
 
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
@@ -789,11 +789,11 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(121, 40)
-    val idMainBar = metadata.addItem(152, 8)
+    val idMain    = metadata.addItem(113, 40)
+    val idMainBar = metadata.addItem(144, 8)
 
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
         |import Standard.Base.Runtime.State
         |
@@ -1174,19 +1174,19 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(85, 35)
-    val idMainA  = metadata.addItem(94, 8)
-    val idMainP  = metadata.addItem(107, 12)
+    val idMain   = metadata.addItem(77, 35)
+    val idMainA  = metadata.addItem(86, 8)
+    val idMainP  = metadata.addItem(99, 12)
     // pie id
-    metadata.addItem(127, 1)
+    metadata.addItem(119, 1)
     // uwu id
-    metadata.addItem(135, 1)
+    metadata.addItem(127, 1)
     // hie id
-    metadata.addItem(143, 6)
+    metadata.addItem(135, 6)
     // Number.x id
-    metadata.addItem(163, 1)
+    metadata.addItem(155, 1)
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
         |
         |main =
@@ -1380,16 +1380,16 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(130, 88)
-    val id1      = metadata.addItem(139, 15)
-    val id2      = metadata.addItem(159, 18)
-    val id3      = metadata.addItem(182, 15)
+    val idMain   = metadata.addItem(122, 88)
+    val id1      = metadata.addItem(131, 15)
+    val id2      = metadata.addItem(151, 18)
+    val id3      = metadata.addItem(174, 15)
     // Note that Nothing.Nothing is on purpose.
     // If not provided the full name it will resolve the expression Nothing to a Nothing module.
     // Similarly Text.Text. That in turn will mismatch the expectations for method types which actually
     // return proper types.
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |from Standard.Base.Data.Text import all
         |import Standard.Base.Nothing
         |
@@ -1844,7 +1844,7 @@ class RuntimeServerTest
     )
 
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
@@ -1881,7 +1881,7 @@ class RuntimeServerTest
 
     /*
       Modify the file:
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |import Standard.Base.IO
         |
         |Number.lucky = 42
@@ -2443,7 +2443,7 @@ class RuntimeServerTest
     val metadata   = new Metadata
 
     val code =
-      """from Standard.Base.Data.Number.Internal import Number
+      """from Standard.Base.Data.Numbers import Number
         |
         |main = Number.pi
         |""".stripMargin.linesIterator.mkString("\n")

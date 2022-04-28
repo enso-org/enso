@@ -201,7 +201,7 @@ thread_local! {
                         ),
                         Rc::new(
                             Suggestion::new("Number Input","0",&icons.number_input)
-                            .with_return_type("Standard.Base.Data.Number.Internal.Number")
+                            .with_return_type("Standard.Base.Data.Numbers.Number")
                         ),
                     ]
                 },
@@ -212,7 +212,7 @@ thread_local! {
                         Rc::new(
                             Suggestion::new("Text Length","length",&icons.default)
                             .with_this_arg("Standard.Base.Data.Text.Text")
-                            .with_return_type("Standard.Base.Data.Number.Internal.Integer")
+                            .with_return_type("Standard.Base.Data.Numbers.Integer")
                             .marked_as_method_call("length","Standard.Base.Data.Text.Extensions")
                         )
                     ]

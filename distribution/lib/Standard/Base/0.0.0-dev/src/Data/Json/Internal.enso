@@ -1,6 +1,6 @@
 from Standard.Base import all hiding Number, Boolean, Array
 
-import Standard.Base.Data.Number.Internal as Base_Number
+import Standard.Base.Data.Numbers as Base_Number
 
 from Standard.Base.Data.Json import all
 
