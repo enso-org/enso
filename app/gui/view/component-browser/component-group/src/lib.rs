@@ -6,6 +6,7 @@
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
+#![recursion_limit = "256"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -29,14 +30,6 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-const HEADER_FONT: &str = "DejaVuSans-Bold";
 
 
 
@@ -120,6 +113,7 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         let header_text_size = style.get_number(theme::header::text::size);
+        let header_text_font = style.get_text(theme::header::text::font);
         frp::extend! { network
 
             // === Geometry ===
@@ -132,6 +126,8 @@ impl component::Frp<Model> for Frp {
             // === Header ===
 
             init <- source_();
+            header_text_font <- all(&header_text_font, &init)._0();
+            model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
@@ -194,7 +190,6 @@ impl component::Model for Model {
         display_object.add_child(&header);
         display_object.add_child(&entries);
 
-        header.set_font(HEADER_FONT);
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 

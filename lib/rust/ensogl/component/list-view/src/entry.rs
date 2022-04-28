@@ -112,6 +112,7 @@ impl Entry for Label {
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let text_style = style_prefix.sub("text");
+        let font = style_watch.get_text(text_style.sub("font"));
         let size = style_watch.get_number(text_style.sub("size"));
         let color = style_watch.get_color(text_style);
 
@@ -119,9 +120,11 @@ impl Entry for Label {
         frp::extend! { network
             init <- source::<()>();
             color <- all(&color,&init)._0();
+            font <- all(&font,&init)._0();
             size <- all(&size,&init)._0();
 
             label.set_default_color <+ color;
+            label.set_font <+ font;
             label.set_default_text_size <+ size.map(|v| text::Size(*v));
             eval size ((size) label.set_position_y(size/2.0));
         }

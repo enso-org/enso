@@ -183,6 +183,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
+                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;
                     }
                     height = 30.0, 30.0;
@@ -194,6 +195,7 @@ define_themes! { [light:0, dark:1]
                 }
                 entries {
                     text {
+                        font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
                     }
                 }
@@ -545,6 +547,7 @@ define_themes! { [light:0, dark:1]
                 highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
                 size      = 12.0, 12.0;
+                font      = "DejaVuSansMono", "DejaVuSansMono";
             }
         }
     }
