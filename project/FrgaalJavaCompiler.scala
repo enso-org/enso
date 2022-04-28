@@ -1,4 +1,15 @@
+/*
+ * The FrgaalJavaCompiler adapts ForkedJava from Zinc
+ * to invoke Frgaal compiler instead of javac.
+ *
+ * Zinc - The incremental compiler for Scala.
+ * Copyright Lightbend, Inc. and Mark Harrah
+ *
+ * Licensed under Apache License 2.0
+ * (http://www.apache.org/licenses/LICENSE-2.0).
+ */
 
+import sbt._
 import sbt.internal.inc.CompilerArguments
 import sbt.internal.inc.javac.JavacLogger
 import sbt.io.IO
@@ -12,6 +23,8 @@ import scala.sys.process.Process
 
 object FrgaalJavaCompiler {
 
+  val frgaal = "org.frgaal" % "compiler" % "18.0.0" % "provided"
+
   /** Helper method to launch programs. */
   def launch(
               javaHome: Option[Path],
@@ -21,7 +34,7 @@ object FrgaalJavaCompiler {
               output: Output,
               log: Logger,
               reporter: Reporter,
-              source: String,
+              source: Option[String],
               target: String
             ): Boolean = {
     val (jArgs, nonJArgs) = options.partition(_.startsWith("-J"))
@@ -29,11 +42,14 @@ object FrgaalJavaCompiler {
     val sources = sources0 map {
       case x: PathBasedFile => x.toPath.toAbsolutePath.toString
     }
-    val frgaalOptions = Seq("-source", source, "-target", target)
+    val frgaalOptions: Seq[String] = source.map(v => Seq("-source", v)).getOrElse(Seq()) ++ Seq("-target", target)
     val allArguments = outputOption ++ frgaalOptions ++ nonJArgs ++ sources
 
     withArgumentFile(allArguments) { argsFile =>
-      val forkArgs = (jArgs ++ Seq("--limit-modules", "java.base,jdk.zipfs", "-jar", compilerJar.toString)) :+ s"@${normalizeSlash(argsFile.getAbsolutePath)}"
+      // Need to disable standard compiler tools that come with used jdk and replace them
+      // with the ones provided with Frgaal.
+      val forkArgs = (jArgs ++ Seq("--limit-modules", "java.base,jdk.zipfs", "-jar", compilerJar.toString)) :+
+         s"@${normalizeSlash(argsFile.getAbsolutePath)}"
       val exe = getJavaExecutable(javaHome, "java")
       val cwd = new File(new File(".").getAbsolutePath).getCanonicalFile
       val javacLogger = new JavacLogger(log, reporter, cwd)
@@ -77,8 +93,8 @@ object FrgaalJavaCompiler {
     }
 }
 
-/** An implementation of compiling java which forks a Javac instance. */
-final class FrgaalJavaCompiler(javaHome: Option[Path], compilerPath: Path, source: String="11", target: String="11") extends XJavaCompiler {
+/** An implementation of compiling java which forks Frgaal instance. */
+final class FrgaalJavaCompiler(javaHome: Option[Path], compilerPath: Path, target: String, source: Option[String] = None) extends XJavaCompiler {
   def run(
            sources: Array[VirtualFile],
            options: Array[String],
