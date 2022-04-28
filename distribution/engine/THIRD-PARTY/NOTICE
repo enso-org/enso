@@ -356,6 +356,126 @@ The license file can be found at `licenses/BSD-3-Clause`.
 Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.21.0`.
 
 
+'org-netbeans-api-annotations-common', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-annotations-common-RELEASE130`.
+
+
+'org-netbeans-api-progress', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-progress-RELEASE130`.
+
+
+'org-netbeans-api-progress-nb', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-progress-nb-RELEASE130`.
+
+
+'org-netbeans-api-scripting', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-scripting-RELEASE130`.
+
+
+'org-netbeans-api-templates', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-templates-RELEASE130`.
+
+
+'org-netbeans-modules-editor-mimelookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-editor-mimelookup-RELEASE130`.
+
+
+'org-netbeans-modules-queries', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-queries-RELEASE130`.
+
+
+'org-netbeans-modules-sampler', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-sampler-RELEASE130`.
+
+
+'org-netbeans-swing-outline', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-swing-outline-RELEASE130`.
+
+
+'org-netbeans-swing-tabcontrol', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-swing-tabcontrol-RELEASE130`.
+
+
+'org-openide-actions', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-actions-RELEASE130`.
+
+
+'org-openide-awt', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-awt-RELEASE130`.
+
+
+'org-openide-dialogs', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-dialogs-RELEASE130`.
+
+
+'org-openide-explorer', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-explorer-RELEASE130`.
+
+
+'org-openide-filesystems', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-filesystems-RELEASE130`.
+
+
+'org-openide-filesystems-nb', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-filesystems-nb-RELEASE130`.
+
+
+'org-openide-loaders', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-loaders-RELEASE130`.
+
+
+'org-openide-modules', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-modules-RELEASE130`.
+
+
+'org-openide-nodes', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-nodes-RELEASE130`.
+
+
+'org-openide-text', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-text-RELEASE130`.
+
+
+'org-openide-util', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-RELEASE130`.
+
+
+'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE130`.
+
+
+'org-openide-util-ui', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-ui-RELEASE130`.
+
+
+'org-openide-windows', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-windows-RELEASE130`.
+
+
 'reactive-streams', licensed under the CC0, is distributed with the engine.
 The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
