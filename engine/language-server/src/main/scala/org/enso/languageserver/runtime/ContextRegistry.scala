@@ -59,13 +59,15 @@ import scala.concurrent.duration._
   * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
+  * @param sampler the methods sampler
   */
 final class ContextRegistry(
   repo: SuggestionsRepo[Future],
   config: Config,
   runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
-  sessionRouter: ActorRef
+  sessionRouter: ActorRef,
+  sampler: MethodsSampler
 ) extends Actor
     with LazyLogging
     with ActorMessageLogging
@@ -73,8 +75,7 @@ final class ContextRegistry(
 
   import ContextRegistryProtocol._
 
-  private val timeout = config.executionContext.requestTimeout
-  private val sampler = MethodsSampler("context-registry")
+  private val timeout: FiniteDuration = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -399,13 +400,15 @@ object ContextRegistry {
     * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
+    * @param sampler the methods sampler
     */
   def props(
     repo: SuggestionsRepo[Future],
     config: Config,
     runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
-    sessionRouter: ActorRef
+    sessionRouter: ActorRef,
+    sampler: MethodsSampler
   ): Props =
     Props(
       new ContextRegistry(
@@ -413,7 +416,8 @@ object ContextRegistry {
         config,
         runtimeFailureMapper,
         runtime,
-        sessionRouter
+        sessionRouter,
+        sampler
       )
     )
 }

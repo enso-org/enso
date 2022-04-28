@@ -41,6 +41,7 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
+import org.enso.logger.{NoopSampler, OutputStreamSampler}
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
@@ -76,6 +77,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   private val contentRoot = ContentRootWithFile(
     ContentRoot.Project(serverConfig.contentRootUuid),
     new File(serverConfig.contentRootPath)
+  )
+  val profilingConfig = ProfilingConfig(
+    isProfilingEnabled = logLevel == LogLevel.Trace
   )
   val languageServerConfig = Config(
     contentRoot,
@@ -227,7 +231,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
-          sessionRouter
+          sessionRouter,
+          if (profilingConfig.isProfilingEnabled)
+            OutputStreamSampler("context-registry")
+          else NoopSampler()
         ),
       "context-registry"
     )

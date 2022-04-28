@@ -37,6 +37,7 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
+import org.enso.logger.NoopSampler
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
@@ -52,6 +53,7 @@ import org.scalatest.OptionValues
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -187,7 +189,8 @@ class BaseServerTest
           config,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
-          sessionRouter
+          sessionRouter,
+          NoopSampler()
         )
       )
 

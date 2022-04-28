@@ -9,17 +9,35 @@ import java.util.concurrent.{CompletableFuture, Executor, Executors}
 import scala.concurrent.duration.Duration
 import scala.util.Using
 
+/** Sampler gathers the application performance statistics. */
+trait MethodsSampler {
+
+  /** Start gathering the application statistics. */
+  def start(): Unit
+
+  /** Stop gathering the application statistics and write it to the output. */
+  def stop(): Unit
+
+  /** Stop gathering the application statistics after the provided delay and
+    * write it to the output.
+    *
+    * @param delay the duration to wait before stopping
+    * @param ec the execution context
+    */
+  def stop(delay: Duration)(implicit ec: Executor): Unit
+}
+
 /** Gathers application performance statistics that can be visualised in Java
   * VisualVM, and writes it to the provided output.
   *
   * @param output the output stream to write the collected statistics to
   */
-final class MethodsSampler(output: OutputStream) {
+final class OutputStreamSampler(output: OutputStream) extends MethodsSampler {
 
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
 
-  /** Start gathering the application statistics. */
+  /** @inheritdoc */
   def start(): Unit =
     this.synchronized {
       if (!samplingStarted) {
@@ -28,7 +46,7 @@ final class MethodsSampler(output: OutputStream) {
       }
     }
 
-  /** Stop gathering the application statistics and write it to the output. */
+  /** @inheritdoc */
   def stop(): Unit =
     this.synchronized {
       if (samplingStarted) {
@@ -37,12 +55,7 @@ final class MethodsSampler(output: OutputStream) {
       }
     }
 
-  /** Stop gathering the application statistics after the provided delay and
-    * write it to the output.
-    *
-    * @param delay the duration to wait before stopping
-    * @param ec the execution context
-    */
+  /** @inheritdoc */
   def stop(delay: Duration)(implicit ec: Executor): Unit =
     this.synchronized {
       val executor = Executors.newSingleThreadScheduledExecutor()
@@ -57,11 +70,11 @@ final class MethodsSampler(output: OutputStream) {
         .whenComplete((_, _) => executor.shutdown())
     }
 
-  /** @return `true` if the sampling */
+  /** @return `true` if the sampling is started. */
   def isSamplingStarted: Boolean =
     this.samplingStarted
 }
-object MethodsSampler {
+object OutputStreamSampler {
 
   /** Create an instance of [[MethodsSampler]] that writes the data to the
     * temporary `.npss` file with the provided prefix.
@@ -69,8 +82,27 @@ object MethodsSampler {
     * @param prefix the prefix of the temp file.
     * @return the [[MethodsSampler]] instance
     */
-  def apply(prefix: String): MethodsSampler = {
+  def apply(prefix: String): OutputStreamSampler = {
     val path = Files.createTempFile(s"$prefix-", ".npss")
-    new MethodsSampler(new FileOutputStream(path.toFile))
+    new OutputStreamSampler(new FileOutputStream(path.toFile))
   }
+}
+
+/** Sampler that does nothing. */
+final class NoopSampler extends MethodsSampler {
+
+  /** @inheritdoc */
+  override def start(): Unit = ()
+
+  /** @inheritdoc */
+  override def stop(): Unit = ()
+
+  /** @inheritdoc */
+  override def stop(delay: Duration)(implicit ec: Executor): Unit = ()
+}
+object NoopSampler {
+
+  /** Create an instance of [[NoopSampler]]. */
+  def apply(): NoopSampler =
+    new NoopSampler
 }

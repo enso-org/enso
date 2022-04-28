@@ -115,6 +115,12 @@ object ProjectDirectoriesConfig {
   }
 }
 
+/** Configuration of the Language Server profiling features.
+  *
+  * @param isProfilingEnabled the profiling switch
+  */
+case class ProfilingConfig(isProfilingEnabled: Boolean)
+
 /** The config of the running Language Server instance.
   *
   * @param projectContentRoot project's main content root
