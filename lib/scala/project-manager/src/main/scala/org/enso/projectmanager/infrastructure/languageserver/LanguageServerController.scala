@@ -1,7 +1,5 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.util.UUID
-
 import akka.actor.{
   Actor,
   ActorRef,
@@ -15,12 +13,7 @@ import akka.actor.{
 import com.typesafe.scalalogging.LazyLogging
 import nl.gn0s1s.bump.SemVer
 import org.enso.logger.akka.ActorMessageLogging
-import org.enso.projectmanager.boot.configuration.{
-  BootloaderConfig,
-  NetworkConfig,
-  SupervisionConfig,
-  TimeoutConfig
-}
+import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import org.enso.projectmanager.event.ProjectEvent.ProjectClosed
@@ -37,6 +30,8 @@ import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 
+import java.util.UUID
+
 /** A language server controller responsible for managing the server lifecycle.
   * It delegates all tasks to other actors like bootloader or supervisor.
   *
@@ -49,6 +44,7 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param supervisionConfig a supervision config
   * @param timeoutConfig a timeout config
   * @param distributionConfiguration configuration of the distribution
+  * @param processConfig the configuration of the main process
   * @param loggingServiceDescriptor a logging service configuration descriptor
   * @param executor an executor service used to start the language server
   *                 process
@@ -62,6 +58,7 @@ class LanguageServerController(
   supervisionConfig: SupervisionConfig,
   timeoutConfig: TimeoutConfig,
   distributionConfiguration: DistributionConfiguration,
+  processConfig: MainProcessConfig,
   loggingServiceDescriptor: LoggingServiceDescriptor,
   executor: LanguageServerExecutor
 ) extends Actor
@@ -82,6 +79,7 @@ class LanguageServerController(
       engineVersion                  = engineVersion,
       jvmSettings                    = distributionConfiguration.defaultJVMSettings,
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
+      profilingEnabled               = processConfig.profilingEnabled,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint
     )
 
@@ -330,9 +328,10 @@ object LanguageServerController {
     * @param supervisionConfig a supervision config
     * @param timeoutConfig a timeout config
     * @param distributionConfiguration configuration of the distribution
+    * @param processConfig the configuration of the main process
+    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @param executor an executor service used to start the language server
     *                 process
-    * @param loggingServiceDescriptor a logging service configuration descriptor
     * @return a configuration object
     */
   def props(
@@ -344,6 +343,7 @@ object LanguageServerController {
     supervisionConfig: SupervisionConfig,
     timeoutConfig: TimeoutConfig,
     distributionConfiguration: DistributionConfiguration,
+    processConfig: MainProcessConfig,
     loggingServiceDescriptor: LoggingServiceDescriptor,
     executor: LanguageServerExecutor
   ): Props =
@@ -357,6 +357,7 @@ object LanguageServerController {
         supervisionConfig,
         timeoutConfig,
         distributionConfiguration,
+        processConfig,
         loggingServiceDescriptor,
         executor
       )

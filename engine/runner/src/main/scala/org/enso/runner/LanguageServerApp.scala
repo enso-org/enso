@@ -16,8 +16,9 @@ object LanguageServerApp {
 
   /** Runs a Language Server
     *
-    * @param config a config
-    * @param logLevel log level
+    * @param config the application config
+    * @param logLevel the logging level
+    * @param deamonize should the language server process be daemonized
     */
   def run(
     config: LanguageServerConfig,

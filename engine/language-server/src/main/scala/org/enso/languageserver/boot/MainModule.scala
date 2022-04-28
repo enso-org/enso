@@ -78,9 +78,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     ContentRoot.Project(serverConfig.contentRootUuid),
     new File(serverConfig.contentRootPath)
   )
-  val profilingConfig = ProfilingConfig(
-    isProfilingEnabled = logLevel == LogLevel.Trace
-  )
   val languageServerConfig = Config(
     contentRoot,
     FileManagerConfig(timeout = 3.seconds),
@@ -232,7 +229,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter,
-          if (profilingConfig.isProfilingEnabled)
+          if (serverConfig.isProfilingEnabled)
             OutputStreamSampler("context-registry")
           else NoopSampler()
         ),
