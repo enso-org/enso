@@ -20,12 +20,6 @@ from_sign sign = if sign == 0 then Equal else
    `that`. So, if `this` is greater than `that`, you should return `Greater.`
 type Ordering
 
-    ## A representation of the relative ordering between two values.
-
-       These values must be able to be ordered with respect to each other.
-    @Builtin_Type
-    type Ordering
-
     ## A representation that the first value orders as less than the second.
     @Builtin_Type
     type Less
