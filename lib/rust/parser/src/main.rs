@@ -244,6 +244,8 @@ impl<'a> Resolver<'a> {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             let ast = self.resolve_current_macro(lexer).unwrap(); // todo: nice error
             current_macro.current_segment.body.push(ast.into());
+            // let m = mem::take(&mut self.current_macro);
+            // current_macro.current_segment.body.push(m.unwrap().into()); // HERE instead of ^^^
             self.current_macro = Some(current_macro);
             ResolverStep::MacroStackPop
         } else if let Some(segments) = root_macro_map.get(repr) {
@@ -686,5 +688,37 @@ fn main() {
 // a + * b
 
 
-// (a b) x -> y
-// (a b) x -> y -)
+// a) {(a b) c x-> y}
+// b) {(a b) c x-> y -)}
+
+// Idea:
+// 1. Match macros as now.
+// 2. After closing a macro, do not build AST, build hierarchical macro resolution.
+//    Example a) would become [{[(a b][) c x[-> y]]][}] . Let's skip curly braces:
+//                              [(a b][) c x[-> y]]
+// 3. Then when closing macros (after parsing '}'), macros free right hand side:
+//                             [(a b][)] c x[-> y]
+// 4. Then macros are resolved left-to-right, including left-hand-sides.
+//                             [(a b)] c [x-> y]
+
+
+// TODO: what this should return?
+// if a then x -> x + 1 else c
+// a) (if a then x) -> x + 1 else c
+// b) if a then (x -> x + 1) else c
+
+// TODO: HOWEVER this should be error:
+// a +if x then y else z
+// but this should be fine:
+// a +(x y z)
+
+// TODO: AND this has to work:
+// foo x-> bar
+
+// So we should create passes:
+// 1. parentheses
+// 2. lambdas
+// 3. space-aware precedence
+// 4. All other macros
+
+// NO! Then `if a then x -> x + 1 else c` would not work – points 2,3,4 have to be 1 pass.
