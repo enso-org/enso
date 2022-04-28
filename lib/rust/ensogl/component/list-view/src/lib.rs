@@ -183,7 +183,7 @@ impl<E: Entry> Model<E> {
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
-        self.entries.update_entries(visible_entries, style_prefix, entry_width);
+        self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
 
     fn set_entries(

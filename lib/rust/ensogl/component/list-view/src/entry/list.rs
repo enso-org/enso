@@ -133,8 +133,8 @@ where E::Model: Default
     pub fn update_entries(
         &self,
         mut range: Range<entry::Id>,
-        style_prefix: style::Path,
         max_width_px: f32,
+        style_prefix: style::Path,
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
