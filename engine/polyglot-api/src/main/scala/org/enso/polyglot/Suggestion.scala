@@ -40,7 +40,7 @@ sealed trait Suggestion extends ToLogString {
   def externalId: Option[Suggestion.ExternalId]
   def module:     String
   def name:       String
-  def returnType: Suggestion.TypeRep
+  def returnType: String
 }
 
 object Suggestion {
@@ -110,44 +110,6 @@ object Suggestion {
       }
   }
 
-  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-  @JsonSubTypes(
-    Array(
-      new JsonSubTypes.Type(
-        value = classOf[TypeRep.Legacy],
-        name  = "typeRepLegacy"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[TypeRep.Sum],
-        name  = "typeRepSum"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[TypeRep.Cons],
-        name  = "typeRepCons"
-      )
-    )
-  )
-  sealed trait TypeRep {
-    def toLegacy: TypeRep.Legacy
-  }
-
-  object TypeRep {
-    implicit def asLegacyRep(contents: String): TypeRep = Legacy(contents)
-
-    case class Legacy(contents: String) extends TypeRep {
-      override def toLegacy: Legacy = this
-      override def toString: String = contents
-    }
-
-    case class Sum(name: String, variants: Seq[TypeRep]) extends TypeRep {
-      override def toLegacy: Legacy = Legacy(this.name)
-    }
-
-    case class Cons(name: String) extends TypeRep {
-      override def toLegacy: Legacy = Legacy(this.name)
-    }
-  }
-
   /** An argument of an atom or a function.
     *
     * @param name the argument name
@@ -158,10 +120,11 @@ object Suggestion {
     */
   case class Argument(
     name: String,
-    reprType: TypeRep,
+    reprType: String,
     isSuspended: Boolean,
     hasDefault: Boolean,
-    defaultValue: Option[String]
+    defaultValue: Option[String],
+    tagValues: Option[Seq[String]] = None
   ) extends ToLogString {
 
     /** @inheritdoc */
@@ -211,7 +174,7 @@ object Suggestion {
     override def externalId: Option[ExternalId] =
       None
 
-    override def returnType: Suggestion.TypeRep =
+    override def returnType: String =
       module
 
     /** @inheritdoc */
@@ -237,7 +200,7 @@ object Suggestion {
     module: String,
     name: String,
     arguments: Seq[Argument],
-    returnType: Suggestion.TypeRep,
+    returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String]               = None,
     documentationSections: Option[List[DocSection]] = None,
@@ -276,7 +239,7 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     selfType: String,
-    returnType: TypeRep,
+    returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String]               = None,
     documentationSections: Option[List[DocSection]] = None,
@@ -313,7 +276,7 @@ object Suggestion {
     module: String,
     arguments: Seq[Argument],
     sourceType: String,
-    returnType: Suggestion.TypeRep,
+    returnType: String,
     documentation: Option[String],
     documentationHtml: Option[String]               = None,
     documentationSections: Option[List[DocSection]] = None,
@@ -350,7 +313,7 @@ object Suggestion {
     module: String,
     name: String,
     arguments: Seq[Argument],
-    returnType: Suggestion.TypeRep,
+    returnType: String,
     scope: Scope
   ) extends Suggestion
       with ToLogString {
@@ -379,7 +342,7 @@ object Suggestion {
     externalId: Option[ExternalId],
     module: String,
     name: String,
-    returnType: Suggestion.TypeRep,
+    returnType: String,
     scope: Scope
   ) extends Suggestion {
 

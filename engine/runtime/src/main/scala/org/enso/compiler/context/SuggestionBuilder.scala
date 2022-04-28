@@ -529,7 +529,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       reprType     = buildTypeArgumentName(targ),
       isSuspended  = varg.suspended,
       hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
+      defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
+      tagValues = targ match {
+        case TypeArg.Sum(_, variants) => Some(variants.map(_.toString))
+        case _ => None
+      }
     )
 
   /** Build the name of type argument.
@@ -537,8 +541,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     * @param targ the type argument
     * @return the name of type argument
     */
-  private def buildTypeArgumentName(targ: TypeArg): Suggestion.TypeRep = {
-    def go(targ: TypeArg, level: Int): Suggestion.TypeRep =
+  private def buildTypeArgumentName(targ: TypeArg): String = {
+    def go(targ: TypeArg, level: Int): String =
       targ match {
         case TypeArg.Value(name) => name.toString
         case TypeArg.Function(Vector(typeArg)) =>
@@ -557,11 +561,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           val argsList = args.map(go(_, level + 1)).mkString(" ")
           val typeName = s"$funText $argsList"
           if (level > 0) s"($typeName)" else typeName
-        case TypeArg.Sum(n, vs) =>
-          Suggestion.TypeRep.Sum(
-            n.toString,
-            vs.map(qn => Suggestion.TypeRep.Cons(qn.toString))
-          )
+        case TypeArg.Sum(n, _) => n.toString
       }
 
     go(targ, 0)
@@ -586,7 +586,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     * @param typeDef the type definition
     * @return the type name
     */
-  private def buildReturnType(typeDef: Option[TypeArg]): Suggestion.TypeRep =
+  private def buildReturnType(typeDef: Option[TypeArg]): String =
     typeDef.map(buildTypeArgumentName).getOrElse(Any)
 
   /** Build argument default value from the expression.
@@ -688,6 +688,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: Suggestion.TypeRep = Constants.ANY
+  val Any: String = Constants.ANY
 
 }
