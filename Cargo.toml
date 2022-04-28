@@ -44,3 +44,10 @@ debug-assertions = true
 [profile.integration-test]
 inherits = "test"
 opt-level = 2
+
+[profile.buildscript]
+inherits = "release"
+opt-level = 2
+lto = false
+debug = false
+debug-assertions = true
