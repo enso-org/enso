@@ -251,7 +251,7 @@ impl FromStr for Value {
 
 impl<Err> TryFrom<Result<Value, Err>> for Value {
     type Error = Err;
-    fn try_from(t: Result<Value, Err>) -> Result<Self, Self::Error> {
+    fn try_from(t: Result<Value, Err>) -> Result<Value, Err> {
         t
     }
 }
