@@ -70,6 +70,13 @@ impl From<Ast> for TokenOrAst {
 }
 
 
+#[derive(Debug)]
+pub enum TokenOrAstOrMacroResolver<'a> {
+    TokenOrAst(TokenOrAst),
+    MacroResolver(MacroResolver<'a>),
+}
+
+
 
 // ======================
 // === MacroMatchTree ===
@@ -683,6 +690,26 @@ fn main() {
     // let b = 5;
     // let c = a + / b;
 }
+
+
+/// Requirements:
+///
+/// - Parentheses have priority over space-aware precedence, e.g. `test (a + b)` is OK because `(a`
+///   is not interpreted as expression.
+///
+/// - Parentheses allow operators glued to them, e.g. `test *(a + b)` is OK, but `test *if a then b`
+///   is not.
+///
+/// - Lambdas have different precedence on left and right side, e.g. `test <| a -> (+1) <| a` should
+///   be interpreted as `test (a -> ((+1) a))`.
+///
+/// - Lambdas consume everything on the right-hand side even if left argument does not use space.
+///   `test a-> a + 1` is the same as `test (a -> a + 1)`.
+///
+/// - Macro sections have higher precedence then everything, including lambdas. `if a then x -> x +
+///   1 else x -> x - 1` should be OK.
+fn tmp() {}
+
 // (.foo a)
 // (* foo + bar)
 // a + * b
@@ -706,8 +733,10 @@ fn main() {
 // if a then x -> x + 1 else c
 // a) (if a then x) -> x + 1 else c
 // b) if a then (x -> x + 1) else c
+// c) if a then+ y else z
+// d) if 1 + 2 > a then b else c
 
-// TODO: HOWEVER this should be error:
+// TODO: HOWEVER this should result in an error:
 // a +if x then y else z
 // but this should be fine:
 // a +(x y z)
@@ -721,4 +750,19 @@ fn main() {
 // 3. space-aware precedence
 // 4. All other macros
 
-// NO! Then `if a then x -> x + 1 else c` would not work – points 2,3,4 have to be 1 pass.
+// NO! Then `if a then x -> x + 1 else c` would not work – points 2 and 4 have to be 1 pass.
+//     If we want macros to be able to invalidate space aware precedence (like `foo x-> a + b`),
+//     then point 3 has to be deleted.
+//
+//     But how to handle `if a then+ y else z` or `foo +if a then b else c`? Probably by using some
+//     additional checks.
+
+// Do we even need parentheses as a separate pass now? Somehow this has to work `+(x y z)` and
+// this not `+if x then y else z`. Maybe additional checks for the macros again? This will make
+// macros even more powerful. But we don't need to expose all the power to users.
+
+
+
+// TODO: NOTE
+// probably we want to keep the struct AstOrTokenOrMatchedMacro = AstOrToken | MacroSomething
+// because we will be very fast going back to AstOrToken
