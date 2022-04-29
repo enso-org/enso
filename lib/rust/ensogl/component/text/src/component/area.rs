@@ -551,8 +551,8 @@ impl Area {
     //        shape system definition, and thus, inherits the scene layer settings from this
     //        display object.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
-        self.data.add_symbols_to_scene_layer(layer);
         self.data.layer.set(layer.clone_ref());
+        self.data.add_symbols_to_scene_layer();
         layer.add_exclusive(self);
     }
 
@@ -560,9 +560,7 @@ impl Area {
     // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
     pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.data.symbols() {
-            layer.remove_symbol(&symbol);
-        }
+        self.data.remove_symbols_from_scene_layer(layer);
     }
 }
 
@@ -1026,16 +1024,23 @@ impl AreaModel {
         self.display_object.remove_child(&old_glyph_system);
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.lines.rc.take();
-        self.add_symbols_to_scene_layer(&self.layer.get());
+        self.add_symbols_to_scene_layer();
         self.redraw(true);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn set_font(&self, _font_name: &str) {}
 
-    fn add_symbols_to_scene_layer(&self, layer: &display::scene::Layer) {
+    fn add_symbols_to_scene_layer(&self) {
+        let layer = &self.layer.get();
         for symbol in self.symbols() {
             layer.add_exclusive(&symbol);
+        }
+    }
+
+    fn remove_symbols_from_scene_layer(&self, layer: &display::scene::Layer) {
+        for symbol in self.symbols() {
+            layer.remove_symbol(&symbol);
         }
     }
 
