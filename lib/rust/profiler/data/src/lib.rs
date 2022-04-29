@@ -32,7 +32,7 @@
 //! }
 //!
 //! fn store_and_retrieve_metadata() {
-//!     demo();
+//!     action_producing_metadata();
 //!
 //!     // To deserialize, we define a metadata type as an enum.
 //!     //
