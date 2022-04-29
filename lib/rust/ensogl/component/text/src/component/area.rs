@@ -554,7 +554,7 @@ impl Area {
         for symbol in self.symbols() {
             layer.add_exclusive(&symbol);
         }
-        self.data.camera.set(layer.camera());
+        self.data.layer.set(layer.clone_ref());
         layer.add_exclusive(self);
     }
 
@@ -595,7 +595,7 @@ pub struct AreaModel {
     app:    Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
-    camera: Rc<CloneRefCell<display::camera::Camera2d>>,
+    layer: Rc<CloneRefCell<display::scene::Layer>>,
 
     logger:         Logger,
     frp_endpoints:  FrpEndpoints,
@@ -627,7 +627,7 @@ impl AreaModel {
         let buffer = default();
         let lines = default();
         let single_line = default();
-        let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
+        let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
 
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
@@ -645,7 +645,7 @@ impl AreaModel {
 
         Self {
             app,
-            camera,
+            layer,
             logger,
             frp_endpoints,
             buffer,
@@ -750,7 +750,7 @@ impl AreaModel {
 
     /// Transforms screen position to the object (display object) coordinate system.
     fn to_object_space(&self, screen_pos: Vector2) -> Vector2 {
-        let camera = self.camera.get();
+        let camera = self.layer.get().camera();
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
