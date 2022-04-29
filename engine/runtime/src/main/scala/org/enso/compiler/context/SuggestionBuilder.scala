@@ -532,7 +532,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
       tagValues = targ match {
         case TypeArg.Sum(_, variants) => Some(variants.map(_.toString))
-        case _ => None
+        case _                        => None
       }
     )
 

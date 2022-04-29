@@ -81,7 +81,10 @@ class ComplexTypeTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
 
       exactly(2, ir.bindings) shouldBe a[Definition.Atom]
-      ir.bindings(0).asInstanceOf[Definition.UnionType].name.name shouldEqual "MyType"
+      ir.bindings(0)
+        .asInstanceOf[Definition.UnionType]
+        .name
+        .name shouldEqual "MyType"
       ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
       ir.bindings(2).asInstanceOf[Definition.Atom].name.name shouldEqual "Bar"
     }
