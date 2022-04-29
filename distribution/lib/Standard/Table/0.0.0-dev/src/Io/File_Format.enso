@@ -4,7 +4,7 @@ import Standard.Table
 import Standard.Base.Error.Extensions as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
-import Standard.Table.Io.Delimited_Reader
+import Standard.Table.Internal.Delimited_Reader
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and

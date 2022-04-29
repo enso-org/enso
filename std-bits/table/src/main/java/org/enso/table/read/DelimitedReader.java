@@ -153,17 +153,10 @@ public class DelimitedReader {
     return parser;
   }
 
-  /**
-   * Parses a cell.
-   *
-   * <p>Currently just handles quotes. In the future it will be extended to delegate to a parsing
-   * strategy for values.
-   */
+  /** Parses a cell, removing surrounding quotes (if applicable). */
   private String parseCell(String cell) {
     if (cell == null) return null;
 
-    // TODO [RW] here we can plug-in some more complex parsing logic, to be done
-    //  as part of https://www.pivotaltracker.com/story/show/181824146
     if (cell.isEmpty()) return cell;
     if (cell.charAt(0) == quoteCharacter) {
       return stripQuotes(cell);
@@ -172,7 +165,7 @@ public class DelimitedReader {
     return cell;
   }
 
-  /** Parses a header cell, removing surrounding quotes. */
+  /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
     if (cell == null) return COLUMN_NAME;
 
