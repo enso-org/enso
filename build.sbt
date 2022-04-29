@@ -686,7 +686,20 @@ lazy val `logging-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130",
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      exclude("org.netbeans.api", "org-openide-loaders")
+      exclude("org.netbeans.api", "org-openide-nodes")
+//    exclude following when RELEASE140 is out:
+//      exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+//      exclude("org.netbeans.api", "org-netbeans-api-progress")
+//      exclude("org.netbeans.api", "org-openide-util-lookup")
+//      exclude("org.netbeans.api", "org-openide-util")
+//      exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude("org.netbeans.api", "org-openide-filesystems")
+      exclude("org.netbeans.api", "org-openide-util-ui")
+      exclude("org.netbeans.api", "org-openide-awt")
+      exclude("org.netbeans.api", "org-openide-modules")
+      exclude("org.netbeans.api", "org-netbeans-api-annotations-common"),
       "org.scalatest"   %% "scalatest"                    % scalatestVersion % Test
     )
   )
