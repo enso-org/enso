@@ -575,7 +575,7 @@ impl Area {
 /// Internal representation of `Area`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct AreaModel {
-    app:    Application,
+    app:   Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
     layer: Rc<CloneRefCell<display::scene::Layer>>,
