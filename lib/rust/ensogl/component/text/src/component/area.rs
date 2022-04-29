@@ -542,18 +542,16 @@ impl Area {
     //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
     //        is a very non-standard implementation, and thus has to handle the new display object
     //        callbacks in a special way as well.
-    //     2. The `self.data.camera` has to still be used, otherwise there would be no way to
-    // convert        the screen to object space (see the [`to_object_space`] function). This is
-    // a very        temporary solution, as any object can be assigned to more than one scene
-    // layer, and thus        can be rendered from more than one camera. Screen / object space
-    // location of events        should thus become much more primitive information /
-    // mechanisms.     Please note, that this function handles the selection management
-    // correctly, as it uses     the new shape system definition, and thus, inherits the scene
-    // layer settings from this     display object.
+    //     2. The `self.data.layer` has to still be used, otherwise there would be no way to
+    //        convert the screen to object space (see the [`to_object_space`] function). This is a
+    //        very temporary solution, as any object can be assigned to more than one scene layer,
+    //        and thus can be rendered from more than one camera. Screen / object space location of
+    //        events should thus become much more primitive information / mechanisms. Please note,
+    //        that this function handles the selection management correctly, as it uses the new
+    //        shape system definition, and thus, inherits the scene layer settings from this
+    //        display object.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.add_exclusive(&symbol);
-        }
+        self.data.add_symbols_to_scene_layer(layer);
         self.data.layer.set(layer.clone_ref());
         layer.add_exclusive(self);
     }
@@ -562,24 +560,9 @@ impl Area {
     // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
     pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
+        for symbol in self.data.symbols() {
             layer.remove_symbol(&symbol);
         }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        default()
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.data.glyph_system.borrow().sprite_system().symbol.clone_ref();
-        let shapes = &self.data.app.display.default_scene.shapes;
-        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
-        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
 }
 
@@ -1043,11 +1026,33 @@ impl AreaModel {
         self.display_object.remove_child(&old_glyph_system);
         // Remove old Glyph structures, as they still refer to the old Glyph System.
         self.lines.rc.take();
+        self.add_symbols_to_scene_layer(&self.layer.get());
         self.redraw(true);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn set_font(&self, _font_name: &str) {}
+
+    fn add_symbols_to_scene_layer(&self, layer: &display::scene::Layer) {
+        for symbol in self.symbols() {
+            layer.add_exclusive(&symbol);
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
+        let shapes = &self.app.display.default_scene.shapes;
+        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
+        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
+        SmallVec::from_buf([text_symbol /* selection_symbol */])
+    }
 }
 
 impl display::Object for AreaModel {
