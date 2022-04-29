@@ -172,6 +172,39 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
 
 
 
+// ======================
+// === MetadataLogger ===
+// ======================
+
+/// An object that supports writing a specific type of metadata to the profiling log.
+#[derive(Debug)]
+pub struct MetadataLogger<T> {
+    id:      u32,
+    entries: rc::Rc<log::Log<T>>,
+}
+
+impl<T: 'static + serde::Serialize> MetadataLogger<T> {
+    /// Create a MetadataLogger for logging a particular type.
+    ///
+    /// The name given here must match the name used for deserialization.
+    pub fn new(name: &'static str) -> Self {
+        let id = METADATA_LOGS.len() as u32;
+        let entries = rc::Rc::new(log::Log::new());
+        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
+        Self { id, entries }
+    }
+
+    /// Write a metadata object to the profiling event log.
+    ///
+    /// Returns an identifier that can be used to create references between log entries.
+    pub fn log(&self, t: T) -> EventId {
+        self.entries.append(t);
+        EventLog.metadata(self.id)
+    }
+}
+
+
+
 // ================
 // === EventLog ===
 // ================

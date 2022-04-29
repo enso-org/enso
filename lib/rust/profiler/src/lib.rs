@@ -161,9 +161,6 @@ pub mod log;
 
 extern crate test;
 
-use std::rc;
-use std::str;
-
 use internal::*;
 
 
@@ -179,35 +176,23 @@ pub mod prelude {
 
 
 
-// ======================
-// === MetadataLogger ===
-// ======================
+// ========================
+// === Logging Metadata ===
+// ========================
 
-/// An object that supports writing a specific type of metadata to the profiling log.
-#[derive(Debug)]
-pub struct MetadataLogger<T> {
-    id:      u32,
-    entries: rc::Rc<log::Log<T>>,
-}
-
-impl<T: 'static + serde::Serialize> MetadataLogger<T> {
-    /// Create a MetadataLogger for logging a particular type.
-    ///
-    /// The name given here must match the name used for deserialization.
-    pub fn new(name: &'static str) -> Self {
-        let id = METADATA_LOGS.len() as u32;
-        let entries = rc::Rc::new(log::Log::new());
-        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
-        Self { id, entries }
-    }
-
-    /// Write a metadata object to the profiling event log.
-    ///
-    /// Returns an identifier that can be used to create references between log entries.
-    pub fn log(&self, t: T) -> EventId {
-        self.entries.append(t);
-        EventLog.metadata(self.id)
-    }
+/// Define a function that writes a specific type of metadata to the profiling log.
+#[macro_export]
+macro_rules! metadata_logger {
+    ($name:expr, $fun:ident($ty:ty)) => {
+        /// Write a metadata object to the profiling event log.
+        pub fn $fun(data: $ty) {
+            thread_local! {
+                static LOGGER: $crate::internal::MetadataLogger<$ty> =
+                    $crate::internal::MetadataLogger::new($name);
+            }
+            LOGGER.with(|logger| logger.log(data));
+        }
+    };
 }
 
 

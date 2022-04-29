@@ -7,14 +7,7 @@
 // === Rpc Request Logging ===
 // ===========================
 
-/// Log an RPC Request to the profiling framework.
-pub fn rpc_request(method: &'static str) {
-    thread_local! {
-        static RPC_REQUEST_LOGGER: enso_profiler::MetadataLogger<& 'static str> =
-            enso_profiler::MetadataLogger::new("RpcRequest");
-    }
-    RPC_REQUEST_LOGGER.with(|logger| logger.log(method));
-}
+enso_profiler::metadata_logger!("RpcRequest", rpc_request(&'static str));
 
 
 

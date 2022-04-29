@@ -17,37 +17,18 @@
 //! use profiler::profile;
 //!
 //! // Some metadata types.
-//! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+//! #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //! struct MyDataA(u32);
+//! profiler::metadata_logger!("MyDataA", log_data_a(u32));
 //!
-//! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+//! #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //! struct MyDataB(String);
+//! profiler::metadata_logger!("MyDataB", log_data_b(String));
 //!
-//! // An activity that produces metadata.
-//! struct ActivityWithMetadata {
-//!     meta_logger_a: profiler::MetadataLogger<MyDataA>,
-//!     meta_logger_b: profiler::MetadataLogger<MyDataB>,
-//!     // ...fields for doing stuff
-//! }
-//! impl ActivityWithMetadata {
-//!     fn new() -> Self {
-//!         let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
-//!         let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
-//!         Self { meta_logger_a, meta_logger_b /* ... */ }
-//!     }
-//!
-//!     #[profile(Objective)]
-//!     fn action_producing_metadata(&self) {
-//!         self.meta_logger_a.log(MyDataA(23));
-//!         self.meta_logger_b.log(MyDataB("5".into()));
-//!     }
-//! }
-//!
-//! // Run the activity that produces metadata, and profile it.
 //! #[profile(Objective)]
-//! fn demo() {
-//!     let act = ActivityWithMetadata::new();
-//!     act.action_producing_metadata();
+//! fn action_producing_metadata() {
+//!     log_data_a(23);
+//!     log_data_b("5".into());
 //! }
 //!
 //! fn store_and_retrieve_metadata() {
@@ -55,8 +36,10 @@
 //!
 //!     // To deserialize, we define a metadata type as an enum.
 //!     //
-//!     // Each variant has a name and type that match the string-argument and type-parameter of a
-//!     // call to `MetadataLogger::new`.
+//!     // Each variant has a name and type that match the string-argument and type-parameter that
+//!     // match the `profiler::metadata_logger!` definition. If the type is a newtype, the
+//!     // metadata logger may accept the wrapped type for convenience; a newtype and its contents
+//!     // have the same serialized form.
 //!     #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //!     enum MyMetadata {
 //!         MyDataA(MyDataA),
@@ -75,8 +58,7 @@
 //!     // Parse the log. Interpret metadata according to the enum defined above.
 //!     let profile: profiler_data::Profile<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData objects are present and attached to the right interval.
-//!     let demo = &profile[profile.root_interval().children[0]];
-//!     let interval = &profile[demo.children[0]];
+//!     let interval = &profile[profile.root_interval().children[0]];
 //!     let action = &profile[interval.measurement];
 //!     assert_eq!(&action.label.name, "action_producing_metadata");
 //!     assert_eq!(interval.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
@@ -221,8 +203,8 @@ pub fn parse_multiprocess_profile<M: serde::de::DeserializeOwned>(
 ///
 /// This is parameterized by a type that determines how metadata is interpreted. The type must be
 /// an enum, with a variant for each type of metadata that is handled. Each variant's name and type
-/// should correspond to the parameters supplied to [`profiler::MetadataLogger::new`]. For an
-/// example, see the docs for the [`crate`].
+/// should correspond to the parameters supplied to [`profiler::metadata_logger`]. For an example,
+/// see the docs for the [`crate`].
 #[derive(Clone, Debug)]
 pub struct Profile<M> {
     /// The hierarchy of profilers. A parent-child relationship indicates that the child was
@@ -643,17 +625,17 @@ mod tests {
     /// correctly, and all other data is still readable.
     #[test]
     fn skip_failed_metadata() {
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataA(u32);
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        profiler::metadata_logger!("MyDataA", log_data_a(u32));
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataBExpected(u32);
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataBActual(String);
+        profiler::metadata_logger!("MyDataB", log_data_b(String));
 
-        let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
-        let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
-        meta_logger_a.log(MyDataA(23));
-        meta_logger_b.log(MyDataBActual("bad".into()));
+        log_data_a(23);
+        log_data_b("bad".into());
 
         #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         enum MyMetadata {
