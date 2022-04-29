@@ -6,12 +6,11 @@ import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.JavaFileObject;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Writer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -23,11 +22,17 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
 
   private class BuiltinTypeConstr {
     private String tpeName;
+    private String fullName;
     private String[] paramNames;
 
-    BuiltinTypeConstr(String tpeName, String[] params) {
+    BuiltinTypeConstr(String tpeName, String fullName, String[] params) {
       this.tpeName = tpeName;
+      this.fullName = fullName;
       this.paramNames = params;
+    }
+
+    public String getFullName() {
+      return fullName;
     }
 
     public String getTpeName() {
@@ -60,6 +65,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
             processingEnv.getFiler(),
             ensoTypeName,
             pkgName + "." + clazzName,
+            builtinTypeAnnotation.name(),
             builtinTypeAnnotation.params());
       }
     }
@@ -80,13 +86,17 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
    */
   @Override
   protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+    JavaFileObject gen = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
     for (Filer f : builtinTypes.keySet()) {
+      System.out.println("foo" + f.toString());
       for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
         BuiltinTypeConstr constr = entry.getValue();
         writer.append(
             entry.getKey()
                 + ":"
                 + constr.getTpeName()
+                + ":"
+                + constr.getFullName()
                 + ":"
                 + StringUtils.join(Arrays.asList(constr.getParamNames()), ",")
                 + "\n");
@@ -95,15 +105,53 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
         }
       }
     }
+    try (PrintWriter out = new PrintWriter(gen.openWriter())) {
+      out.println("package " + ConstantsGenPkg + ";");
+      out.println();
+      out.println("public class " + ConstantsGenClass + " {");
+      out.println();
+      for (Filer f : builtinTypes.keySet()) {
+        for (Map.Entry<String, BuiltinTypeConstr> entry : builtinTypes.get(f).entrySet()) {
+          BuiltinTypeConstr constr = entry.getValue();
+          if (!constr.getFullName().isEmpty()) {
+            out.println(
+                "  public static final String "
+                    + entry.getKey().toUpperCase()
+                    + " = \""
+                    + constr.getFullName()
+                    + "\";");
+          }
+        }
+      }
+
+      pastEntries
+          .values()
+          .forEach(
+              entry -> {
+                String[] elements = entry.split(":");
+                if (!elements[2].isEmpty()) {
+                  out.println(
+                      "    public static void final String "
+                          + elements[0].toUpperCase()
+                          + " = \""
+                          + elements[2]
+                          + "\";");
+                }
+              });
+
+      out.println();
+      out.println("}");
+    }
   }
 
-  protected void registerBuiltinType(Filer f, String name, String clazzName, String[] params) {
+  protected void registerBuiltinType(
+      Filer f, String name, String clazzName, String fullName, String[] params) {
     Map<String, BuiltinTypeConstr> classes = builtinTypes.get(f);
     if (classes == null) {
       classes = new HashMap<>();
       builtinTypes.put(f, classes);
     }
-    classes.put(name, new BuiltinTypeConstr(clazzName, params));
+    classes.put(name, new BuiltinTypeConstr(clazzName, fullName, params));
   }
 
   @Override
@@ -115,4 +163,8 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
   protected void cleanup() {
     builtinTypes.clear();
   }
+
+  private static final String ConstantsGenPkg = "org.enso.interpreter.runtime.type";
+  private static final String ConstantsGenClass = "ConstantsGen";
+  private static final String ConstantsGenFullClassname = ConstantsGenPkg + "." + ConstantsGenClass;
 }

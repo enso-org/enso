@@ -10,6 +10,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface BuiltinType {
 
+  /** Fully qualified name as available in stdlib */
+  String name() default "";
+
   /**
    * Comma-separated list of parameters of builting type
    *

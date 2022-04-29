@@ -3,5 +3,5 @@ package org.enso.interpreter.node.expression.builtin.function;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
-@BuiltinType
+@BuiltinType(name = "Standard.Base.Function.Function")
 public class Function extends Builtin {}

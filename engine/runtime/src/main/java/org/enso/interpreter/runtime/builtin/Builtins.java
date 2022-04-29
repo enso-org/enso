@@ -35,6 +35,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Constants;
+import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -59,7 +60,7 @@ public class Builtins {
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
-  private final Number number;
+  public final Number number;
   private final Ordering ordering;
   private final System system;
   private final Special special;
@@ -199,7 +200,7 @@ public class Builtins {
         .map(
             line -> {
               String[] builtinMeta = line.split(":");
-              if (builtinMeta.length < 2 || builtinMeta.length > 3) {
+              if (builtinMeta.length != 4) {
                 throw new CompilerError(
                     "Invalid builtin metadata in: " + line + " " + builtinMeta.length);
               }
@@ -207,11 +208,11 @@ public class Builtins {
               AtomConstructor builtin;
               builtin = new AtomConstructor(builtinMeta[0], scope, true);
 
-              if (builtinMeta.length == 2) {
+              if (builtinMeta[3].isEmpty()) {
                 builtin = builtin.initializeFields();
               } else {
                 // there are some type params
-                String[] paramNames = builtinMeta[2].split(",");
+                String[] paramNames = builtinMeta[3].split(",");
                 ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
                 for (int i = 0; i < paramNames.length; i++) {
                   args[i] =
@@ -406,7 +407,7 @@ public class Builtins {
   }
 
   /** @return the ManagedResource constructor. */
-  private AtomConstructor managedResource() {
+  public AtomConstructor managedResource() {
     if (managedResource == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       managedResource = getBuiltinType(ManagedResource.class);
@@ -531,40 +532,11 @@ public class Builtins {
   /**
    * Convert from type-system type names to atoms.
    *
-   * @param typeName the fully qualified type name as defined in {@link Constants}.
+   * @param typeName the fully qualified type name of a builtin
    * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
    *     and {@code null} otherwise
    */
   public Atom fromTypeSystem(String typeName) {
-    switch (typeName) {
-      case Constants.ANY:
-        return any().newInstance();
-      case Constants.ARRAY:
-        return array().newInstance();
-      case Constants.BOOLEAN:
-        return bool().newInstance();
-      case Constants.DECIMAL:
-        return number.getDecimal().newInstance();
-      case Constants.ERROR:
-        return dataflowError().newInstance();
-      case Constants.FUNCTION:
-        return function().newInstance();
-      case Constants.INTEGER:
-        return number.getInteger().newInstance();
-      case Constants.MANAGED_RESOURCE:
-        return managedResource().newInstance();
-      case Constants.NOTHING:
-        return nothing().newInstance();
-      case Constants.NUMBER:
-        return number.getNumber().newInstance();
-      case Constants.PANIC:
-        return panic().newInstance();
-      case Constants.REF:
-        return ref().newInstance();
-      case Constants.TEXT:
-        return text().newInstance();
-      default:
-        return null;
-    }
+    return TypesFromProxy.fromTypeSystem(this, typeName);
   }
 }

@@ -8,5 +8,5 @@ import org.enso.interpreter.dsl.BuiltinType;
 // The name Boolean would clash with java.lang.Boolean.
 // Before moving this definition to the `bool` package, as we should, one would have to address that
 // problem first.
-@BuiltinType
+@BuiltinType(name = "Standard.Base.Boolean.Boolean")
 public class Boolean extends Builtin {}
