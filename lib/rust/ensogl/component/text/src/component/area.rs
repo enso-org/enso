@@ -542,14 +542,16 @@ impl Area {
     //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
     //        is a very non-standard implementation, and thus has to handle the new display object
     //        callbacks in a special way as well.
-    //     2. The `self.data.layer` has to still be used, otherwise there would be no way to
-    //        convert the screen to object space (see the [`to_object_space`] function). This is a
-    //        very temporary solution, as any object can be assigned to more than one scene layer,
-    //        and thus can be rendered from more than one camera. Screen / object space location of
-    //        events should thus become much more primitive information / mechanisms. Please note,
-    //        that this function handles the selection management correctly, as it uses the new
-    //        shape system definition, and thus, inherits the scene layer settings from this
-    //        display object.
+    //     2. The `self.data.layer.camera()` has to still be used, otherwise there would be no way
+    //        to convert the screen to object space (see the [`to_object_space`] function). This is
+    //        a very temporary solution, as any object can be assigned to more than one scene
+    //        layer, and thus can be rendered from more than one camera. Screen / object space
+    //        location of events should thus become much more primitive information / mechanisms.
+    //        Please note, that this function handles the selection management correctly, as it
+    //        uses the new shape system definition, and thus, inherits the scene layer settings
+    //        from this display object.
+    //     3. The `self.data.layer` needs to be stored so that the [`set_font`] function can assign
+    //        newly created Glyphs to the layer to make them visible.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
         self.data.layer.set(layer.clone_ref());
         self.data.add_symbols_to_scene_layer();
