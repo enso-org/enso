@@ -1,7 +1,6 @@
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
-
 // === Non-Standard Linter Configuration ===
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -17,6 +16,3 @@
 // ==============
 
 pub use ide_view_component_group as component_group;
-
-
-

@@ -22,10 +22,14 @@ use ensogl_core::frp;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
+use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ensogl_selector as selector;
 use ensogl_selector::Bounds;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
+use ide_view_component_group::entry;
+use ide_view_component_group::icon;
+use ide_view_component_group::Entry;
 use list_view::entry::AnyModelProvider;
 
 
@@ -50,15 +54,15 @@ pub fn main() {
 // === Mock Entries ===
 // ====================
 
-const PREPARED_ITEMS: &[&str; 8] = &[
-    "long sample entry with text overflowing the width",
-    "convert",
-    "table input",
-    "text input",
-    "number input",
-    "table output",
-    "data output",
-    "data input",
+const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
+    ("long sample entry with text overflowing the width", icon::Id::Star),
+    ("convert", icon::Id::Convert),
+    ("table input", icon::Id::DataInput),
+    ("text input", icon::Id::TextInput),
+    ("number input", icon::Id::NumberInput),
+    ("table output", icon::Id::TableEdit),
+    ("data output", icon::Id::DataOutput),
+    ("data input", icon::Id::DataInput),
 ];
 
 #[derive(Debug)]
@@ -70,7 +74,18 @@ struct MockEntries {
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
         Rc::new(Self {
-            entries: PREPARED_ITEMS.iter().cycle().take(count).map(|&label| label.into()).collect(),
+            entries: PREPARED_ITEMS
+                .iter()
+                .cycle()
+                .take(count)
+                .map(|&(label, icon)| entry::Model {
+                    icon,
+                    highlighted_text: GlyphHighlightedLabelModel {
+                        label:       label.to_owned(),
+                        highlighted: default(),
+                    },
+                })
+                .collect(),
             count:   Cell::new(count),
         })
     }
@@ -81,17 +96,17 @@ impl MockEntries {
         }
     }
 
-    fn get_entry(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get_entry(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.entries.get(id).cloned()
     }
 }
 
-impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
+impl list_view::entry::ModelProvider<Entry> for MockEntries {
     fn entry_count(&self) -> usize {
         self.count.get()
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.get_entry(id)
     }
 }
@@ -161,6 +176,13 @@ fn init(app: &Application) {
     let items_slider = items_slider(app);
     let network = frp::Network::new("Component Group Debug Scene");
     let selection = create_selection();
+    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
+    selection.size.set(Vector2(
+        150.0 + 2.0 * list_view::SHAPE_MARGIN - 8.0,
+        29.0 + 2.0 * list_view::SHAPE_MARGIN,
+    ));
+    selection.corner_radius.set(10.0);
+
     let selection_animation = Animation::<Vector2>::new(&network);
     let wide_selection = create_selection();
     let wide_selection_animation = Animation::<Vector2>::new(&network);

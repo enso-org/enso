@@ -22,8 +22,6 @@ pub mod list;
 // === Constants ===
 // =================
 
-/// Padding inside entry in pixels.
-pub const PADDING: f32 = 14.0;
 /// The overall entry's height (including padding).
 pub const HEIGHT: f32 = 30.0;
 
@@ -108,8 +106,6 @@ impl Label {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
-        let text = default();
-        let max_width_px = default();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let text_style = style_prefix.sub("text");
@@ -120,6 +116,8 @@ impl Label {
         display_object.add_child(&label);
         frp::extend! { network
             init <- source::<()>();
+            text <- source::<String>();
+            max_width_px <- source::<f32>();
             color <- all(&color,&init)._0();
             font <- all(&font,&init)._0();
             size <- all(&size,&init)._0();
@@ -128,6 +126,8 @@ impl Label {
             label.set_font <+ font;
             label.set_default_text_size <+ size.map(|v| text::Size(*v));
             eval size ((size) label.set_position_y(size/2.0));
+
+            label.set_content_truncated <+ all(&text, &max_width_px);
         }
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
@@ -148,15 +148,11 @@ impl Entry for Label {
     }
 
     fn update(&self, model: &Self::Model) {
-        self.text.replace(model.clone());
-        self.update_label_content();
+        self.text.emit(model.clone());
     }
 
     fn set_max_width(&self, max_width_px: f32) {
-        if self.max_width_px.get() != max_width_px {
-            self.max_width_px.set(max_width_px);
-            self.update_label_content();
-        }
+        self.max_width_px.emit(max_width_px);
     }
 
     fn set_label_layer(&self, label_layer: &display::scene::Layer) {
@@ -186,7 +182,7 @@ pub struct GlyphHighlightedLabelModel {
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
 #[derive(Clone, CloneRef, Debug)]
 pub struct GlyphHighlightedLabel {
-    inner:     Label,
+    pub inner: Label,
     highlight: frp::Source<Vec<text::Range<text::Bytes>>>,
 }
 
@@ -198,15 +194,16 @@ impl Entry for GlyphHighlightedLabel {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");
-        let highlight_color = inner.style_watch.get_color(text_style.sub("highlight"));
+        let highlight_bold = inner.style_watch.get_number(text_style.sub("highlight_bold"));
         let label = &inner.label;
 
         frp::extend! { network
             highlight <- source::<Vec<text::Range<text::Bytes>>>();
-            highlight_changed <- all(highlight,highlight_color);
-            eval highlight_changed ([label]((highlight,color)) {
+            content_changed <- label.content.constant(());
+            set_highlight <- all(highlight,highlight_bold,content_changed);
+            eval set_highlight ([label]((highlight,bold,())) {
                 for range in highlight {
-                   label.set_color_bytes(range,color);
+                   label.set_sdf_bold(range,text::style::SdfBold::new(*bold));
                 }
             });
         }

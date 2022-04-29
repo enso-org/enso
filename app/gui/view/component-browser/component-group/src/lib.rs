@@ -18,30 +18,39 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-
-use ensogl_core::application::traits::*;
-use ensogl_core::display::shape::*;
-use ensogl_core::prelude::*;
-
-use enso_frp as frp;
-use ensogl_core::application::shortcut::Shortcut;
-use ensogl_core::application::Application;
-use ensogl_core::data::color;
-use ensogl_core::display;
-use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
-use ensogl_list_view as list_view;
-use ensogl_text as text;
-
+// === Features ===
+#![feature(option_result_contains)]
 
 // ==============
 // === Export ===
 // ==============
 
 pub mod entry;
+pub mod icon;
 pub mod wide;
 
 pub use entry::View as Entry;
+
+use crate::prelude::*;
+
+use enso_frp as frp;
+use ensogl::application::shortcut::Shortcut;
+use ensogl::application::traits::*;
+use ensogl::application::Application;
+use ensogl::data::color::Rgba;
+use ensogl::data::text;
+use ensogl::display;
+use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_list_view as list_view;
+
+/// A module containing common imports.
+pub mod prelude {
+    pub use ensogl::display::shape::*;
+    pub use ensogl::prelude::*;
+}
+
+const ENTRIES_STYLE_PATH: &str = theme::HERE.str;
 
 
 
@@ -56,7 +65,7 @@ pub use entry::View as Entry;
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
@@ -72,9 +81,9 @@ pub mod background {
 pub mod header_overlay {
     use super::*;
 
-    use ensogl_core::display::shape::constants::HOVER_COLOR;
+    use ensogl::display::shape::constants::HOVER_COLOR;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         above = [background];
         () {
             let bg_color = HOVER_COLOR;
@@ -123,7 +132,7 @@ impl HeaderGeometry {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints_2! {
+ensogl::define_endpoints_2! {
     Input {
         /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
         /// described in
@@ -155,15 +164,20 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
+        let header_height = style.get_number(theme::header::height);
+        let padding = style.get_number(theme::padding);
 
 
         // === Geometry ===
 
         frp::extend! { network
             let header_geometry = HeaderGeometry::from_style(style, network);
-            height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
-                entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
-            });
+            height <- all_with3(&input.set_entries, &header_geometry, &padding,
+                |entries, header_geom, padding| {
+                    let entries_height = entries.entry_count() as f32 * list_view::entry::HEIGHT;
+                    entries_height + header_geom.height + 2.0 * padding
+                }
+            );
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all(&out.size, &header_geometry);
             eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
@@ -257,12 +271,11 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header);
             model.entries.select_entry <+ select_header.constant(None);
 
-            out.selection_position_target <+ all_with4(
+            out.selection_position_target <+ all_with3(
                 &out.is_header_selected,
                 &out.size,
-                &header_geometry,
                 &model.entries.selection_position_target,
-                f!((h_sel, size, h, esp) model.selection_position(*h_sel, *size, *h, *esp))
+                f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
             );
         }
 
@@ -270,7 +283,7 @@ impl component::Frp<Model> for Frp {
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
-        use ensogl_core::application::shortcut::ActionType::*;
+        use ensogl::application::shortcut::ActionType::*;
         (&[(Press, "tab", "accept_suggestion")])
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
@@ -375,11 +388,10 @@ impl Model {
         &self,
         is_header_selected: bool,
         size: Vector2,
-        header_geometry: HeaderGeometry,
         entries_selection_position: Vector2,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0)
+            Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0)
         } else {
             self.entries.position().xy() + entries_selection_position
         }
@@ -413,7 +425,7 @@ pub type View = component::ComponentView<Model, Frp>;
 mod tests {
     use super::*;
     use enso_frp::future::EventOutputExt;
-    use ensogl_core::control::io::mouse;
+    use ensogl::control::io::mouse;
     use ensogl_list_view::entry::AnyModelProvider;
 
     macro_rules! expect_entry_selected {

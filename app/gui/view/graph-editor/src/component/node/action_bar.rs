@@ -24,7 +24,7 @@ use ensogl_hardcoded_theme as theme;
 const BUTTON_PADDING: f32 = 0.5;
 const BUTTON_OFFSET: f32 = 0.5;
 /// Grow the hover area in x direction by this amount. Used to close the gap between action
-/// icons and node.
+/// icon and node.
 const HOVER_EXTENSION_X: f32 = 15.0;
 
 
@@ -96,8 +96,8 @@ impl Icons {
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
         //
-        // We implemented the additonal action icons, but do not currenlty use them. If they
-        // are used again, uncomment the below code to make the already implemented icons
+        // We implemented the additonal action icon, but do not currenlty use them. If they
+        // are used again, uncomment the below code to make the already implemented icon
         // functional again.
         //
         // display_object.add_child(&freeze);
@@ -204,12 +204,12 @@ impl Model {
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
         //
-        // We implemented the additonal action icons, but do not currenlty use them. If they
-        // are used again, uncomment the below code to make the already implemented icons
+        // We implemented the additonal action icon, but do not currenlty use them. If they
+        // are used again, uncomment the below code to make the already implemented icon
         // functional again.
         self.place_button_in_slot(&self.icons.visibility, 0);
-        // self.place_button_in_slot(&self.icons.skip       , 1);
-        // self.place_button_in_slot(&self.icons.freeze     , 2);
+        // self.place_button_in_slot(&self.icon.skip       , 1);
+        // self.place_button_in_slot(&self.icon.freeze     , 2);
 
         // Note: needs increasing to 3 when re-enabling the above buttons.
         self.layout_hover_area_to_cover_buttons(1);

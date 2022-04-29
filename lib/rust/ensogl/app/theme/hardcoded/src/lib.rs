@@ -191,18 +191,23 @@ define_themes! { [light:0, dark:1]
                     padding {
                         left   = 16.5, 16.5;
                         right  = 2.5, 2.5;
-                        bottom = 5.0, 5.0;
+                        bottom = 3.0, 3.0;
                     }
                 }
-                entries {
+                background_color_intensity = 0.2, 0.2;
+                dimmed_color_intensity = 0.5, 0.5;
+                entry {
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                     }
+                    icon_text_gap = 5.0, 5.0;
+                    icon {
+                        size = 16.0, 16.0;
+                    }
                 }
-                background_color_intensity = 0.2, 0.2;
-                dimmed_color_intensity = 0.5, 0.5;
+                padding = 4.0, 4.0;
             }
         }
         searcher {
@@ -552,6 +557,7 @@ define_themes! { [light:0, dark:1]
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
                 font      = "DejaVuSansMono", "DejaVuSansMono";
                 size      = 12.0, 12.0;
+                highlight_bold = 0.02, 0.02;
             }
             highlight {
                 corner_radius = 12.0, 12.0;

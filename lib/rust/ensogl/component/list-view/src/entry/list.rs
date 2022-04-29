@@ -173,7 +173,7 @@ impl<E: Entry> ListData<E, E::Params> {
         &self,
         mut range: Range<entry::Id>,
         max_width_px: f32,
-        style_prefix: style::Path,
+        style_prefix: &style::Path,
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
@@ -279,7 +279,6 @@ impl<E: Entry> ListData<E, E::Params> {
         let entry = E::new(&self.app, style_prefix, &self.entry_params.borrow());
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
-        entry.entry.set_position_x(entry::PADDING);
         self.add_child(&entry.entry);
         entry
     }

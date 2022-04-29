@@ -22,8 +22,6 @@ use ensogl_component::list_view::ListView;
 // === Export ===
 // ==============
 
-pub mod icons;
-
 pub use ensogl_component::list_view::entry;
 
 
