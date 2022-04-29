@@ -46,7 +46,7 @@ class InteropTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.method = this
+          |Any.Any.method = this
           |
           |main = x -> .method
           |""".stripMargin
@@ -61,7 +61,7 @@ class InteropTest extends InterpreterTest {
           |from Standard.Base.Data.Text import all
           |
           |Number.add x = x + this
-          |Text.add x = this + x
+          |Text.Text.add x = this + x
           |
           |main = .add
           |""".stripMargin

@@ -202,18 +202,6 @@ public class ModuleScope implements TruffleObject {
       return definedHere;
     }
 
-    if (atom.isBuiltin()) {
-      // Unfortunately locally defined extensions get associated with the module rather than a type
-      // within a module.
-      // BindingsMap would need to be enhanced to resolve to the constructor rather than a module
-      // but
-      // that will likely break some use-cases as it could become ambiguous.
-      AtomConstructor moduleTypeInStdLib = atom.getDefinitionScope().associatedType;
-      definedHere = getMethodMapFor(moduleTypeInStdLib).get(lowerName);
-      if (definedHere != null) {
-        return definedHere;
-      }
-    }
     return imports.stream()
         .map(scope -> scope.getExportedMethod(atom, name))
         .filter(Objects::nonNull)

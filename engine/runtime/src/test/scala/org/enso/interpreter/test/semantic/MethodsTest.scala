@@ -27,7 +27,7 @@ class MethodsTest extends InterpreterTest {
         """from Standard.Base.IO import all
           |import Standard.Base.Nothing
           |
-          |Nothing.foo = 0
+          |Nothing.Nothing.foo = 0
           |
           |main = (IO.println "foo").foo
           |""".stripMargin
@@ -90,7 +90,7 @@ class MethodsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Any import all
           |
-          |Any.method =
+          |Any.Any.method =
           |    x = this * this
           |    y = x * 2
           |    y + 1
@@ -127,14 +127,14 @@ class MethodsTest extends InterpreterTest {
     "be callable for any type when defined on Any" in {
       val code =
         """from Standard.Base.Data.Any import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |type Foo
           |type Bar
           |type Baz
           |
-          |Any.method = case this of
+          |Any.Any.method = case this of
           |  Foo -> 1
           |  Bar -> 2
           |  Baz -> 3
@@ -150,6 +150,20 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
+    }
+
+    "be callable for any type when defined on Any (resolved as a type name)" in {
+      import annotation.unused
+      @unused val code =
+        """from Standard.Base.Data.Any import all
+          |
+          |Any.method = 1
+          |
+          |main =
+          |    2.method
+          |""".stripMargin
+      //eval(code) shouldEqual 1
+      pending
     }
 
     "work as expected when defined across different constructors" in {
