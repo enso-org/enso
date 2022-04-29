@@ -157,8 +157,9 @@ ensogl_core::define_endpoints_2! {
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, style: &StyleWatchFrp) {
+    fn init(api: &Self::Private, app: &Application, model: &Model, style: &StyleWatchFrp) {
         let network = &api.network;
+        let mouse_position = app.display.default_scene.mouse.frp.position.clone_ref();
         let input = &api.input;
         let out = &api.output;
         let header_text_size = style.get_number(theme::header::text::size);
@@ -167,6 +168,7 @@ impl component::Frp<Model> for Frp {
         // === Geometry ===
 
         frp::extend! { network
+
             let header_geometry = HeaderGeometry::from_style(style, network);
             height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
@@ -217,10 +219,14 @@ impl component::Frp<Model> for Frp {
 
         // === Selection ===
 
+        let overlay_events = &model.header_overlay.events;
         frp::extend! { network
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
-            let mouse_over_header = model.header_overlay.events.mouse_over.clone_ref();
-            select_header <- any(moved_out_above, mouse_over_header);
+            is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            mouse_moved <- mouse_position.on_change().constant(());
+            mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
+
+            select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
             deselect_header <- model.entries.selected_entry.filter_map(|entry| *entry);
             out.is_header_selected <+ bool(&deselect_header, &select_header);
             model.entries.select_entry <+ select_header.constant(None);

@@ -131,7 +131,7 @@ struct View {
 /// An internal structure describing where selection would go after jump (i.e. after navigating with
 /// arrows or PgUp/PgDown), assuming it can leave the list (hence `AboveAll` and `BelowAll`
 /// variants).
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum JumpTarget {
     Entry(entry::Id),
     AboveAll,
@@ -257,7 +257,8 @@ impl<E: Entry> Model<E> {
         match jump_target {
             JumpTarget::Entry(entry) => Some(entry),
             JumpTarget::AboveAll if current_entry == Some(0) => None,
-            JumpTarget::AboveAll => Some(0),
+            JumpTarget::AboveAll if current_entry.is_some() => Some(0),
+            JumpTarget::AboveAll => None,
             JumpTarget::BelowAll => self.entries.entry_count().checked_sub(1),
         }
     }
@@ -408,6 +409,7 @@ where E::Model: Default
             // === Selected Entry ===
 
             frp.source.selected_entry <+ frp.select_entry;
+            frp.source.selected_entry <+ frp.output.chosen_entry;
 
             selection_jump_on_one_up <- frp.move_selection_up.constant(-1);
             selection_jump_on_page_up <- frp.move_selection_page_up.map(f_!([model]
@@ -449,10 +451,10 @@ where E::Model: Default
             frp.source.selected_entry <+ mouse_selected_entry;
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
-            jump_target_above <- jump_up_target.filter(|t| matches!(t, JumpTarget::AboveAll));
-            jump_target_below <- jump_down_target.filter(|t| matches!(t, JumpTarget::BelowAll));
-            frp.source.tried_to_move_out_above <+ jump_target_above.constant(());
-            frp.source.tried_to_move_out_below <+ jump_target_below.constant(());
+            jumped_above <- jump_up_target.on_change().filter(|t| matches!(t, JumpTarget::AboveAll));
+            jumped_below <- jump_down_target.on_change().filter(|t| matches!(t, JumpTarget::BelowAll));
+            frp.source.tried_to_move_out_above <+ jumped_above.constant(());
+            frp.source.tried_to_move_out_below <+ jumped_below.constant(());
 
 
             // === Chosen Entry ===
@@ -634,6 +636,10 @@ mod tests {
         list_view.move_selection_down();
         assert_eq!(list_view.selected_entry.value(), Some(2));
         tried_to_move_out_below.expect();
+        let tried_to_move_out_below = list_view.tried_to_move_out_below.next_event();
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(2));
+        tried_to_move_out_below.expect_not();
 
         // Going up:
         list_view.move_selection_up();
@@ -644,6 +650,10 @@ mod tests {
         list_view.move_selection_up();
         assert_eq!(list_view.selected_entry.value(), None);
         tried_to_move_out_above.expect();
+        let tried_to_move_out_above = list_view.tried_to_move_out_above.next_event();
+        list_view.move_selection_up();
+        assert_eq!(list_view.selected_entry.value(), None);
+        tried_to_move_out_above.expect_not();
     }
 
     #[test]
