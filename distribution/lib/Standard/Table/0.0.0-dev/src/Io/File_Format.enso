@@ -6,15 +6,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Table.Internal.Delimited_Reader
 
-from Standard.Table.Error import Invalid_Location
-
-import Standard.Table.Data.Table
-from Standard.Table.Io.Excel import Excel_Section
-
-polyglot java import org.enso.table.format.xlsx.Reader
-polyglot java import java.lang.IllegalArgumentException
-
-polyglot java import java.io.IOException
+import Standard.Table.Io.Excel as Excel_Module
 
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
@@ -125,26 +117,9 @@ type Infer
 
 ## Read the file to a `Table` from an Excel file
 type Excel
-    type Excel (section:Excel_Section=Excel_Section.Sheet_Names)
-
-    ## Given a string parse into an Excel Range
-    parse_address : String -> Pair String Vector
-    parse_address address =
-        parsed = Panic.catch IllegalArgumentException (Range.new address) _->
-            Error.throw (Invalid_Location address)
-        Pair parsed.getSheetName [parsed.getTopRow, parsed.getLeftColumn, parsed.getBottomRow, parsed.getRightColumn]
+    type Excel (section:Excel_Section=Excel_Module.Sheet_Names)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        reader stream = case this.section of
-            Excel_Section.Sheet_Names -> Vector.Vector (Reader.readSheetNames stream)
-            Excel_Section.Range_Names -> Vector.Vector (Reader.readRangeNames stream)
-            Excel_Section.Sheet sheet skip_rows row_limit ->
-                Table.Table <|
-                    if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit) else
-                        Reader.readSheetByName stream sheet skip_rows row_limit
-            Excel_Section.Range address skip_rows row_limit -> Table.Table (Reader.readRange stream address skip_rows row_limit)
-
-        file.with_input_stream [File.Option.Read] stream->
-            stream.with_java_stream reader
+        Excel_Module.read_excel file this.section on_problems

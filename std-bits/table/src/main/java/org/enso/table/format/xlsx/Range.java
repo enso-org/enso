@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Range {
-  private static final Pattern FULL_ADDRESS = Pattern.compile("^('[.*]+'|[^'!]+)!(.+)$");
+  private static final Pattern FULL_ADDRESS = Pattern.compile("^('.+'|[^'!]+)!(.+)$");
 
   private static String[] parseFullAddress(String fullAddress) {
     if (fullAddress == null) {
@@ -29,13 +29,13 @@ public class Range {
   private static final String ADDRESS_RC = "R(?:\\[\\d+]|\\d+)C(?:\\[\\d+]|\\d+)";
 
   private static final Pattern RANGE_A1 =
-      Pattern.compile("(" + ADDRESS_A1 + ")(?::(" + ADDRESS_A1 + "))?");
+      Pattern.compile("^(" + ADDRESS_A1 + ")(?::(" + ADDRESS_A1 + "))?$");
   private static final Pattern RANGE_COL =
-      Pattern.compile("(" + ADDRESS_COL + ")(?::(" + ADDRESS_COL + "))?");
+      Pattern.compile("^(" + ADDRESS_COL + ")(?::(" + ADDRESS_COL + "))?$");
   private static final Pattern RANGE_ROW =
-      Pattern.compile("(" + ADDRESS_ROW + ")(?::(" + ADDRESS_ROW + "))?");
+      Pattern.compile("^(" + ADDRESS_ROW + ")(?::(" + ADDRESS_ROW + "))?$");
   private static final Pattern RANGE_RC =
-      Pattern.compile("(" + ADDRESS_RC + ")(?::(" + ADDRESS_RC + "))?");
+      Pattern.compile("^(" + ADDRESS_RC + ")(?::(" + ADDRESS_RC + "))?$");
 
   private static int[] parseRange(String range) {
     for (Pattern pattern : new Pattern[] {RANGE_A1, RANGE_COL, RANGE_ROW, RANGE_RC}) {
@@ -109,6 +109,7 @@ public class Range {
       }
 
       row = Integer.parseInt(address, index + 1, endIndex, 10);
+      index = endIndex;
     }
 
     int col = 0;
@@ -205,11 +206,11 @@ public class Range {
     }
 
     String range =
-        (isWholeColumn() ? "" : CellReference.convertNumToColString(getLeftColumn()))
-            + (isWholeRow() ? "" : Integer.toString(getTopRow()));
+        (isWholeRow() ? "" : CellReference.convertNumToColString(getLeftColumn() - 1))
+            + (isWholeColumn() ? "" : Integer.toString(getTopRow()));
     if (getLeftColumn() != getRightColumn() || getTopRow() != getBottomRow()) {
-      range += (isWholeColumn() ? "" : CellReference.convertNumToColString(getRightColumn()))
-          + (isWholeRow() ? "" : Integer.toString(getBottomRow()));
+      range += ":" + (isWholeRow() ? "" : CellReference.convertNumToColString(getRightColumn() - 1))
+          + (isWholeColumn() ? "" : Integer.toString(getBottomRow()));
 
     }
 

@@ -13,7 +13,7 @@ import Standard.Table.Data.Order_Rule
 import Standard.Table.Model
 
 from Standard.Table.Io.Csv export all hiding Parser
-from Standard.Table.Io.Excel export all
+from Standard.Table.Io.Excel export Excel_Section, Excel_Range, read_excel
 from Standard.Table.Io.Spreadsheet export all hiding Reader
 
 export Standard.Table.Io.Format
