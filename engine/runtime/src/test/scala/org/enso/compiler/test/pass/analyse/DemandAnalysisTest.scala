@@ -157,78 +157,8 @@ class DemandAnalysisTest extends CompilerTest {
 
       vec.items(0) shouldBe an[IR.Application.Force]
       vec.items(1) shouldBe an[IR.Application.Force]
-      vec.items(2) shouldBe an[IR.Name]
+      vec.items(2) shouldBe an[IR.Application.Force]
 
-    }
-
-    "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
-        """
-          |~x -> ~y -> z -> foo x y z
-          |""".stripMargin.preprocessExpression.get.analyse
-
-      val app = ir
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Application.Prefix]
-
-      app.arguments.head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .shouldBeSuspended shouldEqual Some(false)
-
-      app
-        .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
-        .shouldBeSuspended shouldEqual Some(false)
-    }
-  }
-
-  "Non-suspended arguments" should {
-    implicit val ctx: InlineContext = mkInlineContext
-
-    val ir =
-      """x -> y ->
-        |  a = x
-        |  foo x a
-        |""".stripMargin.preprocessExpression.get.analyse
-
-    val body = ir
-      .asInstanceOf[IR.Function.Lambda]
-      .body
-      .asInstanceOf[IR.Expression.Block]
-
-    "be left alone by demand analysis" in {
-      body.expressions.head
-        .asInstanceOf[IR.Expression.Binding]
-        .expression shouldBe an[IR.Name]
-
-      body.returnValue
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments
-        .head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Name]
-    }
-
-    "be marked for suspension during codegen when passed to a function" in {
-      val xArg = body.returnValue
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments
-        .head
-        .asInstanceOf[IR.CallArgument.Specified]
-
-      val aArg = body.returnValue
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments(1)
-        .asInstanceOf[IR.CallArgument.Specified]
-
-      xArg.value shouldBe an[IR.Name]
-      xArg.shouldBeSuspended shouldEqual Some(true)
-
-      aArg.value shouldBe an[IR.Name]
-      aArg.shouldBeSuspended shouldEqual Some(true)
     }
   }
 
@@ -278,28 +208,6 @@ class DemandAnalysisTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value shouldBe an[IR.Name]
-    }
-
-    "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
-        """
-          |x ->
-          |    blck =
-          |        foo a b
-          |    bar blck
-          |""".stripMargin.preprocessExpression.get.analyse
-
-      ir.asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Expression.Block]
-        .returnValue
-        .asInstanceOf[IR.Application.Prefix]
-        .arguments
-        .head
-        .asInstanceOf[IR.CallArgument.Specified]
-        .shouldBeSuspended shouldEqual Some(false)
     }
 
     "force terms in blocks passed directly as arguments" in {
