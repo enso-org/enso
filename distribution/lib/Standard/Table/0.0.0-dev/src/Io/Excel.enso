@@ -27,6 +27,34 @@ type Excel_Section
 type Excel_Range
     type Excel_Range java_range:Java_Range
 
+    ## Gets the name of the sheet
+    sheet_name : Text
+    sheet_name = this.java_range.getSheetName
+
+    ## Gets the index (1-based) of the top row of the range
+       Return Nothing if referring to a complete column
+    top_row : Integer | Nothing
+    top_row = if this.java_range.isWholeColumn then Nothing else
+        this.java_range.getTopRow
+
+    ## Gets the index (1-based) of the bottom row of the range
+       Return Nothing if referring to a complete column
+    bottom_row : Integer | Nothing
+    bottom_row = if this.java_range.isWholeColumn then Nothing else
+        this.java_range.getBottomRow
+
+    ## Gets the index (1-based) of the left column of the range
+       Return Nothing if referring to a complete row
+    left_column : Integer | Nothing
+    left_column = if this.java_range.isWholeRow then Nothing else
+        this.java_range.getLeftColumn
+
+    ## Gets the index (1-based) of the right column of the range
+       Return Nothing if referring to a complete column
+    right_column : Integer | Nothing
+    right_column = if this.java_range.isWholeRow then Nothing else
+        this.java_range.getRightColumn
+
     ## Gets the address to this in A1 format.
     address : Text
     address = this.java_range.getAddress
@@ -113,7 +141,10 @@ read_excel file section on_problems =
             Table.Table <|
                 if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit) else
                     Reader.readSheetByName stream sheet skip_rows row_limit
-        Range address skip_rows row_limit -> Table.Table (Reader.readRange stream address skip_rows row_limit)
+        Range address skip_rows row_limit ->
+            Table.Table <|
+                range = (if address.is_an Excel_Range then address else Excel_Range.from_address address)
+                Reader.readRange stream range.java_range skip_rows row_limit
 
     file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream reader
