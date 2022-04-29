@@ -451,8 +451,9 @@ where E::Model: Default
             frp.source.selected_entry <+ mouse_selected_entry;
             frp.source.selected_entry <+ frp.deselect_entries.constant(None);
             frp.source.selected_entry <+ frp.set_entries.constant(None);
-            jumped_above <- jump_up_target.on_change().filter(|t| matches!(t, JumpTarget::AboveAll));
-            jumped_below <- jump_down_target.on_change().filter(|t| matches!(t, JumpTarget::BelowAll));
+            jump_target <- any(jump_up_target, jump_down_target);
+            jumped_above <- jump_target.on_change().filter(|t| matches!(t, JumpTarget::AboveAll));
+            jumped_below <- jump_target.on_change().filter(|t| matches!(t, JumpTarget::BelowAll));
             frp.source.tried_to_move_out_above <+ jumped_above.constant(());
             frp.source.tried_to_move_out_below <+ jumped_below.constant(());
 
@@ -654,6 +655,14 @@ mod tests {
         list_view.move_selection_up();
         assert_eq!(list_view.selected_entry.value(), None);
         tried_to_move_out_above.expect_not();
+
+        // Special case
+        list_view.move_selection_down();
+        assert_eq!(list_view.selected_entry.value(), Some(0));
+        let tried_to_move_out_above = list_view.tried_to_move_out_above.next_event();
+        list_view.move_selection_up();
+        assert_eq!(list_view.selected_entry.value(), None);
+        tried_to_move_out_above.expect();
     }
 
     #[test]
