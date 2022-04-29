@@ -9,10 +9,9 @@ import Standard.Table.Internal.Delimited_Reader
 from Standard.Table.Error import Invalid_Location
 
 import Standard.Table.Data.Table
-import Standard.Table.Io.Excel_Section
+from Standard.Table.Io.Excel import Excel_Section
 
 polyglot java import org.enso.table.format.xlsx.Reader
-polyglot java import org.enso.table.format.xlsx.Range
 polyglot java import java.lang.IllegalArgumentException
 
 polyglot java import java.io.IOException

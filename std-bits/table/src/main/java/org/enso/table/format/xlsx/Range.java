@@ -1,12 +1,14 @@
 package org.enso.table.format.xlsx;
 
+import org.apache.poi.ss.util.CellReference;
+
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Range {
-  private static final Pattern FULL_ADDRESS = Pattern.compile("^('[^']+'|[^'!]+)!(.+)$");
+  private static final Pattern FULL_ADDRESS = Pattern.compile("^('[.*]+'|[^'!]+)!(.+)$");
 
   private static String[] parseFullAddress(String fullAddress) {
     if (fullAddress == null) {
@@ -127,6 +129,22 @@ public class Range {
     return new int[] {row, col};
   }
 
+  public static int parseA1Column(CharSequence column) {
+    int col = 0;
+
+    int index = 0;
+    while (index < column.length() && isLetter(column.charAt(index))) {
+      col = 26 * col + (column.charAt(index) - 'A' + 1);
+      index++;
+    }
+
+    if (index != column.length()) {
+      return -1;
+    }
+
+    return col;
+  }
+
   private final String sheetName;
   private final int leftColumn;
   private final int rightColumn;
@@ -135,13 +153,21 @@ public class Range {
 
   public Range(String fullAddress) {
     String[] sheetAndRange = parseFullAddress(fullAddress);
-    this.sheetName = sheetAndRange[0];
+    this.sheetName = sheetAndRange[0].replaceAll("^'(.*)'$", "$1").replaceAll("''", "'");
 
     int[] range = parseRange(sheetAndRange[1]);
     this.leftColumn = range[1];
     this.rightColumn = range[3];
     this.topRow = range[0];
     this.bottomRow = range[2];
+  }
+
+  public Range(String sheetName, int leftColumn, int topRow, int rightColumn, int bottomRow) {
+    this.sheetName = sheetName;
+    this.leftColumn = leftColumn;
+    this.topRow = topRow;
+    this.rightColumn = rightColumn;
+    this.bottomRow = bottomRow;
   }
 
   public String getSheetName() {
@@ -170,5 +196,23 @@ public class Range {
 
   public int getBottomRow() {
     return bottomRow;
+  }
+
+  public String getAddress() {
+    String sheetNameEscaped = getSheetName();
+    if (sheetNameEscaped.contains(" ") || sheetNameEscaped.contains("'")) {
+      sheetNameEscaped = "'" + sheetNameEscaped.replace("'", "''") + "'";
+    }
+
+    String range =
+        (isWholeColumn() ? "" : CellReference.convertNumToColString(getLeftColumn()))
+            + (isWholeRow() ? "" : Integer.toString(getTopRow()));
+    if (getLeftColumn() != getRightColumn() || getTopRow() != getBottomRow()) {
+      range += (isWholeColumn() ? "" : CellReference.convertNumToColString(getRightColumn()))
+          + (isWholeRow() ? "" : Integer.toString(getBottomRow()));
+
+    }
+
+    return sheetNameEscaped + "!" + range;
   }
 }

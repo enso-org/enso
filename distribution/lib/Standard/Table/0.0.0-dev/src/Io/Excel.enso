@@ -1,0 +1,94 @@
+from Standard.Base import all
+
+polyglot java import org.enso.table.format.xlsx.Range as Java_Range
+polyglot java import java.lang.IllegalArgumentException
+
+## Specified the part of an Excel Workbook to Read
+type Excel_Section
+    ## Gets a list of sheets within a workbook
+    type Sheet_Names
+
+    ## Gets a list of named ranges within a workbook
+    type Range_Names
+
+    ## Gets the data from a specific sheet. Column names are the Excel column names.
+    type Sheet (sheet:(Integer|Text)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
+
+    ## Gets a specific range (taking either a defined name or external style address) from the workbook
+    type Range (address:(Text|Range)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
+
+## Specifies a range within Excel and provides various ways of
+type Range
+    type Range java_range:Java_Range
+
+    ## Gets the address to this in A1 format.
+    address : Text
+    address = this.java_range.getAddress
+
+    ## Validates if a column index (1-based) is within the valid range for Excel.
+    is_valid_column : Integer -> Integer -> Boolean
+    is_valid_column column (limit=16384) = (column > 0) && (column <= limit)
+
+    ## Validates if a row index (1-based) is within the valid range for Excel.
+    is_valid_row : Integer -> Integer -> Boolean
+    is_valid_row row (limit=1048576) = (row > 0) && (row <= limit)
+
+    ## Given a column name parse to the index (1-based) or return index unchanged.
+    column_index : (Text|Integer) -> Integer
+    column_index column :
+        if column.is_an Integer then column else Java_Range.parseA1Column column
+
+    ## Create a Range from an address
+    from_address : Text -> Range
+    from_address address :
+        Panic.catch IllegalArgumentException (Range (Java_Range.new address)) caught_panic->
+            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+
+    ## Create a Range for a single cell.
+    for_cell : Text -> (Text|Integer) -> Integer -> Range
+    for_cell sheet column row =
+        col_index = Range.column_index column
+
+        col_valid = here.validate (Range.is_valid_column col_index) ("Invalid column for Excel: " + column + ".") _
+        all_valid = here.validate (Range.is_valid_row bottom) ("Invalid row for Excel: " + row + ".") (col_valid _)
+
+        all_valid <| Range (Java_Range.new sheet col_index row col_index_row)
+
+    ## Create a Range for a range of cells.
+    for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Range
+    for_range sheet left top right bottom =
+        left_index = column_index left
+        right_index = column_index right
+
+        left_valid = here.validate (Range.is_valid_column left_index) ("Invalid left column for Excel: " + left + ".") _
+        right_valid = here.validate (Range.is_valid_column right_index) ("Invalid right column for Excel: " + right + ".") (left_valid _)
+        top_valid = here.validate (Range.is_valid_row top) ("Invalid top row for Excel: " + top + ".") (right_valid _)
+        all_valid = here.validate (Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom + ".") (top_valid _)
+
+        all_valid <| Range (Java_Range.new sheet left_index top right_index bottom)
+
+    ## Create a Range for a set of columns.
+    for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Range
+    for_columns sheet left (right=left) =
+        left_index = column_index left
+        right_index = column_index right
+
+        left_valid = here.validate (Range.is_valid_column left_index) ("Invalid left column for Excel: " + left + ".") _
+        all_valid = here.validate (Range.is_valid_column right_index) ("Invalid right column for Excel: " + right + ".") (left_valid _)
+
+        all_valid <| Range (Java_Range.new sheet left_index 0 right_index 0)
+
+    ## Create a Range for a set of rows.
+    for_rows : Text -> Integer -> Integer -> Range
+    for_rows sheet top (bottom=top) =
+        top_valid = here.validate (Range.is_valid_row top) ("Invalid top row for Excel: " + top + ".") _
+        all_valid = here.validate (Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom + ".") (top_valid _)
+
+        all_valid <| Range (Java_Range.new sheet 0 top 0 bottom)
+
+
+## PRIVATE
+   Wrapper for validation
+validate : Boolean -> Text -> Any
+validate ~validation ~error_message ~wrapped =
+    if validation then wrapper else Error.throw (Illegal_Argument_Error error_message)
