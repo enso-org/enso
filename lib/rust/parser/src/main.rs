@@ -76,6 +76,17 @@ pub enum TokenOrAstOrMacroResolver<'a> {
     MacroResolver(MacroResolver<'a>),
 }
 
+impl<'a> From<TokenOrAst> for TokenOrAstOrMacroResolver<'a> {
+    fn from(t: TokenOrAst) -> Self {
+        Self::TokenOrAst(t)
+    }
+}
+
+impl<'a> From<MacroResolver<'a>> for TokenOrAstOrMacroResolver<'a> {
+    fn from(t: MacroResolver<'a>) -> Self {
+        Self::MacroResolver(t)
+    }
+}
 
 
 // ======================
@@ -101,18 +112,19 @@ pub struct PartiallyMatchedMacro<'a> {
 
 #[derive(Debug)]
 pub struct MacroResolver<'a> {
-    current_segment:        MatchedSegment,
-    resolved_segments:      Vec<MatchedSegment>,
+    current_segment:        MatchedSegment<'a>,
+    resolved_segments:      Vec<MatchedSegment<'a>>,
     possible_next_segments: MacroMatchTree<'a>,
+    matched_macro_def:      Option<Rc<macros::Definition<'a>>>,
 }
 
 #[derive(Debug)]
-pub struct MatchedSegment {
+pub struct MatchedSegment<'a> {
     header: Token,
-    body:   Vec<TokenOrAst>,
+    body:   Vec<TokenOrAstOrMacroResolver<'a>>,
 }
 
-impl MatchedSegment {
+impl<'a> MatchedSegment<'a> {
     pub fn new(header: Token) -> Self {
         let body = default();
         Self { header, body }
@@ -120,12 +132,11 @@ impl MatchedSegment {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Resolver<'a> {
-    leading_tokens:    Vec<TokenOrAst>,
-    current_macro:     Option<MacroResolver<'a>>,
-    macro_stack:       Vec<MacroResolver<'a>>,
-    matched_macro_def: Option<Rc<macros::Definition<'a>>>,
+    leading_tokens: Vec<TokenOrAst>,
+    current_macro:  Option<MacroResolver<'a>>,
+    macro_stack:    Vec<MacroResolver<'a>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -136,14 +147,6 @@ pub enum ResolverStep {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new() -> Self {
-        let leading_tokens = default();
-        let current_macro = default();
-        let macro_stack = default();
-        let matched_macro_def = default();
-        Self { leading_tokens, current_macro, macro_stack, matched_macro_def }
-    }
-
     // can we make it consume "self"?
     pub fn run(
         &mut self,
@@ -162,6 +165,12 @@ impl<'a> Resolver<'a> {
                 }
             }};
         }
+        macro_rules! trace_state {
+            () => {
+                event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
+                event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
+            };
+        }
         next_token!();
         while let Some(token) = opt_token {
             let location = token.location();
@@ -172,54 +181,84 @@ impl<'a> Resolver<'a> {
                 }
                 _ => ResolverStep::NormalToken,
             };
+
+
+
             match step_result {
-                ResolverStep::MacroStackPop => opt_token = Some(token),
-                ResolverStep::NewSegmentStarted => next_token!(),
+                ResolverStep::MacroStackPop => {
+                    trace_state!();
+                    opt_token = Some(token)
+                }
+                ResolverStep::NewSegmentStarted => {
+                    trace_state!();
+                    next_token!()
+                }
                 ResolverStep::NormalToken => {
                     match self.current_macro.as_mut() {
                         Some(m) => m.current_segment.body.push(token.into()),
                         None => self.leading_tokens.push(token),
                     }
+                    trace_state!();
                     next_token!();
                 }
             }
+        }
 
-            event!(TRACE, "Current macro:\n{:#?}", self.current_macro);
-            event!(TRACE, "Parent macros:\n{:#?}", self.macro_stack);
-        }
-        match self.resolve_current_macro(lexer) {
-            Some(ast) => {
-                // todo: handle leading tokens
-                ast
+        while let Some(mut parent_macro) = self.macro_stack.pop() {
+            if let Some(mut current_macro) = self.current_macro.as_mut() {
+                mem::swap(&mut parent_macro, &mut current_macro);
+                let mut child_macro = parent_macro;
+                if let Some(def) = &child_macro.matched_macro_def {
+                    match def.segments.last().pattern {
+                        Pattern::Nothing => {
+                            let orphan_tokens = mem::take(&mut child_macro.current_segment.body);
+                            current_macro.current_segment.body.push(child_macro.into());
+                            current_macro.current_segment.body.extend(orphan_tokens);
+                        }
+                        _ => todo!(),
+                    }
+                }
             }
-            None => {
-                let tmp: Vec<TokenOrAst> =
-                    self.leading_tokens.iter().map(|t| t.clone().into()).collect_vec();
-                resolve_operator_precedence(lexer, tmp)
-            }
         }
+
+        println!("===================");
+        trace_state!();
+
+        // match self.resolve_current_macro(lexer) {
+        //     Some(ast) => {
+        //         // todo: handle leading tokens
+        //         ast
+        //     }
+        //     None => {
+        //         let tmp: Vec<TokenOrAst> =
+        //             self.leading_tokens.iter().map(|t| t.clone().into()).collect_vec();
+        //         resolve_operator_precedence(lexer, tmp)
+        //     }
+        // }
+        panic!()
     }
 
     pub fn resolve_current_macro(&mut self, lexer: &Lexer<'a>) -> Option<Ast> {
-        mem::take(&mut self.current_macro).map(|current_macro| {
-            let mut segments = current_macro.resolved_segments;
-            segments.push(current_macro.current_segment);
-            if let Some(macro_def) = &self.matched_macro_def {
-                let matched_sections = macro_def
-                    .segments
-                    .into_iter()
-                    .zip(segments)
-                    .map(|(segment_def, segment_match)| {
-                        let pattern = &segment_def.pattern;
-                        let token_stream = &segment_match.body;
-                        (segment_match.header, pattern.resolve(&token_stream))
-                    })
-                    .collect_vec();
-                (macro_def.body)(lexer, matched_sections)
-            } else {
-                panic!()
-            }
-        })
+        panic!()
+        // mem::take(&mut self.current_macro).map(|current_macro| {
+        //     let mut segments = current_macro.resolved_segments;
+        //     segments.push(current_macro.current_segment);
+        //     if let Some(macro_def) = &self.matched_macro_def {
+        //         let matched_sections = macro_def
+        //             .segments
+        //             .into_iter()
+        //             .zip(segments)
+        //             .map(|(segment_def, segment_match)| {
+        //                 let pattern = &segment_def.pattern;
+        //                 let token_stream = &segment_match.body;
+        //                 (segment_match.header, pattern.resolve(&token_stream))
+        //             })
+        //             .collect_vec();
+        //         (macro_def.body)(lexer, matched_sections)
+        //     } else {
+        //         panic!()
+        //     }
+        // })
     }
 
     pub fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'a>> {
@@ -241,7 +280,7 @@ impl<'a> Resolver<'a> {
         if let Some(current_macro) = self.current_macro.as_mut()
         && let Some(subsegments) = current_macro.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
-            let mut new_match_tree = Self::enter(&mut self.matched_macro_def, subsegments);
+            let mut new_match_tree = Self::enter(&mut current_macro.matched_macro_def, subsegments);
             let mut current_segment = MatchedSegment::new(token);
             mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
             mem::swap(&mut current_macro.current_segment, &mut current_segment);
@@ -249,18 +288,20 @@ impl<'a> Resolver<'a> {
             ResolverStep::NewSegmentStarted
         } else if let Some(mut current_macro) = self.pop_macro_stack_if_reserved(repr) {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
-            let ast = self.resolve_current_macro(lexer).unwrap(); // todo: nice error
-            current_macro.current_segment.body.push(ast.into());
-            // let m = mem::take(&mut self.current_macro);
-            // current_macro.current_segment.body.push(m.unwrap().into()); // HERE instead of ^^^
+            // let ast = self.resolve_current_macro(lexer).unwrap(); // todo: nice error
+            // current_macro.current_segment.body.push(ast.into());
+            let m = mem::take(&mut self.current_macro);
+            current_macro.current_segment.body.push(m.unwrap().into()); // HERE instead of ^^^
             self.current_macro = Some(current_macro);
             ResolverStep::MacroStackPop
         } else if let Some(segments) = root_macro_map.get(repr) {
             event!(TRACE, "Starting a new nested macro resolution.");
+            let mut matched_macro_def = default();
             let mut current_macro = Some(MacroResolver {
                 current_segment:        MatchedSegment { header: token, body: default() },
                 resolved_segments:      default(),
-                possible_next_segments: Self::enter(&mut self.matched_macro_def, segments),
+                possible_next_segments: Self::enter(&mut matched_macro_def, segments),
+                matched_macro_def,
             });
             mem::swap(&mut self.current_macro, &mut current_macro);
             current_macro.map(|t| self.macro_stack.push(t));
@@ -646,42 +687,41 @@ fn main() {
     // let str = "if if * a + b * then y then b";
     // let str = "* a + b *";
     // let str = "* a + * b";
+    // let str = "(a) (b) c";
     let str = "(a) b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
+    let mut root_macro_map = MacroMatchTree::default();
+
     let if_then = macro_if_then();
-    let if_then_else = macro_if_then_else();
     let if_then = PartiallyMatchedMacro {
         required_segments: if_then.segments.tail.clone(),
         definition:        Rc::new(if_then),
     };
+    // root_macro_map.entry("if").or_default().push(if_then);
+
+
+    let if_then_else = macro_if_then_else();
     let if_then_else = PartiallyMatchedMacro {
         required_segments: if_then_else.segments.tail.clone(),
         definition:        Rc::new(if_then_else),
     };
-
-    let mut root_macro_map = MacroMatchTree::default();
-    root_macro_map.entry("if").or_default().push(if_then);
-    root_macro_map.entry("if").or_default().push(if_then_else);
-
-
+    // root_macro_map.entry("if").or_default().push(if_then_else);
 
     let group = macro_group();
     let group = PartiallyMatchedMacro {
         required_segments: group.segments.tail.clone(),
         definition:        Rc::new(group),
     };
+    root_macro_map.entry("(").or_default().push(group);
 
-    let mut root_macro_map2 = MacroMatchTree::default();
-    root_macro_map2.entry("(").or_default().push(group);
+    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
 
-    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map2);
-
-    let mut resolver = Resolver::new();
+    let mut resolver = Resolver::default();
     let ast = resolver.run(
         &lexer,
-        &root_macro_map2,
+        &root_macro_map,
         lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
     );
     println!("{:#?}", source::With::new(str, &ast));

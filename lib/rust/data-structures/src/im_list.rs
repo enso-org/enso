@@ -69,6 +69,11 @@ impl<T> NonEmpty<T> {
         &self.tail
     }
 
+    /// Get the last element of this list.
+    pub fn last(&self) -> &T {
+        self.tail.last().unwrap_or(self.head())
+    }
+
     /// Check whether this list is empty.
     pub fn is_empty(&self) -> bool {
         false
@@ -110,6 +115,11 @@ impl<T> List<T> {
     /// Get the tail of this list.
     pub fn tail(&self) -> Option<&List<T>> {
         self.as_ref().map(|t| t.tail())
+    }
+
+    /// Get the last element of this list.
+    pub fn last(&self) -> Option<&T> {
+        self.data.as_ref().map(|t| t.last())
     }
 
     /// Check whether this list is empty.
