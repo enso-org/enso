@@ -126,7 +126,20 @@ impl<'a> MacroResolver<'a> {
         };
         let resolved_segments = default();
         let possible_next_segments = default();
-        let matched_macro_def = default();
+        let matched_macro_def = Some(Rc::new(macros::Definition {
+            rev_prefix_pattern: None,
+            segments:           im_list::NonEmpty::singleton(macros::SegmentDefinition {
+                header:  "__ROOT__",
+                pattern: Pattern::Everything,
+            }),
+            body:               Rc::new(|lexer, mut v| {
+                if v.len() != 1 {
+                    panic!()
+                }
+                let t = v.pop().unwrap().1;
+                resolve_operator_precedence(lexer, t)
+            }),
+        }));
         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
     }
 }
@@ -167,7 +180,7 @@ impl<'a> Resolver<'a> {
 
     // can we make it consume "self"?
     pub fn run(
-        &mut self,
+        mut self,
         lexer: &Lexer<'a>,
         root_macro_map: &MacroMatchTree<'a>,
         tokens: Vec<TokenOrAst>,
@@ -226,18 +239,7 @@ impl<'a> Resolver<'a> {
         println!("===================");
         trace_state!();
 
-        // match self.resolve_current_macro(lexer) {
-        //     Some(ast) => {
-        //         // todo: handle leading tokens
-        //         ast
-        //     }
-        //     None => {
-        //         let tmp: Vec<TokenOrAst> =
-        //             self.leading_tokens.iter().map(|t| t.clone().into()).collect_vec();
-        //         resolve_operator_precedence(lexer, tmp)
-        //     }
-        // }
-        panic!()
+        Self::resolve(lexer, self.current_macro)
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'a>) {
@@ -252,6 +254,29 @@ impl<'a> Resolver<'a> {
                 }
                 _ => todo!(),
             }
+        }
+    }
+
+    fn resolve(lexer: &Lexer<'a>, m: MacroResolver<'a>) -> Ast {
+        let mut segments = m.resolved_segments;
+        segments.push(m.current_segment);
+        let mut sss: Vec<(Token, Vec<TokenOrAst>)> = vec![];
+        for segment in segments {
+            let mut ss: Vec<TokenOrAst> = vec![];
+            for item in segment.body {
+                let resolved_token = match item {
+                    TokenOrAstOrMacroResolver::MacroResolver(m2) => Self::resolve(lexer, m2).into(),
+                    TokenOrAstOrMacroResolver::TokenOrAst(t) => t,
+                };
+                ss.push(resolved_token);
+            }
+            sss.push((segment.header, ss));
+        }
+
+        if let Some(macro_def) = m.matched_macro_def {
+            (macro_def.body)(lexer, sss)
+        } else {
+            panic!()
         }
     }
 
@@ -541,7 +566,7 @@ pub struct MultiSegmentApp {
 #[derive(Clone, Debug)]
 pub struct MultiSegmentAppSegment {
     header: Token,
-    body:   Ast,
+    body:   Option<Ast>,
 }
 
 impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
@@ -642,7 +667,8 @@ fn matched_segments_into_multi_segment_app<'s>(
         .into_iter()
         .map(|segment| {
             let header = segment.0;
-            let body = resolve_operator_precedence(lexer, segment.1);
+            let body = (segment.1.len() > 0)
+                .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
             MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
@@ -651,7 +677,11 @@ fn matched_segments_into_multi_segment_app<'s>(
         let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
         first.header = left_trimmed_token;
         let last_segment = segments.last();
-        let total = left_offset_token.extended_to(&last_segment.body);
+        let total = if let Some(last_segment_body) = &last_segment.body {
+            left_offset_token.extended_to(last_segment_body)
+        } else {
+            left_offset_token.extended_to(&last_segment.header)
+        };
         let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
         total.with_elem(data)
     } else {
