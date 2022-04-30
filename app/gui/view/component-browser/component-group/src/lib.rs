@@ -386,6 +386,8 @@ pub type View = component::ComponentView<Model, Frp>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enso_frp::future::EventOutputExt;
+    use ensogl_core::control::io::mouse;
     use ensogl_list_view::entry::AnyModelProvider;
 
     macro_rules! expect_entry_selected {
@@ -402,13 +404,37 @@ mod tests {
         };
     }
 
+    struct Test {
+        app: Application,
+        cgv: View,
+    }
+
+    impl Test {
+        fn set_up() -> Self {
+            let app = Application::new("root");
+            ensogl_hardcoded_theme::builtin::light::register(&app);
+            ensogl_hardcoded_theme::builtin::light::enable(&app);
+            let cgv = View::new(&app);
+            cgv.set_width(100.0);
+            let entries = AnyModelProvider::<list_view::entry::Label>::new(vec![
+                "Entry 1", "Entry 2", "Entry 3",
+            ]);
+            cgv.set_entries(entries);
+            Test { app, cgv }
+        }
+
+        fn move_mouse_over_header(&self) {
+            let pos_over_header = Vector2(0.0, self.cgv.size.value().y / 2.0 - 10.0);
+            let mouse_move = Vector2(5.0, 0.0);
+            self.cgv.model().header_overlay.events.mouse_over.emit(());
+            self.app.display.default_scene.mouse.frp.position.emit(pos_over_header);
+            self.app.display.default_scene.mouse.frp.position.emit(pos_over_header + mouse_move);
+        }
+    }
+
     #[test]
     fn navigating_entries_with_keyboard() {
-        let app = Application::new("root");
-        let cgv = View::new(&app);
-        let entries =
-            AnyModelProvider::<list_view::entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
-        cgv.set_entries(entries);
+        let Test { app: _, cgv } = Test::set_up();
         cgv.model().entries.move_selection_down();
         expect_entry_selected!(cgv, 0);
         cgv.model().entries.move_selection_down();
@@ -425,22 +451,42 @@ mod tests {
 
     #[test]
     fn navigating_entries_with_keyboard_after_hovering_header() {
-        let app = Application::new("root");
-        let cgv = View::new(&app);
-        let entries =
-            AnyModelProvider::<list_view::entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
-        cgv.set_entries(entries);
+        let test = Test::set_up();
+        let cgv = &test.cgv;
         cgv.model().entries.move_selection_down();
         expect_entry_selected!(cgv, 0);
-        cgv.model().header_overlay.events.mouse_over.emit(());
+        test.move_mouse_over_header();
         expect_header_selected!(cgv);
         cgv.model().entries.move_selection_down();
         expect_entry_selected!(cgv, 0);
         cgv.model().entries.move_selection_down();
         expect_entry_selected!(cgv, 1);
-        cgv.model().header_overlay.events.mouse_over.emit(());
+        test.move_mouse_over_header();
         expect_header_selected!(cgv);
         cgv.model().entries.move_selection_down();
         expect_entry_selected!(cgv, 0);
+    }
+
+    #[test]
+    fn accepting_header() {
+        let Test { app: _, cgv } = Test::set_up();
+        cgv.model().entries.move_selection_down();
+        expect_entry_selected!(cgv, 0);
+        let expected_header_accepted = cgv.header_accepted.next_event();
+        cgv.model().header_overlay.events.mouse_down.emit(mouse::Button::Button0);
+        expected_header_accepted.expect();
+        expect_header_selected!(cgv);
+
+        let expected_header_accepted = cgv.header_accepted.next_event();
+        cgv.accept_suggestion();
+        expected_header_accepted.expect();
+        expect_header_selected!(cgv);
+
+        // When header is not selected, we should not be able to accept it with keyboard
+        let expected_header_accepted = cgv.header_accepted.next_event();
+        cgv.model().entries.select_entry(0);
+        expect_entry_selected!(cgv, 0);
+        cgv.accept_suggestion();
+        expected_header_accepted.expect_not();
     }
 }
