@@ -882,10 +882,16 @@ type Input_Stream
 
    Utility method for running an action with Java exceptions mapping.
 handle_java_exceptions file ~action =
-    Panic.catch IOException handler=(caught_panic-> (Error.throw (Io_Error file "An IO error has occurred: " + caught_panic.payload.cause.getMessage))) <|
-        Panic.catch AccessDeniedException handler=(_-> (Error.throw (Io_Error file "You do not have permission to access the file"))) <|
-            Panic.catch NoSuchFileException handler=(_-> (Error.throw (File_Not_Found file))) <|
-                action
+    Panic.catch IOException action caught_panic->
+        here.wrap_io_exception file caught_panic.payload.cause
+
+## PRIVATE
+
+   Converts a Java `IOException` into its Enso counterpart.
+wrap_io_exception file io_exception =
+    if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
+        if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
+            Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
 
 ## PRIVATE
 
