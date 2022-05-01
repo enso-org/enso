@@ -52,5 +52,5 @@ lto = false
 debug = false
 debug-assertions = true
 
-[patch."https://github.com/enso-org/ci-build"]
-enso-build = { path = '../ci-build/build' }
+#[patch."https://github.com/enso-org/ci-build"]
+#enso-build = { path = '../ci-build/build' }
