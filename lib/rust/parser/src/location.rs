@@ -142,3 +142,9 @@ impl<T> With<T> {
         With { left_visible_offset, left_offset, start, len, elem }
     }
 }
+
+impl<T> AsRef<With<T>> for With<T> {
+    fn as_ref(&self) -> &With<T> {
+        self
+    }
+}

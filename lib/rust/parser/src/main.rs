@@ -88,6 +88,16 @@ impl<'a> From<MacroResolver<'a>> for TokenOrAstOrMacroResolver<'a> {
     }
 }
 
+impl<'a> TryAsRef<TokenOrAst> for TokenOrAstOrMacroResolver<'a> {
+    fn try_as_ref(&self) -> Option<&TokenOrAst> {
+        match self {
+            Self::TokenOrAst(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+
 
 // ======================
 // === MacroMatchTree ===
@@ -273,7 +283,8 @@ impl<'a> Resolver<'a> {
                         if let Some(macro_def) = &m2.matched_macro_def
                         && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
                             ss.reverse();
-                            let (mut matched, unmatched) = pfx_pattern.resolve2(ss);
+                            let spacing = m2.current_segment.header.left_offset > Bytes::from(0);
+                            let (mut matched, unmatched) = pfx_pattern.resolve2(ss,spacing).unwrap();
                             matched.reverse();
                             ss = unmatched;
                             ss.reverse();
@@ -730,7 +741,10 @@ fn macro_group<'a>() -> macros::Definition<'a> {
 fn macro_lambda<'a>() -> macros::Definition<'a> {
     let section1 = macros::SegmentDefinition::new("->", Pattern::Everything);
     macros::Definition {
-        rev_prefix_pattern: Some(Pattern::Everything),
+        rev_prefix_pattern: Some(Pattern::Or(
+            Box::new(Pattern::Item(macros::Item { has_rhs_spacing: Some(false) })),
+            Box::new(Pattern::Everything),
+        )),
         segments:           im_list::NonEmpty::singleton(section1),
         body:               Rc::new(matched_segments_into_multi_segment_app),
     }
@@ -746,7 +760,7 @@ fn main() {
     // let str = "* a + * b";
     // let str = "(a) (b) c";
     // let str = "if (a) then b";
-    let str = "a -> b";
+    let str = "foo a-> b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
