@@ -14,11 +14,13 @@ name: GUI CI
 jobs:
   main_job:
     name: Engine
-    runs-on:
-#      - ["macos-latest"]
-#      - [Windows, self-hosted]
-      - [Linux, self-hosted]
+    runs-on: ${{ matrix.runner }}
     strategy:
+      matrix:
+        runner:
+        #      - ["macos-latest"]
+        #      - [Windows, self-hosted]
+        - [Linux, self-hosted]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
