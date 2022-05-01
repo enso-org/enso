@@ -564,19 +564,24 @@ fn is_ident_char(t: char) -> bool {
     !is_ident_split_char(t)
 }
 
+impl Kind {
+    pub fn parse_ident(repr: &str) -> Self {
+        let starts_with_underscore = repr.starts_with('_');
+        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
+        if starts_with_underscore && repr.len() == 1 + lift_level {
+            Kind::wildcard(lift_level)
+        } else {
+            let is_free = starts_with_underscore;
+            Kind::ident(is_free, lift_level)
+        }
+    }
+}
+
 impl<'s> Lexer<'s> {
     fn ident(&mut self) {
         if let Some(tok) = self.token(|this| this.take_while_1(is_ident_char)) {
             let repr = self.repr(tok);
-            let starts_with_underscore = repr.starts_with('_');
-            let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-            let kind = if starts_with_underscore && repr.len() == 1 + lift_level {
-                Kind::wildcard(lift_level)
-            } else {
-                let is_free = starts_with_underscore;
-                Kind::ident(is_free, lift_level)
-            };
-            let tok = tok.with_elem(kind);
+            let tok = tok.with_elem(Kind::parse_ident(repr));
             self.submit_token(tok);
         }
     }

@@ -138,25 +138,29 @@ impl<'a> source::HasRepr<'a> for source::With<'a, &TokenOrAst> {
 /// only.
 #[derive(Default, Debug, Deref, DerefMut)]
 pub struct MacroMatchTree<'a> {
-    map: HashMap<&'a str, Vec<PartiallyMatchedMacro<'a>>>,
+    map: HashMap<&'a str, NonEmptyVec<PartiallyMatchedMacro<'a>>>,
 }
 
+/// Partially matched macro info. See docs of [`MacroMatchTree`] to learn more.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub struct PartiallyMatchedMacro<'a> {
-    required_segments: List<macros::SegmentDefinition<'a>>,
-    definition:        Rc<macros::Definition<'a>>,
+    pub required_segments: List<macros::SegmentDefinition<'a>>,
+    pub definition:        Rc<macros::Definition<'a>>,
 }
 
 impl<'a> MacroMatchTree<'a> {
+    /// Register a new macro definition in this macro tree.
     pub fn register(&mut self, definition: macros::Definition<'a>) {
         let header = definition.segments.head.header;
         let entry = PartiallyMatchedMacro {
             required_segments: definition.segments.tail.clone(),
             definition:        Rc::new(definition),
         };
-        self.entry(header).or_default().push(entry);
+        self.entry(header).or_insert(NonEmptyVec::singleton(entry));
     }
 }
+
 
 
 // =====================
@@ -231,7 +235,6 @@ impl<'a> Resolver<'a> {
         Self { current_macro, macro_stack }
     }
 
-    // can we make it consume "self"?
     pub fn run(
         mut self,
         lexer: &Lexer<'a>,
@@ -404,7 +407,7 @@ impl<'a> Resolver<'a> {
                 let tail = v.required_segments.tail().cloned().unwrap_or_default();
                 let definition = v.definition.clone_ref();
                 let x = PartiallyMatchedMacro { required_segments: tail, definition };
-                new_section_tree.entry(&first.header).or_default().push(x);
+                new_section_tree.entry(&first.header).or_insert(NonEmptyVec::singleton(x));
             } else {
                 if matched_macro_def.is_some() {
                     event!(ERROR, "Internal error. Duplicate macro definition.");
@@ -643,6 +646,19 @@ impl Ast {
         total.with_elem(ast_data)
     }
 }
+
+// #[test]
+// impl Ast {
+//     pub fn ident(repr:&str) -> Self {
+//         match lexer::Kind::parse_ident(repr) {
+//             lexer::Kind::Ident(ident) => {
+//                 location::With::new_no_offset_phantom()
+//                 AstData::Ident(ident)
+//             }
+//             _ => panic!()
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct App {
@@ -895,6 +911,7 @@ fn main() {
     );
     println!("{:#?}", source::With::new(str, &ast));
 
+    // let ast2 =
     // let a = 5;
     // let b = 5;
     // let c = a + / b;
