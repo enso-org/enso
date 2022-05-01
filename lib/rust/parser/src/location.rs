@@ -56,6 +56,15 @@ impl<T> With<T> {
     }
 
     #[inline(always)]
+    pub fn clone_with_elem<S>(&self, elem: S) -> With<S> {
+        let left_visible_offset = self.left_visible_offset;
+        let left_offset = self.left_offset;
+        let start = self.start;
+        let len = self.len;
+        With { left_visible_offset, left_offset, start, len, elem }
+    }
+
+    #[inline(always)]
     pub fn mod_elem<S>(self, f: impl FnOnce(T) -> S) -> With<S> {
         let left_visible_offset = self.left_visible_offset;
         let left_offset = self.left_offset;
@@ -96,6 +105,16 @@ impl<T> With<T> {
         let (elem, token_left, token_right) = self.split_at_internal(Bytes::from(0));
         let token_right = token_right.with_elem(elem);
         (token_left, token_right)
+    }
+
+    pub fn trim_left(&mut self) -> Info {
+        let info = self.clone_with_elem(());
+        let (token_left, token_right) = info.split_at(Bytes::from(0));
+        self.left_visible_offset = token_right.left_visible_offset;
+        self.left_offset = token_right.left_offset;
+        self.start = token_right.start;
+        self.len = token_right.len;
+        token_left
     }
 
     pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {

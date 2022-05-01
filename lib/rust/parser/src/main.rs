@@ -132,7 +132,7 @@ impl<'a> MacroResolver<'a> {
                 header:  "__ROOT__",
                 pattern: Pattern::Everything,
             }),
-            body:               Rc::new(|lexer, mut v| {
+            body:               Rc::new(|lexer, _, mut v| {
                 if v.len() != 1 {
                     panic!()
                 }
@@ -239,7 +239,7 @@ impl<'a> Resolver<'a> {
         println!("===================");
         trace_state!();
 
-        Self::resolve(lexer, self.current_macro)
+        Self::resolve(lexer, self.current_macro, None)
     }
 
     fn replace_current_with_parent_macro(&mut self, mut parent_macro: MacroResolver<'a>) {
@@ -248,7 +248,7 @@ impl<'a> Resolver<'a> {
         if let Some(def) = &child_macro.matched_macro_def {
             let pattern = &def.segments.last().pattern;
             let child_tokens = mem::take(&mut child_macro.current_segment.body);
-            let (new_parent_tokens, mut new_child_tokens) = pattern.resolve(child_tokens);
+            let (mut new_child_tokens, new_parent_tokens) = pattern.resolve(child_tokens);
             mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
             self.current_macro.current_segment.body.push(child_macro.into());
             self.current_macro.current_segment.body.extend(new_parent_tokens);
@@ -257,7 +257,11 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn resolve(lexer: &Lexer<'a>, m: MacroResolver<'a>) -> Ast {
+    fn resolve(
+        lexer: &Lexer<'a>,
+        m: MacroResolver<'a>,
+        prefix_tokens: Option<Vec<TokenOrAst>>,
+    ) -> Ast {
         let mut segments = m.resolved_segments;
         segments.push(m.current_segment);
         let mut sss: Vec<(Token, Vec<TokenOrAst>)> = vec![];
@@ -265,7 +269,19 @@ impl<'a> Resolver<'a> {
             let mut ss: Vec<TokenOrAst> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
-                    TokenOrAstOrMacroResolver::MacroResolver(m2) => Self::resolve(lexer, m2).into(),
+                    TokenOrAstOrMacroResolver::MacroResolver(m2) => {
+                        if let Some(macro_def) = &m2.matched_macro_def
+                        && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
+                            ss.reverse();
+                            let (mut matched, unmatched) = pfx_pattern.resolve2(ss);
+                            matched.reverse();
+                            ss = unmatched;
+                            ss.reverse();
+                            Self::resolve(lexer, m2, Some(matched)).into()
+                        } else {
+                            Self::resolve(lexer, m2, None).into()
+                        }
+                    },
                     TokenOrAstOrMacroResolver::TokenOrAst(t) => t,
                 };
                 ss.push(resolved_token);
@@ -274,33 +290,10 @@ impl<'a> Resolver<'a> {
         }
 
         if let Some(macro_def) = m.matched_macro_def {
-            (macro_def.body)(lexer, sss)
+            (macro_def.body)(lexer, prefix_tokens, sss)
         } else {
             panic!()
         }
-    }
-
-    pub fn resolve_current_macro(&mut self, lexer: &Lexer<'a>) -> Option<Ast> {
-        panic!()
-        // mem::take(&mut self.current_macro).map(|current_macro| {
-        //     let mut segments = current_macro.resolved_segments;
-        //     segments.push(current_macro.current_segment);
-        //     if let Some(macro_def) = &self.matched_macro_def {
-        //         let matched_sections = macro_def
-        //             .segments
-        //             .into_iter()
-        //             .zip(segments)
-        //             .map(|(segment_def, segment_match)| {
-        //                 let pattern = &segment_def.pattern;
-        //                 let token_stream = &segment_match.body;
-        //                 (segment_match.header, pattern.resolve(&token_stream))
-        //             })
-        //             .collect_vec();
-        //         (macro_def.body)(lexer, matched_sections)
-        //     } else {
-        //         panic!()
-        //     }
-        // })
     }
 
     pub fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'a>> {
@@ -560,6 +553,7 @@ impl MultipleOperatorError {
 
 #[derive(Clone, Debug)]
 pub struct MultiSegmentApp {
+    prefix:   Option<Box<Ast>>,
     segments: NonEmptyVec<MultiSegmentAppSegment>,
 }
 
@@ -635,7 +629,10 @@ impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
 
 impl<'s> Debug for source::With<'s, &MultiSegmentApp> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.segments.iter().map(|t| self.trans(|_| t))).finish()
+        f.debug_list()
+            .entry(&self.trans(|_| &self.prefix))
+            .entries(self.segments.iter().map(|t| self.trans(|_| t)))
+            .finish()
     }
 }
 
@@ -661,6 +658,7 @@ fn token_to_ast(elem: TokenOrAst) -> Ast {
 
 fn matched_segments_into_multi_segment_app<'s>(
     lexer: &Lexer<'s>,
+    mut prefix_tokens: Option<Vec<TokenOrAst>>,
     matched_segments: Vec<(Token, Vec<TokenOrAst>)>,
 ) -> Ast {
     let segments = matched_segments
@@ -673,16 +671,23 @@ fn matched_segments_into_multi_segment_app<'s>(
         })
         .collect_vec();
     if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
-        let first = segments.first_mut();
-        let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
-        first.header = left_trimmed_token;
+        let left_offset_token =
+            if let Some(first) = prefix_tokens.as_mut().and_then(|t| t.first_mut()) {
+                first.trim_left()
+            } else {
+                let first = segments.first_mut();
+                let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
+                first.header = left_trimmed_token;
+                left_offset_token
+            };
         let last_segment = segments.last();
         let total = if let Some(last_segment_body) = &last_segment.body {
             left_offset_token.extended_to(last_segment_body)
         } else {
             left_offset_token.extended_to(&last_segment.header)
         };
-        let data = AstData::MultiSegmentApp(MultiSegmentApp { segments });
+        let prefix = prefix_tokens.map(|t| Box::new(resolve_operator_precedence(lexer, t)));
+        let data = AstData::MultiSegmentApp(MultiSegmentApp { prefix, segments });
         total.with_elem(data)
     } else {
         panic!()
@@ -722,6 +727,15 @@ fn macro_group<'a>() -> macros::Definition<'a> {
     }
 }
 
+fn macro_lambda<'a>() -> macros::Definition<'a> {
+    let section1 = macros::SegmentDefinition::new("->", Pattern::Everything);
+    macros::Definition {
+        rev_prefix_pattern: Some(Pattern::Everything),
+        segments:           im_list::NonEmpty::singleton(section1),
+        body:               Rc::new(matched_segments_into_multi_segment_app),
+    }
+}
+
 
 
 fn main() {
@@ -731,7 +745,8 @@ fn main() {
     // let str = "* a + b *";
     // let str = "* a + * b";
     // let str = "(a) (b) c";
-    let str = "if (a) then b";
+    // let str = "if (a) then b";
+    let str = "a -> b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
@@ -758,6 +773,13 @@ fn main() {
         definition:        Rc::new(group),
     };
     root_macro_map.entry("(").or_default().push(group);
+
+    let lambda = macro_lambda();
+    let lambda = PartiallyMatchedMacro {
+        required_segments: lambda.segments.tail.clone(),
+        definition:        Rc::new(lambda),
+    };
+    root_macro_map.entry("->").or_default().push(lambda);
 
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
 
