@@ -106,3 +106,27 @@ impl<'a> SegmentDefinition<'a> {
         Self { header, pattern }
     }
 }
+
+
+
+// ===================
+// === Rust Macros ===
+// ===================
+
+#[macro_export]
+macro_rules! macro_definition {
+    ( ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
+        $crate::macro_definition!{[None] ($($section, $pattern),*) $body}
+    };
+    ( ($prefix:expr, $($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
+        $crate::macro_definition!{[Some($prefix)] ($($section, $pattern),*) $body}
+    };
+    ( [$prefix:expr] ($($section:literal, $pattern:expr),* $(,)?) $body:expr ) => {
+        macros::Definition {
+            rev_prefix_pattern: $prefix,
+            segments: im_list::NonEmpty::try_from(vec![
+                $(macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),
+            body: Rc::new($body),
+        }
+    };
+}

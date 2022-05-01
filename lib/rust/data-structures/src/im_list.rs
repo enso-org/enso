@@ -172,3 +172,21 @@ impl<'a, T> IntoIterator for &'a NonEmpty<T> {
         self.to_vec().into_iter()
     }
 }
+
+impl<T> From<Vec<T>> for List<T> {
+    fn from(mut v: Vec<T>) -> Self {
+        let mut out = List::default();
+        v.reverse();
+        for item in v {
+            out = out.with_head(item).into_list();
+        }
+        out
+    }
+}
+
+impl<T> TryFrom<Vec<T>> for NonEmpty<T> {
+    type Error = ();
+    fn try_from(v: Vec<T>) -> Result<Self, Self::Error> {
+        List::<T>::from(v).try_into_non_empty().ok_or(())
+    }
+}

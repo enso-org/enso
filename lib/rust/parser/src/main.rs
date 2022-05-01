@@ -130,6 +130,12 @@ impl<'a> source::HasRepr<'a> for source::With<'a, &TokenOrAst> {
 // === MacroMatchTree ===
 // ======================
 
+/// A tree-like structure encoding potential macro matches. The keys are representations of tokens
+/// that can be matched. For example, the key could be "if" or "->". Each key is associated with one
+/// or more [`PartiallyMatchedMacro`], which stories a list of required segments and a macro
+/// definition in case all the segments were matched. For example, for the "if" key, there can be
+/// two required segment lists, one for "then" and "else" segments, and one for the "then" segment
+/// only.
 #[derive(Default, Debug, Deref, DerefMut)]
 pub struct MacroMatchTree<'a> {
     map: HashMap<&'a str, Vec<PartiallyMatchedMacro<'a>>>,
@@ -141,6 +147,16 @@ pub struct PartiallyMatchedMacro<'a> {
     definition:        Rc<macros::Definition<'a>>,
 }
 
+impl<'a> MacroMatchTree<'a> {
+    pub fn register(&mut self, definition: macros::Definition<'a>) {
+        let header = definition.segments.head.header;
+        let entry = PartiallyMatchedMacro {
+            required_segments: definition.segments.tail.clone(),
+            definition:        Rc::new(definition),
+        };
+        self.entry(header).or_default().push(entry);
+    }
+}
 
 
 // =====================
@@ -798,52 +814,58 @@ fn matched_segments_into_multi_segment_app<'s>(
     }
 }
 
+
+
+// =========================
+// === Macro Definitions ===
+// =========================
+
 fn macro_if_then_else<'a>() -> macros::Definition<'a> {
-    let section1 = macros::SegmentDefinition::new("if", Pattern::Everything);
-    let section2 = macros::SegmentDefinition::new("then", Pattern::Everything);
-    let section3 = macros::SegmentDefinition::new("else", Pattern::Everything);
-    macros::Definition {
-        rev_prefix_pattern: None,
-        segments:           im_list::NonEmpty::singleton(section3)
-            .with_head(section2)
-            .with_head(section1),
-        body:               Rc::new(matched_segments_into_multi_segment_app),
+    macro_definition! {
+        ("if", Pattern::Everything, "then", Pattern::Everything, "else", Pattern::Everything)
+        matched_segments_into_multi_segment_app
     }
 }
 
 fn macro_if_then<'a>() -> macros::Definition<'a> {
-    let section1 = macros::SegmentDefinition::new("if", Pattern::Everything);
-    let section2 = macros::SegmentDefinition::new("then", Pattern::Everything);
-    macros::Definition {
-        rev_prefix_pattern: None,
-        segments:           im_list::NonEmpty::singleton(section2).with_head(section1),
-        body:               Rc::new(matched_segments_into_multi_segment_app),
+    macro_definition! {
+        ("if", Pattern::Everything, "then", Pattern::Everything)
+        matched_segments_into_multi_segment_app
     }
 }
 
 fn macro_group<'a>() -> macros::Definition<'a> {
-    let section1 = macros::SegmentDefinition::new("(", Pattern::Everything);
-    let section2 = macros::SegmentDefinition::new(")", Pattern::Nothing);
-    macros::Definition {
-        rev_prefix_pattern: None,
-        segments:           im_list::NonEmpty::singleton(section2).with_head(section1),
-        body:               Rc::new(matched_segments_into_multi_segment_app),
+    macro_definition! {
+        ("(", Pattern::Everything, ")", Pattern::Nothing)
+        matched_segments_into_multi_segment_app
     }
 }
 
 fn macro_lambda<'a>() -> macros::Definition<'a> {
-    let section1 = macros::SegmentDefinition::new("->", Pattern::Everything);
-    macros::Definition {
-        rev_prefix_pattern: Some(Pattern::Or(
-            Box::new(Pattern::Item(macros::Item { has_rhs_spacing: Some(false) })),
-            Box::new(Pattern::Everything),
-        )),
-        segments:           im_list::NonEmpty::singleton(section1),
-        body:               Rc::new(matched_segments_into_multi_segment_app),
+    let prefix = Pattern::Or(
+        Box::new(Pattern::Item(macros::Item { has_rhs_spacing: Some(false) })),
+        Box::new(Pattern::Everything),
+    );
+    macro_definition! {
+        (prefix, "->", Pattern::Everything)
+        matched_segments_into_multi_segment_app
     }
 }
 
+fn builtin_macros() -> MacroMatchTree<'static> {
+    let mut macro_map = MacroMatchTree::default();
+    macro_map.register(macro_if_then());
+    macro_map.register(macro_if_then_else());
+    macro_map.register(macro_group());
+    macro_map.register(macro_lambda());
+    macro_map
+}
 
+
+
+// ============
+// === Main ===
+// ============
 
 fn main() {
     init_tracing(TRACE);
@@ -855,41 +877,13 @@ fn main() {
     // let str = "if (a) then b";
     // let str = "foo a-> b";
     // let str = "a+b * c";
-    let str = "foo if a then b";
+    // let str = "foo if a then b";
     // let str = "foo *(a)";
+    let str = "(a)";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
-    let mut root_macro_map = MacroMatchTree::default();
-
-    let if_then = macro_if_then();
-    let if_then = PartiallyMatchedMacro {
-        required_segments: if_then.segments.tail.clone(),
-        definition:        Rc::new(if_then),
-    };
-    root_macro_map.entry("if").or_default().push(if_then);
-
-
-    let if_then_else = macro_if_then_else();
-    let if_then_else = PartiallyMatchedMacro {
-        required_segments: if_then_else.segments.tail.clone(),
-        definition:        Rc::new(if_then_else),
-    };
-    // root_macro_map.entry("if").or_default().push(if_then_else);
-
-    let group = macro_group();
-    let group = PartiallyMatchedMacro {
-        required_segments: group.segments.tail.clone(),
-        definition:        Rc::new(group),
-    };
-    root_macro_map.entry("(").or_default().push(group);
-
-    let lambda = macro_lambda();
-    let lambda = PartiallyMatchedMacro {
-        required_segments: lambda.segments.tail.clone(),
-        definition:        Rc::new(lambda),
-    };
-    root_macro_map.entry("->").or_default().push(lambda);
+    let mut root_macro_map = builtin_macros();
 
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
 
