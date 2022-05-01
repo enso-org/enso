@@ -36,18 +36,16 @@ use crate::source::HasRepr;
 use lexer::Lexer;
 
 
-pub type TokenOrAst = location::With<TokenOrAstData>;
-
 #[derive(Clone, Debug)]
-pub enum TokenOrAstData {
-    Token(lexer::Kind),
-    Ast(AstData),
+pub enum TokenOrAst {
+    Token(Token),
+    Ast(Ast),
 }
 
 impl TokenOrAst {
     fn is_variant(&self, variant: lexer::KindVariant) -> bool {
-        match self.elem {
-            TokenOrAstData::Token(token) => token.is(variant),
+        match self {
+            TokenOrAst::Token(token) => token.is(variant),
             _ => false,
         }
     }
@@ -55,17 +53,38 @@ impl TokenOrAst {
     fn is_operator(&self) -> bool {
         self.is_variant(lexer::KindVariant::Operator)
     }
+
+    fn left_visible_offset(&self) -> usize {
+        match self {
+            Self::Token(t) => t.left_visible_offset,
+            Self::Ast(t) => t.left_visible_offset,
+        }
+    }
+
+    fn location(&self) -> location::Info {
+        match self {
+            Self::Token(t) => t.location(),
+            Self::Ast(t) => t.location(),
+        }
+    }
+
+    fn trim_left(&mut self) -> location::Info {
+        match self {
+            Self::Token(t) => t.trim_left(),
+            Self::Ast(t) => t.trim_left(),
+        }
+    }
 }
 
 impl From<Token> for TokenOrAst {
     fn from(t: Token) -> Self {
-        t.with_elem(TokenOrAstData::Token(t.elem))
+        TokenOrAst::Token(t)
     }
 }
 
 impl From<Ast> for TokenOrAst {
     fn from(t: Ast) -> Self {
-        t.mod_elem(TokenOrAstData::Ast)
+        TokenOrAst::Ast(t)
     }
 }
 
@@ -97,6 +116,14 @@ impl<'a> TryAsRef<TokenOrAst> for TokenOrAstOrMacroResolver<'a> {
     }
 }
 
+impl<'a> source::HasRepr<'a> for source::With<'a, &TokenOrAst> {
+    fn repr(&self) -> &'a str {
+        match self.data {
+            TokenOrAst::Token(t) => self.with_data(t).repr(),
+            TokenOrAst::Ast(t) => self.with_data(t).repr(),
+        }
+    }
+}
 
 
 // ======================
@@ -214,12 +241,8 @@ impl<'a> Resolver<'a> {
         }
         next_token!();
         while let Some(token) = opt_token {
-            let location = token.location();
-            let step_result = match token.elem {
-                TokenOrAstData::Token(token) => {
-                    let token = location.with_elem(token);
-                    self.process_token(lexer, root_macro_map, token)
-                }
+            let step_result = match token {
+                TokenOrAst::Token(token) => self.process_token(lexer, root_macro_map, token),
                 _ => ResolverStep::NormalToken,
             };
 
@@ -404,16 +427,27 @@ impl<T> WithPrecedence<T> {
 }
 
 
-fn annotate_tokens_that_need_spacing(items: &mut [TokenOrAst]) {
-    for item in items {
-        match &item.elem {
-            TokenOrAstData::Token(_) => {}
-            TokenOrAstData::Ast(ast) => match ast {
-                AstData::MultiSegmentApp(_) => todo!(),
-                _ => {}
+fn annotate_tokens_that_need_spacing(items: Vec<TokenOrAst>) -> Vec<TokenOrAst> {
+    items
+        .into_iter()
+        .map(|item| match item {
+            TokenOrAst::Token(_) => item,
+            TokenOrAst::Ast(ast) => match &ast.elem {
+                AstData::MultiSegmentApp(data) => {
+                    if data.segments.first().header.elem.variant() != lexer::KindVariant::Symbol {
+                        TokenOrAst::Ast(
+                            ast.with_error(
+                                "This expression cannot be used in a non-spaced equation.",
+                            ),
+                        )
+                    } else {
+                        TokenOrAst::Ast(ast)
+                    }
+                }
+                _ => TokenOrAst::Ast(ast),
             },
-        }
-    }
+        })
+        .collect()
 }
 
 pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
@@ -422,15 +456,16 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
     let mut no_space_group: Tokens = default();
     let mut processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
         let tokens = mem::take(no_space_group);
-        if no_space_group.len() == 1 {
+        if tokens.len() == 1 {
             flattened.extend(tokens);
         } else {
+            let tokens = annotate_tokens_that_need_spacing(tokens);
             let ast = resolve_operator_precedence_internal(lexer, tokens);
             flattened.push(ast.into());
         }
     };
     for item in items {
-        if item.left_visible_offset == 0 || no_space_group.is_empty() {
+        if item.left_visible_offset() == 0 || no_space_group.is_empty() {
             no_space_group.push(item)
         } else if !no_space_group.is_empty() {
             processs_no_space_group(&mut flattened, &mut no_space_group);
@@ -452,14 +487,14 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        if let TokenOrAstData::Token(token) = item.elem && let lexer::Kind::Operator(opr) = token {
+        if let TokenOrAst::Token(token) = item && let lexer::Kind::Operator(opr) = token.elem {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
             last_token_was_opr = true;
 
             let prec = precedence_of(lexer.repr(&item));
-            let opr = item.with_elem(opr);
+            let opr = item.location().with_elem(opr);
 
             if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
                 // Error. Multiple operators next to each other.
@@ -716,13 +751,12 @@ impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
 }
 
 fn token_to_ast(elem: TokenOrAst) -> Ast {
-    let location = elem.location();
-    match elem.elem {
-        TokenOrAstData::Token(token) => match token {
-            lexer::Kind::Ident(ident) => elem.with_elem(AstData::Ident(ident)),
+    match elem {
+        TokenOrAst::Token(token) => match token.elem {
+            lexer::Kind::Ident(ident) => elem.location().with_elem(AstData::Ident(ident)),
             _ => panic!(),
         },
-        TokenOrAstData::Ast(ast) => location.with_elem(ast),
+        TokenOrAst::Ast(ast) => ast,
     }
 }
 
@@ -821,7 +855,8 @@ fn main() {
     // let str = "if (a) then b";
     // let str = "foo a-> b";
     // let str = "a+b * c";
-    let str = "foo *if a then b";
+    let str = "foo if a then b";
+    // let str = "foo *(a)";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
