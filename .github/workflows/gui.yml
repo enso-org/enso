@@ -20,7 +20,7 @@ jobs:
         runner:
         #      - ["macos-latest"]
         #      - [Windows, self-hosted]
-        - [Linux, self-hosted]
+        - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
