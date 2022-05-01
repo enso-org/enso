@@ -404,10 +404,48 @@ impl<T> WithPrecedence<T> {
 }
 
 
-// Najpierw musimy parsowac grupy chyba jako osobne macra, a potem reszte:
-// foo +(a * b) - OK
-// foo +if a then b else c - NOT OK
+fn annotate_tokens_that_need_spacing(items: &mut [TokenOrAst]) {
+    for item in items {
+        match &item.elem {
+            TokenOrAstData::Token(_) => {}
+            TokenOrAstData::Ast(ast) => match ast {
+                AstData::MultiSegmentApp(_) => todo!(),
+                _ => {}
+            },
+        }
+    }
+}
+
 pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
+    type Tokens = Vec<TokenOrAst>;
+    let mut flattened: Tokens = default();
+    let mut no_space_group: Tokens = default();
+    let mut processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
+        let tokens = mem::take(no_space_group);
+        if no_space_group.len() == 1 {
+            flattened.extend(tokens);
+        } else {
+            let ast = resolve_operator_precedence_internal(lexer, tokens);
+            flattened.push(ast.into());
+        }
+    };
+    for item in items {
+        if item.left_visible_offset == 0 || no_space_group.is_empty() {
+            no_space_group.push(item)
+        } else if !no_space_group.is_empty() {
+            processs_no_space_group(&mut flattened, &mut no_space_group);
+            no_space_group.push(item);
+        } else {
+            flattened.push(item);
+        }
+    }
+    if !no_space_group.is_empty() {
+        processs_no_space_group(&mut flattened, &mut no_space_group);
+    }
+    resolve_operator_precedence_internal(lexer, flattened)
+}
+
+fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
     // Reverse-polish notation encoding.
     let mut output: Vec<TokenOrAst> = default();
     let mut operator_stack: Vec<WithPrecedence<OprAppOpr>> = default();
@@ -470,8 +508,20 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
 
 pub type Ast = location::With<AstData>;
 
+#[derive(Clone, Copy, Debug)]
+pub struct Error {
+    message: &'static str,
+}
+
+impl Error {
+    pub fn new(message: &'static str) -> Self {
+        Self { message }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum AstData {
+    WithError(Error, Box<Ast>),
     Ident(lexer::Ident),
     MultiSegmentApp(MultiSegmentApp),
     OprSectionBoundary(Box<Ast>),
@@ -483,6 +533,13 @@ pub enum AstData {
 impl Ast {
     fn fixme() -> Ast {
         location::With::new_no_offset_phantom(Bytes::from(0), AstData::Fixme)
+    }
+
+    fn with_error(self, message: &'static str) -> Self {
+        let error = Error::new(message);
+        let location = self.location();
+        let data = AstData::WithError(error, Box::new(self));
+        location.with_elem(data)
     }
 
     fn opr_section_boundary(section: Ast) -> Ast {
@@ -586,6 +643,8 @@ where source::With<'s, &'t T>: Debug
 impl<'s> Debug for source::With<'s, &AstData> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.data {
+            AstData::WithError(err, ast) =>
+                f.debug_tuple("Fixme").field(&err).field(&self.trans(|_| ast)).finish(),
             AstData::Fixme => f.debug_tuple("Fixme").finish(),
             AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
             AstData::MultiSegmentApp(t) =>
@@ -760,7 +819,9 @@ fn main() {
     // let str = "* a + * b";
     // let str = "(a) (b) c";
     // let str = "if (a) then b";
-    let str = "foo a-> b";
+    // let str = "foo a-> b";
+    // let str = "a+b * c";
+    let str = "foo *if a then b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
