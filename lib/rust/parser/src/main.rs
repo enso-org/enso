@@ -246,14 +246,14 @@ impl<'a> Resolver<'a> {
         mem::swap(&mut parent_macro, &mut self.current_macro);
         let mut child_macro = parent_macro;
         if let Some(def) = &child_macro.matched_macro_def {
-            match def.segments.last().pattern {
-                Pattern::Nothing => {
-                    let orphan_tokens = mem::take(&mut child_macro.current_segment.body);
-                    self.current_macro.current_segment.body.push(child_macro.into());
-                    self.current_macro.current_segment.body.extend(orphan_tokens);
-                }
-                _ => todo!(),
-            }
+            let pattern = &def.segments.last().pattern;
+            let child_tokens = mem::take(&mut child_macro.current_segment.body);
+            let (new_parent_tokens, mut new_child_tokens) = pattern.resolve(child_tokens);
+            mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
+            self.current_macro.current_segment.body.push(child_macro.into());
+            self.current_macro.current_segment.body.extend(new_parent_tokens);
+        } else {
+            panic!()
         }
     }
 
@@ -731,7 +731,7 @@ fn main() {
     // let str = "* a + b *";
     // let str = "* a + * b";
     // let str = "(a) (b) c";
-    let str = "(a) b";
+    let str = "if (a) then b";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
@@ -742,7 +742,7 @@ fn main() {
         required_segments: if_then.segments.tail.clone(),
         definition:        Rc::new(if_then),
     };
-    // root_macro_map.entry("if").or_default().push(if_then);
+    root_macro_map.entry("if").or_default().push(if_then);
 
 
     let if_then_else = macro_if_then_else();
