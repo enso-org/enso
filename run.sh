@@ -10,5 +10,5 @@ TARGET_EXE="${TARGET_DIR}buildscript/enso-build3"
 #    cargo build --profile buildscript --target-dir "$SCRIPT_DIR" --package enso-build3
 #fi
 
-cargo build --profile buildscript --target-dir "$SCRIPT_DIR" --package enso-build3
+cargo build --profile buildscript --target-dir "$TARGET_EXE" --package enso-build3
 "$TARGET_EXE" $@
