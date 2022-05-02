@@ -42,10 +42,7 @@ impl Theme {
         Self { tree, on_mut }
     }
 
-    pub fn parse_and_set<P>(&self, path: P, value: &str) -> bool
-    where
-        P: Into<Path>, {
-        let path = path.into();
+    pub fn set_parsed(&self, path: impl Into<Path>, value: &str) -> bool {
         let parsed_value = value.parse::<Value>();
         if let Ok(value) = parsed_value {
             self.set(path, value);
