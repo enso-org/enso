@@ -186,7 +186,7 @@ define_themes! { [light:0, dark:1]
                         font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;
                     }
-                    height = 30.0, 30.0;
+                    height = 27.0, 27.0;
                     padding {
                         left   = 16.5, 16.5;
                         right  = 2.5, 2.5;
@@ -548,6 +548,9 @@ define_themes! { [light:0, dark:1]
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
                 size      = 12.0, 12.0;
                 font      = "DejaVuSansMono", "DejaVuSansMono";
+            }
+            highlight {
+                corner_radius = 12.0, 12.0;
             }
         }
     }
