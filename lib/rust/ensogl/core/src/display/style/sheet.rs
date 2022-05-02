@@ -249,13 +249,6 @@ impl FromStr for Value {
     }
 }
 
-impl<Err> TryFrom<Result<Value, Err>> for Value {
-    type Error = Err;
-    fn try_from(t: Result<Value, Err>) -> Result<Value, Err> {
-        t
-    }
-}
-
 impl PartialSemigroup<&Value> for Value {
     fn concat_mut(&mut self, other: &Self) {
         *self = other.clone()

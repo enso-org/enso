@@ -42,6 +42,20 @@ impl Theme {
         Self { tree, on_mut }
     }
 
+    pub fn parse_and_set<P>(&self, path: P, value: &str) -> bool
+    where
+        P: Into<Path>, {
+        let path = path.into();
+        let parsed_value = value.parse::<Value>();
+        if let Ok(value) = parsed_value {
+            self.tree.borrow_mut().set(&path.rev_segments, Some(value));
+            self.on_mut.run_all();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Insert a new style in the theme. Returns [`true`] if the operation was successful. It can
     /// fail if provided with malformed value, for example with a string "rgba(foo)". In such a
     /// case, the value will not be applied and the function will return [`false`].
