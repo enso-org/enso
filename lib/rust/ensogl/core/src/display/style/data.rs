@@ -67,8 +67,8 @@ where color::Color<C>: Into<color::Rgba>
     }
 }
 
-/// A conversion from a string slice to [`Data`]. Needed to support text values in hard-coded
-/// themes (see the `define_themes` macro in the `ensogl_hardcoded_theme` crate).
+/// A conversion from a string slice to [`Data`]. Needed to allow entering text literals as values
+/// in the hard-coded themes (see the `define_themes` macro in the `ensogl_hardcoded_theme` crate).
 impl From<&str> for Data {
     fn from(t: &str) -> Data {
         Data::Text(t.to_owned())
