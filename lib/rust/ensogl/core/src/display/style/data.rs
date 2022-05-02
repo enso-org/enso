@@ -13,6 +13,15 @@ use std::str::FromStr;
 // ============
 
 /// Type of values in the style sheet.
+///
+/// An implementation of the [`FromStr`] trait is provided for the type. It parses strings by the
+/// following rules:
+///  - strings successfully parsed by [`f32::from_str`] result in a [`Number`] value;
+///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`] value;
+///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`] value
+///    (with the surrounding double-quotes stripped);
+///  - other strings result in an error.
+/// See below for some examples:
 /// ```
 /// # use ensogl_core::data::color;
 /// # use ensogl_core::display::style::data::*;
