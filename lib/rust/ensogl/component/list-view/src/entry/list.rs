@@ -165,8 +165,8 @@ where E::Model: Default
         }
     }
 
-    /// Recreate the displayed entries to use styles located at the `style_prefix` path in the
-    /// application's style sheet.
+    /// Recreate the displayed entries to make them use the styles located at the `style_prefix`
+    /// path in the application's style sheet.
     pub fn recreate_entries_with_style_prefix(&self, style_prefix: style::Path) {
         let mut entries = self.entries.borrow_mut();
         let provider = self.provider.get();
