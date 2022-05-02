@@ -229,8 +229,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter,
-          if (serverConfig.isProfilingEnabled)
-            OutputStreamSampler("context-registry")
+          if (serverConfig.isProfilingEnabled) {
+            val s = OutputStreamSampler("context-registry")
+            JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
+            s
+          }
           else NoopSampler()
         ),
       "context-registry"

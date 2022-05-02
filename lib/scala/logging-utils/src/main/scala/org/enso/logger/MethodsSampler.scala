@@ -2,12 +2,13 @@ package org.enso.logger
 
 import org.netbeans.modules.sampler.Sampler
 
-import java.io.{DataOutputStream, FileOutputStream, OutputStream}
+import java.io.{DataOutputStream, FileOutputStream}
 import java.nio.file.Files
 import java.util.concurrent.{CompletableFuture, Executor, Executors}
 
 import scala.concurrent.duration.Duration
 import scala.util.Using
+import java.io.File
 
 /** Sampler gathers the application performance statistics. */
 trait MethodsSampler {
@@ -32,10 +33,15 @@ trait MethodsSampler {
   *
   * @param output the output stream to write the collected statistics to
   */
-final class OutputStreamSampler(output: OutputStream) extends MethodsSampler {
+final class OutputStreamSampler(output: File) extends MethodsSampler {
 
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
+
+  def getSiblingFile(ext : String): File = {
+    val newName = output.getName().replace(".npss", ext)
+    return new File(output.getParent(), newName)
+  }
 
   /** @inheritdoc */
   def start(): Unit =
@@ -51,7 +57,7 @@ final class OutputStreamSampler(output: OutputStream) extends MethodsSampler {
     this.synchronized {
       if (samplingStarted) {
         samplingStarted = false
-        Using.resource(new DataOutputStream(output))(sampler.stopAndWriteTo)
+        Using.resource(new DataOutputStream(new FileOutputStream(output)))(sampler.stopAndWriteTo)
       }
     }
 
@@ -84,7 +90,7 @@ object OutputStreamSampler {
     */
   def apply(prefix: String): OutputStreamSampler = {
     val path = Files.createTempFile(s"$prefix-", ".npss")
-    new OutputStreamSampler(new FileOutputStream(path.toFile))
+    new OutputStreamSampler(path.toFile)
   }
 }
 
