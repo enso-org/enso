@@ -1,9 +1,10 @@
+//! A visual line capped with an arrow, that shows a tooltip on mouse hover.
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::shape;
 use crate::shape::CAP_WIDTH;
-use crate::shape::TOUCH_PADDING;
+use crate::shape::HOVER_PADDING;
 use ensogl::frp;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
@@ -19,9 +20,12 @@ use ensogl_gui_component::component;
 // === Cap ===
 // ===========
 
+/// Indicated the position of the lines cap.
 #[derive(Clone, Copy, Debug)]
 pub enum Cap {
+    /// Place the cap at the start of the line.
     Start,
+    /// Place the cap at the end of the line.
     End,
 }
 
@@ -71,6 +75,7 @@ impl component::Frp<Model> for Frp {
 // === Model ===
 // =============
 
+/// Internal model of the LabeledLine.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     line: shape::arrow::View,
@@ -89,7 +94,7 @@ impl component::Model for Model {
 
 impl Model {
     fn set_size(&self, size: Vector2) {
-        self.line.size.set(size + Vector2::new(CAP_WIDTH + TOUCH_PADDING, 0.0));
+        self.line.size.set(size + Vector2::new(CAP_WIDTH + HOVER_PADDING, 0.0));
     }
 
     fn set_color(&self, color: Lcha) {
@@ -112,4 +117,5 @@ impl display::Object for Model {
     }
 }
 
+/// A line that shows a tooltip on mouse hover.
 pub type LabeledLine = component::ComponentView<Model, Frp>;

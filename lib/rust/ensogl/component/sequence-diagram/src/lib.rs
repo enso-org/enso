@@ -13,8 +13,8 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-mod labeled_line;
-mod shape;
+pub mod labeled_line;
+pub mod shape;
 
 use ensogl_core::prelude::*;
 
@@ -73,7 +73,7 @@ impl component::Frp<Model> for Frp {
 // === Model ===
 // =============
 
-/// /// Internal model of the SequenceDiagram.
+/// Internal model of the SequenceDiagram.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     app:            Application,
@@ -154,7 +154,16 @@ impl Model {
                 .replace(message_lines)
                 .into_iter()
                 .for_each(|item| item.unset_parent());
+        } else {
+            WARNING!("Invalid profile data received");
+            self.reset()
         }
+    }
+
+    fn reset(&self) {
+        self.actor_lines.take();
+        self.message_lines.take();
+        self.origin_x.take();
     }
 
     fn height(&self) -> f32 {
