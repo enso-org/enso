@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use crate::data::color;
 
-use std::str::FromStr;
-
 
 
 // ============
