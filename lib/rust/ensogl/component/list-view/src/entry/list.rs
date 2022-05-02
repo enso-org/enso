@@ -129,7 +129,7 @@ where E::Model: Default
     }
 
     /// Update displayed entries to show the given range and limit their display width to at most
-    /// `max_width_px`. Any newly created entries will use styles located at the `style_prefix`
+    /// `max_width_px`. Any newly created entries will use the styles located at the `style_prefix`
     /// path in the application's style sheet.
     pub fn update_entries(
         &self,
@@ -182,7 +182,8 @@ where E::Model: Default
     }
 
     /// Update displayed entries, giving new provider. New entries created by the function have
-    /// their maximum width set to `max_width_px` and use styles located at `style_prefix` path.
+    /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
+    /// path.
     pub fn update_entries_new_provider(
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
