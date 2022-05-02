@@ -254,12 +254,17 @@ commands.start.rust = async function (argv) {
 commands.start.js = async function (argv) {
     await installJsDeps()
     console.log(`Building JS target.` + argv)
-    // The backend path is being prepended here, as appending would be incorrect.
-    // That is because `targetArgs` might include `-- …` and appended args could
-    // end up being passed to the spawned backend process.
-    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
-        targetArgs
-    )
+    const args = []
+    if (argv.backend) {
+        // The backend path is being prepended here, as appending would be incorrect.
+        // That is because `targetArgs` might include `-- …` and appended args could
+        // end up being passed to the spawned backend process.
+        args.push('--backend-path')
+        args.push(paths.get_project_manager_path(paths.dist.bin))
+    } else {
+        args.push('--no-backend')
+    }
+    args.concat(targetArgs)
     if (argv.dev) {
         args.push('--dev')
     }
@@ -298,7 +303,7 @@ commands.test.rust = async function (argv) {
 commands['integration-test'] = command('Run integration test suite')
 commands['integration-test'].rust = async function (argv) {
     let pm_process = null
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
         pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
     }
@@ -364,7 +369,7 @@ commands.watch.common = async function (argv) {
     // Init JS build and project manager.
 
     await installJsDeps()
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         await build_project_manager().then(run_project_manager)
     }
 
@@ -468,13 +473,13 @@ let optParser = yargs
     .demandCommand()
 
 optParser.options('rust', {
-    describe: 'Run the Rust target',
+    describe: 'Run the Rust target (use --no-rust to disable)',
     type: 'bool',
     default: true,
 })
 
 optParser.options('js', {
-    describe: 'Run the JavaScript target',
+    describe: 'Run the JavaScript target (use --no-js to disable)',
     type: 'bool',
     default: true,
 })
@@ -497,7 +502,7 @@ optParser.options('target', {
 })
 
 optParser.options('backend', {
-    describe: 'Start the backend process automatically [true]',
+    describe: 'Start own backend process (use --no-backend to disable)',
     type: 'bool',
     default: true,
 })
