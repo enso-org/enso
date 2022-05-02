@@ -59,19 +59,14 @@ impl Theme {
     /// Insert a new style in the theme. Returns [`true`] if the operation was successful. It can
     /// fail if provided with malformed value, for example with a string "rgba(foo)". In such a
     /// case, the value will not be applied and the function will return [`false`].
-    pub fn set<P, E>(&self, path: P, value: E) -> bool
+    pub fn set<P, E>(&self, path: P, value: E)
     where
         P: Into<Path>,
-        E: TryInto<Value>, {
+        E: Into<Value>, {
         let path = path.into();
-        let value = value.try_into();
-        if let Ok(value) = value {
-            self.tree.borrow_mut().set(&path.rev_segments, Some(value));
-            self.on_mut.run_all();
-            true
-        } else {
-            false
-        }
+        let value = value.into();
+        self.tree.borrow_mut().set(&path.rev_segments, Some(value));
+        self.on_mut.run_all();
     }
 
     /// Add a new callback which will be triggered everytime this theme is modified.
