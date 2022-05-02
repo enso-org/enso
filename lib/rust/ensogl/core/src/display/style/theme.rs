@@ -48,6 +48,7 @@ impl Theme {
         let path = path.into();
         let parsed_value = value.parse::<Value>();
         if let Ok(value) = parsed_value {
+            // TODO: can I call self.set() here?
             self.tree.borrow_mut().set(&path.rev_segments, Some(value));
             self.on_mut.run_all();
             true
