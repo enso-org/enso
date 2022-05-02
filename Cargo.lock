@@ -696,9 +696,9 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bdc19781b16e32f8a7200368a336fa4509d4b72ef15dd4e41df5290855ee1e6"
+checksum = "da31c0ed7b4690e2c78fe4b880d21cd7db04a346ebc658b4270251b695437f17"
 dependencies = [
  "async-trait",
  "bytes 1.1.0",
@@ -1738,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#6aaeace50d5b4c3ef41017db4b4f0a2ee29c2cf4"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#8e6f2329a26038805a27d7f2b5cc120bcabf4a98"
 dependencies = [
  "anyhow",
  "argh",
@@ -1786,7 +1786,7 @@ dependencies = [
  "regex",
  "reqwest 0.11.10",
  "scopeguard",
- "semver 1.0.7",
+ "semver 1.0.9",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1841,7 +1841,7 @@ dependencies = [
  "enso-logger",
  "enso-prelude",
  "ensogl",
- "semver 1.0.7",
+ "semver 1.0.9",
 ]
 
 [[package]]
@@ -1958,7 +1958,7 @@ dependencies = [
  "nalgebra 0.26.2",
  "parser",
  "regex",
- "semver 1.0.7",
+ "semver 1.0.9",
  "serde",
  "serde_json",
  "sha3",
@@ -3621,7 +3621,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#6aaeace50d5b4c3ef41017db4b4f0a2ee29c2cf4"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#8e6f2329a26038805a27d7f2b5cc120bcabf4a98"
 dependencies = [
  "anyhow",
  "argh",
@@ -3673,7 +3673,7 @@ dependencies = [
  "regex",
  "reqwest 0.11.10",
  "scopeguard",
- "semver 1.0.7",
+ "semver 1.0.9",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5852,7 +5852,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.7",
+ "semver 1.0.9",
 ]
 
 [[package]]
@@ -5973,9 +5973,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.7"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d65bd28f48be7196d222d95b9243287f48d27aca604e08497513019ff0502cc4"
+checksum = "8cb243bdfdb5936c8dc3c45762a19d12ab4550cdc753bc247637d4ec35a040fd"
 dependencies = [
  "serde",
 ]
@@ -7097,9 +7097,9 @@ checksum = "3ed742d4ea2bd1176e236172c8429aaf54486e7ac098db29ffe6529e0ce50973"
 
 [[package]]
 name = "unicode-xid"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
 
 [[package]]
 name = "unreachable"

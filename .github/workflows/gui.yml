@@ -33,6 +33,27 @@ jobs:
             core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
             core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
       - run: bash run.sh ide build
+  lint:
+    name: Engine
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          clean: false
+      - uses: actions/github-script@v6
+        with:
+          script: |-
+            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
+            core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
+            core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
+      - run: bash run.sh lint
 
 
 #  info:
