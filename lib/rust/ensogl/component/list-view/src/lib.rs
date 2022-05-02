@@ -490,7 +490,8 @@ where E::Model: Default
             );
             default_style_prefix <- init.constant(list_view_style::HERE.str.to_string());
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
-            eval style_prefix ((path) model.entries.update_entries_style_prefix(path.into()));
+            eval style_prefix ((path)
+                model.entries.recreate_entries_with_style_prefix(path.into()));
             view_and_style <- all(&view_info,&style_prefix);
             // This should go before handling mouse events to have proper checking of
             eval view_and_style (((view,style_prefix))
