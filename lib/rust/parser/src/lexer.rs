@@ -894,6 +894,17 @@ impl<'s> Lexer<'s> {
 }
 
 
+// ==================
+// === Test Utils ===
+// ==================
+
+impl Token {
+    pub fn symbol(repr: &str) -> Self {
+        location::With::test_from_repr(repr, Kind::symbol())
+    }
+}
+
+
 
 // =============
 // === Tests ===

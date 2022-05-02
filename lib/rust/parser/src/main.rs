@@ -560,9 +560,95 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
 }
 
 
+pub struct ChildrenVisitor<T> {
+    sub_visitor: T,
+}
+
+impl<T> Visitor for ChildrenVisitor<T> {
+    type SubVisitor = T;
+    fn sub_visitor(&mut self) -> &mut Self::SubVisitor {
+        &mut self.sub_visitor
+    }
+}
+
+pub trait Visitor {
+    type SubVisitor;
+    fn sub_visitor(&mut self) -> &mut Self::SubVisitor;
+}
+
+pub trait Visit<T: ?Sized> {
+    fn visit(&mut self, elem: &T);
+    // fn visit_mut(&mut self, elem:&mut T);
+}
+
+impl<T: Visit<S>, S> Visit<Option<S>> for T {
+    default fn visit(&mut self, t: &Option<S>) {
+        if let Some(elem) = t {
+            self.visit(elem)
+        }
+    }
+}
+
+impl<T: Visit<S>, E, S> Visit<Result<S, E>> for T {
+    default fn visit(&mut self, t: &Result<S, E>) {
+        if let Ok(elem) = t {
+            self.visit(elem)
+        }
+    }
+}
+
+impl<T> Visit<str> for T {
+    default fn visit(&mut self, t: &str) {}
+}
+
+impl<T> Visit<&str> for T {
+    default fn visit(&mut self, t: &&str) {}
+}
+
+impl<T: Visit<S>, S> Visit<Box<S>> for T {
+    default fn visit(&mut self, t: &Box<S>) {
+        self.visit(&*t)
+    }
+}
+
+impl<T: Visit<S>, S> Visit<NonEmptyVec<S>> for T {
+    default fn visit(&mut self, t: &NonEmptyVec<S>) {
+        t.iter().map(|s| self.visit(s));
+    }
+}
+
+impl<T: Visit<S>, S> Visit<location::With<S>> for T {
+    default fn visit(&mut self, t: &location::With<S>) {
+        self.visit(&t.elem)
+    }
+}
+
+impl<T> Visit<lexer::Ident> for T {
+    default fn visit(&mut self, token: &lexer::Ident) {}
+}
+
+impl<T> Visit<lexer::Operator> for T {
+    default fn visit(&mut self, token: &lexer::Operator) {}
+}
+
+// Fixme
+impl<T> Visit<lexer::Kind> for T {
+    default fn visit(&mut self, t: &lexer::Kind) {}
+}
+
+pub struct TestVisitor {}
+impl Visitor for TestVisitor {
+    type SubVisitor = Self;
+
+    fn sub_visitor(&mut self) -> &mut Self::SubVisitor {
+        self
+    }
+}
+
+
 pub type Ast = location::With<AstData>;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Visitor)]
 pub struct Error {
     message: &'static str,
 }
@@ -573,7 +659,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Visitor)]
 pub enum AstData {
     WithError(Error, Box<Ast>),
     Ident(lexer::Ident),
@@ -583,6 +669,7 @@ pub enum AstData {
     App(Box<App>),
     Fixme,
 }
+
 
 impl Ast {
     fn fixme() -> Ast {
@@ -647,20 +734,9 @@ impl Ast {
     }
 }
 
-// #[test]
-// impl Ast {
-//     pub fn ident(repr:&str) -> Self {
-//         match lexer::Kind::parse_ident(repr) {
-//             lexer::Kind::Ident(ident) => {
-//                 location::With::new_no_offset_phantom()
-//                 AstData::Ident(ident)
-//             }
-//             _ => panic!()
-//         }
-//     }
-// }
 
-#[derive(Clone, Debug)]
+
+#[derive(Clone, Debug, Visitor)]
 pub struct App {
     func: Ast,
     arg:  Ast,
@@ -668,7 +744,7 @@ pub struct App {
 
 pub type OprAppOpr = Result<location::With<lexer::Operator>, MultipleOperatorError>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Visitor)]
 pub struct OprApp {
     lhs: Option<Ast>,
     opr: OprAppOpr,
@@ -686,13 +762,13 @@ impl MultipleOperatorError {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Visitor)]
 pub struct MultiSegmentApp {
     prefix:   Option<Box<Ast>>,
     segments: NonEmptyVec<MultiSegmentAppSegment>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Visitor)]
 pub struct MultiSegmentAppSegment {
     header: Token,
     body:   Option<Ast>,
@@ -883,6 +959,23 @@ fn builtin_macros() -> MacroMatchTree<'static> {
 // === Main ===
 // ============
 
+// #[test]
+mod test {
+    use super::*;
+
+    pub fn ident(repr: &str) -> Ast {
+        match lexer::Kind::parse_ident(repr) {
+            lexer::Kind::Ident(ident) =>
+                location::With::new_with_len(Bytes::from(repr.len()), AstData::Ident(ident)),
+            _ => panic!(),
+        }
+    }
+
+    pub fn app_segment(header: Token, body: Option<Ast>) -> MultiSegmentAppSegment {
+        MultiSegmentAppSegment { header, body }
+    }
+}
+
 fn main() {
     init_tracing(TRACE);
     // let str = "if a then b else c";
@@ -895,7 +988,7 @@ fn main() {
     // let str = "a+b * c";
     // let str = "foo if a then b";
     // let str = "foo *(a)";
-    let str = "(a)";
+    let str = "foo (a)";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
@@ -911,12 +1004,74 @@ fn main() {
     );
     println!("{:#?}", source::With::new(str, &ast));
 
-    // let ast2 =
+    let seg1 =
+        test::app_segment(Token::symbol("("), Some(Ast::opr_section_boundary(test::ident("a"))));
+    let seg2 = test::app_segment(Token::symbol(")"), None);
+
+    let ast2 = Ast::opr_section_boundary(location::With::new_with_len(
+        Bytes::from(0),
+        AstData::MultiSegmentApp(MultiSegmentApp {
+            prefix:   None,
+            segments: NonEmptyVec::try_from(vec![seg1, seg2]).unwrap(),
+        }),
+    ));
+
+    println!("{:#?}", &ast2);
+    foo();
+
+    // TestVisitor {}.visit(&ast2);
+
     // let a = 5;
     // let b = 5;
     // let c = a + / b;
 }
 
+macro_rules! test_macro_build {
+    ([[$($item1:tt)*] [$($item2:tt)*]] $($ts:tt)*) => {
+        test_macro_build!{[[Ast::app($($item1)*,$($item2)*)]] $($ts)*}
+    };
+    ([[$($item:tt)*]]) => {
+        $($item)*
+    };
+    ([$($stack:tt)*] $a:ident $($ts:tt)*) => {
+        test_macro_build!{[$($stack)* [test::ident(stringify!{$a})]] $($ts)*}
+    };
+    ([$($stack:tt)*] [$($ss:tt)*] $($ts:tt)*) => {
+        test_macro_build!{[$($stack)* [test_macro_build_multi_app!{$($ss)*}]] $($ts)*}
+    };
+}
+
+macro_rules! test_macro_build_multi_app {
+    ($($section:literal $($argument:ident)?)*) => {
+        location::With::new_with_len(
+            Bytes::from(0),
+            AstData::MultiSegmentApp(MultiSegmentApp {
+                prefix:   None,
+                segments: NonEmptyVec::try_from(vec![$(
+                    test::app_segment(Token::symbol($section),
+                    test_macro_build_multi_app_argument!{$($argument)?}
+                    )
+                ),*]).unwrap(),
+            }),
+        )
+    };
+}
+
+macro_rules! test_macro_build_multi_app_argument {
+    ($argument:ident) => {
+        Some(Ast::opr_section_boundary(test::ident(stringify!($argument))))
+    };
+    () => {
+        None
+    };
+}
+
+fn foo() {
+    println!("{:#?}", test_macro_build! { [] foo ["(" a ")"] });
+    // println!("{:#?}", test_macro_build! { [] a b });
+}
+
+// app(["(","a","]"])
 
 /// Requirements:
 ///

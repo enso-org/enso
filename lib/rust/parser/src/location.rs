@@ -23,6 +23,7 @@ pub struct With<T> {
     pub elem:                T,
     pub left_visible_offset: usize,
     pub left_offset:         Bytes,
+    /// Used mainly to fast check the repr of the token in the input string.
     pub start:               Bytes,
     pub len:                 Bytes,
 }
@@ -39,6 +40,17 @@ impl<T> With<T> {
     pub fn new_no_offset_phantom(start: Bytes, elem: T) -> Self {
         let len = Bytes::from(0);
         Self::new_no_offset(start, len, elem)
+    }
+
+    #[inline(always)]
+    pub fn new_with_len(len: Bytes, elem: T) -> Self {
+        let start = Bytes::from(0);
+        Self::new_no_offset(start, len, elem)
+    }
+
+    #[inline(always)]
+    pub fn test_from_repr(repr: &str, elem: T) -> Self {
+        Self::new_with_len(Bytes::from(repr.len()), elem)
     }
 
     #[inline(always)]

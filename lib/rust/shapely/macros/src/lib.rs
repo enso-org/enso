@@ -25,6 +25,7 @@ mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_iterator;
 mod derive_no_clone;
+mod derive_visitor;
 mod overlappable;
 
 mod prelude {
@@ -130,4 +131,10 @@ pub fn overlappable(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     overlappable::overlappable(attrs, input)
+}
+
+
+#[proc_macro_derive(Visitor)]
+pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_visitor::derive(input)
 }
