@@ -42,6 +42,8 @@ impl Theme {
         Self { tree, on_mut }
     }
 
+    /// Insert or modify a style in the theme. Sets the style and returns [`true`] if `value` was
+    /// successfully parsed to [`Data`], or returns [`false`] otherwise.
     pub fn set_parsed(&self, path: impl Into<Path>, value: &str) -> bool {
         let parsed_value = value.parse::<Value>();
         if let Ok(value) = parsed_value {
@@ -52,9 +54,7 @@ impl Theme {
         }
     }
 
-    /// Insert a new style in the theme. Returns [`true`] if the operation was successful. It can
-    /// fail if provided with malformed value, for example with a string "rgba(foo)". In such a
-    /// case, the value will not be applied and the function will return [`false`].
+    /// Insert or modify a style in the theme.
     pub fn set<P, E>(&self, path: P, value: E)
     where
         P: Into<Path>,
