@@ -43,7 +43,6 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::*;
-use ensogl_core::display::style;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_shadow as shadow;
@@ -198,7 +197,7 @@ impl<E: Entry> Model<E> {
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
-    fn update_after_view_change(&self, view: &View, style_prefix: style::Path) {
+    fn update_after_view_change(&self, view: &View, style_prefix: display::style::Path) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
         let padding = self.doubled_padding_with_shape_padding();
         let padding = Vector2(padding, padding);
@@ -214,7 +213,7 @@ impl<E: Entry> Model<E> {
         &self,
         provider: entry::AnyModelProvider<E>,
         view: &View,
-        style_prefix: style::Path,
+        style_prefix: display::style::Path,
     ) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
         let padding = self.doubled_padding_with_shape_padding();
