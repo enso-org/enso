@@ -26,6 +26,10 @@ pub mod tooltip;
 pub mod view;
 pub use view::View;
 
+/// A module with commonly used traits to mass import.
+pub mod traits {
+    pub use crate::application::view::View as TRAIT_View;
+}
 
 
 // ===========
