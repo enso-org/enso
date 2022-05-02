@@ -13,6 +13,16 @@ use std::str::FromStr;
 // ============
 
 /// Type of values in the style sheet.
+/// ```
+/// # use ensogl_core::data::color;
+/// # use ensogl_core::display::style::data::*;
+/// # use std::str::FromStr;
+/// assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
+/// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
+/// assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
+/// assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
+/// assert_eq!(Data::from_str("bad-format"), Err(()));
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub enum Data {
@@ -233,19 +243,5 @@ impl DataMatch for Option<Data> {
     }
     fn text(&self) -> Option<String> {
         self.as_ref().and_then(|t| t.text())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_str() {
-        assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
-        let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
-        assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
-        assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
-        assert_eq!(Data::from_str("bad-format"), Err(()));
     }
 }
