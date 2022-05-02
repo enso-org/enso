@@ -33,6 +33,14 @@ use ensogl_text as text;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const ENTRIES_STYLE_PATH: &str = theme::entries::HERE.str;
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -142,7 +150,7 @@ impl component::Frp<Model> for Frp {
 
             // === Entries ===
 
-            model.entries.set_style_prefix(theme::entries::HERE.str);
+            model.entries.set_style_prefix(ENTRIES_STYLE_PATH);
             model.entries.set_background_color(HOVER_COLOR);
             model.entries.show_background_shadow(false);
             model.entries.set_background_corners_radius(0.0);

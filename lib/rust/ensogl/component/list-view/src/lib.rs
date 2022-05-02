@@ -52,6 +52,14 @@ pub use entry::Entry;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const LIST_VIEW_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -488,7 +496,7 @@ where E::Model: Default
             view_info <- all_with(&view_y.value,&frp.size, |y,size|
                 View{position_y:*y,size:*size}
             );
-            default_style_prefix <- init.constant(list_view_style::HERE.str.to_string());
+            default_style_prefix <- init.constant(LIST_VIEW_STYLE_PATH.to_string());
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
             eval style_prefix ((path)
                 model.entries.recreate_entries_with_style_prefix(path.into()));
