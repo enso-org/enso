@@ -52,43 +52,28 @@ impl HasFields for Data {
 }
 
 
-// ==============
-// === Consts ===
-// ==============
-
-/// Name of the custom attribute allowing customizing behavior of the generated `CloneRef`
-/// implementation.
-const CLONE_REF_ATTR: &str = "clone_ref";
-
-/// Name of the property within customization attribute that allows defining custom bounds for
-/// the generated `CloneRef` implementation.
-const BOUND_NAME: &str = "bound";
-
-
-
 // ============================
 // === CloneRef for structs ===
 // ============================
 
-/// `clone_ref` function body for a given `struct` definition.
-pub fn body_for_struct(ident: &Ident, data: &DataStruct) -> TokenStream {
-    match data.fields {
-        // Fields::Unit =>
-        // // Foo
-        //     quote!( #ident ),
-        // Fields::Unnamed(ref fields) => {
-        //     let indices = index_sequence(fields.unnamed.len());
-        //     // Foo(self.0.clone_ref())
-        //     quote!(
-        //         #ident(#(self.#indices.clone_ref()),*)
-        //     )
-        // }
-        Fields::Named(ref fields) => {
+pub fn body_for_struct(f: &TokenStream, data: &DataStruct, is_mut: bool) -> TokenStream {
+    match &data.fields {
+        Fields::Unit => quote!({}),
+        Fields::Unnamed(fields) => {
+            let indices = index_sequence(fields.unnamed.len());
+            if is_mut {
+                quote!(#( #f(&mut self.#indices, visitor); )*)
+            } else {
+                quote!(#( #f(&self.#indices, visitor); )*)
+            }
+        }
+        Fields::Named(fields) => {
             let names = field_names(fields);
-            quote!(
-                let sub_visitor = self.sub_visitor();
-                #( sub_visitor.visit(&elem.#names) );*
-            )
+            if is_mut {
+                quote!(#( #f(&mut self.#names, visitor); )*)
+            } else {
+                quote!(#( #f(&self.#names, visitor); )*)
+            }
         }
         _ => panic!(),
     }
@@ -101,50 +86,34 @@ pub fn body_for_struct(ident: &Ident, data: &DataStruct) -> TokenStream {
 // ==========================
 
 /// Prepares a match arm for a single variant that `clone_ref`s such value.
-pub fn arm_for_variant(data_ident: &Ident, variant: &Variant) -> TokenStream {
-    let fields = &variant.fields;
+pub fn arm_for_variant(f: &TokenStream, variant: &Variant) -> TokenStream {
     let variant_ident = &variant.ident;
-    match fields {
+    match &variant.fields {
         Fields::Unit => {
-            quote!(
-                #data_ident::#variant_ident => {}
-            )
+            quote!(Self::#variant_ident => {})
         }
-        // Fields::Named(fields) => {
-        //     let names = field_names(fields);
-        //     // Enum::Var {field0} => Enum::Var {field0 : field0.clone_ref()}
-        //     quote!(
-        //         #data_ident::#variant_ident { #(#names),* } =>
-        //             #data_ident::#variant_ident {
-        //                 #( #names : #names.clone_ref() ),*
-        //             }
-        //     )
-        // }
+        Fields::Named(fields) => {
+            let names = field_names(fields);
+            quote!(Self::#variant_ident { #(#names),* } => {
+                #( #f(#names, visitor); )*
+            })
+        }
         Fields::Unnamed(fields) => {
             let names = identifier_sequence(fields.unnamed.len());
-            // Enum::Var(field0) => Enum::Var(field0.clone_ref())
-            quote!(
-                #data_ident::#variant_ident(#(#names),*) => {
-                    let sub_visitor = self.sub_visitor();
-                    #( sub_visitor.visit(#names) );*
-                }
-            )
+            quote!(Self::#variant_ident(#(#names),*) => {
+                #( #f(#names, visitor); )*
+            })
         }
-        _ => todo!(),
     }
 }
 
 
 
-pub fn body_for_enum(ident: &Ident, data: &DataEnum) -> TokenStream {
-    if !data.variants.is_empty() {
-        let make_arm = |variant| arm_for_variant(ident, variant);
-        let arms = data.variants.iter().map(make_arm);
-        let body = quote!(match elem { #(#arms)* });
-        body
-    } else {
-        panic!()
-    }
+pub fn body_for_enum(f: &TokenStream, data: &DataEnum) -> TokenStream {
+    let make_arm = |variant| arm_for_variant(f, variant);
+    let arms = data.variants.iter().map(make_arm);
+    let body = quote!(match self { #(#arms)* });
+    body
 }
 
 
@@ -153,31 +122,49 @@ pub fn body_for_enum(ident: &Ident, data: &DataEnum) -> TokenStream {
 // === Entry Point ===
 // ===================
 
+pub fn gen_body(f: TokenStream, data: &Data, is_mut: bool) -> TokenStream {
+    match data {
+        Data::Struct(t) => body_for_struct(&f, t, is_mut),
+        Data::Enum(t) => body_for_enum(&f, t),
+        // Data::Union(_) => panic!("CloneRef cannot be derived for an untagged union input."),
+        _ => panic!(),
+    }
+}
+
 /// Derives `CloneRef` implementation, refer to `crate::derive_clone_ref` for details.
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let self_param = quote::format_ident!("T");
+    let t_param = quote::format_ident!("T");
 
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;
-    let body = match &decl.data {
-        Data::Struct(data_struct) => body_for_struct(ident, data_struct),
-        Data::Enum(data_enum) => body_for_enum(ident, data_enum),
-        // Data::Union(_) => panic!("CloneRef cannot be derived for an untagged union input."),
-        _ => panic!(),
-    };
+    let f = quote!(AstVisitable::visit);
+
 
 
     let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
 
 
+    let body = gen_body(quote!(AstVisitable::visit), &decl.data, false);
+    let body_mut = gen_body(quote!(AstVisitableMut::visit_mut), &decl.data, true);
 
+    // #t_param:Visitor,
     let field_types = decl.data.field_types();
-    let bounds = quote! {#self_param:Visitor, #(#self_param::SubVisitor: Visit<#field_types>,)*};
+    let bounds =
+        quote! { #(#field_types: Traversable<#t_param>,#field_types: TraversableCheck<#t_param>,)*};
     let output = quote! {
-        impl<#self_param> Visit <#ident #ty_generics> for #self_param
-        where #bounds {
-            fn visit(&mut self, elem:&#ident #ty_generics) {
+        impl AstVisitable for #ident #ty_generics {
+            fn visit<T: AstVisitor>(&self, visitor:&mut T) {
+                visitor.before_visiting_children();
                 #body
+                visitor.after_visiting_children();
+            }
+        }
+
+        impl AstVisitableMut for #ident #ty_generics {
+            fn visit_mut<T: AstVisitorMut>(&mut self, visitor:&mut T) {
+                visitor.before_visiting_children();
+                #body_mut
+                visitor.after_visiting_children();
             }
         }
     };
@@ -188,7 +175,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 
 
-// pub fn bounds_for_variant(self_param: &Ident, variant: &Variant) -> TokenStream {
+// pub fn bounds_for_variant(t_param: &Ident, variant: &Variant) -> TokenStream {
 //     let fields = &variant.fields;
 //     let variant_ident = &variant.ident;
 //     match fields {
@@ -208,7 +195,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 //         Fields::Unnamed(fields) => {
 //             let bounds = fields.unnamed.iter().map(|t| {
 //                 let ty = &t.ty;
-//                 quote!(#self_param:Visitor<#ty>,)
+//                 quote!(#t_param:Visitor<#ty>,)
 //             });
 //             quote!(#( #bounds )*)
 //         }

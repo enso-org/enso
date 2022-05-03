@@ -560,91 +560,6 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
 }
 
 
-pub struct ChildrenVisitor<T> {
-    sub_visitor: T,
-}
-
-impl<T> Visitor for ChildrenVisitor<T> {
-    type SubVisitor = T;
-    fn sub_visitor(&mut self) -> &mut Self::SubVisitor {
-        &mut self.sub_visitor
-    }
-}
-
-pub trait Visitor {
-    type SubVisitor;
-    fn sub_visitor(&mut self) -> &mut Self::SubVisitor;
-}
-
-pub trait Visit<T: ?Sized> {
-    fn visit(&mut self, elem: &T);
-    // fn visit_mut(&mut self, elem:&mut T);
-}
-
-impl<T: Visit<S>, S> Visit<Option<S>> for T {
-    default fn visit(&mut self, t: &Option<S>) {
-        if let Some(elem) = t {
-            self.visit(elem)
-        }
-    }
-}
-
-impl<T: Visit<S>, E, S> Visit<Result<S, E>> for T {
-    default fn visit(&mut self, t: &Result<S, E>) {
-        if let Ok(elem) = t {
-            self.visit(elem)
-        }
-    }
-}
-
-impl<T> Visit<str> for T {
-    default fn visit(&mut self, t: &str) {}
-}
-
-impl<T> Visit<&str> for T {
-    default fn visit(&mut self, t: &&str) {}
-}
-
-impl<T: Visit<S>, S> Visit<Box<S>> for T {
-    default fn visit(&mut self, t: &Box<S>) {
-        self.visit(&*t)
-    }
-}
-
-impl<T: Visit<S>, S> Visit<NonEmptyVec<S>> for T {
-    default fn visit(&mut self, t: &NonEmptyVec<S>) {
-        t.iter().map(|s| self.visit(s));
-    }
-}
-
-impl<T: Visit<S>, S> Visit<location::With<S>> for T {
-    default fn visit(&mut self, t: &location::With<S>) {
-        self.visit(&t.elem)
-    }
-}
-
-impl<T> Visit<lexer::Ident> for T {
-    default fn visit(&mut self, token: &lexer::Ident) {}
-}
-
-impl<T> Visit<lexer::Operator> for T {
-    default fn visit(&mut self, token: &lexer::Operator) {}
-}
-
-// Fixme
-impl<T> Visit<lexer::Kind> for T {
-    default fn visit(&mut self, t: &lexer::Kind) {}
-}
-
-pub struct TestVisitor {}
-impl Visitor for TestVisitor {
-    type SubVisitor = Self;
-
-    fn sub_visitor(&mut self) -> &mut Self::SubVisitor {
-        self
-    }
-}
-
 
 pub type Ast = location::With<AstData>;
 
@@ -652,6 +567,7 @@ pub type Ast = location::With<AstData>;
 pub struct Error {
     message: &'static str,
 }
+
 
 impl Error {
     pub fn new(message: &'static str) -> Self {
@@ -669,6 +585,135 @@ pub enum AstData {
     App(Box<App>),
     Fixme,
 }
+
+
+
+pub trait AstVisitor {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    fn visit(&mut self, ast: &Ast);
+}
+
+pub trait AstVisitorMut {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    fn visit_mut(&mut self, ast: &mut Ast);
+}
+
+pub trait AstVisitable {
+    fn visit<V: AstVisitor>(&self, _visitor: &mut V) {}
+}
+
+pub trait AstVisitableMut {
+    fn visit_mut<V: AstVisitorMut>(&mut self, _visitor: &mut V) {}
+}
+
+impl AstVisitable for Ast {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        visitor.visit(self);
+        self.elem.visit(visitor)
+    }
+}
+
+impl AstVisitableMut for Ast {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        visitor.visit_mut(self);
+        self.elem.visit_mut(visitor)
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for location::With<T> {
+    default fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        self.elem.visit(visitor)
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for location::With<T> {
+    default fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        self.elem.visit_mut(visitor)
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for Box<T> {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        (**self).visit(visitor)
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for Box<T> {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        (**self).visit_mut(visitor)
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for Option<T> {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        if let Some(elem) = self {
+            elem.visit(visitor)
+        }
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for Option<T> {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        if let Some(elem) = self {
+            elem.visit_mut(visitor)
+        }
+    }
+}
+
+impl<T: AstVisitable, E: AstVisitable> AstVisitable for Result<T, E> {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        match self {
+            Ok(t) => t.visit(visitor),
+            Err(t) => t.visit(visitor),
+        }
+    }
+}
+
+impl<T: AstVisitableMut, E: AstVisitableMut> AstVisitableMut for Result<T, E> {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        match self {
+            Ok(t) => t.visit_mut(visitor),
+            Err(t) => t.visit_mut(visitor),
+        }
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for Vec<T> {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        self.iter().map(|t| t.visit(visitor));
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for Vec<T> {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        self.iter_mut().map(|t| t.visit_mut(visitor));
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for NonEmptyVec<T> {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        self.iter().map(|t| t.visit(visitor));
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for NonEmptyVec<T> {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        self.iter_mut().map(|t| t.visit_mut(visitor));
+    }
+}
+
+impl AstVisitable for &str {}
+impl AstVisitable for lexer::Ident {}
+impl AstVisitable for lexer::Operator {}
+impl AstVisitable for lexer::Kind {}
+
+impl AstVisitableMut for &str {}
+impl AstVisitableMut for lexer::Ident {}
+impl AstVisitableMut for lexer::Operator {}
+impl AstVisitableMut for lexer::Kind {}
+
 
 
 impl Ast {
@@ -751,7 +796,7 @@ pub struct OprApp {
     rhs: Option<Ast>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Visitor)]
 pub struct MultipleOperatorError {
     oprs: Vec<location::With<lexer::Operator>>,
 }
@@ -1019,8 +1064,6 @@ fn main() {
     println!("{:#?}", &ast2);
     foo();
 
-    // TestVisitor {}.visit(&ast2);
-
     // let a = 5;
     // let b = 5;
     // let c = a + / b;
@@ -1066,8 +1109,15 @@ macro_rules! test_macro_build_multi_app_argument {
     };
 }
 
+pub struct MyVisitor {}
+impl AstVisitor for MyVisitor {
+    fn visit(&mut self, ast: &Ast) {
+        println!(">>> {:?}", ast);
+    }
+}
+
 fn foo() {
-    println!("{:#?}", test_macro_build! { [] foo ["(" a ")"] });
+    (test_macro_build! { [] foo ["(" a ")"] }).visit(&mut MyVisitor {});
     // println!("{:#?}", test_macro_build! { [] a b });
 }
 
