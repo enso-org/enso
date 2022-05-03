@@ -113,6 +113,8 @@
   encoding to `File.read_text`. New `File.read` API.][3390]
 - [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
   `with_step` allowing to change the range step.][3408]
+- [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
+- [Implemented a basic reader for the `Delimited` file format.][3424]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -173,6 +175,8 @@
 [3393]: https://github.com/enso-org/enso/pull/3393
 [3390]: https://github.com/enso-org/enso/pull/3390
 [3408]: https://github.com/enso-org/enso/pull/3408
+[3415]: https://github.com/enso-org/enso/pull/3415
+[3424]: https://github.com/enso-org/enso/pull/3424
 
 #### Enso Compiler
 
@@ -183,6 +187,7 @@
 - [Fixed compiler issue related to module cache.][3367]
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Functions with all-defaulted arguments now execute automatically][3414]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -193,6 +198,8 @@
 [3367]: https://github.com/enso-org/enso/pull/3367
 [3374]: https://github.com/enso-org/enso/pull/3374
 [3412]: https://github.com/enso-org/enso/pull/3412
+[3414]: https://github.com/enso-org/enso/pull/3414
+[3417]: https://github.com/enso-org/enso/pull/3417
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -936,9 +936,8 @@ class DataflowAnalysisTest extends CompilerTest {
         fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
       val fnArgY =
         fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
-      val fnArgYDefault = fnArgY.defaultValue.get.asInstanceOf[IR.Name.Literal]
-      val fnBody        = fn.body.asInstanceOf[IR.Application.Prefix]
-      val plusFn        = fnBody.function.asInstanceOf[IR.Name.Literal]
+      val fnBody = fn.body.asInstanceOf[IR.Application.Prefix]
+      val plusFn = fnBody.function.asInstanceOf[IR.Name.Literal]
       val plusArgX =
         fnBody.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       val plusArgXExpr = plusArgX.value.asInstanceOf[IR.Name.Literal]
@@ -947,16 +946,15 @@ class DataflowAnalysisTest extends CompilerTest {
       val plusArgYExpr = plusArgY.value.asInstanceOf[IR.Name.Literal]
 
       // Identifiers
-      val fnId            = mkStaticDep(fn.getId)
-      val fnArgXId        = mkStaticDep(fnArgX.getId)
-      val fnArgYId        = mkStaticDep(fnArgY.getId)
-      val fnArgYDefaultId = mkStaticDep(fnArgYDefault.getId)
-      val fnBodyId        = mkStaticDep(fnBody.getId)
-      val plusFnId        = mkStaticDep(plusFn.getId)
-      val plusArgXId      = mkStaticDep(plusArgX.getId)
-      val plusArgXExprId  = mkStaticDep(plusArgXExpr.getId)
-      val plusArgYId      = mkStaticDep(plusArgY.getId)
-      val plusArgYExprId  = mkStaticDep(plusArgYExpr.getId)
+      val fnId           = mkStaticDep(fn.getId)
+      val fnArgXId       = mkStaticDep(fnArgX.getId)
+      val fnArgYId       = mkStaticDep(fnArgY.getId)
+      val fnBodyId       = mkStaticDep(fnBody.getId)
+      val plusFnId       = mkStaticDep(plusFn.getId)
+      val plusArgXId     = mkStaticDep(plusArgX.getId)
+      val plusArgXExprId = mkStaticDep(plusArgXExpr.getId)
+      val plusArgYId     = mkStaticDep(plusArgY.getId)
+      val plusArgYExprId = mkStaticDep(plusArgYExpr.getId)
 
       // Dynamic Symbols
       val plusSym = mkDynamicDep("+")
@@ -967,11 +965,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The Tests for dependents
       dependents.getDirect(fnId) should not be defined
-      dependents.getDirect(fnArgXId) shouldEqual Some(
-        Set(plusArgXExprId, fnArgYDefaultId)
-      )
       dependents.getDirect(fnArgYId) shouldEqual Some(Set(plusArgYExprId))
-      dependents.getDirect(fnArgYDefaultId) shouldEqual Some(Set(fnArgYId))
       dependents.getDirect(fnBodyId) shouldEqual Some(Set(fnId))
       dependents.getDirect(plusSym) shouldEqual Some(Set(plusFnId))
       dependents.getDirect(plusArgXId) shouldEqual Some(Set(fnBodyId))
@@ -982,8 +976,6 @@ class DataflowAnalysisTest extends CompilerTest {
       // The Tests for dependencies
       dependencies.getDirect(fnId) shouldEqual Some(Set(fnBodyId))
       dependencies.getDirect(fnArgXId) shouldEqual None
-      dependencies.getDirect(fnArgYId) shouldEqual Some(Set(fnArgYDefaultId))
-      dependencies.getDirect(fnArgYDefaultId) shouldEqual Some(Set(fnArgXId))
       dependencies.getDirect(fnBodyId) shouldEqual Some(
         Set(plusFnId, plusArgXId, plusArgYId)
       )
@@ -1100,25 +1092,15 @@ class DataflowAnalysisTest extends CompilerTest {
       val lam = ir.asInstanceOf[IR.Function.Lambda]
       val argX =
         lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-      val xUse = lam.body.asInstanceOf[IR.Name.Literal]
 
       // The IDs
-      val lamId  = mkStaticDep(lam.getId)
       val argXId = mkStaticDep(argX.getId)
-      val xUseId = mkStaticDep(xUse.getId)
 
       // The info
-      val dependents   = depInfo.dependents
       val dependencies = depInfo.dependencies
-
-      // The test for dependents
-      dependents.getDirect(argXId) shouldEqual Some(Set(xUseId))
-      dependents.getDirect(xUseId) shouldEqual Some(Set(lamId))
 
       // The test for dependencies
       dependencies.getDirect(argXId) shouldEqual None
-      dependencies.getDirect(xUseId) shouldEqual Some(Set(argXId))
-      dependencies.getDirect(lamId) shouldEqual Some(Set(xUseId))
     }
 
     "work properly for blocks" in {
@@ -1136,14 +1118,12 @@ class DataflowAnalysisTest extends CompilerTest {
       val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
       val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
       val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
-      val xUse      = block.returnValue.asInstanceOf[IR.Name.Literal]
 
       // The IDs
       val blockId     = mkStaticDep(block.getId)
       val xBindId     = mkStaticDep(xBind.getId)
       val xBindNameId = mkStaticDep(xBindName.getId)
       val xBindExprId = mkStaticDep(xBindExpr.getId)
-      val xUseId      = mkStaticDep(xUse.getId)
 
       // The info
       val dependents   = depInfo.dependents
@@ -1151,14 +1131,10 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The test for dependents
       dependents.getDirect(blockId) should not be defined
-      dependents.getDirect(xBindId) shouldEqual Some(Set(xUseId))
       dependents.getDirect(xBindNameId) shouldEqual Some(Set(xBindId))
       dependents.getDirect(xBindExprId) shouldEqual Some(Set(xBindId))
-      dependents.getDirect(xUseId) shouldEqual Some(Set(blockId))
 
       // The test for dependencies
-      dependencies.getDirect(blockId) shouldEqual Some(Set(xUseId))
-      dependencies.getDirect(xUseId) shouldEqual Some(Set(xBindId))
       dependencies.getDirect(xBindId) shouldEqual Some(
         Set(xBindNameId, xBindExprId)
       )
@@ -1200,47 +1176,6 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       dependencies.getDirect(bindingNameId) shouldEqual None
       dependencies.getDirect(bindingExprId) shouldEqual None
-    }
-
-    "work properly for undefined variables" in {
-      implicit val inlineContext: InlineContext = mkInlineContext
-
-      val ir =
-        """
-          |x = undefined
-          |""".stripMargin.preprocessExpression.get.analyse
-
-      val depInfo = ir.getMetadata(DataflowAnalysis).get
-
-      val binding       = ir.asInstanceOf[IR.Expression.Binding]
-      val bindingName   = binding.name.asInstanceOf[IR.Name.Literal]
-      val bindingExpr   = binding.expression.asInstanceOf[IR.Error.Resolution]
-      val undefinedName = bindingExpr.originalName
-
-      // The IDs
-      val bindingId       = mkStaticDep(binding.getId)
-      val bindingNameId   = mkStaticDep(bindingName.getId)
-      val bindingExprId   = mkStaticDep(bindingExpr.getId)
-      val undefinedNameId = mkDynamicDep(undefinedName.name)
-
-      // The info
-      val dependents   = depInfo.dependents
-      val dependencies = depInfo.dependencies
-
-      // The tests for dependents
-      dependents.getDirect(bindingId) should not be defined
-      dependents.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
-      dependents.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
-      dependents.getDirect(undefinedNameId) shouldEqual Some(Set(bindingExprId))
-
-      // The tests for dependencies
-      dependencies.getDirect(bindingId) shouldEqual Some(
-        Set(bindingNameId, bindingExprId)
-      )
-      dependencies.getDirect(bindingNameId) shouldEqual None
-      dependencies.getDirect(bindingExprId) shouldEqual Some(
-        Set(undefinedNameId)
-      )
     }
 
     "work properly for undefined variables in expressions" in {
@@ -1331,7 +1266,6 @@ class DataflowAnalysisTest extends CompilerTest {
       val vector = callArg.value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
-      val xDefId    = mkStaticDep(ir.arguments(0).getId)
       val xUseId    = mkStaticDep(vector.items(0).getId)
       val yId       = mkStaticDep(vector.items(1).getId)
       val litId     = mkStaticDep(vector.items(2).getId)
@@ -1345,7 +1279,6 @@ class DataflowAnalysisTest extends CompilerTest {
       val dependencies = depInfo.dependencies
 
       // Tests for dependents
-      dependents.getDirect(xDefId) shouldEqual Some(Set(xUseId))
       dependents.getDirect(xUseId) shouldEqual Some(Set(vecId))
       dependents.getDirect(yId) shouldEqual Some(Set(vecId))
       dependents.getDirect(litId) shouldEqual Some(Set(vecId))
@@ -1397,9 +1330,7 @@ class DataflowAnalysisTest extends CompilerTest {
         caseBinding.expression.asInstanceOf[IR.Application.Prefix]
       val caseBindingName = caseBinding.name.asInstanceOf[IR.Name.Literal]
       val caseExpr        = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
-      val scrutinee       = caseExpr.scrutinee.asInstanceOf[IR.Name.Literal]
       val consBranch      = caseExpr.branches.head
-      val catchAllbranch  = caseExpr.branches(1)
 
       val consBranchPattern =
         consBranch.pattern.asInstanceOf[Pattern.Constructor]
@@ -1432,9 +1363,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val caseBindingExprId = mkStaticDep(caseBindingExpr.getId)
       val caseBindingNameId = mkStaticDep(caseBindingName.getId)
       val caseExprId        = mkStaticDep(caseExpr.getId)
-      val scrutineeId       = mkStaticDep(scrutinee.getId)
       val consBranchId      = mkStaticDep(consBranch.getId)
-      val catchAllBranchId  = mkStaticDep(catchAllbranch.getId)
 
       val consBranchPatternId     = mkStaticDep(consBranchPattern.getId)
       val consBranchPatternConsId = mkStaticDep(consBranchPatternCons.getId)
@@ -1457,8 +1386,6 @@ class DataflowAnalysisTest extends CompilerTest {
       // Tests for dependents
       dependents.getDirect(caseBlockId) should not be defined
       dependents.getDirect(caseExprId) shouldEqual Some(Set(caseBlockId))
-      dependents.getDirect(scrutineeId) shouldEqual Some(Set(caseExprId))
-      dependents.getDirect(caseBindingId) shouldEqual Some(Set(scrutineeId))
       dependents.getDirect(caseBindingExprId) shouldEqual Some(
         Set(caseBindingId)
       )
@@ -1499,10 +1426,6 @@ class DataflowAnalysisTest extends CompilerTest {
       dependencies.getDirect(caseBindingId) shouldEqual Some(
         Set(caseBindingNameId, caseBindingExprId)
       )
-      dependencies.getDirect(caseExprId) shouldEqual Some(
-        Set(scrutineeId, consBranchId, catchAllBranchId)
-      )
-      dependencies.getDirect(scrutineeId) shouldEqual Some(Set(caseBindingId))
       dependencies.getDirect(consBranchId) shouldEqual Some(
         Set(consBranchPatternId, consBranchExpressionId)
       )

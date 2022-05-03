@@ -11,6 +11,8 @@
 // === Diagram ===
 // ===============
 
+use crate::Metadata;
+
 /// The data necessary to create a diagram of message timings.
 #[derive(Debug, Default)]
 pub struct Diagram<'a> {
@@ -30,7 +32,67 @@ impl<'a> Diagram<'a> {
     pub fn message(&mut self, sender: Process, recipient: Process, time: f64, label: String) {
         self.messages.push(Message { sender, recipient, time, label });
     }
+
+    /// Slice of processes in this diagram.
+    pub fn processes(&'a self) -> &[&'a str] {
+        &self.processes
+    }
+
+    /// Slice of messages in this diagram.
+    pub fn messages(&'a self) -> &[Message] {
+        &self.messages
+    }
+
+    /// Create a diagram from the given profiles.
+    pub fn from_profiles(profiles: &[&enso_profiler_data::Profile<Metadata>; 2]) -> Self {
+        let mut metadata0 = vec![];
+        let mut metadata1 = vec![];
+        collect_metadata(profiles[0], profiles[0].root_interval_id(), &mut metadata0);
+        collect_metadata(profiles[1], profiles[1].root_interval_id(), &mut metadata1);
+        let mut dia = Self::default();
+        let frontend = dia.process("Ide");
+        let ls = dia.process("LanguageServer");
+        let engine = dia.process("Engine");
+        // TODO[kw]: Add metadata to format and read these fields from the file.
+        let mut offset0 = None;
+        let mut offset1 = None;
+        for meta in metadata0.into_iter() {
+            if let Metadata::RpcEvent(message) = meta.data {
+                let abs_time = meta.mark.into_ms();
+                let offset = offset0.get_or_insert(abs_time);
+                let time = abs_time - *offset;
+                dia.message(ls, frontend, time, message);
+            }
+        }
+        for meta in metadata1.into_iter() {
+            if let Metadata::BackendMessage(message) = meta.data {
+                let abs_time = meta.mark.into_ms();
+                let offset = offset1.get_or_insert(abs_time);
+                let time = abs_time - *offset;
+                let (p0, p1) = match message.direction {
+                    crate::backend::Direction::Request => (ls, engine),
+                    crate::backend::Direction::Response => (engine, ls),
+                };
+                dia.message(p0, p1, time, message.endpoint);
+            }
+        }
+        dia
+    }
 }
+
+
+fn collect_metadata<M: Clone>(
+    profile: &enso_profiler_data::Profile<M>,
+    interval: enso_profiler_data::IntervalId,
+    metadata: &mut Vec<enso_profiler_data::Metadata<M>>,
+) {
+    let interval = &profile[interval];
+    metadata.extend(interval.metadata.iter().cloned());
+    for &child in &interval.children {
+        collect_metadata(profile, child, metadata);
+    }
+}
+
 
 
 // === Process ===
@@ -38,7 +100,8 @@ impl<'a> Diagram<'a> {
 /// A process that may send and receive messages.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct Process {
-    id: usize,
+    /// Process id.
+    pub id: usize,
 }
 
 
@@ -47,10 +110,14 @@ pub struct Process {
 /// An event of communication between processes.
 #[derive(Clone, Debug)]
 pub struct Message {
-    sender:    Process,
-    recipient: Process,
-    time:      f64,
-    label:     String,
+    /// Process that sent this message.
+    pub sender:    Process,
+    /// Process that received this message.
+    pub recipient: Process,
+    /// Timestamp of this message.
+    pub time:      f64,
+    /// Label of this message.
+    pub label:     String,
 }
 
 

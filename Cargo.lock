@@ -1323,6 +1323,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
+ "ensogl-tooltip",
 ]
 
 [[package]]
@@ -1497,8 +1498,10 @@ dependencies = [
  "ensogl-core",
  "ensogl-flame-graph",
  "ensogl-hardcoded-theme",
+ "ensogl-sequence-diagram",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ensogl-tooltip",
  "futures 0.3.21",
  "serde",
  "wasm-bindgen",
@@ -1685,6 +1688,7 @@ dependencies = [
 name = "ensogl-list-view"
 version = "0.1.0"
 dependencies = [
+ "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
  "ensogl-hardcoded-theme",
@@ -1723,6 +1727,23 @@ dependencies = [
  "ensogl-text",
  "ensogl-toggle-button",
  "float_eq",
+]
+
+[[package]]
+name = "ensogl-sequence-diagram"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-data",
+ "enso-profiler-enso-data",
+ "enso-profiler-flame-graph",
+ "ensogl",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-tooltip",
 ]
 
 [[package]]
@@ -1779,6 +1800,16 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-tooltip"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-label",
 ]
 
 [[package]]

@@ -72,50 +72,6 @@ fn main() {
     let profiles = profiles_;
     assert_eq!(profiles.len(), 2);
 
-    let mut metadata0 = vec![];
-    let mut metadata1 = vec![];
-    collect_metadata(&profiles[0], profiles[0].root_interval_id(), &mut metadata0);
-    collect_metadata(&profiles[1], profiles[1].root_interval_id(), &mut metadata1);
-    let mut dia = beanpole::Diagram::default();
-    let frontend = dia.process("Ide");
-    let ls = dia.process("LanguageServer");
-    let engine = dia.process("Engine");
-    let offset_required = "Cannot chart profile without `TimeOffset` headers.";
-    let mut offset0 = profiles[0].headers.time_offset.expect(offset_required).into_ms();
-    let mut offset1 = profiles[1].headers.time_offset.expect(offset_required).into_ms();
-    // Use IDE process's time origin as chart's origin.
-    offset1 -= offset0;
-    offset0 -= offset0;
-    for meta in metadata0.into_iter() {
-        let time = meta.time.into_ms() + offset0;
-        match meta.data {
-            enso_data::Metadata::RpcEvent(message) => dia.message(ls, frontend, time, message),
-            enso_data::Metadata::RpcRequest(message) =>
-                dia.message(frontend, ls, time, message.to_string()),
-            _ => {}
-        }
-    }
-    for meta in metadata1.into_iter() {
-        if let enso_data::Metadata::BackendMessage(message) = meta.data {
-            let time = meta.time.into_ms() + offset1;
-            let (p0, p1) = match message.direction {
-                enso_data::backend::Direction::Request => (ls, engine),
-                enso_data::backend::Direction::Response => (engine, ls),
-            };
-            dia.message(p0, p1, time, message.endpoint);
-        }
-    }
+    let dia = beanpole::Diagram::from_profiles(&[&profiles[0], &profiles[1]]);
     beanpole::svg::write_diagram(&dia, std::io::stdout()).unwrap();
-}
-
-fn collect_metadata<M: Clone>(
-    profile: &data::Profile<M>,
-    interval: data::IntervalId,
-    metadata: &mut Vec<data::Timestamped<M>>,
-) {
-    let interval = &profile[interval];
-    metadata.extend(interval.metadata.iter().cloned());
-    for &child in &interval.children {
-        collect_metadata(profile, child, metadata);
-    }
 }
