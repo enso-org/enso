@@ -24,8 +24,8 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 
-use enso_profiler_data as profiler_data;
 use enso_profiler::format::AnyMetadata;
+use enso_profiler_data as profiler_data;
 
 
 
