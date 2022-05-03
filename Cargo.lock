@@ -1114,6 +1114,7 @@ dependencies = [
  "bumpalo",
  "enso-data-structures",
  "enso-prelude",
+ "enso-shapely-macros",
  "enso-types",
  "ouroboros",
 ]

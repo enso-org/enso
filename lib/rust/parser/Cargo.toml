@@ -16,3 +16,4 @@ enso-prelude = { path = "../prelude" }
 enso-data-structures = { path = "../data-structures" }
 enso-types = { path = "../types" }
 ouroboros = "0.14.2"
+enso-shapely-macros = { path = "../shapely/macros" }

@@ -21,6 +21,7 @@
 
 extern crate proc_macro;
 
+mod ast_builder;
 mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_iterator;
@@ -137,4 +138,9 @@ pub fn overlappable(
 #[proc_macro_derive(Visitor)]
 pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive_visitor::derive(input)
+}
+
+#[proc_macro]
+pub fn ast_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    ast_builder::run(input)
 }

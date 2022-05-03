@@ -86,7 +86,9 @@ pub struct Definition<'a> {
     pub rev_prefix_pattern: Option<Pattern>,
     pub segments:           im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
-    pub body: Rc<dyn Fn(&Lexer<'a>, Option<Vec<TokenOrAst>>, Vec<(Token, Vec<TokenOrAst>)>) -> Ast>,
+    pub body: Rc<
+        dyn for<'b> Fn(&Lexer<'b>, Option<Vec<TokenOrAst>>, Vec<(Token, Vec<TokenOrAst>)>) -> Ast,
+    >,
 }
 
 

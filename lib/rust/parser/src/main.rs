@@ -26,6 +26,8 @@ pub mod prelude {
 }
 
 
+use enso_shapely_macros::ast_builder;
+
 
 // ==================================
 
@@ -157,7 +159,11 @@ impl<'a> MacroMatchTree<'a> {
             required_segments: definition.segments.tail.clone(),
             definition:        Rc::new(definition),
         };
-        self.entry(header).or_insert(NonEmptyVec::singleton(entry));
+        if let Some(node) = self.get_mut(header) {
+            node.push(entry);
+        } else {
+            self.insert(header, NonEmptyVec::singleton(entry));
+        }
     }
 }
 
@@ -221,7 +227,7 @@ pub struct Resolver<'a> {
     macro_stack:   Vec<MacroResolver<'a>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResolverStep {
     NormalToken,
     NewSegmentStarted,
@@ -235,9 +241,9 @@ impl<'a> Resolver<'a> {
         Self { current_macro, macro_stack }
     }
 
-    pub fn run(
+    pub fn run<'b>(
         mut self,
-        lexer: &Lexer<'a>,
+        lexer: &Lexer<'b>,
         root_macro_map: &MacroMatchTree<'a>,
         tokens: Vec<TokenOrAst>,
     ) -> Ast {
@@ -309,8 +315,8 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn resolve(
-        lexer: &Lexer<'a>,
+    fn resolve<'b>(
+        lexer: &Lexer<'b>,
         m: MacroResolver<'a>,
         prefix_tokens: Option<Vec<TokenOrAst>>,
     ) -> Ast {
@@ -358,9 +364,9 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn process_token(
+    pub fn process_token<'b>(
         &mut self,
-        lexer: &Lexer<'a>,
+        lexer: &Lexer<'b>,
         root_macro_map: &MacroMatchTree<'a>,
         token: Token,
     ) -> ResolverStep {
@@ -407,7 +413,11 @@ impl<'a> Resolver<'a> {
                 let tail = v.required_segments.tail().cloned().unwrap_or_default();
                 let definition = v.definition.clone_ref();
                 let x = PartiallyMatchedMacro { required_segments: tail, definition };
-                new_section_tree.entry(&first.header).or_insert(NonEmptyVec::singleton(x));
+                if let Some(node) = new_section_tree.get_mut(&first.header) {
+                    node.push(x);
+                } else {
+                    new_section_tree.insert(first.header, NonEmptyVec::singleton(x));
+                }
             } else {
                 if matched_macro_def.is_some() {
                     event!(ERROR, "Internal error. Duplicate macro definition.");
@@ -563,7 +573,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
 
 pub type Ast = location::With<AstData>;
 
-#[derive(Clone, Copy, Debug, Visitor)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
 pub struct Error {
     message: &'static str,
 }
@@ -575,7 +585,7 @@ impl Error {
     }
 }
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub enum AstData {
     WithError(Error, Box<Ast>),
     Ident(lexer::Ident),
@@ -651,7 +661,7 @@ impl Ast {
 
 
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub struct App {
     func: Ast,
     arg:  Ast,
@@ -659,14 +669,14 @@ pub struct App {
 
 pub type OprAppOpr = Result<location::With<lexer::Operator>, MultipleOperatorError>;
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub struct OprApp {
     lhs: Option<Ast>,
     opr: OprAppOpr,
     rhs: Option<Ast>,
 }
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub struct MultipleOperatorError {
     oprs: Vec<location::With<lexer::Operator>>,
 }
@@ -677,13 +687,13 @@ impl MultipleOperatorError {
     }
 }
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub struct MultiSegmentApp {
     prefix:   Option<Box<Ast>>,
     segments: NonEmptyVec<MultiSegmentAppSegment>,
 }
 
-#[derive(Clone, Debug, Visitor)]
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 pub struct MultiSegmentAppSegment {
     header: Token,
     body:   Option<Ast>,
@@ -1092,6 +1102,12 @@ impl Ast {
     pub fn remove_span_info(&mut self) {
         self.map_span_mut(mem::take)
     }
+
+    /// Remove all span information. This is mainly used for tests to compare AST structure.
+    pub fn with_removed_span_info(mut self) -> Self {
+        self.remove_span_info();
+        self
+    }
 }
 
 
@@ -1164,60 +1180,14 @@ mod test {
     }
 }
 
-fn main() {
-    init_tracing(TRACE);
-    // let str = "if a then b else c";
-    // let str = "if if * a + b * then y then b";
-    // let str = "* a + b *";
-    // let str = "* a + * b";
-    // let str = "(a) (b) c";
-    // let str = "if (a) then b";
-    // let str = "foo a-> b";
-    // let str = "a+b * c";
-    // let str = "foo if a then b";
-    // let str = "foo *(a)";
-    let str = "foo (a)";
-    let mut lexer = Lexer::new(str);
-    lexer.run();
 
-    let mut root_macro_map = builtin_macros();
-
-    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
-
-    let mut resolver = Resolver::new_root();
-    let ast = resolver.run(
-        &lexer,
-        &root_macro_map,
-        lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
-    );
-    println!("{:#?}", source::With::new(str, &ast));
-
-    let seg1 =
-        test::app_segment(Token::symbol("("), Some(Ast::opr_section_boundary(test::ident("a"))));
-    let seg2 = test::app_segment(Token::symbol(")"), None);
-
-    let ast2 = Ast::opr_section_boundary(location::With::new_with_len(
-        Bytes::from(0),
-        AstData::MultiSegmentApp(MultiSegmentApp {
-            prefix:   None,
-            segments: NonEmptyVec::try_from(vec![seg1, seg2]).unwrap(),
-        }),
-    ));
-
-    println!("{:#?}", &ast2);
-    foo();
-
-    // let a = 5;
-    // let b = 5;
-    // let c = a + / b;
-}
 
 macro_rules! test_macro_build {
     ([[$($item1:tt)*] [$($item2:tt)*]] $($ts:tt)*) => {
         test_macro_build!{[[Ast::app($($item1)*,$($item2)*)]] $($ts)*}
     };
     ([[$($item:tt)*]]) => {
-        $($item)*
+        Ast::opr_section_boundary($($item)*)
     };
     ([$($stack:tt)*] $a:ident $($ts:tt)*) => {
         test_macro_build!{[$($stack)* [test::ident(stringify!{$a})]] $($ts)*}
@@ -1260,13 +1230,113 @@ impl<'a> AstVisitor<'a> for MyVisitor {
     }
 }
 
-fn foo() {
-    let mut ast = test_macro_build! { [] foo ["(" a ")"] };
-    println!("{:#?}", ast);
+
+fn main() {
+    init_tracing(TRACE);
+    // let str = "if a then b else c";
+    // let str = "if if * a + b * then y then b";
+    // let str = "* a + b *";
+    // let str = "* a + * b";
+    // let str = "(a) (b) c";
+    // let str = "if (a) then b";
+    // let str = "foo a-> b";
+    // let str = "a+b * c";
+    // let str = "foo if a then b";
+    // let str = "foo *(a)";
+    let str = "if a then b else c";
+    let mut lexer = Lexer::new(str);
+    lexer.run();
+
+    let mut root_macro_map = builtin_macros();
+
+    event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
+
+    let mut resolver = Resolver::new_root();
+    let mut ast = resolver.run(
+        &lexer,
+        &root_macro_map,
+        lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
+    );
+    println!("{:#?}", source::With::new(str, &ast));
+
+    // let seg1 =
+    //     test::app_segment(Token::symbol("("), Some(Ast::opr_section_boundary(test::ident("a"))));
+    // let seg2 = test::app_segment(Token::symbol(")"), None);
+    //
+    // let ast2 = Ast::opr_section_boundary(location::With::new_with_len(
+    //     Bytes::from(0),
+    //     AstData::MultiSegmentApp(MultiSegmentApp {
+    //         prefix:   None,
+    //         segments: NonEmptyVec::try_from(vec![seg1, seg2]).unwrap(),
+    //     }),
+    // ));
+    //
+    // println!("{:#?}", &ast2);
+
+    println!("\n\n==================\n\n");
+
+
+    let mut ast2 = ast_builder! { {if} a {then} b {else} c};
+    println!("{:#?}", ast2);
     ast.remove_span_info();
+    ast2.remove_span_info();
     println!("{:#?}", ast);
-    // println!("{:#?}", test_macro_build! { [] a b });
+    println!("{:#?}", ast2);
+    println!("{:#?}", ast == ast2);
+
+    // let a = 5;
+    // let b = 5;
+    // let c = a + / b;
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn one_shot(input: &str) -> Ast {
+        let mut lexer = Lexer::new(input);
+        lexer.run();
+        let root_macro_map = builtin_macros();
+        let mut resolver = Resolver::new_root();
+        let mut ast = resolver.run(
+            &lexer,
+            &root_macro_map,
+            lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
+        );
+        ast
+    }
+
+    macro_rules! test_parse {
+        ($input:tt = {$($def:tt)*}) => {
+            assert_eq!(
+                one_shot($input).with_removed_span_info(),
+                ast_builder! { $($def)* }.with_removed_span_info()
+            )
+        };
+    }
+
+    #[test]
+    fn test_expressions() {
+        test_parse!("if a then b" = { {if} a {then} b });
+        test_parse!("if a then b else c" = { {if} a {then} b {else} c });
+        test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
+        test_parse!("foo (a)" = { foo [{"("} a {")"}]});
+    }
+}
+
+
+// let str = "if a then b else c";
+// let str = "if if * a + b * then y then b";
+// let str = "* a + b *";
+// let str = "* a + * b";
+// let str = "(a) (b) c";
+// let str = "if (a) then b";
+// let str = "foo a-> b";
+// let str = "a+b * c";
+// let str = "foo if a then b";
+// let str = "foo *(a)";
+// let str = "foo (a)";
 
 // app(["(","a","]"])
 

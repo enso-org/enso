@@ -14,7 +14,7 @@ use std::vec::Splice;
 
 /// A version of [`std::vec::Vec`] that can't be empty.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq, Deref, DerefMut)]
+#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut)]
 pub struct NonEmptyVec<T> {
     elems: Vec<T>,
 }

@@ -364,7 +364,6 @@ impl<'s> Lexer<'s> {
 /// Based on https://en.wikipedia.org/wiki/Whitespace_character.
 const OTHER_UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
 const OTHER_UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
-#[test]
 const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 #[inline(always)]
@@ -904,6 +903,20 @@ impl Token {
     pub fn symbol(repr: &str) -> Self {
         location::With::test_from_repr(repr, Kind::symbol())
     }
+
+    // TODO: Tests only - should be refactored
+    pub fn ident(repr: &str) -> Token {
+        let left_offset = 0;
+        let is_free = repr.starts_with('_');
+        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
+        let span = location::Span {
+            left_visible_offset: left_offset,
+            left_offset:         Bytes::from(left_offset),
+            start:               Bytes::from(0),
+            len:                 Bytes::from(repr.len()),
+        };
+        Token { span, elem: Kind::ident(is_free, lift_level) }
+    }
 }
 
 
@@ -947,8 +960,8 @@ mod tests {
         let mut lexer = Lexer::new(input);
         let mut start = Bytes::from(0);
         for token in &mut expected {
-            token.start = token.left_offset + start;
-            start += token.left_offset + token.len;
+            token.span.start = token.span.left_offset + start;
+            start += token.span.left_offset + token.span.len;
         }
         assert_eq!(lexer.run(), true);
         assert_eq!(lexer.output.iter().collect_vec(), expected);
@@ -957,54 +970,55 @@ mod tests {
     fn ident(left_offset: usize, repr: &str) -> Token {
         let is_free = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        Token {
+        let span = location::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
-            start:               Bytes(0),
-            len:                 Bytes(repr.len()),
-            elem:                Kind::ident(is_free, lift_level),
-        }
+            start:               Bytes::from(0),
+            len:                 Bytes::from(repr.len()),
+        };
+        Token { span, elem: Kind::ident(is_free, lift_level) }
     }
 
     fn wildcard(left_offset: usize, repr: &str) -> Token {
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        Token {
+        let span = location::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
-            start:               Bytes(0),
-            len:                 Bytes(repr.len()),
-            elem:                Kind::wildcard(lift_level),
-        }
+            start:               Bytes::from(0),
+            len:                 Bytes::from(repr.len()),
+        };
+        Token { span, elem: Kind::wildcard(lift_level) }
     }
 
     fn operator(left_offset: usize, repr: &str) -> Token {
-        Token {
+        let span = location::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
-            start:               Bytes(0),
-            len:                 Bytes(repr.len()),
-            elem:                Kind::operator(),
-        }
+            start:               Bytes::from(0),
+            len:                 Bytes::from(repr.len()),
+        };
+        Token { span, elem: Kind::operator() }
     }
 
     fn newline(left_offset: usize, repr: &str) -> Token {
-        Token {
+        let span = location::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
-            start:               Bytes(0),
-            len:                 Bytes(repr.len()),
-            elem:                Kind::newline(),
-        }
+            start:               Bytes::from(0),
+            len:                 Bytes::from(repr.len()),
+        };
+        Token { span, elem: Kind::newline() }
     }
 
     fn block_start(left_offset: usize) -> Token {
-        Token {
+        let span = location::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
-            start:               Bytes(0),
-            len:                 Bytes(0),
-            elem:                Kind::block_start(),
-        }
+            start:               Bytes::from(0),
+            len:                 Bytes::from(0),
+        };
+
+        Token { span, elem: Kind::block_start() }
     }
 
     #[test]
