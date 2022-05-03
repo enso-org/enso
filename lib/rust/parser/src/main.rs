@@ -56,19 +56,19 @@ impl TokenOrAst {
 
     fn left_visible_offset(&self) -> usize {
         match self {
-            Self::Token(t) => t.left_visible_offset,
-            Self::Ast(t) => t.left_visible_offset,
+            Self::Token(t) => t.span.left_visible_offset,
+            Self::Ast(t) => t.span.left_visible_offset,
         }
     }
 
-    fn location(&self) -> location::Info {
+    fn location(&self) -> location::Span {
         match self {
             Self::Token(t) => t.location(),
             Self::Ast(t) => t.location(),
         }
     }
 
-    fn trim_left(&mut self) -> location::Info {
+    fn trim_left(&mut self) -> location::Span {
         match self {
             Self::Token(t) => t.trim_left(),
             Self::Ast(t) => t.trim_left(),
@@ -325,7 +325,7 @@ impl<'a> Resolver<'a> {
                         if let Some(macro_def) = &m2.matched_macro_def
                         && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
                             ss.reverse();
-                            let spacing = m2.current_segment.header.left_offset > Bytes::from(0);
+                            let spacing = m2.current_segment.header.span.left_offset > Bytes::from(0);
                             let (mut matched, unmatched) = pfx_pattern.resolve2(ss,spacing).unwrap();
                             matched.reverse();
                             ss = unmatched;
@@ -729,15 +729,15 @@ impl Ast {
     }
 
     fn opr_section_boundary(section: Ast) -> Ast {
-        let (left_offset_token, section) = section.split_at_start();
-        let total = left_offset_token.extended_to(&section);
+        let (left_offset_span, section) = section.split_at_start();
+        let total = left_offset_span.extended_to(&section);
         let ast_data = AstData::OprSectionBoundary(Box::new(section));
         total.with_elem(ast_data)
     }
 
     fn app(func: Ast, arg: Ast) -> Ast {
-        let (left_offset_token, func) = func.split_at_start();
-        let total = left_offset_token.extended_to(&arg);
+        let (left_offset_span, func) = func.split_at_start();
+        let total = left_offset_span.extended_to(&arg);
         let ast_data = AstData::App(Box::new(App { func, arg }));
         total.with_elem(ast_data)
     }
@@ -767,10 +767,10 @@ impl Ast {
             }
         };
         let total = if let Some(ref rhs) = rhs {
-            left_offset_token.extended_to(&rhs)
+            left_offset_token.extended_to(rhs)
         } else {
             match &opr {
-                Ok(xopr) => left_offset_token.extended_to(&xopr),
+                Ok(xopr) => left_offset_token.extended_to(xopr),
                 Err(e) => left_offset_token.extended_to(e.oprs.last().unwrap()), // fixme
             }
         };

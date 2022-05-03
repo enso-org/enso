@@ -7,8 +7,33 @@ use crate::Bytes;
 // === Info & With ===
 // ===================
 
-/// A location information. See [`With`] to learn more about the available fields.
-pub type Info = With<()>;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Span {
+    pub left_visible_offset: usize,
+    pub left_offset:         Bytes,
+    /// Used mainly to fast check the repr of the token in the input string.
+    pub start:               Bytes,
+    pub len:                 Bytes,
+}
+
+impl Span {
+    #[inline(always)]
+    pub fn with_elem<S>(self, elem: S) -> With<S> {
+        With { span: self, elem }
+    }
+
+    /// Please note that the [`other`] token's position has to be bigger than self's one. This
+    /// condition is not checked.
+    pub fn extend_to(&mut self, other: impl Into<Span>) {
+        let other = other.into();
+        self.len = other.start + other.len - self.start;
+    }
+
+    pub fn extended_to(mut self, other: impl Into<Span>) -> Self {
+        self.extend_to(other);
+        self
+    }
+}
 
 /// A location information with an element [`T`]. The struct derefers to the element.
 ///
@@ -20,12 +45,8 @@ pub type Info = With<()>;
 #[derive(Clone, Copy, Deref, PartialEq, Eq)]
 pub struct With<T> {
     #[deref]
-    pub elem:                T,
-    pub left_visible_offset: usize,
-    pub left_offset:         Bytes,
-    /// Used mainly to fast check the repr of the token in the input string.
-    pub start:               Bytes,
-    pub len:                 Bytes,
+    pub elem: T,
+    pub span: Span,
 }
 
 impl<T> With<T> {
@@ -33,7 +54,8 @@ impl<T> With<T> {
     pub fn new_no_offset(start: Bytes, len: Bytes, elem: T) -> Self {
         let left_visible_offset = 0;
         let left_offset = Bytes::from(0);
-        Self { left_visible_offset, left_offset, start, len, elem }
+        let span = Span { left_visible_offset, left_offset, start, len };
+        Self { span, elem }
     }
 
     #[inline(always)]
@@ -55,11 +77,8 @@ impl<T> With<T> {
 
     #[inline(always)]
     pub fn replace_elem<S>(self, elem: S) -> (With<S>, T) {
-        let left_visible_offset = self.left_visible_offset;
-        let left_offset = self.left_offset;
-        let start = self.start;
-        let len = self.len;
-        (With { left_visible_offset, left_offset, start, len, elem }, self.elem)
+        let span = self.span;
+        (With { span, elem }, self.elem)
     }
 
     #[inline(always)]
@@ -69,75 +88,63 @@ impl<T> With<T> {
 
     #[inline(always)]
     pub fn clone_with_elem<S>(&self, elem: S) -> With<S> {
-        let left_visible_offset = self.left_visible_offset;
-        let left_offset = self.left_offset;
-        let start = self.start;
-        let len = self.len;
-        With { left_visible_offset, left_offset, start, len, elem }
+        let span = self.span;
+        With { span, elem }
     }
 
     #[inline(always)]
     pub fn mod_elem<S>(self, f: impl FnOnce(T) -> S) -> With<S> {
-        let left_visible_offset = self.left_visible_offset;
-        let left_offset = self.left_offset;
-        let start = self.start;
-        let len = self.len;
         let elem = f(self.elem);
-        With { left_visible_offset, left_offset, start, len, elem }
+        let span = self.span;
+        With { span, elem }
     }
 
     #[inline(always)]
-    pub fn split_at(self, offset: Bytes) -> (Info, Info) {
+    pub fn split_at(self, offset: Bytes) -> (Span, Span) {
         let (_, token_left, token_right) = self.split_at_internal(offset);
         (token_left, token_right)
     }
 
     #[inline(always)]
-    fn split_at_internal(self, offset: Bytes) -> (T, Info, Info) {
-        let token_left = {
-            let left_visible_offset = self.left_visible_offset;
-            let left_offset = self.left_offset;
-            let start = self.start;
-            let len = self.len - offset;
-            let elem = ();
-            With { left_visible_offset, left_offset, start, len, elem }
+    fn split_at_internal(self, offset: Bytes) -> (T, Span, Span) {
+        let left_span = {
+            let left_visible_offset = self.span.left_visible_offset;
+            let left_offset = self.span.left_offset;
+            let start = self.span.start;
+            let len = self.span.len - offset;
+            Span { left_visible_offset, left_offset, start, len }
         };
-        let token_right = {
+        let right_span = {
             let left_visible_offset = 0;
             let left_offset = Bytes::from(0);
-            let start = self.start + offset;
-            let len = self.len - offset;
-            let elem = ();
-            With { left_visible_offset, left_offset, start, len, elem }
+            let start = self.span.start + offset;
+            let len = self.span.len - offset;
+            Span { left_visible_offset, left_offset, start, len }
         };
-        (self.elem, token_left, token_right)
+        (self.elem, left_span, right_span)
     }
 
-    pub fn split_at_start(self) -> (Info, With<T>) {
-        let (elem, token_left, token_right) = self.split_at_internal(Bytes::from(0));
-        let token_right = token_right.with_elem(elem);
-        (token_left, token_right)
+    pub fn split_at_start(self) -> (Span, With<T>) {
+        let (elem, left_span, right_span) = self.split_at_internal(Bytes::from(0));
+        let token_right = right_span.with_elem(elem);
+        (left_span, token_right)
     }
 
-    pub fn trim_left(&mut self) -> Info {
+    pub fn trim_left(&mut self) -> Span {
         let info = self.clone_with_elem(());
-        let (token_left, token_right) = info.split_at(Bytes::from(0));
-        self.left_visible_offset = token_right.left_visible_offset;
-        self.left_offset = token_right.left_offset;
-        self.start = token_right.start;
-        self.len = token_right.len;
-        token_left
+        let (left_span, right_span) = info.split_at(Bytes::from(0));
+        self.span = right_span;
+        left_span
     }
 
     pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
-        source.slice(self.start..self.start + self.len)
+        source.slice(self.span.start..self.span.start + self.span.len)
     }
 
     /// Please note that the [`other`] token's position has to be bigger than self's one. This
     /// condition is not checked.
     pub fn extend_to<S>(&mut self, other: &With<S>) {
-        println!("extend_to: {} {} {}", other.start, other.len, self.start);
-        self.len = other.start + other.len - self.start;
+        self.span.len = other.span.start + other.span.len - self.span.start;
     }
 
     pub fn extended_to<S>(mut self, other: &With<S>) -> Self {
@@ -145,13 +152,24 @@ impl<T> With<T> {
         self
     }
 
-    pub fn location(&self) -> Info {
-        let left_visible_offset = self.left_visible_offset;
-        let left_offset = self.left_offset;
-        let start = self.start;
-        let len = self.len;
-        let elem = ();
-        With { left_visible_offset, left_offset, start, len, elem }
+    pub fn location(&self) -> Span {
+        let left_visible_offset = self.span.left_visible_offset;
+        let left_offset = self.span.left_offset;
+        let start = self.span.start;
+        let len = self.span.len;
+        Span { left_visible_offset, left_offset, start, len }
+    }
+}
+
+impl<T> From<With<T>> for Span {
+    fn from(t: With<T>) -> Span {
+        t.span
+    }
+}
+
+impl<T> From<&With<T>> for Span {
+    fn from(t: &With<T>) -> Span {
+        t.span
     }
 }
 

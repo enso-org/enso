@@ -80,7 +80,7 @@ pub type Token = location::With<Kind>;
 
 impl<T: Debug> Debug for location::With<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[off:{}, len:{}] {:#?}", self.left_visible_offset, self.len, self.elem)
+        write!(f, "[off:{}, len:{}] {:#?}", self.span.left_visible_offset, self.span.len, self.elem)
     }
 }
 
@@ -88,16 +88,16 @@ impl<'s, 't, T> Debug for source::With<'s, &'t location::With<T>>
 where for<'x> source::With<'x, &'t T>: Debug
 {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let off = self.left_visible_offset;
-        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
+        let off = self.span.left_visible_offset;
+        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
         Debug::fmt(&self.trans(|t| &t.elem), f)
     }
 }
 
 impl<'s, 't, T: Debug> Debug for source::DebugLeaf<source::With<'s, &'t location::With<T>>> {
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let off = self.left_visible_offset;
-        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.len, self.repr())?;
+        let off = self.span.left_visible_offset;
+        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
         Debug::fmt(&self.elem, f)
     }
 }
@@ -245,7 +245,8 @@ impl<'s> Lexer<'s> {
         let left_visible_offset = 0;
         let start = self.offset - self.last_spaces_offset;
         let len = Bytes::from(0);
-        location::With { left_visible_offset, left_offset, start, len, elem }
+        let span = location::Span { left_visible_offset, left_offset, start, len };
+        location::With { span, elem }
     }
 
     #[inline(always)]
@@ -258,7 +259,8 @@ impl<'s> Lexer<'s> {
         let left_offset = self.last_spaces_offset;
         let left_visible_offset = self.last_spaces_visible_offset;
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
-        location::With { left_visible_offset, left_offset, start, len, elem }
+        let span = location::Span { left_visible_offset, left_offset, start, len };
+        location::With { span, elem }
     }
 
 
