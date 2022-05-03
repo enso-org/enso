@@ -1,6 +1,9 @@
 from Standard.Base import all
 
+import Standard.Table.Io.File_Read
+import Standard.Table.Io.File_Format
 from Standard.Table.Io.Excel import Excel_Range
+
 import Standard.Test
 
 spec =
@@ -91,5 +94,22 @@ spec =
             Excel_Range.for_rows "Hello World" 55 123 . address . should_equal "'Hello World'!55:123"
             Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error
             Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error
+
+    test_sheet = Enso_Project.data / "TestSheet.xlsx"
+    test_path = test_sheet.path
+
+    Test.group "Read XLSX Files" <|
+        Test.specify "should let you read the sheet names" <|
+            sheet_names = ["Sheet1", "Another"]
+            test_sheet.read . should_equal sheet_names
+            File.read test_sheet . should_equal sheet_names
+            File.read test_path . should_equal sheet_names
+
+        Test.specify "should let you read the sheet names" <|
+            sheet_names = ["Sheet1", "Another"]
+            test_sheet.read . should_equal sheet_names
+            File.read test_sheet . should_equal sheet_names
+            File.read test_path . should_equal sheet_names
+
 
 main = Test.Suite.run_main here.spec

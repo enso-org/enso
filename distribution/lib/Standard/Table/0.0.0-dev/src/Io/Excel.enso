@@ -145,5 +145,7 @@ read_excel file section on_problems =
                 range = (if address.is_an Excel_Range then address else Excel_Range.from_address address)
                 Reader.readRange stream range.java_range skip_rows row_limit
 
-    file.with_input_stream [File.Option.Read] stream->
-        stream.with_java_stream reader
+    file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
+    Panic.catch IOException file_failure <|
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream reader

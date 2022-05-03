@@ -27,6 +27,7 @@ type Auto
         if ".log".equals_ignore_case extension then Ref.put output File_Format.Text
         if ".csv".equals_ignore_case extension then Ref.put output (File_Format.Delimited ',')
         if ".tsv".equals_ignore_case extension then Ref.put output (File_Format.Delimited '\t')
+        if ".xlsx".equals_ignore_case extension then Ref.put output File_Format.Excel
 
         Ref.get output
 
