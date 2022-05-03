@@ -259,9 +259,9 @@ impl WorldData {
                 } else if key == "Digit2" {
                     display_mode.set(2)
                 } else if key == "KeyP" {
-                    enso_debug_api::save_profile();
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
                 } else if key == "KeyQ" {
-                    enso_debug_api::save_profile();
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 }
             }

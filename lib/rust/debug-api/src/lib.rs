@@ -13,8 +13,6 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_profiler as profiler;
-
 use derivative::Derivative;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -55,14 +53,13 @@ impl LifecycleController {
 // === Saving profile data ===
 // ===========================
 
-/// Capture the current profile and emit it.
-pub fn save_profile() {
+/// Emit profile data.
+pub fn save_profile(profile: &str) {
     let already_saved = PROFILE_SAVED.swap(true, Ordering::Relaxed);
     if !already_saved {
-        let log = profiler::internal::take_log();
         match profiling_data_api() {
-            Some(api) => api.save_profile(&log),
-            None => web_sys::console::log_1(&log.into()),
+            Some(api) => api.save_profile(profile),
+            None => web_sys::console::log_1(&profile.into()),
         }
     }
 }
@@ -75,7 +72,9 @@ static PROFILE_SAVED: AtomicBool = AtomicBool::new(false);
 // === FFI ===
 // ===========
 
-mod js {
+/// Javascript FFI
+pub mod js {
+    /// Enso Lifecycle API
     pub mod lifecycle {
         use wasm_bindgen::prelude::*;
 
@@ -89,6 +88,7 @@ mod js {
         }
     }
 
+    /// Enso Profiling Data API
     pub mod profiling_data {
         use wasm_bindgen::prelude::*;
 
@@ -101,11 +101,26 @@ mod js {
             pub fn save_profile(this: &ProfilingData, data: &str);
         }
     }
+
+    /// Enso Console API
+    pub mod console {
+        use wasm_bindgen::prelude::*;
+
+        #[wasm_bindgen]
+        extern "C" {
+            pub type Console;
+
+            #[wasm_bindgen(method, js_name = error)]
+            #[allow(unsafe_code)]
+            pub fn error(this: &Console, data: &str);
+        }
+    }
 }
 
 macro_rules! window_prop_getter {
     ($prop:expr; $fun:ident -> $ty:ty) => {
-        fn $fun() -> Option<$ty> {
+        /// Return a property of `window`, cast to an expected type.
+        pub fn $fun() -> Option<$ty> {
             use wasm_bindgen::JsCast;
             let window = web_sys::window()?;
             let prop = $prop;
@@ -114,5 +129,6 @@ macro_rules! window_prop_getter {
     };
 }
 
+window_prop_getter!("enso_console"; console -> js::console::Console);
 window_prop_getter!("enso_lifecycle"; lifecycle_controller -> js::lifecycle::Lifecycle);
 window_prop_getter!("enso_profiling_data"; profiling_data_api -> js::profiling_data::ProfilingData);

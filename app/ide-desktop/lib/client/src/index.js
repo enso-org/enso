@@ -533,6 +533,7 @@ function createWindow() {
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }
+    Electron.ipcMain.on('error', (event, data) => console.error(data))
 
     if (args.project) {
         urlCfg.project = args.project

@@ -10,11 +10,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ast = { path = "../ast/impl" }
+enso_console_error_panic_hook = { path = "../../../../lib/rust/console_error_panic_hook" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-prelude = { path = "../../../../lib/rust/prelude", features = ["serde", "serde_json"] }
 enso-profiler = { path = "../../../../lib/rust/profiler" }
 enso-text = { path = "../../../../lib/rust/text" }
-console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1" }
 js-sys = { version = "0.3.28" }
 matches = { version = "0.1" }

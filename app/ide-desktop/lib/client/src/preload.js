@@ -67,3 +67,13 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     saveProfile: (data) => ipcRenderer.send('save-profile', data)
 })
+
+
+
+// ===================
+// === Console API ===
+// ===================
+
+contextBridge.exposeInMainWorld('enso_console', {
+    error: (data) => ipcRenderer.send('error', data)
+})

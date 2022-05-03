@@ -5,7 +5,6 @@ authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
 
 [dependencies]
-enso-profiler = { path = "../profiler" }
 derivative = "2.2.0"
 js-sys = { version = "0.3.28" }
 wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }

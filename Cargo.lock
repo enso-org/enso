@@ -958,7 +958,6 @@ name = "enso-debug-api"
 version = "0.1.0"
 dependencies = [
  "derivative",
- "enso-profiler",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -1034,7 +1033,6 @@ dependencies = [
  "analytics",
  "ast",
  "bimap",
- "console_error_panic_hook",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -1049,6 +1047,7 @@ dependencies = [
  "enso-shapely",
  "enso-text",
  "enso-web",
+ "enso_console_error_panic_hook",
  "ensogl",
  "ensogl-component",
  "ensogl-drop-manager",
@@ -1290,10 +1289,10 @@ name = "enso-web"
 version = "0.1.0"
 dependencies = [
  "async-std",
- "console_error_panic_hook",
  "enso-data-structures",
  "enso-logger",
  "enso-prelude",
+ "enso_console_error_panic_hook",
  "failure",
  "gloo-timers",
  "js-sys",
@@ -1301,6 +1300,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "enso_console_error_panic_hook"
+version = "0.1.6"
+dependencies = [
+ "cfg-if 1.0.0",
+ "enso-debug-api",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1347,7 +1355,6 @@ dependencies = [
  "assert_approx_eq",
  "bit_field",
  "code-builder",
- "console_error_panic_hook",
  "enso-callback",
  "enso-data-structures",
  "enso-debug-api",
@@ -1361,6 +1368,7 @@ dependencies = [
  "enso-shortcuts",
  "enso-types",
  "enso-web",
+ "enso_console_error_panic_hook",
  "ensogl-text-embedded-fonts",
  "ensogl-text-msdf-sys",
  "enum_dispatch",
@@ -3153,12 +3161,12 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "bytes 0.5.6",
- "console_error_panic_hook",
  "enso-build-utilities",
  "enso-data-structures",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
+ "enso_console_error_panic_hook",
  "failure",
  "futures 0.3.21",
  "js-sys",

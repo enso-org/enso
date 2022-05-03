@@ -890,7 +890,7 @@ pub fn forward_panic_hook_to_console() {
     //
     // For more details see
     // https://github.com/rustwasm/console_error_panic_hook#readme
-    console_error_panic_hook::set_once();
+    enso_console_error_panic_hook::set_once();
 }
 
 

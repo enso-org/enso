@@ -89,7 +89,7 @@ pub async fn entry_point_profile() {
     });
 
     // Emit profile and exit.
-    debug_api::save_profile();
+    debug_api::save_profile(&profiler::internal::take_log());
     debug_api::LifecycleController::new().expect("Workflows run in Electron").quit();
 }
 
