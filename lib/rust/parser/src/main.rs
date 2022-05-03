@@ -30,10 +30,10 @@ pub mod prelude {
 // ==================================
 
 
-
 use crate::source::DebugLeaf;
 use crate::source::HasRepr;
 use lexer::Lexer;
+use location::Span;
 
 
 #[derive(Clone, Debug)]
@@ -586,136 +586,6 @@ pub enum AstData {
     Fixme,
 }
 
-
-
-pub trait AstVisitor {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    fn visit(&mut self, ast: &Ast);
-}
-
-pub trait AstVisitorMut {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    fn visit_mut(&mut self, ast: &mut Ast);
-}
-
-pub trait AstVisitable {
-    fn visit<V: AstVisitor>(&self, _visitor: &mut V) {}
-}
-
-pub trait AstVisitableMut {
-    fn visit_mut<V: AstVisitorMut>(&mut self, _visitor: &mut V) {}
-}
-
-impl AstVisitable for Ast {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        visitor.visit(self);
-        self.elem.visit(visitor)
-    }
-}
-
-impl AstVisitableMut for Ast {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        visitor.visit_mut(self);
-        self.elem.visit_mut(visitor)
-    }
-}
-
-impl<T: AstVisitable> AstVisitable for location::With<T> {
-    default fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        self.elem.visit(visitor)
-    }
-}
-
-impl<T: AstVisitableMut> AstVisitableMut for location::With<T> {
-    default fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        self.elem.visit_mut(visitor)
-    }
-}
-
-impl<T: AstVisitable> AstVisitable for Box<T> {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        (**self).visit(visitor)
-    }
-}
-
-impl<T: AstVisitableMut> AstVisitableMut for Box<T> {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        (**self).visit_mut(visitor)
-    }
-}
-
-impl<T: AstVisitable> AstVisitable for Option<T> {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        if let Some(elem) = self {
-            elem.visit(visitor)
-        }
-    }
-}
-
-impl<T: AstVisitableMut> AstVisitableMut for Option<T> {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        if let Some(elem) = self {
-            elem.visit_mut(visitor)
-        }
-    }
-}
-
-impl<T: AstVisitable, E: AstVisitable> AstVisitable for Result<T, E> {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        match self {
-            Ok(t) => t.visit(visitor),
-            Err(t) => t.visit(visitor),
-        }
-    }
-}
-
-impl<T: AstVisitableMut, E: AstVisitableMut> AstVisitableMut for Result<T, E> {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        match self {
-            Ok(t) => t.visit_mut(visitor),
-            Err(t) => t.visit_mut(visitor),
-        }
-    }
-}
-
-impl<T: AstVisitable> AstVisitable for Vec<T> {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        self.iter().map(|t| t.visit(visitor));
-    }
-}
-
-impl<T: AstVisitableMut> AstVisitableMut for Vec<T> {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| t.visit_mut(visitor));
-    }
-}
-
-impl<T: AstVisitable> AstVisitable for NonEmptyVec<T> {
-    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
-        self.iter().map(|t| t.visit(visitor));
-    }
-}
-
-impl<T: AstVisitableMut> AstVisitableMut for NonEmptyVec<T> {
-    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| t.visit_mut(visitor));
-    }
-}
-
-impl AstVisitable for &str {}
-impl AstVisitable for lexer::Ident {}
-impl AstVisitable for lexer::Operator {}
-impl AstVisitable for lexer::Kind {}
-
-impl AstVisitableMut for &str {}
-impl AstVisitableMut for lexer::Ident {}
-impl AstVisitableMut for lexer::Operator {}
-impl AstVisitableMut for lexer::Kind {}
-
-
-
 impl Ast {
     fn fixme() -> Ast {
         location::With::new_no_offset_phantom(Bytes::from(0), AstData::Fixme)
@@ -951,6 +821,202 @@ fn matched_segments_into_multi_segment_app<'s>(
     }
 }
 
+
+
+// ====================
+// === Ast Visitors ===
+// ====================
+
+macro_rules! define_visitor {
+    ($name:ident, $visit:ident, $visit_mut:ident) => {
+        paste! {
+            define_visitor_internal! {
+                $name,
+                $visit,
+                $visit_mut,
+                [<$name Visitor>],
+                [<$name VisitorMut>],
+                [<$name Visitable>],
+                [<$name VisitableMut>]
+            }
+        }
+    };
+}
+
+macro_rules! define_visitor_internal {
+    (
+        $name:ident,
+        $visit:ident,
+        $visit_mut:ident,
+        $visitor:ident,
+        $visitor_mut:ident,
+        $visitable:ident,
+        $visitable_mut:ident
+    ) => {
+        pub trait $visitor {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            fn visit(&mut self, ast: &$name);
+        }
+
+        pub trait $visitor_mut {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            fn visit_mut(&mut self, ast: &mut $name);
+        }
+
+        pub trait $visitable {
+            fn $visit<V: $visitor>(&self, _visitor: &mut V) {}
+        }
+
+        pub trait $visitable_mut {
+            fn $visit_mut<V: $visitor_mut>(&mut self, _visitor: &mut V) {}
+        }
+
+        impl<T: $visitable> $visitable for Box<T> {
+            fn $visit<V: $visitor>(&self, visitor: &mut V) {
+                $visitable::$visit(&**self, visitor)
+            }
+        }
+
+        impl<T: $visitable_mut> $visitable_mut for Box<T> {
+            fn $visit_mut<V: $visitor_mut>(&mut self, visitor: &mut V) {
+                $visitable_mut::$visit_mut(&mut **self, visitor)
+            }
+        }
+
+        impl<T: $visitable> $visitable for Option<T> {
+            fn $visit<V: $visitor>(&self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable::$visit(elem, visitor)
+                }
+            }
+        }
+
+        impl<T: $visitable_mut> $visitable_mut for Option<T> {
+            fn $visit_mut<V: $visitor_mut>(&mut self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable_mut::$visit_mut(elem, visitor)
+                }
+            }
+        }
+
+        impl<T: $visitable, E: $visitable> $visitable for Result<T, E> {
+            fn $visit<V: $visitor>(&self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable::$visit(elem, visitor),
+                    Err(elem) => $visitable::$visit(elem, visitor),
+                }
+            }
+        }
+
+        impl<T: $visitable_mut, E: $visitable_mut> $visitable_mut for Result<T, E> {
+            fn $visit_mut<V: $visitor_mut>(&mut self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                    Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                }
+            }
+        }
+
+        impl<T: $visitable> $visitable for Vec<T> {
+            fn $visit<V: $visitor>(&self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor));
+            }
+        }
+
+        impl<T: $visitable_mut> $visitable_mut for Vec<T> {
+            fn $visit_mut<V: $visitor_mut>(&mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor));
+            }
+        }
+
+        impl<T: $visitable> $visitable for NonEmptyVec<T> {
+            fn $visit<V: $visitor>(&self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor));
+            }
+        }
+
+        impl<T: $visitable_mut> $visitable_mut for NonEmptyVec<T> {
+            fn $visit_mut<V: $visitor_mut>(&mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor));
+            }
+        }
+
+        impl $visitable for &str {}
+        impl $visitable for str {}
+        impl $visitable for lexer::Ident {}
+        impl $visitable for lexer::Operator {}
+        impl $visitable for lexer::Kind {}
+
+        impl $visitable_mut for &str {}
+        impl $visitable_mut for str {}
+        impl $visitable_mut for lexer::Ident {}
+        impl $visitable_mut for lexer::Operator {}
+        impl $visitable_mut for lexer::Kind {}
+    };
+}
+
+define_visitor!(Ast, visit, visit_mut);
+define_visitor!(Span, visit_span, visit_span_mut);
+
+
+
+impl AstVisitable for Ast {
+    fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        visitor.visit(self);
+        self.elem.visit(visitor)
+    }
+}
+
+impl AstVisitableMut for Ast {
+    fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        visitor.visit_mut(self);
+        self.elem.visit_mut(visitor)
+    }
+}
+
+impl<T: AstVisitable> AstVisitable for location::With<T> {
+    default fn visit<V: AstVisitor>(&self, visitor: &mut V) {
+        self.elem.visit(visitor)
+    }
+}
+
+impl<T: AstVisitableMut> AstVisitableMut for location::With<T> {
+    default fn visit_mut<V: AstVisitorMut>(&mut self, visitor: &mut V) {
+        self.elem.visit_mut(visitor)
+    }
+}
+
+impl<T: SpanVisitable> SpanVisitable for location::With<T> {
+    fn visit_span<V: SpanVisitor>(&self, visitor: &mut V) {
+        visitor.visit(&self.span);
+        self.elem.visit_span(visitor)
+    }
+}
+
+impl<T: SpanVisitableMut> SpanVisitableMut for location::With<T> {
+    fn visit_span_mut<V: SpanVisitorMut>(&mut self, visitor: &mut V) {
+        visitor.visit_mut(&mut self.span);
+        self.elem.visit_span_mut(visitor)
+    }
+}
+
+
+pub trait AstVisitor2<'a> {
+    fn before_visiting_children(&'a mut self) {}
+    fn after_visiting_children(&'a mut self) {}
+    fn visit(&'a mut self, ast: &'a Ast);
+}
+
+pub struct RefCollectorVisitor<'a> {
+    vec: Vec<&'a Ast>,
+}
+impl<'a> AstVisitor2<'a> for RefCollectorVisitor<'a> {
+    fn visit(&'a mut self, ast: &'a Ast) {
+        self.vec.push(ast);
+    }
+}
 
 
 // =========================

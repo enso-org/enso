@@ -133,24 +133,14 @@ pub fn gen_body(f: TokenStream, data: &Data, is_mut: bool) -> TokenStream {
 
 /// Derives `CloneRef` implementation, refer to `crate::derive_clone_ref` for details.
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let t_param = quote::format_ident!("T");
-
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;
-    let f = quote!(AstVisitable::visit);
-
-
-
-    let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
-
-
+    let (_impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let body = gen_body(quote!(AstVisitable::visit), &decl.data, false);
     let body_mut = gen_body(quote!(AstVisitableMut::visit_mut), &decl.data, true);
+    let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
+    let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
 
-    // #t_param:Visitor,
-    let field_types = decl.data.field_types();
-    let bounds =
-        quote! { #(#field_types: Traversable<#t_param>,#field_types: TraversableCheck<#t_param>,)*};
     let output = quote! {
         impl AstVisitable for #ident #ty_generics {
             fn visit<T: AstVisitor>(&self, visitor:&mut T) {
@@ -164,6 +154,22 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             fn visit_mut<T: AstVisitorMut>(&mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_mut
+                visitor.after_visiting_children();
+            }
+        }
+
+        impl SpanVisitable for #ident #ty_generics {
+            fn visit_span<T: SpanVisitor>(&self, visitor:&mut T) {
+                visitor.before_visiting_children();
+                #body_span
+                visitor.after_visiting_children();
+            }
+        }
+
+        impl SpanVisitableMut for #ident #ty_generics {
+            fn visit_span_mut<T: SpanVisitorMut>(&mut self, visitor:&mut T) {
+                visitor.before_visiting_children();
+                #body_span_mut
                 visitor.after_visiting_children();
             }
         }
