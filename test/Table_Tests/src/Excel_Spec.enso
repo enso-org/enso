@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time.Date
+
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
 from Standard.Table.Io.Excel import Excel_Range
@@ -103,8 +105,20 @@ spec =
     xls_path = xls_sheet.path
 
     col_a = ["Test", "Here", "Is", "Data"]
-    col_a = [1, 2, 3, 4]
-    col_a = []
+    col_b = [1, 2, 3, 4]
+    # col_c = [Date.new 2022 06 12, Date.new 2022 10 20, Date.new 2022 07 30, Date.new 2022 10 15]
+
+    check_column col expected =
+        start = col.length - expected.length
+        0.up_to start . map i->(col.at i . should_equal Nothing)
+        start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
+
+    check_table table =
+        check_column (table.at "A") col_a
+        check_column (table.at "B") col_b
+        ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as as Polyglot array
+           https://www.pivotaltracker.com/story/show/181755990
+        # check_column (table.at "C") col_c
 
     Test.group "Read XLSX / XLS Files" <|
         Test.specify "should let you read the sheet names with File_Format.Auto" <|
@@ -125,5 +139,38 @@ spec =
             range_names = ["myData"]
             xlsx_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
             xls_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
+
+        Test.specify "should let you read by sheet index" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet 1))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read by sheet name" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read XLS by sheet index" <|
+            table = xls_sheet.read (File_Format.Excel (Sheet 1))
+            check_table table
+
+            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read XLS by sheet name" <|
+            table = xls_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+            table_2 = xls_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
 
 main = Test.Suite.run_main here.spec

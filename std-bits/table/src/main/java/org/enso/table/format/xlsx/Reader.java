@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /** A table reader for MS Excel files. */
 public class Reader {
@@ -207,7 +206,7 @@ public class Reader {
     int endRow =
         Math.min(
             range == null || range.isWholeColumn() ? lastRow : range.getBottomRow(),
-            startRow + rowCount - 1);
+            rowCount == Integer.MAX_VALUE ? Integer.MAX_VALUE : startRow + rowCount - 1);
 
     // Columns
     int startCol = (range == null || range.isWholeRow() ? 1 : range.getLeftColumn());
@@ -249,7 +248,7 @@ public class Reader {
             .mapToObj(
                 idx ->
                     new Column(
-                        CellReference.convertNumToColString(startCol + idx),
+                        CellReference.convertNumToColString(startCol + idx - 1),
                         builders.get(idx).seal()))
             .toArray(Column[]::new);
 
