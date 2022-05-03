@@ -28,6 +28,9 @@ type Auto
         if ".csv".equals_ignore_case extension then Ref.put output (File_Format.Delimited ',')
         if ".tsv".equals_ignore_case extension then Ref.put output (File_Format.Delimited '\t')
         if ".xlsx".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xlsm".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xls".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xlt".equals_ignore_case extension then Ref.put output File_Format.Excel
 
         Ref.get output
 
@@ -115,12 +118,15 @@ type Delimited
 ## A setting to infer the default behaviour of some option.
 type Infer
 
-
 ## Read the file to a `Table` from an Excel file
 type Excel
-    type Excel (section:Excel_Section=Excel_Module.Sheet_Names)
+    type Excel (section:Excel_Section=Excel_Module.Sheet_Names) (xls_format:(True|False|Infer)=Infer)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
-        Excel_Module.read_excel file this.section on_problems
+        format = if this.xls_format != Infer then this.xls_format else
+            extension = file.extension
+            (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
+
+        Excel_Module.read_excel file this.section on_problems format

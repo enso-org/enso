@@ -1,4 +1,4 @@
-from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Error, Any, Error, Panic, File, Vector
+from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Error, Any, Error, Panic, File, Vector, False
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 
 import Standard.Table.Data.Table
@@ -6,6 +6,7 @@ import Standard.Table.Data.Table
 polyglot java import org.enso.table.format.xlsx.Range as Java_Range
 polyglot java import org.enso.table.format.xlsx.Reader
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.io.IOException
 
 
 ## Specified the part of an Excel Workbook to Read
@@ -131,21 +132,21 @@ validate : Boolean -> Text -> Any
 validate ~validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
 
-read_excel : File -> Excel_Section -> Problem_Behavior -> (Table | Vector)
-read_excel file section on_problems =
+read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
+read_excel file section on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.Vector (Reader.readSheetNames stream)
-        Range_Names -> Vector.Vector (Reader.readRangeNames stream)
+        Sheet_Names -> Vector.Vector (Reader.readSheetNames stream xls_format)
+        Range_Names -> Vector.Vector (Reader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
             Table.Table <|
-                if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit) else
-                    Reader.readSheetByName stream sheet skip_rows row_limit
+                if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format) else
+                    Reader.readSheetByName stream sheet skip_rows row_limit xls_format
         Range address skip_rows row_limit ->
             Table.Table <|
                 range = (if address.is_an Excel_Range then address else Excel_Range.from_address address)
-                Reader.readRange stream range.java_range skip_rows row_limit
+                Reader.readRange stream range.java_range skip_rows row_limit xls_format
 
     file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
-    Panic.catch IOException file_failure <|
+    Panic.catch IOException handler=file_failure <|
         file.with_input_stream [File.Option.Read] stream->
             stream.with_java_stream reader

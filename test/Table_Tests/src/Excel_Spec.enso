@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
 from Standard.Table.Io.Excel import Excel_Range
+from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Range
 
 import Standard.Test
 
@@ -95,21 +96,34 @@ spec =
             Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error
             Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error
 
-    test_sheet = Enso_Project.data / "TestSheet.xlsx"
-    test_path = test_sheet.path
+    xlsx_sheet = Enso_Project.data / "TestSheet.xlsx"
+    xlsx_path = xlsx_sheet.path
 
-    Test.group "Read XLSX Files" <|
-        Test.specify "should let you read the sheet names" <|
+    xls_sheet = Enso_Project.data / "TestSheetOld.xls"
+    xls_path = xls_sheet.path
+
+    col_a = ["Test", "Here", "Is", "Data"]
+    col_a = [1, 2, 3, 4]
+    col_a = []
+
+    Test.group "Read XLSX / XLS Files" <|
+        Test.specify "should let you read the sheet names with File_Format.Auto" <|
             sheet_names = ["Sheet1", "Another"]
-            test_sheet.read . should_equal sheet_names
-            File.read test_sheet . should_equal sheet_names
-            File.read test_path . should_equal sheet_names
+            xlsx_sheet.read . should_equal sheet_names
+            File.read xlsx_sheet . should_equal sheet_names
+            File.read xlsx_path . should_equal sheet_names
+            xls_sheet.read . should_equal sheet_names
+            File.read xls_sheet . should_equal sheet_names
+            File.read xls_path . should_equal sheet_names
 
-        Test.specify "should let you read the sheet names" <|
+        Test.specify "should let you read the sheet names with File_Format.Excel" <|
             sheet_names = ["Sheet1", "Another"]
-            test_sheet.read . should_equal sheet_names
-            File.read test_sheet . should_equal sheet_names
-            File.read test_path . should_equal sheet_names
+            xlsx_sheet.read File_Format.Excel . should_equal sheet_names
+            xls_sheet.read File_Format.Excel . should_equal sheet_names
 
+        Test.specify "should let you read the range names" <|
+            range_names = ["myData"]
+            xlsx_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
+            xls_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
 
 main = Test.Suite.run_main here.spec

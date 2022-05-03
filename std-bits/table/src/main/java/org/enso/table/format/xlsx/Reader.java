@@ -101,8 +101,7 @@ public class Reader {
       String cellRange,
       boolean hasHeaders,
       String unnamedColumnPrefix,
-      Function<LocalDate, Value> mkDate)
-      throws IOException {
+      Function<LocalDate, Value> mkDate) {
     Sheet sheet = null;
     if (sheetIdx instanceof Long) {
       sheet = workbook.getSheetAt(((Long) sheetIdx).intValue());
@@ -189,7 +188,7 @@ public class Reader {
           if (value instanceof LocalDate) {
             value = mkDate.apply((LocalDate) value);
           }
-          builders.get(j - minCol).append(getCellValue(cell));
+          builders.get(j - minCol).append(value);
         }
       }
     }
@@ -301,8 +300,8 @@ public class Reader {
     return null;
   }
 
-  public static String[] readSheetNames(InputStream stream) throws IOException {
-    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+  public static String[] readSheetNames(InputStream stream, boolean xls_format) throws IOException {
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     for (int i = 0; i < sheetCount; i++) {
@@ -311,15 +310,19 @@ public class Reader {
     return output;
   }
 
-  public static String[] readRangeNames(InputStream stream) throws IOException {
-    Workbook workbook = new XSSFWorkbook(stream);
+  public static String[] readRangeNames(InputStream stream, boolean xls_format) throws IOException {
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
     return workbook.getAllNames().stream().map(Name::getNameName).toArray(String[]::new);
   }
 
   public static Table readSheetByName(
-      InputStream stream, String sheetName, Integer skip_rows, Integer row_limit)
+      InputStream stream,
+      String sheetName,
+      Integer skip_rows,
+      Integer row_limit,
+      boolean xls_format)
       throws IOException, IllegalArgumentException {
-    Workbook workbook = new XSSFWorkbook(stream);
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
 
     int sheetIndex = getSheetIndex(workbook, sheetName);
     if (sheetIndex == -1) {
@@ -327,13 +330,17 @@ public class Reader {
     }
 
     Sheet sheet = workbook.getSheetAt(sheetIndex);
-    return readSheetToTable(sheet, null, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
+    return readSheetToTable(
+        sheet,
+        null,
+        skip_rows == null ? 0 : skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
   public static Table readSheetByIndex(
-      InputStream stream, int index, Integer skip_rows, Integer row_limit)
+      InputStream stream, int index, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException, IllegalArgumentException {
-    XSSFWorkbook workbook = new XSSFWorkbook(stream);
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
 
     int sheetCount = workbook.getNumberOfSheets();
     if (index < 1 || index > sheetCount) {
@@ -342,19 +349,17 @@ public class Reader {
     }
 
     Sheet sheet = workbook.getSheetAt(index - 1);
-    return readSheetToTable(sheet, null, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
+    return readSheetToTable(
+        sheet,
+        null,
+        skip_rows == null ? 0 : skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
   public static Table readRange(
-      InputStream stream, String nameOrAddress, Integer skip_rows, Integer row_limit)
+      InputStream stream, Range range, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException {
-    XSSFWorkbook workbook = new XSSFWorkbook(stream);
-
-    String refersTo = getRefersTo(workbook, nameOrAddress);
-    if (refersTo == null) {
-      refersTo = nameOrAddress;
-    }
-    Range range = new Range(refersTo);
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
 
     int sheetIndex = getSheetIndex(workbook, range.getSheetName());
     if (sheetIndex == -1) {
@@ -362,6 +367,10 @@ public class Reader {
     }
 
     Sheet sheet = workbook.getSheetAt(sheetIndex);
-    return readSheetToTable(sheet, range, skip_rows == null ? 0 : skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
+    return readSheetToTable(
+        sheet,
+        range,
+        skip_rows == null ? 0 : skip_rows,
+        row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 }
