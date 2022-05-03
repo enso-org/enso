@@ -46,9 +46,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.56"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4361135be9122e0870de935d7c439aef945b9f9ddd4199a553b5270b49c82a27"
+checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
 
 [[package]]
 name = "approx"
@@ -1168,6 +1168,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "derivative",
  "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",
@@ -1184,6 +1185,7 @@ dependencies = [
  "enso-profiler",
  "enso-profiler-data",
  "ensogl-core",
+ "json-rpc",
  "serde",
 ]
 

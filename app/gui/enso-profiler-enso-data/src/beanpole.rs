@@ -11,6 +11,7 @@
 // === Diagram ===
 // ===============
 
+use crate::backend::Direction;
 use crate::Metadata;
 
 /// The data necessary to create a diagram of message timings.
@@ -42,7 +43,9 @@ impl<'a> Diagram<'a> {
     pub fn messages(&'a self) -> &[Message] {
         &self.messages
     }
+}
 
+impl<'a> Diagram<'a> {
     /// Create a diagram from the given profiles.
     pub fn from_profiles(profiles: &[&enso_profiler_data::Profile<Metadata>; 2]) -> Self {
         let mut metadata0 = vec![];
@@ -53,25 +56,27 @@ impl<'a> Diagram<'a> {
         let frontend = dia.process("Ide");
         let ls = dia.process("LanguageServer");
         let engine = dia.process("Engine");
-        // TODO[kw]: Add metadata to format and read these fields from the file.
-        let mut offset0 = None;
-        let mut offset1 = None;
+        let offset_required = "Cannot chart profile without `TimeOffset` headers.";
+        let mut offset0 = profiles[0].headers.time_offset.expect(offset_required).into_ms();
+        let mut offset1 = profiles[1].headers.time_offset.expect(offset_required).into_ms();
+        // Use IDE process's time origin as chart's origin.
+        offset1 -= offset0;
+        offset0 -= offset0;
         for meta in metadata0.into_iter() {
-            if let Metadata::RpcEvent(message) = meta.data {
-                let abs_time = meta.mark.into_ms();
-                let offset = offset0.get_or_insert(abs_time);
-                let time = abs_time - *offset;
-                dia.message(ls, frontend, time, message);
+            let time = meta.time.into_ms() + offset0;
+            match meta.data {
+                Metadata::RpcEvent(message) => dia.message(ls, frontend, time, message),
+                Metadata::RpcRequest(message) =>
+                    dia.message(frontend, ls, time, message.to_string()),
+                _ => {}
             }
         }
         for meta in metadata1.into_iter() {
             if let Metadata::BackendMessage(message) = meta.data {
-                let abs_time = meta.mark.into_ms();
-                let offset = offset1.get_or_insert(abs_time);
-                let time = abs_time - *offset;
+                let time = meta.time.into_ms() + offset1;
                 let (p0, p1) = match message.direction {
-                    crate::backend::Direction::Request => (ls, engine),
-                    crate::backend::Direction::Response => (engine, ls),
+                    Direction::Request => (ls, engine),
+                    Direction::Response => (engine, ls),
                 };
                 dia.message(p0, p1, time, message.endpoint);
             }
@@ -84,7 +89,7 @@ impl<'a> Diagram<'a> {
 fn collect_metadata<M: Clone>(
     profile: &enso_profiler_data::Profile<M>,
     interval: enso_profiler_data::IntervalId,
-    metadata: &mut Vec<enso_profiler_data::Metadata<M>>,
+    metadata: &mut Vec<enso_profiler_data::Timestamped<M>>,
 ) {
     let interval = &profile[interval];
     metadata.extend(interval.metadata.iter().cloned());

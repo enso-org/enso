@@ -24,6 +24,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 
+use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as profiler_data;
 
 
@@ -34,8 +35,8 @@ use enso_profiler_data as profiler_data;
 
 /// Pretty-print a [`profiler_data::Measurement`], including all children, in a way that illustrates
 /// the hierarchy of the data. Results will be written to stdout.
-fn print_measurement(
-    profile: &profiler_data::Profile<()>,
+fn print_measurement<Metadata>(
+    profile: &profiler_data::Profile<Metadata>,
     measurement: profiler_data::MeasurementId,
     i: usize,
 ) {
@@ -77,7 +78,7 @@ fn main() {
 
     let mut log = String::new();
     std::io::stdin().read_to_string(&mut log).unwrap();
-    let profile: profiler_data::Profile<()> = log.parse().unwrap();
+    let profile: profiler_data::Profile<AnyMetadata> = log.parse().unwrap();
     for root in &profile.root_measurement().children {
         print_measurement(&profile, *root, 0);
     }

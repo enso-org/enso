@@ -161,12 +161,12 @@ fn profile_to_graph(profile: &Profile<Metadata>, app: &Application) -> flame_gra
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
         .iter_metadata()
-        .filter_map(|metadata: &enso_profiler_data::Metadata<Metadata>| match metadata.data {
+        .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
             Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
             Metadata::BackendMessage(_) if !SHOW_BACKEND_MESSAGE_MARKS => None,
             _ => {
-                let position = metadata.mark.into_ms();
+                let position = metadata.time.into_ms();
                 let label = metadata.data.to_string();
                 Some(profiler_flame_graph::Mark { position, label })
             }
@@ -179,15 +179,12 @@ fn make_rendering_performance_blocks(
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
     let render_stats = profile.iter_metadata().filter_map(|metadata| match metadata.data {
-        Metadata::RenderStats(data) => {
-            let mark = metadata.mark;
-            Some(enso_profiler_data::Metadata { mark, data })
-        }
+        Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
         _ => None,
     });
     for (prev, current) in render_stats.tuple_windows() {
-        let start = prev.mark.into_ms();
-        let end = current.mark.into_ms();
+        let start = prev.time.into_ms();
+        let end = current.time.into_ms();
         let row = -1;
         let label = format!("{:#?}", current.data);
         let block_type = match current.data.fps {

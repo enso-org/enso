@@ -65,12 +65,13 @@ fn main() {
         match profile {
             Ok(profile) => profiles_.push(profile),
             Err(data::Error::RecoverableFormatError { with_missing_data, .. }) =>
-                profiles_.push(with_missing_data.unwrap()),
+                profiles_.push(with_missing_data),
             Err(e) => panic!("{}", e),
         }
     }
     let profiles = profiles_;
     assert_eq!(profiles.len(), 2);
+
     let dia = beanpole::Diagram::from_profiles(&[&profiles[0], &profiles[1]]);
     beanpole::svg::write_diagram(&dia, std::io::stdout()).unwrap();
 }
