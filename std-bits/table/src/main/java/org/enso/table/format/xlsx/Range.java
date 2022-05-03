@@ -72,23 +72,29 @@ public class Range {
         });
   }
 
-  private static boolean isLetter(char c) {
-    return c >= 'A' && c <= 'Z';
-  }
+  private static boolean isLetter(char c) { return c >= 'A' && c <= 'Z'; }
 
   private static boolean isDigit(char c) {
     return c >= '0' && c <= '9';
   }
 
+  private static int skipDollar(CharSequence address, int index) {
+    if (index < address.length() - 1 && address.charAt(index) == '$') {
+      index++;
+    }
+    return index;
+  }
+
   private static int[] parseA1(CharSequence address) {
     int col = 0;
 
-    int index = 0;
+    int index = skipDollar(address, 0);
     while (index < address.length() && isLetter(address.charAt(index))) {
       col = 26 * col + (address.charAt(index) - 'A' + 1);
       index++;
     }
 
+    index = skipDollar(address, index);
     int row = index < address.length() ? Integer.parseInt(address, index, address.length(), 10) : 0;
     return new int[] {row, col};
   }
@@ -165,10 +171,10 @@ public class Range {
 
   public Range(String sheetName, int leftColumn, int topRow, int rightColumn, int bottomRow) {
     this.sheetName = sheetName;
-    this.leftColumn = leftColumn;
-    this.topRow = topRow;
-    this.rightColumn = rightColumn;
-    this.bottomRow = bottomRow;
+    this.leftColumn = Math.min(leftColumn, rightColumn);
+    this.topRow = Math.min(bottomRow, topRow);
+    this.rightColumn = Math.max(leftColumn, rightColumn);
+    this.bottomRow = Math.max(bottomRow, topRow);
   }
 
   public String getSheetName() {
@@ -211,7 +217,6 @@ public class Range {
     if (getLeftColumn() != getRightColumn() || getTopRow() != getBottomRow()) {
       range += ":" + (isWholeRow() ? "" : CellReference.convertNumToColString(getRightColumn() - 1))
           + (isWholeColumn() ? "" : Integer.toString(getBottomRow()));
-
     }
 
     return sheetNameEscaped + "!" + range;

@@ -3,40 +3,59 @@ from Standard.Base import all
 from Standard.Table.Io.Excel import Excel_Range
 import Standard.Test
 
-spec = Test.group 'Excel Range' <|
-    Test.specify 'should be able to parse A1 format' <|
-        Excel_Range.from_address "Test!A1:D5" . shee
-    IO.println <| Excel_Range.from_address "Test!1:4"
-    IO.println <| Excel_Range.from_address "Test!DD:XHZ"
+spec =
+    Test.group 'Excel Range' <|
+        check_range range sheet_name tlbr_vector =
+            range.sheet_name . should_equal sheet_name
+            range.top_row . should_equal (tlbr_vector.at 0)
+            range.left_column . should_equal (tlbr_vector.at 1)
+            range.bottom_row . should_equal (tlbr_vector.at 2)
+            range.right_column . should_equal (tlbr_vector.at 3)
 
-    Test.specify 'should change Nothing to "Column"' <|
-        strategy = Unique_Name_Strategy.new
-        strategy.make_valid_name Nothing . should_equal "Column"
-        strategy.invalid_names.length . should_equal 1
+        Test.specify 'should be able to parse A1 format' <|
+            check_range (Excel_Range.from_address "Test!EE4") 'Test' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "Test!A1:D5") 'Test' [1, 1, 5, 4]
+            check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
+            check_range (Excel_Range.from_address "Test!1:4") 'Test' [1, Nothing, 4, Nothing]
+            check_range (Excel_Range.from_address "Test!CB") 'Test' [Nothing, 80, Nothing, 80]
+            check_range (Excel_Range.from_address "Test!DD:XAZ") 'Test' [Nothing, 108, Nothing, 16276]
+            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "Test!A1:$D$5") 'Test' [1, 1, 5, 4]
+            check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
+            check_range (Excel_Range.from_address "Test!$1:$4") 'Test' [1, Nothing, 4, Nothing]
+            check_range (Excel_Range.from_address "Test!$CB") 'Test' [Nothing, 80, Nothing, 80]
+            check_range (Excel_Range.from_address "Test!$DD:$XAZ") 'Test' [Nothing, 108, Nothing, 16276]
 
-    Test.specify 'should not rename unique names' <|
-        strategy = Unique_Name_Strategy.new
-        strategy.make_unique "A" . should_equal "A"
-        strategy.make_unique "B" . should_equal "B"
-        strategy.make_unique "C" . should_equal "C"
-        strategy.renames.length . should_equal 0
-        strategy.invalid_names.length . should_equal 0
+        Test.specify 'should be able to parse RC format' <|
+            check_range (Excel_Range.from_address "Test!R1C1") 'Test' [1, 1, 1, 1]
+            check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
 
-    Test.specify 'should rename duplicates names' <|
-        strategy = Unique_Name_Strategy.new
-        strategy.make_unique "A" . should_equal "A"
-        strategy.make_unique "A" . should_equal "A_1"
-        strategy.make_unique "A" . should_equal "A_2"
-        strategy.renames.length . should_equal 2
-        strategy.invalid_names.length . should_equal 0
+        Test.specify 'should fail gracefully for invalid patterns' <|
+            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument_Error
+            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error
 
-    Test.specify 'should preserve existing suffix' <|
-        strategy = Unique_Name_Strategy.new
-        strategy.make_unique "A" . should_equal "A"
-        strategy.make_unique "A_1" . should_equal "A_1"
-        strategy.make_unique "A" . should_equal "A_2"
-        strategy.make_unique "A_1" . should_equal "A_1_1"
-        strategy.renames.length . should_equal 2
-        strategy.invalid_names.length . should_equal 0
+        Test.specify 'should allow Range creation for a cell' <|
+            check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123]
+            check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123]
+            Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
+            Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
+            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for a range' <|
+            check_range (Excel_Range.for_range "Hello World" 55 120 123 14) 'Hello World' [14, 55, 120, 123]
+            check_range (Excel_Range.for_range "Hello World" "BC" 120 "DS" 14) 'Hello World' [14, 55, 120, 123]
+            Excel_Range.for_range "Test" 55 120 123 14 . address . should_equal "Test!BC14:DS120"
+            Excel_Range.for_range "Hello World" 55 120 123 14 . address . should_equal "'Hello World'!BC14:DS120"
+            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument_Error
 
 main = Test.Suite.run_main here.spec
