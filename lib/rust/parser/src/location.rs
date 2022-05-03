@@ -7,7 +7,7 @@ use crate::Bytes;
 // === Info & With ===
 // ===================
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub struct Span {
     pub left_visible_offset: usize,
     pub left_offset:         Bytes,

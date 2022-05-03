@@ -856,13 +856,13 @@ macro_rules! define_visitor_internal {
         pub trait $visitor<'a> {
             fn before_visiting_children(&mut self) {}
             fn after_visiting_children(&mut self) {}
-            fn visit(&mut self, ast: &'a $name);
+            fn visit(&mut self, ast: &'a $name) -> bool;
         }
 
         pub trait $visitor_mut {
             fn before_visiting_children(&mut self) {}
             fn after_visiting_children(&mut self) {}
-            fn visit_mut(&mut self, ast: &mut $name);
+            fn visit_mut(&mut self, ast: &mut $name) -> bool;
         }
 
         pub trait $visitable<'a> {
@@ -921,25 +921,25 @@ macro_rules! define_visitor_internal {
 
         impl<'a, T: $visitable<'a>> $visitable<'a> for Vec<T> {
             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor));
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Vec<T> {
             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor));
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
             }
         }
 
         impl<'a, T: $visitable<'a>> $visitable<'a> for NonEmptyVec<T> {
             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor));
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for NonEmptyVec<T> {
             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor));
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
             }
         }
 
@@ -964,15 +964,17 @@ define_visitor!(Span, visit_span, visit_span_mut);
 
 impl<'a> AstVisitable<'a> for Ast {
     fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
-        visitor.visit(self);
-        self.elem.visit(visitor)
+        if visitor.visit(self) {
+            self.elem.visit(visitor)
+        }
     }
 }
 
 impl<'a> AstVisitableMut<'a> for Ast {
     fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
-        visitor.visit_mut(self);
-        self.elem.visit_mut(visitor)
+        if visitor.visit_mut(self) {
+            self.elem.visit_mut(visitor)
+        }
     }
 }
 
@@ -990,15 +992,17 @@ impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for location::With<T> {
 
 impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for location::With<T> {
     fn visit_span<V: SpanVisitor<'a>>(&'a self, visitor: &mut V) {
-        visitor.visit(&self.span);
-        self.elem.visit_span(visitor)
+        if visitor.visit(&self.span) {
+            self.elem.visit_span(visitor)
+        }
     }
 }
 
 impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
     fn visit_span_mut<V: SpanVisitorMut>(&'a mut self, visitor: &mut V) {
-        visitor.visit_mut(&mut self.span);
-        self.elem.visit_span_mut(visitor)
+        if visitor.visit_mut(&mut self.span) {
+            self.elem.visit_span_mut(visitor)
+        }
     }
 }
 
@@ -1006,9 +1010,11 @@ impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
 pub struct RefCollectorVisitor<'a> {
     vec: Vec<&'a Ast>,
 }
+
 impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
-    fn visit(&mut self, ast: &'a Ast) {
+    fn visit(&mut self, ast: &'a Ast) -> bool {
         self.vec.push(ast);
+        true
     }
 }
 
@@ -1017,6 +1023,74 @@ impl Ast {
         let mut visitor = RefCollectorVisitor::default();
         self.visit(&mut visitor);
         visitor.vec
+    }
+}
+
+
+#[derive(Debug, Default)]
+pub struct FnVisitor<F>(F);
+
+impl<'a, F, T> AstVisitor<'a> for FnVisitor<F>
+where F: Fn(&'a Ast) -> T
+{
+    fn visit(&mut self, ast: &'a Ast) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<F, T> AstVisitorMut for FnVisitor<F>
+where F: Fn(&mut Ast) -> T
+{
+    fn visit_mut(&mut self, ast: &mut Ast) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<'a, F, T> SpanVisitor<'a> for FnVisitor<F>
+where F: Fn(&'a Span) -> T
+{
+    fn visit(&mut self, ast: &'a Span) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<F, T> SpanVisitorMut for FnVisitor<F>
+where F: Fn(&mut Span) -> T
+{
+    fn visit_mut(&mut self, ast: &mut Span) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+
+impl Ast {
+    pub fn map<T>(&self, f: impl Fn(&Ast) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit(&mut visitor);
+    }
+
+    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Ast) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_mut(&mut visitor);
+    }
+
+    pub fn map_span<T>(&self, f: impl Fn(&Span) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_span(&mut visitor);
+    }
+
+    pub fn map_span_mut<T>(&mut self, f: impl Fn(&mut Span) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_span_mut(&mut visitor);
+    }
+
+    /// Remove all span information. This is mainly used for tests to compare AST structure.
+    pub fn remove_span_info(&mut self) {
+        self.map_span_mut(mem::take)
     }
 }
 
@@ -1180,13 +1254,17 @@ macro_rules! test_macro_build_multi_app_argument {
 
 pub struct MyVisitor {}
 impl<'a> AstVisitor<'a> for MyVisitor {
-    fn visit(&mut self, ast: &'a Ast) {
+    fn visit(&mut self, ast: &'a Ast) -> bool {
         println!(">>> {:?}", ast);
+        true
     }
 }
 
 fn foo() {
-    (test_macro_build! { [] foo ["(" a ")"] }).visit(&mut MyVisitor {});
+    let mut ast = test_macro_build! { [] foo ["(" a ")"] };
+    println!("{:#?}", ast);
+    ast.remove_span_info();
+    println!("{:#?}", ast);
     // println!("{:#?}", test_macro_build! { [] a b });
 }
 
