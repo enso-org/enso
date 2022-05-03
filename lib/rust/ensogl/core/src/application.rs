@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use enso_web::traits::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::control::callback;
 use crate::display;
 use crate::display::scene::DomPath;
@@ -10,6 +11,7 @@ use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
+
 
 
 // ==============
@@ -20,14 +22,29 @@ pub mod args;
 pub mod command;
 pub mod frp;
 pub mod shortcut;
+pub mod tooltip;
 pub mod view;
-
 pub use view::View;
 
 /// A module with commonly used traits to mass import.
 pub mod traits {
     pub use crate::application::view::View as TRAIT_View;
 }
+
+
+// ===========
+// === Frp ===
+// ===========
+
+crate::define_endpoints_2! {
+    Input {
+        set_tooltip(tooltip::Style),
+    }
+    Output {
+        tooltip(tooltip::Style)
+    }
+}
+
 
 
 // ===================
@@ -46,6 +63,7 @@ pub struct Application {
     pub shortcuts:        shortcut::Registry,
     pub views:            view::Registry,
     pub themes:           theme::Manager,
+    pub frp:              Frp,
     update_themes_handle: callback::Handle,
 }
 
@@ -65,7 +83,23 @@ impl Application {
         display.add_child(&cursor);
         web::document.body_or_panic().set_style_or_warn("cursor", "none");
         let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
-        Self { logger, cursor, display, commands, shortcuts, views, themes, update_themes_handle }
+        let frp = Frp::new();
+        let _network = frp.network();
+        enso_frp::extend! { _network
+            frp.private.output.tooltip <+ frp.private.input.set_tooltip;
+        }
+
+        Self {
+            logger,
+            cursor,
+            display,
+            commands,
+            shortcuts,
+            views,
+            themes,
+            update_themes_handle,
+            frp,
+        }
     }
 
     /// Create a new instance of a view.

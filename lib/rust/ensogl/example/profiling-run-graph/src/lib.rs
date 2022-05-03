@@ -19,16 +19,21 @@ use wasm_bindgen::prelude::*;
 
 use enso_profiler as profiler;
 use enso_profiler::profile;
+use enso_profiler_data::parse_multiprocess_profile;
 use enso_profiler_data::Profile;
 use enso_profiler_enso_data::Metadata;
 use enso_profiler_flame_graph as profiler_flame_graph;
 use enso_profiler_flame_graph::Performance;
+use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::application::tooltip;
+use ensogl_core::application::tooltip::Placement;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;
 use ensogl_core::display::Scene;
+use ensogl_core::frp;
 use ensogl_core::system::web;
 use ensogl_flame_graph as flame_graph;
 use ensogl_flame_graph::COLOR_BLOCK_ACTIVE;
@@ -37,6 +42,7 @@ use ensogl_flame_graph::COLOR_MARK_DEFAULT;
 use ensogl_flame_graph::COLOR_PERFORMANCE_BAD;
 use ensogl_flame_graph::COLOR_PERFORMANCE_GOOD;
 use ensogl_flame_graph::COLOR_PERFORMANCE_MEDIUM;
+use ensogl_sequence_diagram::SequenceDiagram;
 
 
 
@@ -49,14 +55,18 @@ use ensogl_flame_graph::COLOR_PERFORMANCE_MEDIUM;
 /// Content of a profiler log, that will be rendered. If this is `None` some dummy data will be
 /// generated and rendered.  The file must be located in the assets subdirectory that is
 /// served by the webserver, i.e. `enso/dist/content` or `app/ide-desktop/lib/content/assets`.
-/// For example use `Some("profile.json"))`.
-const PROFILER_LOG_NAME: Option<&str> = Some("profile.json");
+/// For example use `Some("profile.json")`.
+const PROFILER_LOG_NAME: Option<&str> = Some("combined.json");
+
+const SHOW_RPC_EVENT_MARKS: bool = false;
+const SHOW_BACKEND_MESSAGE_MARKS: bool = false;
 
 
 
 // ===================
 // === Entry Point ===
 // ===================
+
 
 /// The example entry point.
 #[entry_point]
@@ -70,25 +80,33 @@ pub async fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
+    let network = app.frp.network();
 
     init_theme(scene);
 
-    let profile =
-        if let Some(profile) = get_log_data().await { profile } else { create_dummy_data().await };
+    let profiles = get_log_data().await;
 
-    let measurements = profiler_flame_graph::Graph::new_hybrid_graph(&profile);
-
-    let mut flame_graph = flame_graph::FlameGraph::from_data(measurements, app);
-
-    let marks = make_marks_from_profile(&profile);
-    marks.into_iter().for_each(|mark| flame_graph.add_mark(mark));
-
-    let performance_blocks = make_rendering_performance_blocks(&profile);
-    performance_blocks.into_iter().for_each(|block| flame_graph.add_block(block));
-
-    world.add_child(&flame_graph);
+    let base_profile = &profiles[0];
+    let flame_graph = profile_to_graph(base_profile, app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);
+
+    let sequence_diagram = SequenceDiagram::new(app);
+    sequence_diagram.set_profile(profiles);
+
+    let graph_height: f32 = flame_graph.height();
+    let sequence_diagram_offset = graph_height + sequence_diagram.height.value();
+    sequence_diagram.set_position_y(-sequence_diagram_offset);
+
+    scene.add_child(&sequence_diagram);
+    scene.layers.main.add_exclusive(&sequence_diagram);
+
+    let tooltip = ensogl_tooltip::Tooltip::new(app);
+    scene.add_child(&tooltip);
+    tooltip.frp.set_placement.emit(Placement::Right);
+    frp::extend! { network
+        tooltip.frp.set_style <+ app.frp.tooltip.map(|tt| tt.clone().with_placement(tooltip::Placement::Right));
+    }
 
     world.keep_alive_forever();
     let scene = world.default_scene.clone_ref();
@@ -100,6 +118,8 @@ pub async fn main() {
             let _keep_alive = &navigator;
             let _keep_alive = &scene;
             let _keep_alive = &flame_graph;
+            let _keep_alive = &sequence_diagram;
+            let _keep_alive = &tooltip;
         })
         .forget();
 }
@@ -114,6 +134,7 @@ fn init_theme(scene: &Scene) {
     theme.set(COLOR_PERFORMANCE_GOOD, color::Lcha::green(0.8, 0.5));
     theme.set(COLOR_PERFORMANCE_MEDIUM, color::Lcha::yellow(0.6, 0.5));
     theme.set(COLOR_MARK_DEFAULT, color::Lcha::blue_green(0.9, 0.1));
+    theme.set("component.label.text", color::Lcha::black());
 
     theme_manager.register("theme", theme);
     theme_manager.set_enabled(&["theme".to_string()]);
@@ -125,19 +146,29 @@ fn init_theme(scene: &Scene) {
 // === Metadata Processing ===
 // ===========================
 
+fn profile_to_graph(profile: &Profile<Metadata>, app: &Application) -> flame_graph::FlameGraph {
+    let mut measurements = profiler_flame_graph::Graph::new_hybrid_graph(profile);
+    let marks = make_marks_from_profile(profile);
+    measurements.marks = marks;
+
+    let performance_blocks = make_rendering_performance_blocks(profile);
+    measurements.performance_blocks = performance_blocks;
+
+    flame_graph::FlameGraph::from_data(measurements, app)
+}
 
 // Create marks for metadata. This will skip `RenderStats` as they are added separately as blocks.
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
         .iter_metadata()
-        .filter_map(|metadata: &enso_profiler_data::Metadata<Metadata>| {
-            let position = metadata.mark.into_ms();
-            match metadata.data {
-                Metadata::RenderStats(_) => None,
-                _ => {
-                    let label = metadata.data.to_string();
-                    Some(profiler_flame_graph::Mark { position, label })
-                }
+        .filter_map(|metadata: &enso_profiler_data::Metadata<Metadata>| match metadata.data {
+            Metadata::RenderStats(_) => None,
+            Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
+            Metadata::BackendMessage(_) if !SHOW_BACKEND_MESSAGE_MARKS => None,
+            _ => {
+                let position = metadata.mark.into_ms();
+                let label = metadata.data.to_string();
+                Some(profiler_flame_graph::Mark { position, label })
             }
         })
         .collect()
@@ -196,9 +227,26 @@ async fn get_data_raw() -> Option<String> {
     data.as_string()
 }
 
-async fn get_log_data() -> Option<Profile<Metadata>> {
+async fn get_log_data() -> Vec<Profile<Metadata>> {
     let data = get_data_raw().await;
-    data.and_then(|data| data.parse().ok())
+    let data = data.map(|data| {
+        parse_multiprocess_profile(&data)
+            .filter_map(|result| match result {
+                Ok(profile) => Some(profile),
+                Err(e) => {
+                    ERROR!(e);
+                    None
+                }
+            })
+            .collect()
+    });
+    match data {
+        Some(data) => data,
+        None => {
+            let dummy_data = create_dummy_data().await;
+            vec![dummy_data]
+        }
+    }
 }
 
 

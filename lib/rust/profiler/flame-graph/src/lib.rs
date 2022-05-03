@@ -117,6 +117,13 @@ impl Graph {
             Graph::default()
         }
     }
+
+    /// Height of the graph in rows.
+    pub fn height(&self) -> RowNumber {
+        let performance_rows = self.performance_blocks.iter().map(|mark| mark.row);
+        let activity_rows = self.activity_blocks.iter().map(|mark| mark.row);
+        performance_rows.chain(activity_rows).max().unwrap_or_default()
+    }
 }
 
 
@@ -290,6 +297,7 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
         callgraph.visit_interval(*child, next_row);
     }
     let CallgraphBuilder { blocks, .. } = callgraph;
+
     Graph {
         activity_blocks:    blocks,
         marks:              Vec::default(),
