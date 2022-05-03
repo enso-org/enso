@@ -50,8 +50,8 @@ impl<'a> Diagram<'a> {
     pub fn from_profiles(profiles: &[&enso_profiler_data::Profile<Metadata>; 2]) -> Self {
         let mut metadata0 = vec![];
         let mut metadata1 = vec![];
-        collect_metadata(&profiles[0], profiles[0].root_interval_id(), &mut metadata0);
-        collect_metadata(&profiles[1], profiles[1].root_interval_id(), &mut metadata1);
+        collect_metadata(profiles[0], profiles[0].root_interval_id(), &mut metadata0);
+        collect_metadata(profiles[1], profiles[1].root_interval_id(), &mut metadata1);
         let mut dia = Self::default();
         let frontend = dia.process("Ide");
         let ls = dia.process("LanguageServer");
