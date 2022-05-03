@@ -142,32 +142,32 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
 
     let output = quote! {
-        impl AstVisitable for #ident #ty_generics {
-            fn visit<T: AstVisitor>(&self, visitor:&mut T) {
+        impl<'a> AstVisitable<'a> for #ident #ty_generics {
+            fn visit<T: AstVisitor<'a>>(&'a self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body
                 visitor.after_visiting_children();
             }
         }
 
-        impl AstVisitableMut for #ident #ty_generics {
-            fn visit_mut<T: AstVisitorMut>(&mut self, visitor:&mut T) {
+        impl<'a> AstVisitableMut<'a> for #ident #ty_generics {
+            fn visit_mut<T: AstVisitorMut>(&'a mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_mut
                 visitor.after_visiting_children();
             }
         }
 
-        impl SpanVisitable for #ident #ty_generics {
-            fn visit_span<T: SpanVisitor>(&self, visitor:&mut T) {
+        impl<'a> SpanVisitable<'a> for #ident #ty_generics {
+            fn visit_span<T: SpanVisitor<'a>>(&'a self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_span
                 visitor.after_visiting_children();
             }
         }
 
-        impl SpanVisitableMut for #ident #ty_generics {
-            fn visit_span_mut<T: SpanVisitorMut>(&mut self, visitor:&mut T) {
+        impl<'a> SpanVisitableMut<'a> for #ident #ty_generics {
+            fn visit_span_mut<T: SpanVisitorMut>(&'a mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_span_mut
                 visitor.after_visiting_children();
