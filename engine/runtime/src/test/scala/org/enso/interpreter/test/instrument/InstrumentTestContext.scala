@@ -29,7 +29,7 @@ class InstrumentTestContext {
   }
 
   def receiveNIgnoreStdLib(n: Int): List[Api.Response] = {
-    receiveN(n + 1, 50).filter(excludeLibraryLoadingPayload)
+    receiveN(n + 1, 60).filter(excludeLibraryLoadingPayload)
   }
 
   private def excludeLibraryLoadingPayload(response: Api.Response): Boolean =
