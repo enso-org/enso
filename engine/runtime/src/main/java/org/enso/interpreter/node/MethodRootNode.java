@@ -60,20 +60,7 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       AtomConstructor atomConstructor,
       String methodName) {
-    class SupplierNode extends ExpressionNode {
-      private final Supplier<ExpressionNode> provider;
-
-      public SupplierNode(Supplier<ExpressionNode> body) {
-        this.provider = body;
-      }
-
-
-      @Override
-      public Object executeGeneric(VirtualFrame frame) {
-        return replace(provider.get()).executeGeneric(frame);
-      }
-    }
-    return build(language, localScope, moduleScope, new SupplierNode(body), section, atomConstructor, methodName);
+    return build(language, localScope, moduleScope, new LazyBodyNode(body), section, atomConstructor, methodName);
   }
   public static MethodRootNode build(
       Language language,
@@ -111,5 +98,20 @@ public class MethodRootNode extends ClosureRootNode {
   /** @return the method name */
   public String getMethodName() {
     return methodName;
+  }
+
+  private static class LazyBodyNode extends ExpressionNode {
+    private final Supplier<ExpressionNode> provider;
+
+    LazyBodyNode(Supplier<ExpressionNode> body) {
+      this.provider = body;
+    }
+
+
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+      ExpressionNode newNode = replace(provider.get());
+      return newNode.executeGeneric(frame);
+    }
   }
 }
