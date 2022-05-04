@@ -32,7 +32,7 @@ impl Data {
     ///    value;
     ///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`]
     ///    value (with the surrounding double-quotes stripped);
-    ///  - other strings result in an error.
+    ///  - other strings result in `None`.
     /// See below for some examples:
     /// ```
     /// # use ensogl_core::data::color;
