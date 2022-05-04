@@ -1,0 +1,82 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.statistics.SingleValue
+
+type Statistic
+    ## PRIVATE
+       Convert the Enso Statistic into Java equivalent
+    to_java : SingleValue
+    to_java = case this of
+        Sum -> SingleValue.SUM
+        Mean -> SingleValue.MEAN
+        Variance p -> if p then SingleValue.VARIANCE_POPULATION else SingleValue.VARIANCE
+        Standard_Deviation p -> if p then SingleValue.STANDARD_DEVIATION_POPULATION else SingleValue.STANDARD_DEVIATION
+        Skew p -> if p then SingleValue.SKEW_POPULATION else SingleValue.SKEW
+        _ -> Nothing
+
+    ## Count the number of non-Nothing values
+    type Count
+
+    ## The minimum value
+    type Minimum
+
+    ## The maximum value
+    type Maximum
+
+    ## Sum the non-Nothing values
+    type Sum
+
+    ## The sample mean of the values
+    type Mean
+
+    ## The variance of the values
+       Arguments:
+       - population: specifies if data is a sample or the population
+    type Variance (population:Boolean=False)
+
+    ## The standard deviation of the values
+       Arguments:
+       - population: specifies if data is a sample or the population
+    type Standard_Deviation (population:Boolean=False)
+
+    ## The skew of the values
+       Arguments:
+       - population: specifies if data is a sample or the population
+    type Skew (population:Boolean=False)
+
+## Compute a single statistic on a vector like object.
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistics: Set of statistics to calculate.
+compute : Vector -> Statistic -> Any
+compute data statistic=Count =
+    here.compute_bulk data [statistic] . first
+
+## Compute a set of statistics on a vector like object.
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistics: Set of statistics to calculate.
+compute_bulk : Vector -> [Statistic] -> [Any]
+compute_bulk data statistics=[Count, Sum] =
+    java_stats = statistics.map .to_java . to_array
+    stats_array = SingleValue.compute data.to_array java_stats
+    Vector.Vector stats_array
+s
+## Compute a single statistic on the vector.
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistics: Set of statistics to calculate.
+Vector.Vector.compute : Vector -> Statistic -> Any
+Vector.Vector.compute statistic=Count =
+    this.compute_bulk [statistic] . first
+
+## Compute statistics on the vector.
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+Vector.Vector.compute_bulk : [Statistic] -> [Number]
+Vector.Vector.compute_bulk statistics=[Count, Sum] =
+    here.compute this statistics
