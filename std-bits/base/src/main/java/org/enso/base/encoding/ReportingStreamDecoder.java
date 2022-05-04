@@ -1,5 +1,7 @@
 package org.enso.base.encoding;
 
+import static org.enso.base.Encoding_Utils.INVALID_CHARACTER;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,6 +9,9 @@ import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.base.Encoding_Utils;
 
 public class ReportingStreamDecoder extends Reader {
@@ -21,6 +26,8 @@ public class ReportingStreamDecoder extends Reader {
   private CharBuffer outputBuffer;
   private ByteBuffer inputBuffer = null;
   private byte[] workArray = null;
+  private boolean eof = false;
+  List<Integer> encodingIssuePositions = new ArrayList<>();
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
@@ -40,6 +47,9 @@ public class ReportingStreamDecoder extends Reader {
     if (len <= 0) {
       return readBytes;
     }
+
+    // If we reached end of file, we won't be able to ready any more data from the input.
+    if (eof) return -1;
 
     // If more characters are needed, we will encode some more.
     assert !outputBuffer.hasRemaining();
@@ -67,16 +77,67 @@ public class ReportingStreamDecoder extends Reader {
 
     int bytesActuallyRead = bufferedInputStream.read(workArray, 0, bytesToRead);
     if (bytesActuallyRead == -1) {
-      // TODO EOF
+      eof = true;
     }
 
-    
-    
+    if (bytesActuallyRead > 0) {
+      inputBuffer.put(workArray, 0, bytesActuallyRead);
+    }
+
+    inputBuffer.flip();
+
+
+    while (inputBuffer.hasRemaining()) {
+      CoderResult cr = decoder.decode(inputBuffer, outputBuffer, eof);
+      if (cr.isMalformed() || cr.isUnmappable()) {
+        // Get current position for error reporting
+        int position = 0; // TODO
+
+        if (outputBuffer.remaining() < Encoding_Utils.INVALID_CHARACTER.length()) {
+          growOutputBuffer();
+        }
+        outputBuffer.put(INVALID_CHARACTER);
+        inputBuffer.position(inputBuffer.position() + cr.length());
+
+        encodingIssuePositions.add(position);
+      } else if (cr.isUnderflow()) {
+        break;
+      } else if (cr.isOverflow()) {
+        growOutputBuffer();
+      }
+    }
+
+    if (eof) {
+      while (decoder.flush(outputBuffer) == CoderResult.OVERFLOW) {
+        growOutputBuffer();
+      }
+    }
+
+    outputBuffer.flip();
+    int toTransfer = Math.min(len, outputBuffer.remaining());
+    outputBuffer.get(cbuf, off, toTransfer);
+    readBytes += toTransfer;
+
+    return readBytes;
   }
 
+  private void growOutputBuffer() {
+    int newSize = 2 * outputBuffer.capacity() + 1;
+    CharBuffer newBuffer = CharBuffer.allocate(newSize);
+    outputBuffer.flip();
+    newBuffer.put(outputBuffer);
+  }
 
   @Override
   public void close() throws IOException {
     bufferedInputStream.close();
+  }
+
+  public List<String> getWarnings() {
+    if (encodingIssuePositions.isEmpty()) {
+      return List.of();
+    } else {
+      return List.of("Encoding issues at TODO");
+    }
   }
 }

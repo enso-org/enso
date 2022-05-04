@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import java.io.InputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -11,10 +12,11 @@ import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.IntFunction;
+import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.text.ResultWithWarnings;
 
 public class Encoding_Utils {
-  private static final String INVALID_CHARACTER = "\uFFFD";
+  public static final String INVALID_CHARACTER = "\uFFFD";
 
   /**
    * Converts a string into an array of bytes using the specified encoding.
@@ -60,7 +62,9 @@ public class Encoding_Utils {
         warnings.append(position);
       } else if (cr.isUnderflow()) {
         // Finished
-        encoder.flush(out);
+        while (encoder.flush(out) == CoderResult.OVERFLOW) {
+          out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
+        }
         break;
       } else if (cr.isOverflow()) {
         out = resize(out, ByteBuffer::allocate, ByteBuffer::put);
@@ -134,7 +138,9 @@ public class Encoding_Utils {
         warnings.append(position);
       } else if (cr.isUnderflow()) {
         // Finished
-        decoder.flush(out);
+        while (decoder.flush(out) == CoderResult.OVERFLOW) {
+          out = resize(out, CharBuffer::allocate, CharBuffer::put);
+        }
         break;
       } else if (cr.isOverflow()) {
         out = resize(out, CharBuffer::allocate, CharBuffer::put);
@@ -149,5 +155,15 @@ public class Encoding_Utils {
 
     warnings.append(".");
     return new ResultWithWarnings<>(out.toString(), warnings.toString());
+  }
+
+  ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset) {
+    CharsetDecoder decoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .reset();
+    return new ReportingStreamDecoder(stream, decoder);
   }
 }
