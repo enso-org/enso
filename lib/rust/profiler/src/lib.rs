@@ -161,9 +161,6 @@ pub mod log;
 
 extern crate test;
 
-use std::rc;
-use std::str;
-
 use internal::*;
 
 
@@ -179,35 +176,23 @@ pub mod prelude {
 
 
 
-// ======================
-// === MetadataLogger ===
-// ======================
+// ========================
+// === Logging Metadata ===
+// ========================
 
-/// An object that supports writing a specific type of metadata to the profiling log.
-#[derive(Debug)]
-pub struct MetadataLogger<T> {
-    id:      u32,
-    entries: rc::Rc<log::Log<T>>,
-}
-
-impl<T: 'static + serde::Serialize> MetadataLogger<T> {
-    /// Create a MetadataLogger for logging a particular type.
-    ///
-    /// The name given here must match the name used for deserialization.
-    pub fn new(name: &'static str) -> Self {
-        let id = METADATA_LOGS.len() as u32;
-        let entries = rc::Rc::new(log::Log::new());
-        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
-        Self { id, entries }
-    }
-
-    /// Write a metadata object to the profiling event log.
-    ///
-    /// Returns an identifier that can be used to create references between log entries.
-    pub fn log(&self, t: T) -> EventId {
-        self.entries.append(t);
-        EventLog.metadata(self.id)
-    }
+/// Define a function that writes a specific type of metadata to the profiling log.
+#[macro_export]
+macro_rules! metadata_logger {
+    ($name:expr, $fun:ident($ty:ty)) => {
+        /// Write a metadata object to the profiling event log.
+        pub fn $fun(data: $ty) {
+            thread_local! {
+                static LOGGER: $crate::internal::MetadataLogger<$ty> =
+                    $crate::internal::MetadataLogger::new($name);
+            }
+            LOGGER.with(|logger| logger.log(data));
+        }
+    };
 }
 
 
@@ -219,9 +204,9 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
 pub trait Parent<T: Profiler + Copy> {
     /// Start a new profiler, with `self` as its parent.
-    fn new_child(&self, label: StaticLabel) -> Started<T>;
+    fn new_child(&self, label: Label) -> Started<T>;
     /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
-    fn new_child_same_start(&self, label: StaticLabel) -> Started<T>;
+    fn new_child_same_start(&self, label: Label) -> Started<T>;
 }
 
 
@@ -356,21 +341,12 @@ pub const APP_LIFETIME: Objective = Objective(EventId::APP_LIFETIME);
 // =============
 
 #[cfg(test)]
-mod tests {
+mod log_tests {
     use crate as profiler;
     use profiler::profile;
 
-    /// Black-box metadata object, for ignoring metadata contents.
-    #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-    pub(crate) enum OpaqueMetadata {
-        /// Anything.
-        #[serde(other)]
-        Unknown,
-    }
-
-    /// Take and parse the log (convenience function for tests).
-    fn get_log<M: serde::de::DeserializeOwned>() -> Vec<profiler::Event<M, String>> {
-        serde_json::from_str(&profiler::take_log()).unwrap()
+    fn get_log() -> Vec<profiler::internal::Event> {
+        crate::internal::take_raw_log().events
     }
 
     #[test]
@@ -381,7 +357,7 @@ mod tests {
             // by absolute paths" (<https://github.com/rust-lang/rust/issues/52234>).
             let _profiler = start_objective!(profiler::APP_LIFETIME, "test");
         }
-        let log = get_log::<OpaqueMetadata>();
+        let log = get_log();
         match &log[..] {
             [profiler::Event::Start(m0), profiler::Event::End { id, timestamp: end_time }] => {
                 assert_eq!(m0.parent, profiler::APP_LIFETIME.0);
@@ -401,7 +377,7 @@ mod tests {
             let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
             let _profiler1 = objective_with_same_start!(_profiler0, "test1");
         }
-        let log = get_log::<OpaqueMetadata>();
+        let log = get_log();
         use profiler::Event::*;
         match &log[..] {
             [Start(m0), Start(m1), End { id: id1, .. }, End { id: id0, .. }] => {
@@ -421,7 +397,7 @@ mod tests {
         #[profile(Objective)]
         fn profiled() {}
         profiled();
-        let log = get_log::<OpaqueMetadata>();
+        let log = get_log();
         match &log[..] {
             [profiler::Event::Start(m0), profiler::Event::End { id: id0, .. }] => {
                 assert!(m0.start.is_some());
@@ -441,7 +417,7 @@ mod tests {
         }
         let future = profiled();
         futures::executor::block_on(future);
-        let log = get_log::<OpaqueMetadata>();
+        let log = get_log();
         #[rustfmt::skip]
         match &log[..] {
             [
@@ -472,7 +448,7 @@ mod tests {
             assert_eq!(i, 1);
         }
         futures::executor::block_on(profiled());
-        let _ = get_log::<OpaqueMetadata>();
+        let _ = get_log();
     }
 
     #[test]
@@ -489,7 +465,7 @@ mod tests {
             inner().await
         }
         futures::executor::block_on(outer());
-        let log = get_log::<OpaqueMetadata>();
+        let log = get_log();
         #[rustfmt::skip]
         match &log[..] {
             [
@@ -501,75 +477,6 @@ mod tests {
             ] => (),
             _ => panic!("log: {:#?}", log),
         };
-    }
-
-    #[test]
-    fn store_metadata() {
-        // A metadata type.
-        #[derive(serde::Serialize, serde::Deserialize)]
-        struct MyData(u32);
-
-        // Attach some metadata to a profiler.
-        #[profile(Objective)]
-        fn demo() {
-            let meta_logger = profiler::MetadataLogger::new("MyData");
-            meta_logger.log(&MyData(23));
-        }
-
-        // We can deserialize a metadata entry as an enum containing a newtype-variant for each
-        // type of metadata we are able to interpret; the variant name is the string given to
-        // MetadataLogger::register.
-        //
-        // We don't use an enum like this to *write* metadata because defining it requires
-        // dependencies from all over the app, but when consuming metadata we need all the datatype
-        // definitions anyway.
-        #[derive(serde::Deserialize)]
-        enum MyMetadata {
-            MyData(MyData),
-        }
-
-        demo();
-        let log = get_log::<MyMetadata>();
-        match &log[..] {
-            #[rustfmt::skip]
-            &[
-            profiler::Event::Start(_),
-            profiler::Event::Metadata(
-                profiler::Timestamped{ timestamp: _, data: MyMetadata::MyData (MyData(23)) }),
-            profiler::Event::End { .. },
-            ] => (),
-            _ => panic!(),
-        }
-    }
-
-    #[test]
-    fn format_stability() {
-        #[allow(unused)]
-        fn static_assert_exhaustiveness<M, L>(e: profiler::Event<M, L>) -> profiler::Event<M, L> {
-            // If you define a new Event variant, this will fail to compile to remind you to:
-            // - Create a new test covering deserialization of the previous format, if necessary.
-            // - Update `TEST_LOG` in this test to cover every variant of the new Event definition.
-            match e {
-                profiler::Event::Start(_) => e,
-                profiler::Event::StartPaused(_) => e,
-                profiler::Event::End { .. } => e,
-                profiler::Event::Pause { .. } => e,
-                profiler::Event::Resume { .. } => e,
-                profiler::Event::Metadata(_) => e,
-            }
-        }
-        const TEST_LOG: &str = "[\
-            {\"Start\":{\"parent\":4294967294,\"start\":null,\"label\":\"dummy label (lib.rs:23)\"}},\
-            {\"StartPaused\":{\"parent\":4294967294,\"start\":1,\"label\":\"dummy label2 (lib.rs:17)\"}},\
-            {\"End\":{\"id\":1,\"timestamp\":1}},\
-            {\"Pause\":{\"id\":1,\"timestamp\":1}},\
-            {\"Resume\":{\"id\":1,\"timestamp\":1}},\
-            {\"Metadata\":{\"timestamp\":1,\"data\":\"Unknown\"}}\
-            ]";
-        let events: Vec<profiler::Event<OpaqueMetadata, String>> =
-            serde_json::from_str(TEST_LOG).unwrap();
-        let reserialized = serde_json::to_string(&events).unwrap();
-        assert_eq!(TEST_LOG, &reserialized[..]);
     }
 }
 
@@ -610,10 +517,7 @@ mod bench {
     }
 
     /// For comparison with time taken by [`log_measurements`].
-    fn push_vec(
-        count: usize,
-        log: &mut Vec<profiler::Event<crate::tests::OpaqueMetadata, &'static str>>,
-    ) {
+    fn push_vec(count: usize, log: &mut Vec<profiler::Event>) {
         for _ in 0..count {
             log.push(profiler::Event::Start(profiler::Start {
                 parent: profiler::EventId::APP_LIFETIME,

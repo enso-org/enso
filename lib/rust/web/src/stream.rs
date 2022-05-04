@@ -19,9 +19,9 @@ extern "C" {
     /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader.
     pub type ReadableStreamDefaultReader;
 
-    /// Returns a Promise providing access to the next chunk in the stream's internal queue.
-    ///
-    /// See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read.
+    // Returns a Promise providing access to the next chunk in the stream's internal queue.
+    //
+    // See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read.
     #[allow(unsafe_code)]
     #[wasm_bindgen(method)]
     pub fn read(this: &ReadableStreamDefaultReader) -> js_sys::Promise;

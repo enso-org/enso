@@ -1,0 +1,94 @@
+from Standard.Base import all
+import Standard.Table
+
+import Standard.Base.Error.Extensions as Errors
+from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
+from Standard.Table.Error as Table_Errors import Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+from Standard.Table.Io.File_Format import Infer
+
+polyglot java import org.enso.table.read.DelimitedReader
+polyglot java import org.enso.table.read.ParsingFailedException
+polyglot java import org.enso.table.read.InvalidRow
+polyglot java import org.enso.table.read.MismatchedQuote
+polyglot java import org.enso.table.read.AdditionalInvalidRows
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.io.IOException
+polyglot java import com.univocity.parsers.common.TextParsingException
+polyglot java import java.io.InputStream
+
+## Reads a delimited file according to the provided format.
+
+   Arguments:
+   - format: The specification of the delimited file format.
+   - file: The file to read.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+read_file : Delimited -> File -> Problem_Behavior -> Any
+read_file format file on_problems =
+    if format.encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
+        ## We use the default `max_columns` setting. If we want to be able to
+           read files with unlimited column limits (risking OutOfMemory
+           exceptions), we can catch the exception indicating the limit has been
+           reached and restart parsing with an increased limit.
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream java_stream->
+                here.read_stream format java_stream on_problems related_file=file
+
+## PRIVATE
+   Reads an input stream according to the provided format.
+
+   The `encoding` parameter is ignored, instead the provided stream should
+   handle any necessary decoding.
+
+   Arguments:
+   - format: The specification of the delimited file format.
+   - java_stream: A Java `InputStream` used as the data source.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - max_columns: Specifies the limit of columns to read. The limit is set to
+     avoid `OutOfMemory` errors on malformed files. It must be a positive
+     integer.
+   - related_file: The file related to the provided `java_stream`, if available,
+     or `Nothing`. It is used for more detailed error reporting.
+read_stream : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> Any
+read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
+    java_headers = case format.headers of
+        True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
+        Infer -> Errors.unimplemented "Inferring headers is not implemented yet."
+        False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
+    skip_rows = case format.skip_rows of
+        Nothing -> 0
+        Integer -> format.skip_rows
+        _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
+    row_limit = case format.row_limit of
+        Nothing -> -1
+        Integer -> format.row_limit
+        _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
+    if format.parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
+        translate_illegal_argument caught_panic =
+            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+        translate_problem java_problem =
+            if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
+                if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
+                    if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
+                        java_problem
+        translate_parsing_failure caught_panic =
+            Error.throw (translate_problem caught_panic.payload.cause.problem)
+        translate_parsing_exception caught_panic =
+            cause = caught_panic.payload.cause.getCause
+            if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
+                Error.throw (Parser_Error caught_panic.payload)
+
+        Panic.catch IllegalArgumentException handler=translate_illegal_argument <|
+            Panic.catch ParsingFailedException handler=translate_parsing_failure <|
+                Panic.catch TextParsingException handler=translate_parsing_exception <|
+                    warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+                    reader = DelimitedReader.new java_stream format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
+                    result = Table.Table reader.read
+                    problems = Vector.Vector reader.getReportedProblems . map translate_problem
+                    on_problems.attach_problems_after result problems

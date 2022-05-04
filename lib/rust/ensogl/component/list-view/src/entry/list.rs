@@ -8,6 +8,7 @@ use crate::entry::Entry;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::style;
 
 
 
@@ -128,15 +129,21 @@ where E::Model: Default
     }
 
     /// Update displayed entries to show the given range and limit their display width to at most
-    /// `max_width_px`.
-    pub fn update_entries(&self, mut range: Range<entry::Id>, max_width_px: f32) {
+    /// `max_width_px`. Any newly created entries will use the styles located at the `style_prefix`
+    /// path in the application's style sheet.
+    pub fn update_entries(
+        &self,
+        mut range: Range<entry::Id>,
+        max_width_px: f32,
+        style_prefix: style::Path,
+    ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
             debug!(self.logger, "Update entries for {range:?}");
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
-                    entries.resize_with(range.len(), || self.create_new_entry());
+                    entries.resize_with(range.len(), || self.create_new_entry(&style_prefix));
                     entries.iter().filter_map(|entry| entry.id.get()).collect()
                 });
             let missing = range.clone().filter(|id| !current_entries.contains(id));
@@ -158,13 +165,31 @@ where E::Model: Default
         }
     }
 
+    /// Recreate the displayed entries to make them use the styles located at the `style_prefix`
+    /// path in the application's style sheet.
+    pub fn recreate_entries_with_style_prefix(&self, style_prefix: style::Path) {
+        let mut entries = self.entries.borrow_mut();
+        let provider = self.provider.get();
+        for entry in entries.iter_mut() {
+            self.remove_child(&entry.entry);
+            let new_entry = self.create_new_entry(&style_prefix);
+            if let Some(id) = entry.id.get() {
+                let model = provider.get(id);
+                Self::update_entry(&self.logger, &new_entry, id, &model);
+            }
+            *entry = new_entry;
+        }
+    }
+
     /// Update displayed entries, giving new provider. New entries created by the function have
-    /// their maximum width set to `max_width_px`.
+    /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
+    /// path.
     pub fn update_entries_new_provider(
         &self,
         provider: impl Into<entry::AnyModelProvider<E>> + 'static,
         mut range: Range<entry::Id>,
         max_width_px: f32,
+        style_prefix: style::Path,
     ) {
         const MAX_SAFE_ENTRIES_COUNT: usize = 1000;
         let provider = provider.into();
@@ -180,7 +205,7 @@ where E::Model: Default
         let models = range.clone().map(|id| (id, provider.get(id)));
         let mut entries = self.entries.borrow_mut();
         let create_new_entry_with_max_width = || {
-            let entry = self.create_new_entry();
+            let entry = self.create_new_entry(&style_prefix);
             entry.entry.set_max_width(max_width_px);
             entry
         };
@@ -210,7 +235,7 @@ where E::Model: Default
         self.label_layer.set(label_layer);
     }
 
-    fn create_new_entry(&self) -> DisplayedEntry<E> {
+    fn create_new_entry(&self, style_prefix: &style::Path) -> DisplayedEntry<E> {
         let layers = &self.app.display.default_scene.layers;
         let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
             error!(
@@ -220,7 +245,8 @@ where E::Model: Default
             );
             layers.main.clone_ref()
         });
-        let entry = DisplayedEntry { id: default(), entry: E::new(&self.app) };
+        let entry = E::new(&self.app, style_prefix);
+        let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
         entry.entry.set_position_x(entry::PADDING);
         self.add_child(&entry.entry);
