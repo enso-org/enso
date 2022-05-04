@@ -96,7 +96,7 @@ jobs:
         with:
           clean: false
       - uses: ./actions/setup-build
-      - run: bash run.sh ide integration-tests
+      - run: bash run.sh ide integration-test
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
