@@ -57,12 +57,12 @@ impl Debug for EmbeddedFonts {
 mod test {
     use crate::*;
 
-    use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
+    use ensogl_text_embedded_fonts_names::fonts;
 
     #[test]
     fn loading_embedded_fonts() {
         let fonts = EmbeddedFonts::create_and_fill();
-        let example_font = fonts.font_data_by_name.get(DEJA_VU_SANS).unwrap();
+        let example_font = fonts.font_data_by_name.get(fonts::DEFAULT).unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);

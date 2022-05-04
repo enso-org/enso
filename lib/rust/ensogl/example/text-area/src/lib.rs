@@ -28,7 +28,7 @@ use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_text::style;
 use ensogl_text::Area;
-use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
+use ensogl_text_embedded_fonts_names::fonts;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -53,7 +53,7 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let text = quote.to_string() + snowman + zalgo;
     area.set_content(text.clone() + "\n" + text.as_str());
-    area.set_font(DEJA_VU_SANS);
+    area.set_font(fonts::DEFAULT);
     area.focus();
     area.hover();
     area.set_cursor_at_end();
