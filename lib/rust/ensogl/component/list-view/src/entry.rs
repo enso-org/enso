@@ -6,7 +6,7 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
-use ensogl_hardcoded_theme as theme;
+use ensogl_core::display::style::Path;
 use ensogl_text as text;
 
 
@@ -61,7 +61,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     type Model: Debug + Default;
 
     /// An Object constructor.
-    fn new(app: &Application) -> Self;
+    fn new(app: &Application, style_prefix: &Path) -> Self;
 
     /// Update content with new model.
     fn update(&self, model: &Self::Model);
@@ -103,7 +103,7 @@ impl Label {
 impl Entry for Label {
     type Model = String;
 
-    fn new(app: &Application) -> Self {
+    fn new(app: &Application, style_prefix: &Path) -> Self {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
@@ -111,16 +111,20 @@ impl Entry for Label {
         let max_width_px = default();
         let network = frp::Network::new("list_view::entry::Label");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let color = style_watch.get_color(theme::widget::list_view::text);
-        let size = style_watch.get_number(theme::widget::list_view::text::size);
+        let text_style = style_prefix.sub("text");
+        let font = style_watch.get_text(text_style.sub("font"));
+        let size = style_watch.get_number(text_style.sub("size"));
+        let color = style_watch.get_color(text_style);
 
         display_object.add_child(&label);
         frp::extend! { network
             init <- source::<()>();
             color <- all(&color,&init)._0();
-            size  <- all(&size,&init)._0();
+            font <- all(&font,&init)._0();
+            size <- all(&size,&init)._0();
 
-            label.set_default_color     <+ color;
+            label.set_default_color <+ color;
+            label.set_font <+ font;
             label.set_default_text_size <+ size.map(|v| text::Size(*v));
             eval size ((size) label.set_position_y(size/2.0));
         }
@@ -174,11 +178,11 @@ pub struct GlyphHighlightedLabel {
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
 
-    fn new(app: &Application) -> Self {
-        let inner = Label::new(app);
+    fn new(app: &Application, style_prefix: &Path) -> Self {
+        let inner = Label::new(app, style_prefix);
         let network = &inner.network;
-        let highlight_color =
-            inner.style_watch.get_color(theme::widget::list_view::text::highlight);
+        let text_style = style_prefix.sub("text");
+        let highlight_color = inner.style_watch.get_color(text_style.sub("highlight"));
         let label = &inner.label;
 
         frp::extend! { network

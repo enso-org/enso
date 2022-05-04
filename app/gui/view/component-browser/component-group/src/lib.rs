@@ -39,7 +39,7 @@ use ensogl_text as text;
 // === Constants ===
 // =================
 
-const HEADER_FONT: &str = "DejaVuSans-Bold";
+const ENTRIES_STYLE_PATH: &str = theme::entries::HERE.str;
 
 
 
@@ -162,6 +162,7 @@ impl component::Frp<Model> for Frp {
         let mouse_position = app.display.default_scene.mouse.frp.position.clone_ref();
         let input = &api.input;
         let out = &api.output;
+        let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
 
 
@@ -183,6 +184,8 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             init <- source_();
+            header_text_font <- all(&header_text_font, &init)._0();
+            model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
@@ -287,6 +290,7 @@ impl component::Model for Model {
         let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
         let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
+        entries.set_style_prefix(ENTRIES_STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
@@ -295,7 +299,6 @@ impl component::Model for Model {
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
 
-        header.set_font(HEADER_FONT);
         let label_layer = &app.display.default_scene.layers.label;
         header.add_to_scene_layer(label_layer);
 
