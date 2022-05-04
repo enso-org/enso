@@ -30,10 +30,10 @@ runs:
         rm -r $WASMPACKDIR
       shell: bash
       if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent') # GitHub-hosted runner.
-    - uses: actions/checkout@v3
-      name: Checkout the repository
-      with:
-        clean: ${{ inputs.clean }}
+#    - uses: actions/checkout@v3
+#      name: Checkout the repository
+#      with:
+#        clean: ${{ inputs.clean }}
 
     # Runs a set of commands using the runners shell
     - uses: actions/github-script@v6

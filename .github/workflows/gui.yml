@@ -23,6 +23,10 @@ jobs:
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
       - uses: ./actions/setup-build
       - run: bash run.sh ide build
   lint:
@@ -36,6 +40,10 @@ jobs:
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
       - uses: ./actions/setup-build/action.yml
       - run: bash run.sh lint
 #  info:
