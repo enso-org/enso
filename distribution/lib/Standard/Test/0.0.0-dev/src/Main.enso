@@ -165,7 +165,7 @@ fail message =
 Any.should_fail_with : Any -> Integer -> Assertion
 Any.should_fail_with matcher frames_to_skip=0 =
     loc = Meta.get_source_location 1+frames_to_skip
-    here.fail ("Expected an error " + matcher.to_text + " but none occurred (at " + loc + ").")
+    here.fail ("Expected an error " + matcher.to_text + " but no error occurred, instead got: " + this.to_text + " (at " + loc + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 

@@ -94,3 +94,20 @@ type Additional_Warnings (count:Integer)
 Additional_Warnings.to_display_text : Text
 Additional_Warnings.to_display_text =
     "There were "+this.count.to_text+" additional issues."
+
+## Indicates that when loading a delimited file, a row was encountered which had
+   too many or too few columns.
+
+   Only the first 10 rows are reported, any additional ones are aggregated into
+   a single instance of `Additional_Invalid_Rows`.
+type Invalid_Row (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
+
+## Indicates how many additional `Invalid_Row` warnings have been suppressed.
+type Additional_Invalid_Rows (count : Integer)
+
+## Indicates that a quote inside of a delimited file cell has been opened but
+   never closed.
+type Mismatched_Quote
+
+## Indicates an unexpected parser error.
+type Parser_Error cause

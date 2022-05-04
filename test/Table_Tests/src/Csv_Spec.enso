@@ -172,3 +172,5 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
             out_3.delete_if_exists
+
+main = Test.Suite.run_main here.spec

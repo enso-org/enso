@@ -240,13 +240,6 @@ where T: Into<Data>
     }
 }
 
-impl TryFrom<String> for Value {
-    type Error = <Data as TryFrom<String>>::Error;
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        s.try_into().map(Self::Data)
-    }
-}
-
 impl PartialSemigroup<&Value> for Value {
     fn concat_mut(&mut self, other: &Self) {
         *self = other.clone()

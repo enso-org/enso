@@ -48,7 +48,7 @@ pub use web_sys::Window;
     }
 ")]
 extern "C" {
-    /// See the docs of [`crate::FunctionOps`].
+    // See the docs of [`crate::FunctionOps`].
     #[allow(unsafe_code)]
     #[wasm_bindgen(catch)]
     pub fn new_function_with_args(args: &str, body: &str) -> Result<Function, JsValue>;

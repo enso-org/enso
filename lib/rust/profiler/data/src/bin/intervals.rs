@@ -28,6 +28,7 @@
 
 use enso_prelude::*;
 
+use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
 use std::collections;
 
@@ -42,7 +43,7 @@ fn main() {
 
     let mut log = String::new();
     std::io::stdin().read_to_string(&mut log).unwrap();
-    let profile: data::Profile<()> = log.parse().unwrap();
+    let profile: data::Profile<AnyMetadata> = log.parse().unwrap();
     let mut aggregator = data::aggregate::Aggregator::default();
     aggregator.add_profile(&profile);
     let root = data::aggregate::Frame::from(aggregator);

@@ -117,6 +117,13 @@ impl Graph {
             Graph::default()
         }
     }
+
+    /// Height of the graph in rows.
+    pub fn height(&self) -> RowNumber {
+        let performance_rows = self.performance_blocks.iter().map(|mark| mark.row);
+        let activity_rows = self.activity_blocks.iter().map(|mark| mark.row);
+        performance_rows.chain(activity_rows).max().unwrap_or_default()
+    }
 }
 
 
@@ -154,7 +161,7 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
     fn visit_interval(&mut self, active: data::IntervalId, row: RowNumber) {
         let active = &self.profile[active];
         let start = active.interval.start.into_ms();
-        let end = active.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
+        let end = active.interval.end.map(|time| time.into_ms()).unwrap_or(f64::MAX);
         // Optimization: can't draw zero-width blocks anyway.
         if end == start {
             return;
@@ -215,7 +222,7 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
 
                     let current_start = current.interval.start.into_ms();
                     let current_end =
-                        current.interval.end.map(|mark| mark.into_ms()).unwrap_or(f64::MAX);
+                        current.interval.end.map(|time| time.into_ms()).unwrap_or(f64::MAX);
                     let next_start = next.interval.start.into_ms();
 
                     let active_interval = [current_start, current_end];
@@ -290,6 +297,7 @@ fn new_hybrid_graph<Metadata>(profile: &data::Profile<Metadata>) -> Graph {
         callgraph.visit_interval(*child, next_row);
     }
     let CallgraphBuilder { blocks, .. } = callgraph;
+
     Graph {
         activity_blocks:    blocks,
         marks:              Vec::default(),
