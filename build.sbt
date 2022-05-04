@@ -1737,6 +1737,76 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
+lazy val buildStdLibBase = taskKey[Unit]("Build only the standard library for Base")
+buildStdLibBase := {
+  (Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      buildStdLibPackage("Base", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }).value
+}
+
+lazy val buildStdLibDatabase = taskKey[Unit]("Build only the standard library for Database")
+buildStdLibDatabase := {
+  (Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      buildStdLibPackage("Database", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }).value
+}
+
+lazy val buildStdLibTable = taskKey[Unit]("Build only the standard library for Table")
+buildStdLibTable := {
+  (Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      buildStdLibPackage("Table", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }).value
+}
+
+lazy val buildStdLibVis = taskKey[Unit]("Build only the standard library for Visualization")
+buildStdLibVis := {
+  (Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      buildStdLibPackage("Visualization", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }).value
+}
+
+def buildStdLibPackage(name: String, root: File, cacheFactory: sbt.util.CacheStoreFactory, log: sbt.Logger) = Def.task {
+  log.info(s"Building standard library package for '$name'")
+  val version = "0.0.0-dev"
+  val prefix = "Standard"
+  val targetPkgRoot = root / "lib" / prefix / name / version
+  val sourceDir = file(s"distribution/lib/$prefix/$name/$version")
+  if (!sourceDir.exists) {
+    throw new RuntimeException("Invalid standard library package " + name)
+  }
+  val result = DistributionPackage.copyDirectoryIncremental(
+    source      = file(s"distribution/lib/$prefix/$name/$version"),
+    destination = targetPkgRoot,
+    cache = cacheFactory.sub("engine-libraries").make(s"$prefix.$name"),
+  )
+  if (result) {
+    log.info(s"Package '$name' has been updated")
+    DistributionPackage.fixLibraryManifest(targetPkgRoot, version, log)
+  } else {
+    log.info(s"No changes detected for '$name' package")
+  }
+}
+
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
 buildLauncherDistribution := {

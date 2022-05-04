@@ -42,7 +42,7 @@ object DistributionPackage {
     source: File,
     destination: File,
     cache: CacheStore
-  ): Unit = {
+  ): Boolean = {
     val allFiles = source.allPaths.get().toSet
     Tracked.diffInputs(cache, FileInfo.lastModified)(allFiles) { diff =>
       val missing = diff.unmodified.exists { f =>
@@ -55,7 +55,8 @@ object DistributionPackage {
       if (diff.modified.nonEmpty || diff.removed.nonEmpty || missing) {
         IO.delete(destination)
         IO.copyDirectory(source, destination)
-      }
+        true
+      } else false
     }
   }
 
