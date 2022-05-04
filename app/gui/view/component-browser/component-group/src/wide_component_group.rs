@@ -10,18 +10,18 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::EntryId;
 use enso_frp as frp;
-use ensogl_core::application::Application;
+use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::traits::*;
+use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::Animation;
-use ensogl_core::application::shortcut::Shortcut;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
-use crate::EntryId;
 
 
 
@@ -83,7 +83,7 @@ pub mod background {
 /// the lists with lower indices will have more entries.
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct ModelProvider {
-    inner: AnyModelProvider<Entry>,
+    inner:     AnyModelProvider<Entry>,
     column_id: Immutable<ColumnId>,
 }
 
@@ -91,7 +91,10 @@ impl ModelProvider {
     /// Wrap [`AnyModelProvider`] and split its entries into `COLUMNS` lists. The returned instance
     /// provides entries for column with `index`.
     fn wrap(inner: &AnyModelProvider<Entry>, column_id: ColumnId) -> AnyModelProvider<Entry> {
-        AnyModelProvider::new(Self { inner: inner.clone_ref(), column_id: Immutable(column_id) })
+        AnyModelProvider::new(Self {
+            inner:     inner.clone_ref(),
+            column_id: Immutable(column_id),
+        })
     }
 }
 
@@ -196,7 +199,7 @@ impl component::Frp<Model> for Frp {
 
                 // === Columns size and position ===
 
-                _eval <- all_with(&column_width, &background_height.value, 
+                _eval <- all_with(&column_width, &background_height.value,
                                    f!((&width, &bg_height) column.resize(width, bg_height)));
             }
         }
@@ -214,7 +217,7 @@ impl component::Frp<Model> for Frp {
 #[derive(Debug, Clone, CloneRef)]
 struct Column {
     index: Immutable<ColumnId>,
-    len: Rc<Cell<usize>>,
+    len:   Rc<Cell<usize>>,
     inner: list_view::ListView<Entry>,
 }
 
@@ -229,7 +232,7 @@ impl Column {
     fn new(app: &Application, index: ColumnId) -> Self {
         Self {
             index: Immutable(index),
-            len: default(),
+            len:   default(),
             inner: app.new_view::<list_view::ListView<Entry>>(),
         }
     }
@@ -255,7 +258,7 @@ impl Column {
 
     fn selection_position(&self, pos: Vector2) -> Vector2 {
         self.position().xy() + pos
-    } 
+    }
 }
 
 
@@ -288,11 +291,7 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        let columns = Rc::new([
-            Column::new(app, 0),
-            Column::new(app, 1),
-            Column::new(app, 2),
-        ]);
+        let columns = Rc::new([Column::new(app, 0), Column::new(app, 1), Column::new(app, 2)]);
         for column in columns.iter() {
             column.hide_selection();
             column.set_background_color(Rgba::transparent());
