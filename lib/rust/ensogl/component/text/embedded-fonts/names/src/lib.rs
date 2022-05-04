@@ -12,6 +12,12 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+
+
+// =================
+// === Constants ===
+// =================
+
 /// Full name of the regular sans-serif font from the DejaVu font family.
 pub const DEJA_VU_SANS: &str = "DejaVuSans";
 
