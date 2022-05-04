@@ -62,7 +62,7 @@ jobs:
         with:
           clean: false
       - uses: ./actions/setup-build
-      - run: bash run.sh test --no-wasm
+      - run: bash run.sh wasm test --no-wasm
   test-wasm:
     name: GUI Tests (native)
     runs-on: ${{ matrix.runner }}
@@ -79,7 +79,7 @@ jobs:
         with:
           clean: false
       - uses: ./actions/setup-build
-      - run: bash run.sh test --no-native
+      - run: bash run.sh wasm test --no-native
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
