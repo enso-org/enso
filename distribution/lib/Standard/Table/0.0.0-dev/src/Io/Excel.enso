@@ -2,6 +2,7 @@ from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Erro
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 
 import Standard.Table.Data.Table
+from Standard.Table.Error as Error_Module import Invalid_Location
 
 polyglot java import org.enso.table.format.xlsx.Range as Java_Range
 polyglot java import org.enso.table.format.xlsx.Reader
@@ -133,7 +134,7 @@ validate ~validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
 
 read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_excel file section on_problems xls_format=False =
+read_excel file section _ xls_format=False =
     reader stream = case section of
         Sheet_Names -> Vector.Vector (Reader.readSheetNames stream xls_format)
         Range_Names -> Vector.Vector (Reader.readRangeNames stream xls_format)
@@ -143,10 +144,12 @@ read_excel file section on_problems xls_format=False =
                     Reader.readSheetByName stream sheet skip_rows row_limit xls_format
         Range address skip_rows row_limit ->
             Table.Table <|
-                range = (if address.is_an Excel_Range then address else Excel_Range.from_address address)
-                Reader.readRange stream range.java_range skip_rows row_limit xls_format
+                if address.is_an Excel_Range then Reader.readRange stream range.java_range skip_rows row_limit xls_format else
+                    Reader.readRangeByName stream range skip_rows row_limit xls_format
 
     file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
-    Panic.catch IOException handler=file_failure <|
-        file.with_input_stream [File.Option.Read] stream->
-            stream.with_java_stream reader
+    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+
+    Panic.catch IllegalArgumentException handler= <|
+        Panic.catch IOException handler=file_failure <|
+            file.with_input_stream [File.Option.Read] stream->stream.with_java_stream reader

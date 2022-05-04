@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 public class Range {
   private static final Pattern FULL_ADDRESS = Pattern.compile("^('.+'|[^'!]+)!(.+)$");
 
-  private static String[] parseFullAddress(String fullAddress) {
+  private static String[] parseFullAddress(String fullAddress) throws IllegalArgumentException {
     if (fullAddress == null) {
       throw new IllegalArgumentException("fullAddress cannot be NULL.");
     }
@@ -37,7 +37,7 @@ public class Range {
   private static final Pattern RANGE_RC =
       Pattern.compile("^(" + ADDRESS_RC + ")(?::(" + ADDRESS_RC + "))?$");
 
-  private static int[] parseRange(String range) {
+  private static int[] parseRange(String range) throws IllegalArgumentException {
     for (Pattern pattern : new Pattern[] {RANGE_A1, RANGE_COL, RANGE_ROW, RANGE_RC}) {
       Optional<int[]> parsed =
           parseRange(range, pattern, pattern == RANGE_RC ? Range::parseRC : Range::parseA1);
@@ -72,7 +72,9 @@ public class Range {
         });
   }
 
-  private static boolean isLetter(char c) { return c >= 'A' && c <= 'Z'; }
+  private static boolean isLetter(char c) {
+    return c >= 'A' && c <= 'Z';
+  }
 
   private static boolean isDigit(char c) {
     return c >= '0' && c <= '9';
@@ -86,70 +88,82 @@ public class Range {
   }
 
   private static int[] parseA1(CharSequence address) {
-    int col = 0;
-
-    int index = skipDollar(address, 0);
-    while (index < address.length() && isLetter(address.charAt(index))) {
-      col = 26 * col + (address.charAt(index) - 'A' + 1);
-      index++;
-    }
-
-    index = skipDollar(address, index);
-    int row = index < address.length() ? Integer.parseInt(address, index, address.length(), 10) : 0;
-    return new int[] {row, col};
+    ParsedInteger col = parseColumn(address);
+    ParsedInteger row = parseInteger(address, skipDollar(address, col.index));
+    return new int[] {row.value, col.value};
   }
 
-  private static int[] parseRC(CharSequence address) {
+  private static int[] parseRC(CharSequence address) throws IllegalArgumentException {
     int index = 0;
 
     int row = 0;
     if (index < address.length() && address.charAt(index) == 'R') {
-      // Parse Row
-      int endIndex = index + 1;
-      while (endIndex < address.length() && isDigit(address.charAt(endIndex))) {
-        endIndex++;
+      ParsedInteger parsed = parseInteger(address, index + 1);
+      if (parsed.value == 0) {
+        throw new IllegalArgumentException(address + " not an absolute R1C1 style addresses.");
       }
 
-      if (endIndex == index + 1) {
-        throw new IllegalArgumentException("R1C1 style addresses must be absolute.");
-      }
-
-      row = Integer.parseInt(address, index + 1, endIndex, 10);
-      index = endIndex;
+      row = parsed.value;
+      index = parsed.index;
     }
 
     int col = 0;
     if (index < address.length() && address.charAt(index) == 'C') {
-      // Parse Row
-      int endIndex = index + 1;
-      while (endIndex < address.length() && isDigit(address.charAt(endIndex))) {
-        endIndex++;
+      ParsedInteger parsed = parseInteger(address, index + 1);
+      if (parsed.value == 0) {
+        throw new IllegalArgumentException(address + " not an absolute R1C1 style addresses.");
       }
 
-      if (endIndex == index + 1) {
-        throw new IllegalArgumentException("R1C1 style addresses must be absolute.");
-      }
-
-      col = Integer.parseInt(address, index + 1, endIndex, 10);
+      col = parsed.value;
     }
 
     return new int[] {row, col};
   }
 
-  public static int parseA1Column(CharSequence column) {
+  /**
+   * Convert an Excel Column Name (e.g. DCR) into the index (1-based)
+   *
+   * @param column name
+   * @return Column index (A=1 ...)
+   */
+  public static int parseA1Column(CharSequence column) throws IllegalArgumentException {
+    ParsedInteger parsed = parseColumn(column);
+    if (parsed.index != column.length() || parsed.value == 0) {
+      throw new IllegalArgumentException(column + " is not a valid Excel Column Name.");
+    }
+
+    return parsed.value;
+  }
+
+  private static class ParsedInteger {
+    public final int index;
+    public final int value;
+
+    public ParsedInteger(int index, int value) {
+      this.index = index;
+      this.value = value;
+    }
+  }
+
+  private static ParsedInteger parseInteger(CharSequence address, int index) {
+    int endIndex = index;
+    while (endIndex < address.length() && isDigit(address.charAt(endIndex))) {
+      endIndex++;
+    }
+    return new ParsedInteger(endIndex, Integer.parseInt(address, index + 1, endIndex, 10));
+  }
+
+  private static ParsedInteger parseColumn(CharSequence column) {
     int col = 0;
 
-    int index = 0;
+    int index = skipDollar(column, 0);
+
     while (index < column.length() && isLetter(column.charAt(index))) {
       col = 26 * col + (column.charAt(index) - 'A' + 1);
       index++;
     }
 
-    if (index != column.length()) {
-      return -1;
-    }
-
-    return col;
+    return new ParsedInteger(index, col);
   }
 
   private final String sheetName;
@@ -158,7 +172,7 @@ public class Range {
   private final int topRow;
   private final int bottomRow;
 
-  public Range(String fullAddress) {
+  public Range(String fullAddress) throws IllegalArgumentException {
     String[] sheetAndRange = parseFullAddress(fullAddress);
     this.sheetName = sheetAndRange[0].replaceAll("^'(.*)'$", "$1").replaceAll("''", "'");
 
@@ -215,8 +229,10 @@ public class Range {
         (isWholeRow() ? "" : CellReference.convertNumToColString(getLeftColumn() - 1))
             + (isWholeColumn() ? "" : Integer.toString(getTopRow()));
     if (getLeftColumn() != getRightColumn() || getTopRow() != getBottomRow()) {
-      range += ":" + (isWholeRow() ? "" : CellReference.convertNumToColString(getRightColumn() - 1))
-          + (isWholeColumn() ? "" : Integer.toString(getBottomRow()));
+      range +=
+          ":"
+              + (isWholeRow() ? "" : CellReference.convertNumToColString(getRightColumn() - 1))
+              + (isWholeColumn() ? "" : Integer.toString(getBottomRow()));
     }
 
     return sheetNameEscaped + "!" + range;

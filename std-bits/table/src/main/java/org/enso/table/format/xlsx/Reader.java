@@ -42,7 +42,7 @@ public class Reader {
    * @param hasHeaders specifies whether the first non-empty row of the sheet should be used for
    *     column names.
    * @param unnamedColumnPrefix specifies the prefix to use for missing columns.
-   * @param mkDate a function converting java-based dates into a format understandable by the
+   * @param mkDate a function converting Java-based dates into a format understandable by the
    *     caller.
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
@@ -77,7 +77,7 @@ public class Reader {
    * @param hasHeaders specifies whether the first non-empty row of the sheet should be used for
    *     column names.
    * @param unnamedColumnPrefix specifies the prefix to use for missing columns.
-   * @param mkDate a function converting java-based dates into a format understandable by the
+   * @param mkDate a function converting Java-based dates into a format understandable by the
    *     caller.
    * @return a {@link Table} containing the specified data.
    * @throws IOException when the input stream cannot be read.
@@ -198,7 +198,10 @@ public class Reader {
     return new Table(columns);
   }
 
-  private static Table readSheetToTable(Sheet sheet, Range range, int skipRows, int rowCount) {
+  private static Table readSheetToTable(
+      Workbook workbook, int sheetIndex, Range range, int skipRows, int rowCount) {
+    Sheet sheet = workbook.getSheetAt(sheetIndex);
+
     // Row Range
     int firstRow = sheet.getFirstRowNum() + 1;
     int lastRow = sheet.getLastRowNum() + 1;
@@ -253,15 +256,6 @@ public class Reader {
             .toArray(Column[]::new);
 
     return new Table(columns);
-  }
-
-  private static String getRefersTo(Workbook workbook, String rangeName) {
-    for (Name name : workbook.getAllNames()) {
-      if (name.getNameName().equalsIgnoreCase(rangeName)) {
-        return name.getRefersToFormula();
-      }
-    }
-    return null;
   }
 
   private static int getSheetIndex(Workbook workbook, String sheetName) {
@@ -328,9 +322,9 @@ public class Reader {
       throw new IllegalArgumentException("Unknown sheet '" + sheetName + "'.");
     }
 
-    Sheet sheet = workbook.getSheetAt(sheetIndex);
     return readSheetToTable(
-        sheet,
+        workbook,
+        sheetIndex,
         null,
         skip_rows == null ? 0 : skip_rows,
         row_limit == null ? Integer.MAX_VALUE : row_limit);
@@ -347,27 +341,45 @@ public class Reader {
           "Sheet index is not in valid range (1 to " + sheetCount + " inclusive).");
     }
 
-    Sheet sheet = workbook.getSheetAt(index - 1);
     return readSheetToTable(
-        sheet,
+        workbook,
+        index - 1,
         null,
         skip_rows == null ? 0 : skip_rows,
         row_limit == null ? Integer.MAX_VALUE : row_limit);
+  }
+
+  public static Table readRangeByName(
+      InputStream stream,
+      String rangeNameOrAddress,
+      Integer skip_rows,
+      Integer row_limit,
+      boolean xls_format)
+      throws IOException {
+    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+
+    Name name = workbook.getName(rangeNameOrAddress);
+    Range range = new Range(name == null ? rangeNameOrAddress : name.getRefersToFormula());
+    return readRange(workbook, range, skip_rows, row_limit);
   }
 
   public static Table readRange(
       InputStream stream, Range range, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException {
     Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+    return readRange(workbook, range, skip_rows, row_limit);
+  }
 
+  private static Table readRange(
+      Workbook workbook, Range range, Integer skip_rows, Integer row_limit) {
     int sheetIndex = getSheetIndex(workbook, range.getSheetName());
     if (sheetIndex == -1) {
       throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
     }
 
-    Sheet sheet = workbook.getSheetAt(sheetIndex);
     return readSheetToTable(
-        sheet,
+        workbook,
+        sheetIndex,
         range,
         skip_rows == null ? 0 : skip_rows,
         row_limit == null ? Integer.MAX_VALUE : row_limit);
