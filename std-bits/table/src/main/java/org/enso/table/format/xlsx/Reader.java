@@ -206,34 +206,28 @@ public class Reader {
     int firstRow = sheet.getFirstRowNum() + 1;
     int lastRow = sheet.getLastRowNum() + 1;
     int startRow = (range == null || range.isWholeColumn() ? 1 : range.getTopRow()) + skipRows;
-    int endRow =
-        Math.min(
-            range == null || range.isWholeColumn() ? lastRow : range.getBottomRow(),
-            rowCount == Integer.MAX_VALUE ? Integer.MAX_VALUE : startRow + rowCount - 1);
+    int endRow = range == null || range.isWholeColumn() ? lastRow : range.getBottomRow();
 
     // Columns
     int startCol = (range == null || range.isWholeRow() ? 1 : range.getLeftColumn());
     int endCol = (range == null || range.isWholeRow() ? -1 : range.getRightColumn());
+    int size = Math.min(rowCount, endRow - startRow + 1);
     List<Builder> builders =
         endCol == -1
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
-                .mapToObj(i -> new InferredBuilder(endRow - startRow + 1))
+                .mapToObj(i -> new InferredBuilder(size))
                 .collect(Collectors.toList());
 
     // Read Cell Data
-    for (int row = startRow; row <= endRow; row++) {
+    int row = startRow;
+    while (row <= endRow && (row - startRow) < rowCount) {
       if (row < firstRow || row > lastRow) {
         builders.forEach(b -> b.append(null));
       } else {
         Row currentRow = sheet.getRow(row - 1);
-
         int currentEndCol = endCol == -1 ? currentRow.getLastCellNum() + 1 : endCol;
-        for (int i = builders.size(); i <= currentEndCol - startCol; i++) {
-          Builder builder = new InferredBuilder(endRow - startRow + 1);
-          builder.appendNulls(row - startRow);
-          builders.add(builder);
-        }
+        expandBuilders(builders, size, currentEndCol - startCol, row - startRow);
 
         int firstCol = currentRow.getFirstCellNum() + 1;
         int lastCol = currentRow.getLastCellNum();
@@ -243,6 +237,15 @@ public class Reader {
           builders.get(col - startCol).append(value);
         }
       }
+
+      row++;
+    }
+
+    // Special case for stopping before firstRow
+    if (endCol == -1 && (rowCount == 0 || row < firstRow)) {
+      Row currentRow = sheet.getRow(firstRow - 1);
+      int currentEndCol = currentRow.getLastCellNum() + 1;
+      expandBuilders(builders, size, currentEndCol - startCol, size);
     }
 
     // Create Table
@@ -256,6 +259,14 @@ public class Reader {
             .toArray(Column[]::new);
 
     return new Table(columns);
+  }
+
+  private static void expandBuilders(List<Builder> builders, int size, int columnCount, int rows) {
+    for (int i = builders.size(); i <= columnCount; i++) {
+      Builder builder = new InferredBuilder(size);
+      builder.appendNulls(rows);
+      builders.add(builder);
+    }
   }
 
   private static int getSheetIndex(Workbook workbook, String sheetName) {

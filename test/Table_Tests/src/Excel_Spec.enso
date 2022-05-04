@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import Nothing, File, Illegal_Argument_Error
 
 import Standard.Base.Data.Time.Date
 
@@ -168,9 +168,34 @@ spec =
             table = xls_sheet.read (File_Format.Excel (Sheet "Sheet1"))
             check_table table
 
-            table_2 = xls_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+        Test.specify "should let you read by range" <|
+            table = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C" (table.length - col_a.length)))
             table_2.length . should_equal col_a.length
             check_table <| table_2
 
+            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!10:13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A10:C13"))
+
+        Test.specify "should let you read by range name" <|
+            table = xlsx_sheet.read (File_Format.Excel (Range "myData"))
+            table.length . should_equal col_a.length
+            check_table <| table
+
+        Test.specify "should let you restrict number of rows read and skip rows" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length) 2))
+            table_3.length . should_equal 2
+
+            table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
+            table_4.length . should_equal 6
 
 main = Test.Suite.run_main here.spec
