@@ -1,9 +1,6 @@
 extern crate enso_console_error_panic_hook;
 
-use std::fs::File;
-use std::io::Read;
 use std::panic;
-use std::process::Command;
 
 #[test]
 fn can_set_as_hook() {
