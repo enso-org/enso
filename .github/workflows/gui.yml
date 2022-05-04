@@ -37,6 +37,23 @@ jobs:
         runner:
           #      - ["macos-latest"]
           #      - [Windows, self-hosted]
+          -
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
+      - uses: ./actions/setup-build
+      - run: bash run.sh lint
+  test-native:
+    name: GUI Tests (native)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
@@ -44,8 +61,25 @@ jobs:
         name: Checkout the repository
         with:
           clean: false
-      - uses: ./actions/setup-build/action.yml
-      - run: bash run.sh lint
+      - uses: ./actions/setup-build
+      - run: bash run.sh test --no-wasm
+  test-wasm:
+    name: GUI Tests (native)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
+      - uses: ./actions/setup-build
+      - run: bash run.sh test --no-native
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
