@@ -10,7 +10,7 @@ ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-shadow = { path = "../shadow" }
 ensogl-text = { path = "../text" }
-ensogl-toggle-button =  { path = "../toggle-button" }
+ensogl-toggle-button = { path = "../toggle-button" }
 
 [dev-dependencies]
-float_eq          = "0.5"
+float_eq = "0.5"

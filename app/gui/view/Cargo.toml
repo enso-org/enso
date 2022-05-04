@@ -11,9 +11,9 @@ crate-type = ["cdylib", "rlib"]
 ast = { path = "../language/ast/impl" }
 enso-config = { path = "../config" }
 enso-frp = { path = "../../../lib/rust/frp" }
-enso-logger = { path = "../../../lib/rust/logger"}
-enso-prelude = { path = "../../../lib/rust/prelude"}
-enso-shapely = { path = "../../../lib/rust/shapely"}
+enso-logger = { path = "../../../lib/rust/logger" }
+enso-prelude = { path = "../../../lib/rust/prelude" }
+enso-shapely = { path = "../../../lib/rust/shapely" }
 engine-protocol = { path = "../controller/engine-protocol" }
 ensogl = { path = "../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../lib/rust/ensogl/component" }
@@ -30,10 +30,7 @@ ordered-float = { version = "2.7.0" }
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
-wasm-bindgen = { version = "0.2.78", features = [
-  "nightly",
-  "serde-serialize"
-] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 welcome-screen = { path = "welcome-screen" }
 
 [dependencies.web-sys]

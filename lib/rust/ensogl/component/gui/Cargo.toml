@@ -14,4 +14,4 @@ ensogl-core = { path = "../../core" }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
-float_eq          = "0.5"
+float_eq = "0.5"

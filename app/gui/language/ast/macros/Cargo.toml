@@ -14,8 +14,8 @@ default = []
 proc-macro2 = "1.0"
 quote = "1.0"
 Inflector = "0.11.4"
-enso-prelude = { path = "../../../../../lib/rust/prelude"}
-enso-macro-utils = { path = "../../../../../lib/rust/macro-utils"}
+enso-prelude = { path = "../../../../../lib/rust/prelude" }
+enso-macro-utils = { path = "../../../../../lib/rust/macro-utils" }
 
 [dependencies.syn]
 version = "1.0"

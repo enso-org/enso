@@ -8,7 +8,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { path = "../../../../prelude"}
+enso-prelude = { path = "../../../../prelude" }
 js-sys = { version = "0.3" }
 nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "0.2.78" }

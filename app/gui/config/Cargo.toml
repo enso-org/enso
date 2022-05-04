@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 ensogl = { path = "../../../lib/rust/ensogl" }
-enso-prelude = { path = "../../../lib/rust/prelude"}
+enso-prelude = { path = "../../../lib/rust/prelude" }
 enso-logger = { path = "../../../lib/rust/logger" }
 semver = "1.0.0"
 

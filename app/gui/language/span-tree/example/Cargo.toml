@@ -12,12 +12,9 @@ ast = { path = "../../ast/impl" }
 enso-text = { path = "../../../../../lib/rust/text" }
 span-tree = { path = "../../span-tree" }
 enso-web = { path = "../../../../../lib/rust/web" }
-enso-prelude = { path = "../../../../../lib/rust/prelude"}
-enso-logger = { path = "../../../../../lib/rust/logger"}
-wasm-bindgen = { version = "0.2.78", features = [
-  "nightly",
-  "serde-serialize"
-] }
+enso-prelude = { path = "../../../../../lib/rust/prelude" }
+enso-logger = { path = "../../../../../lib/rust/logger" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 
 [dependencies.web-sys]

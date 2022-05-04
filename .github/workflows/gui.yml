@@ -18,9 +18,9 @@ jobs:
     strategy:
       matrix:
         runner:
-        #      - ["macos-latest"]
-        #      - [Windows, self-hosted]
-        - [Linux, self-hosted, engine]
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -54,8 +54,6 @@ jobs:
             core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
             core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
       - run: bash run.sh lint
-
-
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}

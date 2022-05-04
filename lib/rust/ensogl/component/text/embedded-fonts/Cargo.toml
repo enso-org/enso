@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-enso-prelude = { path = "../../../../prelude"}
+enso-prelude = { path = "../../../../prelude" }
 
 [build-dependencies]
 enso-build-utilities = { path = "../../../../build-utils" }

@@ -1,6 +1,6 @@
 'use strict'
 
-import {defaultLogServerHost} from '../../../config'
+import { defaultLogServerHost } from '../../../config'
 import assert from 'assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'

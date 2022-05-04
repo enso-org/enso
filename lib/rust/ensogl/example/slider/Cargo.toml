@@ -7,10 +7,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-
 [dependencies]
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 ensogl-selector = { path = "../../component/selector" }
-wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
