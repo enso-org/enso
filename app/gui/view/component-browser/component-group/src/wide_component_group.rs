@@ -12,13 +12,16 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
+use ensogl_core::application::traits::*;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::Animation;
+use ensogl_core::application::shortcut::Shortcut;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
+use crate::EntryId;
 
 
 
@@ -102,13 +105,22 @@ impl list_view::entry::ModelProvider<Entry> for ModelProvider {
 
 ensogl_core::define_endpoints_2! {
     Input {
-        set_header_text      (String),
-        set_entries          (AnyModelProvider<Entry>),
-        set_background_color (Rgba),
-        set_width            (f32),
+        /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
+        /// described in
+        /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
+        accept_suggestion(),
+        set_header_text(String),
+        set_entries(AnyModelProvider<Entry>),
+        set_background_color(Rgba),
+        set_width(f32),
     }
     Output {
-        size (Vector2),
+        selected_entry(Option<EntryId>),
+        suggestion_accepted(EntryId),
+        expression_accepted(EntryId),
+        selection_size(Vector2<f32>),
+        selection_position_target(Vector2<f32>),
+        size(Vector2<f32>)
     }
 }
 
@@ -116,12 +128,14 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
         let input = &api.input;
-        let output = &api.output;
+        let out = &api.output;
         let background_height = Animation::new(network);
         frp::extend! { network
             eval input.set_background_color((c) model.background.color.set(c.into()));
             selected_entry <- any_mut();
-            eval selected_entry ((group) model.on_selected_entry(*group));
+            some_selected_entry <- selected_entry.filter_map(|&(entry, group): &(Option<usize>, usize)| if entry.is_some() { Some(group) } else { None });
+            eval some_selected_entry ((group) model.on_selected_entry(*group));
+            out.selected_entry <+ selected_entry.map(|(entry, _)| *entry);
 
 
             // === Background size ===
@@ -134,7 +148,7 @@ impl component::Frp<Model> for Frp {
             size <- all_with(&background_width, &background_height.value,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
-            output.size <+ size;
+            out.size <+ size;
 
             // === "No items" label ===
 
@@ -147,7 +161,18 @@ impl component::Frp<Model> for Frp {
 
         for (idx, column) in model.columns.iter().enumerate() {
             frp::extend! { network
-                selected_entry <+ column.frp.output.selected_entry.filter_map(|e| *e).map(move |_| idx);
+                accepted_entry <- column.selected_entry.sample(&input.accept_suggestion);
+                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e);
+                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e);
+            }
+
+            frp::extend! { network
+                column_is_active <- column.selected_entry.map(|e| e.is_some());
+                selection_position <- column.selection_position_target.gate(&column_is_active);
+                out.selection_position_target <+ selection_position.map(f!((pos) model.selection_position(idx, *pos)));
+            }
+            frp::extend! { network
+                selected_entry <+ column.frp.output.selected_entry.map(move |entry| (*entry, idx));
 
                 let column = column.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, idx));
@@ -174,6 +199,14 @@ impl component::Frp<Model> for Frp {
                 column.set_background_corners_radius(0.0);
             }
         }
+    }
+
+    fn default_shortcuts() -> Vec<Shortcut> {
+        use ensogl_core::application::shortcut::ActionType::*;
+        (&[(Press, "tab", "accept_suggestion")])
+            .iter()
+            .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+            .collect()
     }
 }
 
@@ -213,6 +246,7 @@ impl component::Model for Model {
             app.new_view::<list_view::ListView<list_view::entry::Label>>(),
         ]);
         for column in columns.iter() {
+            column.hide_selection();
             display_object.add_child(column);
         }
         let no_items_label = Label::new(app);
@@ -257,6 +291,20 @@ impl Model {
             evenly_distributed_count + 1
         } else {
             evenly_distributed_count
+        }
+    }
+
+    fn selection_position(
+        &self,
+        index: usize,
+        entries_selection_position: Vector2,
+    ) -> Vector2 {
+        let column = self.columns.get(index);
+        if let Some(column) = column {
+            column.position().xy() + entries_selection_position
+        } else {
+            WARNING!("Attempt to access nonexisting column {index}.");
+            Vector2::zero()
         }
     }
 }

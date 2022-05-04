@@ -142,11 +142,29 @@ fn init(app: &Application) {
     selection_animation.target.emit(component_group.selection_position_target.value());
     selection_animation.skip.emit(());
 
+
+    let wide_selection = list_view::selection::View::new(Logger::new("WideSelection"));
+    wide_selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
+    wide_selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    wide_selection.corner_radius.set(5.0);
+    let wide_selection_animation = Animation::<Vector2>::new(&network);
+
     let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
     wide_component_group.set_position_x(100.0);
     wide_component_group.set_width(450.0);
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&wide_component_group);
+    wide_component_group.add_child(&wide_selection);
+
+    frp::extend! { network
+        wide_selection_animation.target <+ wide_component_group.selection_position_target;
+        eval wide_selection_animation.value ((pos) wide_selection.set_position_xy(*pos));
+
+        eval wide_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
+        eval wide_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+    }
+    wide_selection_animation.target.emit(wide_component_group.selection_position_target.value());
+    wide_selection_animation.skip.emit(());
 
     let mock_entries = MockEntries::new(25);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
@@ -164,4 +182,5 @@ fn init(app: &Application) {
     std::mem::forget(selection);
     std::mem::forget(component_group);
     std::mem::forget(wide_component_group);
+    std::mem::forget(wide_selection);
 }
