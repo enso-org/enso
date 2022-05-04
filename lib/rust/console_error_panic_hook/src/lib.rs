@@ -42,7 +42,7 @@
 //! use std::panic;
 //!
 //! fn my_init_function() {
-//!     panic::set_hook(Box::new(console_error_panic_hook::hook));
+//!     panic::set_hook(Box::new(enso_console_error_panic_hook::hook));
 //!
 //!     // ...
 //! }
@@ -59,7 +59,7 @@
 //!
 //! impl MyBigThing {
 //!     pub fn new() -> MyBigThing {
-//!         console_error_panic_hook::set_once();
+//!         enso_console_error_panic_hook::set_once();
 //!
 //!         MyBigThing
 //!     }
