@@ -23,7 +23,7 @@ jobs:
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
-      - uses: ./actions/install
+      - uses: ./actions/setup-build
       - run: bash run.sh ide build
   lint:
     name: Engine
@@ -36,7 +36,7 @@ jobs:
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
-      - uses: ./actions/install
+      - uses: ./actions/setup-build/action.yml
       - run: bash run.sh lint
 #  info:
 #    name: Build Info
