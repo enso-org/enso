@@ -200,19 +200,19 @@ public class Builtins {
         .map(
             line -> {
               String[] builtinMeta = line.split(":");
-              if (builtinMeta.length != 4) {
+              if (builtinMeta.length < 2 || builtinMeta.length > 4) {
                 throw new CompilerError(
-                    "Invalid builtin metadata in: " + line + " " + builtinMeta.length);
+                    "Invalid builtin metadata in: " + line);
               }
 
               AtomConstructor builtin;
               builtin = new AtomConstructor(builtinMeta[0], scope, true);
 
-              if (builtinMeta[3].isEmpty()) {
+              if (builtinMeta.length < 3 || builtinMeta[2].isEmpty()) {
                 builtin = builtin.initializeFields();
               } else {
                 // there are some type params
-                String[] paramNames = builtinMeta[3].split(",");
+                String[] paramNames = builtinMeta[2].split(",");
                 ArgumentDefinition[] args = new ArgumentDefinition[paramNames.length];
                 for (int i = 0; i < paramNames.length; i++) {
                   args[i] =

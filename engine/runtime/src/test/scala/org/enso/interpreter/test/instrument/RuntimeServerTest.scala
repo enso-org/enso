@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.{Constants, Types}
+import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
@@ -143,7 +143,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainX,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -160,11 +160,11 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainY,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   Some(
                     Api.MethodPointer(
                       "Enso_Test.Test.Main",
-                      Constants.NUMBER,
+                      ConstantsGen.NUMBER,
                       "foo"
                     )
                   ),
@@ -183,7 +183,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainZ,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -200,7 +200,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idFooY,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -217,7 +217,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idFooZ,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -264,7 +264,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   idMainY,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   Some(
                     Api.MethodPointer(
                       "Enso_Test.Test.Main",
@@ -287,7 +287,7 @@ class RuntimeServerTest
               Set(
                 Api.ExpressionUpdate(
                   idMainZ,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   Some(
                     Api.MethodPointer(
                       "Enso_Test.Test.Main",
@@ -469,10 +469,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1")
@@ -572,7 +572,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainX,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(
           "Enso_Test.Test.Main",
           "Enso_Test.Test.Main.Quux",
@@ -582,24 +582,24 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainY,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
       TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.A"),
       TestMessages.update(
         contextId,
         idMainP,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.A", "foo")
       ),
       TestMessages.update(
         contextId,
         idMainQ,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A", "bar")
       ),
-      TestMessages.update(contextId, idMainF, Constants.INTEGER),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMainF, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("79")
@@ -654,10 +654,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -713,10 +713,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -774,10 +774,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainBar,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -837,10 +837,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainBar,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
@@ -896,10 +896,10 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainFoo,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -965,10 +965,10 @@ class RuntimeServerTest
         .update(
           contextId,
           mainFoo,
-          Constants.INTEGER,
+          ConstantsGen.INTEGER,
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
-      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -982,8 +982,8 @@ class RuntimeServerTest
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fooX, Constants.INTEGER),
-      TestMessages.update(contextId, fooRes, Constants.INTEGER),
+      TestMessages.update(contextId, fooX, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fooRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("4")
@@ -1015,7 +1015,7 @@ class RuntimeServerTest
         .update(
           contextId,
           mainFoo,
-          Constants.INTEGER,
+          ConstantsGen.INTEGER,
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
       context.executionComplete(contextId)
@@ -1062,7 +1062,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1140,9 +1140,9 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idResult, Constants.INTEGER),
-      TestMessages.update(contextId, idPrintln, Constants.NOTHING),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idResult, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idPrintln, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1337")
@@ -1162,7 +1162,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, idResult, Constants.TEXT),
+      TestMessages.update(contextId, idResult, ConstantsGen.TEXT),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
@@ -1229,9 +1229,9 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMainA, Constants.INTEGER),
-      TestMessages.update(contextId, idMainP, Constants.NOTHING),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMainA, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, idMainP, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("144")
@@ -1254,8 +1254,8 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainA,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "x")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "x")
       ),
       context.executionComplete(contextId)
     )
@@ -1296,7 +1296,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainA,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "pie")
       ),
       context.executionComplete(contextId)
@@ -1321,7 +1321,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainA,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "uwu")
       ),
       context.executionComplete(contextId)
@@ -1346,7 +1346,7 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         idMainA,
-        Constants.TEXT,
+        ConstantsGen.TEXT,
         Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "hie")
       ),
       context.executionComplete(contextId)
@@ -1368,7 +1368,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(2) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, idMainA, Constants.TEXT),
+      TestMessages.update(contextId, idMainA, ConstantsGen.TEXT),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
@@ -1433,24 +1433,24 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, ConstantsGen.NOTHING),
       TestMessages.update(
         contextId,
         id1,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
       ),
       TestMessages.update(
         contextId,
         id2,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.TEXT, "overloaded")
       ),
       TestMessages.update(
         contextId,
         id3,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
       ),
       context.executionComplete(contextId)
     )
@@ -1477,21 +1477,21 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id1,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
         contextId,
         id2,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.TEXT, "overloaded")
       ),
       TestMessages.update(
         contextId,
         id3,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
       ),
       context.executionComplete(contextId)
     )
@@ -1518,21 +1518,21 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id1,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
         contextId,
         id2,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.TEXT, "overloaded")
       ),
       TestMessages.update(
         contextId,
         id3,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
       ),
       context.executionComplete(contextId)
     )
@@ -1559,21 +1559,21 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         id1,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
         contextId,
         id2,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.TEXT, "overloaded")
       ),
       TestMessages.update(
         contextId,
         id3,
-        Constants.INTEGER,
-        Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded")
       ),
       context.executionComplete(contextId)
     )
@@ -1626,8 +1626,8 @@ class RuntimeServerTest
     )
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xId, Constants.FUNCTION),
-      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, xId, ConstantsGen.FUNCTION),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
   }
@@ -1738,7 +1738,7 @@ class RuntimeServerTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1795,7 +1795,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -3157,8 +3157,8 @@ class RuntimeServerTest
       TestMessages.update(
         contextId,
         context.Main.idMainY,
-        Constants.INTEGER,
-        Api.MethodPointer("Enso_Test.Foo.Main", Constants.NUMBER, "foo")
+        ConstantsGen.INTEGER,
+        Api.MethodPointer("Enso_Test.Foo.Main", ConstantsGen.NUMBER, "foo")
       ),
       context.executionComplete(contextId)
     )

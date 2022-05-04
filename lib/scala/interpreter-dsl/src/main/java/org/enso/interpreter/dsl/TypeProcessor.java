@@ -96,9 +96,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
                 + ":"
                 + constr.getTpeName()
                 + ":"
-                + constr.getFullName()
-                + ":"
                 + StringUtils.join(Arrays.asList(constr.getParamNames()), ",")
+                + ":"
+                + constr.getFullName()
                 + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
@@ -129,12 +129,12 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
           .forEach(
               entry -> {
                 String[] elements = entry.split(":");
-                if (!elements[2].isEmpty()) {
+                if (!elements[3].isEmpty()) {
                   out.println(
                       "    public static void final String "
                           + elements[0].toUpperCase()
                           + " = \""
-                          + elements[2]
+                          + elements[3]
                           + "\";");
                 }
               });

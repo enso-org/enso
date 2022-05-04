@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -417,8 +417,8 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("42")
@@ -491,8 +491,8 @@ class RuntimeErrorsTest
         xId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("42")
@@ -558,7 +558,7 @@ class RuntimeErrorsTest
         yId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError)")
@@ -578,8 +578,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1234567890123456788")
@@ -630,8 +630,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("499999999999")
@@ -698,7 +698,7 @@ class RuntimeErrorsTest
         yId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError1)")
@@ -789,7 +789,7 @@ class RuntimeErrorsTest
         yId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq(fooThrowId, xId))
       ),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("(Error: MyError1)")
@@ -908,9 +908,9 @@ class RuntimeErrorsTest
     )
 
     context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1234567890123456788")
@@ -1020,9 +1020,9 @@ class RuntimeErrorsTest
       )
     )
     context.receiveN(4) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, xId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("101")
@@ -1250,11 +1250,11 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         xId,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, moduleName, "foo")
       ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResId, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -1326,7 +1326,7 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         mainResId,
-        Constants.NOTHING
+        ConstantsGen.NOTHING
       ),
       context.executionComplete(contextId)
     )
@@ -1350,10 +1350,10 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         xId,
-        Constants.INTEGER,
+        ConstantsGen.INTEGER,
         Api.MethodPointer(moduleName, moduleName, "foo")
       ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, yId, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -1455,8 +1455,8 @@ class RuntimeErrorsTest
       )
     )
     context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, x1Id, Constants.NOTHING),
-      TestMessages.update(contextId, mainRes1Id, Constants.NOTHING),
+      TestMessages.update(contextId, x1Id, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")

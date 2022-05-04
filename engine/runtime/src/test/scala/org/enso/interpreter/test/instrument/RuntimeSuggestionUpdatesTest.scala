@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
@@ -169,7 +169,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -233,7 +233,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -247,7 +247,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -319,7 +319,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -333,7 +333,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -356,7 +356,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -425,7 +425,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -439,7 +439,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -462,14 +462,14 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(
-                        returnType = Some(Constants.NUMBER),
+                        returnType = Some(ConstantsGen.NUMBER),
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -541,7 +541,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -555,7 +555,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -578,7 +578,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.NUMBER,
+                        ConstantsGen.NUMBER,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -613,10 +613,10 @@ class RuntimeSuggestionUpdatesTest
                           None
                         ),
                       Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                        .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -683,10 +683,10 @@ class RuntimeSuggestionUpdatesTest
                           None
                         ),
                       Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                        .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -700,7 +700,7 @@ class RuntimeSuggestionUpdatesTest
                         Api.SuggestionArgumentAction.Add(
                           2,
                           Suggestion
-                            .Argument("b", Constants.ANY, false, false, None)
+                            .Argument("b", ConstantsGen.ANY, false, false, None)
                         )
                       )
                     ),
@@ -810,7 +810,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -824,7 +824,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(4, 6),
                           Suggestion.Position(9, 0)
@@ -845,16 +845,16 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion.Argument(
                         "this",
-                        Constants.TEXT,
+                        ConstantsGen.TEXT,
                         false,
                         false,
                         None
                       ),
                       Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                        .Argument("arg", ConstantsGen.ANY, false, false, None)
                     ),
-                    Constants.TEXT,
-                    Constants.ANY,
+                    ConstantsGen.TEXT,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -872,16 +872,16 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion.Argument(
                         "this",
-                        Constants.NUMBER,
+                        ConstantsGen.NUMBER,
                         false,
                         false,
                         None
                       ),
                       Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                        .Argument("arg", ConstantsGen.ANY, false, false, None)
                     ),
-                    Constants.NUMBER,
-                    Constants.ANY,
+                    ConstantsGen.NUMBER,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -983,7 +983,7 @@ class RuntimeSuggestionUpdatesTest
                     "MkA",
                     List(
                       Suggestion
-                        .Argument("a", Constants.ANY, false, false, None)
+                        .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MkA",
                     None,
@@ -1011,7 +1011,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.A.MkA",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1029,14 +1029,14 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion.Argument(
                         "this",
-                        Constants.INTEGER,
+                        ConstantsGen.INTEGER,
                         false,
                         false,
                         None
                       )
                     ),
-                    Constants.INTEGER,
-                    Constants.ANY,
+                    ConstantsGen.INTEGER,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1061,7 +1061,7 @@ class RuntimeSuggestionUpdatesTest
                       )
                     ),
                     "Enso_Test.Test.A",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1122,7 +1122,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None

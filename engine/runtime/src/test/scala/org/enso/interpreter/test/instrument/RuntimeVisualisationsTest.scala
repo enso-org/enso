@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
@@ -142,7 +142,7 @@ class RuntimeVisualisationsTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainX,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -159,11 +159,11 @@ class RuntimeVisualisationsTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainY,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   Some(
                     Api.MethodPointer(
                       "Enso_Test.Test.Main",
-                      Constants.NUMBER,
+                      ConstantsGen.NUMBER,
                       "foo"
                     )
                   ),
@@ -182,7 +182,7 @@ class RuntimeVisualisationsTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idMainZ,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -199,7 +199,7 @@ class RuntimeVisualisationsTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idFooY,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -216,7 +216,7 @@ class RuntimeVisualisationsTest
               Set(
                 Api.ExpressionUpdate(
                   Main.idFooZ,
-                  Some(Constants.INTEGER),
+                  Some(ConstantsGen.INTEGER),
                   None,
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
@@ -294,7 +294,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMainRes, Constants.INTEGER),
+      TestMessages.update(contextId, idMainRes, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1262,7 +1262,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1322,7 +1322,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1410,7 +1410,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1484,7 +1484,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -1589,7 +1589,7 @@ class RuntimeVisualisationsTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 

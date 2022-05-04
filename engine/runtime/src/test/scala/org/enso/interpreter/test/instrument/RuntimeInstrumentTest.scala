@@ -3,7 +3,7 @@ package org.enso.interpreter.test.instrument
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.{ConstantsGen, Constants}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -145,7 +145,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, Constants.INTEGER),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -192,7 +192,7 @@ class RuntimeInstrumentTest
     )
     context.receiveN(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, mainBody, Constants.TEXT),
+      TestMessages.update(contextId, mainBody, ConstantsGen.TEXT),
       context.executionComplete(contextId)
     )
   }
@@ -307,11 +307,11 @@ class RuntimeInstrumentTest
     )
     context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xExpr, Constants.INTEGER),
-      TestMessages.update(contextId, yExpr, Constants.INTEGER),
-      TestMessages.update(contextId, zExpr, Constants.INTEGER),
-      TestMessages.update(contextId, mainResExpr, Constants.NOTHING),
-      TestMessages.update(contextId, mainBody, Constants.NOTHING),
+      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, zExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
   }
@@ -367,11 +367,11 @@ class RuntimeInstrumentTest
     )
     context.receiveNIgnoreStdLib(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xExpr, Constants.INTEGER),
-      TestMessages.update(contextId, yExpr, Constants.INTEGER),
-      TestMessages.update(contextId, mainRes1Expr, Constants.INTEGER),
-      TestMessages.update(contextId, mainResExpr, Constants.NOTHING),
-      TestMessages.update(contextId, mainBody, Constants.NOTHING),
+      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, yExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes1Expr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainBody, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
   }
@@ -424,9 +424,9 @@ class RuntimeInstrumentTest
     )
     context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, Constants.FUNCTION),
-      TestMessages.update(contextId, mainResExpr, Constants.INTEGER),
-      TestMessages.update(contextId, mainBody, Constants.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainBody, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -479,9 +479,9 @@ class RuntimeInstrumentTest
     )
     context.receiveN(6) should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, Constants.FUNCTION),
-      TestMessages.update(contextId, xExpr, Constants.INTEGER),
-      TestMessages.update(contextId, mainResExpr, Constants.INTEGER),
+      TestMessages.update(contextId, fExpr, ConstantsGen.FUNCTION),
+      TestMessages.update(contextId, xExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainResExpr, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -541,11 +541,11 @@ class RuntimeInstrumentTest
         .update(
           contextId,
           xExpr,
-          Constants.INTEGER,
+          ConstantsGen.INTEGER,
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
         ),
-      TestMessages.update(contextId, mainRes, Constants.INTEGER),
-      TestMessages.update(contextId, mainExpr, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainExpr, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
@@ -602,10 +602,10 @@ class RuntimeInstrumentTest
     )
     context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, aExpr, Constants.INTEGER),
-      TestMessages.update(contextId, fApp, Constants.INTEGER),
-      TestMessages.update(contextId, mainRes, Constants.NOTHING),
-      TestMessages.update(contextId, mainExpr, Constants.NOTHING),
+      TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, fApp, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
+      TestMessages.update(contextId, mainExpr, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
   }
@@ -662,9 +662,9 @@ class RuntimeInstrumentTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, aExpr, Constants.INTEGER),
-      TestMessages.update(contextId, lamArg, Constants.INTEGER),
-      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
   }
@@ -719,9 +719,9 @@ class RuntimeInstrumentTest
     )
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, aExpr, Constants.INTEGER),
-      TestMessages.update(contextId, lamArg, Constants.INTEGER),
-      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, aExpr, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, lamArg, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("2")
@@ -968,9 +968,9 @@ class RuntimeInstrumentTest
     )
     context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, arg1, Constants.INTEGER),
-      TestMessages.update(contextId, arg2, Constants.INTEGER),
-      TestMessages.update(contextId, arg3, Constants.INTEGER),
+      TestMessages.update(contextId, arg1, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, arg2, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, arg3, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
