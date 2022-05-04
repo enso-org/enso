@@ -44,14 +44,16 @@ type Statistic
        - population: specifies if data is a sample or the population
     type Skew (population:Boolean=False)
 
+
 ## Compute a single statistic on a vector like object.
 
    Arguments:
    - data: Vector like object which has a `to_array` method.
-   - statistics: Set of statistics to calculate.
+   - statistic: Statistic to calculate.
 compute : Vector -> Statistic -> Any
 compute data statistic=Count =
     here.compute_bulk data [statistic] . first
+
 
 ## Compute a set of statistics on a vector like object.
 
@@ -63,15 +65,16 @@ compute_bulk data statistics=[Count, Sum] =
     java_stats = statistics.map .to_java . to_array
     stats_array = SingleValue.compute data.to_array java_stats
     Vector.Vector stats_array
-s
+
+
 ## Compute a single statistic on the vector.
 
    Arguments:
-   - data: Vector like object which has a `to_array` method.
-   - statistics: Set of statistics to calculate.
+   - statistic: Statistic to calculate.
 Vector.Vector.compute : Vector -> Statistic -> Any
 Vector.Vector.compute statistic=Count =
     this.compute_bulk [statistic] . first
+
 
 ## Compute statistics on the vector.
 
