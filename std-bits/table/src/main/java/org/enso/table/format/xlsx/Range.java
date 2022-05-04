@@ -150,7 +150,8 @@ public class Range {
     while (endIndex < address.length() && isDigit(address.charAt(endIndex))) {
       endIndex++;
     }
-    return new ParsedInteger(endIndex, Integer.parseInt(address, index + 1, endIndex, 10));
+    return new ParsedInteger(
+        endIndex, endIndex == index ? 0 : Integer.parseInt(address, index, endIndex, 10));
   }
 
   private static ParsedInteger parseColumn(CharSequence column) {

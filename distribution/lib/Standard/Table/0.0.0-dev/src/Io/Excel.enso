@@ -144,12 +144,14 @@ read_excel file section _ xls_format=False =
                     Reader.readSheetByName stream sheet skip_rows row_limit xls_format
         Range address skip_rows row_limit ->
             Table.Table <|
-                if address.is_an Excel_Range then Reader.readRange stream range.java_range skip_rows row_limit xls_format else
-                    Reader.readRangeByName stream range skip_rows row_limit xls_format
+                if address.is_an Excel_Range then Reader.readRange stream address.java_range skip_rows row_limit xls_format else
+                    Reader.readRangeByName stream address skip_rows row_limit xls_format
 
     file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
-    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    catch_file_failure function = Panic.catch IllegalArgumentException handler=file_failure function
 
-    Panic.catch IllegalArgumentException handler= <|
-        Panic.catch IOException handler=file_failure <|
-            file.with_input_stream [File.Option.Read] stream->stream.with_java_stream reader
+    bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
+    catch_bad_argument function = Panic.catch IOException handler=bad_argument function
+
+    catch_file_failure <| catch_bad_argument <|
+        file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
