@@ -201,8 +201,7 @@ public class Builtins {
             line -> {
               String[] builtinMeta = line.split(":");
               if (builtinMeta.length < 2 || builtinMeta.length > 4) {
-                throw new CompilerError(
-                    "Invalid builtin metadata in: " + line);
+                throw new CompilerError("Invalid builtin metadata in: " + line);
               }
 
               AtomConstructor builtin;
