@@ -341,24 +341,26 @@ commands.profile.js = async function (argv) {
     let workflow = argv['workflow']
     let save_profile = argv[`save-profile`]
     if (workflow === undefined) {
-        console.error(`'Profile' command requires a workflow argument. ` +
-            `For a list of available workflows, pass --workflow=help`)
+        console.error(
+            `'Profile' command requires a workflow argument. ` +
+                `For a list of available workflows, pass --workflow=help`
+        )
         return
     }
     if (save_profile === undefined) {
-        console.error(`'Profile' command requires a --save-profile argument ` +
-            `indicating path to output file.`)
+        console.error(
+            `'Profile' command requires a --save-profile argument ` +
+                `indicating path to output file.`
+        )
         return
     }
     let out_path = path.resolve(save_profile)
-    const tail = ['--entry-point=profile', '--workflow='+workflow, '--save-profile='+out_path]
+    const tail = ['--entry-point=profile', '--workflow=' + workflow, '--save-profile=' + out_path]
     const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
         targetArgs
     )
     await cmd.with_cwd(paths.ide_desktop.root, async () => {
-        await run('npm', ['run', 'start', '--']
-            .concat(args)
-            .concat(tail))
+        await run('npm', ['run', 'start', '--'].concat(args).concat(tail))
     })
 }
 

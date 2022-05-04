@@ -543,7 +543,7 @@ function createWindow() {
     }
     if (args.saveProfile) {
         Electron.ipcMain.on('save-profile', (event, data) => {
-            fss.writeFileSync(args.saveProfile, data);
+            fss.writeFileSync(args.saveProfile, data)
         })
     }
     if (args.workflow) {

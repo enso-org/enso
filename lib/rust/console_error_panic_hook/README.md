@@ -13,28 +13,25 @@ When an error is reported with `console.error`, browser devtools and node.js
 will typically capture a stack trace and display it with the logged error
 message.
 
-Without `console_error_panic_hook` you just get something like *RuntimeError: Unreachable executed*
+Without `console_error_panic_hook` you just get something like _RuntimeError:
+Unreachable executed_
 
-Browser:
-![Console without panic hook](without_panic_hook.png)
+Browser: ![Console without panic hook](without_panic_hook.png)
 
-Node:
-![Node console without panic hook](without_panic_hook_node.png)
+Node: ![Node console without panic hook](without_panic_hook_node.png)
 
 With this panic hook installed you will see the panic message
 
-Browser:
-![Console with panic hook set up](with_panic_hook.png)
+Browser: ![Console with panic hook set up](with_panic_hook.png)
 
-Node:
-![Node console with panic hook set up](with_panic_hook_node.png)
+Node: ![Node console with panic hook set up](with_panic_hook_node.png)
 
 ### Usage
 
 There are two ways to install this panic hook.
 
-First, you can set the hook yourself by calling `std::panic::set_hook` in
-some initialization function:
+First, you can set the hook yourself by calling `std::panic::set_hook` in some
+initialization function:
 
 ```rust
 extern crate console_error_panic_hook;
@@ -47,9 +44,8 @@ fn my_init_function() {
 }
 ```
 
-Alternatively, use `set_once` on some common code path to ensure that
-`set_hook` is called, but only the one time. Under the hood, this uses
-`std::sync::Once`.
+Alternatively, use `set_once` on some common code path to ensure that `set_hook`
+is called, but only the one time. Under the hood, this uses `std::sync::Once`.
 
 ```rust
 extern crate console_error_panic_hook;
@@ -67,5 +63,8 @@ impl MyBigThing {
 
 ### Error.stackTraceLimit
 
-Many browsers only capture the top 10 frames of a stack trace. In rust programs this is less likely to be enough. To see more frames, you can set the non-standard value `Error.stackTraceLimit`. For more information see the [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Microsoft_Extensions/Error.stackTraceLimit) or [v8 docs](https://v8.dev/docs/stack-trace-api).
-
+Many browsers only capture the top 10 frames of a stack trace. In rust programs
+this is less likely to be enough. To see more frames, you can set the
+non-standard value `Error.stackTraceLimit`. For more information see the
+[MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Microsoft_Extensions/Error.stackTraceLimit)
+or [v8 docs](https://v8.dev/docs/stack-trace-api).

@@ -879,9 +879,7 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
-        this.workflow = ok(other.workflow)
-            ? tryAsString(other.workflow)
-            : this.workflow
+        this.workflow = ok(other.workflow) ? tryAsString(other.workflow) : this.workflow
     }
 }
 

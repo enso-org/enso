@@ -13,7 +13,8 @@
 //! will typically capture a stack trace and display it with the logged error
 //! message.
 //!
-//! Without `console_error_panic_hook` you just get something like *RuntimeError: Unreachable executed*
+//! Without `console_error_panic_hook` you just get something like *RuntimeError: Unreachable
+//! executed*
 //!
 //! Browser:
 //! ![Console without panic hook](without_panic_hook.png)
@@ -68,7 +69,6 @@
 //! ## Error.stackTraceLimit
 //!
 //! Many browsers only capture the top 10 frames of a stack trace. In rust programs this is less likely to be enough. To see more frames, you can set the non-standard value `Error.stackTraceLimit`. For more information see the [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Microsoft_Extensions/Error.stackTraceLimit) or [v8 docs](https://v8.dev/docs/stack-trace-api).
-//!
 
 #[macro_use]
 extern crate cfg_if;

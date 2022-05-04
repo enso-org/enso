@@ -48,32 +48,26 @@ if (win !== undefined) {
 // TODO[WD] Enable after making preload configurable (we do not want to load it always)
 // require('devtron').install()
 
-
-
 // =====================
 // === Lifecycle API ===
 // =====================
 
 contextBridge.exposeInMainWorld('enso_lifecycle', {
-    quit: (data) => ipcRenderer.send('quit-ide')
+    quit: data => ipcRenderer.send('quit-ide'),
 })
-
-
 
 // ==========================
 // === Profiling Data API ===
 // ==========================
 
 contextBridge.exposeInMainWorld('enso_profiling_data', {
-    saveProfile: (data) => ipcRenderer.send('save-profile', data)
+    saveProfile: data => ipcRenderer.send('save-profile', data),
 })
-
-
 
 // ===================
 // === Console API ===
 // ===================
 
 contextBridge.exposeInMainWorld('enso_console', {
-    error: (data) => ipcRenderer.send('error', data)
+    error: data => ipcRenderer.send('error', data),
 })
