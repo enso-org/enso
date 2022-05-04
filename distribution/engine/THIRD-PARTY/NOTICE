@@ -342,7 +342,8 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 
 'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE130`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the engine.
