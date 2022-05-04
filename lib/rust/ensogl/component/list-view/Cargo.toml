@@ -10,3 +10,7 @@ ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-shadow = { path = "../shadow" }
 ensogl-text = { path = "../text" }
+
+[dev-dependencies]
+approx = "0.5.1"
+

@@ -5,6 +5,7 @@ import Standard.Test
 import project.Model_Spec
 import project.Column_Spec
 import project.Csv_Spec
+import project.Delimited_Read_Spec
 import project.Json_Spec
 import project.Table_Spec
 import project.Spreadsheet_Spec
@@ -14,6 +15,7 @@ import project.Aggregate_Spec
 in_memory_spec =
     Column_Spec.spec
     Csv_Spec.spec
+    Delimited_Read_Spec.spec
     Json_Spec.spec
     Spreadsheet_Spec.spec
     Table_Spec.spec
