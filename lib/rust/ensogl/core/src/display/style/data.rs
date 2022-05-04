@@ -36,24 +36,23 @@ impl Data {
     /// ```
     /// # use ensogl_core::data::color;
     /// # use ensogl_core::display::style::data::*;
-    /// # use std::str::FromStr;
-    /// assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
+    /// assert_eq!(Data::parse("123.4"), Some(Data::Number(123.4)));
     /// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
-    /// assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
-    /// assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
-    /// assert_eq!(Data::from_str("bad-format"), Err(()));
+    /// assert_eq!(Data::parse("rgba(1.0,0.0,0.0,1.0)"), Some(Data::Color(red)));
+    /// assert_eq!(Data::parse("\"some string\""), Some(Data::Text("some string".to_string())));
+    /// assert_eq!(Data::parse("bad-format"), None);
     /// ```
-    pub fn parse(s: &str) -> Result<Data, ()> {
+    pub fn parse(s: &str) -> Option<Data> {
         if let Ok(t) = s.parse::<f32>() {
-            return Ok(Data::Number(t));
+            return Some(Data::Number(t));
         }
         if let Ok(t) = s.parse::<color::AnyFormat>() {
-            return Ok(Data::Color(t.into()));
+            return Some(Data::Color(t.into()));
         }
         if s.starts_with('"') && s.ends_with('"') {
-            return Ok(Data::Text(s[1..s.len() - 1].to_string()));
+            return Some(Data::Text(s[1..s.len() - 1].to_string()));
         }
-        Err(())
+        None
     }
 }
 
