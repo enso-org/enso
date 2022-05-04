@@ -40,9 +40,8 @@ pub mod view;
 #[warn(missing_docs)]
 mod selection;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::component::node;
-use crate::component::tooltip;
-use crate::component::tooltip::Tooltip;
 use crate::component::type_coloring;
 use crate::component::visualization;
 use crate::component::visualization::instance::PreprocessorConfiguration;
@@ -50,7 +49,7 @@ use crate::component::visualization::MockDataGenerator3D;
 use crate::data::enso;
 pub use crate::node::profiling::Status as NodeProfilingStatus;
 
-use crate::application::command::FrpNetworkProvider;
+use application::tooltip;
 use enso_config::ARGS;
 use enso_frp as frp;
 use ensogl::application;
@@ -70,6 +69,7 @@ use ensogl::system::web::traits::*;
 use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
+use ensogl_component::tooltip::Tooltip;
 use ensogl_hardcoded_theme as theme;
 
 
@@ -1440,11 +1440,10 @@ impl Default for WayOfCreatingNode {
 /// Context data required to create a new node.
 #[derive(Debug)]
 struct NodeCreationContext<'a> {
-    pointer_style:  &'a frp::Any<cursor::Style>,
-    tooltip_update: &'a frp::Any<tooltip::Style>,
-    output_press:   &'a frp::Source<EdgeEndpoint>,
-    input_press:    &'a frp::Source<EdgeEndpoint>,
-    output:         &'a api::private::Output,
+    pointer_style: &'a frp::Any<cursor::Style>,
+    output_press:  &'a frp::Source<EdgeEndpoint>,
+    input_press:   &'a frp::Source<EdgeEndpoint>,
+    output:        &'a api::private::Output,
 }
 
 impl GraphEditorModelWithNetwork {
@@ -1486,13 +1485,7 @@ impl GraphEditorModelWithNetwork {
 
         let touch = &self.touch_state;
         let model = &self.model;
-        let NodeCreationContext {
-            pointer_style,
-            tooltip_update,
-            output_press,
-            input_press,
-            output,
-        } = ctx;
+        let NodeCreationContext { pointer_style, output_press, input_press, output } = ctx;
 
         frp::new_bridge_network! { [self.network, node_network] graph_node_bridge
             eval_ node.background_press(touch.nodes.down.emit(node_id));
@@ -1506,7 +1499,6 @@ impl GraphEditorModelWithNetwork {
 
             node.set_output_expression_visibility <+ self.frp.nodes_labels_visible;
 
-            tooltip_update <+ node.tooltip;
             pointer_style <+ node_model.input.frp.pointer_style;
 
             eval node_model.output.frp.on_port_press ([output_press](crumbs){
@@ -1644,9 +1636,6 @@ pub struct GraphEditorModel {
     pub drop_manager:     ensogl_drop_manager::Manager,
     pub navigator:        Navigator,
     pub add_node_button:  Rc<component::add_node_button::AddNodeButton>,
-    // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
-    //  currently work, however, because the `Application` lives in enso-core, and the tooltip
-    //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
     tooltip:              Tooltip,
     touch_state:          TouchState,
     visualisations:       Visualisations,
@@ -2642,7 +2631,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     frp::extend! { network
 
         node_pointer_style <- any_mut::<cursor::Style>();
-        node_tooltip       <- any_mut::<tooltip::Style>();
 
         let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
         let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
@@ -2841,10 +2829,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
             &add_with_edge_drop_way,
         );
 
-        new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,node_tooltip,out](way, mouse_pos) {
+        new_node <- add_node_way.map2(&cursor_pos_in_scene, f!([model,node_pointer_style,out](way, mouse_pos) {
             let ctx = NodeCreationContext {
                 pointer_style  : &node_pointer_style,
-                tooltip_update : &node_tooltip,
                 output_press   : &node_output_touch.down,
                 input_press    : &node_input_touch.down,
                 output         : &out,
@@ -3517,8 +3504,8 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     // ===============
 
     frp::extend! { network
-        eval cursor.frp.scene_position ((pos)  model.tooltip.frp.set_location(pos.xy()) );
-        eval node_tooltip ((tooltip_update) model.tooltip.frp.set_style(tooltip_update) );
+
+        model.tooltip.frp.set_style <+ app.frp.tooltip;
 
         quick_visualization_preview <- bool(&frp.disable_quick_visualization_preview,
                                             &frp.enable_quick_visualization_preview);

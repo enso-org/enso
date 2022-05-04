@@ -23,6 +23,7 @@
 pub mod api;
 pub mod error;
 pub mod handler;
+pub mod log;
 pub mod macros;
 pub mod messages;
 pub mod test_util;

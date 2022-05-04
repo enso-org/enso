@@ -3,10 +3,10 @@
 use crate::prelude::*;
 use enso_text::unit::*;
 
+use crate::application::tooltip;
+use crate::application::tooltip::Placement;
 use crate::component::node;
 use crate::component::type_coloring;
-use crate::tooltip;
-use crate::tooltip::Placement;
 use crate::view;
 use crate::Type;
 

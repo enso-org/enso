@@ -32,6 +32,8 @@ use std::fmt::Formatter;
 pub enum Metadata {
     /// A message received by the IDE from the Language Server.
     RpcEvent(String),
+    /// A message sent from the IDE to the Language Server.
+    RpcRequest(json_rpc::log::RpcRequest),
     /// A message between the Language Server and the Engine.
     BackendMessage(backend::Message),
     /// Performance stats gathered from the EnsoGL rendering engine.
@@ -42,6 +44,7 @@ impl Display for Metadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Metadata::RpcEvent(name) => f.collect_str(name),
+            Metadata::RpcRequest(method) => f.collect_str(&method.to_string()),
             Metadata::BackendMessage(backend::Message { endpoint, .. }) => f.collect_str(endpoint),
             Metadata::RenderStats(stats) => f.collect_str(&format!("{:#?}", stats)),
         }

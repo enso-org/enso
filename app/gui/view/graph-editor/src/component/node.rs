@@ -330,7 +330,6 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        tooltip                  (tooltip::Style),
         bounding_box             (BoundingBox)
     }
 }
@@ -922,10 +921,10 @@ impl Node {
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
-            out.tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
+            app.frp.set_tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
-            out.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+            app.frp.set_tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
             // === Type Labels ===
