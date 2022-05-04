@@ -28,9 +28,10 @@ impl Data {
     ///
     /// The contents of the string are parsed by the following rules:
     ///  - strings successfully parsed by [`f32::from_str`] result in a [`Number`] value;
-    ///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`] value;
-    ///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`] value
-    ///    (with the surrounding double-quotes stripped);
+    ///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`]
+    ///    value;
+    ///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`]
+    ///    value (with the surrounding double-quotes stripped);
     ///  - other strings result in an error.
     /// See below for some examples:
     /// ```
