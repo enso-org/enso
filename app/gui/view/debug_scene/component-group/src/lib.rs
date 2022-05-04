@@ -170,10 +170,11 @@ fn init(app: &Application) {
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     frp::extend! { network
         int_value <- slider.frp.output.value.map(|v| *v as usize);
-        eval int_value((i) mock_entries.set_count(*i));
-        provider <- int_value.map(move |_| model_provider.clone_ref());
-        component_group.set_entries <+ provider;
-        wide_component_group.set_entries <+ provider;
+        eval int_value([component_group, wide_component_group](i) {
+            mock_entries.set_count(*i);
+            component_group.set_entries(model_provider.clone_ref());
+            wide_component_group.set_entries(model_provider.clone_ref());
+        });
     }
     slider.frp.set_value(5.0);
 

@@ -17,7 +17,6 @@ use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
-use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
@@ -158,7 +157,6 @@ impl component::Frp<Model> for Frp {
             let background_width = input.set_width.clone_ref();
             background_height <- any(...);
 
-            entry_count <- input.set_entries.map(|p| p.entry_count());
             size <- all_with(&background_width, &background_height,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
@@ -166,6 +164,7 @@ impl component::Frp<Model> for Frp {
 
             // === "No items" label ===
 
+            entry_count <- input.set_entries.map(|p| p.entry_count());
             no_entries_provided <- entry_count.map(|c| *c == 0);
             show_no_items_label <- no_entries_provided.on_true();
             hide_no_items_label <- no_entries_provided.on_false();
@@ -194,7 +193,7 @@ impl component::Frp<Model> for Frp {
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
 
-                eval out.size((size) column.resize(*size));
+                _eval <- all_with(&entries, &out.size, f!((_, size) column.resize(*size)));
             }
         }
     }
@@ -246,10 +245,12 @@ impl Column {
         let height = self.len.get() as f32 * ENTRY_HEIGHT;
         self.inner.resize(Vector2(width, height));
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
-        self.inner.set_position_x(left_border + width * *self.index as f32);
+        let pos_x = left_border + width * *self.index as f32;
+        self.inner.set_position_x(pos_x);
         let half_height = height / 2.0;
         let background_bottom = -bg_height / 2.0;
-        self.inner.set_position_y(background_bottom + half_height);
+        let pos_y = background_bottom + half_height;
+        self.inner.set_position_y(pos_y);
     }
 
     fn selection_position(&self, pos: Vector2) -> Vector2 {
