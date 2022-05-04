@@ -114,6 +114,7 @@
 - [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
   `with_step` allowing to change the range step.][3408]
 - [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
+- [Implemented a basic reader for the `Delimited` file format.][3424]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -175,6 +176,7 @@
 [3390]: https://github.com/enso-org/enso/pull/3390
 [3408]: https://github.com/enso-org/enso/pull/3408
 [3415]: https://github.com/enso-org/enso/pull/3415
+[3424]: https://github.com/enso-org/enso/pull/3424
 
 #### Enso Compiler
 

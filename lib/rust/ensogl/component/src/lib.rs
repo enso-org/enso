@@ -21,3 +21,4 @@ pub use ensogl_selector as selector;
 pub use ensogl_shadow as shadow;
 pub use ensogl_text as text;
 pub use ensogl_toggle_button as toggle_button;
+pub use ensogl_tooltip as tooltip;

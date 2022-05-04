@@ -17,46 +17,29 @@
 //! use profiler::profile;
 //!
 //! // Some metadata types.
-//! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+//! #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //! struct MyDataA(u32);
+//! profiler::metadata_logger!("MyDataA", log_data_a(u32));
 //!
-//! #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+//! #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //! struct MyDataB(String);
+//! profiler::metadata_logger!("MyDataB", log_data_b(String));
 //!
-//! // An activity that produces metadata.
-//! struct ActivityWithMetadata {
-//!     meta_logger_a: profiler::MetadataLogger<MyDataA>,
-//!     meta_logger_b: profiler::MetadataLogger<MyDataB>,
-//!     // ...fields for doing stuff
-//! }
-//! impl ActivityWithMetadata {
-//!     fn new() -> Self {
-//!         let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
-//!         let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
-//!         Self { meta_logger_a, meta_logger_b /* ... */ }
-//!     }
-//!
-//!     #[profile(Objective)]
-//!     fn action_producing_metadata(&self) {
-//!         self.meta_logger_a.log(MyDataA(23));
-//!         self.meta_logger_b.log(MyDataB("5".into()));
-//!     }
-//! }
-//!
-//! // Run the activity that produces metadata, and profile it.
 //! #[profile(Objective)]
-//! fn demo() {
-//!     let act = ActivityWithMetadata::new();
-//!     act.action_producing_metadata();
+//! fn action_producing_metadata() {
+//!     log_data_a(23);
+//!     log_data_b("5".into());
 //! }
 //!
 //! fn store_and_retrieve_metadata() {
-//!     demo();
+//!     action_producing_metadata();
 //!
 //!     // To deserialize, we define a metadata type as an enum.
 //!     //
-//!     // Each variant has a name and type that match the string-argument and type-parameter of a
-//!     // call to `MetadataLogger::new`.
+//!     // Each variant has a name and type that match the string-argument and type-parameter that
+//!     // match the `profiler::metadata_logger!` definition. If the type is a newtype, the
+//!     // metadata logger may accept the wrapped type for convenience; a newtype and its contents
+//!     // have the same serialized form.
 //!     #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 //!     enum MyMetadata {
 //!         MyDataA(MyDataA),
@@ -75,14 +58,13 @@
 //!     // Parse the log. Interpret metadata according to the enum defined above.
 //!     let profile: profiler_data::Profile<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData objects are present and attached to the right interval.
-//!     let demo = &profile[profile.root_interval().children[0]];
-//!     let interval = &profile[demo.children[0]];
+//!     let interval = &profile[profile.root_interval().children[0]];
 //!     let action = &profile[interval.measurement];
 //!     assert_eq!(&action.label.name, "action_producing_metadata");
 //!     assert_eq!(interval.metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));
 //!     assert_eq!(interval.metadata[1].data, MyMetadata::MyDataB(MyDataB("5".into())));
-//!     // Marks can be used to compare the order of events.
-//!     assert!(interval.metadata[0].mark < interval.metadata[1].mark);
+//!     // Timestamps can be used to compare the order of events.
+//!     assert!(interval.metadata[0].time < interval.metadata[1].time);
 //! }
 //!
 //! store_and_retrieve_metadata();
@@ -103,8 +85,10 @@
 #![warn(unused_import_braces)]
 
 use enso_profiler as profiler;
+use profiler::format;
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
 
 // ==============
@@ -130,16 +114,11 @@ pub enum Error<M> {
     ///
     /// For an example of handling a recoverable failure, see `tests::skip_failed_metadata`.
     RecoverableFormatError {
-        /// Deserialization errors for each Event that failed to parse.
+        /// Deserialization errors for each metadata Event that failed to parse.
         errors:            Vec<EventError<serde_json::Error>>,
-        /// The core data.
-        ///
-        /// If the `errors` all relate to metadata events, the remaining data will be
-        /// available here, with one metadata object missing for each error.
-        ///
-        /// If some errors are not metadata errors (i.e. the core format has changed), the readable
-        /// subset of events might not form a valid log, and this will contain an error too.
-        with_missing_data: Result<Profile<M>, EventError<parse::DataError>>,
+        /// A profile with metadata of one or more types excluded due to format incompatibility.
+        /// There is one missing metadata object for each value in `errors`.
+        with_missing_data: Profile<M>,
     },
     /// Failed to interpret the event log data.
     DataError(EventError<parse::DataError>),
@@ -224,8 +203,8 @@ pub fn parse_multiprocess_profile<M: serde::de::DeserializeOwned>(
 ///
 /// This is parameterized by a type that determines how metadata is interpreted. The type must be
 /// an enum, with a variant for each type of metadata that is handled. Each variant's name and type
-/// should correspond to the parameters supplied to [`profiler::MetadataLogger::new`]. For an
-/// example, see the docs for the [`crate`].
+/// should correspond to the parameters supplied to [`profiler::metadata_logger`]. For an example,
+/// see the docs for the [`crate`].
 #[derive(Clone, Debug)]
 pub struct Profile<M> {
     /// The hierarchy of profilers. A parent-child relationship indicates that the child was
@@ -234,8 +213,8 @@ pub struct Profile<M> {
     /// The hierarchy of intervals. A parent-child relationship indicates that the child is
     /// contained within the parent.
     pub intervals:    Vec<ActiveInterval<M>>,
-    /// Offset of [`Mark`]s in this profile from system time, in milliseconds, if known.
-    pub time_offset:  Option<f64>,
+    /// Optional information about this profile.
+    pub headers:      Headers,
 }
 
 impl<M> Profile<M> {
@@ -260,9 +239,21 @@ impl<M> Profile<M> {
     }
 
     /// Iterate over only the metadata stored in the profile.
-    pub fn iter_metadata(&self) -> impl Iterator<Item = &Metadata<M>> {
+    pub fn iter_metadata(&self) -> impl Iterator<Item = &Timestamped<M>> {
         self.intervals.iter().flat_map(|interval| interval.metadata.iter())
     }
+}
+
+
+// === Headers ===
+
+/// Information about the profile.
+#[derive(Clone, Debug, Default)]
+pub struct Headers {
+    /// A value that can be used to translate a timestamp to system time.
+    pub time_offset: Option<format::Timestamp>,
+    /// An application-specific identifier used to distinguish logs from different processes.
+    pub process:     Option<String>,
 }
 
 
@@ -300,11 +291,11 @@ impl<M> std::ops::Index<IntervalId> for Profile<M> {
 #[derive(Clone, Debug)]
 pub struct Measurement {
     /// Identifies the profiler's source and scope to the user.
-    pub label:     Label,
+    pub label:     Rc<Label>,
     /// Profilers started by this profiler, ordered by time created.
     pub children:  Vec<MeasurementId>,
     /// When the profiler was created.
-    pub created:   Mark,
+    pub created:   Timestamp,
     /// Whether the profiler logged its completion at the end of its last active interval.
     pub finished:  bool,
     /// When the profiler was running.
@@ -334,55 +325,67 @@ pub enum Class {
 
 
 
-// ================
-// === Metadata ===
-// ================
+// ===================
+// === Timestamped ===
+// ===================
 
-/// Wrapper adding a timestamp to dependency-injected contents.
+/// Wrapper adding a timestamp to contents.
 #[derive(Clone, Debug)]
-pub struct Metadata<M> {
+pub struct Timestamped<M> {
     /// Time the data was logged.
-    pub mark: Mark,
+    pub time: Timestamp,
     /// The actual data.
     pub data: M,
+}
+
+impl<M> Timestamped<M> {
+    /// Convert from &[`Timestamped<M>`] to [`Timestamped<&M>`].
+    pub fn as_ref(&self) -> Timestamped<&M> {
+        let Self { time, data } = self;
+        let time = *time;
+        Timestamped { time, data }
+    }
+
+    /// Use a function to transform the contained data, preserving the timestamp.
+    pub fn map<F, N>(self, f: F) -> Timestamped<N>
+    where F: FnOnce(M) -> N {
+        let Self { time, data } = self;
+        let data = f(data);
+        Timestamped { time, data }
+    }
 }
 
 
 // === OpaqueMetadata ===
 
 /// Black-box metadata object, for ignoring metadata contents.
-#[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-pub enum OpaqueMetadata {
-    /// Anything.
-    #[serde(other)]
-    Unknown,
-}
+pub type OpaqueMetadata = format::AnyMetadata;
 
 
 
-// ============
-// === Mark ===
-// ============
+// =================
+// === Timestamp ===
+// =================
 
-/// A timestamp that can be used for distinguishing event order.
+/// A timestamp. Supports distinguishing order of all events within a process.
 ///
 /// Note that while an [`Ord`] implementation is provided for convenience (e.g. for use with
 /// data structures that require it), the results of comparisons should only be considered
-/// meaningful when comparing [`Mark`]s that were recorded by the same process.
+/// meaningful when comparing [`Timestamp`]s that were recorded by the same process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct Mark {
-    /// Time of the mark.
-    time: profiler::internal::Timestamp,
-    /// Sequence number of the mark. Used to resolve timestamp collisions.
+pub struct Timestamp {
+    /// The time.
+    time: format::Timestamp,
+    /// Indicates event order; used to resolve timestamp collisions.
     seq:  Seq,
 }
 
-impl Mark {
+impl Timestamp {
     fn time_origin() -> Self {
         Self::default()
     }
 
-    /// Time of the mark in milliseconds.
+    /// Offset from the time origin, in milliseconds.
     pub fn into_ms(self) -> f64 {
         self.time.into_ms()
     }
@@ -393,10 +396,10 @@ impl Mark {
 
 /// A value that can be used to compare the order of events within a process.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub(crate) struct Seq(u32);
+pub(crate) struct Seq(usize);
 
 impl Seq {
-    fn runtime_event(event_index: u32) -> Self {
+    fn runtime_event(event_index: usize) -> Self {
         // Seq(0) is the time origin.
         Seq(event_index.checked_add(1).unwrap())
     }
@@ -418,7 +421,7 @@ pub struct ActiveInterval<M> {
     /// Active intervals that occurred during this interval.
     pub children:    Vec<IntervalId>,
     /// Metadata emitted while this was the active interval.
-    pub metadata:    Vec<Metadata<M>>,
+    pub metadata:    Vec<Timestamped<M>>,
 }
 
 
@@ -431,9 +434,9 @@ pub struct ActiveInterval<M> {
 #[derive(Copy, Clone, Debug)]
 pub struct Interval {
     /// The time the interval began.
-    pub start: Mark,
+    pub start: Timestamp,
     /// The time the interval ended, or None if no end was logged.
-    pub end:   Option<Mark>,
+    pub end:   Option<Timestamp>,
 }
 
 impl Interval {
@@ -590,14 +593,18 @@ mod tests {
         assert!(!profile[roots[0]].finished);
     }
 
-    #[test]
-    fn unfinished_still_running() {
+    fn start_profiler(label: &'static str) -> profiler::internal::EventId {
         profiler::internal::EventLog.start(
             profiler::internal::EventId::implicit(),
-            profiler::internal::Label("unfinished (?:?)"),
+            profiler::internal::Label(label),
             Some(profiler::internal::Timestamp::now()),
             profiler::internal::StartState::Active,
-        );
+        )
+    }
+
+    #[test]
+    fn unfinished_still_running() {
+        start_profiler("unfinished (?:?)");
         let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
@@ -606,12 +613,7 @@ mod tests {
 
     #[test]
     fn unfinished_paused_never_resumed() {
-        let id = profiler::internal::EventLog.start(
-            profiler::internal::EventId::implicit(),
-            profiler::internal::Label("unfinished (?:?)"),
-            Some(profiler::internal::Timestamp::now()),
-            profiler::internal::StartState::Active,
-        );
+        let id = start_profiler("unfinished (?:?)");
         profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
         let profile: profiler_data::Profile<OpaqueMetadata> =
             profiler::internal::take_log().parse().unwrap();
@@ -623,17 +625,17 @@ mod tests {
     /// correctly, and all other data is still readable.
     #[test]
     fn skip_failed_metadata() {
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataA(u32);
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        profiler::metadata_logger!("MyDataA", log_data_a(u32));
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataBExpected(u32);
-        #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+        #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         struct MyDataBActual(String);
+        profiler::metadata_logger!("MyDataB", log_data_b(String));
 
-        let meta_logger_a = profiler::MetadataLogger::new("MyDataA");
-        let meta_logger_b = profiler::MetadataLogger::new("MyDataB");
-        meta_logger_a.log(MyDataA(23));
-        meta_logger_b.log(MyDataBActual("bad".into()));
+        log_data_a(23);
+        log_data_b("bad".into());
 
         #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
         enum MyMetadata {
@@ -645,8 +647,7 @@ mod tests {
         let root = match root {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {
                 assert_eq!(errors.len(), 1);
-                assert_eq!(errors[0].log_pos, 1);
-                with_missing_data.unwrap()
+                with_missing_data
             }
             other => panic!("Expected RecoverableFormatError, found: {:?}", other),
         };

@@ -1,17 +1,19 @@
 //! The `Tooltip` shows extra information for UI components. It is pegged to the cursor location
 //! and appears when it receives information to show.
+use ensogl_core as ensogl;
 
-use ensogl::gui::style::*;
 use ensogl::prelude::*;
 
 use enso_frp as frp;
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
-use ensogl::define_style;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
-use ensogl_component::label::Label;
+use ensogl_core::application::tooltip::Placement;
+use ensogl_core::application::tooltip::Style;
+use ensogl_label::Label;
 
+pub use ensogl::application::tooltip;
 
 
 // =================
@@ -22,76 +24,9 @@ const PLACEMENT_OFFSET: f32 = 5.0;
 
 
 
-// =============
-// === Style ===
-// =============
-
-define_style! {
-    text      : Option<String>,
-    placement : Placement
-}
-
-impl Style {
-    /// Create a `TooltipUpdate` that sets the label of the tooltip.
-    pub fn set_label(text: String) -> Self {
-        let text = Some(StyleValue::new(Some(text)));
-        Self { text, ..default() }
-    }
-    /// Create a `TooltipUpdate` that unsets the label of the tooltip.
-    pub fn unset_label() -> Self {
-        let text = Some(StyleValue::new(None));
-        Self { text, ..default() }
-    }
-
-    /// Indicate whether the `Style` has content to display.
-    pub fn has_content(&self) -> bool {
-        if let Some(style_value) = self.text.as_ref() {
-            if let Some(inner) = style_value.value.as_ref() {
-                return inner.is_some();
-            }
-        }
-        false
-    }
-
-    /// Create a `TooltipUpdate` that sets the placement of the tooltip.
-    pub fn set_placement(placement: Placement) -> Self {
-        let placement = Some(StyleValue::new(placement));
-        Self { placement, ..default() }
-    }
-
-    /// Sets the placement of the tooltip.
-    pub fn with_placement(mut self, placement: Placement) -> Self {
-        self.placement = Some(StyleValue::new(placement));
-        self
-    }
-}
-
-
-
-// ==============
-// === Offset ===
-// ==============
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(missing_docs)]
-/// Indicates the placement of the tooltip relative to the base position location.
-pub enum Placement {
-    Top,
-    Bottom,
-    Left,
-    Right,
-}
-
-impl Default for Placement {
-    fn default() -> Self {
-        Placement::Top
-    }
-}
-
 ensogl::define_endpoints! {
     Input {
         set_style     (Style),
-        set_location  (Vector2),
         set_placement (Placement),
         set_offset    (Vector2),
     }
@@ -133,16 +68,11 @@ impl Model {
     }
 
     fn set_style(&self, update: &Style) {
-        if let Some(style) = update.text.as_ref() {
-            let text = style.value.clone().flatten();
-            if let Some(text) = text {
-                self.tooltip.frp.set_content(text)
-            }
+        if let Some(text) = update.content() {
+            self.tooltip.frp.set_content(text)
         }
-        if let Some(style) = update.placement.as_ref() {
-            if let Some(placement) = style.value {
-                self.placement.set(placement)
-            }
+        if let Some(placement) = update.placement() {
+            self.placement.set(placement)
         }
     }
 
@@ -214,7 +144,8 @@ impl Tooltip {
 
             // === Location ===
 
-             location_update <- all(frp.set_location,
+             cursor_pos <- app.cursor.frp.scene_position.map(|pos| pos.xy());
+             location_update <- all(cursor_pos,
                                     model.tooltip.frp.size,
                                     frp.set_offset);
              eval location_update ([model]((pos,size,offset)) {
