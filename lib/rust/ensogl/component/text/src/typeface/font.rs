@@ -347,12 +347,12 @@ impl scene::Extension for Registry {
 mod tests {
     use super::*;
 
+    use ensogl_text_embedded_fonts;
     use ensogl_text_embedded_fonts::EmbeddedFonts;
-    use ensogl_text_embedded_fonts_names::fonts;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
-    const TEST_FONT_NAME: &str = fonts::DEFAULT_MONO_BOLD;
+    const TEST_FONT_NAME: &str = embedded_fonts::DEFAULT_MONO_BOLD;
 
     fn create_test_font() -> Font {
         let embedded_fonts = EmbeddedFonts::create_and_fill();
