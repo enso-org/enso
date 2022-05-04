@@ -27,7 +27,7 @@ class BooleanTest extends InterpreterTest {
         """from Standard.Base.Data.Boolean import all
           |from Standard.Base.IO import all
           |
-          |Boolean.isTrue = this
+          |Boolean.Boolean.isTrue = this
           |
           |main =
           |    true = 1 == 1
@@ -70,7 +70,7 @@ class BooleanTest extends InterpreterTest {
       val code =
         """from Standard.Base.Data.Boolean import all
           |
-          |Boolean.to_num = 2
+          |Boolean.Boolean.to_num = 2
           |True.to_num = 1
           |
           |main = True.to_num + False.to_num

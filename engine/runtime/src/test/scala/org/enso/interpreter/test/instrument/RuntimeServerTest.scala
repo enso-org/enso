@@ -110,11 +110,11 @@ class RuntimeServerTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(71, 1)
-      val idMainY = metadata.addItem(81, 7)
-      val idMainZ = metadata.addItem(97, 5)
-      val idFooY  = metadata.addItem(136, 8)
-      val idFooZ  = metadata.addItem(153, 5)
+      val idMainX = metadata.addItem(63, 1)
+      val idMainY = metadata.addItem(73, 7)
+      val idMainZ = metadata.addItem(89, 5)
+      val idFooY  = metadata.addItem(128, 8)
+      val idFooZ  = metadata.addItem(145, 5)
 
       def code =
         metadata.appendToCode(
@@ -1027,7 +1027,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(62, 47)
+    val idMain     = context.Main.metadata.addItem(54, 47)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1765,7 +1765,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(62, 47)
+    val idMain     = context.Main.metadata.addItem(54, 47)
 
     val mainFile = context.writeMain(context.Main.code)
 

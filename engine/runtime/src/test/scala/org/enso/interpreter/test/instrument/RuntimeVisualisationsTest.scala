@@ -110,7 +110,7 @@ class RuntimeVisualisationsTest
       val metadata = new Metadata
 
       val idMainX = metadata.addItem(63, 1)
-      val idMainY = metadata.addItem(83, 7)
+      val idMainY = metadata.addItem(73, 7)
       val idMainZ = metadata.addItem(89, 5)
       val idFooY  = metadata.addItem(128, 8)
       val idFooZ  = metadata.addItem(145, 5)
@@ -248,7 +248,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "emit visualisation update when expression is computed" in {
-    val idMainRes  = context.Main.metadata.addItem(107, 1)
+    val idMainRes  = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1227,7 +1227,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "return ModuleNotFound error when attaching visualisation" in {
-    val idMain     = context.Main.metadata.addItem(107, 1)
+    val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1287,7 +1287,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "be able to use external libraries if they are needed by the visualisation" in {
-    val idMain     = context.Main.metadata.addItem(107, 1)
+    val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1375,7 +1375,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "return VisualisationExpressionFailed error when attaching visualisation" in {
-    val idMain     = context.Main.metadata.addItem(107, 1)
+    val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1449,7 +1449,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "return visualisation evaluation errors with diagnostic info" in {
-    val idMain     = context.Main.metadata.addItem(107, 1)
+    val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
@@ -1536,7 +1536,7 @@ class RuntimeVisualisationsTest
   }
 
   it should "return visualisation error with a stack trace" in {
-    val idMain     = context.Main.metadata.addItem(107, 1)
+    val idMain     = context.Main.metadata.addItem(99, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
     val moduleName = "Enso_Test.Test.Main"
