@@ -38,7 +38,7 @@
 //! some initialization function:
 //!
 //! ```
-//! extern crate console_error_panic_hook;
+//! extern crate enso_console_error_panic_hook;
 //! use std::panic;
 //!
 //! fn my_init_function() {
@@ -53,7 +53,7 @@
 //! `std::sync::Once`.
 //!
 //! ```
-//! extern crate console_error_panic_hook;
+//! extern crate enso_console_error_panic_hook;
 //!
 //! struct MyBigThing;
 //!
