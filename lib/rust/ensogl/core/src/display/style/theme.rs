@@ -44,8 +44,8 @@ impl Theme {
 
     /// Insert or modify a style in the theme. Sets the style and returns [`true`] if `value` was
     /// successfully parsed to [`Data`], or returns [`false`] otherwise.
-    pub fn set_parsed(&self, path: impl Into<Path>, value: &str) -> bool {
-        let parsed_value = value.parse::<Value>();
+    pub fn parse_and_set(&self, path: impl Into<Path>, value: &str) -> bool {
+        let parsed_value = style::Data::parse(value);
         if let Ok(value) = parsed_value {
             self.set(path, value);
             true

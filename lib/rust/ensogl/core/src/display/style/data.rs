@@ -11,25 +11,6 @@ use crate::data::color;
 // ============
 
 /// Type of values in the style sheet.
-///
-/// An implementation of the [`FromStr`] trait is provided for the type. It parses strings by the
-/// following rules:
-///  - strings successfully parsed by [`f32::from_str`] result in a [`Number`] value;
-///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`] value;
-///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`] value
-///    (with the surrounding double-quotes stripped);
-///  - other strings result in an error.
-/// See below for some examples:
-/// ```
-/// # use ensogl_core::data::color;
-/// # use ensogl_core::display::style::data::*;
-/// # use std::str::FromStr;
-/// assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
-/// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
-/// assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
-/// assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
-/// assert_eq!(Data::from_str("bad-format"), Err(()));
-/// ```
 #[derive(Debug, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub enum Data {
@@ -41,6 +22,40 @@ pub enum Data {
 
 
 // === Constructors ===
+
+impl Data {
+    /// Parse a [`Data`] value encoded in a string.
+    ///
+    /// The contents of the string are parsed by the following rules:
+    ///  - strings successfully parsed by [`f32::from_str`] result in a [`Number`] value;
+    ///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`] value;
+    ///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`] value
+    ///    (with the surrounding double-quotes stripped);
+    ///  - other strings result in an error.
+    /// See below for some examples:
+    /// ```
+    /// # use ensogl_core::data::color;
+    /// # use ensogl_core::display::style::data::*;
+    /// # use std::str::FromStr;
+    /// assert_eq!(Data::from_str("123.4"), Ok(Data::Number(123.4)));
+    /// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
+    /// assert_eq!(Data::from_str("rgba(1.0,0.0,0.0,1.0)"), Ok(Data::Color(red)));
+    /// assert_eq!(Data::from_str("\"some string\""), Ok(Data::Text("some string".to_string())));
+    /// assert_eq!(Data::from_str("bad-format"), Err(()));
+    /// ```
+    pub fn parse(s: &str) -> Result<Data, ()> {
+        if let Ok(t) = s.parse::<f32>() {
+            return Ok(Data::Number(t));
+        }
+        if let Ok(t) = s.parse::<color::AnyFormat>() {
+            return Ok(Data::Color(t.into()));
+        }
+        if s.starts_with('"') && s.ends_with('"') {
+            return Ok(Data::Text(s[1..s.len() - 1].to_string()));
+        }
+        Err(())
+    }
+}
 
 /// Smart constructor for `Data`.
 pub fn data<T: Into<Data>>(t: T) -> Data {
@@ -72,22 +87,6 @@ where color::Color<C>: Into<color::Rgba>
 impl From<&str> for Data {
     fn from(t: &str) -> Data {
         Data::Text(t.to_owned())
-    }
-}
-
-impl FromStr for Data {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(t) = s.parse::<f32>() {
-            return Ok(Data::Number(t));
-        }
-        if let Ok(t) = s.parse::<color::AnyFormat>() {
-            return Ok(Data::Color(t.into()));
-        }
-        if s.starts_with('"') && s.ends_with('"') {
-            return Ok(Data::Text(s[1..s.len() - 1].to_string()));
-        }
-        Err(())
     }
 }
 

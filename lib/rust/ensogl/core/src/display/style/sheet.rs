@@ -240,13 +240,6 @@ where T: Into<Data>
     }
 }
 
-impl FromStr for Value {
-    type Err = <Data as FromStr>::Err;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse().map(Self::Data)
-    }
-}
-
 impl PartialSemigroup<&Value> for Value {
     fn concat_mut(&mut self, other: &Self) {
         *self = other.clone()
