@@ -14,6 +14,26 @@
 
 use enso_prelude::*;
 
+use ensogl_text_embedded_fonts_names as embedded_fonts_names;
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The default font used in the app.
+pub const DEFAULT: &str = embedded_fonts_names::DEJA_VU_SANS;
+
+/// The default bold font used in the app.
+pub const DEFAULT_BOLD: &str = embedded_fonts_names::DEJA_VU_SANS_BOLD;
+
+/// The default monospaced font used in the app.
+pub const DEFAULT_MONO: &str = embedded_fonts_names::DEJA_VU_SANS_MONO;
+
+/// The default bold monospaced font used in the app.
+pub const DEFAULT_MONO_BOLD: &str = embedded_fonts_names::DEJA_VU_SANS_MONO_BOLD;
+
+
 
 // =====================
 // === EmbeddedFonts ===
@@ -57,12 +77,12 @@ impl Debug for EmbeddedFonts {
 mod test {
     use crate::*;
 
-    use ensogl_text_embedded_fonts_names::fonts;
+    use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
 
     #[test]
     fn loading_embedded_fonts() {
         let fonts = EmbeddedFonts::create_and_fill();
-        let example_font = fonts.font_data_by_name.get(fonts::DEFAULT).unwrap();
+        let example_font = fonts.font_data_by_name.get(DEJA_VU_SANS).unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);

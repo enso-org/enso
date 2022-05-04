@@ -12,29 +12,14 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-/// Names of fonts embedded in the app.
-pub mod fonts {
-    /// Full name of the regular sans-serif font from the DejaVu font family.
-    pub const DEJA_VU_SANS: &str = "DejaVuSans";
+/// Full name of the regular sans-serif font from the DejaVu font family.
+pub const DEJA_VU_SANS: &str = "DejaVuSans";
 
-    /// Full name of the bold sans-serif font from the DejaVu font family.
-    pub const DEJA_VU_SANS_BOLD: &str = "DejaVuSans-Bold";
+/// Full name of the bold sans-serif font from the DejaVu font family.
+pub const DEJA_VU_SANS_BOLD: &str = "DejaVuSans-Bold";
 
-    /// Full name of the regular monospaced sans-serif font from the DejaVu font family.
-    pub const DEJA_VU_SANS_MONO: &str = "DejaVuSansMono";
+/// Full name of the regular monospaced sans-serif font from the DejaVu font family.
+pub const DEJA_VU_SANS_MONO: &str = "DejaVuSansMono";
 
-    /// Full name of the bold monospaced sans-serif font from the DejaVu font family.
-    pub const DEJA_VU_SANS_MONO_BOLD: &str = "DejaVuSansMono-Bold";
-
-    /// The default font used in the app.
-    pub const DEFAULT: &str = DEJA_VU_SANS;
-
-    /// The default bold font used in the app.
-    pub const DEFAULT_BOLD: &str = DEJA_VU_SANS_BOLD;
-
-    /// The default monospaced font used in the app.
-    pub const DEFAULT_MONO: &str = DEJA_VU_SANS_MONO;
-
-    /// The default bold monospaced font used in the app.
-    pub const DEFAULT_MONO_BOLD: &str = DEJA_VU_SANS_MONO_BOLD;
-}
+/// Full name of the bold monospaced sans-serif font from the DejaVu font family.
+pub const DEJA_VU_SANS_MONO_BOLD: &str = "DejaVuSansMono-Bold";

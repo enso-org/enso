@@ -5,8 +5,8 @@ use crate::prelude::*;
 use enso_shapely::shared;
 use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
+use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFonts;
-use ensogl_text_embedded_fonts_names::fonts;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -26,7 +26,7 @@ pub mod msdf;
 // =================
 
 /// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = fonts::DEFAULT;
+pub const DEFAULT_FONT: &str = embedded_fonts::DEFAULT;
 
 
 

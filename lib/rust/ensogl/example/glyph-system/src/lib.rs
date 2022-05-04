@@ -26,7 +26,7 @@ use ensogl_text::typeface::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_text_embedded_fonts_names::fonts;
+use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 
@@ -43,7 +43,7 @@ pub fn main() {
 
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
-    let font = fonts.load(fonts::DEFAULT);
+    let font = fonts.load(embedded_fonts::DEFAULT);
     let glyph_system = glyph::System::new(&world.default_scene, font);
     let height = 32.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);
