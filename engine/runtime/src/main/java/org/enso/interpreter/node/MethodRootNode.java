@@ -111,6 +111,7 @@ public class MethodRootNode extends ClosureRootNode {
     @Override
     public Object executeGeneric(VirtualFrame frame) {
       ExpressionNode newNode = replace(provider.get());
+      notifyInserted(newNode);
       return newNode.executeGeneric(frame);
     }
   }
