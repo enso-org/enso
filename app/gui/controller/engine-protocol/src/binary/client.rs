@@ -223,7 +223,7 @@ impl API for Client {
         overwrite: bool,
         bytes: &[u8],
     ) -> StaticBoxFuture<FallibleResult<Sha3_224>> {
-        info!(self.logger, "Writting {bytes.len()} bytes to {path} at offset {byte_offset}");
+        info!(self.logger, "Writing {bytes.len()} bytes to {path} at offset {byte_offset}");
         let payload = ToServerPayload::WriteBytes { path, byte_offset, overwrite, bytes };
         self.make_request(payload, move |result| {
             if let FromServerPayloadOwned::WriteBytesReply { checksum } = result {

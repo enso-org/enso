@@ -46,9 +46,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.56"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4361135be9122e0870de935d7c439aef945b9f9ddd4199a553b5270b49c82a27"
+checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
 
 [[package]]
 name = "approx"
@@ -1169,6 +1169,7 @@ dependencies = [
 name = "enso-profiler-data"
 version = "0.1.0"
 dependencies = [
+ "derivative",
  "enso-prelude",
  "enso-profiler",
  "futures 0.3.21",
@@ -1185,6 +1186,7 @@ dependencies = [
  "enso-profiler",
  "enso-profiler-data",
  "ensogl-core",
+ "json-rpc",
  "serde",
 ]
 
@@ -1322,6 +1324,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ensogl-toggle-button",
+ "ensogl-tooltip",
 ]
 
 [[package]]
@@ -1496,8 +1499,10 @@ dependencies = [
  "ensogl-core",
  "ensogl-flame-graph",
  "ensogl-hardcoded-theme",
+ "ensogl-sequence-diagram",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ensogl-tooltip",
  "futures 0.3.21",
  "serde",
  "wasm-bindgen",
@@ -1684,6 +1689,7 @@ dependencies = [
 name = "ensogl-list-view"
 version = "0.1.0"
 dependencies = [
+ "approx 0.5.1",
  "enso-frp",
  "ensogl-core",
  "ensogl-hardcoded-theme",
@@ -1722,6 +1728,23 @@ dependencies = [
  "ensogl-text",
  "ensogl-toggle-button",
  "float_eq",
+]
+
+[[package]]
+name = "ensogl-sequence-diagram"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso-profiler-data",
+ "enso-profiler-enso-data",
+ "enso-profiler-flame-graph",
+ "ensogl",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
+ "ensogl-tooltip",
 ]
 
 [[package]]
@@ -1778,6 +1801,16 @@ version = "0.1.0"
 dependencies = [
  "enso-frp",
  "ensogl-core",
+]
+
+[[package]]
+name = "ensogl-tooltip"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-hardcoded-theme",
+ "ensogl-label",
 ]
 
 [[package]]

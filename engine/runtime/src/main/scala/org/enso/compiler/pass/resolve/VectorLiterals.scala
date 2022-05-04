@@ -122,7 +122,7 @@ case object VectorLiterals extends IRPass {
         vec.duplicate(),
         List(
           IR.CallArgument
-            .Specified(None, trans.copy(location = None), None, None)
+            .Specified(None, trans.copy(location = None), None)
         ),
         false,
         trans.location

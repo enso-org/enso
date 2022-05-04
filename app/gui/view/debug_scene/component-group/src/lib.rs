@@ -15,10 +15,11 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::frp;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_selector as selector;
@@ -114,13 +115,32 @@ fn init(app: &Application) {
     slider.set_position_y(250.0);
     slider.frp.set_caption(Some("Items count:".to_string()));
 
+    let network = frp::Network::new("Component Group Debug Scene");
+    let selection = list_view::selection::View::new(Logger::new("Selection"));
+    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
+    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    selection.corner_radius.set(5.0);
+    let selection_animation = Animation::<Vector2>::new(&network);
+
     let component_group = app.new_view::<component_group::View>();
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
-    component_group.set_size(Vector2(150.0, 400.0));
+    component_group.set_width(150.0);
     component_group.set_position_x(-300.0);
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     app.display.add_child(&component_group);
+    component_group.add_child(&selection);
+
+    frp::extend! { network
+        selection_animation.target <+ component_group.selection_position_target;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+
+        eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
+        eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+        eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
+    }
+    selection_animation.target.emit(component_group.selection_position_target.value());
+    selection_animation.skip.emit(());
 
     let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
     wide_component_group.set_position_x(100.0);
@@ -130,7 +150,6 @@ fn init(app: &Application) {
 
     let mock_entries = MockEntries::new(25);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
-    let network = frp::Network::new("ComponentGroupDemo");
     frp::extend! { network
         int_value <- slider.frp.output.value.map(|v| *v as usize);
         eval int_value((i) mock_entries.set_count(*i));
@@ -142,6 +161,7 @@ fn init(app: &Application) {
 
     std::mem::forget(slider);
     std::mem::forget(network);
+    std::mem::forget(selection);
     std::mem::forget(component_group);
     std::mem::forget(wide_component_group);
 }

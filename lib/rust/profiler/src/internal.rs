@@ -9,7 +9,6 @@ use crate::format;
 use crate::log;
 
 use std::fmt;
-use std::num;
 use std::rc;
 
 
@@ -19,11 +18,10 @@ use std::rc;
 // ======================================================
 
 thread_local! {
-    static EVENT_LOG: log::Log<Event<ExternalMetadata, &'static str>> = log::Log::new();
+    static EVENT_LOG: log::Log<Event> = log::Log::new();
 }
 /// Global log of [`Events`]s.
-pub(crate) static EVENTS: log::ThreadLocalLog<Event<ExternalMetadata, &'static str>> =
-    log::ThreadLocalLog::new(EVENT_LOG);
+pub(crate) static EVENTS: log::ThreadLocalLog<Event> = log::ThreadLocalLog::new(EVENT_LOG);
 
 thread_local! {
     static METADATA_LOG_LOG: log::Log<rc::Rc<dyn MetadataSource>> = log::Log::new();
@@ -32,49 +30,116 @@ thread_local! {
 pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>> =
     log::ThreadLocalLog::new(METADATA_LOG_LOG);
 
+
+
+// =========================
+// === Capturing the log ===
+// =========================
+
 /// Produce a JSON-formatted event log from the internal event logs.
 ///
 /// Consumes all events that have happened up to this point; except in testing, this should only be
 /// done once.
 pub fn take_log() -> String {
-    let events = EVENTS.take_all();
-    let metadatas = METADATA_LOGS.clone_all();
-    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
-    let mut metadata_entries: Vec<_> =
-        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
-    let mut profile = format::Builder::new();
-    let mut id_map = std::collections::HashMap::<EventId, format::MeasurementId>::new();
-    id_map.insert(EventId::IMPLICIT, EventId::IMPLICIT);
-    id_map.insert(EventId::APP_LIFETIME, EventId::APP_LIFETIME);
-    profile.time_offset_ms(Timestamp::time_offset());
-    profile.process("Ide");
+    let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
+    let mut out = LogTranslator::new();
     for (id, event) in events.into_iter().enumerate() {
         let id = EventId(id as u32);
         match event {
-            Event::Metadata(Timestamped { timestamp, data }) => {
+            Event::Metadata { timestamp, data } => {
                 let ExternalMetadata { type_id } = data;
                 let id = type_id as usize;
                 let name = metadata_names[id];
                 let data = metadata_entries[id].next().unwrap();
-                profile.metadata(timestamp, name, data);
+                out.metadata(timestamp, name, data);
             }
             Event::Start(Start { parent, start, label }) => {
-                let parent = id_map[&parent];
-                let start = start.unwrap();
-                let interval = profile.start(start, parent, label.0);
-                id_map.insert(id, interval);
+                out.create(start, parent, label, id);
+                out.start(start.unwrap(), id);
             }
-            Event::StartPaused(Start { parent, start, label }) => {
-                let parent = id_map[&parent];
-                let interval = profile.start_paused(start, parent, label.0);
-                id_map.insert(id, interval);
-            }
-            Event::End { id, timestamp } => profile.end(timestamp, id_map[&id]),
-            Event::Pause { id, timestamp } => profile.pause(timestamp, id_map[&id]),
-            Event::Resume { id, timestamp } => profile.resume(timestamp, id_map[&id]),
+            Event::StartPaused(Start { parent, start, label }) =>
+                out.create(start, parent, label, id),
+            Event::End { id, timestamp } => out.end(timestamp, id),
+            Event::Pause { id, timestamp } => out.pause(timestamp, id),
+            Event::Resume { id, timestamp } => out.start(timestamp, id),
         }
     }
-    profile.build_string()
+    out.finish()
+}
+
+
+// === Capture raw log data ===
+
+/// Obtain the data from the internal event log.
+pub(crate) fn take_raw_log() -> LogData {
+    let events = EVENTS.take_all();
+    let metadatas = METADATA_LOGS.clone_all();
+    let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
+    let metadata_entries: Vec<_> =
+        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
+    LogData { events, metadata_names, metadata_entries }
+}
+
+/// A snapshot of the internal event log.
+/// Contains all the information necessary to produce a profile.
+pub(crate) struct LogData {
+    pub events:       Vec<Event>,
+    metadata_names:   Vec<&'static str>,
+    metadata_entries: Vec<Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>>,
+}
+
+
+
+// =====================
+// === LogTranslator ===
+// =====================
+
+/// Translates [`profiler::internal`] types and IDs to [`profiler::format`] equivalents.
+#[derive(Debug)]
+struct LogTranslator<'a> {
+    profile: format::Builder<'a>,
+    ids:     std::collections::HashMap<EventId, format::MeasurementId>,
+}
+
+macro_rules! translate_transition {
+    ($name:ident) => {
+        fn $name(&mut self, time: Timestamp, id: EventId) {
+            self.profile.$name(time.into(), self.ids[&id]);
+        }
+    };
+}
+
+impl<'a> LogTranslator<'a> {
+    fn new() -> Self {
+        let mut profile = format::Builder::new();
+        profile.time_offset(Timestamp::time_offset().into());
+        profile.process("Ide");
+        let ids = Default::default();
+        Self { profile, ids }
+    }
+
+    fn finish(self) -> String {
+        self.profile.build_string()
+    }
+
+    fn metadata(&mut self, time: Timestamp, name: &'static str, data: format::AnyMetadata) {
+        self.profile.metadata(time.into(), name, data);
+    }
+
+    fn create(&mut self, time: Option<Timestamp>, parent: EventId, label: Label, id: EventId) {
+        let parent = match parent {
+            EventId::IMPLICIT => format::Parent::implicit(),
+            EventId::APP_LIFETIME => format::Parent::root(),
+            id => self.ids[&id].into(),
+        };
+        let time = time.map(|t| t.into());
+        let interval = self.profile.create(time, parent, label.0);
+        self.ids.insert(id, interval);
+    }
+
+    translate_transition!(start);
+    translate_transition!(end);
+    translate_transition!(pause);
 }
 
 
@@ -107,6 +172,39 @@ impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
 
 
 
+// ======================
+// === MetadataLogger ===
+// ======================
+
+/// An object that supports writing a specific type of metadata to the profiling log.
+#[derive(Debug)]
+pub struct MetadataLogger<T> {
+    id:      u32,
+    entries: rc::Rc<log::Log<T>>,
+}
+
+impl<T: 'static + serde::Serialize> MetadataLogger<T> {
+    /// Create a MetadataLogger for logging a particular type.
+    ///
+    /// The name given here must match the name used for deserialization.
+    pub fn new(name: &'static str) -> Self {
+        let id = METADATA_LOGS.len() as u32;
+        let entries = rc::Rc::new(log::Log::new());
+        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
+        Self { id, entries }
+    }
+
+    /// Write a metadata object to the profiling event log.
+    ///
+    /// Returns an identifier that can be used to create references between log entries.
+    pub fn log(&self, t: T) -> EventId {
+        self.entries.append(t);
+        EventLog.metadata(self.id)
+    }
+}
+
+
+
 // ================
 // === EventLog ===
 // ================
@@ -120,7 +218,7 @@ impl EventLog {
     pub fn start(
         self,
         parent: EventId,
-        label: StaticLabel,
+        label: Label,
         start: Option<Timestamp>,
         state: StartState,
     ) -> EventId {
@@ -157,7 +255,7 @@ impl EventLog {
         let id = EVENTS.len() as u32;
         let timestamp = Timestamp::now();
         let data = ExternalMetadata { type_id };
-        let event = Event::Metadata(Timestamped { timestamp, data });
+        let event = Event::Metadata { timestamp, data };
         EVENTS.append(event);
         EventId(id)
     }
@@ -182,12 +280,12 @@ pub enum StartState {
 // =============
 
 /// An entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Event<Metadata, LabelStorage> {
+#[derive(Debug, Clone, Copy)]
+pub enum Event {
     /// The beginning of a measurement.
-    Start(Start<LabelStorage>),
+    Start(Start),
     /// The beginning of a measurement that starts in the paused state.
-    StartPaused(Start<LabelStorage>),
+    StartPaused(Start),
     /// The end of a measurement.
     End {
         /// Identifies the measurement by the ID of its Start event.
@@ -210,7 +308,12 @@ pub enum Event<Metadata, LabelStorage> {
         timestamp: Timestamp,
     },
     /// Metadata: wrapper with dependency-injected contents.
-    Metadata(Timestamped<Metadata>),
+    Metadata {
+        /// Application-specific data associated with a point in time.
+        data:      ExternalMetadata,
+        /// When the event occurred.
+        timestamp: Timestamp,
+    },
 }
 
 
@@ -220,14 +323,14 @@ pub enum Event<Metadata, LabelStorage> {
 // =============
 
 /// A measurement-start entry in the profiling log.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Start<LabelStorage> {
+#[derive(Debug, Clone, Copy)]
+pub struct Start {
     /// Specifies parent measurement by its [`Start`].
     pub parent: EventId,
     /// Start time, or None to indicate it is the same as `parent`.
     pub start:  Option<Timestamp>,
     /// Identifies where in the code this measurement originates.
-    pub label:  Label<LabelStorage>,
+    pub label:  Label,
 }
 
 
@@ -235,17 +338,14 @@ pub struct Start<LabelStorage> {
 
 /// The label of a profiler; this includes the name given at its creation, along with file and
 /// line-number information.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Label<Storage>(pub Storage);
+#[derive(Debug, Clone, Copy)]
+pub struct Label(pub &'static str);
 
-impl<Storage: fmt::Display> fmt::Display for Label<Storage> {
+impl fmt::Display for Label {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
-
-/// Static-str label, suitable for writing.
-pub(crate) type StaticLabel = Label<&'static str>;
 
 
 
@@ -255,44 +355,36 @@ pub(crate) type StaticLabel = Label<&'static str>;
 
 /// Time elapsed since the [time origin](https://www.w3.org/TR/hr-time-2/#sec-time-origin).
 ///
-/// Stored in units of 100us, because that is maximum resolution of performance.now():
-/// - [in the specification](https://www.w3.org/TR/hr-time-3), 100us is the limit
-/// - in practice, as observed in debug consoles: Chromium 97 (100us) and Firefox 95 (1ms)
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
-pub struct Timestamp(num::NonZeroU64);
-
-/// Offset used to encode a timestamp, which may be 0, in a [`NonZeroU64`].
-/// To maximize the supported range, this is the smallest positive integer.
-const TS_OFFSET: u64 = 1;
+/// Stored as the raw output of performance.now() (floating-point milliseconds).
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
+pub struct Timestamp {
+    ms: f64,
+}
 
 impl Timestamp {
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
-        Self::from_ms(now())
+        Self { ms: now() }
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
-    #[allow(unsafe_code)]
     pub fn from_ms(ms: f64) -> Self {
-        let ticks = (ms * 10.0).round() as u64;
-        // Safety: ticks + 1 will not be 0 unless a Timestamp wraps.
-        // It takes (2 ** 64) * 100us = 58_455_453 years for a Timestamp to wrap.
-        unsafe { Self(num::NonZeroU64::new_unchecked(ticks + TS_OFFSET)) }
+        Self { ms }
     }
 
     /// Return the timestamp of the time origin.
     pub fn time_origin() -> Self {
-        Self::from_ms(0.0)
+        Self { ms: 0.0 }
     }
 
     /// Convert to an offset from the time origin, in ms.
     pub fn into_ms(self) -> f64 {
-        (self.0.get() - TS_OFFSET) as f64 / 10.0
+        self.ms
     }
 
     /// Return the offset of the time origin from a system timestamp.
-    pub fn time_offset() -> f64 {
-        time_origin()
+    pub fn time_offset() -> Self {
+        Self::from_ms(time_origin())
     }
 }
 
@@ -331,16 +423,12 @@ fn time_origin() -> f64 {
 }
 
 
+// === Conversions to related types ===
 
-// === Timestamped ===
-
-/// Wrapper adding a timestamp to an object.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Timestamped<T> {
-    /// When the event occurred.
-    pub timestamp: Timestamp,
-    /// The data.
-    pub data:      T,
+impl From<Timestamp> for format::Timestamp {
+    fn from(time: Timestamp) -> Self {
+        Self::from_ms(time.into_ms())
+    }
 }
 
 
@@ -350,7 +438,7 @@ pub struct Timestamped<T> {
 // ===============
 
 /// Identifies an event in the profiling log.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct EventId(pub u32);
 
 impl EventId {
@@ -377,7 +465,7 @@ impl EventId {
 
 /// Indicates where in the event log metadata from a particular external source should be inserted.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct ExternalMetadata {
+pub struct ExternalMetadata {
     type_id: u32,
 }
 
@@ -392,12 +480,7 @@ pub trait Profiler {
     /// Log the beginning of a measurement.
     ///
     /// Return an object that can be used to manage the measurement's lifetime.
-    fn start(
-        parent: EventId,
-        label: StaticLabel,
-        time: Option<Timestamp>,
-        start: StartState,
-    ) -> Self;
+    fn start(parent: EventId, label: Label, time: Option<Timestamp>, start: StartState) -> Self;
     /// Log the end of a measurement.
     fn finish(self);
     /// Log the beginning of an interval in which the profiler is not active.
@@ -428,11 +511,11 @@ where
     U: crate::Parent<T> + Profiler + Copy,
     T: Profiler + Copy,
 {
-    fn new_child(&self, label: StaticLabel) -> Started<T> {
+    fn new_child(&self, label: Label) -> Started<T> {
         self.0.new_child(label)
     }
 
-    fn new_child_same_start(&self, label: StaticLabel) -> Started<T> {
+    fn new_child_same_start(&self, label: Label) -> Started<T> {
         self.0.new_child_same_start(label)
     }
 }

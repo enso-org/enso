@@ -16,7 +16,6 @@ import org.enso.interpreter.node.expression.builtin.error.CatchPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanicConvertToDataflowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.GetAttachedStackTraceMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
-import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.GetCwdMethodGen;
@@ -190,8 +189,6 @@ public class Builtins {
 
     scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalMethodGen.makeFunction(language));
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
-
-    scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
 
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_display_text", AnyToDisplayTextMethodGen.makeFunction(language));

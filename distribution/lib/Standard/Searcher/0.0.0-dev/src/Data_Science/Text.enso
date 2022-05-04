@@ -8,7 +8,7 @@
    > Example
      Split the text on whitespace into a vector of items.
 
-         "ham eggs cheese tomatoes".split Split_Kind.Whitespace
+         "ham eggs cheese tomatoes".split "\s+"
 
    > Example
      Getting the words in the sentence "I have not one, but two cats."
