@@ -143,7 +143,6 @@ impl component::Frp<Model> for Frp {
         let network = &api.network;
         let input = &api.input;
         let out = &api.output;
-        let background_height = Animation::new(network);
         frp::extend! { network
             eval input.set_background_color((c) model.background.color.set(c.into()));
 
@@ -157,9 +156,10 @@ impl component::Frp<Model> for Frp {
             // === Background size ===
 
             let background_width = input.set_width.clone_ref();
+            background_height <- any(...);
 
             entry_count <- input.set_entries.map(|p| p.entry_count());
-            size <- all_with(&background_width, &background_height.value,
+            size <- all_with(&background_width, &background_height,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
             out.size <+ size;
@@ -191,10 +191,8 @@ impl component::Frp<Model> for Frp {
 
                 let column = column.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, idx));
-                background_height.target <+ entries.map(f!([column, model](e) {
-                    column.set_entries(e);
-                    model.background_height()
-                }));
+                background_height <+ entries.map(f_!(model.background_height()));
+                eval entries((e) column.set_entries(e));
 
                 eval out.size((size) column.resize(*size));
             }
