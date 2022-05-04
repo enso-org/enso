@@ -157,7 +157,6 @@ impl component::Frp<Model> for Frp {
             // === Background size ===
 
             let background_width = input.set_width.clone_ref();
-            column_width <- background_width.map(|w| *w / COLUMNS as f32);
 
             entry_count <- input.set_entries.map(|p| p.entry_count());
             size <- all_with(&background_width, &background_height.value,
@@ -197,10 +196,7 @@ impl component::Frp<Model> for Frp {
                     model.background_height()
                 }));
 
-                // === Columns size and position ===
-
-                _eval <- all_with(&column_width, &background_height.value,
-                                   f!((&width, &bg_height) column.resize(width, bg_height)));
+                eval out.size((size) column.resize(*size));
             }
         }
     }
@@ -246,7 +242,9 @@ impl Column {
         self.inner.set_entries(provider);
     }
 
-    fn resize(&self, width: f32, bg_height: f32) {
+    fn resize(&self, size: Vector2) {
+        let width = size.x / COLUMNS as f32;
+        let bg_height = size.y;
         let height = self.len.get() as f32 * ENTRY_HEIGHT;
         self.inner.resize(Vector2(width, height));
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
@@ -299,6 +297,7 @@ impl component::Model for Model {
             column.set_background_corners_radius(0.0);
             display_object.add_child(&**column);
         }
+
         let no_items_label = Label::new(app);
         no_items_label.set_content(NO_ITEMS_LABEL_TEXT);
 
