@@ -1192,54 +1192,11 @@ class IrToTruffle(
       val body: IR.Expression
     ) {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
-      private var argDefinitions: Array[ArgumentDefinition] = null
-      private var argSlots: List[FrameSlot] = null
-      private var argExpressions: ArrayBuffer[RuntimeExpression] = null
+      private lazy val slots = computeSlots()
 
-      def args(): Array[ArgumentDefinition] = {
-        val (_, args, _) = slots()
-        args
-      }
-
-      private def slots(): (List[FrameSlot],Array[ArgumentDefinition], ArrayBuffer[RuntimeExpression]) = {
-        if (argSlots == null) {
-          val seenArgNames   = mutable.Set[String]()
-          argDefinitions = new Array[ArgumentDefinition](arguments.size)
-          argExpressions = new ArrayBuffer[RuntimeExpression]
-          // Note [Rewriting Arguments]
-          argSlots = arguments.zipWithIndex.map { case (unprocessedArg, idx) =>
-            val arg = argFactory.run(unprocessedArg, idx)
-            argDefinitions(idx) = arg
-
-            val occInfo = unprocessedArg
-              .unsafeGetMetadata(
-                AliasAnalysis,
-                "No occurrence on an argument definition."
-              )
-              .unsafeAs[AliasAnalysis.Info.Occurrence]
-
-            val slot = scope.createVarSlot(occInfo.id)
-            val readArg =
-              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-            val assignArg = AssignmentNode.build(readArg, slot)
-
-            argExpressions.append(assignArg)
-
-            val argName = arg.getName
-
-            if (seenArgNames contains argName) {
-              throw new IllegalStateException(
-                s"A duplicate argument name, $argName, was found during codegen."
-              )
-            } else seenArgNames.add(argName)
-            slot
-          }
-        }
-        (argSlots, argDefinitions, argExpressions)
-      }
-
+      def args(): Array[ArgumentDefinition] = slots._2
       def bodyNode(): BlockNode = {
-        val (argSlots, _, argExpressions) = slots()
+        val (argSlots, _, argExpressions) = slots
 
         val bodyExpr = body match {
           case IR.Foreign.Definition(lang, code, _, _, _) =>
@@ -1251,9 +1208,42 @@ class IrToTruffle(
             )
           case _ => ExpressionProcessor.this.run(body)
         }
-
         BlockNode.build(argExpressions.toArray, bodyExpr)
+      }
 
+      private def computeSlots(): (List[FrameSlot],Array[ArgumentDefinition], ArrayBuffer[RuntimeExpression]) = {
+        val seenArgNames   = mutable.Set[String]()
+        val argDefinitions = new Array[ArgumentDefinition](arguments.size)
+        val argExpressions = new ArrayBuffer[RuntimeExpression]
+        // Note [Rewriting Arguments]
+        val argSlots = arguments.zipWithIndex.map { case (unprocessedArg, idx) =>
+          val arg = argFactory.run(unprocessedArg, idx)
+          argDefinitions(idx) = arg
+
+          val occInfo = unprocessedArg
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "No occurrence on an argument definition."
+            )
+            .unsafeAs[AliasAnalysis.Info.Occurrence]
+
+          val slot = scope.createVarSlot(occInfo.id)
+          val readArg =
+            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+          val assignArg = AssignmentNode.build(readArg, slot)
+
+          argExpressions.append(assignArg)
+
+          val argName = arg.getName
+
+          if (seenArgNames contains argName) {
+            throw new IllegalStateException(
+              s"A duplicate argument name, $argName, was found during codegen."
+            )
+          } else seenArgNames.add(argName)
+          slot
+        }
+        (argSlots, argDefinitions, argExpressions)
       }
     }
 
