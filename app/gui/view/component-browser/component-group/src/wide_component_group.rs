@@ -35,6 +35,17 @@ const COLUMNS: usize = 3;
 
 
 
+// ===============
+// === Aliases ===
+// ===============
+
+/// Type of the component group items.
+type Entry = list_view::entry::Label;
+/// An index of the column.
+type ColumnId = usize;
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -64,9 +75,7 @@ pub mod background {
 // === ModelProvider ===
 // =====================
 
-type Entry = list_view::entry::Label;
-
-/// A special [`list_view::entry::ModelProvider`] wrapper that splits the entries into `COLUMNS`
+/// A special [`list_view::entry::ModelProvider`] wrapper that splits entries into `COLUMNS`
 /// lists.
 ///
 /// Entries are distributed evenly between lists. If the entry count is not divisible by `COLUMNS` -
@@ -74,25 +83,25 @@ type Entry = list_view::entry::Label;
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct ModelProvider {
     inner: AnyModelProvider<Entry>,
-    index: Immutable<usize>,
+    column_id: Immutable<usize>,
 }
 
 impl ModelProvider {
     /// Wrap [`AnyModelProvider`] and split its entries into `COLUMNS` lists. The returned instance
     /// provides entries for column with `index`.
-    fn wrap(inner: &AnyModelProvider<Entry>, index: usize) -> AnyModelProvider<Entry> {
-        AnyModelProvider::new(Self { inner: inner.clone_ref(), index: Immutable(index) })
+    fn wrap(inner: &AnyModelProvider<Entry>, column_id: ColumnId) -> AnyModelProvider<Entry> {
+        AnyModelProvider::new(Self { inner: inner.clone_ref(), column_id: Immutable(column_id) })
     }
 }
 
 impl list_view::entry::ModelProvider<Entry> for ModelProvider {
     fn entry_count(&self) -> usize {
         let total_count = self.inner.entry_count();
-        Model::entry_count_in_column(*self.index, total_count)
+        Model::entry_count_in_column(*self.column_id, total_count)
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<String> {
-        let idx = (self.entry_count() - 1 - id) * COLUMNS + *self.index;
+    fn get(&self, id: EntryId) -> Option<String> {
+        let idx = (self.entry_count() - 1 - id) * COLUMNS + *self.column_id;
         self.inner.get(idx)
     }
 }
@@ -222,7 +231,7 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     display_object: display::object::Instance,
     background:     background::View,
-    columns:        Rc<[list_view::ListView<list_view::entry::Label>; COLUMNS]>,
+    columns:        Rc<[list_view::ListView<Entry>; COLUMNS]>,
     no_items_label: Label,
 }
 
@@ -242,9 +251,9 @@ impl component::Model for Model {
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         let columns = Rc::new([
-            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
-            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
-            app.new_view::<list_view::ListView<list_view::entry::Label>>(),
+            app.new_view::<list_view::ListView<Entry>>(),
+            app.new_view::<list_view::ListView<Entry>>(),
+            app.new_view::<list_view::ListView<Entry>>(),
         ]);
         for column in columns.iter() {
             column.hide_selection();
@@ -268,8 +277,8 @@ impl Model {
 
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that
     /// at all times only one entry across all columns will be selected.
-    fn on_selected_entry(&self, column_index: usize) {
-        let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != column_index);
+    fn on_selected_entry(&self, column_id: ColumnId) {
+        let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != column_id);
         for (_, column) in other_columns {
             column.deselect_entries();
         }
@@ -283,11 +292,11 @@ impl Model {
     }
 
     /// Return the number of entries in column with `index`.
-    fn entry_count_in_column(index: usize, total_entry_count: usize) -> usize {
+    fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize {
         let evenly_distributed_count = total_entry_count / COLUMNS;
         let remainder = total_entry_count % COLUMNS;
         let has_remainder = remainder > 0;
-        let column_contains_remaining_entries = index < remainder;
+        let column_contains_remaining_entries = column_id < remainder;
         if has_remainder && column_contains_remaining_entries {
             evenly_distributed_count + 1
         } else {
@@ -295,20 +304,20 @@ impl Model {
         }
     }
 
-    fn column_idx_to_full_list_index(&self, column: usize, index: usize, total_entry_count: usize) -> usize {
-        COLUMNS * (Self::entry_count_in_column(column, total_entry_count) - index - 1) + column
+    fn column_idx_to_full_list_index(&self, column: ColumnId, entry: EntryId, total_entry_count: usize) -> usize {
+        COLUMNS * (Self::entry_count_in_column(column, total_entry_count) - entry - 1) + column
     }
 
     fn selection_position(
         &self,
-        index: usize,
+        column_id: ColumnId,
         entries_selection_position: Vector2,
     ) -> Vector2 {
-        let column = self.columns.get(index);
+        let column = self.columns.get(column_id);
         if let Some(column) = column {
             column.position().xy() + entries_selection_position
         } else {
-            WARNING!("Attempt to access nonexisting column {index}.");
+            WARNING!("Attempt to access a nonexisting column {column_id}.");
             Vector2::zero()
         }
     }
