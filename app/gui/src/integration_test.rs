@@ -1,5 +1,3 @@
-//! Enso testing fixtures
-//!
 //! Support structures for high-level testing crates that must connect to the Project Manager.
 //! This includes integration tests and batch-mode application profiling.
 

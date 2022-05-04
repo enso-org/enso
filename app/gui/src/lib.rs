@@ -128,7 +128,6 @@ mod examples {
 }
 #[allow(unused_imports)]
 use examples::*;
-// This module defines an entry point for batch-mode profiling.
 mod profile_workflow;
 
 use prelude::profiler;
