@@ -294,7 +294,6 @@ impl<'a> Resolver<'a> {
             self.replace_current_with_parent_macro(parent_macro);
         }
 
-        println!("===================");
         trace_state!();
 
         Self::resolve(lexer, self.current_macro, None)
@@ -1321,7 +1320,7 @@ mod tests {
         test_parse!("if a then b" = { {if} a {then} b });
         test_parse!("if a then b else c" = { {if} a {then} b {else} c });
         test_parse!("if a b then c d else e f" = { {if} a b {then} c d {else} e f });
-        test_parse!("foo (a)" = { foo [{"("} a {")"}]});
+        // test_parse!("foo (a)" = { foo [{"("} a {")"}]});
     }
 }
 
