@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable.atom;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -82,6 +83,7 @@ public final class AtomConstructor implements TruffleObject {
       // Ensure that synthetic methods, such as getters for fields are in the scope
       // Some scopes won't have any methods at this point, e.g., Nil or Nothing, hence the null
       // check.
+      CompilerAsserts.neverPartOfCompilation();
       Map<String, Function> methods = this.definitionScope.getMethods().get(this);
       if (methods != null) {
         methods.forEach((name, fun) -> scope.registerMethod(this, name, fun));
