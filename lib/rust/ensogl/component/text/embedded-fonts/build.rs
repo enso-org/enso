@@ -48,6 +48,7 @@ mod deja_vu {
     use crate::FillMapRsFile;
 
     use enso_build_utilities::GithubRelease;
+    use ensogl_text_embedded_fonts_names::*;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
@@ -76,7 +77,7 @@ mod deja_vu {
     }
 
     pub const FONTS_TO_EXTRACT: &[&str] =
-        &["DejaVuSans", "DejaVuSans-Bold", "DejaVuSansMono", "DejaVuSansMono-Bold"];
+        &[DEJA_VU_SANS, DEJA_VU_SANS_BOLD, DEJA_VU_SANS_MONO, DEJA_VU_SANS_MONO_BOLD];
 
     pub fn extract_all_fonts(package_path: &path::Path) {
         for font_name in FONTS_TO_EXTRACT {

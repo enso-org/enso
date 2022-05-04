@@ -29,6 +29,7 @@ use ensogl_core::display;
 use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
+use ensogl_text_embedded_fonts_names::DEJA_VU_SANS_MONO;
 use std::ops::Not;
 
 
@@ -602,7 +603,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load("DejaVuSansMono");
+            let font = fonts.load(DEJA_VU_SANS_MONO);
             let glyph_system = typeface::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))
