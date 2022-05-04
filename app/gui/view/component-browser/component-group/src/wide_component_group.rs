@@ -30,7 +30,8 @@ use crate::EntryId;
 // =================
 
 const NO_ITEMS_LABEL_TEXT: &str = "No local variables";
-const MINIMAL_HEIGHT: f32 = list_view::entry::HEIGHT;
+const ENTRY_HEIGHT: f32 = list_view::entry::HEIGHT;
+const MINIMAL_HEIGHT: f32 = ENTRY_HEIGHT;
 const COLUMNS: usize = 3;
 
 
@@ -83,7 +84,7 @@ pub mod background {
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct ModelProvider {
     inner: AnyModelProvider<Entry>,
-    column_id: Immutable<usize>,
+    column_id: Immutable<ColumnId>,
 }
 
 impl ModelProvider {
@@ -96,12 +97,13 @@ impl ModelProvider {
 
 impl list_view::entry::ModelProvider<Entry> for ModelProvider {
     fn entry_count(&self) -> usize {
-        let total_count = self.inner.entry_count();
-        Model::entry_count_in_column(*self.column_id, total_count)
+        let total_entry_count = self.inner.entry_count();
+        entry_count_in_column(*self.column_id, total_entry_count)
     }
 
     fn get(&self, id: EntryId) -> Option<String> {
-        let idx = (self.entry_count() - 1 - id) * COLUMNS + *self.column_id;
+        let total_entry_count = self.inner.entry_count();
+        let idx = local_idx_to_global(*self.column_id, id, total_entry_count);
         self.inner.get(idx)
     }
 }
@@ -141,11 +143,13 @@ impl component::Frp<Model> for Frp {
         let background_height = Animation::new(network);
         frp::extend! { network
             eval input.set_background_color((c) model.background.color.set(c.into()));
+
+            // Selected entry
+
             selected_entry <- any_mut();
             some_selected_entry <- selected_entry.filter_map(|&(entry, group): &(Option<usize>, usize)| if entry.is_some() { Some(group) } else { None });
             eval some_selected_entry ((group) model.on_selected_entry(*group));
             out.selected_entry <+ selected_entry.map(|(entry, _)| *entry);
-
 
             // === Background size ===
 
@@ -153,7 +157,6 @@ impl component::Frp<Model> for Frp {
             column_width <- background_width.map(|w| *w / COLUMNS as f32);
 
             entry_count <- input.set_entries.map(|p| p.entry_count());
-            background_height.target <+ entry_count.map(|c| Model::background_height(*c));
             size <- all_with(&background_width, &background_height.value,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
@@ -172,41 +175,29 @@ impl component::Frp<Model> for Frp {
             frp::extend! { network
                 total_entries_count <- input.set_entries.map(|p| p.entry_count());
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion);
-                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e).map2(&total_entries_count, f!((e, total) model.column_idx_to_full_list_index(idx, *e, *total)));
-                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e).map2(&total_entries_count, f!((e, total) model.column_idx_to_full_list_index(idx, *e, *total)));
+                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
+                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
             }
 
             frp::extend! { network
                 column_is_active <- column.selected_entry.map(|e| e.is_some());
                 selection_position <- column.selection_position_target.gate(&column_is_active);
-                out.selection_position_target <+ selection_position.map(f!((pos) model.selection_position(idx, *pos)));
+                out.selection_position_target <+ selection_position.map(f!((pos) column.selection_position(*pos)));
             }
             frp::extend! { network
                 selected_entry <+ column.frp.output.selected_entry.map(move |entry| (*entry, idx));
 
                 let column = column.clone_ref();
                 entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, idx));
-                entry_count_in_column <- entries.map(|p| p.entry_count());
-                column.set_entries <+ entries;
+                background_height.target <+ entries.map(f!([column, model](e) {
+                    column.set_entries(e);
+                    model.background_height()
+                }));
 
                 // === Columns size and position ===
 
-                column_height <- entry_count_in_column.map(|count| *count as f32 * list_view::entry::HEIGHT);
-                _eval <- all_with3(&column_width, &column_height, &background_height.value, f!(
-                        [column](&width, &height, &bg_height) {
-                            column.resize(Vector2(width, height));
-                            let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
-                            column.set_position_x(left_border + width * idx as f32);
-                            let half_height = height / 2.0;
-                            let background_bottom = -bg_height / 2.0;
-                            column.set_position_y(background_bottom + half_height);
-                        }));
-
-                // === Clear default list view background ===
-
-                column.set_background_color(Rgba(1.0, 1.0, 1.0, 0.0));
-                column.show_background_shadow(false);
-                column.set_background_corners_radius(0.0);
+                _eval <- all_with(&column_width, &background_height.value, 
+                                   f!((&width, &bg_height) column.resize(width, bg_height)));
             }
         }
     }
@@ -220,6 +211,53 @@ impl component::Frp<Model> for Frp {
     }
 }
 
+#[derive(Debug, Clone, CloneRef)]
+struct Column {
+    index: Immutable<ColumnId>,
+    len: Rc<Cell<usize>>,
+    inner: list_view::ListView<Entry>,
+}
+
+impl Deref for Column {
+    type Target = list_view::ListView<Entry>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl Column {
+    fn new(app: &Application, index: ColumnId) -> Self {
+        Self {
+            index: Immutable(index),
+            len: default(),
+            inner: app.new_view::<list_view::ListView<Entry>>(),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.len.get()
+    }
+
+    fn set_entries(&self, provider: &AnyModelProvider<Entry>) {
+        self.len.set(provider.entry_count());
+        self.inner.set_entries(provider);
+    }
+
+    fn resize(&self, width: f32, bg_height: f32) {
+        let height = self.len.get() as f32 * ENTRY_HEIGHT;
+        self.inner.resize(Vector2(width, height));
+        let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
+        self.inner.set_position_x(left_border + width * *self.index as f32);
+        let half_height = height / 2.0;
+        let background_bottom = -bg_height / 2.0;
+        self.inner.set_position_y(background_bottom + half_height);
+    }
+
+    fn selection_position(&self, pos: Vector2) -> Vector2 {
+        self.position().xy() + pos
+    } 
+}
+
 
 
 // =============
@@ -231,7 +269,7 @@ impl component::Frp<Model> for Frp {
 pub struct Model {
     display_object: display::object::Instance,
     background:     background::View,
-    columns:        Rc<[list_view::ListView<Entry>; COLUMNS]>,
+    columns:        Rc<[Column; COLUMNS]>,
     no_items_label: Label,
 }
 
@@ -251,13 +289,16 @@ impl component::Model for Model {
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         let columns = Rc::new([
-            app.new_view::<list_view::ListView<Entry>>(),
-            app.new_view::<list_view::ListView<Entry>>(),
-            app.new_view::<list_view::ListView<Entry>>(),
+            Column::new(app, 0),
+            Column::new(app, 1),
+            Column::new(app, 2),
         ]);
         for column in columns.iter() {
             column.hide_selection();
-            display_object.add_child(column);
+            column.set_background_color(Rgba::transparent());
+            column.show_background_shadow(false);
+            column.set_background_corners_radius(0.0);
+            display_object.add_child(&**column);
         }
         let no_items_label = Label::new(app);
         no_items_label.set_content(NO_ITEMS_LABEL_TEXT);
@@ -285,40 +326,14 @@ impl Model {
     }
 
     /// Calculate the height of the component. It can't be less than [`MINIMAL_HEIGHT`].
-    fn background_height(total_entry_count: usize) -> f32 {
-        let entry_count_in_largest_column = Self::entry_count_in_column(0, total_entry_count);
-        let background_height = entry_count_in_largest_column as f32 * list_view::entry::HEIGHT;
-        background_height.max(MINIMAL_HEIGHT)
-    }
-
-    /// Return the number of entries in column with `index`.
-    fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize {
-        let evenly_distributed_count = total_entry_count / COLUMNS;
-        let remainder = total_entry_count % COLUMNS;
-        let has_remainder = remainder > 0;
-        let column_contains_remaining_entries = column_id < remainder;
-        if has_remainder && column_contains_remaining_entries {
-            evenly_distributed_count + 1
+    fn background_height(&self) -> f32 {
+        if let Some(largest_column) = self.columns.first() {
+            let entry_count_in_largest_column = largest_column.len();
+            let background_height = entry_count_in_largest_column as f32 * ENTRY_HEIGHT;
+            background_height.max(MINIMAL_HEIGHT)
         } else {
-            evenly_distributed_count
-        }
-    }
-
-    fn column_idx_to_full_list_index(&self, column: ColumnId, entry: EntryId, total_entry_count: usize) -> usize {
-        COLUMNS * (Self::entry_count_in_column(column, total_entry_count) - entry - 1) + column
-    }
-
-    fn selection_position(
-        &self,
-        column_id: ColumnId,
-        entries_selection_position: Vector2,
-    ) -> Vector2 {
-        let column = self.columns.get(column_id);
-        if let Some(column) = column {
-            column.position().xy() + entries_selection_position
-        } else {
-            WARNING!("Attempt to access a nonexisting column {column_id}.");
-            Vector2::zero()
+            WARNING!("Wide Component Group does not have any columns.");
+            MINIMAL_HEIGHT
         }
     }
 }
@@ -331,3 +346,27 @@ impl Model {
 
 /// The implementation of the visual component described in the module's documentation.
 pub type View = component::ComponentView<Model, Frp>;
+
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+/// Return the number of entries in column with `index`.
+fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize {
+    let evenly_distributed_count = total_entry_count / COLUMNS;
+    let remainder = total_entry_count % COLUMNS;
+    let has_remainder = remainder > 0;
+    let column_contains_remaining_entries = column_id < remainder;
+    if has_remainder && column_contains_remaining_entries {
+        evenly_distributed_count + 1
+    } else {
+        evenly_distributed_count
+    }
+}
+
+fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> usize {
+    let reversed_local_idx = entry_count_in_column(column, total_entry_count) - entry - 1;
+    COLUMNS * reversed_local_idx + column
+}
