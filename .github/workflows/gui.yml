@@ -80,6 +80,23 @@ jobs:
           clean: false
       - uses: ./actions/setup-build
       - run: bash run.sh wasm test --no-native
+  integration-tests:
+    name: GUI Integration Tests (WASM)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
+      - uses: ./actions/setup-build
+      - run: bash run.sh ide integration-tests
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
