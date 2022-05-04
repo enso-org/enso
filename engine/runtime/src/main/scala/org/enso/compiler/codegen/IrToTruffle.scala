@@ -290,7 +290,8 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function =>
-            val bodyBuilder = new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
+            val bodyBuilder =
+              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
@@ -301,7 +302,7 @@ class IrToTruffle(
               methodDef.methodName.name
             )
             val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-            val arguments = bodyBuilder.args()
+            val arguments  = bodyBuilder.args()
             new RuntimeFunction(
               callTarget,
               null,
@@ -348,7 +349,8 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function =>
-            val bodyBuilder = new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
+            val bodyBuilder =
+              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
@@ -359,7 +361,7 @@ class IrToTruffle(
               methodDef.methodName.name
             )
             val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-            val arguments = bodyBuilder.args()
+            val arguments  = bodyBuilder.args()
             new RuntimeFunction(
               callTarget,
               null,
@@ -1191,7 +1193,7 @@ class IrToTruffle(
       val arguments: List[IR.DefinitionArgument],
       val body: IR.Expression
     ) {
-      val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
+      val argFactory         = new DefinitionArgumentProcessor(scopeName, scope)
       private lazy val slots = computeSlots()
 
       def args(): Array[ArgumentDefinition] = slots._2
@@ -1211,37 +1213,42 @@ class IrToTruffle(
         BlockNode.build(argExpressions.toArray, bodyExpr)
       }
 
-      private def computeSlots(): (List[FrameSlot],Array[ArgumentDefinition], ArrayBuffer[RuntimeExpression]) = {
+      private def computeSlots(): (
+        List[FrameSlot],
+        Array[ArgumentDefinition],
+        ArrayBuffer[RuntimeExpression]
+      ) = {
         val seenArgNames   = mutable.Set[String]()
         val argDefinitions = new Array[ArgumentDefinition](arguments.size)
         val argExpressions = new ArrayBuffer[RuntimeExpression]
         // Note [Rewriting Arguments]
-        val argSlots = arguments.zipWithIndex.map { case (unprocessedArg, idx) =>
-          val arg = argFactory.run(unprocessedArg, idx)
-          argDefinitions(idx) = arg
+        val argSlots = arguments.zipWithIndex.map {
+          case (unprocessedArg, idx) =>
+            val arg = argFactory.run(unprocessedArg, idx)
+            argDefinitions(idx) = arg
 
-          val occInfo = unprocessedArg
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No occurrence on an argument definition."
-            )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
+            val occInfo = unprocessedArg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No occurrence on an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot = scope.createVarSlot(occInfo.id)
-          val readArg =
-            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignArg = AssignmentNode.build(readArg, slot)
+            val slot = scope.createVarSlot(occInfo.id)
+            val readArg =
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+            val assignArg = AssignmentNode.build(readArg, slot)
 
-          argExpressions.append(assignArg)
+            argExpressions.append(assignArg)
 
-          val argName = arg.getName
+            val argName = arg.getName
 
-          if (seenArgNames contains argName) {
-            throw new IllegalStateException(
-              s"A duplicate argument name, $argName, was found during codegen."
-            )
-          } else seenArgNames.add(argName)
-          slot
+            if (seenArgNames contains argName) {
+              throw new IllegalStateException(
+                s"A duplicate argument name, $argName, was found during codegen."
+              )
+            } else seenArgNames.add(argName)
+            slot
         }
         (argSlots, argDefinitions, argExpressions)
       }
