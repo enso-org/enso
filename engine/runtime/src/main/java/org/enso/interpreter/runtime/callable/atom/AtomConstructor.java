@@ -63,7 +63,7 @@ public final class AtomConstructor implements TruffleObject {
    * @param definitionScope the scope in which this constructor was defined
    * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
-  public AtomConstructor(String name, ModuleScope definitionScope, Boolean builtin) {
+  public AtomConstructor(String name, ModuleScope definitionScope, boolean builtin) {
     this.name = name;
     this.definitionScope = definitionScope;
     this.builtin = builtin;

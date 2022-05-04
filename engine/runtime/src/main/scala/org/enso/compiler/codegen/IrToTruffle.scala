@@ -878,9 +878,9 @@ class IrToTruffle(
           runtimeConsOpt.map { atomCons =>
             val any          = context.getBuiltins.any
             val array        = context.getBuiltins.array
-            val bool         = context.getBuiltins.bool
-            val builtinTrue  = context.getBuiltins.trueAtom
-            val builtinFalse = context.getBuiltins.falseAtom
+            val builtinBool  = context.getBuiltins.bool().getBool
+            val builtinTrue  = context.getBuiltins.bool().getTrue
+            val builtinFalse = context.getBuiltins.bool().getFalse
             val number       = context.getBuiltins.number
             val polyglot     = context.getBuiltins.polyglot
             val text         = context.getBuiltins.text
@@ -889,9 +889,9 @@ class IrToTruffle(
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
               } else if (atomCons == builtinFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
-              } else if (atomCons == bool) {
+              } else if (atomCons == builtinBool) {
                 BooleanConstructorBranchNode.build(
-                  bool,
+                  builtinBool,
                   builtinTrue,
                   builtinFalse,
                   branchCodeNode.getCallTarget

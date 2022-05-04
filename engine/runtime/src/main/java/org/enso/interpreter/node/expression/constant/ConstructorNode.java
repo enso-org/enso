@@ -35,10 +35,10 @@ public abstract class ConstructorNode extends ExpressionNode {
   @Specialization
   Object doExecute(VirtualFrame frame) {
     var builtins = Context.get(this).getBuiltins();
-    if (constructor == builtins.trueAtom()) {
+    if (constructor == builtins.bool().getTrue()) {
       return true;
     }
-    if (constructor == builtins.falseAtom()) {
+    if (constructor == builtins.bool().getFalse()) {
       return false;
     }
     if (constructor.getArity() == 0) {

@@ -13,18 +13,18 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** A container for builtin ordering types. */
 public class Ordering {
 
-  @CompilerDirectives.CompilationFinal private AtomConstructor ordering;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor less;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor equal;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor greater;
-
-  @CompilerDirectives.CompilationFinal private Builtins builtins;
+  private final BuiltinAtomConstructor ordering;
+  private final BuiltinAtomConstructor less;
+  private final BuiltinAtomConstructor equal;
+  private final BuiltinAtomConstructor greater;
 
   public Ordering(Builtins builtins) {
-    this.builtins = builtins;
+    ordering =
+        new BuiltinAtomConstructor(
+            builtins, org.enso.interpreter.node.expression.builtin.ordering.Ordering.class);
+    less = new BuiltinAtomConstructor(builtins, Less.class);
+    equal = new BuiltinAtomConstructor(builtins, Equal.class);
+    greater = new BuiltinAtomConstructor(builtins, Greater.class);
   }
 
   /**
@@ -60,39 +60,21 @@ public class Ordering {
 
   /** @return the Ordering constructor. */
   public AtomConstructor ordering() {
-    if (ordering == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      ordering =
-          builtins.getBuiltinType(
-              org.enso.interpreter.node.expression.builtin.ordering.Ordering.class);
-    }
-    return ordering;
+    return ordering.constructor();
   }
 
   /** @return the Less constructor */
   public AtomConstructor less() {
-    if (less == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      less = builtins.getBuiltinType(Less.class);
-    }
-    return less;
+    return less.constructor();
   }
 
   /** @return the Equal constructor */
   public AtomConstructor equal() {
-    if (equal == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      equal = builtins.getBuiltinType(Equal.class);
-    }
-    return equal;
+    return equal.constructor();
   }
 
   /** @return the Greater constructor */
   public AtomConstructor greater() {
-    if (greater == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      greater = builtins.getBuiltinType(Greater.class);
-    }
-    return greater;
+    return greater.constructor();
   }
 }

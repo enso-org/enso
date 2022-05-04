@@ -1,7 +1,5 @@
 ## Functionality for interacting with the host system.
 
-type System
-
 ## PRIVATE
 
    Create a system process, returning the exit code, and the outputs to both

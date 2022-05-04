@@ -12,71 +12,45 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A container for all number-related builtins. */
 public class Number {
-  @CompilerDirectives.CompilationFinal private AtomConstructor smallInteger;
+  private final BuiltinAtomConstructor smallInteger;
+  private final BuiltinAtomConstructor bigInteger;
+  private final BuiltinAtomConstructor integer;
+  private final BuiltinAtomConstructor number;
+  private final BuiltinAtomConstructor decimal;
 
-  @CompilerDirectives.CompilationFinal private AtomConstructor bigInteger;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor integer;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor number;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor decimal;
-
-  private final Builtins builtins;
-
-  /**
-   * Creates and registers number builtins.
-   *
-   * @param language the current language instance.
-   * @param scope the builtins scope.
-   */
+  /** Creates builders for number Atom Constructors. */
   public Number(Builtins builtins) {
-    this.builtins = builtins;
+    smallInteger = new BuiltinAtomConstructor(builtins, SmallInteger.class);
+    bigInteger = new BuiltinAtomConstructor(builtins, BigInteger.class);
+    integer = new BuiltinAtomConstructor(builtins, Integer.class);
+    number =
+        new BuiltinAtomConstructor(
+            builtins, org.enso.interpreter.node.expression.builtin.number.Number.class);
+    decimal = new BuiltinAtomConstructor(builtins, Decimal.class);
   }
 
   /** @return the Int64 atom constructor. */
   public AtomConstructor getSmallInteger() {
-    if (smallInteger == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      smallInteger = builtins.getBuiltinType(SmallInteger.class);
-    }
-    return smallInteger;
+    return smallInteger.constructor();
   }
 
   /** @return the Big_Integer atom constructor. */
   public AtomConstructor getBigInteger() {
-    if (bigInteger == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      bigInteger = builtins.getBuiltinType(BigInteger.class);
-    }
-    return bigInteger;
+    return bigInteger.constructor();
   }
 
   /** @return the Integer atom constructor */
   public AtomConstructor getInteger() {
-    if (integer == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      integer = builtins.getBuiltinType(Integer.class);
-    }
-    return integer;
+    return integer.constructor();
   }
 
   /** @return the Number atom constructor */
   public AtomConstructor getNumber() {
-    if (number == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      number =
-          builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.number.Number.class);
-    }
-    return number;
+    return number.constructor();
   }
 
   /** @return the Decimal atom constructor */
   public AtomConstructor getDecimal() {
-    if (decimal == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      decimal = builtins.getBuiltinType(Decimal.class);
-    }
-    return decimal;
+    return decimal.constructor();
   }
 }

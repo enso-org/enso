@@ -32,21 +32,21 @@ public class DefaultBooleanExports {
     static Function resolveMethodOnPrimBoolean(UnresolvedSymbol symbol) {
       Context context = getContext();
       Builtins builtins = context.getBuiltins();
-      if (symbol.resolveFor(builtins.falseAtom()) != null) {
+      if (symbol.resolveFor(builtins.bool().getFalse()) != null) {
         return null;
       }
-      if (symbol.resolveFor(builtins.trueAtom()) != null) {
+      if (symbol.resolveFor(builtins.bool().getTrue()) != null) {
         return null;
       }
-      return symbol.resolveFor(builtins.bool(), context.getBuiltins().any());
+      return symbol.resolveFor(builtins.bool().getBool(), context.getBuiltins().any());
     }
 
     @CompilerDirectives.TruffleBoundary
     static Function resolveMethodOnBool(boolean self, UnresolvedSymbol symbol) {
       Context context = getContext();
       Builtins builtins = context.getBuiltins();
-      AtomConstructor cons = self ? builtins.trueAtom() : builtins.falseAtom();
-      return symbol.resolveFor(cons, builtins.bool(), context.getBuiltins().any());
+      AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
+      return symbol.resolveFor(cons, builtins.bool().getBool(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -130,13 +130,13 @@ public class DefaultBooleanExports {
         AtomConstructor target, UnresolvedConversion conversion) {
       Context context = Context.get(null);
       Builtins builtins = context.getBuiltins();
-      if (conversion.resolveFor(target, builtins.falseAtom()) != null) {
+      if (conversion.resolveFor(target, builtins.bool().getFalse()) != null) {
         return null;
       }
-      if (conversion.resolveFor(target, builtins.trueAtom()) != null) {
+      if (conversion.resolveFor(target, builtins.bool().getTrue()) != null) {
         return null;
       }
-      return conversion.resolveFor(target, builtins.bool(), context.getBuiltins().any());
+      return conversion.resolveFor(target, builtins.bool().getBool(), context.getBuiltins().any());
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -144,8 +144,9 @@ public class DefaultBooleanExports {
         boolean self, AtomConstructor target, UnresolvedConversion conversion) {
       Context context = Context.get(null);
       Builtins builtins = context.getBuiltins();
-      AtomConstructor cons = self ? builtins.trueAtom() : builtins.falseAtom();
-      return conversion.resolveFor(target, cons, builtins.bool(), context.getBuiltins().any());
+      AtomConstructor cons = self ? builtins.bool().getTrue() : builtins.bool().getFalse();
+      return conversion.resolveFor(
+          target, cons, builtins.bool().getBool(), context.getBuiltins().any());
     }
 
     static Context getContext() {

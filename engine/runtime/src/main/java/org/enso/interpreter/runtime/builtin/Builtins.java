@@ -19,9 +19,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.*;
-import org.enso.interpreter.node.expression.builtin.Boolean;
-import org.enso.interpreter.node.expression.builtin.bool.False;
-import org.enso.interpreter.node.expression.builtin.bool.True;
+import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
@@ -34,7 +32,6 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.runtime.type.TypesFromProxy;
 import org.enso.pkg.QualifiedName;
 
@@ -54,41 +51,27 @@ public class Builtins {
   private final Map<String, Map<String, Class<BuiltinRootNode>>> builtinMethodNodes;
   private final Map<String, AtomConstructor> builtins;
 
-  @CompilerDirectives.CompilationFinal private AtomConstructor debug;
-  @CompilerDirectives.CompilationFinal private AtomConstructor projectDescription;
-
   private final Error error;
   private final Module module;
   private final ModuleScope scope;
   public final Number number;
+  private final Bool bool;
   private final Ordering ordering;
   private final System system;
   private final Special special;
 
   // Builtin types
-  @CompilerDirectives.CompilationFinal private AtomConstructor any;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor nothing;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor function;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor polyglot;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor text;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor array;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor bool;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor trueConstructor;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor falseConstructor;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor dataflowError;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor ref;
-
-  @CompilerDirectives.CompilationFinal private AtomConstructor managedResource;
+  private final BuiltinAtomConstructor any;
+  private final BuiltinAtomConstructor nothing;
+  private final BuiltinAtomConstructor function;
+  private final BuiltinAtomConstructor polyglot;
+  private final BuiltinAtomConstructor text;
+  private final BuiltinAtomConstructor array;
+  private final BuiltinAtomConstructor dataflowError;
+  private final BuiltinAtomConstructor ref;
+  private final BuiltinAtomConstructor managedResource;
+  private final BuiltinAtomConstructor debug;
+  private final BuiltinAtomConstructor projectDescription;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -109,6 +92,22 @@ public class Builtins {
     ordering = new Ordering(this);
     system = new System(this);
     number = new Number(this);
+    bool = new Bool(this);
+
+    any = new BuiltinAtomConstructor(this, Any.class);
+    nothing = new BuiltinAtomConstructor(this, Nothing.class);
+    function =
+        new BuiltinAtomConstructor(
+            this, org.enso.interpreter.node.expression.builtin.function.Function.class);
+    polyglot = new BuiltinAtomConstructor(this, Polyglot.class);
+    text = new BuiltinAtomConstructor(this, Text.class);
+    array = new BuiltinAtomConstructor(this, Array.class);
+    dataflowError =
+        new BuiltinAtomConstructor(this, org.enso.interpreter.node.expression.builtin.Error.class);
+    ref = new BuiltinAtomConstructor(this, Ref.class);
+    managedResource = new BuiltinAtomConstructor(this, ManagedResource.class);
+    debug = new BuiltinAtomConstructor(this, Debug.class);
+    projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
     special = new Special(language);
   }
 
@@ -335,11 +334,7 @@ public class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public AtomConstructor nothing() {
-    if (nothing == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      nothing = getBuiltinType(Nothing.class);
-    }
-    return nothing;
+    return nothing.constructor();
   }
 
   /**
@@ -348,11 +343,7 @@ public class Builtins {
    * @return the {@code Text} part of builtins.
    */
   public AtomConstructor text() {
-    if (text == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      text = getBuiltinType(Text.class);
-    }
-    return text;
+    return text.constructor();
   }
 
   /**
@@ -361,12 +352,7 @@ public class Builtins {
    * @return the {@code Function} atom constructor
    */
   public AtomConstructor function() {
-    if (function == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      function =
-          getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
-    }
-    return function;
+    return function.constructor();
   }
 
   /**
@@ -378,40 +364,14 @@ public class Builtins {
     return number;
   }
 
-  /** @return the Boolean constructor. */
-  public AtomConstructor bool() {
-    if (bool == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      bool = getBuiltinType(Boolean.class);
-    }
+  /** @return the container for boolean constructors. */
+  public Bool bool() {
     return bool;
-  }
-
-  /** @return the True constructor. */
-  public AtomConstructor trueAtom() {
-    if (trueConstructor == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      trueConstructor = getBuiltinType(True.class);
-    }
-    return trueConstructor;
-  }
-
-  /** @return the False constructor. */
-  public AtomConstructor falseAtom() {
-    if (falseConstructor == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      falseConstructor = getBuiltinType(False.class);
-    }
-    return falseConstructor;
   }
 
   /** @return the ManagedResource constructor. */
   public AtomConstructor managedResource() {
-    if (managedResource == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      managedResource = getBuiltinType(ManagedResource.class);
-    }
-    return managedResource;
+    return managedResource.constructor();
   }
 
   /** @return the builtin Error types container. */
@@ -425,11 +385,7 @@ public class Builtins {
    * @return the {@code Any} atom constructor
    */
   public AtomConstructor any() {
-    if (any == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      any = getBuiltinType(Any.class);
-    }
-    return any;
+    return any.constructor();
   }
 
   /**
@@ -439,20 +395,12 @@ public class Builtins {
    * @return the {@code Debug} atom constructor
    */
   public AtomConstructor debug() {
-    if (debug == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      debug = getBuiltinType(Debug.class);
-    }
-    return debug;
+    return debug.constructor();
   }
 
   /** @return the {@code Project_Description} atom constructor */
   public AtomConstructor getProjectDescription() {
-    if (projectDescription == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      projectDescription = getBuiltinType(ProjectDescription.class);
-    }
-    return projectDescription;
+    return projectDescription.constructor();
   }
 
   /** @return the {@code System} atom constructor. */
@@ -462,29 +410,17 @@ public class Builtins {
 
   /** @return the Array constructor. */
   public AtomConstructor array() {
-    if (array == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      array = getBuiltinType(Array.class);
-    }
-    return array;
+    return array.constructor();
   }
 
   /** @return the Ref constructor. */
   public AtomConstructor ref() {
-    if (ref == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      ref = getBuiltinType(Ref.class);
-    }
-    return ref;
+    return ref.constructor();
   }
 
   /** @return the container for polyglot-related builtins. */
   public AtomConstructor polyglot() {
-    if (polyglot == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      polyglot = getBuiltinType(Polyglot.class);
-    }
-    return polyglot;
+    return polyglot.constructor();
   }
 
   /** @return the {@code Caught_Panic} atom constructor */
@@ -504,11 +440,7 @@ public class Builtins {
 
   /** @return the container for the dataflow error-related builtins */
   public AtomConstructor dataflowError() {
-    if (dataflowError == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      dataflowError = getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
-    }
-    return dataflowError;
+    return dataflowError.constructor();
   }
 
   public Special special() {
