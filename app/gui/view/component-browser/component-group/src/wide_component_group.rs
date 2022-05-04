@@ -161,9 +161,10 @@ impl component::Frp<Model> for Frp {
 
         for (idx, column) in model.columns.iter().enumerate() {
             frp::extend! { network
+                total_entries_count <- input.set_entries.map(|p| p.entry_count());
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion);
-                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e);
-                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e);
+                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e).map2(&total_entries_count, f!((e, total) model.column_idx_to_full_list_index(idx, *e, *total)));
+                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e).map2(&total_entries_count, f!((e, total) model.column_idx_to_full_list_index(idx, *e, *total)));
             }
 
             frp::extend! { network
@@ -292,6 +293,10 @@ impl Model {
         } else {
             evenly_distributed_count
         }
+    }
+
+    fn column_idx_to_full_list_index(&self, column: usize, index: usize, total_entry_count: usize) -> usize {
+        COLUMNS * (Self::entry_count_in_column(column, total_entry_count) - index - 1) + column
     }
 
     fn selection_position(
