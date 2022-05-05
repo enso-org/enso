@@ -140,9 +140,12 @@ impl component::Frp<Model> for Frp {
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
 
-            eval input.select_entry([model]((column, entry)) {
+            selected_column_and_entry <- any(...);
+            update_selected_entry <- selected_column_and_entry.sample(&out.size);
+            select_entry <- any(&input.select_entry, &update_selected_entry);
+            eval select_entry([model]((column, entry)) {
                 if let Some(column) = model.columns.get(*column) {
-                    let real_entry_id = column.list_view_entry_id(*entry);
+                    let real_entry_id = column.reverse_index(*entry);
                     column.select_entry(real_entry_id);
                 }
             });
@@ -184,6 +187,8 @@ impl component::Frp<Model> for Frp {
 
                 // === Selection position ===
 
+                entry_selected <- column.selected_entry.filter_map(|e| *e);
+                selected_column_and_entry <+ entry_selected.map(f!([column](e) (idx, column.reverse_index(*e))));
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
                 eval_ on_column_selected(model.on_column_selected(idx));
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
@@ -253,8 +258,8 @@ impl Column {
     /// EntryId of the Wide Component Group count from the bottom (the bottom most entry has an id
     /// of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so that
     /// the top most entry has an id of 0). This function converts the former to the latter.
-    fn list_view_entry_id(&self, entry_id: EntryId) -> EntryId {
-        self.len() - entry_id - 1
+    fn reverse_index(&self, entry_id: EntryId) -> EntryId {
+        reverse_index(entry_id, self.len())
     }
 
     /// Update entries list, a setter for [`list_view::ListView`]`::set_entries`.
@@ -397,6 +402,11 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
 /// The entry #1 in column with index 2 is the second item from the bottom in the third column and
 /// has a "global" index of `COLUMNS + 2 = 5`.
 fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> EntryId {
-    let upside_down_index = entry_count_in_column(column, total_entry_count) - entry - 1;
-    COLUMNS * upside_down_index + column
+    let reversed_index = reverse_index(entry, entry_count_in_column(column, total_entry_count));
+    COLUMNS * reversed_index + column
+}
+
+/// "Reverse" the index in such a way that the first entry becomes last, and the last becomes first.
+fn reverse_index(index: EntryId, entries_count: usize) -> EntryId {
+    entries_count.saturating_sub(index).saturating_sub(1)
 }
