@@ -217,9 +217,9 @@ impl component::Frp<Model> for Frp {
 
 #[derive(Debug, Clone, CloneRef)]
 struct Column {
-    index: Immutable<ColumnId>,
-    len:   Rc<Cell<usize>>,
-    inner: list_view::ListView<Entry>,
+    index:    Immutable<ColumnId>,
+    provider: Rc<CloneRefCell<AnyModelProvider<Entry>>>,
+    inner:    list_view::ListView<Entry>,
 }
 
 impl Deref for Column {
@@ -232,14 +232,14 @@ impl Deref for Column {
 impl Column {
     fn new(app: &Application, index: ColumnId) -> Self {
         Self {
-            index: Immutable(index),
-            len:   default(),
-            inner: app.new_view::<list_view::ListView<Entry>>(),
+            index:    Immutable(index),
+            provider: default(),
+            inner:    app.new_view::<list_view::ListView<Entry>>(),
         }
     }
 
     fn len(&self) -> usize {
-        self.len.get()
+        self.provider.get().entry_count()
     }
 
     fn reversed_entry_id(&self, entry_id: EntryId) -> EntryId {
@@ -247,14 +247,14 @@ impl Column {
     }
 
     fn set_entries(&self, provider: &AnyModelProvider<Entry>) {
-        self.len.set(provider.entry_count());
+        self.provider.set(provider.clone_ref());
         self.inner.set_entries(provider);
     }
 
     fn resize(&self, size: Vector2) {
         let width = size.x / COLUMNS as f32;
         let bg_height = size.y;
-        let height = self.len.get() as f32 * ENTRY_HEIGHT;
+        let height = self.len() as f32 * ENTRY_HEIGHT;
         self.inner.resize(Vector2(width, height));
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
         let pos_x = left_border + width * *self.index as f32;
