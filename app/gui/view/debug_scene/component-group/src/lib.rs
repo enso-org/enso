@@ -151,25 +151,22 @@ fn init(app: &Application) {
     let red_slider_value = &red_slider_frp.value;
     let green_slider_value = &green_slider.inner().frp.value;
     let blue_slider_value = &blue_slider.inner().frp.value;
+    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
     frp::extend! { network
         init <- source_();
         app_bg_color <- all(&app_bg_color, &init)._0();
         component_group.set_fade_color <+ app_bg_color;
         dimmed_component_group.set_fade_color <+ app_bg_color;
 
-        default_red_component <- init.constant(0.527);
-        default_green_component <- init.constant(0.554);
-        default_blue_component <- init.constant(0.18);
-        red_slider_frp.set_value <+ default_red_component;
-        green_slider_frp.set_value <+ default_green_component;
-        blue_slider_frp.set_value <+ default_blue_component;
+        red_slider_frp.set_value <+ init.constant(default_color.red);
+        green_slider_frp.set_value <+ init.constant(default_color.green);
+        blue_slider_frp.set_value <+ init.constant(default_color.blue);
         sliders_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
-        sliders_color_initialized <- all(&sliders_color, &init)._0();
-        component_group.set_leading_color <+ sliders_color_initialized;
-        dimmed_component_group.set_leading_color <+ sliders_color_initialized;
+        component_group.set_leading_color <+ sliders_color;
+        dimmed_component_group.set_leading_color <+ sliders_color;
 
-        eval sliders_color_initialized((c) selection.color.set(c.into()));
+        eval sliders_color((c) selection.color.set(c.into()));
     }
     init.emit(());
 
