@@ -81,7 +81,7 @@ pub async fn entry_point_profile() {
     // Run selected workflow.
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";
-    let selected = enso_config::ARGS.workflow.as_ref().expect(need_workflow);
+    let selected = enso_config::ARGS.test_workflow.as_ref().expect(need_workflow);
     reflect_match!(options, match selected {
         "add_node" => profile_add_node().await,
         "new_project" => profile_new_project().await,

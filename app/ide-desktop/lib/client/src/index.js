@@ -547,7 +547,7 @@ function createWindow() {
         })
     }
     if (args.workflow) {
-        urlCfg.workflow = args.workflow
+        urlCfg.test_workflow = args.workflow
     }
 
     Electron.ipcMain.on('quit-ide', () => {
