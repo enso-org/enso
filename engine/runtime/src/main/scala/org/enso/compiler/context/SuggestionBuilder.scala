@@ -378,38 +378,32 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     bindings: Option[BindingAnalysis.Metadata],
     typeExpr: IR.Expression
   ): Vector[TypeArg] = {
-    def go(typeExpr: IR.Expression, args: Vector[TypeArg]): Vector[TypeArg] =
-      typeExpr match {
-        case IR.Application.Operator.Binary(left, op, right, _, _, _) =>
-          val arg = for {
-            leftArg  <- go(left.value, Vector()).headOption
-            rightArg <- go(right.value, Vector()).headOption
-          } yield TypeArg.Binary(leftArg, rightArg, op.name)
-          args :++ arg
-        case IR.Function.Lambda(List(targ), body, _, _, _, _) =>
-          val typeName = targ.name.name
-          val tdef = resolveTypeName(bindings, typeName)
-            .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
-          go(body, args :+ tdef)
-        case IR.Application.Prefix(tfun, targs, _, _, _, _) =>
-          val appFunction = go(tfun, Vector()).head
-          val appArgs     = targs.flatMap(arg => go(arg.value, Vector()))
-          args :+ TypeArg.Application(appFunction, appArgs.toVector)
-        case tname: IR.Name =>
-          val typeName = tname.name
-          val tdef = resolveTypeName(bindings, typeName)
-            .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
-          args :+ tdef
-        case _ =>
-          args
-      }
-
-    typeExpr match {
-      case IR.Application.Operator.Binary(left, _, right, _, _, _) =>
-        val arg = TypeArg.Function(go(left.value, Vector()))
-        go(right.value, Vector(arg))
-      case expr =>
-        go(expr, Vector())
+    def go(expr: IR.Expression): TypeArg = expr match {
+      case fn: IR.Type.Function =>
+        TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
+      case app: IR.Application.Prefix =>
+        TypeArg.Application(
+          go(app.function),
+          app.arguments.map(c => go(c.value)).toVector
+        )
+      case bin: IR.Application.Operator.Binary =>
+        TypeArg.Binary(
+          go(bin.left.value),
+          go(bin.right.value),
+          bin.operator.name
+        )
+      case tname: IR.Name =>
+        val typeName = tname.name
+        val tdef = resolveTypeName(bindings, typeName)
+          .getOrElse(TypeArg.Value(QualifiedName.simpleName(typeName)))
+        tdef
+      case _ =>
+        TypeArg.Value(QualifiedName.fromString(Any))
+    }
+    val r = go(typeExpr)
+    r match {
+      case fn: TypeArg.Function => fn.arguments :+ fn.result
+      case _                    => Vector(r)
     }
   }
 
@@ -544,10 +538,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     def go(targ: TypeArg, level: Int): String =
       targ match {
         case TypeArg.Value(name) => name.toString
-        case TypeArg.Function(Vector(typeArg)) =>
-          val typeName = go(typeArg, level)
-          if (level > 0) s"($typeName)" else typeName
-        case TypeArg.Function(types) =>
+        case TypeArg.Function(args, ret) =>
+          val types    = args :+ ret
           val typeList = types.map(go(_, level + 1))
           if (level > 0) typeList.mkString("(", " -> ", ")")
           else typeList.mkString(" -> ")
@@ -668,7 +660,8 @@ object SuggestionBuilder {
       *
       * @param signature the list of types defining the function
       */
-    case class Function(signature: Vector[TypeArg]) extends TypeArg
+    case class Function(arguments: Vector[TypeArg], result: TypeArg)
+        extends TypeArg
 
     /** Binary operator, like `A | B`
       *

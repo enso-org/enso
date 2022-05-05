@@ -367,6 +367,21 @@ case object DataflowAnalysis extends IRPass {
             signature = analyseExpression(signature, info)
           )
           .updateMetadata(this -->> info)
+
+      case fun @ IR.Type.Function(args, result, _, _, _) =>
+        val funDep  = asStatic(fun)
+        val argDeps = args.map(asStatic)
+        val resDep  = asStatic(result)
+        argDeps.foreach(info.dependents.updateAt(_, Set(funDep)))
+        info.dependents.updateAt(resDep, Set(funDep))
+        info.dependencies.updateAt(funDep, Set(resDep :: argDeps: _*))
+
+        fun
+          .copy(
+            args   = args.map(analyseExpression(_, info)),
+            result = analyseExpression(result, info)
+          )
+          .updateMetadata(this -->> info)
       case ctx @ IR.Type.Context(typed, context, _, _, _) =>
         val ctxDep     = asStatic(ctx)
         val typedDep   = asStatic(typed)

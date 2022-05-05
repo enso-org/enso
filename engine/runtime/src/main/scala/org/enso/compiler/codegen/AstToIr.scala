@@ -890,6 +890,11 @@ object AstToIr {
           hasDefaultsSuspended,
           getIdentifiedLocation(callable)
         )
+      case AST.App.Infix(l, AST.Ident.Opr("->"), r) if insideTypeAscription =>
+        translateFunctionType(
+          List(translateExpression(l, insideTypeSignature = true)),
+          r
+        )
       case AstView.Lambda(args, body) =>
         if (args.length > 1) {
           Error.Syntax(
@@ -947,6 +952,28 @@ object AstToIr {
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
   }
+
+  @tailrec
+  private def translateFunctionType(
+    argsAcc: List[Expression],
+    next: AST
+  ): Expression =
+    skipParens(next) match {
+      case AST.App.Infix(nextArg, AST.Ident.Opr("->"), next) =>
+        translateFunctionType(
+          argsAcc :+ translateExpression(nextArg, insideTypeSignature = true),
+          next
+        )
+      case other =>
+        IR.Type.Function(
+          argsAcc,
+          translateExpression(other, insideTypeSignature = true),
+          None
+        )
+    }
+
+  private def skipParens(ast: AST): AST =
+    AstView.MaybeManyParensed.unapply(ast).getOrElse(ast)
 
   /** Translates an operator section from its [[AST]] representation into the
     * [[IR]] representation.

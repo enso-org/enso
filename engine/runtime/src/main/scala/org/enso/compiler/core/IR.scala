@@ -2990,6 +2990,88 @@ object IR {
       val name: String
     }
 
+    sealed case class Function(
+      args: List[Expression],
+      result: Expression,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Type {
+      override protected var id: Identifier = randomId
+
+      def copy(
+        args: List[Expression]               = args,
+        result: Expression                   = result,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Function = {
+        val res = Function(args, result, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      /** @inheritdoc */
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): Function =
+        copy(
+          args = args.map(
+            _.duplicate(
+              keepLocations,
+              keepMetadata,
+              keepDiagnostics,
+              keepIdentifiers
+            )
+          ),
+          result = result.duplicate(
+            keepLocations,
+            keepMetadata,
+            keepDiagnostics,
+            keepIdentifiers
+          ),
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = if (keepIdentifiers) id else randomId
+        )
+
+      /** @inheritdoc */
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Function = copy(location = location)
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Function = {
+        copy(args = args.map(fn), result = fn(result))
+      }
+
+      /** @inheritdoc */
+      override def toString: String =
+        s"""IR.Type.Function(
+           |args = $args,
+           |result = $result,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      /** @inheritdoc */
+      override def children: List[IR] = args :+ result
+
+      /** @inheritdoc */
+      override def showCode(indent: Int): String =
+        s"${args.map(_.showCode()).mkString(" -> ")} -> ${result.showCode()}"
+    }
+
     /** The ascription of a type to a value.
       *
       * @param typed the expression being ascribed a type
