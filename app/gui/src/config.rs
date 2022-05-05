@@ -98,11 +98,11 @@ impl BackendService {
 #[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
-    pub backend:              BackendService,
+    pub backend:      BackendService,
     /// The project name we want to open on startup.
-    pub project_name:         Option<ProjectName>,
+    pub project_name: Option<ProjectName>,
     /// Whether to open directly to the project view, skipping the welcome screen.
-    pub open_to_project_view: bool,
+    pub initial_view: InitialView,
 }
 
 impl Startup {
@@ -110,7 +110,24 @@ impl Startup {
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
         let project_name = ARGS.project.clone().map(Into::into);
-        let open_to_project_view = ARGS.project.is_some();
-        Ok(Startup { backend, project_name, open_to_project_view })
+        let initial_view = match ARGS.project {
+            Some(_) => InitialView::Project,
+            None => InitialView::WelcomeScreen,
+        };
+        Ok(Startup { backend, project_name, initial_view })
     }
+}
+
+
+// === InitialView ===
+
+/// Identifies the view initially active on startup.
+#[derive(Clone, Copy, Debug, Derivative)]
+#[derivative(Default)]
+pub enum InitialView {
+    /// Start to the Welcome Screen.
+    #[derivative(Default)]
+    WelcomeScreen,
+    /// Start to the Project View.
+    Project,
 }

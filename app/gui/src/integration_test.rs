@@ -4,6 +4,7 @@
 use crate::prelude::*;
 use enso_web::traits::*;
 
+use crate::config::InitialView;
 use crate::executor::web::EventLoopExecutor;
 use crate::initializer::setup_global_executor;
 use crate::Ide;
@@ -42,14 +43,14 @@ pub struct Fixture {
 
 impl Fixture {
     /// Initializes the executor and `Ide` structure and returns new Fixture.
-    pub async fn new(open_to_project_view: bool) -> Self {
+    pub async fn new(initial_view: InitialView) -> Self {
         let executor = setup_global_executor();
         let root_div = enso_web::document.create_div_or_panic();
         root_div.set_id("root");
         root_div.set_style_or_warn("display", "none");
         enso_web::document.body_or_panic().append_or_warn(&root_div);
 
-        let config = crate::config::Startup { open_to_project_view, ..default() };
+        let config = crate::config::Startup { initial_view, ..default() };
         let initializer = crate::ide::Initializer::new(config);
         let ide = initializer.start().await.expect("Failed to initialize the application.");
         ide.ensogl_app.set_screen_size_for_tests();
@@ -59,14 +60,14 @@ impl Fixture {
     /// Initializes the executor and `Ide` structure (loading the welcome screen),
     /// and returns the new Fixture.
     pub async fn setup() -> Self {
-        Self::new(false).await
+        Self::new(InitialView::WelcomeScreen).await
     }
 
     /// Create a fixture for testing in a newly-created project.
     ///
     /// Initializes the IDE, creates a new project, and waits until the project is ready.
     pub async fn setup_new_project() -> Self {
-        let fixture = Self::new(true).await;
+        let fixture = Self::new(InitialView::Project).await;
         fixture.new_project().await;
         fixture
     }
