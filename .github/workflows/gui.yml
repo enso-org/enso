@@ -12,23 +12,23 @@ name: GUI CI
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  build:
-    name: Build IDE
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        runner:
-          #      - ["macos-latest"]
-          #          - [Windows, self-hosted, engine]
-          - [Linux, self-hosted, engine]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout the repository
-        with:
-          clean: false
-      - uses: ./actions/setup-build
-      - run: bash run.sh ide build
+#  build:
+#    name: Build IDE
+#    runs-on: ${{ matrix.runner }}
+#    strategy:
+#      matrix:
+#        runner:
+#          #      - ["macos-latest"]
+#          #          - [Windows, self-hosted, engine]
+#          - [Linux, self-hosted, engine]
+#      fail-fast: false
+#    steps:
+#      - uses: actions/checkout@v3
+#        name: Checkout the repository
+#        with:
+#          clean: false
+#      - uses: ./actions/setup-build
+#      - run: bash run.sh ide build
   lint:
     name: Lint
     runs-on: ${{ matrix.runner }}
@@ -115,7 +115,7 @@ jobs:
       - uses: ./actions/setup-build
       - run: bash run.sh wasm build
   package_gui:
-    name: GUI Integration Tests (WASM)
+    name: IDE package
     runs-on: ${{ matrix.runner }}
     needs:
       - build-wasm
