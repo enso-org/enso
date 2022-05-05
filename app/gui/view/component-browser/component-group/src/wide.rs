@@ -46,12 +46,9 @@ type ColumnId = usize;
 
 
 
-// ==========================
-// === Shapes Definitions ===
-// ==========================
-
-
-// === Background ===
+// ========================
+// === Background Shape ===
+// ========================
 
 /// The background of the Wide Component Group.
 pub mod background {

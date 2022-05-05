@@ -38,7 +38,7 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
-pub mod wide_component_group;
+pub mod wide;
 
 
 
