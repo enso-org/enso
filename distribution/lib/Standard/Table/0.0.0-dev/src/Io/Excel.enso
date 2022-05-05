@@ -82,7 +82,7 @@ type Excel_Range
     from_address : Text -> Excel_Range
     from_address address =
         Panic.catch IllegalArgumentException (Excel_Range (Java_Range.new address)) caught_panic->
-            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage caught_panic.payload.cause)
 
     ## Create a Range for a single cell.
     for_cell : Text -> (Text|Integer) -> Integer -> Excel_Range
