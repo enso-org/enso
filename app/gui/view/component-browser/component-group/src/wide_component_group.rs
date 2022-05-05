@@ -123,7 +123,6 @@ ensogl_core::define_endpoints_2! {
         /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
         accept_suggestion(),
         select_entry(ColumnId, EntryId),
-        set_header_text(String),
         set_entries(AnyModelProvider<Entry>),
         set_background_color(Rgba),
         set_width(f32),
@@ -132,9 +131,9 @@ ensogl_core::define_endpoints_2! {
         selected_entry(Option<EntryId>),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
-        selection_size(Vector2<f32>),
         selection_position_target(Vector2<f32>),
-        size(Vector2<f32>)
+        entry_count(usize),
+        size(Vector2<f32>),
     }
 }
 
@@ -145,6 +144,7 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         frp::extend! { network
             entry_count <- input.set_entries.map(|p| p.entry_count());
+            out.entry_count <+ entry_count;
             eval input.select_entry([model]((column, entry)) {
                 model.columns.get(*column).map(|col| {
                     let real_entry_id = col.reversed_entry_id(*entry);
