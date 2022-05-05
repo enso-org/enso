@@ -116,7 +116,7 @@ spec =
     check_table table =
         check_column (table.at "A") col_a
         check_column (table.at "B") col_b
-        ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as as Polyglot array
+        ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
            https://www.pivotaltracker.com/story/show/181755990
         # check_column (table.at "C") col_c
 
