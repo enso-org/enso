@@ -151,11 +151,19 @@ fn init(app: &Application) {
     let scene = &app.display.default_scene;
     let style = ensogl_core::display::shape::StyleWatchFrp::new(&scene.style_sheet);
     let app_bg_color = style.get_color(theme::application::background);
+    let red_slider_value = &red_slider.inner().frp.value;
+    let green_slider_value = &green_slider.inner().frp.value;
+    let blue_slider_value = &blue_slider.inner().frp.value;
     frp::extend! { network
         init <- source_();
         app_bg_color <- all(&app_bg_color, &init)._0();
         component_group.set_fade_color <+ app_bg_color;
         dimmed_component_group.set_fade_color <+ app_bg_color;
+
+        leading_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
+            |r,g,b| color::Rgba(*r, *g, *b, 1.0));
+        component_group.set_leading_color <+ leading_color;
+        dimmed_component_group.set_leading_color <+ leading_color;
     }
     init.emit(());
 
