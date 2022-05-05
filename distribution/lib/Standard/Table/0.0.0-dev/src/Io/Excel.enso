@@ -130,7 +130,7 @@ type Excel_Range
 ## PRIVATE
    Wrapper for validation
 validate : Boolean -> Text -> Any
-validate ~validation ~error_message ~wrapped =
+validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
 
 read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
