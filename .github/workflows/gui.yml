@@ -123,7 +123,7 @@ jobs:
       matrix:
         runner:
           - ["macos-latest"]
-          - [Windows, self-hosted]
+          - [Windows, self-hosted, engine]
           - [Linux, self-hosted, engine]
       fail-fast: false
     steps:

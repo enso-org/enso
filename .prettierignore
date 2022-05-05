@@ -1,5 +1,7 @@
 # Build Artefacts
-target/
+dist
+target
+
 .github/PULL_REQUEST_TEMPLATE.md
 .github/ISSUE_TEMPLATE
 distribution/launcher/THIRD-PARTY
@@ -14,7 +16,6 @@ built-distribution/
 THIRD-PARTY
 
 # GUI
-gui/dist/
 **/scala-parser.js
 **/package-lock.json
 **/msdfgen_wasm.js
