@@ -132,7 +132,7 @@ jobs:
         with:
           clean: false
       - uses: ./actions/setup-build
-      - run: run ide build --wasm-source
+      - run: run ide build --wasm-source current-ci-run
         shell: cmd
         if: runner.os == 'Windows'
       - run: bash run.sh ide build --wasm-source

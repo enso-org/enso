@@ -1738,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#c9a538a517062bb953b9b829d826b163d24bd0fa"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#46329808574255b160cb7e67e843c2e0b0c989a3"
 dependencies = [
  "anyhow",
  "argh",
@@ -3654,7 +3654,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#c9a538a517062bb953b9b829d826b163d24bd0fa"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#46329808574255b160cb7e67e843c2e0b0c989a3"
 dependencies = [
  "anyhow",
  "argh",
@@ -5407,9 +5407,9 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.10.1"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a07b0857a71a8cb765763950499cae2413c3f9cede1133478c43600d9e146890"
+checksum = "bc03e116981ff7d8da8e5c220e374587b98d294af7ba7dd7fda761158f00086f"
 dependencies = [
  "bytes 1.1.0",
  "prost-derive",
@@ -6905,9 +6905,9 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30fb54bf1e446f44d870d260d99957e7d11fb9d0a0f5bd1a662ad1411cc103f9"
+checksum = "5be9d60db39854b30b835107500cf0aca0b0d14d6e1c3de124217c23a29c2ddb"
 dependencies = [
  "async-stream",
  "async-trait",
