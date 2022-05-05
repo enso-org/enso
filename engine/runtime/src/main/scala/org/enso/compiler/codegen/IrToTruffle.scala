@@ -1193,11 +1193,14 @@ class IrToTruffle(
       val arguments: List[IR.DefinitionArgument],
       val body: IR.Expression
     ) {
-      val argFactory         = new DefinitionArgumentProcessor(scopeName, scope)
+      private val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
       private lazy val slots = computeSlots()
+      private lazy val bodyN = computeBodyNode()
 
       def args(): Array[ArgumentDefinition] = slots._2
-      def bodyNode(): BlockNode = {
+      def bodyNode(): BlockNode             = bodyN
+
+      private def computeBodyNode(): BlockNode = {
         val (argSlots, _, argExpressions) = slots
 
         val bodyExpr = body match {
