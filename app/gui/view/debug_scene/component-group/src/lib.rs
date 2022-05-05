@@ -101,12 +101,19 @@ fn init(app: &Application) {
     selection.corner_radius.set(5.0);
     let selection_animation = Animation::<Vector2>::new(&network);
     let component_group = app.new_view::<component_group::View>();
+    let dimmed_component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
-    component_group.set_entries(provider);
+    component_group.set_entries(&provider);
     component_group.set_width(150.0);
     component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
+    dimmed_component_group.set_header("Input / Output".to_string());
+    dimmed_component_group.set_entries(provider);
+    dimmed_component_group.set_width(150.0);
+    dimmed_component_group.set_position_x(-200.0);
+    dimmed_component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
+    app.display.add_child(&dimmed_component_group);
     app.display.add_child(&component_group);
     app.display.add_child(&selection);
 
@@ -117,6 +124,7 @@ fn init(app: &Application) {
         init <- source_();
         app_bg_color <- all(&app_bg_color, &init)._0();
         component_group.set_fade_color <+ app_bg_color;
+        dimmed_component_group.set_fade_color <+ app_bg_color;
     }
     init.emit(());
 
@@ -134,4 +142,5 @@ fn init(app: &Application) {
     std::mem::forget(network);
     std::mem::forget(selection);
     std::mem::forget(component_group);
+    std::mem::forget(dimmed_component_group);
 }
