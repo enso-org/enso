@@ -1,8 +1,10 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
+import java.util.function.Supplier;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -44,12 +46,30 @@ public class MethodRootNode extends ClosureRootNode {
    * @param language the language identifier
    * @param localScope a description of the local scope
    * @param moduleScope a description of the module scope
-   * @param body the program body to be executed
-   * @param section a mapping from {@code body} to the program source
+   * @param body the program provider to be executed
+   * @param section a mapping from {@code provider} to the program source
    * @param atomConstructor the constructor this method is defined for
    * @param methodName the name of this method
    * @return a node representing the specified closure
    */
+  public static MethodRootNode build(
+      Language language,
+      LocalScope localScope,
+      ModuleScope moduleScope,
+      Supplier<ExpressionNode> body,
+      SourceSection section,
+      AtomConstructor atomConstructor,
+      String methodName) {
+    return build(
+        language,
+        localScope,
+        moduleScope,
+        new LazyBodyNode(body),
+        section,
+        atomConstructor,
+        methodName);
+  }
+
   public static MethodRootNode build(
       Language language,
       LocalScope localScope,
@@ -86,5 +106,20 @@ public class MethodRootNode extends ClosureRootNode {
   /** @return the method name */
   public String getMethodName() {
     return methodName;
+  }
+
+  private static class LazyBodyNode extends ExpressionNode {
+    private final Supplier<ExpressionNode> provider;
+
+    LazyBodyNode(Supplier<ExpressionNode> body) {
+      this.provider = body;
+    }
+
+    @Override
+    public Object executeGeneric(VirtualFrame frame) {
+      ExpressionNode newNode = replace(provider.get());
+      notifyInserted(newNode);
+      return newNode.executeGeneric(frame);
+    }
   }
 }

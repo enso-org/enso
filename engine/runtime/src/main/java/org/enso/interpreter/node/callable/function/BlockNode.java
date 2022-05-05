@@ -30,6 +30,10 @@ public class BlockNode extends ExpressionNode {
     return new BlockNode(expressions, returnExpr);
   }
 
+  public static BlockNode buildSilent(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new BlockNode(expressions, returnExpr);
+  }
+
   /**
    * Executes the body of the function.
    *
