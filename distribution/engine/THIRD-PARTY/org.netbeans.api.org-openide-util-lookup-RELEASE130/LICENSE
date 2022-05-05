@@ -1,0 +1,513 @@
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+******************************************************************************************************************************************************
+Apache NetBeans includes a number of source files that are not covered by the apache license. The following files are part of this distribution.
+******************************************************************************************************************************************************
+
+Sourcefile                                                                                                                           LICENSE     NOTES
+(path in the source)                                                                                 (text is in file in licenses directory)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/file/resources/c.tmLanguage.json                         MIT-cpp-textmate-grammars          
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/file/resources/cpp.tmLanguage.json                       MIT-cpp-textmate-grammars          
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/file/resources/CCSrcIcon.gif                                         CDDL-1.0          
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/file/resources/HDataIcon.gif                                         CDDL-1.0          
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/file/resources/CSrcIcon.gif                                          CDDL-1.0          
+cpplite/cpplite.editor/src/org/netbeans/modules/cpplite/editor/lsp/options/cnd_32.png                                               CDDL-1.0          
+cpplite/cpplite.project/src/org/netbeans/modules/cpplite/project/resources/project.gif                                              CDDL-1.0          
+cpplite/cpplite.project/src/org/netbeans/modules/cpplite/project/resources/projectOpen.gif                                          CDDL-1.0          
+enterprise/glassfish.eecommon/src/org/netbeans/modules/glassfish/eecommon/api/ddtemplates/javaee/glassfish-web.xml                   EPL-v20          
+enterprise/gradle.javaee/src/org/netbeans/modules/gradle/javaee/resources/javaeeProjectIcon.png                                  Gradle-icon          
+enterprise/gradle.javaee/src/org/netbeans/modules/gradle/javaee/resources/javaeeProjectIcon_dark.png                             Gradle-icon          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_1_4.mdd                                              CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_1_4.xsd                                              CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_5.mdd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_5.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_6.mdd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_6.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_7.mdd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_7.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_8.mdd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application_8.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_1_4.mdd                                       CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_1_4.xsd                                       CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_5.mdd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_5.xsd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_6.mdd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_6.xsd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_7.mdd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_7.xsd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_8.mdd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/application-client_8.xsd                                         CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/connector_1_5.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/connector_1_6.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/connector_1_7.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_2_1.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_2_1.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_0.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_0.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_1.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_1.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_2.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/ejb-jar_3_2.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_1_4.xsd                                                     CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_web_services_1_1.xsd                                        CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_web_services_client_1_1.xsd                                 CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_5.xsd                                                     CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_6.xsd                                                     CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_7.xsd                                                     CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_8.xsd                                                     CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_1_2.xsd                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_1_3.xsd                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_1_4.xsd                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_1_4_1.xsd                                    CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_client_1_2.xsd                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_client_1_3.xsd                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_client_1_4.xsd                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/jsp_2_0.xsd                                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/jsp_2_1.xsd                                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/jsp_2_2.xsd                                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/jsp_2_3.xsd                                                      CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/permissions_7.xsd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_2.dtd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_2_1.dtd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_3.dtd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_3_1.dtd                                                CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_4.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_4.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_5.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_2_5.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_3_0.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_3_0.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_3_1.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_3_1.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_4_0.mdd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-app_4_0.xsd                                                  CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-common_3_0.xsd                                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-common_3_1.xsd                                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-common_4_0.xsd                                               CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_3_0.mdd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_3_0.xsd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_3_1.mdd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_3_1.xsd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_4_0.mdd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/web-fragment_4_0.xsd                                             CDDL-1.1          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/datatypes.dtd                                                        W3C2          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/XMLSchema.dtd                                                        W3C2          
+enterprise/j2ee.dd/src/org/netbeans/modules/j2ee/dd/impl/resources/xml.xsd                                                              W3C2          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_1_4.xsd                                          CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_web_services_1_1.xsd                             CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/j2ee_web_services_client_1_1.xsd                      CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_5.xsd                                          CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_1_2.xsd                           CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/javaee_web_services_client_1_2.xsd                    CDDL-1.1          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/XMLSchema.dtd                                             W3C2          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/datatypes.dtd                                             W3C2          
+enterprise/j2ee.dd.webservice/src/org/netbeans/modules/j2ee/dd/impl/resources/xml.xsd                                                   W3C2          
+enterprise/j2ee.ddloaders/src/org/netbeans/modules/j2ee/ddloaders/web/resources/xml.xsd                                                 W3C2          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-cmp-mapping_1_0.dtd                                  CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-cmp-mapping_1_1.dtd                                  CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-cmp-mapping_1_2.dtd                                  CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/glassfish-application_6_0-1.dtd                          CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/glassfish-application-client_6_0-1.dtd                   CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/glassfish-ejb-jar_3_1-1.dtd                              CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/glassfish-resources_1_5.dtd                              CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/glassfish-web-app_3_0-1.dtd                              CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/static-verification_1_4.dtd                              CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application_1_3-0.dtd                                CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application_1_4-0.dtd                                CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application_5_0-0.dtd                                CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application_6_0-0.dtd                                CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application-client_1_3-0.dtd                         CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application-client_1_4-0.dtd                         CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application-client_1_4-1.dtd                         CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application-client_5_0-0.dtd                         CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-application-client_6_0-0.dtd                         CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_2_0-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_2_1-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_2_1-1.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_3_0-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_3_0-1.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-ejb-jar_3_1-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-resources_1_0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-resources_1_2.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-resources_1_3.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-resources_1_4.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-web-app_2_3-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-web-app_2_4-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-web-app_2_4-1.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-web-app_2_5-0.dtd                                    CDDL-1.1          
+enterprise/j2ee.sun.dd/src/org/netbeans/modules/j2ee/sun/dd/impl/resources/sun-web-app_3_0-0.dtd                                    CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/javaee_7.xsd                                            CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/javaee_8.xsd                                            CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/javaee_web_services_client_1_4.xsd                      CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/jsp_2_2.xsd                                             CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/jsp_2_3.xsd                                             CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-app_4_0.xsd                                         CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-common_3_1.xsd                                      CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-common_4_0.xsd                                      CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-fragment_4_0.xsd                                    CDDL-1.1          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/javaee_6.xsd                                            CDDL-1.0          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/javaee_web_services_client_1_3.xsd                      CDDL-1.0          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-app_3_0.xsd                                         CDDL-1.0          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-common_3_0.xsd                                      CDDL-1.0          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/web-fragment_3_0.xsd                                    CDDL-1.0          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/xml.xsd                                                     W3C2          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/datatypes.dtd                                               W3C2          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/XMLSchema.dtd                                               W3C2          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/datasources_1_4_1.xsd                                    EPL-v10          
+enterprise/javaee.wildfly/src/org/netbeans/modules/javaee/wildfly/resources/wildfly.png                                              EPL-v20          
+enterprise/payara.eecommon/src/org/netbeans/modules/payara/eecommon/dd/resources/payara-web-app_4.dtd                               CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/xml.xsd                                                               W3C2          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/j2ee_1_4.xsd                                                      CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/j2ee_web_services_client_1_1.xsd                                  CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/javaee_5.xsd                                                      CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/javaee_web_services_client_1_2.xsd                                CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/web-jsptaglibrary_1_1.dtd                                         CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/web-jsptaglibrary_1_2.dtd                                         CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/web-jsptaglibrary_2_0.xsd                                         CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/web-jsptaglibrary_2_1.xsd                                         CDDL-1.1          
+enterprise/web.core/src/org/netbeans/modules/web/taglib/resources/web-jsptaglibrary_2_1.mdd                                         CDDL-1.1          
+enterprise/web.core.syntax/tlddoc/xslt/alltags-frame.html.xsl                                                                    BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/alltags-noframe.html.xsl                                                                  BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/function.html.xsl                                                                         BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/help-doc.html.xsl                                                                         BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/index.html.xsl                                                                            BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/overview-frame.html.xsl                                                                   BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/overview-summary.html.xsl                                                                 BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tag.html.xsl                                                                              BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld-frame.html.xsl                                                                        BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld-summary.html.xsl                                                                      BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld1_1-tld1_2.xsl                                                                         BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld1_2-tld2_0.xsl                                                                         BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld2_0-tld2_1.xsl                                                                         BSD-tldxslt          
+enterprise/web.core.syntax/tlddoc/xslt/tld2_1-tld2_1.xsl                                                                         BSD-tldxslt          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/xml.xsd                                                                   W3C2          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/facelet-taglib_1_0.dtd                                                CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/javaee_5.xsd                                                          CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/javaee_web_services_client_1_2.xsd                                    CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facelettaglibrary_2_0.xsd                                         CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facelettaglibrary_2_2.xsd                                         CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facelettaglibrary_2_3.xsd                                         CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_1_0.dtd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_1_1.dtd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_1_2.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_2_0.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_2_1.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_2_2.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_2_3.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_2_3.xsd                                               CDDL-1.1          
+enterprise/web.jsf/src/org/netbeans/modules/web/jsf/resources/web-facesconfig_3_0.xsd                                               CDDL-1.1          
+enterprise/websvc.core/src/org/netbeans/modules/websvc/core/resources/sun-jaxws.xsd                                                 CDDL-1.0          
+enterprise/websvc.core/src/org/netbeans/modules/websvc/core/resources/javaee_web_services_metadata_handler_2_0.xsd                  CDDL-1.1          
+enterprise/websvc.core/src/org/netbeans/modules/websvc/core/resources/wsdl_customizationschema_2_0.xsd                              CDDL-1.1          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle-badge.png                                                         Gradle-icon          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle-badge_dark.png                                                    Gradle-icon          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle-large-badge.png                                                   Gradle-icon          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle-large-badge_dark.png                                              Gradle-icon          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle.png                                                               Gradle-icon          
+extide/gradle/src/org/netbeans/modules/gradle/resources/gradle_dark.png                                                          Gradle-icon          
+extide/options.java/src/org/netbeans/modules/options/java/resources/java_logo.png                                                    CC0-v10          
+extide/options.java/src/org/netbeans/modules/options/java/resources/java_logo.svg                                                    CC0-v10          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/chrome20-disabled.png                                                   CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/chrome20.png                                                            CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/firefox20-disabled.png                                                  CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/firefox20.png                                                           CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/ie20-disabled.png                                                       CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/ie20.png                                                                CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/opera20-disabled.png                                                    CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/opera20.png                                                             CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/safari20-disabled.png                                                   CDDL-1.0          
+ide/css.editor/src/org/netbeans/modules/css/resources/icons/safari20.png                                                            CDDL-1.0          
+ide/css.lib/src/org/netbeans/modules/css/lib/Css3.g                                                                         BSD-css3-grammar          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/3_2/html32.dtd                                                      W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/3_2/lat1.ent                                                        W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/frameset.dtd                                                    W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/loose.dtd                                                       W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/strict.dtd                                                      W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/HTMLlat1.ent                                                    W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/HTMLspecial.ent                                                 W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_0/HTMLsymbol.ent                                                  W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/frameset.dtd                                                   W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/loose.dtd                                                      W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/strict.dtd                                                     W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/HTMLlat1.ent                                                   W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/HTMLspecial.ent                                                W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/4_01/HTMLsymbol.ent                                                 W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml1-frameset.dtd                                           W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml1-strict.dtd                                             W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml1-transitional.dtd                                       W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml-lat1.ent                                                W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml-special.ent                                             W3C2          
+ide/html.editor/src/org/netbeans/modules/html/editor/resources/DTDs/xhtml/xhtml-symbol.ent                                              W3C2          
+ide/markdown/src/org/netbeans/modules/markdown/markdown.png                                                                          CC0-v10          
+ide/markdown/src/org/netbeans/modules/markdown/markdown.tmLanguage.json                                                         MIT-markdown          
+ide/schema2beans/src/org/netbeans/modules/schema2beansdev/xmlschema.xsd                                                                 W3C2          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_chrome_16x.png                                        CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_chrome_24x.png                                        CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_chromium_16x.png                                      CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_chromium_24x.png                                      CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_edge_16x.png                                          CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_edge_24x.png                                          CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_firefox_16x.png                                       CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_firefox_24x.png                                       CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_ie_16x.png                                            CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_ie_24x.png                                            CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_opera_16x.png                                         CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_opera_24x.png                                         CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_safari_16x.png                                        CDDL-1.0          
+ide/web.browser.api/src/org/netbeans/modules/web/browser/ui/resources/browser_safari_24x.png                                        CDDL-1.0          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/Transform.xsd                                                            W3C2          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/XMLNamespace.xsd                                                         W3C2          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/XMLSchema-instance.xsd                                                   W3C2          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/XMLSchema.dtd                                                            W3C2          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/XMLSchema.xsd                                                            W3C2          
+ide/xml.catalog/src/org/netbeans/modules/xml/catalog/resources/datatypes.dtd                                                            W3C2          
+ide/xml.schema.completion/src/org/netbeans/modules/xml/schema/completion/util/XMLSchema.xsd                                             W3C2          
+java/gradle.java/src/org/netbeans/modules/gradle/java/resources/javaseProjectIcon.png                                            Gradle-icon          
+java/gradle.java/src/org/netbeans/modules/gradle/java/resources/javaseProjectIcon_dark.png                                       Gradle-icon          
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/orm_1_0.xsd                                            CDDL-1.0          
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/persistence_1_0.xsd                                    CDDL-1.0          
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/orm_2_0.xsd                                             EDL-1.0         1
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/persistence_2_0.xsd                                     EDL-1.0         1
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/orm_2_1.xsd                                             EDL-1.0         2
+java/j2ee.persistence/src/org/netbeans/modules/j2ee/persistence/dd/resources/persistence_2_1.xsd                                     EDL-1.0         2
+java/java.lsp.server/src/org/netbeans/modules/java/lsp/server/refactoring/ui/codicon.ttf                                                 MIT          
+java/java.lsp.server/src/org/netbeans/modules/java/lsp/server/refactoring/ui/codicon.css                                                 MIT          
+java/java.lsp.server/vscode/syntaxes/java.tmLanguage.json                                                                   MIT-java-grammar          
+java/junit.ui/src/org/netbeans/modules/junit/ui/resources/junit5-logo.png                                                            EPL-v20          
+java/xml.jaxb/src/org/netbeans/modules/xml/jaxb/resources/eclipselink_oxm_2_3.xsd                                                    EDL-1.0         3
+nb/welcome/src/org/netbeans/modules/welcome/resources/xhtml1-transitional.dtd                                                           W3C2          
+nb/welcome/src/org/netbeans/modules/welcome/resources/xhtml-lat1.ent                                                                    W3C2          
+nb/welcome/src/org/netbeans/modules/welcome/resources/xhtml-special.ent                                                                 W3C2          
+nb/welcome/src/org/netbeans/modules/welcome/resources/xhtml-symbol.ent                                                                  W3C2          
+nbbuild/antsrc/org/netbeans/nbbuild/xhtml-lat1.ent                                                                                      W3C2          
+nbbuild/antsrc/org/netbeans/nbbuild/xhtml-special.ent                                                                                   W3C2          
+nbbuild/antsrc/org/netbeans/nbbuild/xhtml-symbol.ent                                                                                    W3C2          
+nbbuild/antsrc/org/netbeans/nbbuild/xhtml1-strict.dtd                                                                                   W3C2          
+php/php.code.analysis/src/org/netbeans/modules/php/analysis/ui/resources/phpstan.png                                             MIT-phpstan          
+php/php.smarty/src/org/netbeans/modules/php/smarty/resources/tpl-icon.png                                                           CDDL-1.0          
+php/php.twig/src/org/netbeans/modules/php/twig/resources/twig-icon.png                                                              CDDL-1.0          
+webcommon/typescript.editor/src/org/netbeans/modules/typescript/editor/TypeScript.tmLanguage.json                                 MIT-vscode          
+websvccommon/websvc.saas.api/src/org/netbeans/modules/websvc/saas/model/wadl200902.xsd                                              CDDL-1.0          
+
+Notes
+-----
+[  1] Copyright (c) 2008, 2009 Sun Microsystems. All rights reserved.
+
+            Contributors:
+            Linda DeMichiel - Java Persistence 2.0, Version 2.0 (October 1, 2009)
+            Specification available from http://jcp.org/en/jsr/detail?id=317
+
+[  2] Copyright (c) 2008  - 2013 Oracle Corporation. All rights reserved. 
+
+            Contributors:
+            Linda DeMichiel - Java Persistence 2.1, Version 2.1 (February 4, 2013)
+            Specification available from http://jcp.org/en/jsr/detail?id=338
+
+[  3] Copyright (c) 1998, 2010 Oracle. All rights reserved.
+
+Contributors:
+dmccann - December 22/2010 - 2.3 - Initial implementation
+
