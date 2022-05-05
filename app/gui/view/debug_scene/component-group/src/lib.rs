@@ -106,7 +106,7 @@ fn init(app: &Application) {
     component_group.set_header(group_name.to_string());
     component_group.set_entries(provider);
     component_group.set_width(150.0);
-    component_group.set_background_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
+    component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
     // FIXME[mc] set actual color used for canvas background
     component_group.set_fade_color(color::Rgba(249.0/255.0, 250.0/255.0, 251.0/255.0, 1.0));
     app.display.add_child(&component_group);
