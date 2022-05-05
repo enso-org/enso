@@ -60,8 +60,16 @@ public class MethodRootNode extends ClosureRootNode {
       SourceSection section,
       AtomConstructor atomConstructor,
       String methodName) {
-    return build(language, localScope, moduleScope, new LazyBodyNode(body), section, atomConstructor, methodName);
+    return build(
+        language,
+        localScope,
+        moduleScope,
+        new LazyBodyNode(body),
+        section,
+        atomConstructor,
+        methodName);
   }
+
   public static MethodRootNode build(
       Language language,
       LocalScope localScope,
@@ -106,7 +114,6 @@ public class MethodRootNode extends ClosureRootNode {
     LazyBodyNode(Supplier<ExpressionNode> body) {
       this.provider = body;
     }
-
 
     @Override
     public Object executeGeneric(VirtualFrame frame) {
