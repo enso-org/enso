@@ -108,6 +108,7 @@ fn init(app: &Application) {
     component_group.set_entries(&provider);
     component_group.set_width(150.0);
     component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
+    dimmed_component_group.set_dimmed(true);
     dimmed_component_group.set_header("Input / Output".to_string());
     dimmed_component_group.set_entries(provider);
     dimmed_component_group.set_width(150.0);

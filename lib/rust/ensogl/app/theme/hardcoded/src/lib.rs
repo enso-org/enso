@@ -201,6 +201,7 @@ define_themes! { [light:0, dark:1]
                     }
                 }
                 background_color_intensity = 0.2, 0.2;
+                color_dim_factor = 0.5, 0.5;
             }
         }
         searcher {

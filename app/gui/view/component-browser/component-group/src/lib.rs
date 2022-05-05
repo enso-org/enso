@@ -145,6 +145,7 @@ ensogl_core::define_endpoints_2! {
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_fade_color(Rgba),
         set_leading_color(Rgba),
+        set_dimmed(bool),
         set_width(f32),
     }
     Output {
@@ -186,6 +187,7 @@ impl component::Frp<Model> for Frp {
 
         let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
         let background_color_intensity = style.get_number(theme::background_color_intensity);
+        let color_dim_factor = style.get_number(theme::color_dim_factor);
         frp::extend! { network
             fade_and_leading_colors <- all(&input.set_fade_color, &input.set_leading_color);
             header_color <- all_with(&fade_and_leading_colors, &header_text_color_intensity,
