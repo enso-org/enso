@@ -152,13 +152,13 @@ read_excel file section _ xls_format=False =
         Sheet_Names -> Vector.Vector (Reader.readSheetNames stream xls_format)
         Range_Names -> Vector.Vector (Reader.readRangeNames stream xls_format)
         Sheet sheet skip_rows row_limit ->
-            Table.Table <|
-                if sheet.is_an Integer then (Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format) else
-                    Reader.readSheetByName stream sheet skip_rows row_limit xls_format
+            Table.Table <| case sheet of
+                Integer -> Reader.readSheetByIndex stream sheet skip_rows row_limit xls_format
+                Text -> Reader.readSheetByName stream sheet skip_rows row_limit xls_format
         Range address skip_rows row_limit ->
-            Table.Table <|
-                if address.is_an Excel_Range then Reader.readRange stream address.java_range skip_rows row_limit xls_format else
-                    Reader.readRangeByName stream address skip_rows row_limit xls_format
+            Table.Table <| case address of
+                Excel_Range _ -> Reader.readRange stream address.java_range skip_rows row_limit xls_format
+                Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
 
     file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
     catch_file_failure = Panic.catch IllegalArgumentException handler=file_failure
