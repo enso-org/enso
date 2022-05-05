@@ -111,22 +111,18 @@ fn init(app: &Application) {
     red_slider.inner().frp.set_caption(Some("Red".to_string()));
     red_slider.inner().set_position_y(300.0);
     red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
-    red_slider.inner().set_value(0.527);
 
     let green_slider = make_number_picker(app);
     green_slider.inner().frp.set_caption(Some("Green".to_string()));
     green_slider.inner().set_position_y(250.0);
     green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
-    green_slider.inner().set_value(0.554);
 
     let blue_slider = make_number_picker(app);
     blue_slider.inner().frp.set_caption(Some("Blue".to_string()));
     blue_slider.inner().set_position_y(200.0);
     blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
-    blue_slider.inner().set_value(0.18);
 
     let selection = list_view::selection::View::new(Logger::new("Selection"));
-    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     selection.corner_radius.set(5.0);
     let selection_animation = Animation::<Vector2>::new(&network);
@@ -137,13 +133,11 @@ fn init(app: &Application) {
     component_group.set_header(group_name.to_string());
     component_group.set_entries(&provider);
     component_group.set_width(150.0);
-    component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
     dimmed_component_group.set_dimmed(true);
     dimmed_component_group.set_header("Input / Output".to_string());
     dimmed_component_group.set_entries(provider);
     dimmed_component_group.set_width(150.0);
     dimmed_component_group.set_position_x(-200.0);
-    dimmed_component_group.set_leading_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
     app.display.add_child(&dimmed_component_group);
     app.display.add_child(&component_group);
     app.display.add_child(&selection);
@@ -151,7 +145,10 @@ fn init(app: &Application) {
     let scene = &app.display.default_scene;
     let style = ensogl_core::display::shape::StyleWatchFrp::new(&scene.style_sheet);
     let app_bg_color = style.get_color(theme::application::background);
-    let red_slider_value = &red_slider.inner().frp.value;
+    let red_slider_frp = &red_slider.inner().frp;
+    let green_slider_frp = &green_slider.inner().frp;
+    let blue_slider_frp = &blue_slider.inner().frp;
+    let red_slider_value = &red_slider_frp.value;
     let green_slider_value = &green_slider.inner().frp.value;
     let blue_slider_value = &blue_slider.inner().frp.value;
     frp::extend! { network
@@ -160,10 +157,19 @@ fn init(app: &Application) {
         component_group.set_fade_color <+ app_bg_color;
         dimmed_component_group.set_fade_color <+ app_bg_color;
 
-        leading_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
+        default_red_component <- init.constant(0.527);
+        default_green_component <- init.constant(0.554);
+        default_blue_component <- init.constant(0.18);
+        red_slider_frp.set_value <+ default_red_component;
+        green_slider_frp.set_value <+ default_green_component;
+        blue_slider_frp.set_value <+ default_blue_component;
+        sliders_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
-        component_group.set_leading_color <+ leading_color;
-        dimmed_component_group.set_leading_color <+ leading_color;
+        sliders_color_initialized <- all(&sliders_color, &init)._0();
+        component_group.set_leading_color <+ sliders_color_initialized;
+        dimmed_component_group.set_leading_color <+ sliders_color_initialized;
+
+        eval sliders_color_initialized((c) selection.color.set(c.into()));
     }
     init.emit(());
 
