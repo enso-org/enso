@@ -4,7 +4,7 @@ import Standard.Table
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Table.Error as Table_Errors import Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
-from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 
 polyglot java import org.enso.table.read.DelimitedReader
@@ -15,6 +15,7 @@ polyglot java import org.enso.table.read.AdditionalInvalidRows
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
+polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
 
 ## Reads a delimited file according to the provided format.
@@ -84,11 +85,15 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
             if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
                 Error.throw (Parser_Error caught_panic.payload)
 
+        java_charset = format.encoding.to_java_charset
         Panic.catch IllegalArgumentException handler=translate_illegal_argument <|
             Panic.catch ParsingFailedException handler=translate_parsing_failure <|
                 Panic.catch TextParsingException handler=translate_parsing_exception <|
-                    warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                    reader = DelimitedReader.new java_stream format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
-                    result = Table.Table reader.read
-                    problems = Vector.Vector reader.getReportedProblems . map translate_problem
-                    on_problems.attach_problems_after result problems
+                    Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+                        warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+                        reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
+                        result = Table.Table reader.read
+                        decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
+                        parsing_problems = Vector.Vector reader.getReportedProblems . map translate_problem
+                        problems = decoding_problems + parsing_problems
+                        on_problems.attach_problems_after result problems

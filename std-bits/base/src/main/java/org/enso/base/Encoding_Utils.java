@@ -1,5 +1,6 @@
 package org.enso.base;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -11,6 +12,7 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.text.ResultWithWarnings;
@@ -157,7 +159,7 @@ public class Encoding_Utils {
     return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
-  ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset) {
+  private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset) {
     CharsetDecoder decoder =
         charset
             .newDecoder()
@@ -165,5 +167,13 @@ public class Encoding_Utils {
             .onUnmappableCharacter(CodingErrorAction.REPORT)
             .reset();
     return new ReportingStreamDecoder(stream, decoder);
+  }
+
+  public static <R> R with_stream_decoder(
+      InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
+      throws IOException {
+    try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
+      return action.apply(decoder);
+    }
   }
 }
