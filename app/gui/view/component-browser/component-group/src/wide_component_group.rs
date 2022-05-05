@@ -144,6 +144,7 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         let out = &api.output;
         frp::extend! { network
+            entry_count <- input.set_entries.map(|p| p.entry_count());
             eval input.select_entry([model]((column, entry)) {
                 model.columns.get(*column).map(|col| {
                     let real_entry_id = col.reversed_entry_id(*entry);
@@ -158,7 +159,9 @@ impl component::Frp<Model> for Frp {
             selected_entry <- any_mut();
             some_selected_entry <- selected_entry.filter_map(|&(entry, group): &(Option<usize>, usize)| if entry.is_some() { Some(group) } else { None });
             eval some_selected_entry ((group) model.on_selected_entry(*group));
-            out.selected_entry <+ selected_entry.map(|(entry, _)| *entry);
+            out.selected_entry <+ selected_entry.map2(&entry_count, |(entry, column), total_entry_count| {
+                entry.map(|e| local_idx_to_global(*column, e, *total_entry_count))
+            });
 
             // === Background size ===
 
@@ -172,7 +175,6 @@ impl component::Frp<Model> for Frp {
 
             // === "No items" label ===
 
-            entry_count <- input.set_entries.map(|p| p.entry_count());
             no_entries_provided <- entry_count.map(|c| *c == 0);
             show_no_items_label <- no_entries_provided.on_true();
             hide_no_items_label <- no_entries_provided.on_false();
@@ -187,7 +189,6 @@ impl component::Frp<Model> for Frp {
                 out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
                 out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
             }
-
             frp::extend! { network
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
