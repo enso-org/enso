@@ -26,6 +26,8 @@ use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
+// FIXME[mc] cleanup spurious import
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
@@ -141,6 +143,8 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         set_header(String),
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
+        set_fade_color(Rgba),
+        // FIXME[mc] rename
         set_background_color(Rgba),
         set_width(f32),
     }
@@ -169,7 +173,6 @@ impl component::Frp<Model> for Frp {
         // === Geometry ===
 
         frp::extend! { network
-
             let header_geometry = HeaderGeometry::from_style(style, network);
             height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
@@ -177,6 +180,16 @@ impl component::Frp<Model> for Frp {
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all(&out.size, &header_geometry);
             eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
+        }
+
+
+        // === Colors ===
+
+        let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
+        frp::extend! { network
+            colors_to_blend <- all(&input.set_background_color, &input.set_fade_color);
+            header_color <- all_with(&colors_to_blend, &header_text_color_intensity, |(a,b),c|
+                color::mix(*a,*b,*c));
         }
 
 

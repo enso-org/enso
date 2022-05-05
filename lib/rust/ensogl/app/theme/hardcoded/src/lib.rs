@@ -185,6 +185,7 @@ define_themes! { [light:0, dark:1]
                     text {
                         font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;
+                        color_intensity = 0.9, 0.9;
                     }
                     height = 27.0, 27.0;
                     padding {
