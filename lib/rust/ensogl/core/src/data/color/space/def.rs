@@ -12,7 +12,7 @@ use crate::prelude::*;
 
 macro_rules! define_color_parsing {
     ($name:ident) => {
-        impl std::str::FromStr for $name {
+        impl FromStr for $name {
             type Err = ParseError;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 let (head, args) = generic_parse(s)?;
@@ -42,7 +42,7 @@ macro_rules! define_color_spaces {
             )*
         }
 
-        impl std::str::FromStr for AnyFormat {
+        impl FromStr for AnyFormat {
             type Err = ParseError;
             fn from_str(s:&str) -> Result<Self, Self::Err> {
                 let (head,args) = generic_parse(s)?;

@@ -637,8 +637,6 @@ pub type Synchronized = synchronized::Module;
 pub mod test {
     use super::*;
 
-    use std::str::FromStr;
-
     pub fn expect_code(module: &dyn API, expected_code: impl AsRef<str>) {
         let code = module.ast().repr();
         assert_eq!(code, expected_code.as_ref())

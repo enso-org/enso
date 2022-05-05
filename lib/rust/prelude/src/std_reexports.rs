@@ -43,6 +43,7 @@ pub use std::rc::Rc;
 pub use std::rc::Weak;
 pub use std::slice;
 pub use std::slice::SliceIndex;
+pub use std::str::FromStr;
 
 
 
