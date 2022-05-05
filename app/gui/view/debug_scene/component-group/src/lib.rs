@@ -102,11 +102,36 @@ impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
 // === Init Application ===
 // ========================
 
-fn init(app: &Application) {
-    theme::builtin::dark::register(&app);
-    theme::builtin::light::register(&app);
-    theme::builtin::light::enable(&app);
 
+// === Helpers ====
+
+fn create_selection() -> list_view::selection::View {
+    let selection = list_view::selection::View::new(Logger::new("Selection"));
+    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
+    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    selection.corner_radius.set(5.0);
+    selection
+}
+
+fn component_group(app: &Application) -> component_group::View {
+    let component_group = app.new_view::<component_group::View>();
+    let group_name = "Long group name with text overflowing the width";
+    component_group.set_header(group_name.to_string());
+    component_group.set_width(150.0);
+    component_group.set_position_x(-300.0);
+    component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    component_group
+}
+
+fn wide_component_group(app: &Application) -> component_group::wide_component_group::View {
+    let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
+    wide_component_group.set_position_x(100.0);
+    wide_component_group.set_width(450.0);
+    wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    wide_component_group
+}
+
+fn slider(app: &Application) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
     app.display.add_child(&slider);
     slider.frp.resize(Vector2(400.0, 50.0));
@@ -114,22 +139,33 @@ fn init(app: &Application) {
     slider.frp.set_bounds(Bounds::new(0.0, 15.0));
     slider.set_position_y(250.0);
     slider.frp.set_caption(Some("Items count:".to_string()));
+    slider
+}
 
+
+// === init ===
+
+fn init(app: &Application) {
+    theme::builtin::dark::register(&app);
+    theme::builtin::light::register(&app);
+    theme::builtin::light::enable(&app);
+
+    let slider = slider(app);
     let network = frp::Network::new("Component Group Debug Scene");
-    let selection = list_view::selection::View::new(Logger::new("Selection"));
-    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
-    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
-    selection.corner_radius.set(5.0);
+    let selection = create_selection();
     let selection_animation = Animation::<Vector2>::new(&network);
+    let wide_selection = create_selection();
+    let wide_selection_animation = Animation::<Vector2>::new(&network);
 
-    let component_group = app.new_view::<component_group::View>();
-    let group_name = "Long group name with text overflowing the width";
-    component_group.set_header(group_name.to_string());
-    component_group.set_width(150.0);
-    component_group.set_position_x(-300.0);
-    component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    let component_group = component_group(app);
     app.display.add_child(&component_group);
     component_group.add_child(&selection);
+    let wide_component_group = wide_component_group(app);
+    app.display.add_child(&wide_component_group);
+    wide_component_group.add_child(&wide_selection);
+
+
+    // === Regular Component Group === 
 
     frp::extend! { network
         selection_animation.target <+ component_group.selection_position_target;
@@ -143,28 +179,20 @@ fn init(app: &Application) {
     selection_animation.skip.emit(());
 
 
-    let wide_selection = list_view::selection::View::new(Logger::new("WideSelection"));
-    wide_selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
-    wide_selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
-    wide_selection.corner_radius.set(5.0);
-    let wide_selection_animation = Animation::<Vector2>::new(&network);
-
-    let wide_component_group = app.new_view::<component_group::wide_component_group::View>();
-    wide_component_group.set_position_x(100.0);
-    wide_component_group.set_width(450.0);
-    wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
-    app.display.add_child(&wide_component_group);
-    wide_component_group.add_child(&wide_selection);
+    // === Wide Component Group ===
 
     frp::extend! { network
         wide_selection_animation.target <+ wide_component_group.selection_position_target;
         eval wide_selection_animation.value ((pos) wide_selection.set_position_xy(*pos));
 
-        eval wide_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval wide_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+        eval wide_component_group.suggestion_accepted ([](id) DEBUG!("[Wide] Accepted Suggestion {id}"));
+        eval wide_component_group.expression_accepted ([](id) DEBUG!("[Wide] Accepted Expression {id}"));
     }
     wide_selection_animation.target.emit(wide_component_group.selection_position_target.value());
     wide_selection_animation.skip.emit(());
+
+    
+    // === Setup slider to change entry count ===
 
     let mock_entries = MockEntries::new(25);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
@@ -176,8 +204,8 @@ fn init(app: &Application) {
             wide_component_group.set_entries(model_provider.clone_ref());
         });
     }
-    slider.frp.set_value(5.0);
-    wide_component_group.select_entry(0, 0);
+    slider.frp.set_value(10.0);
+    wide_component_group.select_entry(0, 0); // select bottom left entry at the start
 
     std::mem::forget(slider);
     std::mem::forget(network);
