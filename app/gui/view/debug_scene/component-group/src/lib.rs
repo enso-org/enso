@@ -165,7 +165,7 @@ fn init(app: &Application) {
     wide_component_group.add_child(&wide_selection);
 
 
-    // === Regular Component Group === 
+    // === Regular Component Group ===
 
     frp::extend! { network
         selection_animation.target <+ component_group.selection_position_target;
@@ -191,7 +191,7 @@ fn init(app: &Application) {
     wide_selection_animation.target.emit(wide_component_group.selection_position_target.value());
     wide_selection_animation.skip.emit(());
 
-    
+
     // === Setup slider to change entry count ===
 
     let mock_entries = MockEntries::new(25);

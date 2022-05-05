@@ -7,13 +7,14 @@
 //!
 //! [Component Group]: crate::component_group::View
 
+use ensogl_core::application::traits::*;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::EntryId;
+
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
-use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
@@ -21,7 +22,6 @@ use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
-
 
 
 // =================
@@ -75,8 +75,7 @@ pub mod background {
 // === ModelProvider ===
 // =====================
 
-/// A special [`list_view::entry::ModelProvider`] wrapper that splits entries into `COLUMNS`
-/// lists.
+/// A [`list_view::entry::ModelProvider`] wrapper that splits entries into `COLUMNS` lists.
 ///
 /// Entries are distributed evenly between lists. If the entry count is not divisible by `COLUMNS` -
 /// the lists with lower indices will have more entries.
@@ -88,7 +87,7 @@ pub struct ModelProvider {
 
 impl ModelProvider {
     /// Wrap [`AnyModelProvider`] and split its entries into `COLUMNS` lists. The returned instance
-    /// provides entries for column with `index`.
+    /// provides entries for column with `column_id`.
     fn wrap(inner: &AnyModelProvider<Entry>, column_id: ColumnId) -> AnyModelProvider<Entry> {
         AnyModelProvider::new(Self {
             inner:     inner.clone_ref(),
@@ -145,29 +144,21 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
+
             eval input.select_entry([model]((column, entry)) {
-                model.columns.get(*column).map(|col| {
-                    let real_entry_id = col.reversed_entry_id(*entry);
-                    col.select_entry(real_entry_id);
-                });
+                if let Some(column) = model.columns.get(*column) {
+                    let real_entry_id = column.list_view_entry_id(*entry);
+                    column.select_entry(real_entry_id);
+                }
             });
 
             eval input.set_background_color((c) model.background.color.set(c.into()));
 
-            // Selected entry
-
-            selected_entry <- any_mut();
-            some_selected_entry <- selected_entry.filter_map(|&(entry, group): &(Option<usize>, usize)| if entry.is_some() { Some(group) } else { None });
-            eval some_selected_entry ((group) model.on_selected_entry(*group));
-            out.selected_entry <+ selected_entry.map2(&entry_count, |(entry, column), total_entry_count| {
-                entry.map(|e| local_idx_to_global(*column, e, *total_entry_count))
-            });
 
             // === Background size ===
 
-            let background_width = input.set_width.clone_ref();
             background_height <- any(...);
-
+            let background_width = input.set_width.clone_ref();
             size <- all_with(&background_width, &background_height,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
@@ -184,25 +175,35 @@ impl component::Frp<Model> for Frp {
 
         for (idx, column) in model.columns.iter().enumerate() {
             frp::extend! { network
-                total_entries_count <- input.set_entries.map(|p| p.entry_count());
-                accepted_entry <- column.selected_entry.sample(&input.accept_suggestion);
-                out.suggestion_accepted <+ accepted_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
-                out.expression_accepted <+ column.chosen_entry.filter_map(|e| *e).map2(&total_entries_count, f!([](e, total) local_idx_to_global(idx, *e, *total)));
-            }
-            frp::extend! { network
+                // === Accepting suggestions ===
+
+                accepted_entry <- column.selected_entry.sample(&input.accept_suggestion).filter_map(|e| *e);
+                chosen_entry <- column.chosen_entry.filter_map(|e| *e);
+                out.suggestion_accepted <+ accepted_entry.map2(&entry_count, f!(
+                        [](&e, &total) local_idx_to_global(idx, e, total)
+                ));
+                out.expression_accepted <+ chosen_entry.map2(&entry_count, f!(
+                        [](&e, &total) local_idx_to_global(idx, e, total)
+                ));
+
+
+                // === Selection position ===
+
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
+                eval_ on_column_selected(model.on_column_selected(idx));
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
                 out.selection_position_target <+ selection_pos.map(f!((pos) column.selection_position(*pos)));
-            }
-            frp::extend! { network
-                selected_entry <+ column.frp.output.selected_entry.map(move |entry| (*entry, idx));
 
-                let column = column.clone_ref();
+
+                // === set_entries ===
+
+                out.selected_entry <+ column.selected_entry.map2(&entry_count, move |entry, total| {
+                    entry.map(|e| local_idx_to_global(idx, e, *total))
+                });
                 entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, idx));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
-
-                _eval <- all_with(&entries, &out.size, f!((_, size) column.resize(*size)));
+                _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
             }
         }
     }
@@ -216,56 +217,74 @@ impl component::Frp<Model> for Frp {
     }
 }
 
+
+
+// ==============
+// === Column ===
+// ==============
+
+/// An internal representation of the column.
 #[derive(Debug, Clone, CloneRef)]
 struct Column {
-    index:    Immutable<ColumnId>,
-    provider: Rc<CloneRefCell<AnyModelProvider<Entry>>>,
-    inner:    list_view::ListView<Entry>,
+    index:     Immutable<ColumnId>,
+    provider:  Rc<CloneRefCell<AnyModelProvider<Entry>>>,
+    list_view: list_view::ListView<Entry>,
 }
 
 impl Deref for Column {
     type Target = list_view::ListView<Entry>;
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.list_view
     }
 }
 
 impl Column {
+    /// Constructor.
     fn new(app: &Application, index: ColumnId) -> Self {
         Self {
-            index:    Immutable(index),
-            provider: default(),
-            inner:    app.new_view::<list_view::ListView<Entry>>(),
+            index:     Immutable(index),
+            provider:  default(),
+            list_view: app.new_view::<list_view::ListView<Entry>>(),
         }
     }
 
+    /// An entry count for this column.
     fn len(&self) -> usize {
         self.provider.get().entry_count()
     }
 
-    fn reversed_entry_id(&self, entry_id: EntryId) -> EntryId {
+    /// Transforms `entry_id` into the actual EntryId for the underlying [`list_view::ListView`].
+    ///
+    /// EntryId of the Wide Component Group count from the bottom (the bottom most entry has an id
+    /// of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so that
+    /// the top most entry has an id of 0). This function converts the former to the latter.
+    fn list_view_entry_id(&self, entry_id: EntryId) -> EntryId {
         self.len() - entry_id - 1
     }
 
+    /// Update entries list, a setter for [`list_view::ListView`]`::set_entries`.
     fn set_entries(&self, provider: &AnyModelProvider<Entry>) {
         self.provider.set(provider.clone_ref());
-        self.inner.set_entries(provider);
+        self.list_view.set_entries(provider);
     }
 
-    fn resize(&self, size: Vector2) {
+    /// Resize the column and update its position.
+    fn resize_and_place(&self, size: Vector2) {
         let width = size.x / COLUMNS as f32;
         let bg_height = size.y;
         let height = self.len() as f32 * ENTRY_HEIGHT;
-        self.inner.resize(Vector2(width, height));
+        self.list_view.resize(Vector2(width, height));
+
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
         let pos_x = left_border + width * *self.index as f32;
-        self.inner.set_position_x(pos_x);
         let half_height = height / 2.0;
         let background_bottom = -bg_height / 2.0;
         let pos_y = background_bottom + half_height;
-        self.inner.set_position_y(pos_y);
+        self.list_view.set_position_x(pos_x);
+        self.list_view.set_position_y(pos_y);
     }
 
+    /// Transform Column-space position to WideComponentGroup-space one.
     fn selection_position(&self, pos: Vector2) -> Vector2 {
         self.position().xy() + pos
     }
@@ -318,17 +337,19 @@ impl component::Model for Model {
 }
 
 impl Model {
+    /// Make the "no items" label visible.
     fn show_no_items_label(&self) {
         self.display_object.add_child(&self.no_items_label);
     }
 
+    /// Hide the "no items" label.
     fn hide_no_items_label(&self) {
         self.display_object.remove_child(&self.no_items_label);
     }
 
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that
-    /// at all times only one entry across all columns will be selected.
-    fn on_selected_entry(&self, column_id: ColumnId) {
+    /// at all times only a single entry across all columns is selected.
+    fn on_column_selected(&self, column_id: ColumnId) {
         let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != column_id);
         for (_, column) in other_columns {
             column.deselect_entries();
@@ -376,7 +397,11 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
     }
 }
 
+/// Transform the index inside column to the "global" index inside the Wide Component Group.
+///
+/// The entry #1 in column with index 2 is the second item from the bottom in the third column and
+/// has a "global" index of `COLUMNS + 2 = 5`.
 fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> EntryId {
-    let reversed_local_idx = entry_count_in_column(column, total_entry_count) - entry - 1;
-    COLUMNS * reversed_local_idx + column
+    let upside_down_index = entry_count_in_column(column, total_entry_count) - entry - 1;
+    COLUMNS * upside_down_index + column
 }
