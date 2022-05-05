@@ -231,7 +231,8 @@ impl component::Frp<Model> for Frp {
         // === Entries ===
 
         frp::extend! { network
-            model.entries.set_background_color <+ background_color;
+            // FIXME[mc] ask AO if below is needed for anything
+            // model.entries.set_background_color <+ background_color;
             model.entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
         }
