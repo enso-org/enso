@@ -1739,50 +1739,67 @@ buildEngineDistribution := {
 
 lazy val buildStdLibBase = taskKey[Unit]("Build only the standard library for Base")
 buildStdLibBase := {
-  (Def.taskDyn {
+  Def.taskDyn {
     val root: File         = engineDistributionRoot.value
     if ((root / "manifest.yaml").exists) {
       val log: sbt.Logger          = streams.value.log
       val cacheFactory = streams.value.cacheStoreFactory
+      (`std-base` / Compile / packageBin).value
       buildStdLibPackage("Base", root, cacheFactory, log)
     } else buildEngineDistribution
-  }).value
+  }.value
 }
 
 lazy val buildStdLibDatabase = taskKey[Unit]("Build only the standard library for Database")
 buildStdLibDatabase := {
-  (Def.taskDyn {
+  Def.taskDyn {
     val root: File         = engineDistributionRoot.value
     if ((root / "manifest.yaml").exists) {
       val log: sbt.Logger          = streams.value.log
       val cacheFactory = streams.value.cacheStoreFactory
+      (`std-database` / Compile / packageBin).value
       buildStdLibPackage("Database", root, cacheFactory, log)
     } else buildEngineDistribution
-  }).value
+  }.value
 }
 
 lazy val buildStdLibTable = taskKey[Unit]("Build only the standard library for Table")
 buildStdLibTable := {
-  (Def.taskDyn {
+  Def.taskDyn {
     val root: File         = engineDistributionRoot.value
     if ((root / "manifest.yaml").exists) {
       val log: sbt.Logger          = streams.value.log
       val cacheFactory = streams.value.cacheStoreFactory
+      (`std-table` / Compile / packageBin).value
       buildStdLibPackage("Table", root, cacheFactory, log)
     } else buildEngineDistribution
-  }).value
+  }.value
 }
 
-lazy val buildStdLibVis = taskKey[Unit]("Build only the standard library for Visualization")
-buildStdLibVis := {
-  (Def.taskDyn {
+lazy val buildStdLibImage = taskKey[Unit]("Build only the standard library for Image")
+buildStdLibImage := {
+  Def.taskDyn {
     val root: File         = engineDistributionRoot.value
     if ((root / "manifest.yaml").exists) {
       val log: sbt.Logger          = streams.value.log
       val cacheFactory = streams.value.cacheStoreFactory
-      buildStdLibPackage("Visualization", root, cacheFactory, log)
+      (`std-image` / Compile / packageBin).value
+      buildStdLibPackage("Image", root, cacheFactory, log)
     } else buildEngineDistribution
-  }).value
+  }.value
+}
+
+lazy val buildStdLibGoogleApi = taskKey[Unit]("Build only the standard library for Google API")
+buildStdLibImage := {
+  Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      (`std-google-api` / Compile / packageBin).value
+      buildStdLibPackage("Google_Api", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }.value
 }
 
 def buildStdLibPackage(name: String, root: File, cacheFactory: sbt.util.CacheStoreFactory, log: sbt.Logger) = Def.task {
