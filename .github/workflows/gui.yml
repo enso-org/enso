@@ -37,7 +37,7 @@ jobs:
         runner:
           #      - ["macos-latest"]
           #      - [Windows, self-hosted]
-          -
+          - [Linux, self-hosted, engine]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -64,7 +64,7 @@ jobs:
       - uses: ./actions/setup-build
       - run: bash run.sh wasm test --no-wasm
   test-wasm:
-    name: GUI Tests (native)
+    name: GUI Tests (WASM)
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -97,6 +97,42 @@ jobs:
           clean: false
       - uses: ./actions/setup-build
       - run: bash run.sh ide integration-test
+  build-wasm:
+    name: GUI Integration Tests (WASM)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner:
+          #      - ["macos-latest"]
+          #      - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
+      - uses: ./actions/setup-build
+      - run: bash run.sh wasm build
+  package_gui:
+    name: GUI Integration Tests (WASM)
+    runs-on: ${{ matrix.runner }}
+    needs:
+      - build-wasm
+    strategy:
+      matrix:
+        runner:
+          - ["macos-latest"]
+          - [Windows, self-hosted]
+          - [Linux, self-hosted, engine]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout the repository
+        with:
+          clean: false
+      - uses: ./actions/setup-build
+      - run: bash run.sh ide build --wasm-source
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
