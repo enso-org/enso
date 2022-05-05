@@ -18,7 +18,7 @@ import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
-public class JavaPolyglotTest {
+public class DebuggingEnsoTest {
   @Test
   public void evaluation() throws Exception {
     Engine eng = Engine.newBuilder()
