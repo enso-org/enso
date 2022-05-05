@@ -44,6 +44,7 @@ pub fn main() {
 
 fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
     let slider = app.new_view::<selector::NumberPicker>();
+    slider.frp.allow_click_selection(true);
     slider.frp.resize(Vector2(400.0, 30.0));
     slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
     app.display.add_child(&slider);
