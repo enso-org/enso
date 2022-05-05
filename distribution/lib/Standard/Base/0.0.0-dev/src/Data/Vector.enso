@@ -1,6 +1,5 @@
 from Standard.Base import all
-from Standard.Builtins import Array
-from Standard.Builtins import Unsupported_Argument_Types
+import Standard.Base.Runtime.Unsafe
 
 ## Creates a new vector of the given length, initializing elements using
    the provided constructor function.

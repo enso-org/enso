@@ -10,7 +10,7 @@ class DateTest extends InterpreterTest {
   ): Unit = {
     "evaluate a date expression" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |
            |import Standard.Base.Data.Time.Date
            |
@@ -23,7 +23,7 @@ class DateTest extends InterpreterTest {
 
     "print out java date" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |polyglot java import java.time.LocalDate
            |
            |main =
@@ -35,7 +35,7 @@ class DateTest extends InterpreterTest {
 
     "send enso date into java" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |polyglot java import java.time.LocalTime
            |import Standard.Base.Data.Time.Date
            |
@@ -52,7 +52,7 @@ class DateTest extends InterpreterTest {
 
     "check java date has enso methods" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |polyglot java import java.time.LocalDate
            |import Standard.Base.Data.Time.Date
            |
@@ -73,7 +73,7 @@ class DateTest extends InterpreterTest {
 
     "check enso date has enso methods" in {
       val code =
-        s"""from Standard.Builtins import all
+        s"""import Standard.Base.IO
            |import Standard.Base.Data.Time.Date
            |
            |main =

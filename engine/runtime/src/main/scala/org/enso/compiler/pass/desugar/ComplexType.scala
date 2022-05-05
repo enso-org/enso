@@ -114,7 +114,15 @@ case object ComplexType extends IRPass {
       .collect { case d: IR.Module.Scope.Definition.Atom => d }
       .map(atom =>
         annotations
-          .map(ann => atom.updateMetadata(ModuleAnnotations -->> ann))
+          .map(ann => {
+            val old = atom
+              .getMetadata(ModuleAnnotations)
+              .map(_.annotations)
+              .getOrElse(Nil)
+            atom.updateMetadata(
+              ModuleAnnotations -->> ann.copy(ann.annotations ++ old)
+            )
+          })
           .getOrElse(atom)
       )
     val atomIncludes           = typ.body.collect { case n: IR.Name => n }

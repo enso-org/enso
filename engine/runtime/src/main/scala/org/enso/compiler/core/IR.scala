@@ -6453,6 +6453,17 @@ object IR {
         "A @Tail_Call annotation was placed in a non-tail-call position."
     }
 
+    /** A warning about a `@Builtin_Method` annotation placed in a method
+      * with unexpected body.
+      * @param location the location of the annotated application
+      */
+    case class WrongBuiltinMethod(
+      override val location: Option[IdentifiedLocation]
+    ) extends Warning {
+      override def message: String =
+        "A @Builtin_Method annotation allows only the name of the builtin node in the body."
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 

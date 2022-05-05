@@ -26,7 +26,7 @@ public class GetArraySizeNode extends Node {
       err.enter();
       Builtins builtins = Context.get(this).getBuiltins();
       throw new PanicException(
-          builtins.error().makeTypeError(builtins.mutable().array(), array, "array"), this);
+          builtins.error().makeTypeError(builtins.array(), array, "array"), this);
     }
   }
 }

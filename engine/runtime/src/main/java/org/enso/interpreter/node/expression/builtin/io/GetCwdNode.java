@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.EnsoFile;
 
 @BuiltinMethod(
-    type = "Prim_Io",
+    type = "File",
     name = "get_cwd",
     description = "A file corresponding to the current working directory.")
 public abstract class GetCwdNode extends Node {
