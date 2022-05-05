@@ -22,6 +22,7 @@ use ensogl_core::frp;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
+use ensogl_selector as selector;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 
@@ -39,6 +40,14 @@ pub fn main() {
         init(&app);
         mem::forget(app);
     });
+}
+
+fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
+    let slider = app.new_view::<selector::NumberPicker>();
+    slider.frp.resize(Vector2(400.0, 30.0));
+    slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
+    app.display.add_child(&slider);
+    Leak::new(slider)
 }
 
 
@@ -95,6 +104,27 @@ fn init(app: &Application) {
     ]);
 
     let network = frp::Network::new("Component Group Debug Scene");
+
+    // FIXME[mc] organize the code below into sections
+
+    let red_slider = make_number_picker(app);
+    red_slider.inner().frp.set_caption(Some("Red".to_string()));
+    red_slider.inner().set_position_y(300.0);
+    red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+    red_slider.inner().set_value(0.527);
+
+    let green_slider = make_number_picker(app);
+    green_slider.inner().frp.set_caption(Some("Green".to_string()));
+    green_slider.inner().set_position_y(250.0);
+    green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
+    green_slider.inner().set_value(0.554);
+
+    let blue_slider = make_number_picker(app);
+    blue_slider.inner().frp.set_caption(Some("Blue".to_string()));
+    blue_slider.inner().set_position_y(200.0);
+    blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
+    blue_slider.inner().set_value(0.18);
+
     let selection = list_view::selection::View::new(Logger::new("Selection"));
     selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));

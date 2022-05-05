@@ -748,6 +748,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
+ "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
  "wasm-bindgen",
