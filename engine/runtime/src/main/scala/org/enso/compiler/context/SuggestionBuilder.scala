@@ -652,6 +652,10 @@ object SuggestionBuilder {
   sealed private trait TypeArg
   private object TypeArg {
 
+    /** A sum type – one of many possible options.
+      * @param name the qualified name of the type.
+      * @param variants the qualified names of constituent atoms.
+      */
     case class Sum(name: QualifiedName, variants: Seq[QualifiedName])
         extends TypeArg
 

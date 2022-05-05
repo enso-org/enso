@@ -30,6 +30,12 @@ sealed trait Tree[+A] {
   final def map[B](f: A => B): Tree[B] =
     Tree.map(this)(f)
 
+  /** Finds the first element of the tree for which the given partial function
+    * is defined, and applies the partial function to it.
+    *
+    * @param f the partial function to apply
+    * @return the result of running `f` on the first element it's defined for.
+    */
   @JsonIgnore
   final def collectFirst[B](f: PartialFunction[A, B]): Option[B] =
     Tree.collectFirst(this)(f)

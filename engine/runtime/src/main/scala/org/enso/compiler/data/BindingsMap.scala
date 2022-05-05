@@ -202,6 +202,13 @@ case class BindingsMap(
     }
   }
 
+  /** Resolves a name as a type.
+    *
+    * NB: This should be removed when sum types become proper runtime values.
+    *
+    * @param name the type name to resolve.
+    * @return the resolution
+    */
   def resolveTypeName(
     name: String
   ): Either[ResolutionError, ResolvedTypeName] = {
@@ -731,6 +738,11 @@ object BindingsMap {
     */
   case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
 
+  /** A representation of a sum type
+    *
+    * @param name the type name
+    * @param members the member names
+    */
   case class Type(name: String, members: Seq[String])
 
   /** A representation of an imported polyglot symbol.
@@ -745,6 +757,11 @@ object BindingsMap {
     */
   case class ModuleMethod(name: String)
 
+  /** Represents a resolved name on typelevel.
+    *
+    * NB: should be unified with `ResolvedName` and removed, once sum types get
+    * a proper runtime meaning.
+    */
   sealed trait ResolvedTypeName {
     def module: ModuleReference
 
@@ -762,6 +779,11 @@ object BindingsMap {
     def toConcrete(moduleMap: ModuleMap): Option[ResolvedTypeName]
   }
 
+  /** A name resolved to a sum type.
+    *
+    * @param module the module defining the type
+    * @param tp a representation for the type
+    */
   case class ResolvedType(override val module: ModuleReference, tp: Type)
       extends ResolvedTypeName {
     def getVariants: Seq[ResolvedConstructor] = {
