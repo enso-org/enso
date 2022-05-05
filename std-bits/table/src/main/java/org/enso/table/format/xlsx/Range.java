@@ -23,6 +23,10 @@ public class Range {
     return new String[] {matcher.group(1), matcher.group(2)};
   }
 
+  private static String unescapeSheetName(String sheetName) {
+    return sheetName.replaceAll("^'(.*)'$", "$1").replaceAll("''", "'");
+  }
+
   private static final String ADDRESS_A1 = "\\$?[A-Z]{1,3}\\$?\\d+";
   private static final String ADDRESS_COL = "\\$?[A-Z]{1,3}";
   private static final String ADDRESS_ROW = "\\$?\\d+";
@@ -40,7 +44,7 @@ public class Range {
   private static int[] parseRange(String range) throws IllegalArgumentException {
     for (Pattern pattern : new Pattern[] {RANGE_A1, RANGE_COL, RANGE_ROW, RANGE_RC}) {
       Optional<int[]> parsed =
-          parseRange(range, pattern, pattern == RANGE_RC ? Range::parseRC : Range::parseA1);
+          parseRange(range, pattern, pattern == RANGE_RC ? Range::parseR1C1StyleAddress : Range::parseA1StyleAddress);
 
       if (parsed.isPresent()) {
         return parsed.get();
@@ -87,13 +91,13 @@ public class Range {
     return index;
   }
 
-  private static int[] parseA1(CharSequence address) {
-    ParsedInteger col = parseColumn(address);
+  private static int[] parseA1StyleAddress(CharSequence address) {
+    ParsedInteger col = parseColumn(address, skipDollar(address, 0));
     ParsedInteger row = parseInteger(address, skipDollar(address, col.index));
     return new int[] {row.value, col.value};
   }
 
-  private static int[] parseRC(CharSequence address) throws IllegalArgumentException {
+  private static int[] parseR1C1StyleAddress(CharSequence address) throws IllegalArgumentException {
     int index = 0;
 
     int row = 0;
@@ -127,7 +131,7 @@ public class Range {
    * @return Column index (A=1 ...)
    */
   public static int parseA1Column(CharSequence column) throws IllegalArgumentException {
-    ParsedInteger parsed = parseColumn(column);
+    ParsedInteger parsed = parseColumn(column, skipDollar(column, 0));
     if (parsed.index != column.length() || parsed.value == 0) {
       throw new IllegalArgumentException(column + " is not a valid Excel Column Name.");
     }
@@ -136,7 +140,13 @@ public class Range {
   }
 
   private static class ParsedInteger {
+    /**
+     * Index to the next character after the parsed value
+     */
     public final int index;
+    /**
+     * Parsed integer value or 0 if not valid
+     */
     public final int value;
 
     public ParsedInteger(int index, int value) {
@@ -154,11 +164,10 @@ public class Range {
         endIndex, endIndex == index ? 0 : Integer.parseInt(address, index, endIndex, 10));
   }
 
-  private static ParsedInteger parseColumn(CharSequence column) {
+  private static ParsedInteger parseColumn(CharSequence column, int startIndex) {
     int col = 0;
 
-    int index = skipDollar(column, 0);
-
+    int index = startIndex;
     while (index < column.length() && isLetter(column.charAt(index))) {
       col = 26 * col + (column.charAt(index) - 'A' + 1);
       index++;
@@ -175,7 +184,7 @@ public class Range {
 
   public Range(String fullAddress) throws IllegalArgumentException {
     String[] sheetAndRange = parseFullAddress(fullAddress);
-    this.sheetName = sheetAndRange[0].replaceAll("^'(.*)'$", "$1").replaceAll("''", "'");
+    this.sheetName = unescapeSheetName(sheetAndRange[0]);
 
     int[] range = parseRange(sheetAndRange[1]);
     this.leftColumn = range[1];
@@ -194,6 +203,14 @@ public class Range {
 
   public String getSheetName() {
     return sheetName;
+  }
+
+  public String getEscapedSheetName() {
+    String sheetNameEscaped = sheetName;
+    if (sheetNameEscaped.contains(" ") || sheetNameEscaped.contains("'")) {
+      sheetNameEscaped = "'" + sheetNameEscaped.replace("'", "''") + "'";
+    }
+    return sheetNameEscaped;
   }
 
   public boolean isWholeRow() {
@@ -221,10 +238,7 @@ public class Range {
   }
 
   public String getAddress() {
-    String sheetNameEscaped = getSheetName();
-    if (sheetNameEscaped.contains(" ") || sheetNameEscaped.contains("'")) {
-      sheetNameEscaped = "'" + sheetNameEscaped.replace("'", "''") + "'";
-    }
+    String sheetNameEscaped = getEscapedSheetName();
 
     String range =
         (isWholeRow() ? "" : CellReference.convertNumToColString(getLeftColumn() - 1))

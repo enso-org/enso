@@ -304,6 +304,14 @@ public class Reader {
     return null;
   }
 
+  /**
+   * Reads a list of sheet names for the specified XLSX/XLS file into an array.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a String[] containing the sheet names.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static String[] readSheetNames(InputStream stream, boolean xls_format) throws IOException {
     Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
     int sheetCount = workbook.getNumberOfSheets();
@@ -314,11 +322,30 @@ public class Reader {
     return output;
   }
 
+  /**
+   * Reads a list of range names for the specified XLSX/XLS file into an array.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a String[] containing the range names.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static String[] readRangeNames(InputStream stream, boolean xls_format) throws IOException {
     Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
     return workbook.getAllNames().stream().map(Name::getNameName).toArray(String[]::new);
   }
 
+  /**
+   * Reads a sheet by name for the specified XLSX/XLS file into a table.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param sheetName the name of the sheet to read.
+   * @param skip_rows skip rows from the top the sheet.
+   * @param row_limit maximum number of rows to read.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Table} containing the specified data.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static Table readSheetByName(
       InputStream stream,
       String sheetName,
@@ -341,6 +368,17 @@ public class Reader {
         row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
+  /**
+   * Reads a sheet by index for the specified XLSX/XLS file into a table.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param index the 1-based index to the sheet.
+   * @param skip_rows skip rows from the top the sheet.
+   * @param row_limit maximum number of rows to read.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Table} containing the specified data.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static Table readSheetByIndex(
       InputStream stream, int index, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException, IllegalArgumentException {
@@ -360,6 +398,18 @@ public class Reader {
         row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
+
+  /**
+   * Reads a range by name or address for the specified XLSX/XLS file into a table.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param rangeNameOrAddress name or address of the range to read.
+   * @param skip_rows skip rows from the top of the range.
+   * @param row_limit maximum number of rows to read.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Table} containing the specified data.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static Table readRangeByName(
       InputStream stream,
       String rangeNameOrAddress,
@@ -374,6 +424,18 @@ public class Reader {
     return readRange(workbook, range, skip_rows, row_limit);
   }
 
+
+  /**
+   * Reads a range for the specified XLSX/XLS file into a table.
+   *
+   * @param stream an {@link InputStream} allowing to read the XLSX file contents.
+   * @param range the range to read.
+   * @param skip_rows skip rows from the top of the range.
+   * @param row_limit maximum number of rows to read.
+   * @param xls_format specifies whether the file is in Excel Binary Format (95-2003 format).
+   * @return a {@link Table} containing the specified data.
+   * @throws IOException when the input stream cannot be read.
+   */
   public static Table readRange(
       InputStream stream, Range range, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException {

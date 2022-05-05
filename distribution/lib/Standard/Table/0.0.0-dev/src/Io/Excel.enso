@@ -66,10 +66,18 @@ type Excel_Range
     to_text = "Excel_Range " + this.address
 
     ## Validates if a column index (1-based) is within the valid range for Excel.
+
+       Arguments:
+       - column: 1-based index to check
+       - limit: maximum valid index, defaults to Excel 2007+ limit of 16,384
     is_valid_column : Integer -> Integer -> Boolean
     is_valid_column column (limit=16384) = (column > 0) && (column <= limit)
 
     ## Validates if a row index (1-based) is within the valid range for Excel.
+
+       Arguments:
+       - row: 1-based index to check
+       - limit: maximum valid index, defaults to Excel 2007+ limit of 1,048,576
     is_valid_row : Integer -> Integer -> Boolean
     is_valid_row row (limit=1048576) = (row > 0) && (row <= limit)
 
@@ -89,10 +97,11 @@ type Excel_Range
     for_cell sheet column row =
         col_index = Excel_Range.column_index column
 
-        col_valid = here.validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".") _
-        all_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".") (col_valid _)
+        col_valid = here.validate (Excel_Range.is_valid_column col_index) ("Invalid column for Excel: " + column.to_text + ".")
+        row_valid = here.validate (Excel_Range.is_valid_row row) ("Invalid row for Excel: " + row.to_text + ".")
 
-        all_valid <| Excel_Range (Java_Range.new sheet col_index row col_index row)
+        col_valid <| row_valid <|
+            Excel_Range (Java_Range.new sheet col_index row col_index row)
 
     ## Create a Range for a range of cells.
     for_range : Text -> (Text|Integer) -> Integer -> (Text|Integer) -> Integer -> Excel_Range
@@ -100,12 +109,13 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".") _
-        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".") (left_valid _)
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".") (right_valid _)
-        all_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".") (top_valid _)
+        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
+        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
-        all_valid <| Excel_Range (Java_Range.new sheet left_index top right_index bottom)
+        left_valid <| right_valid <| top_valid <| bottom_valid <|
+            Excel_Range (Java_Range.new sheet left_index top right_index bottom)
 
     ## Create an Excel_Range for a set of columns.
     for_columns : Text -> (Text|Integer) -> (Text|Integer) -> Excel_Range
@@ -113,18 +123,20 @@ type Excel_Range
         left_index = Excel_Range.column_index left
         right_index = Excel_Range.column_index right
 
-        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".") _
-        all_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".") (left_valid _)
+        left_valid = here.validate (Excel_Range.is_valid_column left_index) ("Invalid left column for Excel: " + left.to_text + ".")
+        right_valid = here.validate (Excel_Range.is_valid_column right_index) ("Invalid right column for Excel: " + right.to_text + ".")
 
-        all_valid <| Excel_Range (Java_Range.new sheet left_index 0 right_index 0)
+        left_valid <| right_valid <|
+            Excel_Range (Java_Range.new sheet left_index 0 right_index 0)
 
     ## Create an Excel_Range for a set of rows.
     for_rows : Text -> Integer -> Integer -> Excel_Range
     for_rows sheet top (bottom=top) =
-        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".") _
-        all_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".") (top_valid _)
+        top_valid = here.validate (Excel_Range.is_valid_row top) ("Invalid top row for Excel: " + top.to_text + ".")
+        bottom_valid = here.validate (Excel_Range.is_valid_row bottom) ("Invalid bottom row for Excel: " + bottom.to_text + ".")
 
-        all_valid <| Excel_Range (Java_Range.new sheet 0 top 0 bottom)
+        top_valid <| bottom_valid <|
+            Excel_Range (Java_Range.new sheet 0 top 0 bottom)
 
 
 ## PRIVATE
@@ -132,6 +144,7 @@ type Excel_Range
 validate : Boolean -> Text -> Any
 validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
+
 
 read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section _ xls_format=False =
