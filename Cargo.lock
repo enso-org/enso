@@ -1738,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#46329808574255b160cb7e67e843c2e0b0c989a3"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#304da0554e80ade91cb6eb64b918a0fc072509d1"
 dependencies = [
  "anyhow",
  "argh",
@@ -3654,7 +3654,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#46329808574255b160cb7e67e843c2e0b0c989a3"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#304da0554e80ade91cb6eb64b918a0fc072509d1"
 dependencies = [
  "anyhow",
  "argh",

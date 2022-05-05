@@ -135,7 +135,7 @@ jobs:
       - run: run ide build --wasm-source current-ci-run
         shell: cmd
         if: runner.os == 'Windows'
-      - run: bash run.sh ide build --wasm-source
+      - run: bash run.sh ide build --wasm-source current-ci-run
         if: runner.os != 'Windows'
 #  info:
 #    name: Build Info
