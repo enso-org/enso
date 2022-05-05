@@ -13,7 +13,7 @@ name: GUI CI
   workflow_dispatch: {}
 jobs:
   build:
-    name: Engine
+    name: Build IDE
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -30,7 +30,7 @@ jobs:
       - uses: ./actions/setup-build
       - run: bash run.sh ide build
   lint:
-    name: Engine
+    name: Lint
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -132,7 +132,11 @@ jobs:
         with:
           clean: false
       - uses: ./actions/setup-build
+      - run: run ide build --wasm-source
+        shell: cmd
+        if: runner.os == 'Windows'
       - run: bash run.sh ide build --wasm-source
+        if: runner.os != 'Windows'
 #  info:
 #    name: Build Info
 #    runs-on: ${{ matrix.runner }}
