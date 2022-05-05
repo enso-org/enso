@@ -937,6 +937,105 @@ object IR {
       }
       object Definition {
 
+        /** The definition of a union type and its members.
+          *
+          * NB: this should probably be removed once we propagate the union
+          * types logic through the runtime and implement statics – the whole
+          * notion of desugaring complex type definitions becomes obsolete then.
+          *
+          * @param name the name of the union
+          * @param members the members of this union
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class UnionType(
+          name: IR.Name,
+          members: List[IR.Name],
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Definition
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          def copy(
+            name: IR.Name                        = name,
+            members: List[IR.Name]               = members,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): UnionType = {
+            val res = UnionType(name, members, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          /** @inheritdoc */
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
+          ): UnionType =
+            copy(
+              name = name.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
+              members = members.map(
+                _.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                )
+              ),
+              location = if (keepLocations) location else None,
+              passData =
+                if (keepMetadata) passData.duplicate else MetadataStorage(),
+              diagnostics =
+                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+              id = if (keepIdentifiers) id else randomId
+            )
+
+          /** @inheritdoc */
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): UnionType =
+            copy(location = location)
+
+          /** @inheritdoc */
+          override def mapExpressions(fn: Expression => Expression): UnionType =
+            this
+
+          /** @inheritdoc */
+          override def toString: String =
+            s"""
+               |IR.Module.Scope.Definition.UnionType(
+               |name = $name,
+               |members = $members,
+               |location = $location,
+               |passData = ${this.showPassData},
+               |diagnostics = $diagnostics,
+               |id = $id
+               |)
+               |""".toSingleLine
+
+          /** @inheritdoc */
+          override def children: List[IR] = name :: members
+
+          /** @inheritdoc */
+          override def showCode(indent: Int): String = {
+            val fields = members.map(_.showCode(indent)).mkString(" | ")
+
+            s"type ${name.showCode(indent)} = $fields"
+          }
+        }
+
         /** The definition of an atom constructor and its associated arguments.
           *
           * @param name the name of the atom
