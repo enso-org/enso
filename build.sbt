@@ -1802,15 +1802,33 @@ buildStdLibImage := {
   }.value
 }
 
+lazy val buildStdLibTest = taskKey[Unit]("Build only the standard library for Test")
+buildStdLibImage := {
+  Def.taskDyn {
+    val root: File         = engineDistributionRoot.value
+    if ((root / "manifest.yaml").exists) {
+      val log: sbt.Logger          = streams.value.log
+      val cacheFactory = streams.value.cacheStoreFactory
+      buildStdLibPackage("Test", root, cacheFactory, log)
+    } else buildEngineDistribution
+  }.value
+}
+
 def buildStdLibPackage(name: String, root: File, cacheFactory: sbt.util.CacheStoreFactory, log: sbt.Logger) = Def.task {
   log.info(s"Building standard library package for '$name'")
-  val version = "0.0.0-dev"
+  val version = defaultDevEnsoVersion
   val prefix = "Standard"
   val targetPkgRoot = root / "lib" / prefix / name / version
   val sourceDir = file(s"distribution/lib/$prefix/$name/$version")
   if (!sourceDir.exists) {
     throw new RuntimeException("Invalid standard library package " + name)
   }
+  LibraryManifestGenerator.generateManifests(
+    List(BundledLibrary(s"$prefix.$name", version)),
+    file("distribution"),
+    log,
+    cacheFactory
+  )
   val result = DistributionPackage.copyDirectoryIncremental(
     source      = file(s"distribution/lib/$prefix/$name/$version"),
     destination = targetPkgRoot,
