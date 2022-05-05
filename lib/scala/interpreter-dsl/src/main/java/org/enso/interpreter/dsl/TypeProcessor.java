@@ -1,7 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import com.google.auto.service.AutoService;
-
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
@@ -13,10 +11,11 @@ import java.io.Writer;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
+import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
-@AutoService(Processor.class)
+@ServiceProvider(service = Processor.class)
 public class TypeProcessor extends BuiltinsMetadataProcessor {
   private final Map<Filer, Map<String, BuiltinTypeConstr>> builtinTypes = new HashMap<>();
 

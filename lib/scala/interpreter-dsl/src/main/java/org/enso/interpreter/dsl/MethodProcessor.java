@@ -1,6 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import com.google.auto.service.AutoService;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 
 import javax.annotation.processing.*;
@@ -16,6 +15,7 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
  * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
-@AutoService(Processor.class)
+@ServiceProvider(service = Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor {
 
   private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();

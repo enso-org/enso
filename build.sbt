@@ -3,13 +3,11 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
+import java.nio.file.Paths
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -954,7 +952,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
-      "com.google.auto.service" % "auto-service"  % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+      "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
     )
   )
 
@@ -1131,6 +1129,8 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
+    Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
@@ -1151,7 +1151,11 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
+      // This dependency is needed only so that developers don't download Frgaal manually.
+      // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+      // accessible from the non-meta build definition.
+      FrgaalJavaCompiler.frgaal
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
