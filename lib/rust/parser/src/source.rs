@@ -47,3 +47,12 @@ impl<'s, T> HasRepr<'s> for With<'s, &location::With<T>> {
         self.source_slice(&self.source)
     }
 }
+
+
+impl<'s, T> Debug for With<'s, &NonEmptyVec<T>>
+where for<'t> With<'s, &'t T>: Debug
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter().map(|t| self.with_data(t))).finish()
+    }
+}

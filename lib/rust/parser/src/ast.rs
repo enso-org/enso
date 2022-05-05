@@ -1,10 +1,16 @@
 use crate::prelude::*;
 
-use crate::lexer;
 use crate::location;
 use crate::source;
-use lexer::Token;
+use crate::token;
+use crate::token::Token;
 use location::Span;
+
+
+
+// ===========
+// === Ast ===
+// ===========
 
 /// The Abstract Syntax Tree of the language.
 ///
@@ -81,7 +87,7 @@ define_ast_data_enum! {
     },
     /// A simple identifier, like `foo` or `bar`.
     Ident {
-        token: lexer::Ident,
+        token: token::Ident,
     },
     /// A simple application, like `print "hello"`.
     App {
@@ -170,18 +176,18 @@ impl Ast {
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
-pub type OperatorOrError = Result<location::With<lexer::Operator>, MultipleOperatorError>;
+pub type OperatorOrError = Result<location::With<token::Operator>, MultipleOperatorError>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError {
-    pub operators: NonEmptyVec<location::With<lexer::Operator>>,
+    pub operators: NonEmptyVec<location::With<token::Operator>>,
 }
 
 impl MultipleOperatorError {
     /// Constructor.
-    pub fn new(operators: NonEmptyVec<location::With<lexer::Operator>>) -> Self {
+    pub fn new(operators: NonEmptyVec<location::With<token::Operator>>) -> Self {
         Self { operators }
     }
 }
@@ -455,15 +461,15 @@ macro_rules! define_visitor_internal {
         // FIXME: this should be defined for all tokens
         impl<'a> $visitable<'a> for &str {}
         impl<'a> $visitable<'a> for str {}
-        impl<'a> $visitable<'a> for lexer::Ident {}
-        impl<'a> $visitable<'a> for lexer::Operator {}
-        impl<'a> $visitable<'a> for lexer::Kind {}
+        impl<'a> $visitable<'a> for token::Ident {}
+        impl<'a> $visitable<'a> for token::Operator {}
+        impl<'a> $visitable<'a> for token::Kind {}
 
         impl<'a> $visitable_mut<'a> for &str {}
         impl<'a> $visitable_mut<'a> for str {}
-        impl<'a> $visitable_mut<'a> for lexer::Ident {}
-        impl<'a> $visitable_mut<'a> for lexer::Operator {}
-        impl<'a> $visitable_mut<'a> for lexer::Kind {}
+        impl<'a> $visitable_mut<'a> for token::Ident {}
+        impl<'a> $visitable_mut<'a> for token::Operator {}
+        impl<'a> $visitable_mut<'a> for token::Kind {}
     };
 }
 
@@ -587,21 +593,27 @@ impl<T, F: Fn(&mut Span) -> T> SpanVisitorMut for FnVisitor<F> {
 
 
 impl Ast {
+    /// Map the provided function over each [`Ast`] node. The function results will be discarded.
     pub fn map<T>(&self, f: impl Fn(&Ast) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit(&mut visitor);
     }
 
+    /// Map the provided function over each [`Ast`] node. The function results will be discarded.
     pub fn map_mut<T>(&mut self, f: impl Fn(&mut Ast) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_mut(&mut visitor);
     }
 
+    /// Map the provided function over each [`Span`] element. The function results will be
+    /// discarded.
     pub fn map_span<T>(&self, f: impl Fn(&Span) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_span(&mut visitor);
     }
 
+    /// Map the provided function over each [`Span`] element. The function results will be
+    /// discarded.
     pub fn map_span_mut<T>(&mut self, f: impl Fn(&mut Span) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_span_mut(&mut visitor);
@@ -616,15 +628,5 @@ impl Ast {
     pub fn with_removed_span_info(mut self) -> Self {
         self.remove_span_info();
         self
-    }
-}
-
-
-
-impl<'s, T> Debug for source::With<'s, &NonEmptyVec<T>>
-where for<'t> source::With<'s, &'t T>: Debug
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.iter().map(|t| self.with_data(t))).finish()
     }
 }

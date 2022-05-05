@@ -2,6 +2,8 @@ use crate::location;
 use crate::prelude::*;
 use crate::source;
 use crate::source::traits::*;
+use crate::token;
+use crate::token::Token;
 use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
@@ -73,8 +75,6 @@ impl<T: Debug> Debug for BumpVec<T> {
 // =============
 // === Token ===
 // =============
-
-pub type Token = location::With<Kind>;
 
 
 
@@ -428,124 +428,6 @@ impl<'s> Lexer<'s> {
 
 
 
-// ============
-// === Kind ===
-// ============
-
-macro_rules! tagged_enum {
-    ($name:ident {
-        $($variant:ident $({$($arg:ident : $arg_tp:ty),* $(,)?})? ),* $(,)?
-    }) => {paste! {
-        #[derive(Clone, Copy, PartialEq, Eq)]
-        pub enum $name {
-            $($variant($variant)),*
-        }
-
-        $(
-            #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-            pub struct $variant {
-                $($($arg : $arg_tp),*)?
-            }
-
-            impl From<$variant> for $name {
-                #[inline(always)]
-                fn from(t: $variant) -> Self {
-                    Self::$variant(t)
-                }
-            }
-
-            impl PartialEq<$variant> for &$variant {
-                #[inline(always)]
-                fn eq(&self, other: &$variant) -> bool {
-                    $variant::eq(*self, other)
-                }
-            }
-
-            impl<'s> Debug for source::With<'s, &$variant> {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    Debug::fmt(&self.data, f)
-                }
-            }
-        )*
-
-        impl $name {
-            /// Variant of this element.
-            pub fn variant(&self) -> [<$name Variant>] {
-                self.into()
-            }
-
-            /// Check whether this element is the given variant.
-            pub fn is(&self, variant:[<$name Variant>]) -> bool {
-                self.variant() == variant
-            }
-
-            $(
-                /// Constructor.
-                #[inline(always)]
-                pub fn [<$variant:snake:lower>]($($($arg : $arg_tp),*)?) -> Self {
-                    Self::$variant($variant { $($($arg),*)? })
-                }
-
-                /// Check whether this element is the given variant.
-                #[inline(always)]
-                pub fn [<is_ $variant:snake:lower>](&self) -> bool {
-                    self.is([<$name Variant>]::$variant)
-                }
-            )*
-        }
-
-        impl Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
-                    $(Self::$variant(t) => Debug::fmt(&t,f)),*
-                }
-            }
-        }
-
-        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-        pub enum [<$name Variant>] {
-            $($variant),*
-        }
-
-        impl From<&$name> for [<$name Variant>] {
-            fn from(t:&$name) -> Self {
-                match t {
-                    $(
-                        $name::$variant(_) => Self::$variant
-                    ),*
-                }
-            }
-        }
-    }};
-}
-
-tagged_enum!(Kind {
-    Newline,
-    Symbol,
-    BlockStart,
-    BlockEnd,
-    Wildcard { lift_level: usize },
-    Ident { is_free: bool, lift_level: usize },
-    Operator,
-    Modifier,
-    Comment,
-    DocComment,
-    Number,
-    TextStart,
-    TextEnd,
-    TextSection,
-    TextEscape,
-});
-
-
-impl<'s> Debug for source::With<'s, &Kind> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.data, f)
-    }
-}
-
-
-
 // =============
 // === Ident ===
 // =============
@@ -565,15 +447,15 @@ fn is_ident_char(t: char) -> bool {
     !is_ident_split_char(t)
 }
 
-impl Kind {
+impl token::Kind {
     pub fn parse_ident(repr: &str) -> Self {
         let starts_with_underscore = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         if starts_with_underscore && repr.len() == 1 + lift_level {
-            Kind::wildcard(lift_level)
+            token::Kind::wildcard(lift_level)
         } else {
             let is_free = starts_with_underscore;
-            Kind::ident(is_free, lift_level)
+            token::Kind::ident(is_free, lift_level)
         }
     }
 }
@@ -582,7 +464,7 @@ impl<'s> Lexer<'s> {
     fn ident(&mut self) {
         if let Some(tok) = self.token(|this| this.take_while_1(is_ident_char)) {
             let repr = self.repr(tok);
-            let tok = tok.with_elem(Kind::parse_ident(repr));
+            let tok = tok.with_elem(token::Kind::parse_ident(repr));
             self.submit_token(tok);
         }
     }
@@ -590,7 +472,7 @@ impl<'s> Lexer<'s> {
 
 pub struct IdentError {}
 
-impl Validator for Ident {
+impl Validator for token::Ident {
     type Output = IdentError;
     fn validate(self, _repr: &str) -> Vec<Self::Output> {
         vec![] // TODO
@@ -671,12 +553,13 @@ impl<'s> Lexer<'s> {
             let repr = self.repr(tok);
             if repr == "+-" {
                 let (left, right) = tok.split_at(Bytes::from(1));
-                self.submit_token(left.with_elem(Kind::operator()));
-                self.submit_token(right.with_elem(Kind::operator()));
+                self.submit_token(left.with_elem(token::Kind::operator()));
+                self.submit_token(right.with_elem(token::Kind::operator()));
             } else {
                 let only_eq = repr.chars().all(|t| t == '=');
                 let is_modifier = repr.ends_with('=') && !only_eq;
-                let kind = if is_modifier { Kind::modifier() } else { Kind::operator() };
+                let kind =
+                    if is_modifier { token::Kind::modifier() } else { token::Kind::operator() };
                 let token = tok.with_elem(kind);
                 self.submit_token(token);
             }
@@ -692,7 +575,7 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     fn symbol(&mut self) {
         if let Some(tok) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(tok.with_elem(Kind::symbol()));
+            self.submit_token(tok.with_elem(token::Kind::symbol()));
         }
     }
 }
@@ -711,7 +594,7 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(tok) = tok {
-            self.submit_token(tok.with_elem(Kind::number()));
+            self.submit_token(tok.with_elem(token::Kind::number()));
         }
     }
 }
@@ -730,7 +613,7 @@ impl<'s> Lexer<'s> {
     fn text(&mut self) {
         let tok = self.token(|this| this.take_1('"'));
         if let Some(tok) = tok {
-            self.submit_token(tok.with_elem(Kind::text_start()));
+            self.submit_token(tok.with_elem(token::Kind::text_start()));
             let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if line_empty {
                 todo!()
@@ -742,7 +625,7 @@ impl<'s> Lexer<'s> {
                     let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
-                        self.submit_token(tok.with_elem(Kind::text_section()));
+                        self.submit_token(tok.with_elem(token::Kind::text_section()));
                     }
 
                     let escape = self.token(|this| {
@@ -752,12 +635,12 @@ impl<'s> Lexer<'s> {
                     });
                     if let Some(tok) = escape {
                         parsed_element = true;
-                        self.submit_token(tok.with_elem(Kind::text_escape()));
+                        self.submit_token(tok.with_elem(token::Kind::text_escape()));
                     }
 
                     let end = self.token(|this| this.take_1('"'));
                     if let Some(tok) = end {
-                        self.submit_token(tok.with_elem(Kind::text_end()));
+                        self.submit_token(tok.with_elem(token::Kind::text_end()));
                         break;
                     }
 
@@ -777,7 +660,7 @@ impl<'s> Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    fn submit_line_as(&mut self, kind: Kind) {
+    fn submit_line_as(&mut self, kind: token::Kind) {
         let tok = self.token(|this| this.take_line());
         if let Some(tok) = tok {
             self.submit_token(tok.with_elem(kind));
@@ -787,11 +670,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(Kind::comment());
+                self.submit_line_as(token::Kind::comment());
                 let initial_ident = self.current_block_indent;
                 let check_ident = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.try_running(|this| this.newline()) && check_ident(self) {
-                    self.submit_line_as(Kind::comment());
+                    self.submit_line_as(token::Kind::comment());
                 }
             }
         }
@@ -831,11 +714,11 @@ impl<'s> Lexer<'s> {
         // elem:                T,
         if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
-            self.submit_token(tok.with_elem(Kind::newline()));
+            self.submit_token(tok.with_elem(token::Kind::newline()));
             let next_line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if !next_line_empty {
                 if block_indent > self.current_block_indent {
-                    let block_start = self.marker_token(Kind::block_start());
+                    let block_start = self.marker_token(token::Kind::block_start());
                     self.submit_token(block_start);
                     self.push_block_indent(block_indent);
                 } else {
@@ -850,7 +733,7 @@ impl<'s> Lexer<'s> {
                             break;
                         } else {
                             let block_end =
-                                Token::new_no_offset_phantom(self.offset, Kind::block_end());
+                                Token::new_no_offset_phantom(self.offset, token::Kind::block_end());
                             self.submit_token(block_end);
                         }
                     }
@@ -901,7 +784,7 @@ impl<'s> Lexer<'s> {
 
 impl Token {
     pub fn symbol(repr: &str) -> Self {
-        location::With::test_from_repr(repr, Kind::symbol())
+        location::With::test_from_repr(repr, token::Kind::symbol())
     }
 
     // TODO: Tests only - should be refactored
@@ -915,7 +798,7 @@ impl Token {
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: Kind::ident(is_free, lift_level) }
+        Token { span, elem: token::Kind::ident(is_free, lift_level) }
     }
 }
 
@@ -976,7 +859,7 @@ mod tests {
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: Kind::ident(is_free, lift_level) }
+        Token { span, elem: token::Kind::ident(is_free, lift_level) }
     }
 
     fn wildcard(left_offset: usize, repr: &str) -> Token {
@@ -987,7 +870,7 @@ mod tests {
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: Kind::wildcard(lift_level) }
+        Token { span, elem: token::Kind::wildcard(lift_level) }
     }
 
     fn operator(left_offset: usize, repr: &str) -> Token {
@@ -997,7 +880,7 @@ mod tests {
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: Kind::operator() }
+        Token { span, elem: token::Kind::operator() }
     }
 
     fn newline(left_offset: usize, repr: &str) -> Token {
@@ -1007,7 +890,7 @@ mod tests {
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: Kind::newline() }
+        Token { span, elem: token::Kind::newline() }
     }
 
     fn block_start(left_offset: usize) -> Token {
@@ -1018,7 +901,7 @@ mod tests {
             len:                 Bytes::from(0),
         };
 
-        Token { span, elem: Kind::block_start() }
+        Token { span, elem: token::Kind::block_start() }
     }
 
     #[test]

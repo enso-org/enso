@@ -14,11 +14,14 @@ pub mod lexer;
 pub mod location;
 pub mod macros;
 pub mod source;
+pub mod token;
+pub mod token_or_ast;
 
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
-use lexer::Token;
 use macros::Pattern;
+use token::Token;
+use token_or_ast::TokenOrAst;
 
 pub mod prelude {
     pub use enso_prelude::*;
@@ -38,58 +41,6 @@ use ast::Ast;
 use lexer::Lexer;
 use location::Span;
 
-
-#[derive(Clone, Debug)]
-pub enum TokenOrAst {
-    Token(Token),
-    Ast(Ast),
-}
-
-impl TokenOrAst {
-    fn is_variant(&self, variant: lexer::KindVariant) -> bool {
-        match self {
-            TokenOrAst::Token(token) => token.is(variant),
-            _ => false,
-        }
-    }
-
-    fn is_operator(&self) -> bool {
-        self.is_variant(lexer::KindVariant::Operator)
-    }
-
-    fn left_visible_offset(&self) -> usize {
-        match self {
-            Self::Token(t) => t.span.left_visible_offset,
-            Self::Ast(t) => t.span.left_visible_offset,
-        }
-    }
-
-    fn location(&self) -> location::Span {
-        match self {
-            Self::Token(t) => t.span,
-            Self::Ast(t) => t.span,
-        }
-    }
-
-    fn trim_left(&mut self) -> location::Span {
-        match self {
-            Self::Token(t) => t.trim_left(),
-            Self::Ast(t) => t.trim_left(),
-        }
-    }
-}
-
-impl From<Token> for TokenOrAst {
-    fn from(t: Token) -> Self {
-        TokenOrAst::Token(t)
-    }
-}
-
-impl From<Ast> for TokenOrAst {
-    fn from(t: Ast) -> Self {
-        TokenOrAst::Ast(t)
-    }
-}
 
 
 #[derive(Debug)]
@@ -185,7 +136,7 @@ pub struct MacroResolver<'a> {
 impl<'a> MacroResolver<'a> {
     pub fn new_root() -> Self {
         let current_segment = MatchedSegment {
-            header: location::With::new_no_offset_phantom(Bytes::from(0), lexer::Kind::newline()),
+            header: location::With::new_no_offset_phantom(Bytes::from(0), token::Kind::newline()),
             body:   default(),
         };
         let resolved_segments = default();
@@ -458,7 +409,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<TokenOrAst>) -> Vec<TokenOrAst> 
             TokenOrAst::Token(_) => item,
             TokenOrAst::Ast(ast) => match &ast.elem {
                 ast::Data::MultiSegmentApp(data) => {
-                    if data.segments.first().header.elem.variant() != lexer::KindVariant::Symbol {
+                    if data.segments.first().header.elem.variant() != token::KindVariant::Symbol {
                         TokenOrAst::Ast(
                             ast.with_error(
                                 "This expression cannot be used in a non-spaced equation.",
@@ -511,7 +462,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        if let TokenOrAst::Token(token) = item && let lexer::Kind::Operator(opr) = token.elem {
+        if let TokenOrAst::Token(token) = item && let token::Kind::Operator(opr) = token.elem {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
@@ -601,7 +552,7 @@ where
 fn token_to_ast(elem: TokenOrAst) -> Ast {
     match elem {
         TokenOrAst::Token(token) => match token.elem {
-            lexer::Kind::Ident(ident) =>
+            token::Kind::Ident(ident) =>
                 elem.location().with_elem(ast::Data::from(ast::Ident(ident))),
             _ => panic!(),
         },
@@ -691,8 +642,8 @@ mod test {
     use super::*;
 
     pub fn ident(repr: &str) -> Ast {
-        match lexer::Kind::parse_ident(repr) {
-            lexer::Kind::Ident(ident) => location::With::new_with_len(
+        match token::Kind::parse_ident(repr) {
+            token::Kind::Ident(ident) => location::With::new_with_len(
                 Bytes::from(repr.len()),
                 ast::Data::from(ast::Ident(ident)),
             ),

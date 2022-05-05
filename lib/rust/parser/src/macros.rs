@@ -1,8 +1,8 @@
 use crate::prelude::*;
+use crate::token::Token;
+use crate::token_or_ast::TokenOrAst;
 use crate::Ast;
 use crate::Lexer;
-use crate::Token;
-use crate::TokenOrAst;
 use crate::TokenOrAstOrMacroResolver;
 use enso_data_structures::im_list;
 
