@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec = <|
+    Test.group "Statistics single value core" <|
+        Test.specify "Should be able to count valid values" <|
+            ``
+
+    Test.group "Statistics single value moment based" <|
+
+        Test.specify "text bytes" <|
+            "Lore".utf_8 . should_equal [76, 111, 114, 101]
+
+    Test.group "Statistic errors" <|
+
+main = Test.Suite.run_main here.spec

@@ -1,6 +1,10 @@
 from Standard.Base import all
+from Standard.Base.Data.Vector import Empty_Error
+
+import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.base.statistics.SingleValue
+polyglot java import org.enso.base.statistics.CountMinMax
 
 type Statistic
     ## PRIVATE
@@ -44,6 +48,18 @@ type Statistic
        - population: specifies if data is a sample or the population
     type Skew (population:Boolean=False)
 
+## PRIVATE
+   Compute Enso Based Statistics
+count_min_max : Vector -> [Any]
+count_min_max data =
+    invalid c = if c.is_nothing then True else (if c.is_a Number then c.is_nan else False)
+    min v c = Vector.incomparable_value_wrapper (if c.is_nothing then v else (if v < c then v else c))
+    max v c = Vector.incomparable_value_wrapper (if c.is_nothing then v else (if v > c then v else c))
+
+    0.up_to data.length . fold [0, Nothing, Nothing] acc->idx->
+        val = data.at idx
+        if invalid val then acc else
+            [acc.first + 1, min val acc.second, max val (acc.at 2)]
 
 ## Compute a single statistic on a vector like object.
 
@@ -62,10 +78,23 @@ compute data statistic=Count =
    - statistics: Set of statistics to calculate.
 compute_bulk : Vector -> [Statistic] -> [Any]
 compute_bulk data statistics=[Count, Sum] =
-    java_stats = statistics.map .to_java . to_array
-    stats_array = SingleValue.compute data.to_array java_stats
-    Vector.Vector stats_array
 
+    count_min_max = statistics.any s->((s.is_a Count) || (s.is_a Minimum) || (s.is_a Maximum))
+
+    java_stats = statistics.map .to_java
+    single_value = java_stats.any s->s.is_nothing.not
+
+    empty_wrapper = if data.length == 0 then Error.throw Empty_Error else _
+
+    empty_wrapper <|
+        count_min_max_values = if count_min_max then here.count_min_max data else Nothing
+        stats_array = if single_value then SingleValue.compute data.to_array java_stats.to_array else Nothing
+
+        statistics.map_with_index i->s->case s of
+            Count -> count_min_max_values.at 0
+            Minimum -> count_min_max_values.at 1
+            Maximum -> count_min_max_values.at 2
+            _ -> stats_array.at i
 
 ## Compute a single statistic on the vector.
 
@@ -82,4 +111,4 @@ Vector.Vector.compute statistic=Count =
    - statistics: Set of statistics to calculate.
 Vector.Vector.compute_bulk : [Statistic] -> [Number]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
-    here.compute this statistics
+    here.compute_bulk this statistics
