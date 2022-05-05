@@ -3,6 +3,8 @@ from Standard.Base import all
 import Standard.Test
 from Standard.Base.Data.Ordering import Equal, Less, Greater
 
+Boolean.method = this
+
 spec =
     Test.group "Booleans" <|
         Test.specify "should allow converting Bools to Text values" <|
@@ -14,5 +16,9 @@ spec =
             False.compare_to False . should_equal Equal
             True.compare_to False . should_equal Greater
             False.compare_to True . should_equal Less
+
+        Test.specify "should allow for extending Bools in a local module" <|
+            test = 1 == 2
+            test.method . should_equal test
 
 main = Test.Suite.run_main here.spec

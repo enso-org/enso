@@ -1,6 +1,38 @@
-from Standard.Base import all
+## Utilities for working with Java polyglot objects.
+type Java
 
-import Standard.Builtins
+    ## A type for operations specific to Java polyglot objects.
+    type Java
+
+    ## Adds the provided entry to the host class path.
+
+       Arguments:
+       - path: The java classpath entry to add.
+
+       Use of the actual polyglot imports system should be preferred to use of
+       this method.
+
+       > Example
+         Adding Random to the classpath.
+
+            Java.add_to_class_path "java.util.Random"
+    add_to_class_path : Text -> Nothing
+    add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
+
+## Looks up a java symbol on the classpath by name.
+
+   Arguments:
+   - name: The name of the java symbol to look up.
+
+   Use of the actual polyglot imports system should be preferred to use of
+   this method.
+
+   > Example
+     Look up java's Random class.
+
+         Java.lookup_class "java.util.Random"
+lookup_class : Text -> Any
+lookup_class name = @Builtin_Method "Java.lookup_class"
 
 ## PRIVATE
 
@@ -9,7 +41,7 @@ import Standard.Builtins
    Arguments:
    - object: The object to check for class membership.
    - class: The java class to check for membership in.
-Builtins.Java.is_instance : Any -> Any -> Boolean
-Builtins.Java.is_instance object class =
+is_instance : Any -> Any -> Boolean
+is_instance object class =
     class_object = class.class
     class_object.isInstance object

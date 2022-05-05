@@ -950,7 +950,10 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
+    libraryDependencies ++= Seq(
+      "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
+    )
   )
 
 // ============================================================================
@@ -1130,6 +1133,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
@@ -1170,7 +1174,7 @@ lazy val runtime = (project in file("engine/runtime"))
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map("ENSO_TEST_DISABLE_IR_CACHE" -> "false"),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,

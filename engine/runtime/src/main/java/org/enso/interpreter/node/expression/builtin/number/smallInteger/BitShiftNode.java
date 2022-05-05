@@ -16,7 +16,11 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ImportStatic(BigIntegerOps.class)
-@BuiltinMethod(type = "Small_Integer", name = "bit_shift", description = "Bitwise shift.")
+@BuiltinMethod(
+    type = "Small_Integer",
+    name = "bit_shift",
+    description = "Bitwise shift.",
+    aliases = "bit_shift_l")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
   private final ConditionProfile canShiftLeftInLongProfile =

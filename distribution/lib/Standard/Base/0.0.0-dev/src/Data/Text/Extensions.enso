@@ -1,7 +1,6 @@
 ## Methods for operating on `Text` in Enso.
 
 from Standard.Base import all
-from Standard.Builtins import Text, Prim_Text_Helpers
 
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Mode
@@ -15,8 +14,6 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Base.Data.Locale
 import Standard.Base.Meta
-
-from Standard.Builtins export Text
 
 export Standard.Base.Data.Text.Matching_Mode
 export Standard.Base.Data.Text.Case

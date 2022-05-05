@@ -469,16 +469,17 @@ public class Module implements TruffleObject {
         ModuleScope scope, Object[] args, Context context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException {
       String expr = Types.extractArguments(args, String.class);
-      AtomConstructor debug = context.getBuiltins().debug();
+      Builtins builtins = context.getBuiltins();
       Function eval =
-          context
-              .getBuiltins()
-              .getScope()
-              .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
+          builtins
+              .getBuiltinFunction(
+                  builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
+              .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       Object state = context.getBuiltins().nothing().newInstance();
       return callOptimiserNode
-          .executeDispatch(eval, callerInfo, state, new Object[] {debug, Text.create(expr)})
+          .executeDispatch(
+              eval, callerInfo, state, new Object[] {builtins.debug(), Text.create(expr)})
           .getValue();
     }
 

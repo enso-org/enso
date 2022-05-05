@@ -51,6 +51,7 @@ object StubIrBuilder {
       (m.name, List(ResolvedMethod(ModuleReference.Concrete(module), m)))
     )
     val meta = BindingsMap(
+      List(),
       definedConstructors,
       polyglot,
       moduleMethods,

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Table
 
-import Standard.Base.Error.Extensions as Errors
+import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Table.Internal.Delimited_Reader

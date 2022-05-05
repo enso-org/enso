@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+// import org.enso.interpreter.runtime.ConstantsGen;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -108,35 +109,35 @@ public class Types {
    */
   public static String getName(Object value) {
     if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
-      return Constants.INTEGER;
+      return ConstantsGen.INTEGER;
     } else if (TypesGen.isDouble(value)) {
-      return Constants.DECIMAL;
+      return ConstantsGen.DECIMAL;
     } else if (TypesGen.isBoolean(value)) {
-      return Constants.BOOLEAN;
+      return ConstantsGen.BOOLEAN;
     } else if (TypesGen.isText(value)) {
-      return Constants.TEXT;
+      return ConstantsGen.TEXT;
     } else if (TypesGen.isFunction(value)) {
-      return Constants.FUNCTION;
+      return ConstantsGen.FUNCTION;
     } else if (TypesGen.isAtom(value)) {
       return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
     } else if (TypesGen.isAtomConstructor(value)) {
       return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
     } else if (TypesGen.isDataflowError(value)) {
-      return Constants.ERROR;
+      return ConstantsGen.ERROR;
     } else if (TypesGen.isUnresolvedSymbol(value) || TypesGen.isUnresolvedConversion(value)) {
       return Constants.UNRESOLVED_SYMBOL;
     } else if (TypesGen.isManagedResource(value)) {
-      return Constants.MANAGED_RESOURCE;
+      return ConstantsGen.MANAGED_RESOURCE;
     } else if (TypesGen.isArray(value)) {
-      return Constants.ARRAY;
+      return ConstantsGen.ARRAY;
     } else if (TypesGen.isModuleScope(value)) {
       return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
-      return Constants.REF;
+      return ConstantsGen.REF;
     } else if (TypesGen.isPanicException(value)) {
-      return Constants.PANIC;
+      return ConstantsGen.PANIC;
     } else if (TypesGen.isPanicSentinel(value)) {
-      return Constants.PANIC;
+      return ConstantsGen.PANIC;
     } else {
       return null;
     }
@@ -144,7 +145,7 @@ public class Types {
 
   /** Check if the given type is a panic. */
   public static boolean isPanic(String typeName) {
-    return Constants.PANIC.equals(typeName);
+    return ConstantsGen.PANIC.equals(typeName);
   }
 
   /**
@@ -206,20 +207,20 @@ public class Types {
   }
 
   private static TypeGraph buildTypeHierarchy() {
-    TypeGraph graph = TypeGraph.fromJava(Constants.ANY);
+    TypeGraph graph = TypeGraph.fromJava(ConstantsGen.ANY);
 
-    graph.insert(Constants.ARRAY, Constants.ANY);
-    graph.insert(Constants.BOOLEAN, Constants.ANY);
-    graph.insert(Constants.DECIMAL, Constants.NUMBER);
-    graph.insert(Constants.ERROR, Constants.ANY);
-    graph.insert(Constants.FUNCTION, Constants.ANY);
-    graph.insert(Constants.INTEGER, Constants.NUMBER);
-    graph.insert(Constants.MANAGED_RESOURCE, Constants.ANY);
-    graph.insert(Constants.NOTHING, Constants.ANY);
-    graph.insert(Constants.PANIC, Constants.ANY);
-    graph.insert(Constants.REF, Constants.ANY);
-    graph.insert(Constants.TEXT, Constants.ANY);
-    graph.insertWithoutParent(Constants.PANIC);
+    graph.insert(ConstantsGen.ARRAY, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.BOOLEAN, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.DECIMAL, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.ERROR, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.FUNCTION, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.INTEGER, ConstantsGen.NUMBER);
+    graph.insert(ConstantsGen.MANAGED_RESOURCE, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.NOTHING, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.PANIC, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.REF, ConstantsGen.ANY);
+    graph.insert(ConstantsGen.TEXT, ConstantsGen.ANY);
+    graph.insertWithoutParent(ConstantsGen.PANIC);
     graph.insertWithoutParent(Constants.THUNK);
     graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);
 
