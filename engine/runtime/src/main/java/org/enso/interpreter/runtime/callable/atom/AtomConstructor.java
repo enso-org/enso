@@ -111,7 +111,7 @@ public final class AtomConstructor implements TruffleObject {
       ArgumentDefinition[] args) {
 
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
-    BlockNode instantiateBlock = BlockNode.build(assignments, instantiateNode);
+    BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         ClosureRootNode.build(
             null,
