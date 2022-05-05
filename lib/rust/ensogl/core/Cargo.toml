@@ -15,7 +15,6 @@ no_unboxed_callbacks = []
 [dependencies]
 code-builder = { path = "../../code-builder" }
 enso-callback = { path = "../../callback" }
-enso_console_error_panic_hook = { path = "../../console_error_panic_hook" }
 enso-data-structures = { path = "../../data-structures" }
 enso-debug-api = { path = "../../debug-api" }
 enso-frp = { path = "../../frp" }
@@ -31,6 +30,7 @@ enso-web = { path = "../../web" }
 ensogl-text-embedded-fonts = { path = "../component/text/embedded-fonts" }
 ensogl-text-msdf-sys = { path = "../component/text/msdf-sys" }
 bit_field = { version = "0.10.0" }
+console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }
 failure = { version = "0.1.5" }
 Inflector = { version = "0.11.4" }

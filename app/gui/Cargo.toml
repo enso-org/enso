@@ -12,7 +12,6 @@ analytics = { version = "0.1.0", path = "analytics" }
 double-representation = { version = "0.1.0", path = "controller/double-representation" }
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
-enso_console_error_panic_hook = { path = "../../lib/rust/console_error_panic_hook" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
 enso-debug-api = { path = "../../lib/rust/debug-api" }
 enso-debug-scene = { path = "view/debug_scene" }
@@ -37,6 +36,7 @@ json-rpc = { path = "../../lib/rust/json-rpc" }
 parser = { path = "language/parser" }
 span-tree = { path = "language/span-tree" }
 bimap = { version = "0.4.0" }
+console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1.6" }
 flo_stream = { version = "0.4.0" }
 futures = { version = "0.3.1" }

@@ -16,6 +16,9 @@ members = [
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 
+[patch.crates-io]
+console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
+
 [profile.dev]
 opt-level = 0
 lto = false
