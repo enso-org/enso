@@ -114,6 +114,7 @@
 - [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
   `with_step` allowing to change the range step.][3408]
 - [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
+- [Implemented a basic reader for the `Delimited` file format.][3424]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -175,6 +176,7 @@
 [3390]: https://github.com/enso-org/enso/pull/3390
 [3408]: https://github.com/enso-org/enso/pull/3408
 [3415]: https://github.com/enso-org/enso/pull/3415
+[3424]: https://github.com/enso-org/enso/pull/3424
 
 #### Enso Compiler
 
@@ -187,6 +189,7 @@
 - [Converting Enso Date to java.time.LocalDate and back][3374]
 - [Functions with all-defaulted arguments now execute automatically][3414]
 - [Delay construction of Truffle nodes to speed initialization][3429]
+- [Frgaal compiler integration to allow for latest Java constructs][3421]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -200,6 +203,7 @@
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
 [3429]: https://github.com/enso-org/enso/pull/3429
+[3421]: https://github.com/enso-org/enso/pull/3421
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -48,15 +48,15 @@ mod js {
         }
     ")]
     extern "C" {
-        /// Setup perspective CSS 3D projection on DOM.
+        // Setup perspective CSS 3D projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_perspective(dom: &web::JsValue, znear: &web::JsValue);
 
-        /// Setup Camera orthographic projection on DOM.
+        // Setup Camera orthographic projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_camera_orthographic(dom: &web::JsValue, matrix_array: &web::JsValue);
 
-        /// Setup Camera perspective projection on DOM.
+        // Setup Camera perspective projection on DOM.
         #[allow(unsafe_code)]
         pub fn setup_camera_perspective(
             dom: &web::JsValue,

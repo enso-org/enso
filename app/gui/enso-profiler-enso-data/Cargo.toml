@@ -11,3 +11,4 @@ serde = { version = "1", features = ["derive"] }
 enso-profiler = { path = "../../../lib/rust/profiler"}
 enso-profiler-data = { path = "../../../lib/rust/profiler/data"}
 ensogl-core = { path = "../../../lib/rust/ensogl/core"}
+json-rpc = { path = "../../../lib/rust/json-rpc"}

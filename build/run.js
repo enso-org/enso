@@ -207,7 +207,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const releaseLimitMb = 4.06
+        const releaseLimitMb = 4.2
         let limitMb = releaseLimitMb + allowExtraMb
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
@@ -253,9 +253,10 @@ commands.start.rust = async function (argv) {
 
 commands.start.js = async function (argv) {
     await installJsDeps()
+    console.log(`Building JS target.` + argv)
     const args = []
     if (argv.backend) {
-            // The backend path is being prepended here, as appending would be incorrect.
+        // The backend path is being prepended here, as appending would be incorrect.
         // That is because `targetArgs` might include `-- …` and appended args could
         // end up being passed to the spawned backend process.
         args.push('--backend-path')

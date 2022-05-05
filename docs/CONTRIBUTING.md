@@ -606,7 +606,8 @@ manager process yourself. You can either get a project manager from one of the
 latest releases on [GitHub](https://github.com/enso-org/enso/releases), or build
 one using SBT `buildProjectManagerDistribution` command.
 
-Running development version of the IDE is possible via the `./run` script:
+Running development version of the IDE is possible via the `./run` script in the
+root of the repository:
 
 ```bash
 $ ./run start --dev --no-backend
