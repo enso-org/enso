@@ -183,13 +183,16 @@ impl component::Frp<Model> for Frp {
         }
 
 
-        // === Colors ===
+        // === Color calculations ===
 
         let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
+        let background_color_intensity = style.get_number(theme::background_color_intensity);
         frp::extend! { network
-            colors_to_blend <- all(&input.set_background_color, &input.set_fade_color);
-            header_color <- all_with(&colors_to_blend, &header_text_color_intensity, |(a,b),c|
-                color::mix(*a,*b,*c));
+            secondary_and_primary_color <- all(&input.set_fade_color, &input.set_background_color);
+            header_color <- all_with(&secondary_and_primary_color, &header_text_color_intensity,
+                |(a,b),c| color::mix(*a,*b,*c));
+            background_color <- all_with(&secondary_and_primary_color, &background_color_intensity,
+                |(a,b),c| color::mix(*a,*b,*c));
         }
 
 
@@ -207,7 +210,8 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            eval input.set_background_color((c) model.background.color.set(c.into()));
+            model.header.set_color_all <+ header_color;
+            eval background_color((c) model.background.color.set(c.into()));
         }
 
 
@@ -227,7 +231,7 @@ impl component::Frp<Model> for Frp {
         // === Entries ===
 
         frp::extend! { network
-            model.entries.set_background_color <+ input.set_background_color;
+            model.entries.set_background_color <+ background_color;
             model.entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
         }
