@@ -80,6 +80,9 @@ pub mod background {
     }
 }
 
+
+// === Header Overlay ===
+
 /// The transparent overlay over Component Group View Header, used for capturing mouse events.
 pub mod header_overlay {
     use super::*;
