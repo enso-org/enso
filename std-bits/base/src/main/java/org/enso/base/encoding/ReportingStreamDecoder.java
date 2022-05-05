@@ -19,7 +19,6 @@ public class ReportingStreamDecoder extends Reader {
     bufferedInputStream = new BufferedInputStream(stream);
     this.decoder = decoder;
     outputBuffer = CharBuffer.allocate((int) (10 * decoder.averageCharsPerByte()));
-    outputBuffer.mark();
   }
 
   private final BufferedInputStream bufferedInputStream;
@@ -54,7 +53,7 @@ public class ReportingStreamDecoder extends Reader {
 
     // If more characters are needed, we will encode some more.
     assert !outputBuffer.hasRemaining();
-    outputBuffer.reset();
+    outputBuffer.clear();
 
     // Fill-up the input buffer reading from the input.
     int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
@@ -125,7 +124,6 @@ public class ReportingStreamDecoder extends Reader {
   private void growOutputBuffer() {
     int newSize = 2 * outputBuffer.capacity() + 1;
     CharBuffer newBuffer = CharBuffer.allocate(newSize);
-    newBuffer.mark();
     outputBuffer.flip();
     newBuffer.put(outputBuffer);
     outputBuffer = newBuffer;
@@ -136,7 +134,7 @@ public class ReportingStreamDecoder extends Reader {
     bufferedInputStream.close();
   }
 
-  public List<String> getWarnings() {
+  public List<String> getReportedProblems() {
     if (encodingIssuePositions.isEmpty()) {
       return List.of();
     } else {
