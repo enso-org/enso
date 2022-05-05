@@ -22,7 +22,7 @@ pub struct NonEmptyVec<T> {
 impl<T> NonEmptyVec<T> {
     /// Construct a new non-empty vector.
     ///
-    /// The vector will not allocate more than the space required to contain `first` and `rest`.
+    /// The vector will not allocate more than the space required to contain [`first`] and [`rest`].
     ///
     /// # Examples
     ///
@@ -34,6 +34,22 @@ impl<T> NonEmptyVec<T> {
     pub fn new(first: T, rest: Vec<T>) -> NonEmptyVec<T> {
         let mut elems = vec![first];
         elems.extend(rest);
+        NonEmptyVec { elems }
+    }
+
+    /// Construct a new non-empty vector.
+    ///
+    /// The vector will not allocate more than the space required to contain [`elems`] and [`last`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![allow(unused_mut)]
+    /// use enso_prelude::NonEmptyVec;
+    /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new_with_last(vec![], 0);
+    /// ```
+    pub fn new_with_last(mut elems: Vec<T>, last: T) -> NonEmptyVec<T> {
+        elems.push(last);
         NonEmptyVec { elems }
     }
 
@@ -300,6 +316,10 @@ impl<T> NonEmptyVec<T> {
     {
         self.elems.splice(range, replace_with)
     }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.elems
+    }
 }
 
 
@@ -315,5 +335,11 @@ impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
     type Error = ();
     fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
         (elems.len() > 0).as_result_from(|| NonEmptyVec { elems }, || ())
+    }
+}
+
+impl<T> From<NonEmptyVec<T>> for Vec<T> {
+    fn from(v: NonEmptyVec<T>) -> Self {
+        v.elems
     }
 }

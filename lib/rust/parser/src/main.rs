@@ -200,7 +200,7 @@ impl<'a> MacroResolver<'a> {
                 if v.len() != 1 {
                     panic!()
                 }
-                let t = v.pop().unwrap().1;
+                let t = v.into_vec().pop().unwrap().1;
                 resolve_operator_precedence(lexer, t)
             }),
         }));
@@ -320,10 +320,9 @@ impl<'a> Resolver<'a> {
         m: MacroResolver<'a>,
         prefix_tokens: Option<Vec<TokenOrAst>>,
     ) -> Ast {
-        let mut segments = m.resolved_segments;
-        segments.push(m.current_segment);
+        let mut segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
         let mut sss: Vec<(Token, Vec<TokenOrAst>)> = vec![];
-        for segment in segments {
+        for segment in segments.into_vec() {
             let mut ss: Vec<TokenOrAst> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
@@ -348,6 +347,7 @@ impl<'a> Resolver<'a> {
             sss.push((segment.header, ss));
         }
 
+        let sss = NonEmptyVec::try_from(sss).unwrap(); // FIXME
         if let Some(macro_def) = m.matched_macro_def {
             (macro_def.body)(lexer, prefix_tokens, sss)
         } else {
@@ -617,9 +617,11 @@ fn token_to_ast(elem: TokenOrAst) -> Ast {
 fn matched_segments_into_multi_segment_app<'s>(
     lexer: &Lexer<'s>,
     mut prefix_tokens: Option<Vec<TokenOrAst>>,
-    matched_segments: Vec<(Token, Vec<TokenOrAst>)>,
+    matched_segments: NonEmptyVec<(Token, Vec<TokenOrAst>)>,
 ) -> Ast {
+    // FIXME: remove into_vec
     let segments = matched_segments
+        .into_vec()
         .into_iter()
         .map(|segment| {
             let header = segment.0;

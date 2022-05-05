@@ -87,7 +87,11 @@ pub struct Definition<'a> {
     pub segments:           im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derivative(Debug = "ignore")]
     pub body: Rc<
-        dyn for<'b> Fn(&Lexer<'b>, Option<Vec<TokenOrAst>>, Vec<(Token, Vec<TokenOrAst>)>) -> Ast,
+        dyn for<'b> Fn(
+            &Lexer<'b>,
+            Option<Vec<TokenOrAst>>,
+            NonEmptyVec<(Token, Vec<TokenOrAst>)>,
+        ) -> Ast,
     >,
 }
 
