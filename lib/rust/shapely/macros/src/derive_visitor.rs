@@ -174,37 +174,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
     };
-    println!("{:#}", output);
+    // println!("{:#}", output);
 
     output.into()
 }
-
-
-
-// pub fn bounds_for_variant(t_param: &Ident, variant: &Variant) -> TokenStream {
-//     let fields = &variant.fields;
-//     let variant_ident = &variant.ident;
-//     match fields {
-//         Fields::Unit => {
-//             quote!()
-//         }
-//         // Fields::Named(fields) => {
-//         //     let names = field_names(fields);
-//         //     // Enum::Var {field0} => Enum::Var {field0 : field0.clone_ref()}
-//         //     quote!(
-//         //         #data_ident::#variant_ident { #(#names),* } =>
-//         //             #data_ident::#variant_ident {
-//         //                 #( #names : #names.clone_ref() ),*
-//         //             }
-//         //     )
-//         // }
-//         Fields::Unnamed(fields) => {
-//             let bounds = fields.unnamed.iter().map(|t| {
-//                 let ty = &t.ty;
-//                 quote!(#t_param:Visitor<#ty>,)
-//             });
-//             quote!(#( #bounds )*)
-//         }
-//         _ => todo!(),
-//     }
-// }

@@ -1,10 +1,7 @@
 #![feature(allocator_api)]
-#![feature(slice_index_methods)]
 #![feature(test)]
-#![feature(generic_associated_types)]
 #![recursion_limit = "256"]
 #![feature(specialization)]
-#![allow(incomplete_features)]
 #![feature(let_chains)]
 
 use crate::prelude::*;

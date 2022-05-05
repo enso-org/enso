@@ -28,6 +28,7 @@ mod derive_iterator;
 mod derive_no_clone;
 mod derive_visitor;
 mod overlappable;
+mod tagged_enum;
 
 mod prelude {
     pub use enso_macro_utils::repr;
@@ -143,4 +144,12 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 #[proc_macro]
 pub fn ast_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     ast_builder::run(input)
+}
+
+#[proc_macro_attribute]
+pub fn tagged_enum(
+    _attr: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    tagged_enum::run(input)
 }

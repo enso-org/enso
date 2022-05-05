@@ -458,23 +458,37 @@ macro_rules! define_visitor_internal {
             }
         }
 
-        // FIXME: this should be defined for all tokens
         impl<'a> $visitable<'a> for &str {}
         impl<'a> $visitable<'a> for str {}
-        impl<'a> $visitable<'a> for token::Ident {}
-        impl<'a> $visitable<'a> for token::Operator {}
-        impl<'a> $visitable<'a> for token::Kind {}
 
         impl<'a> $visitable_mut<'a> for &str {}
         impl<'a> $visitable_mut<'a> for str {}
-        impl<'a> $visitable_mut<'a> for token::Ident {}
-        impl<'a> $visitable_mut<'a> for token::Operator {}
-        impl<'a> $visitable_mut<'a> for token::Kind {}
+    };
+}
+
+macro_rules! define_visitor_for_tokens {
+    (
+        $(#$kind_meta:tt)*
+        pub enum $kind:ident {
+            $( $variant:ident $({$($args:tt)*})? ),* $(,)?
+        }
+    ) => {
+        impl<'a> AstVisitable<'a> for token::$kind {}
+        impl<'a> AstVisitableMut<'a> for token::$kind {}
+        impl<'a> SpanVisitable<'a> for token::$kind {}
+        impl<'a> SpanVisitableMut<'a> for token::$kind {}
+        $(
+            impl<'a> AstVisitable<'a> for token::$variant {}
+            impl<'a> AstVisitableMut<'a> for token::$variant {}
+            impl<'a> SpanVisitable<'a> for token::$variant {}
+            impl<'a> SpanVisitableMut<'a> for token::$variant {}
+        )*
     };
 }
 
 define_visitor!(Ast, visit, visit_mut);
 define_visitor!(Span, visit_span, visit_span_mut);
+crate::with_token_definition!(define_visitor_for_tokens);
 
 
 // === Special cases ===
