@@ -188,6 +188,7 @@
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
 - [Functions with all-defaulted arguments now execute automatically][3414]
+- [Frgaal compiler integration to allow for latest Java constructs][3421]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -200,6 +201,7 @@
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
+[3421]: https://github.com/enso-org/enso/pull/3421
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
