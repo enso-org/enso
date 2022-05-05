@@ -1738,7 +1738,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#111f2254af798d0e9f93b208d9c0b06b87f11b0c"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#c9a538a517062bb953b9b829d826b163d24bd0fa"
 dependencies = [
  "anyhow",
  "argh",
@@ -3654,7 +3654,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#111f2254af798d0e9f93b208d9c0b06b87f11b0c"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#c9a538a517062bb953b9b829d826b163d24bd0fa"
 dependencies = [
  "anyhow",
  "argh",
@@ -4789,9 +4789,9 @@ dependencies = [
 
 [[package]]
 name = "num_threads"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aba1801fb138d8e85e11d0fc70baf4fe1cdfffda7c6cd34a854905df588e5ed0"
+checksum = "2819ce041d2ee131036f4fc9d6ae7ae125a3a40e97ba64d04fe799ad9dabbb44"
 dependencies = [
  "libc",
 ]
