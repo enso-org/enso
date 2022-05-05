@@ -122,6 +122,7 @@ ensogl_core::define_endpoints_2! {
         /// described in
         /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
         accept_suggestion(),
+        select_entry(ColumnId, EntryId),
         set_header_text(String),
         set_entries(AnyModelProvider<Entry>),
         set_background_color(Rgba),
@@ -143,6 +144,13 @@ impl component::Frp<Model> for Frp {
         let input = &api.input;
         let out = &api.output;
         frp::extend! { network
+            eval input.select_entry([model]((column, entry)) {
+                model.columns.get(*column).map(|col| {
+                    let real_entry_id = col.reversed_entry_id(*entry);
+                    col.select_entry(real_entry_id);
+                });
+            });
+
             eval input.set_background_color((c) model.background.color.set(c.into()));
 
             // Selected entry
@@ -181,9 +189,9 @@ impl component::Frp<Model> for Frp {
             }
 
             frp::extend! { network
-                column_is_active <- column.selected_entry.map(|e| e.is_some());
-                selection_position <- column.selection_position_target.gate(&column_is_active);
-                out.selection_position_target <+ selection_position.map(f!((pos) column.selection_position(*pos)));
+                on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
+                selection_pos <- column.selection_position_target.sample(&on_column_selected);
+                out.selection_position_target <+ selection_pos.map(f!((pos) column.selection_position(*pos)));
             }
             frp::extend! { network
                 selected_entry <+ column.frp.output.selected_entry.map(move |entry| (*entry, idx));
@@ -232,6 +240,10 @@ impl Column {
 
     fn len(&self) -> usize {
         self.len.get()
+    }
+
+    fn reversed_entry_id(&self, entry_id: EntryId) -> EntryId {
+        self.len() - entry_id - 1
     }
 
     fn set_entries(&self, provider: &AnyModelProvider<Entry>) {
@@ -363,7 +375,7 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
     }
 }
 
-fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> usize {
+fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> EntryId {
     let reversed_local_idx = entry_count_in_column(column, total_entry_count) - entry - 1;
     COLUMNS * reversed_local_idx + column
 }

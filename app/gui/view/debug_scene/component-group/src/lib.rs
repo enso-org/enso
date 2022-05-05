@@ -177,6 +177,7 @@ fn init(app: &Application) {
         });
     }
     slider.frp.set_value(5.0);
+    wide_component_group.select_entry(0, 0);
 
     std::mem::forget(slider);
     std::mem::forget(network);
