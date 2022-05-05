@@ -174,6 +174,9 @@ public class Encoding_Utils {
       throws IOException {
     try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
       return action.apply(decoder);
+    } catch (Throwable e) {
+      e.printStackTrace();
+      throw e;
     }
   }
 }

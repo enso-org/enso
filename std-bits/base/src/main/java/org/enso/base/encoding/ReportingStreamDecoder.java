@@ -19,6 +19,7 @@ public class ReportingStreamDecoder extends Reader {
     bufferedInputStream = new BufferedInputStream(stream);
     this.decoder = decoder;
     outputBuffer = CharBuffer.allocate((int) (10 * decoder.averageCharsPerByte()));
+    outputBuffer.mark();
   }
 
   private final BufferedInputStream bufferedInputStream;
@@ -124,8 +125,10 @@ public class ReportingStreamDecoder extends Reader {
   private void growOutputBuffer() {
     int newSize = 2 * outputBuffer.capacity() + 1;
     CharBuffer newBuffer = CharBuffer.allocate(newSize);
+    newBuffer.mark();
     outputBuffer.flip();
     newBuffer.put(outputBuffer);
+    outputBuffer = newBuffer;
   }
 
   @Override
