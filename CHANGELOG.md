@@ -188,6 +188,7 @@
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
 - [Functions with all-defaulted arguments now execute automatically][3414]
+- [Provide `tagValues` for function arguments in the language server][3422]
 - [Delay construction of Truffle nodes to speed initialization][3429]
 - [Frgaal compiler integration to allow for latest Java constructs][3421]
 
@@ -202,6 +203,7 @@
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
+[3422]: https://github.com/enso-org/enso/pull/3422
 [3429]: https://github.com/enso-org/enso/pull/3429
 [3421]: https://github.com/enso-org/enso/pull/3421
 

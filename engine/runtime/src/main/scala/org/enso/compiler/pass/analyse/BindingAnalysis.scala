@@ -46,6 +46,11 @@ case object BindingAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
+    val definedSumTypes = ir.bindings.collect {
+      case sumType: IR.Module.Scope.Definition.UnionType =>
+        BindingsMap.Type(sumType.name.name, sumType.members.map(_.name))
+    }
+
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
         BindingsMap.Cons(
@@ -85,6 +90,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
+        definedSumTypes,
         definedConstructors,
         importedPolyglot,
         methodsWithAutogen,

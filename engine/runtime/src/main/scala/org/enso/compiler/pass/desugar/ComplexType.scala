@@ -181,7 +181,11 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    atomDefs ::: allEntities
+    val includedNames = atomDefs.map(_.name)
+    val sumType = IR.Module.Scope.Definition
+      .UnionType(typ.name, includedNames, typ.location)
+
+    sumType :: atomDefs ::: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.
