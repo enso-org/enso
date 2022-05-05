@@ -87,7 +87,7 @@ pub fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
                 } else {
                     quote!(None)
                 };
-                quote! { MultiSegmentAppSegment { header: #header, body: #body } }
+                quote! { ast::MultiSegmentAppSegment { header: #header, body: #body } }
             })
             .collect();
         let pfx = prefix
@@ -97,7 +97,7 @@ pub fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
         output = quote! {
             location::With::new_with_len(
                 Bytes::from(0),
-                AstData::MultiSegmentApp(MultiSegmentApp {prefix: #pfx, segments: #segments})
+                ast::Data::MultiSegmentApp(ast::MultiSegmentApp {prefix: #pfx, segments: #segments})
             )
         }
     }

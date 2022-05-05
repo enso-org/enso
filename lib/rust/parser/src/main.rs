@@ -9,6 +9,7 @@
 
 use crate::prelude::*;
 
+pub mod ast;
 pub mod lexer;
 pub mod location;
 pub mod macros;
@@ -31,9 +32,9 @@ use enso_shapely_macros::ast_builder;
 
 // ==================================
 
-
 use crate::source::DebugLeaf;
 use crate::source::HasRepr;
+use ast::Ast;
 use lexer::Lexer;
 use location::Span;
 
@@ -65,8 +66,8 @@ impl TokenOrAst {
 
     fn location(&self) -> location::Span {
         match self {
-            Self::Token(t) => t.location(),
-            Self::Ast(t) => t.location(),
+            Self::Token(t) => t.span,
+            Self::Ast(t) => t.span,
         }
     }
 
@@ -461,7 +462,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<TokenOrAst>) -> Vec<TokenOrAst> 
         .map(|item| match item {
             TokenOrAst::Token(_) => item,
             TokenOrAst::Ast(ast) => match &ast.elem {
-                AstData::MultiSegmentApp(data) => {
+                ast::Data::MultiSegmentApp(data) => {
                     if data.segments.first().header.elem.variant() != lexer::KindVariant::Symbol {
                         TokenOrAst::Ast(
                             ast.with_error(
@@ -511,7 +512,7 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
 fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
     // Reverse-polish notation encoding.
     let mut output: Vec<TokenOrAst> = default();
-    let mut operator_stack: Vec<WithPrecedence<OprAppOpr>> = default();
+    let mut operator_stack: Vec<WithPrecedence<ast::OperatorOrError>> = default();
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
@@ -526,10 +527,12 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
 
             if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
                 // Error. Multiple operators next to each other.
-                let prev_opr_prec = prev_opr.precedence;
                 match &mut prev_opr.elem {
-                    Err(err) => err.oprs.push(opr),
-                    Ok(prev) => prev_opr.elem = Err(MultipleOperatorError::new(vec![*prev, opr]))
+                    Err(err) => err.operators.push(opr),
+                    Ok(prev) => {
+                        let operators = NonEmptyVec::new(*prev,vec![opr]);
+                        prev_opr.elem = Err(ast::MultipleOperatorError::new(operators));
+                    }
                 }
             } else {
                 while let Some(prev_opr) = operator_stack.last()
@@ -565,138 +568,10 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
-    Ast::opr_section_boundary(opt_rhs.unwrap_or_else(|| Ast::fixme()))
+    Ast::opr_section_boundary(opt_rhs.unwrap()) // fixme
 }
 
 
-
-pub type Ast = location::With<AstData>;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
-pub struct Error {
-    message: &'static str,
-}
-
-
-impl Error {
-    pub fn new(message: &'static str) -> Self {
-        Self { message }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub enum AstData {
-    WithError(Error, Box<Ast>),
-    Ident(lexer::Ident),
-    MultiSegmentApp(MultiSegmentApp),
-    OprSectionBoundary(Box<Ast>),
-    OprApp(Box<OprApp>),
-    App(Box<App>),
-    Fixme,
-}
-
-impl Ast {
-    fn fixme() -> Ast {
-        location::With::new_no_offset_phantom(Bytes::from(0), AstData::Fixme)
-    }
-
-    fn with_error(self, message: &'static str) -> Self {
-        let error = Error::new(message);
-        let location = self.location();
-        let data = AstData::WithError(error, Box::new(self));
-        location.with_elem(data)
-    }
-
-    fn opr_section_boundary(section: Ast) -> Ast {
-        let (left_offset_span, section) = section.split_at_start();
-        let total = left_offset_span.extended_to(&section);
-        let ast_data = AstData::OprSectionBoundary(Box::new(section));
-        total.with_elem(ast_data)
-    }
-
-    fn app(func: Ast, arg: Ast) -> Ast {
-        let (left_offset_span, func) = func.split_at_start();
-        let total = left_offset_span.extended_to(&arg);
-        let ast_data = AstData::App(Box::new(App { func, arg }));
-        total.with_elem(ast_data)
-    }
-
-    fn opr_app(
-        mut lhs: Option<Ast>,
-        mut opr: Result<location::With<lexer::Operator>, MultipleOperatorError>,
-        rhs: Option<Ast>,
-    ) -> Ast {
-        let left_offset_token = if let Some(lhs_val) = lhs {
-            let (left_offset_token, new_lhs) = lhs_val.split_at_start();
-            lhs = Some(new_lhs);
-            left_offset_token
-        } else {
-            match &mut opr {
-                Ok(xopr) => {
-                    let (left_offset_token, new_opr) = xopr.split_at_start();
-                    *xopr = new_opr;
-                    left_offset_token
-                }
-                Err(e) => {
-                    let first = e.oprs.first_mut().unwrap(); // fixme
-                    let (left_offset_token, new_opr) = first.split_at_start();
-                    *first = new_opr;
-                    left_offset_token
-                }
-            }
-        };
-        let total = if let Some(ref rhs) = rhs {
-            left_offset_token.extended_to(rhs)
-        } else {
-            match &opr {
-                Ok(xopr) => left_offset_token.extended_to(xopr),
-                Err(e) => left_offset_token.extended_to(e.oprs.last().unwrap()), // fixme
-            }
-        };
-        let ast_data = AstData::OprApp(Box::new(OprApp { lhs, opr, rhs }));
-        total.with_elem(ast_data)
-    }
-}
-
-
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub struct App {
-    func: Ast,
-    arg:  Ast,
-}
-
-pub type OprAppOpr = Result<location::With<lexer::Operator>, MultipleOperatorError>;
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub struct OprApp {
-    lhs: Option<Ast>,
-    opr: OprAppOpr,
-    rhs: Option<Ast>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub struct MultipleOperatorError {
-    oprs: Vec<location::With<lexer::Operator>>,
-}
-
-impl MultipleOperatorError {
-    pub fn new(oprs: Vec<location::With<lexer::Operator>>) -> Self {
-        Self { oprs }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub struct MultiSegmentApp {
-    prefix:   Option<Box<Ast>>,
-    segments: NonEmptyVec<MultiSegmentAppSegment>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-pub struct MultiSegmentAppSegment {
-    header: Token,
-    body:   Option<Ast>,
-}
 
 impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
 where source::With<'s, &'t T>: Debug
@@ -707,28 +582,7 @@ where source::With<'s, &'t T>: Debug
     }
 }
 
-impl<'s> Debug for source::With<'s, &AstData> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.data {
-            AstData::WithError(err, ast) =>
-                f.debug_tuple("Fixme").field(&err).field(&self.trans(|_| ast)).finish(),
-            AstData::Fixme => f.debug_tuple("Fixme").finish(),
-            AstData::Ident(t) => f.debug_tuple("Ident").field(&self.trans(|_| t)).finish(),
-            AstData::MultiSegmentApp(t) =>
-                f.debug_tuple("MultiSegmentApp").field(&self.trans(|_| t)).finish(),
-            AstData::OprSectionBoundary(t) =>
-                f.debug_tuple("OprSectionBoundary").field(&self.trans(|_| t)).finish(),
-            AstData::OprApp(t) => f.debug_tuple("OprApp").field(&self.trans(|_| t)).finish(),
-            AstData::App(t) => f.debug_tuple("App").field(&self.trans(|_| t)).finish(),
-        }
-    }
-}
 
-impl<'s> Debug for source::With<'s, &App> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entry(&self.with_data(&self.func)).entry(&self.with_data(&self.arg)).finish()
-    }
-}
 
 impl<'s, 't, T> Debug for source::With<'s, &'t Option<T>>
 where source::With<'s, &'t T>: Debug
@@ -748,44 +602,12 @@ where
     }
 }
 
-impl<'s> Debug for source::With<'s, &OprApp> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list()
-            .entry(&self.with_data(&self.lhs))
-            .entry(&self.with_data(&self.opr))
-            .entry(&self.with_data(&self.rhs))
-            .finish()
-    }
-}
-
-impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.oprs.iter().map(|t| self.trans(|_| t))).finish()
-    }
-}
-
-impl<'s> Debug for source::With<'s, &MultiSegmentApp> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list()
-            .entry(&self.trans(|_| &self.prefix))
-            .entries(self.segments.iter().map(|t| self.trans(|_| t)))
-            .finish()
-    }
-}
-
-impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MultiSegmentAppSegment")
-            .field("header", &self.trans(|_| &self.header))
-            .field("body", &self.trans(|_| &self.body))
-            .finish()
-    }
-}
 
 fn token_to_ast(elem: TokenOrAst) -> Ast {
     match elem {
         TokenOrAst::Token(token) => match token.elem {
-            lexer::Kind::Ident(ident) => elem.location().with_elem(AstData::Ident(ident)),
+            lexer::Kind::Ident(ident) =>
+                elem.location().with_elem(ast::Data::from(ast::Ident(ident))),
             _ => panic!(),
         },
         TokenOrAst::Ast(ast) => ast,
@@ -803,309 +625,14 @@ fn matched_segments_into_multi_segment_app<'s>(
             let header = segment.0;
             let body = (segment.1.len() > 0)
                 .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
-            MultiSegmentAppSegment { header, body }
+            ast::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
     if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
-        let left_offset_token =
-            if let Some(first) = prefix_tokens.as_mut().and_then(|t| t.first_mut()) {
-                first.trim_left()
-            } else {
-                let first = segments.first_mut();
-                let (left_offset_token, left_trimmed_token) = first.header.split_at_start();
-                first.header = left_trimmed_token;
-                left_offset_token
-            };
-        let last_segment = segments.last();
-        let total = if let Some(last_segment_body) = &last_segment.body {
-            left_offset_token.extended_to(last_segment_body)
-        } else {
-            left_offset_token.extended_to(&last_segment.header)
-        };
-        let prefix = prefix_tokens.map(|t| Box::new(resolve_operator_precedence(lexer, t)));
-        let data = AstData::MultiSegmentApp(MultiSegmentApp { prefix, segments });
-        total.with_elem(data)
+        let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
+        Ast::multi_segment_app(prefix, segments)
     } else {
         panic!()
-    }
-}
-
-
-
-// ====================
-// === Ast Visitors ===
-// ====================
-
-macro_rules! define_visitor {
-    ($name:ident, $visit:ident, $visit_mut:ident) => {
-        paste! {
-            define_visitor_internal! {
-                $name,
-                $visit,
-                $visit_mut,
-                [<$name Visitor>],
-                [<$name VisitorMut>],
-                [<$name Visitable>],
-                [<$name VisitableMut>]
-            }
-        }
-    };
-}
-
-macro_rules! define_visitor_internal {
-    (
-        $name:ident,
-        $visit:ident,
-        $visit_mut:ident,
-        $visitor:ident,
-        $visitor_mut:ident,
-        $visitable:ident,
-        $visitable_mut:ident
-    ) => {
-        pub trait $visitor<'a> {
-            fn before_visiting_children(&mut self) {}
-            fn after_visiting_children(&mut self) {}
-            fn visit(&mut self, ast: &'a $name) -> bool;
-        }
-
-        pub trait $visitor_mut {
-            fn before_visiting_children(&mut self) {}
-            fn after_visiting_children(&mut self) {}
-            fn visit_mut(&mut self, ast: &mut $name) -> bool;
-        }
-
-        pub trait $visitable<'a> {
-            fn $visit<V: $visitor<'a>>(&'a self, _visitor: &mut V) {}
-        }
-
-        pub trait $visitable_mut<'a> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, _visitor: &mut V) {}
-        }
-
-        impl<'a, T: $visitable<'a>> $visitable<'a> for Box<T> {
-            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                $visitable::$visit(&**self, visitor)
-            }
-        }
-
-        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Box<T> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                $visitable_mut::$visit_mut(&mut **self, visitor)
-            }
-        }
-
-        impl<'a, T: $visitable<'a>> $visitable<'a> for Option<T> {
-            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                if let Some(elem) = self {
-                    $visitable::$visit(elem, visitor)
-                }
-            }
-        }
-
-        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Option<T> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                if let Some(elem) = self {
-                    $visitable_mut::$visit_mut(elem, visitor)
-                }
-            }
-        }
-
-        impl<'a, T: $visitable<'a>, E: $visitable<'a>> $visitable<'a> for Result<T, E> {
-            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                match self {
-                    Ok(elem) => $visitable::$visit(elem, visitor),
-                    Err(elem) => $visitable::$visit(elem, visitor),
-                }
-            }
-        }
-
-        impl<'a, T: $visitable_mut<'a>, E: $visitable_mut<'a>> $visitable_mut<'a> for Result<T, E> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                match self {
-                    Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
-                    Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
-                }
-            }
-        }
-
-        impl<'a, T: $visitable<'a>> $visitable<'a> for Vec<T> {
-            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Vec<T> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'a, T: $visitable<'a>> $visitable<'a> for NonEmptyVec<T> {
-            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for NonEmptyVec<T> {
-            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'a> $visitable<'a> for &str {}
-        impl<'a> $visitable<'a> for str {}
-        impl<'a> $visitable<'a> for lexer::Ident {}
-        impl<'a> $visitable<'a> for lexer::Operator {}
-        impl<'a> $visitable<'a> for lexer::Kind {}
-
-        impl<'a> $visitable_mut<'a> for &str {}
-        impl<'a> $visitable_mut<'a> for str {}
-        impl<'a> $visitable_mut<'a> for lexer::Ident {}
-        impl<'a> $visitable_mut<'a> for lexer::Operator {}
-        impl<'a> $visitable_mut<'a> for lexer::Kind {}
-    };
-}
-
-define_visitor!(Ast, visit, visit_mut);
-define_visitor!(Span, visit_span, visit_span_mut);
-
-
-
-impl<'a> AstVisitable<'a> for Ast {
-    fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit(self) {
-            self.elem.visit(visitor)
-        }
-    }
-}
-
-impl<'a> AstVisitableMut<'a> for Ast {
-    fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(self) {
-            self.elem.visit_mut(visitor)
-        }
-    }
-}
-
-impl<'a, T: AstVisitable<'a>> AstVisitable<'a> for location::With<T> {
-    default fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
-        self.elem.visit(visitor)
-    }
-}
-
-impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for location::With<T> {
-    default fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
-        self.elem.visit_mut(visitor)
-    }
-}
-
-impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for location::With<T> {
-    fn visit_span<V: SpanVisitor<'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit(&self.span) {
-            self.elem.visit_span(visitor)
-        }
-    }
-}
-
-impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
-    fn visit_span_mut<V: SpanVisitorMut>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(&mut self.span) {
-            self.elem.visit_span_mut(visitor)
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct RefCollectorVisitor<'a> {
-    vec: Vec<&'a Ast>,
-}
-
-impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
-    fn visit(&mut self, ast: &'a Ast) -> bool {
-        self.vec.push(ast);
-        true
-    }
-}
-
-impl Ast {
-    pub fn collect_vec_ref(&self) -> Vec<&Ast> {
-        let mut visitor = RefCollectorVisitor::default();
-        self.visit(&mut visitor);
-        visitor.vec
-    }
-}
-
-
-#[derive(Debug, Default)]
-pub struct FnVisitor<F>(F);
-
-impl<'a, F, T> AstVisitor<'a> for FnVisitor<F>
-where F: Fn(&'a Ast) -> T
-{
-    fn visit(&mut self, ast: &'a Ast) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-impl<F, T> AstVisitorMut for FnVisitor<F>
-where F: Fn(&mut Ast) -> T
-{
-    fn visit_mut(&mut self, ast: &mut Ast) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-impl<'a, F, T> SpanVisitor<'a> for FnVisitor<F>
-where F: Fn(&'a Span) -> T
-{
-    fn visit(&mut self, ast: &'a Span) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-impl<F, T> SpanVisitorMut for FnVisitor<F>
-where F: Fn(&mut Span) -> T
-{
-    fn visit_mut(&mut self, ast: &mut Span) -> bool {
-        (self.0)(ast);
-        true
-    }
-}
-
-
-impl Ast {
-    pub fn map<T>(&self, f: impl Fn(&Ast) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit(&mut visitor);
-    }
-
-    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Ast) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit_mut(&mut visitor);
-    }
-
-    pub fn map_span<T>(&self, f: impl Fn(&Span) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit_span(&mut visitor);
-    }
-
-    pub fn map_span_mut<T>(&mut self, f: impl Fn(&mut Span) -> T) {
-        let mut visitor = FnVisitor(f);
-        self.visit_span_mut(&mut visitor);
-    }
-
-    /// Remove all span information. This is mainly used for tests to compare AST structure.
-    pub fn remove_span_info(&mut self) {
-        self.map_span_mut(mem::take)
-    }
-
-    /// Remove all span information. This is mainly used for tests to compare AST structure.
-    pub fn with_removed_span_info(mut self) -> Self {
-        self.remove_span_info();
-        self
     }
 }
 
@@ -1168,14 +695,16 @@ mod test {
 
     pub fn ident(repr: &str) -> Ast {
         match lexer::Kind::parse_ident(repr) {
-            lexer::Kind::Ident(ident) =>
-                location::With::new_with_len(Bytes::from(repr.len()), AstData::Ident(ident)),
+            lexer::Kind::Ident(ident) => location::With::new_with_len(
+                Bytes::from(repr.len()),
+                ast::Data::from(ast::Ident(ident)),
+            ),
             _ => panic!(),
         }
     }
 
-    pub fn app_segment(header: Token, body: Option<Ast>) -> MultiSegmentAppSegment {
-        MultiSegmentAppSegment { header, body }
+    pub fn app_segment(header: Token, body: Option<Ast>) -> ast::MultiSegmentAppSegment {
+        ast::MultiSegmentAppSegment { header, body }
     }
 }
 
@@ -1200,7 +729,7 @@ macro_rules! test_macro_build_multi_app {
     ($($section:literal $($argument:ident)?)*) => {
         location::With::new_with_len(
             Bytes::from(0),
-            AstData::MultiSegmentApp(MultiSegmentApp {
+            ast::Data::MultiSegmentApp(MultiSegmentApp {
                 prefix:   None,
                 segments: NonEmptyVec::try_from(vec![$(
                     test::app_segment(Token::symbol($section),
@@ -1222,7 +751,7 @@ macro_rules! test_macro_build_multi_app_argument {
 }
 
 pub struct MyVisitor {}
-impl<'a> AstVisitor<'a> for MyVisitor {
+impl<'a> ast::AstVisitor<'a> for MyVisitor {
     fn visit(&mut self, ast: &'a Ast) -> bool {
         println!(">>> {:?}", ast);
         true
@@ -1264,7 +793,7 @@ fn main() {
     //
     // let ast2 = Ast::opr_section_boundary(location::With::new_with_len(
     //     Bytes::from(0),
-    //     AstData::MultiSegmentApp(MultiSegmentApp {
+    //     ast::Data::MultiSegmentApp(MultiSegmentApp {
     //         prefix:   None,
     //         segments: NonEmptyVec::try_from(vec![seg1, seg2]).unwrap(),
     //     }),
@@ -1274,14 +803,13 @@ fn main() {
 
     println!("\n\n==================\n\n");
 
-
-    let mut ast2 = ast_builder! { {if} a {then} b {else} c};
-    println!("{:#?}", ast2);
-    ast.remove_span_info();
-    ast2.remove_span_info();
-    println!("{:#?}", ast);
-    println!("{:#?}", ast2);
-    println!("{:#?}", ast == ast2);
+    // let mut ast2 = ast_builder! { {if} a {then} b {else} c};
+    // println!("{:#?}", ast2);
+    // ast.remove_span_info();
+    // ast2.remove_span_info();
+    // println!("{:#?}", ast);
+    // println!("{:#?}", ast2);
+    // println!("{:#?}", ast == ast2);
 
     // let a = 5;
     // let b = 5;

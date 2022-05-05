@@ -1,0 +1,575 @@
+use crate::prelude::*;
+
+use crate::lexer;
+use crate::location;
+use crate::source;
+use lexer::Token;
+use location::Span;
+
+/// The Abstract Syntax Tree of the language.
+///
+/// # Connection to the source file
+/// Please note, that the AST does NOT contain sources, it keeps track of the char offsets only. If
+/// you want to pretty print it, you should attach sources to it. The easiest way to do it is by
+/// using the [`sources::With`] data, for example as:
+/// ```text
+/// println!("{:#?}", source::With::new(str, &ast));
+/// ```
+pub type Ast = location::With<Data>;
+
+macro_rules! define_ast_data_enum {
+    ($(
+        $(#$meta:tt)*
+        $variant:ident {
+            $(
+                $field:ident: $field_ty:ty
+            ),* $(,)?
+        }
+    ),* $(,)?) => {
+        /// Internal representation of [`Ast`].
+        #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+        #[allow(missing_docs)]
+        pub enum Data {$(
+            $variant(Box<$variant>)
+        ),*}
+
+        impl<'s> Debug for source::With<'s, &Data> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self.data {
+                    $(Data::$variant(t) => Debug::fmt(&self.with_data(t), f)),*
+                }
+            }
+        }
+
+        $(
+            impl From<$variant> for Data {
+                fn from(t: $variant) -> Self {
+                    Self::$variant(Box::new(t))
+                }
+            }
+
+            $(#$meta)*
+            #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+            #[allow(missing_docs)]
+            pub struct $variant {
+                $(pub $field: $field_ty),*
+            }
+
+            /// Constructor.
+            pub fn $variant($($field: $field_ty),*) -> $variant {
+                $variant { $($field),* }
+            }
+
+            impl<'s> Debug for source::With<'s, &$variant> {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    f.debug_struct(stringify!($variant))
+                        $( .field(stringify!($field), &self.with_data(&self.$field)) )*
+                        .finish()
+                }
+            }
+        )*
+    };
+}
+
+define_ast_data_enum! {
+    /// Invalid [`Ast`] fragment with an attached [`Error`].
+    Invalid {
+        error: Error,
+        ast: Ast,
+    },
+    /// A simple identifier, like `foo` or `bar`.
+    Ident {
+        token: lexer::Ident,
+    },
+    /// A simple application, like `print "hello"`.
+    App {
+        func: Ast,
+        arg: Ast,
+    },
+    /// Application of an operator, like `a + b`. The left or right operands might be missing, thus
+    /// creating an operator section like `a +`, `+ b`, or simply `+`. See the
+    /// [`OprSectionBoundary`] variant to learn more about operator section scope.
+    OprApp {
+        lhs: Option<Ast>,
+        opr: OperatorOrError,
+        rhs: Option<Ast>,
+    },
+    /// Defines the point where operator sections should be expanded to lambdas. Let's consider the
+    /// expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
+    /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
+    /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed around
+    /// the whole `.sum 1` expression.
+    OprSectionBoundary {
+        ast: Ast,
+    },
+    /// An application of a multi-segment function, such as `if ... then ... else ...`. Each segment
+    /// starts with a token and contains an expression. Some multi-segment functions can have a
+    /// prefix, an expression that is argument of the function, but is placed before the first
+    /// token. Lambda is a good example for that. In an expression `Vector x y z -> x + y + z`, the
+    /// `->` token is the beginning of the section, the `x + y + z` is the section body, and
+    /// `Vector x y z` is the prefix of this function application.
+    MultiSegmentApp {
+        prefix: Option<Ast>,
+        segments: NonEmptyVec<MultiSegmentAppSegment>,
+    },
+}
+
+
+// === Invalid ===
+
+/// Error of parsing attached to an [`Ast`] node.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct Error {
+    pub message: &'static str,
+}
+
+impl Error {
+    /// Constructor.
+    pub fn new(message: &'static str) -> Self {
+        Self { message }
+    }
+}
+
+impl<'s> Debug for source::With<'s, &Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.data, f)
+    }
+}
+
+impl Ast {
+    /// Constructor.
+    pub fn invalid(error: Error, ast: Ast) -> Self {
+        let location = ast.span;
+        let data = Data::from(Invalid(error, ast));
+        location.with_elem(data)
+    }
+
+    /// Constructor.
+    pub fn with_error(self, message: &'static str) -> Self {
+        Ast::invalid(Error::new(message), self)
+    }
+}
+
+
+// === App ===
+
+impl Ast {
+    /// Constructor.
+    pub fn app(func: Ast, arg: Ast) -> Ast {
+        let (left_offset_span, func) = func.split_at_start();
+        let total = left_offset_span.extended_to(&arg);
+        let ast_data = Data::from(App(func, arg));
+        total.with_elem(ast_data)
+    }
+}
+
+
+// === OprApp ===
+
+/// Operator or [`MultipleOperatorError`].
+pub type OperatorOrError = Result<location::With<lexer::Operator>, MultipleOperatorError>;
+
+/// Error indicating multiple operators found next to each other, like `a + * b`.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct MultipleOperatorError {
+    pub operators: NonEmptyVec<location::With<lexer::Operator>>,
+}
+
+impl MultipleOperatorError {
+    /// Constructor.
+    pub fn new(operators: NonEmptyVec<location::With<lexer::Operator>>) -> Self {
+        Self { operators }
+    }
+}
+
+impl Ast {
+    /// Constructor.
+    pub fn opr_app(mut lhs: Option<Ast>, mut opr: OperatorOrError, rhs: Option<Ast>) -> Ast {
+        let left_offset_token = if let Some(lhs_val) = lhs {
+            let (left_offset_token, new_lhs) = lhs_val.split_at_start();
+            lhs = Some(new_lhs);
+            left_offset_token
+        } else {
+            match &mut opr {
+                Ok(opr) => {
+                    let (left_offset_token, new_opr) = opr.split_at_start();
+                    *opr = new_opr;
+                    left_offset_token
+                }
+                Err(err) => {
+                    let first = err.operators.first_mut();
+                    let (left_offset_token, new_opr) = first.split_at_start();
+                    *first = new_opr;
+                    left_offset_token
+                }
+            }
+        };
+        let total = if let Some(ref rhs) = rhs {
+            left_offset_token.extended_to(rhs)
+        } else {
+            match &opr {
+                Ok(opr) => left_offset_token.extended_to(opr),
+                Err(e) => left_offset_token.extended_to(e.operators.last()),
+            }
+        };
+        let ast_data = Data::from(OprApp(lhs, opr, rhs));
+        total.with_elem(ast_data)
+    }
+}
+
+impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MultipleOperatorError")
+            .field("operators", &self.trans(|_| &self.operators))
+            .finish()
+    }
+}
+
+impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MultiSegmentAppSegment")
+            .field("header", &self.trans(|_| &self.header))
+            .field("body", &self.trans(|_| &self.body))
+            .finish()
+    }
+}
+
+
+// === OprSectionBoundary ===
+
+impl Ast {
+    /// Constructor.
+    pub fn opr_section_boundary(section: Ast) -> Ast {
+        let (left_offset_span, section) = section.split_at_start();
+        let total = left_offset_span.extended_to(&section);
+        let ast_data = Data::from(OprSectionBoundary(section));
+        total.with_elem(ast_data)
+    }
+}
+
+
+// === MultiSegmentApp ===
+
+/// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct MultiSegmentAppSegment {
+    pub header: Token,
+    pub body:   Option<Ast>,
+}
+
+impl Ast {
+    /// Constructor.
+    pub fn multi_segment_app(
+        mut prefix: Option<Ast>,
+        mut segments: NonEmptyVec<MultiSegmentAppSegment>,
+    ) -> Self {
+        let left_span = if let Some(prefix) = prefix.as_mut() {
+            prefix.trim_left()
+        } else {
+            let first = segments.first_mut();
+            let (left_span, left_trimmed_token) = first.header.split_at_start();
+            first.header = left_trimmed_token;
+            left_span
+        };
+        let last_segment = segments.last();
+        let total = if let Some(last_segment_body) = &last_segment.body {
+            left_span.extended_to(last_segment_body)
+        } else {
+            left_span.extended_to(&last_segment.header)
+        };
+        let data = Data::from(MultiSegmentApp { prefix, segments });
+        total.with_elem(data)
+    }
+}
+
+
+
+// ====================
+// === Ast Visitors ===
+// ====================
+
+macro_rules! define_visitor {
+    ($name:ident, $visit:ident, $visit_mut:ident) => {
+        paste! {
+            define_visitor_internal! {
+                $name,
+                $visit,
+                $visit_mut,
+                [<$name Visitor>],
+                [<$name VisitorMut>],
+                [<$name Visitable>],
+                [<$name VisitableMut>]
+            }
+        }
+    };
+}
+
+macro_rules! define_visitor_internal {
+    (
+        $name:ident,
+        $visit:ident,
+        $visit_mut:ident,
+        $visitor:ident,
+        $visitor_mut:ident,
+        $visitable:ident,
+        $visitable_mut:ident
+    ) => {
+        pub trait $visitor<'a> {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            fn visit(&mut self, ast: &'a $name) -> bool;
+        }
+
+        pub trait $visitor_mut {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            fn visit_mut(&mut self, ast: &mut $name) -> bool;
+        }
+
+        pub trait $visitable<'a> {
+            fn $visit<V: $visitor<'a>>(&'a self, _visitor: &mut V) {}
+        }
+
+        pub trait $visitable_mut<'a> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, _visitor: &mut V) {}
+        }
+
+        impl<'a, T: $visitable<'a>> $visitable<'a> for Box<T> {
+            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
+                $visitable::$visit(&**self, visitor)
+            }
+        }
+
+        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Box<T> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
+                $visitable_mut::$visit_mut(&mut **self, visitor)
+            }
+        }
+
+        impl<'a, T: $visitable<'a>> $visitable<'a> for Option<T> {
+            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable::$visit(elem, visitor)
+                }
+            }
+        }
+
+        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Option<T> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable_mut::$visit_mut(elem, visitor)
+                }
+            }
+        }
+
+        impl<'a, T: $visitable<'a>, E: $visitable<'a>> $visitable<'a> for Result<T, E> {
+            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable::$visit(elem, visitor),
+                    Err(elem) => $visitable::$visit(elem, visitor),
+                }
+            }
+        }
+
+        impl<'a, T: $visitable_mut<'a>, E: $visitable_mut<'a>> $visitable_mut<'a> for Result<T, E> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                    Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                }
+            }
+        }
+
+        impl<'a, T: $visitable<'a>> $visitable<'a> for Vec<T> {
+            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Vec<T> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, T: $visitable<'a>> $visitable<'a> for NonEmptyVec<T> {
+            fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for NonEmptyVec<T> {
+            fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a> $visitable<'a> for &str {}
+        impl<'a> $visitable<'a> for str {}
+        impl<'a> $visitable<'a> for lexer::Ident {}
+        impl<'a> $visitable<'a> for lexer::Operator {}
+        impl<'a> $visitable<'a> for lexer::Kind {}
+
+        impl<'a> $visitable_mut<'a> for &str {}
+        impl<'a> $visitable_mut<'a> for str {}
+        impl<'a> $visitable_mut<'a> for lexer::Ident {}
+        impl<'a> $visitable_mut<'a> for lexer::Operator {}
+        impl<'a> $visitable_mut<'a> for lexer::Kind {}
+    };
+}
+
+define_visitor!(Ast, visit, visit_mut);
+define_visitor!(Span, visit_span, visit_span_mut);
+
+
+
+impl<'a> AstVisitable<'a> for Ast {
+    fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
+        if visitor.visit(self) {
+            self.elem.visit(visitor)
+        }
+    }
+}
+
+impl<'a> AstVisitableMut<'a> for Ast {
+    fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
+        if visitor.visit_mut(self) {
+            self.elem.visit_mut(visitor)
+        }
+    }
+}
+
+impl<'a, T: AstVisitable<'a>> AstVisitable<'a> for location::With<T> {
+    default fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
+        self.elem.visit(visitor)
+    }
+}
+
+impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for location::With<T> {
+    default fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
+        self.elem.visit_mut(visitor)
+    }
+}
+
+impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for location::With<T> {
+    fn visit_span<V: SpanVisitor<'a>>(&'a self, visitor: &mut V) {
+        if visitor.visit(&self.span) {
+            self.elem.visit_span(visitor)
+        }
+    }
+}
+
+impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
+    fn visit_span_mut<V: SpanVisitorMut>(&'a mut self, visitor: &mut V) {
+        if visitor.visit_mut(&mut self.span) {
+            self.elem.visit_span_mut(visitor)
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct RefCollectorVisitor<'a> {
+    vec: Vec<&'a Ast>,
+}
+
+impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
+    fn visit(&mut self, ast: &'a Ast) -> bool {
+        self.vec.push(ast);
+        true
+    }
+}
+
+impl Ast {
+    pub fn collect_vec_ref(&self) -> Vec<&Ast> {
+        let mut visitor = RefCollectorVisitor::default();
+        self.visit(&mut visitor);
+        visitor.vec
+    }
+}
+
+
+#[derive(Debug, Default)]
+pub struct FnVisitor<F>(F);
+
+impl<'a, F, T> AstVisitor<'a> for FnVisitor<F>
+where F: Fn(&'a Ast) -> T
+{
+    fn visit(&mut self, ast: &'a Ast) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<F, T> AstVisitorMut for FnVisitor<F>
+where F: Fn(&mut Ast) -> T
+{
+    fn visit_mut(&mut self, ast: &mut Ast) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<'a, F, T> SpanVisitor<'a> for FnVisitor<F>
+where F: Fn(&'a Span) -> T
+{
+    fn visit(&mut self, ast: &'a Span) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<F, T> SpanVisitorMut for FnVisitor<F>
+where F: Fn(&mut Span) -> T
+{
+    fn visit_mut(&mut self, ast: &mut Span) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+
+impl Ast {
+    pub fn map<T>(&self, f: impl Fn(&Ast) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit(&mut visitor);
+    }
+
+    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Ast) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_mut(&mut visitor);
+    }
+
+    pub fn map_span<T>(&self, f: impl Fn(&Span) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_span(&mut visitor);
+    }
+
+    pub fn map_span_mut<T>(&mut self, f: impl Fn(&mut Span) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_span_mut(&mut visitor);
+    }
+
+    /// Remove all span information. This is mainly used for tests to compare AST structure.
+    pub fn remove_span_info(&mut self) {
+        self.map_span_mut(mem::take)
+    }
+
+    /// Remove all span information. This is mainly used for tests to compare AST structure.
+    pub fn with_removed_span_info(mut self) -> Self {
+        self.remove_span_info();
+        self
+    }
+}
+
+
+
+impl<'s, T> Debug for source::With<'s, &NonEmptyVec<T>>
+where for<'t> source::With<'s, &'t T>: Debug
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter().map(|t| self.with_data(t))).finish()
+    }
+}

@@ -151,14 +151,6 @@ impl<T> With<T> {
         self.extend_to(other);
         self
     }
-
-    pub fn location(&self) -> Span {
-        let left_visible_offset = self.span.left_visible_offset;
-        let left_offset = self.span.left_offset;
-        let start = self.span.start;
-        let len = self.span.len;
-        Span { left_visible_offset, left_offset, start, len }
-    }
 }
 
 impl<T> From<With<T>> for Span {
