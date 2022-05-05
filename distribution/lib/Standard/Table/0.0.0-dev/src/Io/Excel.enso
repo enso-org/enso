@@ -145,7 +145,18 @@ validate : Boolean -> Text -> Any
 validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
 
+## PRIVATE
+   Reads an input Excel file according to the provided section.
 
+   Arguments:
+   - file: The File object to read.
+   - section: The part of the Excel document to read.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - xls_format: If `True` then the file is read in using Excel 95-2003 format
+     otherwise reads in Excel 2007+ format.
 read_excel : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_excel file section _ xls_format=False =
     reader stream = case section of
@@ -161,10 +172,10 @@ read_excel file section _ xls_format=False =
                 Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
 
     file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
-    catch_file_failure = Panic.catch IllegalArgumentException handler=file_failure
+    catch_file_failure = Panic.catch IOException handler=file_failure
 
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
-    catch_bad_argument = Panic.catch IOException handler=bad_argument
+    catch_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
 
     catch_file_failure <| catch_bad_argument <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)
