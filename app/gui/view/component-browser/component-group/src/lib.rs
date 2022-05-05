@@ -74,12 +74,8 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let sprite_width: Var<Pixels> = "input_size.x".into();
-            let sprite_height: Var<Pixels> = "input_size.y".into();
             let color = Var::<Rgba>::from(color);
-            // TODO[MC,WD]: We should use Plane here, but it has a bug - renders wrong color. See:
-            //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
-            let shape = Rect((&sprite_width, &sprite_height)).fill(color);
+            let shape = Plane().fill(color);
             shape.into()
         }
     }
