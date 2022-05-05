@@ -11,7 +11,6 @@ pub mod edge;
 pub mod node;
 #[warn(missing_docs)]
 pub mod profiling;
-pub mod tooltip;
 pub mod type_coloring;
 pub mod visualization;
 

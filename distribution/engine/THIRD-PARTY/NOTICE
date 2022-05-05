@@ -61,21 +61,6 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.github.julien-truffaut.monocle-macro_2.13-2.1.0`.
 
 
-'auto-common', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.auto.auto-common-1.2`.
-
-
-'auto-service', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.auto.service.auto-service-1.0.1`.
-
-
-'auto-service-annotations', licensed under the Apache 2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.google.auto.service.auto-service-annotations-1.0.1`.
-
-
 'error_prone_annotations', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.errorprone.error_prone_annotations-2.7.1`.
@@ -354,6 +339,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'jline', licensed under the The BSD License, is distributed with the engine.
 The license file can be found at `licenses/BSD-3-Clause`.
 Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.21.0`.
+
+
+'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE130`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the engine.

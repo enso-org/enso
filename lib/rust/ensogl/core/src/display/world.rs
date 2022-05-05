@@ -59,16 +59,7 @@ impl Uniforms {
 // === Metadata Profiler ===
 // =========================
 
-
-thread_local! {
-    /// Profiling metadata logger for `StatsData`.
-    static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
-}
-
-/// Log rendering stats to the profiling framework.
-pub fn log_render_stats(stats: StatsData) {
-    RENDER_STATS_LOGGER.with(|logger| logger.log(stats));
-}
+profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
 
 
 
