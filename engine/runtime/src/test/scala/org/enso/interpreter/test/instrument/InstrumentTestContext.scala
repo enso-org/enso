@@ -41,3 +41,7 @@ class InstrumentTestContext {
     }
 
 }
+
+object InstrumentTestContext {
+  val DISABLE_IR_CACHE = Option(System.getenv("ENSO_TEST_DISABLE_IR_CACHE")).getOrElse("true")
+}

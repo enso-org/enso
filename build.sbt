@@ -1174,7 +1174,7 @@ lazy val runtime = (project in file("engine/runtime"))
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map("ENSO_TEST_DISABLE_IR_CACHE" -> "false"),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
