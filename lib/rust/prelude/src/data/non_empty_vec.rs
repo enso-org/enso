@@ -166,19 +166,24 @@ impl<T> NonEmptyVec<T> {
 
     /// Remove an element from the back of the collection, returning it.
     ///
-    /// Will not pop any item if there is only one item left in the vector.
-    ///
     /// # Examples
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec = NonEmptyVec::new(0, vec![1]);
-    /// assert!(vec.pop().is_some());
-    /// assert!(vec.pop().is_none());
+    /// assert!(vec.pop_if_has_more_than_1_elem().is_some());
+    /// assert!(vec.pop_if_has_more_than_1_elem().is_none());
     /// assert_eq!(vec.len(), 1);
     /// ```
-    pub fn pop(&mut self) -> Option<T> {
+    pub fn pop_if_has_more_than_1_elem(&mut self) -> Option<T> {
         (self.len() > 1).and_option_from(|| self.elems.pop())
+    }
+
+    /// Remove an element from the back of the collection, returning it and a new possibly empty
+    /// vector.
+    pub fn pop(mut self) -> (T, Vec<T>) {
+        let first = self.elems.pop().unwrap();
+        (first, self.elems)
     }
 
     /// Obtain a mutable reference to teh element in the vector at the specified `index`.
@@ -317,8 +322,15 @@ impl<T> NonEmptyVec<T> {
         self.elems.splice(range, replace_with)
     }
 
+    /// Convert this non-empty vector to vector.
     pub fn into_vec(self) -> Vec<T> {
         self.elems
+    }
+
+    /// Consume this non-empty vector, map each element with a function, and produce a new one.
+    pub fn mapped<S>(self, f: impl Fn(T) -> S) -> NonEmptyVec<S> {
+        let elems = self.elems.into_iter().map(f).collect();
+        NonEmptyVec { elems }
     }
 }
 

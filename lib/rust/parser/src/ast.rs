@@ -17,6 +17,8 @@ use location::Span;
 /// ```
 pub type Ast = location::With<Data>;
 
+/// Macro used to define the [`Data`] structure. The syntax mimics enum definition. See the usage
+/// below to learn more.
 macro_rules! define_ast_data_enum {
     ($(
         $(#$meta:tt)*
@@ -291,6 +293,36 @@ impl Ast {
 // === Ast Visitors ===
 // ====================
 
+/// The visitor pattern for [`AST`].
+///
+/// # Visitor traits
+/// This macro defines visitor traits, such as [`AstVisitor`] or [`SpanVisitor`], which provide
+/// abstraction for building a visitor for [`Ast`] and [`Span`] elements respectively. A visitor is
+/// a struct that is modified when traversing all elements of [`Ast`]. Visitors are also capable of
+/// tracking when they entered or exited a nested [`Ast`] structure, and they can control how deep
+/// the traversal should be performed. To learn more, see the [`RefCollectorVisitor`]
+/// implementation, which traverses [`Ast`] and collects references to all [`Ast`] nodes in a
+/// vector.
+///
+/// # Visitable traits
+/// This macro also defines visitable traits, such as [`AstVisitable`] or [`SpanVisitable`], which
+/// provide [`Ast`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
+/// [`visit_span_mut`]. These functions let you run visitors. However, as defining a visitor is
+/// relatively complex, a set of traversal functions are provided, such as [`map`], [`map_mut`],
+/// [`map_span`], or [`map_span_mut`].
+///
+/// # Generalization of the implementation
+/// The current implementation bases on a few non-generic traits. One might define a way better
+/// implementation (causing way less boilerplate), such as:
+/// ```text
+/// pub trait Visitor<T> {
+///     fn visit(&mut self, elem: &T);
+/// }
+/// ```
+/// Such definition could be implemented for every [`Ast`] node (the [`T`] parameter).
+/// Unfortunately, due to Rust compiler errors, Rust is not able to compile such a definition. We
+/// could move to it as soon as this error gets resolved:
+/// https://github.com/rust-lang/rust/issues/96634.
 macro_rules! define_visitor {
     ($name:ident, $visit:ident, $visit_mut:ident) => {
         paste! {
@@ -307,6 +339,7 @@ macro_rules! define_visitor {
     };
 }
 
+/// Internal helper for [`define_visitor`].
 macro_rules! define_visitor_internal {
     (
         $name:ident,
@@ -317,22 +350,34 @@ macro_rules! define_visitor_internal {
         $visitable:ident,
         $visitable_mut:ident
     ) => {
+        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
         pub trait $visitor<'a> {
             fn before_visiting_children(&mut self) {}
             fn after_visiting_children(&mut self) {}
+            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+            /// traversed as well.
             fn visit(&mut self, ast: &'a $name) -> bool;
         }
 
+        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
         pub trait $visitor_mut {
             fn before_visiting_children(&mut self) {}
             fn after_visiting_children(&mut self) {}
+            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+            /// traversed as well.
             fn visit_mut(&mut self, ast: &mut $name) -> bool;
         }
 
+        /// The visitable trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
         pub trait $visitable<'a> {
             fn $visit<V: $visitor<'a>>(&'a self, _visitor: &mut V) {}
         }
 
+        /// The visitable trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
         pub trait $visitable_mut<'a> {
             fn $visit_mut<V: $visitor_mut>(&'a mut self, _visitor: &mut V) {}
         }
@@ -407,6 +452,7 @@ macro_rules! define_visitor_internal {
             }
         }
 
+        // FIXME: this should be defined for all tokens
         impl<'a> $visitable<'a> for &str {}
         impl<'a> $visitable<'a> for str {}
         impl<'a> $visitable<'a> for lexer::Ident {}
@@ -425,6 +471,7 @@ define_visitor!(Ast, visit, visit_mut);
 define_visitor!(Span, visit_span, visit_span_mut);
 
 
+// === Special cases ===
 
 impl<'a> AstVisitable<'a> for Ast {
     fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
@@ -470,9 +517,17 @@ impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
     }
 }
 
+
+
+// ===========================
+// === RefCollectorVisitor ===
+// ===========================
+
+/// A visitor collecting references to all [`Ast`] nodes.
 #[derive(Debug, Default)]
+#[allow(missing_docs)]
 pub struct RefCollectorVisitor<'a> {
-    vec: Vec<&'a Ast>,
+    pub vec: Vec<&'a Ast>,
 }
 
 impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
@@ -483,6 +538,7 @@ impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
 }
 
 impl Ast {
+    /// Collect references to all [`Ast`] nodes and return them in a vector.
     pub fn collect_vec_ref(&self) -> Vec<&Ast> {
         let mut visitor = RefCollectorVisitor::default();
         self.visit(&mut visitor);
@@ -491,39 +547,38 @@ impl Ast {
 }
 
 
-#[derive(Debug, Default)]
-pub struct FnVisitor<F>(F);
 
-impl<'a, F, T> AstVisitor<'a> for FnVisitor<F>
-where F: Fn(&'a Ast) -> T
-{
+// =================
+// === FnVisitor ===
+// =================
+
+/// A visitor allowing running a function on every [`Ast`] node.
+#[derive(Debug, Default)]
+#[allow(missing_docs)]
+pub struct FnVisitor<F>(pub F);
+
+impl<'a, T, F: Fn(&'a Ast) -> T> AstVisitor<'a> for FnVisitor<F> {
     fn visit(&mut self, ast: &'a Ast) -> bool {
         (self.0)(ast);
         true
     }
 }
 
-impl<F, T> AstVisitorMut for FnVisitor<F>
-where F: Fn(&mut Ast) -> T
-{
+impl<T, F: Fn(&mut Ast) -> T> AstVisitorMut for FnVisitor<F> {
     fn visit_mut(&mut self, ast: &mut Ast) -> bool {
         (self.0)(ast);
         true
     }
 }
 
-impl<'a, F, T> SpanVisitor<'a> for FnVisitor<F>
-where F: Fn(&'a Span) -> T
-{
+impl<'a, T, F: Fn(&'a Span) -> T> SpanVisitor<'a> for FnVisitor<F> {
     fn visit(&mut self, ast: &'a Span) -> bool {
         (self.0)(ast);
         true
     }
 }
 
-impl<F, T> SpanVisitorMut for FnVisitor<F>
-where F: Fn(&mut Span) -> T
-{
+impl<T, F: Fn(&mut Span) -> T> SpanVisitorMut for FnVisitor<F> {
     fn visit_mut(&mut self, ast: &mut Span) -> bool {
         (self.0)(ast);
         true

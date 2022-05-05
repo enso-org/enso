@@ -271,9 +271,6 @@ impl<'a> Resolver<'a> {
                 TokenOrAst::Token(token) => self.process_token(lexer, root_macro_map, token),
                 _ => ResolverStep::NormalToken,
             };
-
-
-
             match step_result {
                 ResolverStep::MacroStackPop => {
                     trace_state!();
@@ -321,14 +318,13 @@ impl<'a> Resolver<'a> {
         prefix_tokens: Option<Vec<TokenOrAst>>,
     ) -> Ast {
         let mut segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
-        let mut sss: Vec<(Token, Vec<TokenOrAst>)> = vec![];
-        for segment in segments.into_vec() {
+        let mut sss: NonEmptyVec<(Token, Vec<TokenOrAst>)> = segments.mapped(|segment| {
             let mut ss: Vec<TokenOrAst> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
                     TokenOrAstOrMacroResolver::MacroResolver(m2) => {
                         if let Some(macro_def) = &m2.matched_macro_def
-                        && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
+                            && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
                             ss.reverse();
                             let spacing = m2.current_segment.header.span.left_offset > Bytes::from(0);
                             let (mut matched, unmatched) = pfx_pattern.resolve2(ss,spacing).unwrap();
@@ -344,14 +340,13 @@ impl<'a> Resolver<'a> {
                 };
                 ss.push(resolved_token);
             }
-            sss.push((segment.header, ss));
-        }
+            (segment.header, ss)
+        });
 
-        let sss = NonEmptyVec::try_from(sss).unwrap(); // FIXME
         if let Some(macro_def) = m.matched_macro_def {
             (macro_def.body)(lexer, prefix_tokens, sss)
         } else {
-            panic!()
+            todo!("Handling non-fully-resolved macros")
         }
     }
 
@@ -773,7 +768,7 @@ fn main() {
     // let str = "a+b * c";
     // let str = "foo if a then b";
     // let str = "foo *(a)";
-    let str = "if a then b else c";
+    let str = "foo if a then b else c";
     let mut lexer = Lexer::new(str);
     lexer.run();
 
