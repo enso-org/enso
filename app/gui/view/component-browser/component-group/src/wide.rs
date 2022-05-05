@@ -125,6 +125,10 @@ ensogl_core::define_endpoints_2! {
         selected_entry(Option<EntryId>),
         suggestion_accepted(EntryId),
         expression_accepted(EntryId),
+        /// While resizing the list of entries, the selection will follow the selected entry if
+        /// possible. If the entry disappears, the selection will move to some visible entry in the same
+        /// column if possible. If there are no more entries in this column, the selection will move to
+        /// the next non-empty column to the left.
         selection_position_target(Vector2<f32>),
         entry_count(usize),
         size(Vector2<f32>),
@@ -144,7 +148,8 @@ impl component::Frp<Model> for Frp {
             update_selected_entry <- selected_column_and_entry.sample(&out.size);
             select_entry <- any(&input.select_entry, &update_selected_entry);
             eval select_entry([model]((column, entry)) {
-                if let Some(column) = model.columns.get(*column) {
+                let column = model.non_empty_column(*column);
+                if let Some(column) = column {
                     let real_entry_id = column.reverse_index(*entry);
                     column.select_entry(real_entry_id);
                 }
@@ -345,6 +350,21 @@ impl Model {
     /// Hide the "no items" label.
     fn hide_no_items_label(&self) {
         self.display_object.remove_child(&self.no_items_label);
+    }
+
+    /// Returns the rightmost non-empty column with index less or equal to `index`.
+    fn non_empty_column(&self, mut index: ColumnId) -> Option<&Column> {
+        while let Some(column) = self.columns.get(index) {
+            if column.len() > 0 {
+                return Some(column);
+            }
+            if index > 0 {
+                index = index.saturating_sub(1);
+            } else {
+                break;
+            }
+        }
+        None
     }
 
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that

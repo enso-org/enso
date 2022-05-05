@@ -187,6 +187,12 @@ fn init(app: &Application) {
 
         eval wide_component_group.suggestion_accepted ([](id) DEBUG!("[Wide] Accepted Suggestion {id}"));
         eval wide_component_group.expression_accepted ([](id) DEBUG!("[Wide] Accepted Expression {id}"));
+
+        no_entries <- wide_component_group.entry_count.map(|count| *count == 0);
+        hide_selection <- no_entries.on_true();
+        show_selection <- no_entries.on_false();
+        eval_ hide_selection (wide_selection.color.set(color::Rgba::transparent().into()));
+        eval_ show_selection (wide_selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into()));
     }
     wide_selection_animation.target.emit(wide_component_group.selection_position_target.value());
     wide_selection_animation.skip.emit(());
