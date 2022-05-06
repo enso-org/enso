@@ -164,6 +164,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 let column = model.non_empty_column(*column);
                 if let Some(column) = column {
                     let real_entry_id = column.reverse_index(*entry);
+                    DEBUG!("Selecting entry {real_entry_id} in column {column.id}");
                     column.select_entry(real_entry_id);
                 }
             });
@@ -368,7 +369,7 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
 
     /// Returns the rightmost non-empty column with index less or equal to `index`.
     fn non_empty_column(&self, index: ColumnId) -> Option<&Column<COLUMNS>> {
-        let indexes_to_the_right = *index..0;
+        let indexes_to_the_right = (0..=*index).rev();
         let mut columns_to_the_right = indexes_to_the_right.flat_map(|i| self.columns.get(i));
         columns_to_the_right.find(|col| col.len() > 0)
     }
