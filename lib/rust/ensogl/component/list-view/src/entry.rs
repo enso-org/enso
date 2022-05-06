@@ -44,10 +44,6 @@ pub use list::List;
 // === Trait ===
 // =============
 
-pub trait Params {
-    type Params: CloneRef + Debug + Default;
-}
-
 /// An object which can be entry in [`crate::ListView`] component.
 ///
 /// The entries should not assume any padding - it will be granted by ListView itself. The Display
@@ -58,13 +54,13 @@ pub trait Params {
 /// components, so they are not deleted and created again. The ListView component does not create
 /// Entry object for each entry provided, and during scrolling, the instantiated objects will be
 /// reused: they position will be changed and they will be updated using `update` method.
-pub trait Entry: CloneRef + Debug + display::Object + Params + 'static {
+pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// The model of this entry. The entry should be a representation of data from the Model.
     /// For example, the entry being just a caption can have [`String`] as its model - the text to
     /// be displayed.
     type Model: Debug + Default;
 
-    // type Params: Default;
+    type Params: CloneRef + Debug + Default;
 
     /// An Object constructor.
     fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self;
@@ -106,12 +102,9 @@ impl Label {
     }
 }
 
-impl Params for Label {
-    type Params = ();
-}
-
 impl Entry for Label {
     type Model = String;
+    type Params = ();
 
     fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
         let logger = Logger::new("list_view::entry::Label");
@@ -185,13 +178,9 @@ pub struct GlyphHighlightedLabel {
     highlight: frp::Source<Vec<text::Range<text::Bytes>>>,
 }
 
-impl Params for GlyphHighlightedLabel {
-    type Params = ();
-}
-
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
-    // type Params = ();
+    type Params = ();
 
     fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
         let inner = Label::new(app, style_prefix, &());

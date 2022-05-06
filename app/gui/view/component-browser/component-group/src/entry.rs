@@ -37,12 +37,9 @@ pub struct View {
     label:          Label,
 }
 
-impl list_view::entry::Params for View {
-    type Params = ();
-}
-
 impl list_view::Entry for View {
     type Model = Model;
+    type Params = ();
 
     fn new(app: &Application, style_prefix: &style::Path, _params: &Self::Params) -> Self {
         let logger = Logger::new("component-group::Entry");

@@ -58,7 +58,7 @@ impl IdAtYPosition {
 ///
 /// Not all entries are displayed at once, only those visible.
 #[derive(Clone, CloneRef, Debug)]
-pub struct List<E: CloneRef + entry::Params> {
+pub struct List<E: Entry> {
     logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
@@ -278,7 +278,7 @@ where E::Model: Default
     }
 }
 
-impl<E: CloneRef + entry::Params> display::Object for List<E> {
+impl<E: Entry> display::Object for List<E> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
