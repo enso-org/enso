@@ -1,23 +1,33 @@
 package org.enso.compiler.test.context
 
-import org.enso.compiler.Passes
-import org.enso.compiler.context.{
-  FreshNameSupply,
-  ModuleContext,
-  SuggestionBuilder
-}
+import org.enso.compiler.context.SuggestionBuilder
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassManager
-import org.enso.compiler.test.CompilerTest
+import org.enso.interpreter.runtime
+import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{LanguageInfo, MethodNames, Suggestion}
 import org.enso.polyglot.data.Tree
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 
-class SuggestionBuilderTest extends CompilerTest {
+class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
+  private val ctx = new InterpreterContext()
+  private val langCtx = ctx.ctx
+    .getBindings(LanguageInfo.ID)
+    .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+    .asHostObject[Context]()
 
-  implicit val passManager: PassManager = new Passes(defaultConfig).passManager
+  implicit private class PreprocessModule(code: String) {
+    def preprocessModule: IR.Module = {
+      val module = new runtime.Module(Module, null, code)
+      langCtx.getCompiler.run(module)
+      module.getIr
+    }
+  }
+//  implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 
   private val Module = QualifiedName(List("Unnamed"), "Test")
   private val ModuleNode = Tree.Node(
@@ -39,7 +49,6 @@ class SuggestionBuilderTest extends CompilerTest {
   "SuggestionBuilder" should {
 
     "build method without explicit arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo = 42"""
       val module = code.preprocessModule
@@ -66,7 +75,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -97,7 +105,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with type and documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -129,7 +136,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with a qualified type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -159,7 +165,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with an argument" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -190,7 +195,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with a type containing higher kinds" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -228,7 +232,6 @@ class SuggestionBuilderTest extends CompilerTest {
 
     "build method with a type containing qualified higher kinds" in {
       pending // issue #1711
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """
@@ -258,7 +261,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """foo a b =
@@ -317,7 +319,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with default arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo (a = 0) = a + 1"""
       val module = code.preprocessModule
@@ -346,7 +347,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with explicit self type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyType
@@ -393,7 +393,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "not build method with undefined self type" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """MyAtom.bar a b = a + b"""
@@ -403,7 +402,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom
@@ -450,7 +448,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with function type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom
@@ -495,7 +492,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with union type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom
@@ -546,7 +542,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with lazy arguments" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """foo ~a = a + 1"""
@@ -576,7 +571,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -620,7 +614,6 @@ class SuggestionBuilderTest extends CompilerTest {
 
     "build conversion method for simple type" in {
       pending
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type MyAtom a
@@ -682,7 +675,6 @@ class SuggestionBuilderTest extends CompilerTest {
 
     "build conersion method for complex type" in {
       pending
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyMaybe
           |    type Some a
@@ -789,7 +781,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -837,7 +828,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -901,7 +891,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -949,7 +938,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -1011,7 +999,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -1055,7 +1042,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with complex body" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -1115,7 +1101,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with associated type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """main =
@@ -1160,7 +1145,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with resolved type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type A
@@ -1218,7 +1202,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build atom simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """type MyType a b"""
       val module = code.preprocessModule
@@ -1277,7 +1260,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build atom with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -1340,7 +1322,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type simple" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """type Maybe
@@ -1396,7 +1377,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -1457,7 +1437,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with methods, type signatures and docs" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type List
           |    ## And more
@@ -1506,7 +1485,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Cons", false, false, None)
               ),
               selfType      = "Unnamed.Test.Cons",
-              returnType    = "List",
+              returnType    = "Unnamed.Test.List",
               documentation = Some(" a method")
             ),
             Vector()
@@ -1521,7 +1500,7 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.Nil", false, false, None)
               ),
               selfType      = "Unnamed.Test.Nil",
-              returnType    = "List",
+              returnType    = "Unnamed.Test.List",
               documentation = Some(" a method")
             ),
             Vector()
@@ -1531,7 +1510,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build type with methods, without type signatures" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type Maybe
           |    type Nothing
@@ -1624,7 +1602,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with simple atom" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyType a b
           |
@@ -1699,7 +1676,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with an atom named as module" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type Test a
           |
@@ -1757,7 +1733,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with overloaded functions" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type A
           |    type A
@@ -1795,7 +1770,14 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Vector(
                 Suggestion
                   .Argument("this", "Unnamed.Test.A", false, false, None),
-                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.A"))
+                )
               ),
               selfType      = "Unnamed.Test.A",
               returnType    = "Unnamed.Test.A",
@@ -1810,7 +1792,14 @@ class SuggestionBuilderTest extends CompilerTest {
               name       = "quux",
               arguments = Vector(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
-                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+                Suggestion.Argument(
+                  "x",
+                  "Unnamed.Test.A",
+                  false,
+                  false,
+                  None,
+                  Some(List("Unnamed.Test.A"))
+                )
               ),
               selfType      = "Unnamed.Test",
               returnType    = "Unnamed.Test.A",
@@ -1837,7 +1826,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main = IO.println "Hello!"
           |
@@ -1871,7 +1859,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build function with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main =
           |    id x = x
@@ -1926,7 +1913,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build local with external id" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """main =
           |    foo = 42
@@ -1977,7 +1963,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build module with documentation" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
         """## Module doc
@@ -2012,14 +1997,28 @@ class SuggestionBuilderTest extends CompilerTest {
         )
       )
     }
+
+    "provide type variants when applicable" in {
+      val code =
+        """type My_Tp
+          |    type Variant_A
+          |    type Variant_B
+          |
+          |foo : My_Tp -> My_Tp
+          |foo arg = arg.do_sth""".stripMargin
+      val module      = code.preprocessModule
+      val suggestions = build(code, module)
+      val fooSuggestion = suggestions.collectFirst {
+        case s: Suggestion.Method if s.name == "foo" => s
+      }
+      val fooArg = fooSuggestion.get.arguments(1)
+      fooArg.reprType shouldEqual "Unnamed.Test.My_Tp"
+      fooArg.tagValues shouldEqual Some(
+        List("Unnamed.Test.Variant_A", "Unnamed.Test.Variant_B")
+      )
+    }
   }
 
   private def build(source: String, ir: IR.Module): Tree.Root[Suggestion] =
     SuggestionBuilder(source).build(Module, ir)
-
-  private def freshModuleContext: ModuleContext =
-    buildModuleContext(
-      moduleName      = Module,
-      freshNameSupply = Some(new FreshNameSupply)
-    )
 }

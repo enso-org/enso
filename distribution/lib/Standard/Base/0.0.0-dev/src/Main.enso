@@ -1,5 +1,6 @@
-import project.Data.Any.Extensions
-import project.Data.Array.Extensions
+import project.Data.Any
+import project.Data.Array
+import project.Data.Boolean
 import project.Data.Interval
 import project.Data.Json
 import project.Data.List
@@ -7,27 +8,33 @@ import project.Data.Locale
 import project.Data.Map
 import project.Data.Maybe
 import project.Data.Noise
-import project.Data.Number.Extensions
+import project.Data.Numbers
 import project.Data.Ordering
 import project.Data.Ordering.Sort_Order
 import project.Data.Pair
 import project.Data.Range
+import project.Data.Ref
+import project.Data.Text
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
 import project.Data.Vector
 import project.Error.Common
-import project.Error.Extensions
+import project.Function
+import project.IO
+import project.Nothing
 import project.Math
 import project.Meta
 import project.Meta.Enso_Project
+import project.Polyglot
 import project.Polyglot.Java
+import project.Runtime
 import project.Runtime.Extensions
+import project.Runtime.State
+import project.Runtime.Resource
 import project.System.Environment
 import project.System.File
 import project.Data.Text.Regex.Mode as Regex_Mode
 import project.Warning
-
-from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
 export project.Data.Interval
 export project.Data.Json
@@ -36,21 +43,27 @@ export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
 export project.Data.Ordering.Sort_Order
+export project.Data.Ref
 export project.Data.Vector
+export project.IO
 export project.Math
 export project.Meta
+export project.Polyglot.Java
+export project.Runtime
+export project.Runtime.State
 export project.System.Environment
 export project.System.File
 export project.Data.Text.Regex.Mode as Regex_Mode
 export project.Warning
 
-from project.Data.Any.Extensions export all
-from project.Data.Array.Extensions export all
-from project.Data.List export Nil, Cons
-from project.Data.Number.Extensions export all hiding Math, String, Double
+from project.Data.Array export Array
+from project.Data.Any export all
+from project.Data.Boolean export all
+from project.Data.List export Nil, Cons, List
+from project.Data.Numbers export all hiding Math, String, Double, Parse_Error
 from project.Data.Noise export all hiding Noise
 from project.Data.Pair export Pair
-from project.Data.Range export Range
+from project.Data.Range export all
 ## TODO [RW] Once autoscoping is implemented or automatic imports for ADTs are
    fixed in the IDE, we should revisit if we want to export ADTs like `Case` by
    default. It may be unnecessary pollution of scope, but until the issues are
@@ -60,11 +73,11 @@ from project.Data.Range export Range
    https://www.pivotaltracker.com/story/show/181309938
 from project.Data.Text.Extensions export Text, Line_Ending_Style, Case, Location
 from project.Data.Text.Matching export Case_Insensitive, Text_Matcher, Regex_Matcher
+from project.Data.Text export all
 from project.Error.Common export all
-from project.Error.Extensions export all
+from project.Function export all
 from project.Meta.Enso_Project export all
-from project.Polyglot.Java export all
+from project.Nothing export all
+from project.Polyglot export all
 from project.Runtime.Extensions export all
-
-from Standard.Builtins export all hiding Meta, Less, Equal, Greater, Ordering
-
+from project.Runtime.Resource export all

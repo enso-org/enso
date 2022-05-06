@@ -12,25 +12,33 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.openide.util.lookup.ServiceProvider;
 
-/** The processor used to generate code from the {@link BuiltinMethod} annotation. */
+/**
+ * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
+ * metadata necessary for automatic builtin methods initialization.
+ */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
-public class MethodProcessor extends AbstractProcessor {
+public class MethodProcessor extends BuiltinsMetadataProcessor {
+
+  private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
 
   /**
-   * Processes annotated elements, generating code for each of them.
+   * Processes annotated elements, generating code for each of them. The method also records
+   * information about builtin method in an internal map that will be dumped on the last round of
+   * processing.
    *
    * @param annotations annotation being processed this round.
    * @param roundEnv additional round information.
    * @return {@code true}
    */
   @Override
-  public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+  public boolean handleProcess(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
@@ -55,12 +63,26 @@ public class MethodProcessor extends AbstractProcessor {
         if (executeMethod == null) continue;
         String pkgName =
             processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+
         MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
         if (!def.validate(processingEnv)) {
           continue;
         }
         try {
           generateCode(def);
+          String tpe = def.getType().toLowerCase();
+          if (tpe.isEmpty()) {
+            throw new InternalError(
+                "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+          }
+          String fullClassName = def.getPackageName() + "." + def.getClassName();
+          registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+          if (def.hasAliases()) {
+            for (String alias : def.aliases()) {
+              registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+            }
+          }
+
         } catch (IOException e) {
           e.printStackTrace();
         }
@@ -389,6 +411,47 @@ public class MethodProcessor extends AbstractProcessor {
       }
       return true;
     }
+  }
+
+  /**
+   * Dumps the information about the collected builtin methods to {@link
+   * MethodProcessor#metadataPath()} resource file.
+   *
+   * <p>The format of a single row in the metadata file: <full name of the method>:<class name of
+   * the root node>
+   *
+   * @param writer a writer to the metadata resource
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that
+   *     should not be appended to {@code writer} should be removed
+   * @throws IOException
+   */
+  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+    for (Filer f : builtinMethods.keySet()) {
+      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
+      }
+    }
+  }
+
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName) {
+    Map<String, String> methods = builtinMethods.get(f);
+    if (methods == null) {
+      methods = new HashMap<>();
+      builtinMethods.put(f, methods);
+    }
+    methods.put(name, clazzName);
+  }
+
+  @Override
+  protected String metadataPath() {
+    return MethodDefinition.META_PATH;
+  }
+
+  protected void cleanup() {
+    builtinMethods.clear();
   }
 
   private String warningCheck(MethodDefinition.ArgumentDefinition arg) {

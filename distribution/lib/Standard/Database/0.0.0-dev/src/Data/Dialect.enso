@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Error.Extensions as Errors
+import Standard.Base.Error.Common as Errors
 import Standard.Table.Data.Aggregate_Column
 import Standard.Database.Data.Sql
 import Standard.Database.Data.Dialect.Postgres

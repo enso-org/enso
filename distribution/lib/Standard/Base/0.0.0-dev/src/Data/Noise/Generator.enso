@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Interval.Bound
-import Standard.Base.Error.Extensions
 
 polyglot java import java.lang.Long
 polyglot java import java.util.Random

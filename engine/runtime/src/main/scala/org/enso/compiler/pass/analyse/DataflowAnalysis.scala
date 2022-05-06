@@ -154,6 +154,7 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
+      case _: IR.Module.Scope.Definition.UnionType => binding
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +

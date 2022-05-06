@@ -7,7 +7,7 @@ class CallableFixtures extends DefaultInterpreterRunner {
 
   val sumTCOfromCallCode =
     """
-      |from Standard.Builtins import all
+      |from Standard.Base.Data.Numbers import all
       |
       |type Foo
       |

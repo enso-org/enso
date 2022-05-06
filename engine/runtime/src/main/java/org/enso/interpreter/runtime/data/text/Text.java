@@ -190,7 +190,7 @@ public class Text implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(context.getBuiltins().text().getText(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().text(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -242,7 +242,7 @@ public class Text implements TruffleObject {
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(
-          target, context.getBuiltins().text().getText(), context.getBuiltins().any());
+          target, context.getBuiltins().text(), context.getBuiltins().any());
     }
 
     static Context getContext() {

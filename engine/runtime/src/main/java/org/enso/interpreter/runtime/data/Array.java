@@ -130,8 +130,7 @@ public class Array implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(
-          context.getBuiltins().mutable().array(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().array(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -177,7 +176,7 @@ public class Array implements TruffleObject {
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(
-          target, context.getBuiltins().mutable().array(), context.getBuiltins().any());
+          target, context.getBuiltins().array(), context.getBuiltins().any());
     }
 
     static Context getContext() {

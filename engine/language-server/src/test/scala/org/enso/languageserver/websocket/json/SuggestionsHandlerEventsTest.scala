@@ -58,7 +58,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "MyAtom",
@@ -141,14 +142,16 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "MyType",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "foo",
                       "reprType" : "Number",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "42"
+                      "defaultValue" : "42",
+                      "tagValues" : null
                     }
                   ],
                   "selfType" : "MyType",
@@ -224,21 +227,24 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "b",
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "c",
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "C"
+                      "defaultValue" : "C",
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "IO",
@@ -356,21 +362,24 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "b",
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "c",
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "C"
+                      "defaultValue" : "C",
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "IO",
@@ -398,7 +407,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "MyAtom",
@@ -461,14 +471,16 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "MyType",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "foo",
                       "reprType" : "Number",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "42"
+                      "defaultValue" : "42",
+                      "tagValues" : null
                     }
                   ],
                   "selfType" : "MyType",
@@ -572,7 +584,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   }
                 ]

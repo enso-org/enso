@@ -115,6 +115,8 @@ public class ModuleScope implements TruffleObject {
     Map<String, Function> methodMap = ensureMethodMapFor(atom);
 
     if (methodMap.containsKey(method)) {
+      // Builtin types will have double definition because of
+      // BuiltinMethod and that's OK
       throw new RedefinedMethodException(atom.getName(), method);
     } else {
       methodMap.put(method, function);
@@ -128,8 +130,6 @@ public class ModuleScope implements TruffleObject {
    * @return a list containing all the defined conversions in definition order
    */
   private Map<AtomConstructor, Function> ensureConversionsFor(AtomConstructor cons) {
-    // var methods = ensureMethodMapFor(cons);
-    // methods.
     return conversions.computeIfAbsent(cons, k -> new HashMap<>());
   }
 
@@ -196,10 +196,12 @@ public class ModuleScope implements TruffleObject {
     if (definedWithAtom != null) {
       return definedWithAtom;
     }
+
     Function definedHere = getMethodMapFor(atom).get(lowerName);
     if (definedHere != null) {
       return definedHere;
     }
+
     return imports.stream()
         .map(scope -> scope.getExportedMethod(atom, name))
         .filter(Objects::nonNull)
