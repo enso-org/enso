@@ -1,12 +1,16 @@
 from Standard.Base import all
+import Standard.Base.Error.Problem_Behavior
 
 import Standard.Table
 import Standard.Table.Data.Column
 from Standard.Table.Error import all
+
+import Standard.Table.Io.File_Read
 import Standard.Table.Io.File_Format
-import Standard.Base.Error.Problem_Behavior
+
 import Standard.Test
 import Standard.Test.Problems
+
 import project.Util
 
 spec =
@@ -16,7 +20,7 @@ spec =
             c_2 = ["b", ['2', Nothing, '8', '11']]
             c_3 = ["c", [Nothing, '6', '9', '12']]
             expected_table = Table.new [c_1, c_2, c_3]
-            simple_empty = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            simple_empty = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=True)
             simple_empty.should_equal expected_table
 
         Test.specify "should load a simple table without headers" <|
@@ -24,11 +28,11 @@ spec =
             c_2 = ["Column_2", ['b', '2', Nothing, '8', '11']]
             c_3 = ["Column_3", ['c', Nothing, '6', '9', '12']]
             expected_table = Table.new [c_1, c_2, c_3]
-            simple_empty = (File_Format.Delimited "," headers=False).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            simple_empty = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False)
             simple_empty.should_equal expected_table
 
         Test.specify "should work in presence of missing headers" <|
-            table = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "missing_header.csv") Problem_Behavior.Report_Error
+            table = File.read (Enso_Project.data / "missing_header.csv") (File_Format.Delimited "," headers=True)
             table.columns.map .name . should_equal ["a", "Column", "c", "Column_1", "d"]
             table.at "a" . to_vector . should_equal ["1"]
             table.at "Column" . to_vector . should_equal ["2"]
@@ -37,40 +41,40 @@ spec =
             table.at "d" . to_vector . should_equal ["5"]
 
         Test.specify "load even an empty file" <|
-            table = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "empty.txt") Problem_Behavior.Report_Error
+            table = File.read (Enso_Project.data / "empty.txt") (File_Format.Delimited "," headers=True)
             table.columns.map .name . should_equal []
             table.row_count . should_equal 0
 
         Test.specify "should correctly handle file opening issues" <|
             nonexistent_file = Enso_Project.data / "a_filename_that_does_not_exist.foobar"
-            r1 = (File_Format.Delimited "," headers=True).read nonexistent_file Problem_Behavior.Report_Error
+            r1 = File.read nonexistent_file (File_Format.Delimited "," headers=True)
             r1.should_fail_with File.File_Not_Found
 
             directory = Enso_Project.data
-            r2 = (File_Format.Delimited "," headers=True).read directory Problem_Behavior.Report_Error
+            r2 = File.read directory (File_Format.Delimited "," headers=True) Problem_Behavior.Report_Error
             r2.should_fail_with File.Io_Error
 
         Test.specify "should handle duplicated columns" <|
-            table = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "duplicated_columns.csv") Problem_Behavior.Report_Error
+            table = File.read (Enso_Project.data / "duplicated_columns.csv") (File_Format.Delimited "," headers=True)
             table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
             table.at 'a' . to_vector . should_equal ['1']
             table.at 'a_1' . to_vector . should_equal ['4']
 
         Test.specify "should handle quotes" <|
-            t1 = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "double_quoted.csv") Problem_Behavior.Report_Error
+            t1 = File.read (Enso_Project.data / "double_quoted.csv") (File_Format.Delimited "," headers=True)
             t1.at 'a' . to_vector . should_equal ['a, x', '"a']
             t1.at 'c' . to_vector . should_equal ['3', '"']
 
-            t2 = (File_Format.Delimited "," headers=True quote_escape="\").read (Enso_Project.data / "escape_quoted.csv") Problem_Behavior.Report_Error
+            t2 = File.read (Enso_Project.data / "escape_quoted.csv") (File_Format.Delimited "," headers=True quote_escape="\")
             t2.at 'a' . to_vector . should_equal ['a"b', 'a\\\"z']
 
-            t3 = (File_Format.Delimited "," quote=Nothing headers=True).read (Enso_Project.data / "no_quoting.csv") Problem_Behavior.Report_Error
+            t3 = File.read (Enso_Project.data / "no_quoting.csv") (File_Format.Delimited "," quote=Nothing headers=True)
             t3.at 'a' . to_vector . should_equal ['"y']
             t3.at 'b' . to_vector . should_equal ['z"']
             t3.at 'c' . to_vector . should_equal ['a']
 
         Test.specify "should support rows spanning multiple lines if quoted" <|
-            t1 = (File_Format.Delimited "," headers=True).read (Enso_Project.data / "multiline_quoted.csv") Problem_Behavior.Report_Error
+            t1 = File.read (Enso_Project.data / "multiline_quoted.csv") (File_Format.Delimited "," headers=True)
             t1.at 'a' . to_vector . should_equal ['1', '4']
             t1.at 'b' . to_vector . should_equal ['start\n\ncontinue', '5']
             t1.at 'c' . to_vector . should_equal ['3', '6']
@@ -131,33 +135,33 @@ spec =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow to skip rows" <|
-            t1 = (File_Format.Delimited "," headers=False skip_rows=3).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t1 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False skip_rows=3)
             t1.at "Column_1" . to_vector . should_equal ['7', '10']
 
-            t2 = (File_Format.Delimited "," headers=True skip_rows=3).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t2 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=True skip_rows=3)
             t2.columns.map .name . should_equal ['7', '8', '9']
             t2.at "7" . to_vector . should_equal ['10']
 
         Test.specify "should allow to set a limit of rows to read" <|
-            t1 = (File_Format.Delimited "," headers=False row_limit=2).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t1 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False row_limit=2)
             t1.at "Column_1" . to_vector . should_equal ['a', '1']
 
-            t2 = (File_Format.Delimited "," headers=True row_limit=2).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t2 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=True row_limit=2)
             t2.at "a" . to_vector . should_equal ['1', '4']
 
-            t3 = (File_Format.Delimited "," headers=False skip_rows=3 row_limit=1).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t3 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False skip_rows=3 row_limit=1)
             t3.at "Column_1" . to_vector . should_equal ['7']
 
-            t4 = (File_Format.Delimited "," headers=False row_limit=0).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t4 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False row_limit=0)
             t4.columns.map .name . should_equal ['Column_1', 'Column_2', 'Column_3']
             t4.row_count . should_equal 0
 
-            t5 = (File_Format.Delimited "," headers=True row_limit=0).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t5 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=True row_limit=0)
             t5.columns.map .name . should_equal ['a', 'b', 'c']
             t5.at 'a' . to_vector . should_equal []
             t5.row_count . should_equal 0
 
-            t6 = (File_Format.Delimited "," headers=False skip_rows=3 row_limit=1000).read (Enso_Project.data / "simple_empty.csv") Problem_Behavior.Report_Error
+            t6 = File.read (Enso_Project.data / "simple_empty.csv") (File_Format.Delimited "," headers=False skip_rows=3 row_limit=1000)
             t6.at "Column_1" . to_vector . should_equal ['7', '10']
 
         Test.specify "should check arguments" <|
