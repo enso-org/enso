@@ -41,8 +41,10 @@ const COLUMNS: usize = 3;
 
 /// Type of the component group items.
 type Entry = list_view::entry::Label;
-/// An index of the column.
-type ColumnId = usize;
+newtype_prim! {
+    /// An index of the column.
+    ColumnId(usize);
+}
 
 
 
@@ -177,26 +179,27 @@ impl component::Frp<Model> for Frp {
             eval_ hide_no_items_label(model.hide_no_items_label());
         }
 
-        for (idx, column) in model.columns.iter().enumerate() {
+        for column in model.columns.iter() {
+            let col_id = column.id.clone_ref();
             frp::extend! { network
                 // === Accepting suggestions ===
 
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion).filter_map(|e| *e);
                 chosen_entry <- column.chosen_entry.filter_map(|e| *e);
                 out.suggestion_accepted <+ accepted_entry.map2(&entry_count, f!(
-                        [](&e, &total) local_idx_to_global(idx, e, total)
+                        [](&e, &total) local_idx_to_global(col_id, e, total)
                 ));
                 out.expression_accepted <+ chosen_entry.map2(&entry_count, f!(
-                        [](&e, &total) local_idx_to_global(idx, e, total)
+                        [](&e, &total) local_idx_to_global(col_id, e, total)
                 ));
 
 
                 // === Selection position ===
 
                 entry_selected <- column.selected_entry.filter_map(|e| *e);
-                selected_column_and_entry <+ entry_selected.map(f!([column](e) (idx, column.reverse_index(*e))));
+                selected_column_and_entry <+ entry_selected.map(f!([column](e) (col_id, column.reverse_index(*e))));
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
-                eval_ on_column_selected(model.on_column_selected(idx));
+                eval_ on_column_selected(model.on_column_selected(col_id));
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
                 out.selection_position_target <+ selection_pos.map(f!((pos) column.selection_position(*pos)));
 
@@ -204,9 +207,9 @@ impl component::Frp<Model> for Frp {
                 // === set_entries ===
 
                 out.selected_entry <+ column.selected_entry.map2(&entry_count, move |entry, total| {
-                    entry.map(|e| local_idx_to_global(idx, e, *total))
+                    entry.map(|e| local_idx_to_global(col_id, e, *total))
                 });
-                entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, idx));
+                entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, col_id));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
@@ -230,28 +233,18 @@ impl component::Frp<Model> for Frp {
 // ==============
 
 /// An internal representation of the column.
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 struct Column {
-    index:     Immutable<ColumnId>,
+    id:        ColumnId,
     provider:  Rc<CloneRefCell<AnyModelProvider<Entry>>>,
+    #[deref]
     list_view: list_view::ListView<Entry>,
-}
-
-impl Deref for Column {
-    type Target = list_view::ListView<Entry>;
-    fn deref(&self) -> &Self::Target {
-        &self.list_view
-    }
 }
 
 impl Column {
     /// Constructor.
-    fn new(app: &Application, index: ColumnId) -> Self {
-        Self {
-            index:     Immutable(index),
-            provider:  default(),
-            list_view: app.new_view::<list_view::ListView<Entry>>(),
-        }
+    fn new(app: &Application, id: ColumnId) -> Self {
+        Self { id, provider: default(), list_view: app.new_view::<list_view::ListView<Entry>>() }
     }
 
     /// An entry count for this column.
@@ -282,7 +275,7 @@ impl Column {
         self.list_view.resize(Vector2(width, height));
 
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
-        let pos_x = left_border + width * *self.index as f32;
+        let pos_x = left_border + width * *self.id as f32;
         let half_height = height / 2.0;
         let background_bottom = -bg_height / 2.0;
         let pos_y = background_bottom + half_height;
@@ -326,7 +319,11 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        let columns = Rc::new([Column::new(app, 0), Column::new(app, 1), Column::new(app, 2)]);
+        let columns = Rc::new([
+            Column::new(app, ColumnId::new(0)),
+            Column::new(app, ColumnId::new(1)),
+            Column::new(app, ColumnId::new(2)),
+        ]);
         for column in columns.iter() {
             column.hide_selection();
             column.set_background_color(Rgba::transparent());
@@ -357,24 +354,16 @@ impl Model {
     }
 
     /// Returns the rightmost non-empty column with index less or equal to `index`.
-    fn non_empty_column(&self, mut index: ColumnId) -> Option<&Column> {
-        while let Some(column) = self.columns.get(index) {
-            if column.len() > 0 {
-                return Some(column);
-            }
-            if index > 0 {
-                index = index.saturating_sub(1);
-            } else {
-                break;
-            }
-        }
-        None
+    fn non_empty_column(&self, index: ColumnId) -> Option<&Column> {
+        let indexes_to_the_right = *index..0;
+        let mut columns_to_the_right = indexes_to_the_right.flat_map(|i| self.columns.get(i));
+        columns_to_the_right.find(|col| col.len() > 0)
     }
 
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that
     /// at all times only a single entry across all columns is selected.
     fn on_column_selected(&self, column_id: ColumnId) {
-        let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != column_id);
+        let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != *column_id);
         for (_, column) in other_columns {
             column.deselect_entries();
         }
@@ -413,7 +402,7 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
     let evenly_distributed_count = total_entry_count / COLUMNS;
     let remainder = total_entry_count % COLUMNS;
     let has_remainder = remainder > 0;
-    let column_contains_remaining_entries = column_id < remainder;
+    let column_contains_remaining_entries = *column_id < remainder;
     if has_remainder && column_contains_remaining_entries {
         evenly_distributed_count + 1
     } else {
@@ -427,7 +416,7 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
 /// has a "global" index of `COLUMNS + 2 = 5`.
 fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> EntryId {
     let reversed_index = reverse_index(entry, entry_count_in_column(column, total_entry_count));
-    COLUMNS * reversed_index + column
+    COLUMNS * reversed_index + *column
 }
 
 /// "Reverse" the index in such a way that the first entry becomes last, and the last becomes first.

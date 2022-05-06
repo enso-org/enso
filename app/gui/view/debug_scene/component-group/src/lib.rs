@@ -212,7 +212,9 @@ fn init(app: &Application) {
         });
     }
     slider.frp.set_value(10.0);
-    wide_component_group.select_entry(0, 0); // select bottom left entry at the start
+    // select bottom left entry at the start
+    let first_column = component_group::wide::ColumnId::new(0);
+    wide_component_group.select_entry(first_column, 0); 
 
     std::mem::forget(slider);
     std::mem::forget(network);
