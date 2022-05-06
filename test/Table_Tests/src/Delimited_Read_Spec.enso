@@ -95,7 +95,26 @@ spec =
             table.at 'ć😎' . to_vector . should_equal ['แมวมีสี่ขา']
 
         Test.specify "should report errors when encountering malformed characters" <|
-            Nothing
+            action_1 on_problems =
+                (File_Format.Delimited "," headers=True).read (Enso_Project.data / "utf8_invalid.csv") on_problems
+            tester_1 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['ą']
+                table.at 'b' . to_vector . should_equal ['\uFFFF']
+                table.at 'c' . to_vector . should_equal ['\uFFFD(']
+            problems_1 = [Encoding_Error "Encoding issues at TODO"]
+            Problems.test_problem_handling action_1 problems_1 tester_1
+
+            action_2 on_problems =
+                (File_Format.Delimited "," headers=True encoding=Encoding.utf_16_be).read (Enso_Project.data / "utf16_invalid.csv") on_problems
+            tester_2 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['ą']
+                table.at 'b' . to_vector . should_equal ['\uFFFF']
+                table.at 'c' . to_vector . should_equal ['\uFFFD']
+            problems_2 = [Encoding_Error "Encoding issues at TODO"]
+            Problems.test_problem_handling action_2 problems_2 tester_2
+
 
         Test.specify "should handle duplicated columns" <|
             table = File.read (Enso_Project.data / "duplicated_columns.csv") (File_Format.Delimited "," headers=True)
