@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Problem_Behavior
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 
 import Standard.Table
 import Standard.Table.Data.Column
@@ -53,6 +54,40 @@ spec =
             directory = Enso_Project.data
             r2 = File.read directory (File_Format.Delimited "," headers=True) Problem_Behavior.Report_Error
             r2.should_fail_with File.Io_Error
+
+        Test.specify "should work with all kinds of line endings" <|
+            path name = Enso_Project.data / 'line_endings' / name
+            test_file name ending_style =
+                lines = ['a,b,c', 'd,e,f', '1,2,3']
+                text = lines.join ending_style
+                (path name).write_text text
+
+                table = (File_Format.Delimited "," headers=True).read (path name) Problem_Behavior.Report_Error
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['d', '1']
+                table.at 'b' . to_vector . should_equal ['e', '2']
+                table.at 'c' . to_vector . should_equal ['f', '3']
+
+            test_file 'crlf.csv' '\r\n'
+            test_file 'lf.csv' '\n'
+            test_file 'cr.csv' '\r'
+
+        Test.specify "should work with Windows-1252 encoding" <|
+            table = (File_Format.Delimited "," headers=True encoding=Encoding.windows_1252).read (Enso_Project.data / "windows.csv") Problem_Behavior.Report_Error
+            table.columns.map .name . should_equal ['a', 'b', 'c']
+            table.at 'a' . to_vector . should_equal ['$¢']
+            table.at 'b' . to_vector . should_equal ['¤']
+            table.at 'c' . to_vector . should_equal ['¥']
+
+        Test.specify "should work with UTF-16 encoding" <|
+            table = (File_Format.Delimited "," headers=True encoding=Encoding.utf_16_be).read (Enso_Project.data / "utf16.csv") Problem_Behavior.Report_Error
+            table.columns.map .name . should_equal ['ą', '🚀b', 'ć😎']
+            table.at 'ą' . to_vector . should_equal ['ą']
+            table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
+            table.at 'ć😎' . to_vector . should_equal ['แมวมีสี่ขา']
+
+        Test.specify "should report errors when encountering malformed characters" <|
+            Nothing
 
         Test.specify "should handle duplicated columns" <|
             table = File.read (Enso_Project.data / "duplicated_columns.csv") (File_Format.Delimited "," headers=True)

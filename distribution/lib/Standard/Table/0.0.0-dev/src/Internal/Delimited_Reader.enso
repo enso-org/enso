@@ -29,14 +29,13 @@ polyglot java import java.io.InputStream
      If set to `Ignore`, the operation proceeds without errors or warnings.
 read_file : Delimited -> File -> Problem_Behavior -> Any
 read_file format file on_problems =
-    if format.encoding != Encoding.utf_8 then Errors.unimplemented "Custom encodings when reading Delimited files are not implemented yet." else
-        ## We use the default `max_columns` setting. If we want to be able to
-           read files with unlimited column limits (risking OutOfMemory
-           exceptions), we can catch the exception indicating the limit has been
-           reached and restart parsing with an increased limit.
-        file.with_input_stream [File.Option.Read] stream->
-            stream.with_java_stream java_stream->
-                here.read_stream format java_stream on_problems related_file=file
+    ## We use the default `max_columns` setting. If we want to be able to
+       read files with unlimited column limits (risking OutOfMemory
+       exceptions), we can catch the exception indicating the limit has been
+       reached and restart parsing with an increased limit.
+    file.with_input_stream [File.Option.Read] stream->
+        stream.with_java_stream java_stream->
+            here.read_stream format java_stream on_problems related_file=file
 
 ## PRIVATE
    Reads an input stream according to the provided format.
