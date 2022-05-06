@@ -205,15 +205,17 @@ public class Reader {
     // Row Range
     int firstRow = sheet.getFirstRowNum() + 1;
     int lastRow = sheet.getLastRowNum() + 1;
-    int startRow = (range == null || range.isWholeColumn() ? 1 : range.getTopRow()) + skipRows;
-    int endRow = range == null || range.isWholeColumn() ? lastRow : range.getBottomRow();
+    boolean wholeColumn = range == null || range.isWholeColumn();
+    int startRow = (wholeColumn ? 1 : range.getTopRow()) + skipRows;
+    int endRow = wholeColumn ? lastRow : range.getBottomRow();
 
     // Columns
-    int startCol = (range == null || range.isWholeRow() ? 1 : range.getLeftColumn());
-    int endCol = (range == null || range.isWholeRow() ? -1 : range.getRightColumn());
+    boolean wholeRow = range == null || range.isWholeRow();
+    int startCol = wholeRow ? 1 : range.getLeftColumn();
+    int endCol = wholeRow ? -1 : range.getRightColumn();
     int size = Math.min(rowCount, endRow - startRow + 1);
     List<Builder> builders =
-        endCol == -1
+        wholeRow
             ? new ArrayList<>()
             : IntStream.range(startCol, endCol + 1)
                 .mapToObj(i -> new InferredBuilder(size))
@@ -242,7 +244,7 @@ public class Reader {
     }
 
     // Special case for stopping before firstRow
-    if (endCol == -1 && (rowCount == 0 || row < firstRow)) {
+    if (wholeRow && (rowCount == 0 || row < firstRow)) {
       Row currentRow = sheet.getRow(firstRow - 1);
       int currentEndCol = currentRow.getLastCellNum() + 1;
       expandBuilders(builders, size, currentEndCol - startCol, size);
@@ -313,7 +315,7 @@ public class Reader {
    * @throws IOException when the input stream cannot be read.
    */
   public static String[] readSheetNames(InputStream stream, boolean xls_format) throws IOException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+    Workbook workbook = getWorkbook(stream, xls_format);
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     for (int i = 0; i < sheetCount; i++) {
@@ -331,8 +333,9 @@ public class Reader {
    * @throws IOException when the input stream cannot be read.
    */
   public static String[] readRangeNames(InputStream stream, boolean xls_format) throws IOException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
-    return workbook.getAllNames().stream().map(Name::getNameName).toArray(String[]::new);
+    return getWorkbook(stream, xls_format).getAllNames().stream()
+        .map(Name::getNameName)
+        .toArray(String[]::new);
   }
 
   /**
@@ -353,7 +356,7 @@ public class Reader {
       Integer row_limit,
       boolean xls_format)
       throws IOException, IllegalArgumentException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+    Workbook workbook = getWorkbook(stream, xls_format);
 
     int sheetIndex = getSheetIndex(workbook, sheetName);
     if (sheetIndex == -1) {
@@ -382,7 +385,7 @@ public class Reader {
   public static Table readSheetByIndex(
       InputStream stream, int index, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException, IllegalArgumentException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+    Workbook workbook = getWorkbook(stream, xls_format);
 
     int sheetCount = workbook.getNumberOfSheets();
     if (index < 1 || index > sheetCount) {
@@ -397,7 +400,6 @@ public class Reader {
         skip_rows == null ? 0 : skip_rows,
         row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
-
 
   /**
    * Reads a range by name or address for the specified XLSX/XLS file into a table.
@@ -417,13 +419,12 @@ public class Reader {
       Integer row_limit,
       boolean xls_format)
       throws IOException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
+    Workbook workbook = getWorkbook(stream, xls_format);
 
     Name name = workbook.getName(rangeNameOrAddress);
     Range range = new Range(name == null ? rangeNameOrAddress : name.getRefersToFormula());
     return readRange(workbook, range, skip_rows, row_limit);
   }
-
 
   /**
    * Reads a range for the specified XLSX/XLS file into a table.
@@ -439,8 +440,11 @@ public class Reader {
   public static Table readRange(
       InputStream stream, Range range, Integer skip_rows, Integer row_limit, boolean xls_format)
       throws IOException {
-    Workbook workbook = xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
-    return readRange(workbook, range, skip_rows, row_limit);
+    return readRange(getWorkbook(stream, xls_format), range, skip_rows, row_limit);
+  }
+
+  private static Workbook getWorkbook(InputStream stream, boolean xls_format) throws IOException {
+    return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
   }
 
   private static Table readRange(
