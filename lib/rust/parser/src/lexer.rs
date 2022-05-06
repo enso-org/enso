@@ -90,18 +90,9 @@ where for<'x> source::With<'x, &'t T>: Debug
     default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let off = self.span.left_visible_offset;
         write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
-        Debug::fmt(&self.trans(|t| &t.elem), f)
+        Debug::fmt(&self.with_data(&self.data.elem), f)
     }
 }
-
-impl<'s, 't, T: Debug> Debug for source::DebugLeaf<source::With<'s, &'t location::With<T>>> {
-    default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let off = self.span.left_visible_offset;
-        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
-        Debug::fmt(&self.elem, f)
-    }
-}
-
 
 
 impl PartialEq<Token> for &Token {

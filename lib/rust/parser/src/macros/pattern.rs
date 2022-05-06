@@ -3,7 +3,19 @@ use crate::TokenOrAst;
 
 
 
+// ===============
+// === Pattern ===
+// ===============
+
+/// Pattern used to validate incoming token stream against expected macro input.
+///
+/// The idea is similar to patterns used in `macro_rules` definitions in Rust. There are a few
+/// differences though:
+/// 1. This pattern implementation exposes different matchers and operations.
+/// 2. This macro implementation never attaches types to tokens, which means that every defined
+///    pattern behaves like a TT-muncher in Rust.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum Pattern {
     Everything,
     Nothing,
@@ -11,61 +23,85 @@ pub enum Pattern {
     Item(Item),
 }
 
+/// Any item. Can specify whether it requires the rhs spacing.
 #[derive(Clone, Copy, Debug)]
 pub struct Item {
     pub has_rhs_spacing: Option<bool>,
 }
 
-pub struct Error<T> {
-    tokens:  Vec<T>,
-    message: String,
+
+
+// =======================
+// === ResolutionError ===
+// =======================
+
+/// Pattern resolution error.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ResolutionError<T> {
+    /// All the incoming tokens. The resolver consumes vector of tokens and returns it back in case
+    /// an error happened.
+    pub tokens:  Vec<T>,
+    pub message: String,
 }
 
-impl<T> Debug for Error<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("Pattern match error")
-    }
-}
-
-impl<T> Error<T> {
+impl<T> ResolutionError<T> {
+    /// Constructor.
     pub fn new(tokens: Vec<T>, message: impl Into<String>) -> Self {
         let message = message.into();
         Self { tokens, message }
     }
 }
 
-impl Pattern {
-    pub fn resolve<T: TryAsRef<TokenOrAst>>(&self, input: Vec<T>) -> (Vec<T>, Vec<T>) {
-        match self {
-            Self::Everything => (input, default()),
-            Self::Nothing => (default(), input),
-            _ => todo!(),
-        }
-    }
 
-    pub fn resolve2<T: TryAsRef<TokenOrAst>>(
+
+/// ==================
+/// === Resolution ===
+/// ==================
+
+/// Successful pattern match result.
+pub struct Match<T> {
+    pub matched:     Vec<T>,
+    pub not_matched: Vec<T>,
+}
+
+impl<T> Match<T> {
+    /// Constructor.
+    pub fn new(matched: Vec<T>, not_matched: Vec<T>) -> Self {
+        Self { matched, not_matched }
+    }
+}
+
+impl Pattern {
+    /// Match the token stream with this pattern.
+    pub fn resolve<T: TryAsRef<TokenOrAst>>(
         &self,
         mut input: Vec<T>,
-        has_spacing: bool,
-    ) -> Result<(Vec<T>, Vec<T>), Error<T>> {
+        has_spacing_at_end: bool,
+        right_to_left_mode: bool,
+    ) -> Result<Match<T>, ResolutionError<T>> {
         match self {
-            Self::Everything => Ok((input, default())),
-            Self::Nothing => Ok((default(), input)),
+            Self::Everything => Ok(Match::new(input, default())),
+            Self::Nothing => Ok(Match::new(default(), input)),
             Self::Or(fst, snd) => fst
-                .resolve2(input, has_spacing)
-                .or_else(|err| snd.resolve2(err.tokens, has_spacing)),
+                .resolve(input, has_spacing_at_end, right_to_left_mode)
+                .or_else(|err| snd.resolve(err.tokens, has_spacing_at_end, right_to_left_mode)),
             Self::Item(item) => match input.first() {
-                None => Err(Error::new(input, "Expected an item.")),
+                None => Err(ResolutionError::new(input, "Expected an item.")),
                 Some(first) => match first.try_as_ref() {
-                    None => Err(Error::new(input, "Expected an item.")),
+                    None => Err(ResolutionError::new(input, "Expected an item.")),
                     Some(first) => match item.has_rhs_spacing {
                         Some(spacing) =>
-                            if spacing == has_spacing {
-                                Ok((vec![input.pop_front().unwrap()], input))
+                            if right_to_left_mode {
+                                if spacing == has_spacing_at_end {
+                                    Ok(Match::new(vec![input.pop_front().unwrap()], input))
+                                } else {
+                                    Err(ResolutionError::new(input, "Expected an item."))
+                                }
                             } else {
-                                Err(Error::new(input, "Expected an item."))
+                                todo!()
                             },
-                        None => Ok((vec![input.pop_front().unwrap()], input)),
+                        None => Ok(Match::new(vec![input.pop_front().unwrap()], input)),
                     },
                 },
             },

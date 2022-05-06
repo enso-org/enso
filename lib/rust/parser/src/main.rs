@@ -32,7 +32,7 @@ use enso_shapely_macros::ast_builder;
 
 // ==================================
 
-use crate::source::DebugLeaf;
+// use crate::source::DebugLeaf;
 use crate::source::HasRepr;
 use ast::Ast;
 use lexer::Lexer;
@@ -254,7 +254,10 @@ impl<'a> Resolver<'a> {
         if let Some(def) = &child_macro.matched_macro_def {
             let pattern = &def.segments.last().pattern;
             let child_tokens = mem::take(&mut child_macro.current_segment.body);
-            let (mut new_child_tokens, new_parent_tokens) = pattern.resolve(child_tokens);
+            // FIXME: the first [`false`] below is invalid.
+            let match_result = pattern.resolve(child_tokens, false, false).unwrap();
+            let mut new_child_tokens = match_result.matched;
+            let new_parent_tokens = match_result.not_matched;
             mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
             self.current_macro.current_segment.body.push(child_macro.into());
             self.current_macro.current_segment.body.extend(new_parent_tokens);
@@ -278,11 +281,11 @@ impl<'a> Resolver<'a> {
                             && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
                             ss.reverse();
                             let spacing = m2.current_segment.header.span.left_offset > Bytes::from(0);
-                            let (mut matched, unmatched) = pfx_pattern.resolve2(ss,spacing).unwrap();
-                            matched.reverse();
-                            ss = unmatched;
+                            let mut match_result = pfx_pattern.resolve(ss,spacing,true).unwrap();
+                            match_result.matched.reverse();
+                            ss = match_result.not_matched;
                             ss.reverse();
-                            Self::resolve(lexer, m2, Some(matched)).into()
+                            Self::resolve(lexer, m2, Some(match_result.matched)).into()
                         } else {
                             Self::resolve(lexer, m2, None).into()
                         }

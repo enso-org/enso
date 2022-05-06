@@ -223,7 +223,7 @@ impl Ast {
 impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MultipleOperatorError")
-            .field("operators", &self.trans(|_| &self.operators))
+            .field("operators", &self.with_data(&self.operators))
             .finish()
     }
 }
@@ -231,8 +231,8 @@ impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
 impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MultiSegmentAppSegment")
-            .field("header", &self.trans(|_| &self.header))
-            .field("body", &self.trans(|_| &self.body))
+            .field("header", &self.with_data(&self.header))
+            .field("body", &self.with_data(&self.body))
             .finish()
     }
 }
