@@ -88,10 +88,10 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
     display_object: display::object::Instance,
-    label:          text::Area,
+    pub label:      text::Area,
     text:           Rc<RefCell<String>>,
     max_width_px:   Rc<Cell<f32>>,
-    network:        enso_frp::Network,
+    pub network:    enso_frp::Network,
     style_watch:    StyleWatchFrp,
 }
 

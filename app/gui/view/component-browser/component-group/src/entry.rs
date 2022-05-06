@@ -57,11 +57,19 @@ impl list_view::Entry for View {
     type Model = Model;
     type Params = Params;
 
-    fn new(app: &Application, style_prefix: &style::Path, _params: &Self::Params) -> Self {
+    fn new(app: &Application, style_prefix: &style::Path, params: &Self::Params) -> Self {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let label = Label::new(app, style_prefix, &());
         display_object.add_child(&label);
+
+        let network = &label.network;
+
+        let color_param = params.color.clone();
+        let label_frp = &label.label.frp;
+        frp::extend! { network
+            label_frp.set_color_all <+ color_param;
+        }
 
         Self { logger, display_object, label }
     }
