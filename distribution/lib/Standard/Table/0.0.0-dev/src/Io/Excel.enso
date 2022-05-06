@@ -71,14 +71,18 @@ type Excel_Range
        Arguments:
        - column: 1-based index to check
     is_valid_column : Integer -> Boolean
-    is_valid_column column = (column > 0) && (column <= 16384)
+    is_valid_column column =
+        excel_2007_column_limit = 16384
+        (column > 0) && (column <= excel_2007_column_limit)
 
     ## Validates if a row index (1-based) is within the valid range for Excel.
 
        Arguments:
        - row: 1-based index to check
     is_valid_row : Integer -> Boolean
-    is_valid_row row = (row > 0) && (row <= 1048576)
+    is_valid_row row =
+        excel_2007_row_limit = 1048576
+        (row > 0) && (row <= excel_2007_row_limit)
 
     ## Given a column name parse to the index (1-based) or return index unchanged.
     column_index : (Text|Integer) -> Integer
