@@ -39,7 +39,7 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
         if (n == t.name) {
           None
         } else {
-          Some(sig, expr, "names do not match")
+          Some((sig, expr, "names do not match"))
         }
       case (AnyQualName(n), _) =>
         val meta = expr.getMetadata(TypeNames)
@@ -80,7 +80,10 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
           MatchResult(
             matches = false,
             s"""
-               |$left does not match $sig.
+               |${left.showCode()}
+               |($left)
+               |does not match
+               |$sig.
                |Analysis:
                |  sub-expression
                |    ${t.showCode()}
@@ -97,9 +100,9 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
   }
 
   sealed trait Sig {
-    def ->(that: Sig): Sig = that match {
-      case Fn(args, r) => Fn(this :: args, r)
-      case _           => Fn(List(this), that)
+    def ->:(that: Sig): Sig = this match {
+      case Fn(args, r) => Fn(that :: args, r)
+      case _           => Fn(List(that), this)
     }
   }
   case class Name(name: String)               extends Sig
@@ -131,20 +134,24 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
           |foo : Text -> Number
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
-      getSignature(module, "foo") should typeAs("Text" -> "Number")
+      getSignature(module, "foo") should typeAs("Text" ->: "Number")
     }
 
-    "resolve local names" in {
+    "resolve locally defined names" in {
       val code =
         """
           |type A
           |type B
           |
-          |foo : A -> B
+          |type C
+          |  type X
+          |  type D
+          |
+          |foo : A -> B -> C -> X -> D
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
-        "Unnamed.Test.A" -> "Unnamed.Test.B"
+        "Unnamed.Test.A" ->: "Unnamed.Test.B" ->: "Unnamed.Test.C" ->: "Unnamed.Test.X" ->: "Unnamed.Test.D"
       )
     }
   }

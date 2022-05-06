@@ -1,14 +1,12 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedConstructor, ResolvedMethod}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.data.BindingsMap.TypeResolution
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
-import org.enso.interpreter.Constants
+import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.annotation.unused
 
@@ -50,8 +48,31 @@ case object TypeNames extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    ???
+    val bindingsMap =
+      ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
+    ir.copy(bindings = ir.bindings.map { d =>
+      d.getMetadata(TypeSignatures)
+        .map(s =>
+          d.updateMetadata(
+            TypeSignatures -->> TypeSignatures.Signature(
+              resolveSignature(bindingsMap, s.signature)
+            )
+          )
+        )
+        .getOrElse(d)
+    })
   }
+
+  private def resolveSignature(
+    bindingsMap: BindingsMap,
+    expression: IR.Expression
+  ): IR.Expression =
+    expression.transformExpressions { case n: IR.Name.Literal =>
+      bindingsMap
+        .resolveTypeName(n.name)
+        .map(res => n.updateMetadata(this -->> TypeResolution(res)))
+        .getOrElse(n)
+    }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.
@@ -66,16 +87,7 @@ case object TypeNames extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    val scopeMap = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingAnalysis,
-      "No binding analysis on the module"
-    )
-    val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "No fresh name supply passed to UppercaseNames resolver."
-      )
-    )
-    ???
+    ir
   }
 
   /** @inheritdoc */
