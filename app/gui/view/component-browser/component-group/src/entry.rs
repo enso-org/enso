@@ -32,7 +32,7 @@ impl From<&str> for Model {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
-    color: frp::Sampler<Rgba>,
+    pub color: frp::Sampler<Rgba>,
 }
 
 impl Default for Params {

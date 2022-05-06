@@ -190,7 +190,10 @@ impl component::Frp<Model> for Frp {
                 |(a,b),c| color::mix(*a,*b,*c));
             background_color <- all_with(&fade_and_leading_colors, &background_color_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
+            text_color_sampler <- header_color.sampler();
         }
+        let params = entry::Params { color: text_color_sampler };
+        model.entries.recreate_entries_with_params(params);
 
 
         // === Header ===
