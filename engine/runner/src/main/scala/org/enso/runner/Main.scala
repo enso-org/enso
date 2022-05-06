@@ -732,6 +732,7 @@ object Main {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
       s"""from Standard.Base import all
+         |import Standard.Base.Runtime.Debug
          |
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin
