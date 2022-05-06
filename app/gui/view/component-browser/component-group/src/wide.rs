@@ -1,5 +1,9 @@
 //! A multi-column [Component Group] without header.
 //!
+//! Almost every type in this module is parametrized with `COLUMNS` const generic, that represents
+//! the count of columns the widget will have. The default value is `3`. (see
+//! [`DEFAULT_COLUMNS_COUNT`])
+//!
 //! The widget is defined by the [`View`].
 //!
 //! To learn more about component groups, see the [Component Browser Design
@@ -29,9 +33,10 @@ use list_view::entry::AnyModelProvider;
 // === Constants ===
 // =================
 
+/// The default count of columns to display.
+pub const DEFAULT_COLUMNS_COUNT: usize = 3;
 const ENTRY_HEIGHT: f32 = list_view::entry::HEIGHT;
 const MINIMAL_HEIGHT: f32 = ENTRY_HEIGHT;
-const COLUMNS: usize = 3;
 
 
 
@@ -76,12 +81,12 @@ pub mod background {
 /// Entries are distributed evenly between lists. If the entry count is not divisible by `COLUMNS` -
 /// the lists with lower indices will have more entries.
 #[derive(Debug, Clone, CloneRef, Default)]
-pub struct ModelProvider {
+pub struct ModelProvider<const COLUMNS: usize> {
     inner:     AnyModelProvider<Entry>,
     column_id: Immutable<ColumnId>,
 }
 
-impl ModelProvider {
+impl<const COLUMNS: usize> ModelProvider<COLUMNS> {
     /// Wrap [`AnyModelProvider`] and split its entries into `COLUMNS` lists. The returned instance
     /// provides entries for column with `column_id`.
     fn wrap(inner: &AnyModelProvider<Entry>, column_id: ColumnId) -> AnyModelProvider<Entry> {
@@ -92,15 +97,15 @@ impl ModelProvider {
     }
 }
 
-impl list_view::entry::ModelProvider<Entry> for ModelProvider {
+impl<const COLUMNS: usize> list_view::entry::ModelProvider<Entry> for ModelProvider<COLUMNS> {
     fn entry_count(&self) -> usize {
         let total_entry_count = self.inner.entry_count();
-        entry_count_in_column(*self.column_id, total_entry_count)
+        entry_count_in_column::<COLUMNS>(*self.column_id, total_entry_count)
     }
 
     fn get(&self, id: EntryId) -> Option<String> {
         let total_entry_count = self.inner.entry_count();
-        let idx = local_idx_to_global(*self.column_id, id, total_entry_count);
+        let idx = local_idx_to_global::<COLUMNS>(*self.column_id, id, total_entry_count);
         self.inner.get(idx)
     }
 }
@@ -137,8 +142,13 @@ ensogl_core::define_endpoints_2! {
     }
 }
 
-impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
+    fn init(
+        api: &Self::Private,
+        _app: &Application,
+        model: &Model<COLUMNS>,
+        _style: &StyleWatchFrp,
+    ) {
         let network = &api.network;
         let input = &api.input;
         let out = &api.output;
@@ -187,10 +197,10 @@ impl component::Frp<Model> for Frp {
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion).filter_map(|e| *e);
                 chosen_entry <- column.chosen_entry.filter_map(|e| *e);
                 out.suggestion_accepted <+ accepted_entry.map2(&entry_count, f!(
-                        [](&e, &total) local_idx_to_global(col_id, e, total)
+                        [](&e, &total) local_idx_to_global::<COLUMNS>(col_id, e, total)
                 ));
                 out.expression_accepted <+ chosen_entry.map2(&entry_count, f!(
-                        [](&e, &total) local_idx_to_global(col_id, e, total)
+                        [](&e, &total) local_idx_to_global::<COLUMNS>(col_id, e, total)
                 ));
 
 
@@ -207,9 +217,9 @@ impl component::Frp<Model> for Frp {
                 // === set_entries ===
 
                 out.selected_entry <+ column.selected_entry.map2(&entry_count, move |entry, total| {
-                    entry.map(|e| local_idx_to_global(col_id, e, *total))
+                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
                 });
-                entries <- input.set_entries.map(move |p| ModelProvider::wrap(p, col_id));
+                entries <- input.set_entries.map(move |p| ModelProvider::<COLUMNS>::wrap(p, col_id));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
@@ -221,7 +231,7 @@ impl component::Frp<Model> for Frp {
         use ensogl_core::application::shortcut::ActionType::*;
         (&[(Press, "tab", "accept_suggestion")])
             .iter()
-            .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
+            .map(|(a, b, c)| View::<COLUMNS>::self_shortcut(*a, *b, *c))
             .collect()
     }
 }
@@ -232,16 +242,17 @@ impl component::Frp<Model> for Frp {
 // === Column ===
 // ==============
 
-/// An internal representation of the column.
+/// An internal representation of the column. `COLUMNS` is the total count of columns in the
+/// widget.
 #[derive(Debug, Clone, CloneRef, Deref)]
-struct Column {
+struct Column<const COLUMNS: usize> {
     id:        ColumnId,
     provider:  Rc<CloneRefCell<AnyModelProvider<Entry>>>,
     #[deref]
     list_view: list_view::ListView<Entry>,
 }
 
-impl Column {
+impl<const COLUMNS: usize> Column<COLUMNS> {
     /// Constructor.
     fn new(app: &Application, id: ColumnId) -> Self {
         Self { id, provider: default(), list_view: app.new_view::<list_view::ListView<Entry>>() }
@@ -295,22 +306,22 @@ impl Column {
 // === Model ===
 // =============
 
-/// The Model of the [`View`] component.
+/// The Model of the [`View`] component. Consists of `COLUMNS` columns.
 #[derive(Clone, CloneRef, Debug)]
-pub struct Model {
+pub struct Model<const COLUMNS: usize> {
     display_object: display::object::Instance,
     background:     background::View,
-    columns:        Rc<[Column; COLUMNS]>,
+    columns:        Rc<Vec<Column<COLUMNS>>>,
     no_items_label: Label,
 }
 
-impl display::Object for Model {
+impl<const COLUMNS: usize> display::Object for Model<COLUMNS> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }
 
-impl component::Model for Model {
+impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
     fn label() -> &'static str {
         "WideComponentGroupView"
     }
@@ -319,11 +330,8 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        let columns = Rc::new([
-            Column::new(app, ColumnId::new(0)),
-            Column::new(app, ColumnId::new(1)),
-            Column::new(app, ColumnId::new(2)),
-        ]);
+        let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
+        let columns = Rc::new(columns);
         for column in columns.iter() {
             column.hide_selection();
             column.set_background_color(Rgba::transparent());
@@ -337,7 +345,7 @@ impl component::Model for Model {
     }
 }
 
-impl Model {
+impl<const COLUMNS: usize> Model<COLUMNS> {
     /// Set the text content of the "no items" label.
     fn set_no_items_label_text(&self, text: &str) {
         self.no_items_label.set_content(text);
@@ -354,7 +362,7 @@ impl Model {
     }
 
     /// Returns the rightmost non-empty column with index less or equal to `index`.
-    fn non_empty_column(&self, index: ColumnId) -> Option<&Column> {
+    fn non_empty_column(&self, index: ColumnId) -> Option<&Column<COLUMNS>> {
         let indexes_to_the_right = *index..0;
         let mut columns_to_the_right = indexes_to_the_right.flat_map(|i| self.columns.get(i));
         columns_to_the_right.find(|col| col.len() > 0)
@@ -388,7 +396,8 @@ impl Model {
 // ============
 
 /// The implementation of the visual component described in the module's documentation.
-pub type View = component::ComponentView<Model, Frp>;
+pub type View<const COLUMNS: usize = DEFAULT_COLUMNS_COUNT> =
+    component::ComponentView<Model<COLUMNS>, Frp>;
 
 
 
@@ -396,8 +405,11 @@ pub type View = component::ComponentView<Model, Frp>;
 // === Helpers ===
 // ===============
 
-/// Return the number of entries in column with `index`.
-fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize {
+/// Return the number of entries in the column with `index`.
+fn entry_count_in_column<const COLUMNS: usize>(
+    column_id: ColumnId,
+    total_entry_count: usize,
+) -> usize {
     let evenly_distributed_count = total_entry_count / COLUMNS;
     let remainder = total_entry_count % COLUMNS;
     let has_remainder = remainder > 0;
@@ -413,8 +425,13 @@ fn entry_count_in_column(column_id: ColumnId, total_entry_count: usize) -> usize
 ///
 /// The entry #1 in column with index 2 is the second item from the bottom in the third column and
 /// has a "global" index of `COLUMNS + 2 = 5`.
-fn local_idx_to_global(column: ColumnId, entry: EntryId, total_entry_count: usize) -> EntryId {
-    let reversed_index = reverse_index(entry, entry_count_in_column(column, total_entry_count));
+fn local_idx_to_global<const COLUMNS: usize>(
+    column: ColumnId,
+    entry: EntryId,
+    total_entry_count: usize,
+) -> EntryId {
+    let reversed_index =
+        reverse_index(entry, entry_count_in_column::<COLUMNS>(column, total_entry_count));
     COLUMNS * reversed_index + *column
 }
 
