@@ -3,11 +3,13 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
+import sbt.complete.DefaultParsers._
+import sbt.complete.Parser
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
-import java.nio.file.Paths
+
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -1745,110 +1747,42 @@ buildEngineDistribution := {
   log.info(s"Engine package created at $root")
 }
 
-lazy val buildStdLibBase = taskKey[Unit]("Build only the standard library for Base")
-buildStdLibBase := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
+val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
+val allStdBits: Parser[String] = stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val buildStdLib = inputKey[Unit]("Build a standard library package")
+buildStdLib := Def.inputTaskDyn {
+  val cmd: String = allStdBits.parsed
+  val root: File = engineDistributionRoot.value
+  // Ensure that a complete distribution was built at least once
+  // Becasuse of `if` has to delegate to another input key
+  if ((root / "manifest.yaml").exists) {
+    pkgStdLibInternal.toTask(cmd)
+  } else buildEngineDistribution
+}.evaluated
+
+lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
+pkgStdLibInternal := Def.inputTaskDyn {
+  val cmd = allStdBits.parsed
+  val root = engineDistributionRoot.value
+  val log: sbt.Logger          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  cmd match {
+    case "Base" =>
       (`std-base` / Compile / packageBin).value
-      buildStdLibPackage("Base", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-lazy val buildStdLibDatabase = taskKey[Unit]("Build only the standard library for Database")
-buildStdLibDatabase := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
+    case "Database" =>
       (`std-database` / Compile / packageBin).value
-      buildStdLibPackage("Database", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-lazy val buildStdLibTable = taskKey[Unit]("Build only the standard library for Table")
-buildStdLibTable := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
-      (`std-table` / Compile / packageBin).value
-      buildStdLibPackage("Table", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-lazy val buildStdLibImage = taskKey[Unit]("Build only the standard library for Image")
-buildStdLibImage := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
-      (`std-image` / Compile / packageBin).value
-      buildStdLibPackage("Image", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-lazy val buildStdLibGoogleApi = taskKey[Unit]("Build only the standard library for Google API")
-buildStdLibImage := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
+    case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
-      buildStdLibPackage("Google_Api", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-lazy val buildStdLibTest = taskKey[Unit]("Build only the standard library for Test")
-buildStdLibImage := {
-  Def.taskDyn {
-    val root: File         = engineDistributionRoot.value
-    if ((root / "manifest.yaml").exists) {
-      val log: sbt.Logger          = streams.value.log
-      val cacheFactory = streams.value.cacheStoreFactory
-      buildStdLibPackage("Test", root, cacheFactory, log)
-    } else buildEngineDistribution
-  }.value
-}
-
-def buildStdLibPackage(name: String, root: File, cacheFactory: sbt.util.CacheStoreFactory, log: sbt.Logger) = Def.task {
-  log.info(s"Building standard library package for '$name'")
-  val version = defaultDevEnsoVersion
-  val prefix = "Standard"
-  val targetPkgRoot = root / "lib" / prefix / name / version
-  val sourceDir = file(s"distribution/lib/$prefix/$name/$version")
-  if (!sourceDir.exists) {
-    throw new RuntimeException("Invalid standard library package " + name)
+    case "Image" =>
+      (`std-image` / Compile / packageBin).value
+    case "Table" =>
+      (`std-table` / Compile / packageBin).value
+    case _ =>
   }
-  LibraryManifestGenerator.generateManifests(
-    List(BundledLibrary(s"$prefix.$name", version)),
-    file("distribution"),
-    log,
-    cacheFactory
-  )
-  val result = DistributionPackage.copyDirectoryIncremental(
-    source      = file(s"distribution/lib/$prefix/$name/$version"),
-    destination = targetPkgRoot,
-    cache = cacheFactory.sub("engine-libraries").make(s"$prefix.$name"),
-  )
-  if (result) {
-    log.info(s"Package '$name' has been updated")
-    DistributionPackage.fixLibraryManifest(targetPkgRoot, version, log)
-  } else {
-    log.info(s"No changes detected for '$name' package")
-  }
-}
+  StdBits.buildStdLibPackage(cmd, root, cacheFactory, log, defaultDevEnsoVersion)
+}.evaluated
+
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
