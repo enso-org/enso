@@ -92,6 +92,8 @@ trait PackageRepository {
     */
   def registerModuleCreatedInRuntime(module: Module): Unit
 
+  def registerSyntheticPackage(namespace: String, name: String): Unit
+
   /** Removes a module with the given name from the list of loaded modules. */
   def deregisterModule(qualifiedName: String): Unit
 
@@ -456,6 +458,12 @@ object PackageRepository {
     /** @inheritdoc */
     override def registerModuleCreatedInRuntime(module: Module): Unit =
       registerModule(module)
+
+    override def registerSyntheticPackage(
+      namespace: String,
+      name: String
+    ): Unit =
+      loadedPackages.put(LibraryName(namespace, name), None)
 
     private def registerModule(module: Module): Unit =
       loadedModules.put(module.getName.toString, module)

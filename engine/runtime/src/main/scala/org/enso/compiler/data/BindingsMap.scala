@@ -211,12 +211,11 @@ case class BindingsMap(
     */
   def resolveTypeName(
     name: String
-  ): Either[ResolutionError, ResolvedTypeName] = {
+  ): Either[ResolutionError, ResolvedTypeName] =
     types.find(_.name == name) match {
       case Some(value) => Right(ResolvedType(currentModule, value))
       case None        => resolveUppercaseName(name)
     }
-  }
 
   /** Resolves a name in the context of current module.
     *

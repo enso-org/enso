@@ -70,6 +70,13 @@ public class TopLevelScope implements TruffleObject {
     return module;
   }
 
+  public Module createModule(QualifiedName name, Package<TruffleFile> pkg, String source) {
+    Module module = new Module(name, pkg, source);
+    packageRepository.registerModuleCreatedInRuntime(module);
+    return module;
+  }
+
+
   /**
    * Returns the builtins module.
    *

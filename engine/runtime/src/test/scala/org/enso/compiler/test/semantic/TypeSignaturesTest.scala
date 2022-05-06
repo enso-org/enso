@@ -11,21 +11,21 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
-  private val ctx = new InterpreterContext()
-  private val langCtx = ctx.ctx
-    .getBindings(LanguageInfo.ID)
-    .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-    .asHostObject[Context]()
-
-  private val Module = QualifiedName(List("Unnamed"), "Test")
-
-  implicit private class PreprocessModule(code: String) {
-    def preprocessModule: IR.Module = {
-      val module = new runtime.Module(Module, null, code)
-      langCtx.getCompiler.run(module)
-      module.getIr
+trait TypeMatchers {
+  sealed trait Sig {
+    def ->:(that: Sig): Sig = this match {
+      case Fn(args, r) => Fn(that :: args, r)
+      case _           => Fn(List(that), this)
     }
+  }
+  case class Name(name: String)               extends Sig
+  case class AnyQualName(name: QualifiedName) extends Sig
+  case class Fn(args: List[Sig], result: Sig) extends Sig
+
+  implicit def fromString(str: String): Sig = {
+    if (str.contains(".")) {
+      AnyQualName(QualifiedName.fromString(str))
+    } else { Name(str) }
   }
 
   def typeAs(sig: Sig): TypeMatcher = TypeMatcher(sig)
@@ -98,21 +98,41 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
       }
     }
   }
+}
 
-  sealed trait Sig {
-    def ->:(that: Sig): Sig = this match {
-      case Fn(args, r) => Fn(that :: args, r)
-      case _           => Fn(List(that), this)
+class TypeSignaturesTest
+    extends AnyWordSpecLike
+    with Matchers
+    with TypeMatchers {
+
+  private val ctx = new InterpreterContext()
+  private val langCtx = ctx.ctx
+    .getBindings(LanguageInfo.ID)
+    .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+    .asHostObject[Context]()
+
+  private val Module = QualifiedName.fromString("Unnamed.Test")
+
+  langCtx.getPackageRepository.registerSyntheticPackage("my_pkg", "My_Lib")
+  langCtx.getTopScope.createModule(
+    QualifiedName.fromString("my_pkg.My_Lib.Util"),
+    null,
+    s"""
+       |type Util_1
+       |type Util_2
+       |
+       |type Util_Sum
+       |    type Util_Sum_1
+       |    type Util_Sum_2
+       |""".stripMargin
+  )
+
+  implicit private class PreprocessModule(code: String) {
+    def preprocessModule: IR.Module = {
+      val module = new runtime.Module(Module, null, code)
+      langCtx.getCompiler.run(module)
+      module.getIr
     }
-  }
-  case class Name(name: String)               extends Sig
-  case class AnyQualName(name: QualifiedName) extends Sig
-  case class Fn(args: List[Sig], result: Sig) extends Sig
-
-  implicit private def fromString(str: String): Sig = {
-    if (str.contains(".")) {
-      AnyQualName(QualifiedName.fromString(str))
-    } else { Name(str) }
   }
 
   private def getSignature(
@@ -152,6 +172,19 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
         "Unnamed.Test.A" ->: "Unnamed.Test.B" ->: "Unnamed.Test.C" ->: "Unnamed.Test.X" ->: "Unnamed.Test.D"
+      )
+    }
+
+    "resolve imported names" in {
+      val code   = """
+                   |from my_pkg.My_Lib.Util import all
+                   |
+                   |foo : Util_1 -> Util_2
+                   |foo a = 23
+                   |""".stripMargin
+      val module = code.preprocessModule
+      getSignature(module, "foo") should typeAs(
+        "my_pkg.My_Lib.Util.Util_1" ->: "my_pkg.My_Lib.Util.Util_2"
       )
     }
   }
