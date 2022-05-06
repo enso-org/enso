@@ -376,7 +376,6 @@ impl Model {
             let background_height = entry_count_in_largest_column as f32 * ENTRY_HEIGHT;
             background_height.max(MINIMAL_HEIGHT)
         } else {
-            WARNING!("Wide Component Group does not have any columns.");
             MINIMAL_HEIGHT
         }
     }
