@@ -24,6 +24,7 @@ use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -58,8 +59,7 @@ pub mod background {
         below = [list_view::background];
         (style:Style, color:Vector4) {
             let color = Var::<Rgba>::from(color);
-            let shape = Plane().fill(color);
-            shape.into()
+            Plane().fill(color).into()
         }
     }
 }

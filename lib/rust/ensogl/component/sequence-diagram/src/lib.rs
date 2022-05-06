@@ -13,13 +13,11 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-pub mod labeled_line;
-pub mod shape;
-
 use ensogl_core::prelude::*;
 
 use crate::labeled_line::Cap;
 use crate::labeled_line::LabeledLine;
+
 use enso_profiler_data::Profile;
 use enso_profiler_enso_data::Metadata;
 use ensogl::frp;
@@ -27,6 +25,14 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod labeled_line;
+pub mod shape;
 
 
 
