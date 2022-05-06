@@ -58,12 +58,13 @@ impl IdAtYPosition {
 ///
 /// Not all entries are displayed at once, only those visible.
 #[derive(Clone, CloneRef, Debug)]
-pub struct List<E: CloneRef> {
+pub struct List<E: CloneRef + entry::Params> {
     logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,
     entries_range:  Rc<CloneCell<Range<entry::Id>>>,
+    entry_params:   Rc<RefCell<E::Params>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
     label_layer:    Rc<Cell<LayerId>>,
 }
@@ -77,10 +78,11 @@ where E::Model: Default
         let logger = Logger::new_sub(parent, "entry::List");
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
+        let entry_params = Rc::new(RefCell::new(default()));
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
-        List { logger, app, display_object, entries, entries_range, provider, label_layer }
+        List { logger, app, display_object, entries, entries_range, entry_params, provider, label_layer }
     }
 
     /// The number of all entries in List, including not displayed.
@@ -245,7 +247,7 @@ where E::Model: Default
             );
             layers.main.clone_ref()
         });
-        let entry = E::new(&self.app, style_prefix);
+        let entry = E::new(&self.app, style_prefix, &self.entry_params.borrow());
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
         entry.entry.set_position_x(entry::PADDING);
@@ -276,7 +278,7 @@ where E::Model: Default
     }
 }
 
-impl<E: CloneRef> display::Object for List<E> {
+impl<E: CloneRef + entry::Params> display::Object for List<E> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }

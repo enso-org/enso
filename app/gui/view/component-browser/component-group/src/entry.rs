@@ -37,13 +37,17 @@ pub struct View {
     label:          Label,
 }
 
+impl list_view::entry::Params for View {
+    type Params = ();
+}
+
 impl list_view::Entry for View {
     type Model = Model;
 
-    fn new(app: &Application, style_prefix: &style::Path) -> Self {
+    fn new(app: &Application, style_prefix: &style::Path, _params: &Self::Params) -> Self {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
-        let label = Label::new(app, style_prefix);
+        let label = Label::new(app, style_prefix, &());
         display_object.add_child(&label);
 
         Self { logger, display_object, label }
