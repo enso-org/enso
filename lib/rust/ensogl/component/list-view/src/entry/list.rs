@@ -78,7 +78,7 @@ where E::Model: Default
         let logger = Logger::new_sub(parent, "entry::List");
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
-        let entry_params = Rc::new(RefCell::new(default()));
+        let entry_params = default();
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
