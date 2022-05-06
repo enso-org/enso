@@ -27,30 +27,30 @@ pub mod prelude {
 
 
 
-// =======================
-// === IntegrationTest ===
-// =======================
+// ===============
+// === Fixture ===
+// ===============
 
-/// A fixture for each IDE integration tests. During setup, the executor and [`Ide`] structure are
-/// initialized.
-#[allow(missing_docs)]
+/// A root object for tests; contains the IDE, and objects that support it.
 #[derive(Debug)]
 pub struct Fixture {
-    pub executor: EventLoopExecutor,
+    /// The top-level object of the IDE.
     pub ide:      Ide,
+    /// Runs the IDE's async tasks.
+    pub executor: EventLoopExecutor,
+    /// Container for the IDE's HTML elements.
     pub root_div: HtmlDivElement,
 }
 
 impl Fixture {
     /// Initializes the executor and `Ide` structure and returns new Fixture.
     pub async fn new(initial_view: InitialView) -> Self {
+        let config = crate::config::Startup { initial_view, ..default() };
         let executor = setup_global_executor();
         let root_div = enso_web::document.create_div_or_panic();
-        root_div.set_id("root");
+        root_div.set_id(&config.dom_parent_id);
         root_div.set_style_or_warn("display", "none");
         enso_web::document.body_or_panic().append_or_warn(&root_div);
-
-        let config = crate::config::Startup { initial_view, ..default() };
         let initializer = crate::ide::Initializer::new(config);
         let ide = initializer.start().await.expect("Failed to initialize the application.");
         ide.ensogl_app.set_screen_size_for_tests();

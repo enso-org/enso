@@ -98,11 +98,13 @@ impl BackendService {
 #[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
-    pub backend:      BackendService,
+    pub backend:       BackendService,
     /// The project name we want to open on startup.
-    pub project_name: Option<ProjectName>,
+    pub project_name:  Option<ProjectName>,
     /// Whether to open directly to the project view, skipping the welcome screen.
-    pub initial_view: InitialView,
+    pub initial_view:  InitialView,
+    /// Identifies the element to create the IDE's DOM nodes as children of.
+    pub dom_parent_id: String,
 }
 
 impl Startup {
@@ -114,7 +116,9 @@ impl Startup {
             Some(_) => InitialView::Project,
             None => InitialView::WelcomeScreen,
         };
-        Ok(Startup { backend, project_name, initial_view })
+        // The main entry point requires that this matches the ID defined in `index.html`.
+        let dom_parent_id = "root".into();
+        Ok(Startup { backend, project_name, initial_view, dom_parent_id })
     }
 }
 
