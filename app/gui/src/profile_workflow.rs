@@ -8,66 +8,6 @@ use enso_web as web;
 
 
 
-// ====================
-// === ReflectMatch ===
-// ====================
-
-/// Match a value against a set of candidates; if no match is found, the list of candidates is
-/// available.
-macro_rules! reflect_match {
-    (@acc ($dispatch:ident, $value:expr, $candidates:ident, {
-        _ => $fallback:expr $(,)?
-    }) -> {$( $branches:tt )*}) => {
-        let mut $dispatch = ReflectMatch::new($value);
-        match () {
-            $( $branches )*
-            _ => {
-                let $candidates = $dispatch.candidates;
-                $fallback
-            }
-        }
-    };
-    (@acc ($dispatch:ident, $value:expr, $candidates:ident, {
-        $candidate:literal => $branch:expr,
-        $( $rest:tt )*
-    }) -> {$( $branches:tt )*}) => {
-        reflect_match!(@acc ($dispatch, $value, $candidates, { $( $rest )* }) -> {
-            $( $branches )*
-            _ if $dispatch.matches($candidate) => $branch,
-        })
-    };
-    ($candidates:ident, match $value:tt { $( $branches:tt )* }) => {
-        reflect_match!(@acc (dispatch, $value, $candidates, { $( $branches )* }) -> {})
-    };
-}
-
-
-// === ReflectMatch ===
-
-/// Used to match a value against a set of candidates, while keeping track of the candidates.
-struct ReflectMatch<T, U> {
-    value:      T,
-    candidates: Vec<U>,
-}
-
-impl<T, U> ReflectMatch<T, U> {
-    /// Create a new dispatcher, for a given value.
-    fn new(value: T) -> Self {
-        let candidates = Default::default();
-        Self { value, candidates }
-    }
-
-    /// Test the value against a candidate. Return whether it's a match.
-    fn matches(&mut self, key: U) -> bool
-    where T: PartialEq<U> {
-        let matches = self.value == key;
-        self.candidates.push(key);
-        matches
-    }
-}
-
-
-
 // ===================
 // === Entry point ===
 // ===================
