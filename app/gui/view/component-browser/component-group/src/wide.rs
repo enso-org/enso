@@ -46,6 +46,7 @@ const MINIMAL_HEIGHT: f32 = ENTRY_HEIGHT;
 
 /// Type of the component group items.
 type Entry = list_view::entry::Label;
+
 newtype_prim! {
     /// An index of the column.
     ColumnId(usize);
@@ -88,7 +89,7 @@ pub struct ModelProvider<const COLUMNS: usize> {
 
 impl<const COLUMNS: usize> ModelProvider<COLUMNS> {
     /// Wrap [`AnyModelProvider`] and split its entries into `COLUMNS` lists. The returned instance
-    /// provides entries for column with `column_id`.
+    /// provides entries for the column with `column_id`.
     fn wrap(inner: &AnyModelProvider<Entry>, column_id: ColumnId) -> AnyModelProvider<Entry> {
         AnyModelProvider::new(Self {
             inner:     inner.clone_ref(),
@@ -242,8 +243,9 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 // === Column ===
 // ==============
 
-/// An internal representation of the column. `COLUMNS` is the total count of columns in the
-/// widget.
+/// An internal representation of the column.
+///
+/// `COLUMNS` is the total count of columns in the widget.
 #[derive(Debug, Clone, CloneRef, Deref)]
 struct Column<const COLUMNS: usize> {
     id:        ColumnId,
@@ -263,16 +265,18 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
         self.provider.get().entry_count()
     }
 
-    /// Transforms `entry_id` into the actual EntryId for the underlying [`list_view::ListView`].
+    /// Transforms `entry_id` into the actual [`EntryId`] for the underlying
+    /// [`list_view::ListView`].
     ///
-    /// EntryId of the Wide Component Group count from the bottom (the bottom most entry has an id
-    /// of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so that
-    /// the top most entry has an id of 0). This function converts the former to the latter.
+    /// [`EntryId`] of the Wide Component Group counts from the bottom (the bottom most entry has an
+    /// id of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so
+    /// that the top most entry has an id of 0). This function converts the former to the
+    /// latter.
     fn reverse_index(&self, entry_id: EntryId) -> EntryId {
         reverse_index(entry_id, self.len())
     }
 
-    /// Update entries list, a setter for [`list_view::ListView`]`::set_entries`.
+    /// Update the entries list, a setter for [`list_view::ListView::set_entries`].
     fn set_entries(&self, provider: &AnyModelProvider<Entry>) {
         self.provider.set(provider.clone_ref());
         self.list_view.set_entries(provider);
@@ -294,7 +298,8 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
         self.list_view.set_position_y(pos_y);
     }
 
-    /// Transform Column-space position to WideComponentGroup-space one.
+    /// Transform the position relative to the column into the position relative to the whole
+    /// widget.
     fn selection_position(&self, pos: Vector2) -> Vector2 {
         self.position().xy() + pos
     }
@@ -435,7 +440,8 @@ fn local_idx_to_global<const COLUMNS: usize>(
     COLUMNS * reversed_index + *column
 }
 
-/// "Reverse" the index in such a way that the first entry becomes last, and the last becomes first.
+/// "Reverse" the index in such a way that the first entry becomes the last, and the last becomes
+/// the first.
 fn reverse_index(index: EntryId, entries_count: usize) -> EntryId {
     entries_count.saturating_sub(index).saturating_sub(1)
 }
