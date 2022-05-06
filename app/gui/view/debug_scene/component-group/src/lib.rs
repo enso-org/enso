@@ -59,25 +59,30 @@ fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
 
 #[derive(Clone, Debug)]
 struct MockEntries {
-    entries: Vec<String>,
+    entries: Vec<component_group::entry::Model>,
 }
 
 impl MockEntries {
-    fn new(entries: Vec<String>) -> Self {
-        Self { entries }
+    fn new(entries: &[&str]) -> Self {
+        Self {
+            entries: entries
+                .iter()
+                .map(|&label| label.into())
+                .collect()
+        }
     }
 
-    fn get_entry(&self, i: usize) -> Option<String> {
+    fn get_entry(&self, i: usize) -> Option<component_group::entry::Model> {
         self.entries.get(i).cloned()
     }
 }
 
-impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
+impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
     fn entry_count(&self) -> usize {
         self.entries.len()
     }
 
-    fn get(&self, id: usize) -> Option<String> {
+    fn get(&self, id: usize) -> Option<component_group::entry::Model> {
         self.get_entry(id)
     }
 }
@@ -93,15 +98,15 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let mock_entries = MockEntries::new(vec![
-        "long sample entry with text overflowing the width".into(),
-        "convert".into(),
-        "table input".into(),
-        "text input".into(),
-        "number input".into(),
-        "table input".into(),
-        "data output".into(),
-        "data input".into(),
+    let mock_entries = MockEntries::new(&[
+        "long sample entry with text overflowing the width",
+        "convert",
+        "table input",
+        "text input",
+        "number input",
+        "table input",
+        "data output",
+        "data input",
     ]);
 
     let network = frp::Network::new("Component Group Debug Scene");

@@ -19,6 +19,9 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
+pub mod entry;
+pub use entry::View as Entry;
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -43,16 +46,6 @@ use ensogl_text as text;
 
 const ENTRIES_STYLE_PATH: &str = theme::entries::HERE.str;
 
-
-
-// ===============
-// === Aliases ===
-// ===============
-
-// Note[ao]: This could be `entry::Id` once we will have `entry` module with Component Group's
-// entries related structures (those are not quite the same as stuff in `list_view::entry` - that's
-// why we don't just import that module).
-type EntryId = list_view::entry::Id;
 
 
 // ==========================
@@ -145,16 +138,16 @@ ensogl_core::define_endpoints_2! {
         /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
         accept_suggestion(),
         set_header(String),
-        set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
+        set_entries(list_view::entry::AnyModelProvider<Entry>),
         set_fade_color(Rgba),
         set_leading_color(Rgba),
         set_dimmed(bool),
         set_width(f32),
     }
     Output {
-        selected_entry(Option<EntryId>),
-        suggestion_accepted(EntryId),
-        expression_accepted(EntryId),
+        selected_entry(Option<entry::Id>),
+        suggestion_accepted(entry::Id),
+        expression_accepted(entry::Id),
         is_header_selected(bool),
         header_accepted(),
         selection_size(Vector2<f32>),
@@ -291,7 +284,7 @@ pub struct Model {
     header_text:    Rc<RefCell<String>>,
     header_overlay: header_overlay::View,
     background:     background::View,
-    entries:        list_view::ListView<list_view::entry::Label>,
+    entries:        list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -311,7 +304,7 @@ impl component::Model for Model {
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
-        let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
+        let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(ENTRIES_STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
@@ -441,9 +434,7 @@ mod tests {
             ensogl_hardcoded_theme::builtin::light::enable(&app);
             let cgv = View::new(&app);
             cgv.set_width(100.0);
-            let entries = AnyModelProvider::<list_view::entry::Label>::new(vec![
-                "Entry 1", "Entry 2", "Entry 3",
-            ]);
+            let entries = AnyModelProvider::<Entry>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
             cgv.set_entries(entries);
             Test { app, cgv }
         }
