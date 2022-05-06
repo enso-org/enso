@@ -2,6 +2,7 @@ use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
+use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::style;
@@ -30,6 +31,22 @@ impl From<&str> for Model {
 }
 
 #[derive(Clone, CloneRef, Debug)]
+pub struct Params {
+    color: frp::Sampler<Rgba>,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        let network = frp::Network::new("component_group::Params::default");
+        frp::extend! { network
+            color_source <- source::<Rgba>();
+            color <- color_source.sampler();
+        }
+        Self { color }
+    }
+}
+
+#[derive(Clone, CloneRef, Debug)]
 pub struct View {
     logger:         Logger,
     display_object: display::object::Instance,
@@ -39,7 +56,7 @@ pub struct View {
 
 impl list_view::Entry for View {
     type Model = Model;
-    type Params = ();
+    type Params = Params;
 
     fn new(app: &Application, style_prefix: &style::Path, _params: &Self::Params) -> Self {
         let logger = Logger::new("component-group::Entry");
