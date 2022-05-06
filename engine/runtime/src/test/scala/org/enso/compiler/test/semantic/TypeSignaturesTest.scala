@@ -1,7 +1,7 @@
 package org.enso.compiler.test.semantic
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.resolve.TypeSignatures
+import org.enso.compiler.pass.resolve.{TypeNames, TypeSignatures}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.test.InterpreterContext
@@ -34,29 +34,60 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
     private def findInequalityWitness(
       sig: Sig,
       expr: IR.Expression
-    ): Option[(Sig, IR.Expression)] = (sig, expr) match {
-      case (Name(n), t: IR.Name.Literal) if n == t.name => None
+    ): Option[(Sig, IR.Expression, String)] = (sig, expr) match {
+      case (Name(n), t: IR.Name.Literal) if n == t.name =>
+        if (n == t.name) {
+          None
+        } else {
+          Some(sig, expr, "names do not match")
+        }
+      case (AnyQualName(n), _) =>
+        val meta = expr.getMetadata(TypeNames)
+        if (meta.isEmpty) {
+          return Some((sig, expr, "the expression does not have a resolution"))
+        }
+        meta match {
+          case None =>
+            Some((sig, expr, "the expression does not have a resolution"))
+          case Some(resolution) =>
+            if (resolution.target.qualifiedName == n) {
+              None
+            } else {
+              Some(
+                (
+                  sig,
+                  expr,
+                  s"The resolution is ${resolution.target.qualifiedName}, but expected ${n}"
+                )
+              )
+            }
+        }
       case (Fn(args, res), t: IR.Type.Function) =>
         if (args.length != t.args.length) {
-          return Some((sig, expr))
+          return Some((sig, expr, "arity does not match"))
         }
         args
           .lazyZip(t.args)
           .flatMap(findInequalityWitness)
           .headOption
           .orElse(findInequalityWitness(res, t.result))
-      case _ => Some((sig, expr))
+      case _ => Some((sig, expr, "constructors are incompatible"))
     }
 
     override def apply(left: IR.Expression): MatchResult = {
       findInequalityWitness(sig, left) match {
-        case Some((s, t)) =>
+        case Some((s, t, r)) =>
           MatchResult(
             matches = false,
             s"""
                |$left does not match $sig.
                |Analysis:
-               |sub-expression $t did not match fragment $s.
+               |  sub-expression
+               |    ${t.showCode()}
+               |    ($t)
+               |  did not match fragment $s
+               |  because $r.
+               |
                |""".stripMargin,
             "The type matched the matcher, but it should not."
           )
@@ -72,9 +103,14 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
     }
   }
   case class Name(name: String)               extends Sig
+  case class AnyQualName(name: QualifiedName) extends Sig
   case class Fn(args: List[Sig], result: Sig) extends Sig
 
-  implicit private def toName(str: String): Name = Name(str)
+  implicit private def fromString(str: String): Sig = {
+    if (str.contains(".")) {
+      AnyQualName(QualifiedName.fromString(str))
+    } else { Name(str) }
+  }
 
   private def getSignature(
     module: IR.Module,
@@ -96,6 +132,20 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs("Text" -> "Number")
+    }
+
+    "resolve local names" in {
+      val code =
+        """
+          |type A
+          |type B
+          |
+          |foo : A -> B
+          |foo a = 42""".stripMargin
+      val module = code.preprocessModule
+      getSignature(module, "foo") should typeAs(
+        "Unnamed.Test.A" -> "Unnamed.Test.B"
+      )
     }
   }
 

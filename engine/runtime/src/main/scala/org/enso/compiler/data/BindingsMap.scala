@@ -783,6 +783,8 @@ object BindingsMap {
       * @return `this`, converted to concrete form
       */
     def toConcrete(moduleMap: ModuleMap): Option[ResolvedTypeName]
+
+    def qualifiedName: QualifiedName
   }
 
   /** A name resolved to a sum type.
@@ -813,7 +815,8 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def qualifiedName: QualifiedName = module.getName.createChild(tp.name)
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(tp.name)
   }
 
   /** A result of successful name resolution.
@@ -854,7 +857,8 @@ object BindingsMap {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
 
-    def qualifiedName: QualifiedName = module.getName.createChild(cons.name)
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(cons.name)
   }
 
   /** A representation of a name being resolved to a module.
@@ -874,6 +878,8 @@ object BindingsMap {
     ): Option[ResolvedModule] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
+
+    override def qualifiedName: QualifiedName = module.getName
   }
 
   /** A representation of a name being resolved to a method call.
@@ -912,6 +918,9 @@ object BindingsMap {
 
     def unsafeGetIr(missingMessage: String): IR.Module.Scope.Definition =
       getIr.getOrElse(throw new CompilerError(missingMessage))
+
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(method.name)
   }
 
   /** A representation of a name being resolved to a polyglot symbol.
@@ -934,6 +943,9 @@ object BindingsMap {
     ): Option[ResolvedPolyglotSymbol] = {
       module.toConcrete(moduleMap).map(module => this.copy(module = module))
     }
+
+    override def qualifiedName: QualifiedName =
+      module.getName.createChild(symbol.name)
   }
 
   /** A representation of an error during name resolution.
@@ -950,6 +962,36 @@ object BindingsMap {
   /** A resolution error due to the symbol not being found.
     */
   case object ResolutionNotFound extends ResolutionError
+
+  /** A metadata-friendly storage for resolutions */
+  case class TypeResolution(target: ResolvedTypeName) extends IRPass.Metadata {
+
+    /** The name of the metadata as a string. */
+    override val metadataName: String = "Resolution"
+
+    /** @inheritdoc */
+    override def prepareForSerialization(compiler: Compiler): TypeResolution =
+      this.copy(target = this.target.toAbstract)
+
+    /** @inheritdoc */
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[TypeResolution] = {
+      val moduleMap = compiler.context.getPackageRepository.getModuleMap
+      this.target.toConcrete(moduleMap).map(t => this.copy(target = t))
+    }
+
+    /** Creates a duplicate of this metadata if applicable.
+      *
+      * This method should employ deep-copy semantics where appropriate. It may
+      * return None to indicate that this metadata should not be preserved
+      * during duplication.
+      *
+      * @return Some duplicate of this metadata or None if this metadata should
+      *         not be preserved
+      */
+    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  }
 
   /** A metadata-friendly storage for resolutions */
   case class Resolution(target: ResolvedName) extends IRPass.Metadata {
