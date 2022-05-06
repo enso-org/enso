@@ -183,6 +183,10 @@ where E::Model: Default
         }
     }
 
+    pub fn set_entry_params(&self, params: E::Params) {
+        self.entry_params.replace(params);
+    }
+
     /// Update displayed entries, giving new provider. New entries created by the function have
     /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
     /// path.
