@@ -32,18 +32,8 @@ impl TokenOrAst {
         }
     }
 
-    pub fn is_operator(&self) -> bool {
-        self.is_variant(token::KindVariant::Operator)
-    }
-
-    pub fn left_visible_offset(&self) -> usize {
-        match self {
-            Self::Token(t) => t.span.left_visible_offset,
-            Self::Ast(t) => t.span.left_visible_offset,
-        }
-    }
-
-    pub fn location(&self) -> location::Span {
+    /// [`location::Span`] of the element.
+    pub fn span(&self) -> location::Span {
         match self {
             Self::Token(t) => t.span,
             Self::Ast(t) => t.span,

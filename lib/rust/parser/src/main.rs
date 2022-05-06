@@ -133,7 +133,10 @@ pub struct MacroResolver<'a> {
 impl<'a> MacroResolver<'a> {
     pub fn new_root() -> Self {
         let current_segment = MatchedSegment {
-            header: location::With::new_no_offset_phantom(Bytes::from(0), token::Kind::newline()),
+            header: location::With::new_no_left_offset_no_len(
+                Bytes::from(0),
+                token::Kind::newline(),
+            ),
             body:   default(),
         };
         let resolved_segments = default();
@@ -437,7 +440,7 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
         }
     };
     for item in items {
-        if item.left_visible_offset() == 0 || no_space_group.is_empty() {
+        if item.span().left_visible_offset == 0 || no_space_group.is_empty() {
             no_space_group.push(item)
         } else if !no_space_group.is_empty() {
             processs_no_space_group(&mut flattened, &mut no_space_group);
@@ -466,7 +469,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
             last_token_was_opr = true;
 
             let prec = precedence_of(lexer.repr(&item));
-            let opr = item.location().with_elem(opr);
+            let opr = item.span().with(opr);
 
             if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
                 // Error. Multiple operators next to each other.
@@ -549,8 +552,7 @@ where
 fn token_to_ast(elem: TokenOrAst) -> Ast {
     match elem {
         TokenOrAst::Token(token) => match token.elem {
-            token::Kind::Ident(ident) =>
-                elem.location().with_elem(ast::Data::from(ast::Ident(ident))),
+            token::Kind::Ident(ident) => elem.span().with(ast::Data::from(ast::Ident(ident))),
             _ => panic!(),
         },
         TokenOrAst::Ast(ast) => ast,
@@ -640,7 +642,7 @@ mod test {
 
     pub fn ident(repr: &str) -> Ast {
         match token::Kind::parse_ident(repr) {
-            token::Kind::Ident(ident) => location::With::new_with_len(
+            token::Kind::Ident(ident) => location::With::new_no_left_offset_no_start(
                 Bytes::from(repr.len()),
                 ast::Data::from(ast::Ident(ident)),
             ),

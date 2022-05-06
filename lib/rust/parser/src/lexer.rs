@@ -552,9 +552,9 @@ impl<'s> Lexer<'s> {
         if let Some(tok) = tok {
             let repr = self.repr(tok);
             if repr == "+-" {
-                let (left, right) = tok.split_at(Bytes::from(1));
-                self.submit_token(left.with_elem(token::Kind::operator()));
-                self.submit_token(right.with_elem(token::Kind::operator()));
+                let (left, right) = tok.span.split_at(Bytes::from(1));
+                self.submit_token(left.with(token::Kind::operator()));
+                self.submit_token(right.with(token::Kind::operator()));
             } else {
                 let only_eq = repr.chars().all(|t| t == '=');
                 let is_modifier = repr.ends_with('=') && !only_eq;
@@ -732,8 +732,10 @@ impl<'s> Lexer<'s> {
                             self.push_block_indent(parent_block_indent);
                             break;
                         } else {
-                            let block_end =
-                                Token::new_no_offset_phantom(self.offset, token::Kind::block_end());
+                            let block_end = Token::new_no_left_offset_no_len(
+                                self.offset,
+                                token::Kind::block_end(),
+                            );
                             self.submit_token(block_end);
                         }
                     }
@@ -782,9 +784,13 @@ impl<'s> Lexer<'s> {
 // === Test Utils ===
 // ==================
 
+fn test_from_repr<T>(repr: &str, elem: T) -> location::With<T> {
+    location::With::new_no_left_offset_no_start(Bytes::from(repr.len()), elem)
+}
+
 impl Token {
     pub fn symbol(repr: &str) -> Self {
-        location::With::test_from_repr(repr, token::Kind::symbol())
+        test_from_repr(repr, token::Kind::symbol())
     }
 
     // TODO: Tests only - should be refactored

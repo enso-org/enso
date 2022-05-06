@@ -143,7 +143,7 @@ impl Ast {
     pub fn invalid(error: Error, ast: Ast) -> Self {
         let location = ast.span;
         let data = Data::from(Invalid(error, ast));
-        location.with_elem(data)
+        location.with(data)
     }
 
     /// Constructor.
@@ -161,7 +161,7 @@ impl Ast {
         let (left_offset_span, func) = func.split_at_start();
         let total = left_offset_span.extended_to(&arg);
         let ast_data = Data::from(App(func, arg));
-        total.with_elem(ast_data)
+        total.with(ast_data)
     }
 }
 
@@ -216,7 +216,7 @@ impl Ast {
             }
         };
         let ast_data = Data::from(OprApp(lhs, opr, rhs));
-        total.with_elem(ast_data)
+        total.with(ast_data)
     }
 }
 
@@ -246,7 +246,7 @@ impl Ast {
         let (left_offset_span, section) = section.split_at_start();
         let total = left_offset_span.extended_to(&section);
         let ast_data = Data::from(OprSectionBoundary(section));
-        total.with_elem(ast_data)
+        total.with(ast_data)
     }
 }
 
@@ -282,7 +282,7 @@ impl Ast {
             left_span.extended_to(&last_segment.header)
         };
         let data = Data::from(MultiSegmentApp { prefix, segments });
-        total.with_elem(data)
+        total.with(data)
     }
 }
 
