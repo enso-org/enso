@@ -38,6 +38,14 @@ object DistributionPackage {
     }
   }
 
+  /**
+    * Conditional copying, based on the contents of cache and timestamps of files.
+    *
+    * @param source source directory
+    * @param destination target directory
+    * @param cache cache used for persisting the cached information
+    * @return true, if copying was necessary, false if no change was detected between the directories
+    */
   def copyDirectoryIncremental(
     source: File,
     destination: File,

@@ -1750,7 +1750,7 @@ buildEngineDistribution := {
 val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
 val allStdBits: Parser[String] = stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
-lazy val buildStdLib = inputKey[Unit]("Build a standard library package")
+lazy val buildStdLib = inputKey[Unit]("Build an individual standard library package")
 buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
   val root: File = engineDistributionRoot.value
