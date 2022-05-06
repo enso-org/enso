@@ -184,22 +184,29 @@ impl component::Frp<Model> for Frp {
         let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
         let background_color_intensity = style.get_number(theme::background_color_intensity);
         let color_dim_factor = style.get_number(theme::color_dim_factor);
+        let entries_text_base_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
-            fade_and_leading_colors <- all(&input.set_fade_color, &input.set_leading_color);
+            init <- source_();
+            one <- init.constant(1.0);
+            dim_factor <- input.set_dimmed.switch(&one, &color_dim_factor);
+            leading_color <- all_with3(&input.set_fade_color, &input.set_leading_color, &dim_factor,
+                |a,b,c| color::mix(*a,*b,*c));
+            fade_and_leading_colors <- all(&input.set_fade_color, &leading_color);
             header_color <- all_with(&fade_and_leading_colors, &header_text_color_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
             background_color <- all_with(&fade_and_leading_colors, &background_color_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            text_color_sampler <- header_color.sampler();
+            entries_text_color <- all_with3(&input.set_fade_color, &entries_text_base_color, &dim_factor,
+                |a,b,c| color::mix(*a,*b,*c));
+            entries_text_color_sampler <- entries_text_color.sampler();
         }
-        let params = entry::Params { color: text_color_sampler };
+        let params = entry::Params { color: entries_text_color_sampler };
         model.entries.recreate_entries_with_params(params);
 
 
         // === Header ===
 
         frp::extend! { network
-            init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();

@@ -198,6 +198,7 @@ define_themes! { [light:0, dark:1]
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
+                        color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                     }
                 }
                 background_color_intensity = 0.2, 0.2;
