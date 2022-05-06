@@ -16,7 +16,7 @@ pub mod token_or_ast;
 
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
-use macros::Pattern;
+use macros::pattern::Pattern;
 use token::Token;
 use token_or_ast::TokenOrAst;
 
@@ -612,7 +612,7 @@ fn macro_group<'a>() -> macros::Definition<'a> {
 
 fn macro_lambda<'a>() -> macros::Definition<'a> {
     let prefix = Pattern::Or(
-        Box::new(Pattern::Item(macros::Item { has_rhs_spacing: Some(false) })),
+        Box::new(Pattern::Item(macros::pattern::Item { has_rhs_spacing: Some(false) })),
         Box::new(Pattern::Everything),
     );
     macro_definition! {
