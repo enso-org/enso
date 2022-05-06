@@ -187,6 +187,19 @@ class TypeSignaturesTest
         "my_pkg.My_Lib.Util.Util_1" ->: "my_pkg.My_Lib.Util.Util_2"
       )
     }
+
+    "resolve imported union type names" in {
+      val code   = """
+                     |from my_pkg.My_Lib.Util import all
+                     |
+                     |foo : Util_Sum -> Util_2
+                     |foo a = 23
+                     |""".stripMargin
+      val module = code.preprocessModule
+      getSignature(module, "foo") should typeAs(
+        "my_pkg.My_Lib.Util.Util_Sum" ->: "my_pkg.My_Lib.Util.Util_2"
+      )
+    }
   }
 
 }

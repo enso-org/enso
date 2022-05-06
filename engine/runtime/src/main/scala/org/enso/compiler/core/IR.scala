@@ -6991,13 +6991,15 @@ object IR {
                       definitionModule,
                       cons
                     ) =>
-                  s"    Type ${cons.name} defined in module ${definitionModule.getName};"
+                  s"    Constructor ${cons.name} defined in module ${definitionModule.getName};"
                 case BindingsMap.ResolvedModule(module) =>
                   s"    The module ${module.getName};"
                 case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
                   s"    The imported polyglot symbol ${symbol.name};"
                 case BindingsMap.ResolvedMethod(module, symbol) =>
                   s"    The method ${symbol.name} defined in module ${module.getName}"
+                case BindingsMap.ResolvedType(module, typ) =>
+                  s"    Type ${typ.name} defined in module ${module.getName}"
               }
               (firstLine :: lines).mkString("\n")
             case BindingsMap.ResolutionNotFound =>
