@@ -331,7 +331,7 @@ commands['integration-test'].rust = async function (argv) {
 commands.profile = command('Profile the application')
 commands.profile.rust = async function (argv) {
     console.log(`Building with full optimization. This may take a few minutes...`)
-    let defaults = { 'profiling-level': 'debug', 'dev': 'true' }
+    let defaults = { 'profiling-level': 'debug' }
     let argv2 = Object.assign({}, defaults, argv)
     await commands.build.rust(argv2)
 }
