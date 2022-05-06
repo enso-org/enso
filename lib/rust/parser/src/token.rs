@@ -18,31 +18,32 @@ pub type Token = location::With<Kind>;
 // ============
 
 #[macro_export]
-macro_rules! with_token_definition {
-    ($($f:tt)*) => {
-        $($f)*! {
-            #[tagged_enum]
-            #[derive(Clone, Copy, PartialEq, Eq)]
-            pub enum Kind {
-                Newline,
-                Symbol,
-                BlockStart,
-                BlockEnd,
-                Wildcard { lift_level: usize },
-                Ident { is_free: bool, lift_level: usize },
-                Operator,
-                Modifier,
-                Comment,
-                DocComment,
-                Number,
-                TextStart,
-                TextEnd,
-                TextSection,
-                TextEscape,
-            }
-        }
+macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
+    #[tagged_enum]
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    pub enum Kind {
+        Newline,
+        Symbol,
+        BlockStart,
+        BlockEnd,
+        Wildcard {
+            pub lift_level: usize
+        },
+        Ident {
+            pub is_free: bool,
+            pub lift_level: usize
+        },
+        Operator,
+        Modifier,
+        Comment,
+        DocComment,
+        Number,
+        TextStart,
+        TextEnd,
+        TextSection,
+        TextEscape,
     }
-}
+}}}
 
 impl<'s> Debug for source::With<'s, &Kind> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -53,7 +54,7 @@ impl<'s> Debug for source::With<'s, &Kind> {
 macro_rules! id {
     ($($ts:tt)*) => { $($ts)* };
 }
-with_token_definition!(id);
+with_token_definition!(id());
 
 macro_rules! generate_debug_impls {
     (
@@ -74,4 +75,4 @@ macro_rules! generate_debug_impls {
         )*
     };
 }
-with_token_definition!(generate_debug_impls);
+with_token_definition!(generate_debug_impls());

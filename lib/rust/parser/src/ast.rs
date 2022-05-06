@@ -4,6 +4,7 @@ use crate::location;
 use crate::source;
 use crate::token;
 use crate::token::Token;
+use enso_shapely_macros::tagged_enum;
 use location::Span;
 
 
@@ -23,24 +24,76 @@ use location::Span;
 /// ```
 pub type Ast = location::With<Data>;
 
-/// Macro used to define the [`Data`] structure. The syntax mimics enum definition. See the usage
-/// below to learn more.
-macro_rules! define_ast_data_enum {
-    ($(
-        $(#$meta:tt)*
-        $variant:ident {
+#[macro_export]
+macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
+    #[tagged_enum(boxed)]
+    #[derive(Clone, Eq, PartialEq, Visitor)]
+    pub enum Data {
+        /// Invalid [`Ast`] fragment with an attached [`Error`].
+        Invalid {
+            pub error: Error,
+            pub ast: Ast,
+        },
+        /// A simple identifier, like `foo` or `bar`.
+        Ident {
+            pub token: token::Ident,
+        },
+        /// A simple application, like `print "hello"`.
+        App {
+            pub func: Ast,
+            pub arg: Ast,
+        },
+        /// Application of an operator, like `a + b`. The left or right operands might be missing,
+        /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
+        /// [`OprSectionBoundary`] variant to learn more about operator section scope.
+        OprApp {
+            pub lhs: Option<Ast>,
+            pub opr: OperatorOrError,
+            pub rhs: Option<Ast>,
+        },
+        /// Defines the point where operator sections should be expanded to lambdas. Let's consider
+        /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
+        /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
+        /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
+        /// around the whole `.sum 1` expression.
+        OprSectionBoundary {
+            pub ast: Ast,
+        },
+        /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
+        /// segment starts with a token and contains an expression. Some multi-segment functions can
+        /// have a prefix, an expression that is argument of the function, but is placed before the
+        /// first token. Lambda is a good example for that. In an expression
+        /// `Vector x y z -> x + y + z`, the `->` token is the beginning of the section, the
+        /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
+        /// application.
+        MultiSegmentApp {
+            pub prefix: Option<Ast>,
+            pub segments: NonEmptyVec<MultiSegmentAppSegment>,
+        }
+    }
+}};}
+
+macro_rules! define_ast_data {
+    ($($ts:tt)*) => {
+        $($ts)*
+        define_debug_impls!{$($ts)*}
+    };
+}
+
+macro_rules! define_debug_impls {
+    (
+        $(#$enum_meta:tt)*
+        pub enum Data {
             $(
-                $field:ident: $field_ty:ty
+                $(#$meta:tt)*
+                $variant:ident {
+                    $(
+                        pub $field:ident: $field_ty:ty
+                    ),* $(,)?
+               }
             ),* $(,)?
         }
-    ),* $(,)?) => {
-        /// Internal representation of [`Ast`].
-        #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-        #[allow(missing_docs)]
-        pub enum Data {$(
-            $variant(Box<$variant>)
-        ),*}
-
+    ) => {
         impl<'s> Debug for source::With<'s, &Data> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self.data {
@@ -50,24 +103,6 @@ macro_rules! define_ast_data_enum {
         }
 
         $(
-            impl From<$variant> for Data {
-                fn from(t: $variant) -> Self {
-                    Self::$variant(Box::new(t))
-                }
-            }
-
-            $(#$meta)*
-            #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-            #[allow(missing_docs)]
-            pub struct $variant {
-                $(pub $field: $field_ty),*
-            }
-
-            /// Constructor.
-            pub fn $variant($($field: $field_ty),*) -> $variant {
-                $variant { $($field),* }
-            }
-
             impl<'s> Debug for source::With<'s, &$variant> {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     f.debug_struct(stringify!($variant))
@@ -78,49 +113,7 @@ macro_rules! define_ast_data_enum {
         )*
     };
 }
-
-define_ast_data_enum! {
-    /// Invalid [`Ast`] fragment with an attached [`Error`].
-    Invalid {
-        error: Error,
-        ast: Ast,
-    },
-    /// A simple identifier, like `foo` or `bar`.
-    Ident {
-        token: token::Ident,
-    },
-    /// A simple application, like `print "hello"`.
-    App {
-        func: Ast,
-        arg: Ast,
-    },
-    /// Application of an operator, like `a + b`. The left or right operands might be missing, thus
-    /// creating an operator section like `a +`, `+ b`, or simply `+`. See the
-    /// [`OprSectionBoundary`] variant to learn more about operator section scope.
-    OprApp {
-        lhs: Option<Ast>,
-        opr: OperatorOrError,
-        rhs: Option<Ast>,
-    },
-    /// Defines the point where operator sections should be expanded to lambdas. Let's consider the
-    /// expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
-    /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
-    /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed around
-    /// the whole `.sum 1` expression.
-    OprSectionBoundary {
-        ast: Ast,
-    },
-    /// An application of a multi-segment function, such as `if ... then ... else ...`. Each segment
-    /// starts with a token and contains an expression. Some multi-segment functions can have a
-    /// prefix, an expression that is argument of the function, but is placed before the first
-    /// token. Lambda is a good example for that. In an expression `Vector x y z -> x + y + z`, the
-    /// `->` token is the beginning of the section, the `x + y + z` is the section body, and
-    /// `Vector x y z` is the prefix of this function application.
-    MultiSegmentApp {
-        prefix: Option<Ast>,
-        segments: NonEmptyVec<MultiSegmentAppSegment>,
-    },
-}
+with_ast_definition!(define_ast_data());
 
 
 // === Invalid ===
@@ -488,7 +481,7 @@ macro_rules! define_visitor_for_tokens {
 
 define_visitor!(Ast, visit, visit_mut);
 define_visitor!(Span, visit_span, visit_span_mut);
-crate::with_token_definition!(define_visitor_for_tokens);
+crate::with_token_definition!(define_visitor_for_tokens());
 
 
 // === Special cases ===

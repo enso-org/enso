@@ -148,8 +148,8 @@ pub fn ast_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 #[proc_macro_attribute]
 pub fn tagged_enum(
-    _attr: proc_macro::TokenStream,
+    attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    tagged_enum::run(input)
+    tagged_enum::run(attr, input)
 }

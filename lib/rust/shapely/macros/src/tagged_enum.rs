@@ -13,7 +13,7 @@ use inflector::cases::snakecase::to_snake_case;
 // ===================
 
 /// ```text
-/// #[tagged_enum]
+/// #[tagged_enum(boxed)]
 /// pub enum Ast {
 ///     Ident {
 ///         name: String
@@ -24,7 +24,11 @@ use inflector::cases::snakecase::to_snake_case;
 ///     }
 /// }
 /// ```
-pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn run(
+    attr: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let is_boxed = attr.into_iter().any(|t| t.to_string() == "boxed");
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let data = match &decl.data {
         Data::Enum(data) => data,
@@ -33,15 +37,15 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let mut output = vec![];
 
-    let vis = &decl.vis;
-    let enum_name = &decl.ident;
-    let enum_attrs = &decl.attrs;
-    let variant_names: Vec<_> = data.variants.iter().map(|v| &v.ident).collect();
 
-    // Generates:
+
+    // ========================
+    // === Main Enum Struct ===
+    // ========================
+
     // pub enum Ast {
-    //     Ident(Ident),
-    //     App(App)
+    //     Ident(Box<Ident>),
+    //     App(Box<App>)
     // }
     //
     // impl Debug for Ast {
@@ -52,10 +56,16 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     //         }
     //     }
     // }
+    let vis = &decl.vis;
+    let enum_name = &decl.ident;
+    let enum_attrs = &decl.attrs;
+    let variant_names: Vec<_> = data.variants.iter().map(|v| &v.ident).collect();
+    let variant_bodies =
+        variant_names.iter().map(|v| if is_boxed { quote!(Box<#v>) } else { quote!(#v) });
     output.push(quote! {
         #(#enum_attrs)*
         #vis enum #enum_name {
-            #(#variant_names(#variant_names)),*
+            #(#variant_names(#variant_bodies)),*
         }
 
         impl Debug for #enum_name {
@@ -67,7 +77,12 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         }
     });
 
-    // Generates:
+
+
+    // ===========================
+    // === Variant Enum Struct ===
+    // ===========================
+
     // #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     // pub AstVariant {
     //     Ident,
@@ -121,13 +136,16 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     });
 
     for variant in &data.variants {
-        // Generates:
+        // =======================
+        // === Variant Structs ===
+        // =======================
+
         // pub struct Ident {
-        //     name: String
+        //     pub name: String
         // }
         // pub struct App {
-        //    func: Ast,
-        //    args: Ast
+        //     pub func: Ast,
+        //     pub args: Ast
         // }
         let variant_attrs = &variant.attrs;
         let variant_name = &variant.ident;
@@ -148,10 +166,10 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
         // impl Ast {
         //     pub fn ident(name: String) -> Self {
-        //         Self::Ident(Ident{name})
+        //         Self::Ident(Box::new(Ident{name}))
         //     }
         //     pub fn app(func: Ast, args: Ast) -> Self {
-        //         Self::App(App{func, args})
+        //         Self::App(Box::new(App{func, args}))
         //     }
         // }
         let variant_snake_name = to_snake_case(&variant_name.to_string());
@@ -165,16 +183,45 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
             _ => panic!(),
         };
+        let cons = if is_boxed {
+            quote!(Box::new(#variant_name { #(#names),* }))
+        } else {
+            quote!(#variant_name { #(#names),* })
+        };
         output.push(quote! {
             impl #enum_name {
                 #[inline(always)]
                 pub fn #variant_snake_ident(#(#names: #types),*) -> Self {
-                    Self::#variant_name (#variant_name { #(#names),* })
+                    Self::#variant_name (#cons)
                 }
             }
         });
 
-        // Generates:
+
+
+        // ========================================
+        // === Unnamed Struct Like Constructors ===
+        // ========================================
+
+        // pub fn Ident(name: String) -> Ident {
+        //     Ident {name}
+        // }
+        // pub fn App(func: Ast, args: Ast) -> App {
+        //     App {func, args}
+        // }
+        output.push(quote! {
+            #[inline(always)]
+            pub fn #variant_name(#(#names: #types),*) -> #variant_name {
+                #variant_name { #(#names),* }
+            }
+        });
+
+
+
+        // ======================
+        // === Variant Checks ===
+        // ======================
+
         // impl Ast {
         //     pub fn is_ident(&self) -> bool {
         //         self.is(AstVariant::Ident)
@@ -194,26 +241,39 @@ pub fn run(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         });
 
-        // Generates:
+
+
+        // ===================
+        // === Conversions ===
+        // ===================
+
         // impl From<Ident> for Ast {
         //     fn from(variant: Ident) -> Self {
-        //         Self::Ident(variant)
-        //     }
-        //     fn from(variant: App) -> Self {
-        //         Self::App(variant)
+        //         Self::Ident(Box::new(variant))
         //     }
         // }
+        //
+        // impl From<Ident> for Ast {
+        //     fn from(variant: Ident) -> Self {
+        //         Self::Ident(Box::new(variant))
+        //     }
+        // }
+        let cons = if is_boxed { quote!(Box::new(variant)) } else { quote!(variant) };
         output.push(quote! {
             impl From<#variant_name> for #enum_name {
                 #[inline(always)]
                 fn from(variant: #variant_name) -> Self {
-                    Self::#variant_name(variant)
+                    Self::#variant_name(#cons)
                 }
             }
         });
     }
 
 
+
+    // =============================
+    // === Final Code Generation ===
+    // =============================
 
     let output = quote! {
         #(#output)*
