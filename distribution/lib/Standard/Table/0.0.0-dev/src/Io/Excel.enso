@@ -1,4 +1,4 @@
-from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Error, Any, Error, Panic, File, Vector, False
+from Standard.Base import Integer, Text, Nothing, Boolean, Illegal_Argument_Error, Any, Error, Panic, File, Vector, False, IO
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 
 import Standard.Table.Data.Table
@@ -6,9 +6,10 @@ from Standard.Table.Error as Error_Module import Invalid_Location
 
 polyglot java import org.enso.table.format.xlsx.Range as Java_Range
 polyglot java import org.enso.table.format.xlsx.Reader
+
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
-
+polyglot java import org.apache.poi.UnsupportedFileFormatException
 
 ## Specified the part of an Excel Workbook to Read
 type Excel_Section
@@ -69,17 +70,15 @@ type Excel_Range
 
        Arguments:
        - column: 1-based index to check
-       - limit: maximum valid index, defaults to Excel 2007+ limit of 16,384
-    is_valid_column : Integer -> Integer -> Boolean
-    is_valid_column column (limit=16384) = (column > 0) && (column <= limit)
+    is_valid_column : Integer -> Boolean
+    is_valid_column column = (column > 0) && (column <= 16384)
 
     ## Validates if a row index (1-based) is within the valid range for Excel.
 
        Arguments:
        - row: 1-based index to check
-       - limit: maximum valid index, defaults to Excel 2007+ limit of 1,048,576
-    is_valid_row : Integer -> Integer -> Boolean
-    is_valid_row row (limit=1048576) = (row > 0) && (row <= limit)
+    is_valid_row : Integer -> Boolean
+    is_valid_row row = (row > 0) && (row <= 1048576)
 
     ## Given a column name parse to the index (1-based) or return index unchanged.
     column_index : (Text|Integer) -> Integer
@@ -171,11 +170,11 @@ read_excel file section _ xls_format=False =
                 Excel_Range _ -> Reader.readRange stream address.java_range skip_rows row_limit xls_format
                 Text -> Reader.readRangeByName stream address skip_rows row_limit xls_format
 
-    file_failure caught_panic = File.wrap_io_exception file caught_panic.payload.cause.getCause
-    catch_file_failure = Panic.catch IOException handler=file_failure
-
     bad_argument caught_panic = Error.throw (Invalid_Location caught_panic.payload.cause.getCause)
-    catch_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
+    handle_bad_argument = Panic.catch IllegalArgumentException handler=bad_argument
 
-    catch_file_failure <| catch_bad_argument <|
+    bad_format caught_panic = Error.throw (File.Io_Error file caught_panic.payload.cause.getMessage)
+    handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
+
+    File.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File.Option.Read] stream->(stream.with_java_stream reader)

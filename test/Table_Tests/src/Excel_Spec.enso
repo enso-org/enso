@@ -1,4 +1,4 @@
-from Standard.Base import Nothing, File, Illegal_Argument_Error
+from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
 
 import Standard.Base.Data.Time.Date
 
@@ -197,5 +197,15 @@ spec =
 
             table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
             table_4.length . should_equal 6
+
+    Test.group "Problems" <|
+        Test.specify "should handle non-existing file gracefully" <|
+            bad_file = Enso_Project.data / "DoesNotExists.xlsx"
+            bad_file.read (File_Format.Excel (Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
+
+        Test.specify "should handle wrong xls_format gracefully" <|
+            xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
+            xls_sheet.read (File_Format.Excel (Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
+
 
 main = Test.Suite.run_main here.spec
