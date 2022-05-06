@@ -18,6 +18,7 @@ import org.enso.base.encoding.ReportingStreamDecoder;
 import org.enso.base.text.ResultWithWarnings;
 
 public class Encoding_Utils {
+  /** The replacement character used for characters that could not have been decoded. */
   public static final String INVALID_CHARACTER = "\uFFFD";
 
   /**
