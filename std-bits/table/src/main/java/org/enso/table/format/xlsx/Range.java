@@ -77,10 +77,12 @@ public class Range {
   }
 
   private static boolean isLetter(char c) {
+    // Cannot use the isLetter function as must be explicitly A-Z.
     return c >= 'A' && c <= 'Z';
   }
 
   private static boolean isDigit(char c) {
+    // Cannot use the isDigit function as must be explicitly 0-9.
     return c >= '0' && c <= '9';
   }
 

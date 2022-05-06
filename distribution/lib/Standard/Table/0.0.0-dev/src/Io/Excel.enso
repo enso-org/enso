@@ -11,49 +11,49 @@ polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import org.apache.poi.UnsupportedFileFormatException
 
-## Specified the part of an Excel Workbook to Read
 type Excel_Section
-    ## Gets a list of sheets within a workbook
+    ## Gets a list of sheets within a workbook.
     type Sheet_Names
 
-    ## Gets a list of named ranges within a workbook
+    ## Gets a list of named ranges within a workbook.
     type Range_Names
 
-    ## Gets the data from a specific sheet. Column names are the Excel column names.
+    ## Gets the data from a specific sheet. Column names are the Excel column
+       names.
     type Sheet (sheet:(Integer|Text)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
 
-    ## Gets a specific range (taking either a defined name or external style address) from the workbook
+    ## Gets a specific range (taking either a defined name or external style
+       address) from the workbook.
     type Range (address:(Text|Excel_Range)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
 
-
-## Specifies a range within Excel and provides various ways of
 type Excel_Range
+    ## Specifies a range within an Excel Workbook.
     type Excel_Range java_range:Java_Range
 
-    ## Gets the name of the sheet
+    ## Gets the name of the sheet.
     sheet_name : Text
     sheet_name = this.java_range.getSheetName
 
-    ## Gets the index (1-based) of the top row of the range
-       Return Nothing if referring to a complete column
+    ## Gets the index (1-based) of the top row of the range.
+       Returns `Nothing` if referring to a complete column.
     top_row : Integer | Nothing
     top_row = if this.java_range.isWholeColumn then Nothing else
         this.java_range.getTopRow
 
-    ## Gets the index (1-based) of the bottom row of the range
-       Return Nothing if referring to a complete column
+    ## Gets the index (1-based) of the bottom row of the range.
+       Returns `Nothing` if referring to a complete column.
     bottom_row : Integer | Nothing
     bottom_row = if this.java_range.isWholeColumn then Nothing else
         this.java_range.getBottomRow
 
-    ## Gets the index (1-based) of the left column of the range
-       Return Nothing if referring to a complete row
+    ## Gets the index (1-based) of the left column of the range.
+       Returns `Nothing` if referring to a complete row.
     left_column : Integer | Nothing
     left_column = if this.java_range.isWholeRow then Nothing else
         this.java_range.getLeftColumn
 
-    ## Gets the index (1-based) of the right column of the range
-       Return Nothing if referring to a complete column
+    ## Gets the index (1-based) of the right column of the range.
+       Returns `Nothing` if referring to a complete row.
     right_column : Integer | Nothing
     right_column = if this.java_range.isWholeRow then Nothing else
         this.java_range.getRightColumn
@@ -62,14 +62,15 @@ type Excel_Range
     address : Text
     address = this.java_range.getAddress
 
-    ## Display the Excel_Range
+    ## Displays the Excel_Range.
     to_text : Text
     to_text = "Excel_Range " + this.address
 
-    ## Validates if a column index (1-based) is within the valid range for Excel.
+    ## Validates if a column index (1-based) is within the valid range for
+       Excel.
 
        Arguments:
-       - column: 1-based index to check
+       - column: 1-based index to check.
     is_valid_column : Integer -> Boolean
     is_valid_column column =
         excel_2007_column_limit = 16384
@@ -78,18 +79,19 @@ type Excel_Range
     ## Validates if a row index (1-based) is within the valid range for Excel.
 
        Arguments:
-       - row: 1-based index to check
+       - row: 1-based index to check.
     is_valid_row : Integer -> Boolean
     is_valid_row row =
         excel_2007_row_limit = 1048576
         (row > 0) && (row <= excel_2007_row_limit)
 
-    ## Given a column name parse to the index (1-based) or return index unchanged.
+    ## Given a column name, parses to the index (1-based) or return index
+       unchanged.
     column_index : (Text|Integer) -> Integer
     column_index column =
         if column.is_an Integer then column else Java_Range.parseA1Column column
 
-    ## Create a Range from an address
+    ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
         Panic.catch IllegalArgumentException (Excel_Range (Java_Range.new address)) caught_panic->
@@ -143,7 +145,7 @@ type Excel_Range
 
 
 ## PRIVATE
-   Wrapper for validation
+   Wrapper for validation of a value prior to execution.
 validate : Boolean -> Text -> Any
 validate validation ~error_message ~wrapped =
     if validation then wrapped else Error.throw (Illegal_Argument_Error error_message)
