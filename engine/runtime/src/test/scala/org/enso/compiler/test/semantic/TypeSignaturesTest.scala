@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.test.InterpreterContext
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, MethodNames}
+import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -27,32 +28,64 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
     }
   }
 
-  sealed private trait Sig {
+  def typeAs(sig: Sig): TypeMatcher = TypeMatcher(sig)
+
+  case class TypeMatcher(sig: Sig) extends Matcher[IR.Expression] {
+    private def findInequalityWitness(
+      sig: Sig,
+      expr: IR.Expression
+    ): Option[(Sig, IR.Expression)] = (sig, expr) match {
+      case (Name(n), t: IR.Name.Literal) if n == t.name => None
+      case (Fn(args, res), t: IR.Type.Function) =>
+        if (args.length != t.args.length) {
+          return Some((sig, expr))
+        }
+        args
+          .lazyZip(t.args)
+          .flatMap(findInequalityWitness)
+          .headOption
+          .orElse(findInequalityWitness(res, t.result))
+      case _ => Some((sig, expr))
+    }
+
+    override def apply(left: IR.Expression): MatchResult = {
+      findInequalityWitness(sig, left) match {
+        case Some((s, t)) =>
+          MatchResult(
+            matches = false,
+            s"""
+               |$left does not match $sig.
+               |Analysis:
+               |sub-expression $t did not match fragment $s.
+               |""".stripMargin,
+            "The type matched the matcher, but it should not."
+          )
+        case _ => MatchResult(matches = true, "", "")
+      }
+    }
+  }
+
+  sealed trait Sig {
     def ->(that: Sig): Sig = that match {
       case Fn(args, r) => Fn(this :: args, r)
       case _           => Fn(List(this), that)
     }
   }
-  private case class Name(name: String)               extends Sig
-  private case class Fn(args: List[Sig], result: Sig) extends Sig
-  private case class Unknown(ir: IR.Expression)       extends Sig
+  case class Name(name: String)               extends Sig
+  case class Fn(args: List[Sig], result: Sig) extends Sig
 
   implicit private def toName(str: String): Name = Name(str)
 
-  private def simpl(expr: IR.Expression): Sig = expr match {
-    case fn: IR.Type.Function => Fn(fn.args.map(simpl), simpl(fn.result))
-    case n: IR.Name           => Name(n.name)
-    case _                    => Unknown(expr)
-  }
-
-  private def getSignature(module: IR.Module, methodName: String): Sig = {
+  private def getSignature(
+    module: IR.Module,
+    methodName: String
+  ): IR.Expression = {
     val m = module.bindings.find {
       case m: IR.Module.Scope.Definition.Method =>
         m.methodName.name == methodName
       case _ => false
     }.get
-    val sig = m.unsafeGetMetadata(TypeSignatures, "come on").signature
-    simpl(sig)
+    m.unsafeGetMetadata(TypeSignatures, "come on").signature
   }
 
   "Type Signatures" should {
@@ -62,7 +95,7 @@ class TypeSignaturesTest extends AnyWordSpecLike with Matchers {
           |foo : Text -> Number
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
-      getSignature(module, "foo") shouldEqual ("Text" -> "Number")
+      getSignature(module, "foo") should typeAs("Text" -> "Number")
     }
   }
 
