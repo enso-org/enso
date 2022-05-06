@@ -50,7 +50,6 @@ impl Default for Params {
 pub struct View {
     logger:         Logger,
     display_object: display::object::Instance,
-    // max_width_px:   frp::Source<f32>,
     label:          Label,
 }
 
