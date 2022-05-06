@@ -68,7 +68,6 @@ public class ReportingStreamDecoder extends Reader {
 
   @Override
   public int read(char[] cbuf, int off, int len) throws IOException {
-    if (len == 0) return 0;
     int readBytes = 0;
 
     // First feed the pending characters that were already decoded.
@@ -85,55 +84,32 @@ public class ReportingStreamDecoder extends Reader {
       return readBytes;
     }
 
-    // If we reached end of file, we won't be able to read any more data from the input.
+    // If we reached end of file, we won't be able to read any more data from the input. We also ran
+    // out of cached characters, so we indicate that there is no more input.
     if (eof) {
-      // If  the previous invocation of read set the EOF flag, it must have finished the decoding
+      // If the previous invocation of read set the EOF flag, it must have finished the decoding
       // process and flushed the decoder, so the input buffer must have been consumed in whole.
       assert !inputBuffer.hasRemaining();
       return -1;
     }
 
-    // If more characters are needed, we will encode some more. All cached output has been consumed,
-    // so we 'reset' the output buffer to be ready for new data. It is now in writing mode.
-    if (outputBuffer == null) {
-      outputBuffer = CharBuffer.allocate(len);
-    } else {
-      assert !outputBuffer.hasRemaining();
-      outputBuffer.clear();
-    }
+    // At this point we ran out of cached characters, so we will read some more input to try to get
+    // new characters for the request.
 
-    // Fill-up the input buffer reading from the input.
+    prepareOutputBuffer(len);
+
     int expectedInputSize = Math.max((int) (len / decoder.averageCharsPerByte()), 10);
     int bufferedInput = inputBuffer == null ? 0 : inputBuffer.remaining();
-
     // We always read at least one more byte to ensure that decoding progresses.
     int bytesToRead = Math.max(expectedInputSize - bufferedInput, 1);
     ensureInputBufferHasEnoughFreeSpace(bytesToRead);
-
-    // Invariant: at this point, input buffer is in write mode and has enough space to fit {@code
-    // bytesToRead} bytes.
-    if (workArray == null || workArray.length < bytesToRead) {
-      workArray = new byte[bytesToRead];
-    }
-
-    int bytesActuallyRead = bufferedInputStream.read(workArray, 0, bytesToRead);
-    if (bytesActuallyRead == -1) {
-      eof = true;
-    }
-
-    if (bytesActuallyRead > 0) {
-      inputBuffer.put(workArray, 0, bytesActuallyRead);
-    }
-
-    // We flip the input buffer back to reading mode, to be able to pass it to the decoder.
-    inputBuffer.flip();
-
+    readInputStreamToInputBuffer(bytesToRead);
     runDecoderOnInputBuffer();
     if (eof) {
       flushDecoder();
     }
 
-    // After writing the decoded characters, we flip the output buffer into reading mode.
+    // After running the decoding process, we flip the output buffer into reading mode.
     outputBuffer.flip();
 
     // We transfer as much as the user requested, anything that is remaining will be cached for the
@@ -147,6 +123,53 @@ public class ReportingStreamDecoder extends Reader {
     // in the CSV parser.
     if (eof && readBytes <= 0) return -1;
     return readBytes;
+  }
+
+  /**
+   * Ensures that the output buffer is allocated and has enough space to fit as many characters as
+   * we expect to read.
+   *
+   * <p>When this method is called, the output buffer should not have any remaining cached
+   * characters and should be in read mode. After the method returns, the output buffer is empty and
+   * left in write mode.
+   */
+  private void prepareOutputBuffer(int expectedCharactersCount) {
+    if (outputBuffer == null) {
+      outputBuffer = CharBuffer.allocate(expectedCharactersCount);
+    } else {
+      assert !outputBuffer.hasRemaining();
+      outputBuffer.clear();
+    }
+  }
+
+  /**
+   * Reads a chunk of data from the input stream and puts it onto the input buffer.
+   *
+   * <p>It updates the EOF flag if necessary.
+   *
+   * <p>Assumes that the input buffer is in write mode. After this function returns, the input
+   * buffer is in read mode.
+   */
+  private void readInputStreamToInputBuffer(int bytesToRead) throws IOException {
+    ensureWorkArraySize(bytesToRead);
+    int bytesActuallyRead = bufferedInputStream.read(workArray, 0, bytesToRead);
+    if (bytesActuallyRead == -1) {
+      eof = true;
+    }
+
+    if (bytesActuallyRead > 0) {
+      inputBuffer.put(workArray, 0, bytesActuallyRead);
+    }
+
+    // We flip the input buffer back to reading mode, to be able to pass it to the decoder.
+    inputBuffer.flip();
+  }
+
+  /** Allocates or grows the work array so that it can fit the amount of bytes we want to read. */
+  private void ensureWorkArraySize(int bytesToRead) {
+    if (workArray == null || workArray.length < bytesToRead) {
+      workArray = new byte[bytesToRead];
+    }
   }
 
   /**
@@ -199,7 +222,8 @@ public class ReportingStreamDecoder extends Reader {
    *
    * <p>If necessary, the buffer is allocated or grown, preserving any existing content.
    *
-   * <p>The buffer is in write mode after this call.
+   * <p>The buffer is in write mode after this call and has enough space to hold {@code bytesToRead}
+   * bytes.
    */
   private void ensureInputBufferHasEnoughFreeSpace(int bytesToRead) {
     if (inputBuffer == null) {
@@ -213,9 +237,10 @@ public class ReportingStreamDecoder extends Reader {
         inputBuffer.put(old);
       } else {
         inputBuffer.compact();
-        assert inputBuffer.remaining() >= bytesToRead;
       }
     }
+
+    assert inputBuffer.remaining() >= bytesToRead;
   }
 
   /**
@@ -237,6 +262,7 @@ public class ReportingStreamDecoder extends Reader {
     bufferedInputStream.close();
   }
 
+  /** Returns a list of problems encountered during the decoding. */
   public List<String> getReportedProblems() {
     if (encodingIssuePositions.isEmpty()) {
       return List.of();
