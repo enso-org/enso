@@ -104,7 +104,7 @@ pub struct Startup {
     /// Whether to open directly to the project view, skipping the welcome screen.
     pub initial_view:  InitialView,
     /// Identifies the element to create the IDE's DOM nodes as children of.
-    pub dom_parent_id: String,
+    pub dom_parent_id: Option<String>,
 }
 
 impl Startup {
@@ -116,9 +116,17 @@ impl Startup {
             Some(_) => InitialView::Project,
             None => InitialView::WelcomeScreen,
         };
-        // The main entry point requires that this matches the ID defined in `index.html`.
-        let dom_parent_id = "root".into();
+        let dom_parent_id = None;
         Ok(Startup { backend, project_name, initial_view, dom_parent_id })
+    }
+
+    /// Identifies the element to create the IDE's DOM nodes as children of.
+    pub fn dom_parent_id(&self) -> &str {
+        // The main entry point requires that this matches the ID defined in `index.html`.
+        match &self.dom_parent_id {
+            Some(id) => id.as_ref(),
+            None => "root",
+        }
     }
 }
 

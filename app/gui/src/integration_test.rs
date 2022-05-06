@@ -48,7 +48,7 @@ impl Fixture {
         let config = crate::config::Startup { initial_view, ..default() };
         let executor = setup_global_executor();
         let root_div = enso_web::document.create_div_or_panic();
-        root_div.set_id(&config.dom_parent_id);
+        root_div.set_id(config.dom_parent_id());
         root_div.set_style_or_warn("display", "none");
         enso_web::document.body_or_panic().append_or_warn(&root_div);
         let initializer = crate::ide::Initializer::new(config);
