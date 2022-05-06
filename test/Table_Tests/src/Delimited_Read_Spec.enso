@@ -56,21 +56,29 @@ spec =
             r2.should_fail_with File.Io_Error
 
         Test.specify "should work with all kinds of line endings" <|
-            path name = Enso_Project.data / 'line_endings' / name
-            test_file name ending_style =
+            path name = Enso_Project.data / 'transient' / name
+            create_file name ending_style =
                 lines = ['a,b,c', 'd,e,f', '1,2,3']
                 text = lines.join ending_style
                 (path name).write_text text
 
+            test_file name =
                 table = (File_Format.Delimited "," headers=True).read (path name) Problem_Behavior.Report_Error
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['d', '1']
                 table.at 'b' . to_vector . should_equal ['e', '2']
                 table.at 'c' . to_vector . should_equal ['f', '3']
 
-            test_file 'crlf.csv' '\r\n'
-            test_file 'lf.csv' '\n'
-            test_file 'cr.csv' '\r'
+            create_file 'crlf.csv' '\r\n'
+            test_file 'crlf.csv'
+            create_file 'lf.csv' '\n'
+            test_file 'lf.csv'
+            create_file 'cr.csv' '\r'
+            test_file 'cr.csv'
+
+            # Currently mixed line endings are not supported.
+            (path 'mixed.csv').write_text 'a,b,c\nd,e,f\r1,2,3'
+            (File_Format.Delimited "," headers=True).read (path 'mixed.csv') Problem_Behavior.Report_Error . should_fail_with Invalid_Row
 
         Test.specify "should work with Windows-1252 encoding" <|
             table = (File_Format.Delimited "," headers=True encoding=Encoding.windows_1252).read (Enso_Project.data / "windows.csv") Problem_Behavior.Report_Error
