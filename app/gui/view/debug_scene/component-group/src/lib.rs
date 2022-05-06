@@ -128,6 +128,7 @@ fn wide_component_group(app: &Application) -> component_group::wide::View {
     wide_component_group.set_position_x(100.0);
     wide_component_group.set_width(450.0);
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    wide_component_group.set_no_items_label_text("No local variables.");
     wide_component_group
 }
 

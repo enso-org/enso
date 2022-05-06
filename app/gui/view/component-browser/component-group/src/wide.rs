@@ -29,7 +29,6 @@ use list_view::entry::AnyModelProvider;
 // === Constants ===
 // =================
 
-const NO_ITEMS_LABEL_TEXT: &str = "No local variables";
 const ENTRY_HEIGHT: f32 = list_view::entry::HEIGHT;
 const MINIMAL_HEIGHT: f32 = ENTRY_HEIGHT;
 const COLUMNS: usize = 3;
@@ -120,6 +119,7 @@ ensogl_core::define_endpoints_2! {
         set_entries(AnyModelProvider<Entry>),
         set_background_color(Rgba),
         set_width(f32),
+        set_no_items_label_text(String),
     }
     Output {
         selected_entry(Option<EntryId>),
@@ -157,6 +157,7 @@ impl component::Frp<Model> for Frp {
 
             eval input.set_background_color((c) model.background.color.set(c.into()));
 
+            eval input.set_no_items_label_text((text) model.set_no_items_label_text(text));
 
             // === Background size ===
 
@@ -333,15 +334,18 @@ impl component::Model for Model {
             column.set_background_corners_radius(0.0);
             display_object.add_child(&**column);
         }
-
         let no_items_label = Label::new(app);
-        no_items_label.set_content(NO_ITEMS_LABEL_TEXT);
 
         Model { no_items_label, display_object, background, columns }
     }
 }
 
 impl Model {
+    /// Set the text content of the "no items" label.
+    fn set_no_items_label_text(&self, text: &str) {
+        self.no_items_label.set_content(text);
+    }
+
     /// Make the "no items" label visible.
     fn show_no_items_label(&self) {
         self.display_object.add_child(&self.no_items_label);
