@@ -1,9 +1,9 @@
 from Standard.Base import all
+import Standard.Base.System
 
 import Standard.Base.System.Process.Exit_Code
 
 from Standard.Base.Data.Vector import Vector
-from Standard.Builtins import Array, System, True, False
 
 ## ALIAS Run a Command
    UNSTABLE
@@ -128,4 +128,3 @@ type Builder
    - stdout: The contents of the process' standard output.
    - stderr: The contents of the process' standard error.
 type Result exit_code stdout stderr
-

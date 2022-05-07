@@ -38,7 +38,7 @@ public abstract class ExpectTextNode extends Node {
       return Text.create(library.asString(str));
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.text().getText(), str, "str");
+      Atom err = builtins.error().makeTypeError(builtins.text(), str, "str");
       throw new PanicException(err, this);
     }
   }

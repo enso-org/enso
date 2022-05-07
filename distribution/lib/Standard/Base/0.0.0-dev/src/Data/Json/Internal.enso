@@ -1,5 +1,7 @@
 from Standard.Base import all hiding Number, Boolean, Array
 
+import Standard.Base.Data.Numbers as Base_Number
+
 from Standard.Base.Data.Json import all
 
 polyglot java import org.enso.base.json.Parser
@@ -291,7 +293,7 @@ into_helper fmt json = case fmt of
     Base.Boolean -> case json of
         Boolean v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
-    Base.Number -> case json of
+    Base_Number.Number -> case json of
         Number v -> v
         _ -> Panic.throw (Type_Mismatch_Error json fmt)
     Base.Text -> case json of

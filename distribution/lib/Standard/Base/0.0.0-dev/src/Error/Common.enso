@@ -1,4 +1,154 @@
 from Standard.Base import all
+import Standard.Base.Data.Json
+import Standard.Base.Runtime
+
+## Dataflow errors.
+type Error
+
+    ## A type representing dataflow errors.
+
+       A dataflow error in Enso is one that behaves like a standard value, and
+       hence represents erroneous states in a way that exists _within_ standard
+       control flow.
+
+       ? Dataflow Errors or Panics
+         Whilst a Panic is useful for unrecoverable situations, most Enso APIs
+         are designed to use dataflow errors instead. As they exist within the
+         normal program control flow, they are able to be represented on the
+         Enso graph.
+    @Builtin_Type
+    type Error
+
+    ## Creates a new dataflow error containing the provided payload.
+
+       Arguments:
+       - payload: The contents of the dataflow error to be created.
+
+       > Example
+         Throw a dataflow error containing the text "Oops".
+
+             Error.throw "Oops"
+    throw : Any -> Error
+    throw payload = @Builtin_Method "Error.throw"
+
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive handler = @Builtin_Method "Error.catch_primitive"
+
+    ## PRIVATE
+       UNSTABLE
+
+       Returns a textual representation of the stack trace attached to an error.
+    get_stack_trace_text : Text
+    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+
+    ## Converts an error to a corresponding textual representation.
+
+       > Example
+         Converting a thrown error to text.
+
+             Error.throw "foo" . to_text
+    to_text : Text
+    to_text = @Builtin_Method "Error.to_text"
+
+    ## UNSTABLE
+
+       Returns a human-readable text representing this error.
+    to_display_text : Text
+    to_display_text  = "Error: " + (this.catch .to_display_text)
+
+    ## Executes the provided handler on a dataflow error, or returns a non-error
+       value unchanged.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value. By default
+         this is identity.
+
+       > Example
+         Catching an erroneous value and getting the length of its message.
+
+             import Standard.Examples
+
+             example_catch =
+                 Examples.throw_error.catch (err -> err.message.length)
+    catch : (Error -> Any) -> Any
+    catch (handler = x->x) = this.catch_primitive handler
+
+    ## UNSTABLE
+
+       Returns a display representation of the dataflow error on which it is called.
+
+       > Example
+         Displaying a dataflow error.
+
+             import Standard.Examples
+
+             example_display = Examples.throw_error.to_default_visualization_data
+    to_default_visualization_data : Text
+    to_default_visualization_data = this.catch .to_default_visualization_data
+
+    ## UNSTABLE
+
+       Returns a JSON representation of the dataflow error.
+
+       > Example
+         Converting a dataflow error to JSON.
+
+             import Standard.Examples
+
+             example_to_json = Examples.throw_error.to_json
+    to_json : Json.Object
+    to_json =
+        error_type = ["type", "Error"]
+        error_content = ["content", this.catch .to_json]
+        error_message = ["message", this.catch .to_display_text]
+        Json.from_pairs [error_type, error_content, error_message]
+
+    ## Transforms an error.
+
+       Arguments:
+       - f: The function used to transform the error.
+
+       If `this` is a non-error value it is returned unchanged. However, if `this`
+       is an error, the error is transformed using the provided function
+
+       > Example
+         Transforming an error value.
+
+             import Standard.Examples
+
+             example_map_error =
+                 map = Examples.map
+                 map.get 10 . map_error (_ -> "The element 10 was not found.")
+    map_error : (Error -> Error) -> Any
+    map_error f = this.catch (x -> Error.throw (f x))
+
+    ## ADVANCED
+       UNSTABLE
+
+       Returns the attached stack trace of the error.
+
+       The ordering of the resulting vector is such that the top stack frame is the
+       first element.
+    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace =
+        Panic.get_attached_stack_trace this
+
+    ## Checks if `this` is an error.
+
+       > Example
+         Checking if the value 1 is an error.
+
+             1.is_error
+    is_error : Boolean
+    is_error = True
+
 
 type Illegal_State_Error
 
@@ -33,3 +183,380 @@ type Wrapped_Dataflow_Error payload
 ## PRIVATE
    Throws the original error.
 Wrapped_Dataflow_Error.unwrap = Error.throw this.payload
+
+type Caught_Panic
+    ## A wrapper for a caught panic.
+
+       Arguments:
+       - payload: the payload carried by the error.
+       - internal_original_exception (private): the original Java exception that is
+         the source of this panic. Only for internal use. To get the Java exception
+         from polyglot exceptions, match the `payload` on `Polyglot_Error` and
+         extract the Java object from there.
+    @Builtin_Type
+    type Caught_Panic payload internal_original_exception
+
+    ## Converts this caught panic into a dataflow error containing the same
+       payload and stack trace.
+    convert_to_dataflow_error : Error
+    convert_to_dataflow_error = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+
+    ## Returns the stack trace of the caught panic.
+    stack_trace : Vector.Vector Runtime.Stack_Trace_Element
+    stack_trace =
+        Panic.get_attached_stack_trace this
+
+## Panics.
+type Panic
+
+    ## A panic is an error condition that is based _outside_ of the normal
+       program control flow.
+
+       Panics "bubble up" through the program until they reach either an
+       invocation of Panic.recover Any or the program's main method. An unhandled
+       panic in main will terminate the program.
+
+       ? Dataflow Errors or Panics
+         Panics are designed to be used for unrecoverable situations that need
+         to be handled through non-linear control flow mechanisms.
+    @Builtin_Type
+    type Panic
+
+    ## Throws a new panic with the provided payload.
+
+       Arguments:
+       - payload: The contents of the panic to be thrown. If the payload is a
+         `Caught_Panic` or a raw Java exception, instead of throwing a new panic
+         with it as a payload, the original exception is rethrown, preserving
+         its stacktrace.
+
+       > Example
+         Throwing a panic containing the text "Oh no!".
+
+             Panic.throw "Oh no!"
+
+       > Example
+         Use together with `Panic.catch` to catch only specific types of errors
+         and rethrow any others, without affecting their stacktraces.
+
+             Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+                 Illegal_Argument_Error message _ -> "Illegal arguments were provided: "+message
+                 other_panic -> Panic.throw other_panic
+    throw : Any -> Panic
+    throw payload = @Builtin_Method "Panic.throw"
+
+    ## PRIVATE
+       Executes the provided action and if any panic was thrown, calls the
+       provided callback.
+
+       If action executes successfully, the result of `Panic.catch Any` is the
+       result of that action. Otherwise, it is the result of the provided
+       handler callback, executed with the caught panic as its first argument.
+
+       Arguments:
+       - action: The code to execute that potentially panics.
+       - handler: The callback to handle any panics.
+    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
+
+    ## PRIVATE
+
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
+       You probably want `Panic.get_attached_stack_trace` instead.
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Returns the attached stack trace of the given throwable. Can be used to get
+       an Enso friendly stack trace from native Java exceptions.
+
+       The ordering of the resulting vector is such that the top stack frame is the
+       first element.
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector.Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace error =
+        throwable = case error of
+            Caught_Panic _ internal_original_exception -> internal_original_exception
+            throwable -> throwable
+        prim_stack = Panic.primitive_get_attached_stack_trace throwable
+        stack_with_prims = Vector.Vector prim_stack
+        stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
+
+    ## Takes any value, and if it is a dataflow error, throws it as a Panic,
+       otherwise, returns the original value unchanged.
+
+       Arguments:
+       - value: The value to rethrow any errors on as a panic.
+
+       > Example
+         Rethrowing a dataflow error as a panic.
+
+             import Standard.Examples
+
+             example_rethrow = Panic.rethrow Examples.throw_error
+    rethrow : (Any ! Any) -> Any
+    rethrow value = value.catch Panic.throw
+
+    ## Executes the provided action and if a panic matching the provided type was
+       thrown, calls the provided callback.
+
+       If action executes successfully, the result of `Panic.catch` is the result of
+       that action. Otherwise, if a matching panic is thrown from within the action,
+       the result is obtained by calling the provided handler callback. Any
+       non-matching panics are forwarded without changes.
+
+       Arguments:
+       - panic_type: The expected panic type. It can either be an Enso type or a
+         Java class. If the Java class is provided, `Polyglot_Error` containing a
+         Java exception of this class will be matched.
+       - action: The code to execute that potentially panics.
+       - handler: The callback to handle the panics. The callback will be provided
+         with a `Caught_Panic` instance encapsulating the `payload` of the caught
+         panic and its stacktrace.
+
+       > Example
+         Handling a specific type of panic.
+
+             Panic.catch Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+                 "Caught an `Illegal_Argument_Error`: "+error.payload.message
+
+       > Example
+         Handling any panic.
+
+             Panic.catch Any (Panic.throw (Illegal_Argument_Error "Oh no!" Nothing)) error->
+                 "Caught some panic!"
+
+       > Example
+         Convert a string to an integer, catching the Java `NumberFormatException`
+         and converting it to a more Enso-friendly dataflow error.
+
+             polyglot java import java.lang.Long
+             polyglot java import java.lang.NumberFormatException
+             parse str =
+                 Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+                     Error.throw (Illegal_Argument_Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+    catch : Any -> Any -> (Caught_Panic -> Any) -> Any
+    catch panic_type ~action handler =
+        Panic.catch_primitive action caught_panic->
+            case Meta.get_polyglot_language panic_type == "java" of
+                False -> case caught_panic.payload.is_a panic_type of
+                    True -> handler caught_panic
+                    False -> Panic.throw caught_panic
+                True -> case caught_panic.payload of
+                    Polyglot_Error java_exception ->
+                        case Java.is_instance java_exception panic_type of
+                            True -> handler caught_panic
+                            False -> Panic.throw caught_panic
+                    _ -> Panic.throw caught_panic
+
+    ## Executes the provided action and converts a possible panic matching any of
+       the provided types into a dataflow Error.
+
+       If action executes successfully, the result of `Panic.recover` is the result
+       of that action. Otherwise, if it panicked with a type matching one of the
+       expected error types, that panic is returned as a dataflow error. Unexpected
+       panics are passed through as-is. it is the panic that was thrown after
+       conversion to a dataflow error.
+
+       Arguments:
+       - expected_types: The types of expected panics which should be recovered.
+         This can either be a Vector of types or a single type.
+       - action: The code to execute that potentially panics.
+
+       > Example
+         Converting an expected panic to a dataflow error.
+
+             Panic.recover Illegal_Argument_Error (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+
+       > Example
+         Converting one of many expected panic types to a dataflow error.
+
+             Panic.recover [Illegal_Argument_Error, Illegal_State_Error] (Panic.throw (Illegal_Argument_Error "Oh!" Nothing))
+    recover : (Vector.Vector Any | Any) -> Any -> Any
+    recover expected_types ~action =
+        types_to_check = case expected_types of
+            Vector.Vector _ -> expected_types
+            _ -> [expected_types]
+        Panic.catch Any action caught_panic->
+            is_matched = types_to_check.exists typ->
+                caught_panic.payload.is_a typ
+            case is_matched of
+                True -> caught_panic.convert_to_dataflow_error
+                False -> Panic.throw caught_panic
+
+## The runtime representation of a syntax error.
+
+   Arguments:
+   - message: A description of the erroneous syntax.
+@Builtin_Type
+type Syntax_Error message
+
+## The runtime representation of a type error.
+
+   Arguments:
+   - expected: The expected type at the error location.
+   - actual: The actual type at the error location.
+   - name: The name of the argument whose type is mismatched.
+@Builtin_Type
+type Type_Error expected actual name
+
+## The runtime representation of a compilation error.
+
+   Arguments:
+   - message: A description of the erroneous state.
+@Builtin_Type
+type Compile_Error message
+
+## The error thrown when a there is no pattern to match on the scrutinee.
+
+   Arguments:
+   - scrutinee: The scrutinee that failed to match.
+@Builtin_Type
+type Inexhaustive_Pattern_Match_Error scrutinee
+
+## The error thrown when the number of arguments provided to an operation
+   does not match the expected number of arguments.
+
+   Arguments:
+     - expected_min: the minimum expected number of arguments.
+     - expected_max: the maximum expected number of arguments.
+     - actual: the actual number of arguments passed.
+@Builtin_Type
+type Arity_Error expected_min expected_max actual
+
+## The error thrown when the program attempts to read from a state slot that has
+   not yet been initialized.
+
+   Arguments:
+   - key: The key for the state slot that was not initialized.
+@Builtin_Type
+type Uninitialized_State key
+
+## The error thrown when the specified symbol does not exist as a method on
+   the target.
+
+   Arguments:
+   - target: The target on which the attempted method call was performed.
+   - symbol: The symbol that was attempted to be called on target.
+@Builtin_Type
+type No_Such_Method_Error target symbol
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the method name of the method that could not be found.
+
+   > Example
+     Getting the method name from a no such method error.
+
+         import Standard.Examples
+
+         example_method_name =
+             error = Examples.no_such_method
+             error.method_name
+No_Such_Method_Error.method_name : Text
+No_Such_Method_Error.method_name =
+    Meta.meta this.symbol . name
+
+
+## An error that occurred across a polyglot boundary.
+
+   Arguments:
+   - cause: A polyglot object corresponding to the original error.
+@Builtin_Type
+type Polyglot_Error cause
+
+## An error that occurs when the enso_project function is called in a file
+   that is not part of a project.
+@Builtin_Type
+type Module_Not_In_Package_Error
+
+## An error for when an erroneous arithmetic computation takes place.
+
+   Arguments:
+   - message: A description of the error condition.
+@Builtin_Type
+type Arithmetic_Error message
+
+## An error that occurs when a program requests a read from an array index
+   that is out of bounds in the array.
+
+   Arguments:
+   - array: The array in which the index was requested.
+   - index: The index that was out of bounds.
+@Builtin_Type
+type Invalid_Array_Index_Error array index
+
+## An error that occurs when an object is used as a function in a function
+   call, but it cannot be called.
+
+   Arguments:
+     - target: The called object.
+@Builtin_Type
+type Not_Invokable_Error target
+
+## An error that occurs when arguments used in a function call are invalid
+   types for the function.
+
+   Arguments:
+     - arguments: The passed arguments.
+@Builtin_Type
+type Unsupported_Argument_Types arguments
+
+## An error that occurs when the specified module cannot be found.
+
+   Arguments:
+     - name: The module searched for.
+@Builtin_Type
+type Module_Does_Not_Exist name
+
+## An error that occurs when the specified value cannot be converted to a given type
+## FIXME: please check
+
+   Arguments:
+     - target: ...
+@Builtin_Type
+type Invalid_Conversion_Target_Error target
+
+## An error that occurs when the conversion from one type to another does not exist
+## FIXME: please check
+
+   Arguments:
+     - target: ...
+     - that: ...
+     - conversion: ...
+@Builtin_Type
+type No_Such_Conversion_Error
+
+## UNSTABLE
+
+   A type used to represent that something has not yet been implemented.
+
+   Arguments:
+   - message: The message describing what implementation is missing.
+type Unimplemented_Error message
+
+## UNSTABLE
+
+   Converts the unimplemented error to a human-readable error message.
+Unimplemented_Error.to_display_text : Text
+Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
+
+## ADVANCED
+
+   A function that can be used to indicate that something hasn't been
+   implemented yet.
+
+   Arguments:
+   - message: A description of what implementation is missing.
+
+   > Example
+     Throwing an error to show that something is unimplemented.
+
+         import Standard.Base.Error.Common as Errors
+
+         example_unimplemented = Errors.unimplemented
+unimplemented : Text -> Void
+unimplemented message="" = Panic.throw (Unimplemented_Error message)

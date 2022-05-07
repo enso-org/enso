@@ -111,3 +111,10 @@ type Mismatched_Quote
 
 ## Indicates an unexpected parser error.
 type Parser_Error cause
+
+## Indicates that a specified location was not valid.
+type Invalid_Location (location:Text)
+
+Invalid_Location.to_display_text : Text
+Invalid_Location.to_display_text =
+    "The location '"+this.location+"' is not valid."

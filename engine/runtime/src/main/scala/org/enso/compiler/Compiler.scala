@@ -46,7 +46,7 @@ class Compiler(
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
-    new RuntimeStubsGenerator()
+    new RuntimeStubsGenerator(builtins)
   private val irCachingEnabled = !context.isIrCachingDisabled
   private val useGlobalCacheLocations = context.getEnvironment.getOptions.get(
     RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY

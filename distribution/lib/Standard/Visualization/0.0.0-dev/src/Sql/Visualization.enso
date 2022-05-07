@@ -40,8 +40,8 @@ prepare_visualization x = Helpers.recover_errors <|
    types it will return `Nothing`.
 find_expected_enso_type_for_sql : Sql_Type -> Text
 find_expected_enso_type_for_sql sql_type =
-    if sql_type.is_definitely_integer then "Standard.Builtins.Main.Integer" else
-        if sql_type.is_definitely_double then "Standard.Builtins.Main.Decimal" else
-            if sql_type.is_definitely_text then "Standard.Builtins.Main.Text" else
-                if sql_type.is_definitely_boolean then "Standard.Builtins.Main.Boolean" else
+    if sql_type.is_definitely_integer then "Standard.Base.Data.Numbers.Integer" else
+        if sql_type.is_definitely_double then "Standard.Base.Data.Numbers.Decimal" else
+            if sql_type.is_definitely_text then "Standard.Base.Data.Text.Text" else
+                if sql_type.is_definitely_boolean then "Standard.Base.Boolean.Boolean" else
                     Nothing
