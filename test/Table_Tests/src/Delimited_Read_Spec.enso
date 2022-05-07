@@ -101,8 +101,8 @@ spec =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
                 table.at 'a' . to_vector . should_equal ['ą']
                 table.at 'b' . to_vector . should_equal ['\uFFFF']
-                table.at 'c' . to_vector . should_equal ['\uFFFD(']
-            problems_1 = [Encoding_Error "Encoding issues at TODO"]
+                table.at 'c' . to_vector . should_equal ['\uFFFD(\uFFFD(']
+            problems_1 = [Encoding_Error "Encoding issues at bytes 13, 15."]
             Problems.test_problem_handling action_1 problems_1 tester_1
 
             action_2 on_problems =
@@ -112,7 +112,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['ą']
                 table.at 'b' . to_vector . should_equal ['\uFFFF']
                 table.at 'c' . to_vector . should_equal ['\uFFFD']
-            problems_2 = [Encoding_Error "Encoding issues at TODO"]
+            problems_2 = [Encoding_Error "Encoding issues at byte 22."]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
 

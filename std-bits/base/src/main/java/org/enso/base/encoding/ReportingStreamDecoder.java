@@ -12,6 +12,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.enso.base.Encoding_Utils;
 
 public class ReportingStreamDecoder extends Reader {
@@ -38,6 +39,15 @@ public class ReportingStreamDecoder extends Reader {
    * able to write to it, it needs to be reallocated, compacted or flipped.
    */
   private ByteBuffer inputBuffer = null;
+
+  /**
+   * Indicates the amount of bytes consumed before the start of the current input buffer.
+   *
+   * <p>The input buffer is reset many times and so its position will only indicate the bytes that
+   * were consumed in some current iteration, this counter allows us to compute the overall amount
+   * of bytes.
+   */
+  private int inputBytesConsumedBeforeCurrentBuffer = 0;
 
   /**
    * We re-use the work array between calls to read, to avoid re-allocating it on each call. It is
@@ -188,22 +198,29 @@ public class ReportingStreamDecoder extends Reader {
       }
 
       if (cr.isMalformed() || cr.isUnmappable()) {
-        // Get current position for error reporting
-        int position = 0; // TODO
+        reportEncodingProblem();
 
         if (outputBuffer.remaining() < Encoding_Utils.INVALID_CHARACTER.length()) {
           growOutputBuffer();
         }
         outputBuffer.put(INVALID_CHARACTER);
         inputBuffer.position(inputBuffer.position() + cr.length());
-
-        encodingIssuePositions.add(position);
       } else if (cr.isUnderflow()) {
         break;
       } else if (cr.isOverflow()) {
         growOutputBuffer();
       }
     }
+  }
+
+  /** Returns the amount of bytes that have already been consumed by the decoder. */
+  private int getCurrentInputPosition() {
+    if (inputBuffer == null) return 0;
+    return inputBytesConsumedBeforeCurrentBuffer + inputBuffer.position();
+  }
+
+  private void reportEncodingProblem() {
+    encodingIssuePositions.add(getCurrentInputPosition());
   }
 
   /**
@@ -222,6 +239,8 @@ public class ReportingStreamDecoder extends Reader {
    *
    * <p>If necessary, the buffer is allocated or grown, preserving any existing content.
    *
+   * <p>Assumes that the input buffer is in read mode when the method is called.
+   *
    * <p>The buffer is in write mode after this call and has enough space to hold {@code bytesToRead}
    * bytes.
    */
@@ -230,9 +249,15 @@ public class ReportingStreamDecoder extends Reader {
       inputBuffer = ByteBuffer.allocate(bytesToRead);
     } else {
       int freeSpaceInInputBuffer = inputBuffer.capacity() - inputBuffer.remaining();
+
+      // After either compacting the buffer or reallocating it, any remaining input is shifted to
+      // the beginning of the buffer. Thus the bytes that preceded the current position are lost
+      // (because they already have been processed), so we increase the counter to keep the global
+      // position in the input.
+      inputBytesConsumedBeforeCurrentBuffer += inputBuffer.position();
+
       if (freeSpaceInInputBuffer < bytesToRead) {
         var old = inputBuffer;
-        old.flip();
         inputBuffer = ByteBuffer.allocate(old.remaining() + bytesToRead);
         inputBuffer.put(old);
       } else {
@@ -267,7 +292,13 @@ public class ReportingStreamDecoder extends Reader {
     if (encodingIssuePositions.isEmpty()) {
       return List.of();
     } else {
-      return List.of("Encoding issues at TODO");
+      if (encodingIssuePositions.size() == 1) {
+        return List.of("Encoding issues at byte " + encodingIssuePositions.get(0) + ".");
+      }
+
+      String issues = encodingIssuePositions.stream().map(String::valueOf)
+          .collect(Collectors.joining(", ", "Encoding issues at bytes ", "."));
+      return List.of(issues);
     }
   }
 }
