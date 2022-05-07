@@ -1149,12 +1149,12 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "eu.timepit"         %% "refined"               % refinedVersion,
+     "junit" % "junit" % "4.12" % Test,
+     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
       // This dependency is needed only so that developers don't download Frgaal manually.
       // Sadly it cannot be placed under plugins either because meta dependencies are not easily
       // accessible from the non-meta build definition.
-      FrgaalJavaCompiler.frgaal,
-     "junit" % "junit" % "4.12" % Test,
-     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep")
+      FrgaalJavaCompiler.frgaal
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
