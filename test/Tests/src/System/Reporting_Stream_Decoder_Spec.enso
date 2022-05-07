@@ -1,0 +1,66 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
+
+polyglot java import org.enso.base.Encoding_Utils
+
+import Standard.Test
+import Standard.Test.Problems
+
+spec =
+    sample_file = Enso_Project.data / "sample.txt"
+    windows_file = Enso_Project.data / "windows.txt"
+
+    read_file_one_by_one file java_charset expected_size expected_problems=[] =
+        file.with_input_stream [File.Option.Read] stream->
+            stream.with_java_stream java_stream->
+                Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+                    codepoints = 0.up_to expected_size . map _->
+                        reporting_stream_decoder.read
+                    reporting_stream_decoder.read.should_equal -1
+
+                    problems = Vector.Vector reporting_stream_decoder.getReportedProblems
+                    problems.should_equal expected_problems
+
+                    Text.from_codepoints codepoints
+
+    Test.group "ReportingStreamDecoder" <|
+        Test.specify "should allow reading a file character by character" <|
+            f = Enso_Project.data / "short.txt"
+            f.delete_if_exists
+            f.exists.should_be_false
+            f.write_text "Cup"
+            java_charset = Encoding.utf_8.to_java_charset
+            f.with_input_stream [File.Option.Read] stream->
+                stream.with_java_stream java_stream->
+                    Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+                        reporting_stream_decoder.read.should_equal 67
+                        reporting_stream_decoder.read.should_equal 117
+                        reporting_stream_decoder.read.should_equal 112
+                        reporting_stream_decoder.read.should_equal -1
+            f.delete
+            f.exists.should_be_false
+
+        Test.specify "should allow reading a UTF-8 file" <|
+            encoding = Encoding.utf_8
+            java_charset = encoding.to_java_charset
+            expected_contents = sample_file.read_text
+            contents = read_file_one_by_one sample_file java_charset expected_contents.length
+            contents.should_equal expected_contents
+
+        Test.specify "should allow reading a Windows file" <|
+            encoding = Encoding.windows_1252
+            java_charset = encoding.to_java_charset
+            expected_contents = "Hello World! $¢¤¥"
+            contents = read_file_one_by_one windows_file java_charset expected_contents.length
+            contents.should_equal expected_contents
+
+        Test.specify "should raise warnings when reading invalid characters" <|
+            encoding = Encoding.ascii
+            java_charset = encoding.to_java_charset
+            expected_contents = 'Hello World! $\uFFFD\uFFFD\uFFFD'
+            expected_problems = ["Encoding issues at bytes 14, 15, 16."]
+            contents = read_file_one_by_one windows_file java_charset expected_contents.length expected_problems=expected_problems
+            contents.should_equal expected_contents
+
+main = Test.Suite.run_main here.spec
