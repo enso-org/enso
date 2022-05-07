@@ -54,9 +54,9 @@ public class BlockNode extends ExpressionNode {
       Set<Class<? extends Tag>> materializedTags) {
     if (materializedTags.contains(StandardTags.StatementTag.class)) {
       for (int i = 0; i < statements.length; i++) {
-        statements[i] = insert(new StatementNode(statements[i]));
+        statements[i] = insert(StatementNode.wrap(statements[i]));
       }
-      this.returnExpr = insert(new StatementNode(returnExpr));
+      this.returnExpr = insert(StatementNode.wrap(returnExpr));
     }
     return this;
   }

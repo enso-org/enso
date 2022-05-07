@@ -13,11 +13,16 @@ import org.enso.interpreter.node.ExpressionNode;
 final class StatementNode extends ExpressionNode {
   @Child ExpressionNode node;
 
-  StatementNode(ExpressionNode node) {
-    if (node instanceof StatementNode) {
-      throw new IllegalStateException("Wrapping StatementNode into StatementNode");
-    }
+  private StatementNode(ExpressionNode node) {
     this.node = node;
+  }
+
+  static StatementNode wrap(ExpressionNode node) {
+    if (node instanceof StatementNode statement) {
+      return statement;
+    } else {
+      return new StatementNode(node);
+    }
   }
 
   @Override
