@@ -1,32 +1,7 @@
 name: GUI CI
 "on":
-  - push: {}
+  push: {}
 jobs:
-  lint-macos:
-    name: Linting the codebase
-    runs-on:
-      - macos-latest
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update_conda: false
-          conda_channels: "anaconda, conda-forge"
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: "./run.sh --help"
-        if: "runner.os != 'Windows'"
-        shell: bash
-      - run: ".\\run.cmd --help"
-        if: "runner.os == 'Windows'"
-        shell: cmd
   lint-windows:
     name: Linting the codebase
     runs-on:
@@ -60,6 +35,31 @@ jobs:
       - self-hosted
       - Linux
       - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh --help"
+        if: "runner.os != 'Windows'"
+        shell: bash
+      - run: ".\\run.cmd --help"
+        if: "runner.os == 'Windows'"
+        shell: cmd
+  lint-macos:
+    name: Linting the codebase
+    runs-on:
+      - macos-latest
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
