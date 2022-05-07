@@ -1,13 +1,13 @@
+
 name: GUI CI
 "on":
   push: {}
 jobs:
-  lint-windows:
-    name: Linting the codebase
+  build-wasm-macos:
+    name: Build GUI (WASM) (macos)
+    needs: []
     runs-on:
-      - self-hosted
-      - Windows
-      - engine
+      - macos-latest
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
@@ -23,14 +23,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
-        if: "runner.os != 'Windows'"
-        shell: bash
-      - run: ".\\run.cmd --help"
-        if: "runner.os == 'Windows'"
+      - run: ".\\run.cmd wasm build"
         shell: cmd
   lint-linux:
-    name: Linting the codebase
+    name: Lint (linux)
+    needs: []
     runs-on:
       - self-hosted
       - Linux
@@ -50,14 +47,39 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
-        if: "runner.os != 'Windows'"
-        shell: bash
-      - run: ".\\run.cmd --help"
-        if: "runner.os == 'Windows'"
+      - run: ".\\run.cmd lint"
         shell: cmd
-  lint-macos:
-    name: Linting the codebase
+  package-ide-linux:
+    name: Package IDE (linux)
+    needs:
+      - build-wasm-linux
+      - build-project-manager-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        shell: cmd
+  package-ide-macos:
+    name: Package IDE (macos)
+    needs:
+      - build-wasm-macos
+      - build-project-manager-macos
     runs-on:
       - macos-latest
     steps:
@@ -75,9 +97,221 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
-        if: "runner.os != 'Windows'"
+      - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        shell: cmd
+  native-test-linux:
+    name: Native GUI tests (linux)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd wasm test --no-wasm"
+        shell: cmd
+  build-wasm-windows:
+    name: Build GUI (WASM) (windows)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh wasm build"
         shell: bash
-      - run: ".\\run.cmd --help"
-        if: "runner.os == 'Windows'"
+  build-project-manager-windows:
+    name: Build Project Manager (windows)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh project-manager"
+        shell: bash
+  package-ide-windows:
+    name: Package IDE (windows)
+    needs:
+      - build-wasm-windows
+      - build-project-manager-windows
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        shell: bash
+  build-project-manager-macos:
+    name: Build Project Manager (macos)
+    needs: []
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd project-manager"
+        shell: cmd
+  build-wasm-linux:
+    name: Build GUI (WASM) (linux)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd wasm build"
+        shell: cmd
+  wasm-test-linux:
+    name: WASM GUI tests (linux)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd wasm test --no-native"
+        shell: cmd
+  integration-test-linux:
+    name: IDE integration tests (linux)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd ide integration-test"
+        shell: cmd
+  build-project-manager-linux:
+    name: Build Project Manager (linux)
+    needs: []
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update_conda: false
+          conda_channels: "anaconda, conda-forge"
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd project-manager"
         shell: cmd
