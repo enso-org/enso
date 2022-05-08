@@ -1,6 +1,6 @@
 [package]
 name    = "enso-parser"
-version = "0.2.6"
+version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
 
@@ -17,3 +17,6 @@ enso-data-structures = { path = "../data-structures" }
 enso-types = { path = "../types" }
 ouroboros = "0.14.2"
 enso-shapely-macros = { path = "../shapely/macros" }
+enso-parser-ast-visitor = { path = "src/ast/visitor" }
+enso-parser-ast-builder = { path = "src/ast/builder" }
+

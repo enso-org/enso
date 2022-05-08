@@ -90,7 +90,7 @@ impl Pattern {
                 None => Err(ResolutionError::new(input, "Expected an item.")),
                 Some(first) => match first.try_as_ref() {
                     None => Err(ResolutionError::new(input, "Expected an item.")),
-                    Some(first) => match item.has_rhs_spacing {
+                    Some(_) => match item.has_rhs_spacing {
                         Some(spacing) =>
                             if right_to_left_mode {
                                 if spacing == has_spacing_at_end {

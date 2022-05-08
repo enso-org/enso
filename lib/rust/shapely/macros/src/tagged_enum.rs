@@ -12,6 +12,13 @@ use inflector::cases::snakecase::to_snake_case;
 // === Entry Point ===
 // ===================
 
+/// Transforms Rust enums into enums where each variant is a separate type. It also implements
+/// several traits (such as conversions between variants and the enum type) and defines utility
+/// functions, such as constructors.
+///
+/// To learn more about what code is being generated, parts of the code generation were provided
+/// with comments showing the output of application of this macro to the following structure:
+///
 /// ```text
 /// #[tagged_enum(boxed)]
 /// pub enum Ast {
@@ -211,6 +218,7 @@ pub fn run(
         // }
         output.push(quote! {
             #[inline(always)]
+            #[allow(non_snake_case)]
             pub fn #variant_name(#(#names: #types),*) -> #variant_name {
                 #variant_name { #(#names),* }
             }

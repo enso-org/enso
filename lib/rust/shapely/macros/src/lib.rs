@@ -21,12 +21,10 @@
 
 extern crate proc_macro;
 
-mod ast_builder;
 mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_iterator;
 mod derive_no_clone;
-mod derive_visitor;
 mod overlappable;
 mod tagged_enum;
 
@@ -135,17 +133,9 @@ pub fn overlappable(
     overlappable::overlappable(attrs, input)
 }
 
-
-#[proc_macro_derive(Visitor)]
-pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive_visitor::derive(input)
-}
-
-#[proc_macro]
-pub fn ast_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    ast_builder::run(input)
-}
-
+/// Transforms Rust enums into enums where each variant is a separate type. It also implements
+/// several traits (such as conversions between variants and the enum type) and defines utility
+/// functions, such as constructors. See [`tagged_enum::run`] to learn more.
 #[proc_macro_attribute]
 pub fn tagged_enum(
     attr: proc_macro::TokenStream,

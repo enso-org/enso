@@ -90,7 +90,6 @@ pub use std::collections::hash_map::DefaultHasher;
 pub use std::hash::Hash;
 pub use std::hash::Hasher;
 
-pub use enso_shapely::Visitor;
 use std::cell::UnsafeCell;
 
 

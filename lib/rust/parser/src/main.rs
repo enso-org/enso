@@ -3,6 +3,7 @@
 #![recursion_limit = "256"]
 #![feature(specialization)]
 #![feature(let_chains)]
+#![allow(incomplete_features)]
 
 use crate::prelude::*;
 
@@ -27,16 +28,8 @@ pub mod prelude {
 }
 
 
-use enso_shapely_macros::ast_builder;
-
-
-// ==================================
-
-// use crate::source::DebugLeaf;
-use crate::source::HasRepr;
 use ast::Ast;
 use lexer::Lexer;
-use location::Span;
 
 
 
@@ -147,7 +140,7 @@ impl<'a> MacroResolver<'a> {
                 header:  "__ROOT__",
                 pattern: Pattern::Everything,
             }),
-            body:               Rc::new(|lexer, _, mut v| {
+            body:               Rc::new(|lexer, _, v| {
                 if v.len() != 1 {
                     panic!()
                 }
@@ -271,8 +264,8 @@ impl<'a> Resolver<'a> {
         m: MacroResolver<'a>,
         prefix_tokens: Option<Vec<TokenOrAst>>,
     ) -> Ast {
-        let mut segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
-        let mut sss: NonEmptyVec<(Token, Vec<TokenOrAst>)> = segments.mapped(|segment| {
+        let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
+        let sss: NonEmptyVec<(Token, Vec<TokenOrAst>)> = segments.mapped(|segment| {
             let mut ss: Vec<TokenOrAst> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
@@ -329,7 +322,7 @@ impl<'a> Resolver<'a> {
             mem::swap(&mut self.current_macro.current_segment, &mut current_segment);
             self.current_macro.resolved_segments.push(current_segment);
             ResolverStep::NewSegmentStarted
-        } else if let Some(mut parent_macro) = self.pop_macro_stack_if_reserved(repr) {
+        } else if let Some(parent_macro) = self.pop_macro_stack_if_reserved(repr) {
             event!(TRACE, "Next token reserved by parent macro. Resolving current macro.");
             self.replace_current_with_parent_macro(parent_macro);
             ResolverStep::MacroStackPop
@@ -432,7 +425,7 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
     type Tokens = Vec<TokenOrAst>;
     let mut flattened: Tokens = default();
     let mut no_space_group: Tokens = default();
-    let mut processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
+    let processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
         let tokens = mem::take(no_space_group);
         if tokens.len() == 1 {
             flattened.extend(tokens);
@@ -564,7 +557,7 @@ fn token_to_ast(elem: TokenOrAst) -> Ast {
 
 fn matched_segments_into_multi_segment_app<'s>(
     lexer: &Lexer<'s>,
-    mut prefix_tokens: Option<Vec<TokenOrAst>>,
+    prefix_tokens: Option<Vec<TokenOrAst>>,
     matched_segments: NonEmptyVec<(Token, Vec<TokenOrAst>)>,
 ) -> Ast {
     // FIXME: remove into_vec
@@ -578,7 +571,7 @@ fn matched_segments_into_multi_segment_app<'s>(
             ast::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
-    if let Ok(mut segments) = NonEmptyVec::try_from(segments) {
+    if let Ok(segments) = NonEmptyVec::try_from(segments) {
         let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
         Ast::multi_segment_app(prefix, segments)
     } else {
@@ -639,7 +632,7 @@ fn builtin_macros() -> MacroMatchTree<'static> {
 // === Main ===
 // ============
 
-// #[test]
+#[test]
 mod test {
     use super::*;
 
@@ -659,46 +652,6 @@ mod test {
 }
 
 
-
-macro_rules! test_macro_build {
-    ([[$($item1:tt)*] [$($item2:tt)*]] $($ts:tt)*) => {
-        test_macro_build!{[[Ast::app($($item1)*,$($item2)*)]] $($ts)*}
-    };
-    ([[$($item:tt)*]]) => {
-        Ast::opr_section_boundary($($item)*)
-    };
-    ([$($stack:tt)*] $a:ident $($ts:tt)*) => {
-        test_macro_build!{[$($stack)* [test::ident(stringify!{$a})]] $($ts)*}
-    };
-    ([$($stack:tt)*] [$($ss:tt)*] $($ts:tt)*) => {
-        test_macro_build!{[$($stack)* [test_macro_build_multi_app!{$($ss)*}]] $($ts)*}
-    };
-}
-
-macro_rules! test_macro_build_multi_app {
-    ($($section:literal $($argument:ident)?)*) => {
-        location::With::new_with_len(
-            Bytes::from(0),
-            ast::Data::MultiSegmentApp(MultiSegmentApp {
-                prefix:   None,
-                segments: NonEmptyVec::try_from(vec![$(
-                    test::app_segment(Token::symbol($section),
-                    test_macro_build_multi_app_argument!{$($argument)?}
-                    )
-                ),*]).unwrap(),
-            }),
-        )
-    };
-}
-
-macro_rules! test_macro_build_multi_app_argument {
-    ($argument:ident) => {
-        Some(Ast::opr_section_boundary(test::ident(stringify!($argument))))
-    };
-    () => {
-        None
-    };
-}
 
 pub struct MyVisitor {}
 impl<'a> ast::AstVisitor<'a> for MyVisitor {
@@ -725,12 +678,12 @@ fn main() {
     let mut lexer = Lexer::new(str);
     lexer.run();
 
-    let mut root_macro_map = builtin_macros();
+    let root_macro_map = builtin_macros();
 
     event!(TRACE, "Registered macros:\n{:#?}", root_macro_map);
 
-    let mut resolver = Resolver::new_root();
-    let mut ast = resolver.run(
+    let resolver = Resolver::new_root();
+    let ast = resolver.run(
         &lexer,
         &root_macro_map,
         lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),
@@ -833,7 +786,7 @@ mod tests {
 ///
 /// - Macro sections have higher precedence then everything, including lambdas. `if a then x -> x +
 ///   1 else x -> x - 1` should be OK.
-fn tmp() {}
+fn _tmp() {}
 
 // (.foo a)
 // (* foo + bar)

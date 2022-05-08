@@ -1109,14 +1109,36 @@ dependencies = [
 
 [[package]]
 name = "enso-parser"
-version = "0.2.6"
+version = "0.1.0"
 dependencies = [
  "bumpalo",
  "enso-data-structures",
+ "enso-parser-ast-builder",
+ "enso-parser-ast-visitor",
  "enso-prelude",
  "enso-shapely-macros",
  "enso-types",
  "ouroboros",
+]
+
+[[package]]
+name = "enso-parser-ast-builder"
+version = "0.1.0"
+dependencies = [
+ "enso-macro-utils",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "enso-parser-ast-visitor"
+version = "0.1.0"
+dependencies = [
+ "enso-macro-utils",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::ast::Ast;
-use crate::lexer;
 use crate::location;
 use crate::token;
 use crate::token::Token;

@@ -1,40 +1,43 @@
-use crate::prelude::*;
+//! Definition of a macro allowing building mock AST structures, mostly useful for testing.
 
-use enso_macro_utils::field_names;
-use enso_macro_utils::identifier_sequence;
-use enso_macro_utils::index_sequence;
-use enso_macro_utils::path_matching_ident;
+use proc_macro2::TokenStream;
+use quote::quote;
 use std::mem;
-use syn::Attribute;
-use syn::Data;
-use syn::DataEnum;
-use syn::DataStruct;
-use syn::DeriveInput;
-use syn::Fields;
-use syn::Ident;
-use syn::Lit;
-use syn::Meta;
-use syn::MetaNameValue;
-use syn::NestedMeta;
-use syn::Variant;
-use syn::WhereClause;
-use syn::WherePredicate;
 
 
+/// A macro allowing building mock AST structures, mostly useful for testing.
+///
+/// Currently supported syntax:
+///
+/// - `a b c` Application of arguments. Arguments are applied in-order, from left to right. Here,
+///   this expression would be the same as `[[a b] c]`.
+///
+/// - `a [b c] d` Grouping syntax that does not produce AST group expression. Here, `b c` is just
+///   the first argument passed to `a`.
+///
+/// - `{if} a {then} b {else} c` Multi-segment application. All segments should be enclosed in curly
+///   braces. You can also place segments in quotes, like `{"("} a {")"}`.
+#[proc_macro]
+pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let output = expr(tokens);
+    let output = quote!(Ast::opr_section_boundary(#output));
+    output.into()
+}
 
-pub struct Segment {
+
+struct Segment {
     header: TokenStream,
     body:   TokenStream,
 }
 
 impl Segment {
-    pub fn new(header: TokenStream) -> Self {
+    fn new(header: TokenStream) -> Self {
         let body = quote!();
         Self { header, body }
     }
 }
 
-pub fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
+fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
     use proc_macro::TokenTree::*;
     let mut output = quote! {};
     let mut prefix: Option<TokenStream> = None;
@@ -102,11 +105,4 @@ pub fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
         }
     }
     output
-}
-
-pub fn run(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let output = expr(tokens);
-    let output = quote!(Ast::opr_section_boundary(#output));
-    // println!("{:#}", output);
-    output.into()
 }
