@@ -135,7 +135,7 @@ impl<'a> MacroResolver<'a> {
         let current_segment = MatchedSegment {
             header: location::With::new_no_left_offset_no_len(
                 Bytes::from(0),
-                token::Kind::newline(),
+                token::Type::newline(),
             ),
             body:   default(),
         };
@@ -411,8 +411,8 @@ fn annotate_tokens_that_need_spacing(items: Vec<TokenOrAst>) -> Vec<TokenOrAst> 
         .map(|item| match item {
             TokenOrAst::Token(_) => item,
             TokenOrAst::Ast(ast) => match &ast.elem {
-                ast::Data::MultiSegmentApp(data) => {
-                    if data.segments.first().header.elem.variant() != token::KindVariant::Symbol {
+                ast::Type::MultiSegmentApp(data) => {
+                    if data.segments.first().header.elem.variant() != token::TypeVariant::Symbol {
                         TokenOrAst::Ast(
                             ast.with_error(
                                 "This expression cannot be used in a non-spaced equation.",
@@ -465,7 +465,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        if let TokenOrAst::Token(token) = item && let token::Kind::Operator(opr) = token.elem {
+        if let TokenOrAst::Token(token) = item && let token::Type::Operator(opr) = token.elem {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
@@ -555,7 +555,7 @@ where
 fn token_to_ast(elem: TokenOrAst) -> Ast {
     match elem {
         TokenOrAst::Token(token) => match token.elem {
-            token::Kind::Ident(ident) => elem.span().with(ast::Data::from(ast::Ident(ident))),
+            token::Type::Ident(ident) => elem.span().with(ast::Type::from(ast::Ident(ident))),
             _ => panic!(),
         },
         TokenOrAst::Ast(ast) => ast,
@@ -644,10 +644,10 @@ mod test {
     use super::*;
 
     pub fn ident(repr: &str) -> Ast {
-        match token::Kind::parse_ident(repr) {
-            token::Kind::Ident(ident) => location::With::new_no_left_offset_no_start(
+        match token::Type::parse_ident(repr) {
+            token::Type::Ident(ident) => location::With::new_no_left_offset_no_start(
                 Bytes::from(repr.len()),
-                ast::Data::from(ast::Ident(ident)),
+                ast::Type::from(ast::Ident(ident)),
             ),
             _ => panic!(),
         }

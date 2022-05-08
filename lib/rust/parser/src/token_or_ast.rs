@@ -25,7 +25,7 @@ pub enum TokenOrAst {
 impl TokenOrAst {
     /// Check whether the element is the provided token variant. Returns [`false`] if it was an
     /// [`Ast`] node.
-    pub fn is_variant(&self, variant: token::KindVariant) -> bool {
+    pub fn is_variant(&self, variant: token::TypeVariant) -> bool {
         match self {
             TokenOrAst::Token(token) => token.is(variant),
             _ => false,

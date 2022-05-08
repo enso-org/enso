@@ -22,13 +22,15 @@ use location::Span;
 /// ```text
 /// println!("{:#?}", source::With::new(str, &ast));
 /// ```
-pub type Ast = location::With<Data>;
+pub type Ast = location::With<Type>;
 
+/// Macro providing [`Ast`] type definition. It is used to both define the ast [`Type`], and to
+/// define impls for every token type in other modules.
 #[macro_export]
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     #[tagged_enum(boxed)]
     #[derive(Clone, Eq, PartialEq, Visitor)]
-    pub enum Data {
+    pub enum Type {
         /// Invalid [`Ast`] fragment with an attached [`Error`].
         Invalid {
             pub error: Error,
@@ -73,7 +75,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
     }
 }};}
 
-macro_rules! define_ast_data {
+macro_rules! define_ast_type {
     ($($ts:tt)*) => {
         $($ts)*
         define_debug_impls!{$($ts)*}
@@ -83,7 +85,7 @@ macro_rules! define_ast_data {
 macro_rules! define_debug_impls {
     (
         $(#$enum_meta:tt)*
-        pub enum Data {
+        pub enum Type {
             $(
                 $(#$meta:tt)*
                 $variant:ident {
@@ -94,10 +96,10 @@ macro_rules! define_debug_impls {
             ),* $(,)?
         }
     ) => {
-        impl<'s> Debug for source::With<'s, &Data> {
+        impl<'s> Debug for source::With<'s, &Type> {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self.data {
-                    $(Data::$variant(t) => Debug::fmt(&self.with_data(t), f)),*
+                    $(Type::$variant(t) => Debug::fmt(&self.with_data(t), f)),*
                 }
             }
         }
@@ -113,7 +115,7 @@ macro_rules! define_debug_impls {
         )*
     };
 }
-with_ast_definition!(define_ast_data());
+with_ast_definition!(define_ast_type());
 
 
 // === Invalid ===
@@ -142,7 +144,7 @@ impl Ast {
     /// Constructor.
     pub fn invalid(error: Error, ast: Ast) -> Self {
         let location = ast.span;
-        let data = Data::from(Invalid(error, ast));
+        let data = Type::from(Invalid(error, ast));
         location.with(data)
     }
 
@@ -160,7 +162,7 @@ impl Ast {
     pub fn app(func: Ast, arg: Ast) -> Ast {
         let (left_offset_span, func) = func.split_at_start();
         let total = left_offset_span.extended_to(&arg);
-        let ast_data = Data::from(App(func, arg));
+        let ast_data = Type::from(App(func, arg));
         total.with(ast_data)
     }
 }
@@ -215,7 +217,7 @@ impl Ast {
                 Err(e) => left_offset_token.extended_to(e.operators.last()),
             }
         };
-        let ast_data = Data::from(OprApp(lhs, opr, rhs));
+        let ast_data = Type::from(OprApp(lhs, opr, rhs));
         total.with(ast_data)
     }
 }
@@ -245,7 +247,7 @@ impl Ast {
     pub fn opr_section_boundary(section: Ast) -> Ast {
         let (left_offset_span, section) = section.split_at_start();
         let total = left_offset_span.extended_to(&section);
-        let ast_data = Data::from(OprSectionBoundary(section));
+        let ast_data = Type::from(OprSectionBoundary(section));
         total.with(ast_data)
     }
 }
@@ -281,7 +283,7 @@ impl Ast {
         } else {
             left_span.extended_to(&last_segment.header)
         };
-        let data = Data::from(MultiSegmentApp { prefix, segments });
+        let data = Type::from(MultiSegmentApp { prefix, segments });
         total.with(data)
     }
 }
