@@ -4,6 +4,28 @@ use crate::Bytes;
 
 
 
+// =====================
+// === VisibleOffset ===
+// =====================
+
+/// Visible offset. A space character has value of 1.
+#[derive(
+    Clone, Copy, Debug, Default, From, Into, Add, AddAssign, Sub, PartialEq, Eq, Hash, PartialOrd,
+    Ord
+)]
+#[allow(missing_docs)]
+pub struct VisibleOffset {
+    pub number: usize,
+}
+
+impl Display for VisibleOffset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.number, f)
+    }
+}
+
+
+
 // ============
 // === Span ===
 // ============
@@ -15,9 +37,10 @@ use crate::Bytes;
 /// For example, for the tab char, the visible offset will be counted as 4 spaces. The latter can
 /// differ depending on which space character is used. See the following link to learn more:
 /// https://en.wikipedia.org/wiki/Whitespace_character.
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub struct Span {
-    pub left_visible_offset: usize,
+    pub left_visible_offset: VisibleOffset,
     pub left_offset:         Bytes,
     /// The start position of the span. Does not include the [`left_offset`]. Used mainly to fast
     /// check the repr of the token in the input string.
@@ -28,7 +51,7 @@ pub struct Span {
 impl Span {
     /// Constructor.
     pub fn new_no_left_offset(start: Bytes, len: Bytes) -> Self {
-        let left_visible_offset = 0;
+        let left_visible_offset = VisibleOffset::from(0);
         let left_offset = Bytes::from(0);
         Self { left_visible_offset, left_offset, start, len }
     }
@@ -77,7 +100,7 @@ impl Span {
             Span { left_visible_offset, left_offset, start, len }
         };
         let right_span = {
-            let left_visible_offset = 0;
+            let left_visible_offset = VisibleOffset::from(0);
             let left_offset = Bytes::from(0);
             let start = self.start + offset;
             let len = self.len - offset;
@@ -204,5 +227,11 @@ impl<T> From<&With<T>> for Span {
 impl<T> AsRef<With<T>> for With<T> {
     fn as_ref(&self) -> &With<T> {
         self
+    }
+}
+
+impl<T: Debug> Debug for With<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[off:{}, len:{}] {:#?}", self.span.left_visible_offset, self.span.len, self.elem)
     }
 }

@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
-use crate::location;
 use crate::source;
+use crate::span;
 use crate::token;
 use crate::token::Token;
 
 use enso_parser_ast_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
-use location::Span;
+use span::Span;
 
 
 
@@ -24,7 +24,7 @@ use location::Span;
 /// ```text
 /// println!("{:#?}", source::With::new(str, &ast));
 /// ```
-pub type Ast = location::With<Type>;
+pub type Ast = span::With<Type>;
 
 /// Macro providing [`Ast`] type definition. It is used to both define the ast [`Type`], and to
 /// define impls for every token type in other modules.
@@ -173,18 +173,18 @@ impl Ast {
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
-pub type OperatorOrError = Result<location::With<token::Operator>, MultipleOperatorError>;
+pub type OperatorOrError = Result<span::With<token::Operator>, MultipleOperatorError>;
 
 /// Error indicating multiple operators found next to each other, like `a + * b`.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError {
-    pub operators: NonEmptyVec<location::With<token::Operator>>,
+    pub operators: NonEmptyVec<span::With<token::Operator>>,
 }
 
 impl MultipleOperatorError {
     /// Constructor.
-    pub fn new(operators: NonEmptyVec<location::With<token::Operator>>) -> Self {
+    pub fn new(operators: NonEmptyVec<span::With<token::Operator>>) -> Self {
         Self { operators }
     }
 }
@@ -506,19 +506,19 @@ impl<'a> AstVisitableMut<'a> for Ast {
     }
 }
 
-impl<'a, T: AstVisitable<'a>> AstVisitable<'a> for location::With<T> {
+impl<'a, T: AstVisitable<'a>> AstVisitable<'a> for span::With<T> {
     default fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
         self.elem.visit(visitor)
     }
 }
 
-impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for location::With<T> {
+impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for span::With<T> {
     default fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
         self.elem.visit_mut(visitor)
     }
 }
 
-impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for location::With<T> {
+impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for span::With<T> {
     fn visit_span<V: SpanVisitor<'a>>(&'a self, visitor: &mut V) {
         if visitor.visit(&self.span) {
             self.elem.visit_span(visitor)
@@ -526,7 +526,7 @@ impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for location::With<T> {
     }
 }
 
-impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for location::With<T> {
+impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for span::With<T> {
     fn visit_span_mut<V: SpanVisitorMut>(&'a mut self, visitor: &mut V) {
         if visitor.visit_mut(&mut self.span) {
             self.elem.visit_span_mut(visitor)

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
-use crate::location;
 use crate::source;
+use crate::span;
 
 use enso_shapely_macros::tagged_enum;
 
@@ -13,7 +13,7 @@ use enso_shapely_macros::tagged_enum;
 
 /// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
 /// parsing pipeline.
-pub type Token = location::With<Type>;
+pub type Token = span::With<Type>;
 
 
 

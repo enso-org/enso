@@ -1,8 +1,9 @@
 use crate::prelude::*;
 use crate::source::traits::*;
 
-use crate::location;
 use crate::source;
+use crate::span;
+use crate::span::VisibleOffset;
 use crate::token;
 use crate::token::Token;
 
@@ -11,11 +12,12 @@ use ouroboros::self_referencing;
 use std::str;
 
 
-
 // =================
 // === Constants ===
 // =================
 
+/// An optimization constant. Based on it, the estimated memory is allocated on the beginning of
+/// parsing.
 pub const AVERAGE_TOKEN_LEN: usize = 5;
 
 
@@ -24,6 +26,10 @@ pub const AVERAGE_TOKEN_LEN: usize = 5;
 // === BumpVec ===
 // ===============
 
+/// A vector with [`Bump`] allocator.
+///
+/// This struct owns the allocator, and thus, it is a self-referencing one. It uses [`ouroboros`] to
+/// guarantee that the self-referencing pattern is safe.
 #[self_referencing]
 pub struct BumpVec<T> {
     allocator: Bump,
@@ -32,99 +38,80 @@ pub struct BumpVec<T> {
     pub vec:   Vec<T, &'this Bump>,
 }
 
-impl<T> Default for BumpVec<T> {
-    fn default() -> Self {
-        Self::new_with_capacity(0)
-    }
-}
-
 impl<T> BumpVec<T> {
+    /// Constructor.
     #[inline(always)]
     fn new_with_capacity(capacity: usize) -> Self {
         let allocator = Bump::with_capacity(capacity);
         BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
     }
 
+    /// Push a new element to this vec.
     #[inline(always)]
     pub fn push(&mut self, t: T) {
         self.with_mut(|fields| fields.vec.push(t))
     }
 
+    /// Get reference to the last element, if any.
     #[inline(always)]
     pub fn last(&self) -> Option<&T> {
         self.borrow_vec().last()
     }
 
+    /// Get the length of this vec.
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.borrow_vec().len()
     }
 
+    /// Iterate over elements of this vec.
     #[inline(always)]
-    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+    pub fn iter(&self) -> slice::Iter<'_, T> {
         self.borrow_vec().into_iter()
     }
 }
 
+impl<T> Default for BumpVec<T> {
+    fn default() -> Self {
+        Self::new_with_capacity(0)
+    }
+}
+
 impl<T: Debug> Debug for BumpVec<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(self.borrow_vec(), f)
     }
 }
 
 
 
-// =============
-// === Token ===
-// =============
-
-
-
-impl<T: Debug> Debug for location::With<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[off:{}, len:{}] {:#?}", self.span.left_visible_offset, self.span.len, self.elem)
-    }
-}
-
-impl<'s, 't, T> Debug for source::With<'s, &'t location::With<T>>
-where for<'x> source::With<'x, &'t T>: Debug
-{
-    default fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let off = self.span.left_visible_offset;
-        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
-        Debug::fmt(&self.with_data(&self.data.elem), f)
-    }
-}
-
-
-impl PartialEq<Token> for &Token {
-    #[inline(always)]
-    fn eq(&self, other: &Token) -> bool {
-        (*self).eq(other)
-    }
-}
-
-
+/// =====================
+/// === VisibleOffset ===
+/// =====================
 
 // ===============
 // === Pattern ===
 // ===============
 
+/// Allows checking if the incoming char matches a predicate. The predicate can be another char
+/// (then this is simply check for equality), or a function `FnMut(char) -> bool`. This trait allows
+/// defining parsers which can work with both simple and function-based matchers.
 pub trait Pattern {
-    fn match_pattern(&mut self, t: char) -> bool;
+    /// Check whether [`input`] matches this pattern.
+    fn match_pattern(&mut self, input: char) -> bool;
 }
 
 impl<T: FnMut(char) -> bool> Pattern for T {
     #[inline(always)]
-    fn match_pattern(&mut self, t: char) -> bool {
-        (self)(t)
+    fn match_pattern(&mut self, input: char) -> bool {
+        (self)(input)
     }
 }
 
 impl Pattern for char {
     #[inline(always)]
-    fn match_pattern(&mut self, t: char) -> bool {
-        *self == t
+    fn match_pattern(&mut self, input: char) -> bool {
+        *self == input
     }
 }
 
@@ -132,8 +119,8 @@ macro_rules! pattern_impl_for_char_slice {
     ($($num:tt),* $(,)?) => {$(
         impl Pattern for &[char; $num] {
             #[inline(always)]
-            fn match_pattern(&mut self, t: char) -> bool {
-                self.contains(&t)
+            fn match_pattern(&mut self, input: char) -> bool {
+                self.contains(&input)
             }
         }
     )*};
@@ -146,43 +133,42 @@ pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 // === Lexer ===
 // =============
 
-/// Efficient lexer implementation with no backtracking an 1-character lookahead (you can check the
-/// [`current_char`] that is not yet being consumed).
+/// Efficient lexer implementation with no backtracking an 1-character lookahead ([`current_char`]
+/// contains character that is not consumed yet). The lexer does not use recursion and is
+/// implemented as a single-pass input stream consumer.
+///
+/// Please note, that the lexer is able to parse invalid input, such as invalid operators, like
+/// `===`. This is needed for allowing the parser to auto-recover from errors in the code, including
+/// syntax errors.
+///
+/// TODO: Implement token validators - validating if the consumed token was OK and reporting human
+///       readable errors.
+#[derive(Debug, Deref, DerefMut)]
+#[allow(missing_docs)]
 pub struct Lexer<'s> {
+    #[deref]
+    #[deref_mut]
+    pub state:    LexerState,
     pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
     pub output:   BumpVec<Token>,
-    pub state:    LexerState,
 }
 
+/// Internal state of the [`Lexer`].
 #[derive(Debug, Default)]
+#[allow(missing_docs)]
 pub struct LexerState {
-    pub current_char:               Option<char>,
-    pub char_offset:                usize,
-    pub offset:                     Bytes,
-    pub last_spaces_offset:         Bytes,
-    pub last_spaces_visible_offset: usize,
-    pub current_block_indent:       usize,
-    pub block_indent_stack:         Vec<usize>,
-    pub line_contains_tokens:       bool,
-}
-
-impl<'s> Deref for Lexer<'s> {
-    type Target = LexerState;
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        &self.state
-    }
-}
-
-impl<'s> DerefMut for Lexer<'s> {
-    #[inline(always)]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.state
-    }
+    pub current_char:                 Option<char>,
+    pub current_offset:               Bytes,
+    pub last_spaces_offset:           Bytes,
+    pub last_spaces_visible_offset:   VisibleOffset,
+    pub current_block_indent:         VisibleOffset,
+    pub block_indent_stack:           Vec<VisibleOffset>,
+    pub current_line_contains_tokens: bool,
 }
 
 impl<'s> Lexer<'s> {
+    /// Constructor.
     pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
@@ -193,106 +179,110 @@ impl<'s> Lexer<'s> {
 
     fn init(mut self) -> Self {
         self.next();
-        self.char_offset = 0;
         self
     }
 
+    /// Move to the next input character.
     #[inline(always)]
     fn next(&mut self) {
         let next = self.iterator.next();
-        if let Some((offset, current_char)) = next {
-            self.char_offset += 1;
-            self.offset = Bytes::from(offset);
+        if let Some((current_offset, current_char)) = next {
+            self.current_offset = Bytes::from(current_offset);
             self.current_char = Some(current_char);
         } else if self.current_char.is_some() {
-            self.char_offset += 1;
-            self.offset = Bytes::from(self.input.len());
+            self.current_offset = Bytes::from(self.input.len());
             self.current_char = None;
         }
     }
 
+    /// Get the representation of the provided element. The element has to know its span (start and
+    /// ens position).
     #[inline(always)]
     pub fn repr<'t, T: 't>(&'t self, element: T) -> &str
     where source::With<'s, T>: HasRepr<'s> {
         source::With::new(&self.input, element).repr()
     }
-}
 
-impl<'s> Lexer<'s> {
+    /// Run the provided function. If it consumed any chars, returns the output of the function and
+    /// the span of the consumed tokens. Returns [`None`] otherwise.
     #[inline(always)]
-    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<location::With<T>> {
-        let start = self.offset;
+    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<span::With<T>> {
+        let start = self.current_offset;
         let (elem, len) = self.run_and_check_offset(f);
         (len > Bytes::from(0)).as_some_from(|| self.token_with_start_and_len(start, len, elem))
     }
 
+    /// A zero-length token which is placed before currently consumed spaces, if any.
     #[inline(always)]
-    pub fn phantom_token<T>(&mut self, elem: T) -> location::With<T> {
-        let start = self.offset;
-        self.token_with_start_and_len(start, Bytes::from(0), elem)
-    }
-
-    #[inline(always)]
-    pub fn marker_token<T>(&mut self, elem: T) -> location::With<T> {
+    pub fn marker_token<T>(&mut self, elem: T) -> span::With<T> {
         let left_offset = Bytes::from(0);
-        let left_visible_offset = 0;
-        let start = self.offset - self.last_spaces_offset;
+        let left_visible_offset = VisibleOffset::from(0);
+        let start = self.current_offset - self.last_spaces_offset;
         let len = Bytes::from(0);
-        let span = location::Span { left_visible_offset, left_offset, start, len };
-        location::With { span, elem }
+        let span = span::Span { left_visible_offset, left_offset, start, len };
+        span::With { span, elem }
     }
 
+    /// Token constructor with explicit start and len values.
     #[inline(always)]
-    pub fn token_with_start_and_len<T>(
-        &mut self,
-        start: Bytes,
-        len: Bytes,
-        elem: T,
-    ) -> location::With<T> {
+    fn token_with_start_and_len<T>(&mut self, start: Bytes, len: Bytes, elem: T) -> span::With<T> {
         let left_offset = self.last_spaces_offset;
         let left_visible_offset = self.last_spaces_visible_offset;
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
-        let span = location::Span { left_visible_offset, left_offset, start, len };
-        location::With { span, elem }
+        let span = span::Span { left_visible_offset, left_offset, start, len };
+        span::With { span, elem }
     }
 
-
+    /// Run the provided function and compute how much input it consumed.
     #[inline(always)]
     pub fn run_and_check_offset<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, Bytes) {
-        let start = self.offset;
+        let start = self.current_offset;
         let out = f(self);
-        let len = self.offset - start;
+        let len = self.current_offset - start;
         (out, len)
     }
 
+    /// Run the provided function and check if it consumed any input.
     #[inline(always)]
     pub fn try_running(&mut self, f: impl FnOnce(&mut Self)) -> bool {
         let (_, offset) = self.run_and_check_offset(f);
         offset > Bytes::from(0)
     }
 
+    /// Push the [`token`] to the result stream.
     #[inline(always)]
     pub fn submit_token(&mut self, token: Token) {
         self.output.push(token);
-        self.line_contains_tokens = true;
+        self.current_line_contains_tokens = true;
     }
 
+    /// Start a new block.
     #[inline(always)]
-    pub fn push_block_indent(&mut self, new_indent: usize) {
+    pub fn push_block_indent(&mut self, new_indent: VisibleOffset) {
         let current_block_indent = self.current_block_indent;
         self.block_indent_stack.push(current_block_indent);
         self.current_block_indent = new_indent;
     }
 
+    /// Finish the current block.
     #[inline(always)]
-    pub fn pop_block_indent(&mut self) -> Option<usize> {
+    pub fn pop_block_indent(&mut self) -> Option<VisibleOffset> {
         self.block_indent_stack.pop().map(|prev| {
             let out = self.current_block_indent;
             self.current_block_indent = prev;
             out
         })
     }
+}
 
+
+
+// =====================
+// === Basic Parsers ===
+// =====================
+
+impl<'s> Lexer<'s> {
+    /// Consume the next character, unconditionally.
     #[inline(always)]
     pub fn take_next(&mut self) -> bool {
         let ok = self.current_char.is_some();
@@ -300,15 +290,19 @@ impl<'s> Lexer<'s> {
         ok
     }
 
+    /// Consume exactly one character if it matches the pattern. Returns [`true`] if it succeeded.
     #[inline(always)]
     pub fn take_1(&mut self, mut pat: impl Pattern) -> bool {
-        let ok = self.current_char.map(|t| pat.match_pattern(t)) == Some(true);
-        if ok {
-            self.next();
+        match self.current_char.map(|t| pat.match_pattern(t)) {
+            Some(true) => {
+                self.next();
+                true
+            }
+            _ => false,
         }
-        ok
     }
 
+    /// Consume characters as long as they match the pattern.
     #[inline(always)]
     pub fn take_while(&mut self, mut pat: impl Pattern) {
         while let Some(t) = self.current_char {
@@ -320,6 +314,8 @@ impl<'s> Lexer<'s> {
         }
     }
 
+    /// Consume characters as long as they match the pattern. Returns [`true`] if at least one
+    /// character was consumed.
     #[inline(always)]
     pub fn take_while_1(&mut self, f: impl Copy + Pattern) -> bool {
         let ok = self.take_1(f);
@@ -327,24 +323,6 @@ impl<'s> Lexer<'s> {
             self.take_while(f);
         }
         ok
-    }
-}
-
-
-
-// =================
-// === Validator ===
-// =================
-
-pub trait Validator {
-    type Output;
-    fn validate(self, repr: &str) -> Vec<Self::Output>;
-}
-
-impl<'s> Lexer<'s> {
-    pub fn validate<T: Copy + Validator>(&self, token: location::With<T>) -> Vec<T::Output> {
-        let repr = self.repr(token);
-        token.elem.validate(repr)
     }
 }
 
@@ -360,24 +338,27 @@ const OTHER_UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}')
 #[test]
 const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
+/// Checks whether the provided character is a visible space and returns it's visible size. The tab
+/// character always returns `4`. It is not made configurable, as described in the Enso Language
+/// Specification docs.
 #[inline(always)]
-fn space_char_visible_size(t: char) -> Option<usize> {
+fn space_char_visible_size(t: char) -> Option<VisibleOffset> {
     if t == ' ' {
-        Some(1)
+        Some(VisibleOffset::from(1))
     } else if t == '\t' {
-        Some(4)
+        Some(VisibleOffset::from(4))
     } else if t == '\u{00A0}' {
-        Some(1)
+        Some(VisibleOffset::from(1))
     } else if t >= '\u{1680}' {
         if t == '\u{1680}' {
-            Some(1)
+            Some(VisibleOffset::from(1))
         } else if t >= '\u{2000}' {
             if OTHER_UNICODE_SINGLE_SPACES.contains(t) {
-                Some(1)
+                Some(VisibleOffset::from(1))
             } else if t >= OTHER_UNICODE_SINGLE_SPACES_RANGE.0
                 && t <= OTHER_UNICODE_SINGLE_SPACES_RANGE.1
             {
-                Some(1)
+                Some(VisibleOffset::from(1))
             } else {
                 None
             }
@@ -389,14 +370,16 @@ fn space_char_visible_size(t: char) -> Option<usize> {
     }
 }
 
+/// Check whether the provided character is a visible space character.
 #[inline(always)]
 fn is_space_char(t: char) -> bool {
     space_char_visible_size(t).is_some()
 }
 
 impl<'s> Lexer<'s> {
+    /// Consume the current character if it was a visible space and return how big the space was.
     #[inline(always)]
-    fn space_and_its_visible_offset(&mut self) -> Option<usize> {
+    fn space_and_its_visible_offset(&mut self) -> Option<VisibleOffset> {
         let out = self.current_char.and_then(space_char_visible_size);
         if out.is_some() {
             self.next();
@@ -404,19 +387,94 @@ impl<'s> Lexer<'s> {
         out
     }
 
+    /// Consume all space characters.
     #[inline(always)]
-    fn spaces(&mut self) -> (usize, Bytes) {
-        let mut total_visible_offset = 0;
+    fn spaces(&mut self) -> (VisibleOffset, Bytes) {
+        let mut total_visible_offset = VisibleOffset::from(0);
         let mut total_byte_offset = Bytes::from(0);
-        loop {
-            if let Some(visible_offset) = self.space_and_its_visible_offset() {
-                total_visible_offset += visible_offset;
-                total_byte_offset += Bytes::from(1);
-            } else {
-                break;
-            }
+        while let Some(visible_offset) = self.space_and_its_visible_offset() {
+            total_visible_offset += visible_offset;
+            total_byte_offset += Bytes::from(1);
         }
         (total_visible_offset, total_byte_offset)
+    }
+}
+
+
+
+// ================================
+// === Basic Character Checkers ===
+// ================================
+
+/// Check whether the provided character is a newline character.
+#[inline(always)]
+pub fn is_newline_char(t: char) -> bool {
+    t == '\n' || t == '\r'
+}
+
+/// Check whether the provided character is a digit.
+#[inline(always)]
+fn is_digit(t: char) -> bool {
+    t >= '0' && t <= '9'
+}
+
+
+
+// ========================
+// === Ident & Operator ===
+// ========================
+
+/// # ASCII char table
+/// Based on https://en.wikipedia.org/wiki/ASCII.
+///
+/// 21  !     3A  :     7B  {
+/// 22  "     3B  ;     7C  |
+/// 23  #     3C  <     7D  }
+/// 24  $     3D  =     7E  ~
+/// 25  %     3E  >
+/// 26  &     3F  ?
+/// 27  '     40  @
+/// 28  (     [A-Z]
+/// 29  )     
+/// 2A  *     5B  [
+/// 2B  +     5C  \
+/// 2C  ,     5D  ]
+/// 2D  -     5E  ^
+/// 2E  .     5F  _
+/// 2F  /     60  `
+/// [0-9]     [a-z]
+
+/// Check whether the provided character is an operator which should split the currently parsed
+/// identifier.
+#[inline(always)]
+fn is_ident_body_split_operator(t: char) -> bool {
+    if t <= '\u{7E}' && t >= '\u{21}' {
+        (t == '\u{21}')
+            || (t >= '\u{21}' && t <= '\u{26}')
+            || (t >= '\u{28}' && t <= '\u{2F}')
+            || (t >= '\u{3A}' && t <= '\u{40}')
+            || (t >= '\u{5B}' && t <= '\u{5E}')
+            || (t == '\u{60}')
+            || (t >= '\u{7B}' && t <= '\u{7E}')
+    } else {
+        false
+    }
+}
+
+/// Check if the provided character should be considered body of an operator name.
+#[inline(always)]
+fn is_operator_body_char(t: char) -> bool {
+    if t <= '\u{7E}' && t >= '\u{21}' {
+        (t == '\u{21}')
+            || (t >= '\u{24}' && t <= '\u{26}')
+            || (t >= '\u{2A}' && t <= '\u{2F}')
+            || (t >= '\u{3A}' && t <= '\u{40}')
+            || (t == '\u{5C}')
+            || (t == '\u{5E}')
+            || (t == '\u{7C}')
+            || (t == '\u{7E}')
+    } else {
+        false
     }
 }
 
@@ -426,16 +484,13 @@ impl<'s> Lexer<'s> {
 // === Ident ===
 // =============
 
-#[inline(always)]
-fn is_digit(t: char) -> bool {
-    t >= '0' && t <= '9'
-}
-
+/// Check whether the provided character should split currently parsed identifier.
 #[inline(always)]
 fn is_ident_split_char(t: char) -> bool {
     is_ident_body_split_operator(t) || is_space_char(t) || is_newline_char(t)
 }
 
+/// Check whether the provided character should be considered a body of identifier.
 #[inline(always)]
 fn is_ident_char(t: char) -> bool {
     !is_ident_split_char(t)
@@ -464,71 +519,13 @@ impl<'s> Lexer<'s> {
     }
 }
 
-pub struct IdentError {}
-
-impl Validator for token::Ident {
-    type Output = IdentError;
-    fn validate(self, _repr: &str) -> Vec<Self::Output> {
-        vec![] // TODO
-    }
-}
-
 
 
 // ================
 // === Operator ===
 // ================
 
-/// # ASCII char table
-/// Based on https://en.wikipedia.org/wiki/ASCII.
-///
-/// 21  !     3A  :     7B  {
-/// 22  "     3B  ;     7C  |
-/// 23  #     3C  <     7D  }
-/// 24  $     3D  =     7E  ~
-/// 25  %     3E  >
-/// 26  &     3F  ?
-/// 27  '     40  @
-/// 28  (     [A-Z]
-/// 29  )     
-/// 2A  *     5B  [
-/// 2B  +     5C  \
-/// 2C  ,     5D  ]
-/// 2D  -     5E  ^
-/// 2E  .     5F  _
-/// 2F  /     60  `
-/// [0-9]     [a-z]
 
-#[inline(always)]
-fn is_ident_body_split_operator(t: char) -> bool {
-    if t <= '\u{7E}' && t >= '\u{21}' {
-        (t == '\u{21}')
-            || (t >= '\u{21}' && t <= '\u{26}')
-            || (t >= '\u{28}' && t <= '\u{2F}')
-            || (t >= '\u{3A}' && t <= '\u{40}')
-            || (t >= '\u{5B}' && t <= '\u{5E}')
-            || (t == '\u{60}')
-            || (t >= '\u{7B}' && t <= '\u{7E}')
-    } else {
-        false
-    }
-}
-
-#[inline(always)]
-fn is_operator_body_char(t: char) -> bool {
-    if t <= '\u{7E}' && t >= '\u{21}' {
-        (t == '\u{21}')
-            || (t >= '\u{24}' && t <= '\u{26}')
-            || (t >= '\u{2A}' && t <= '\u{2F}')
-            || (t >= '\u{3A}' && t <= '\u{40}')
-            || (t == '\u{5C}')
-            || (t == '\u{5E}')
-            || (t == '\u{7C}')
-            || (t == '\u{7E}')
-    } else {
-        false
-    }
-}
 
 impl<'s> Lexer<'s> {
     fn operator(&mut self) {
@@ -681,11 +678,6 @@ impl<'s> Lexer<'s> {
 // === Block ===
 // =============
 
-#[inline(always)]
-pub fn is_newline_char(t: char) -> bool {
-    t == '\n' || t == '\r'
-}
-
 impl<'s> Lexer<'s> {
     #[inline(always)]
     pub fn take_line(&mut self) {
@@ -727,7 +719,7 @@ impl<'s> Lexer<'s> {
                             break;
                         } else {
                             let block_end = Token::new_no_left_offset_no_len(
-                                self.offset,
+                                self.current_offset,
                                 token::Type::block_end(),
                             );
                             self.submit_token(block_end);
@@ -735,7 +727,7 @@ impl<'s> Lexer<'s> {
                     }
                 }
             }
-            self.line_contains_tokens = false;
+            self.current_line_contains_tokens = false;
         }
     }
 }
@@ -778,8 +770,8 @@ impl<'s> Lexer<'s> {
 // === Test Utils ===
 // ==================
 
-fn test_from_repr<T>(repr: &str, elem: T) -> location::With<T> {
-    location::With::new_no_left_offset_no_start(Bytes::from(repr.len()), elem)
+fn test_from_repr<T>(repr: &str, elem: T) -> span::With<T> {
+    span::With::new_no_left_offset_no_start(Bytes::from(repr.len()), elem)
 }
 
 impl Token {
@@ -789,12 +781,11 @@ impl Token {
 
     // TODO: Tests only - should be refactored
     pub fn ident(repr: &str) -> Token {
-        let left_offset = 0;
         let is_free = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = location::Span {
-            left_visible_offset: left_offset,
-            left_offset:         Bytes::from(left_offset),
+        let span = span::Span {
+            left_visible_offset: VisibleOffset::from(0),
+            left_offset:         Bytes::from(0),
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
@@ -853,7 +844,7 @@ mod tests {
     fn ident(left_offset: usize, repr: &str) -> Token {
         let is_free = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = location::Span {
+        let span = span::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
@@ -864,7 +855,7 @@ mod tests {
 
     fn wildcard(left_offset: usize, repr: &str) -> Token {
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = location::Span {
+        let span = span::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
@@ -874,7 +865,7 @@ mod tests {
     }
 
     fn operator(left_offset: usize, repr: &str) -> Token {
-        let span = location::Span {
+        let span = span::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
@@ -884,7 +875,7 @@ mod tests {
     }
 
     fn newline(left_offset: usize, repr: &str) -> Token {
-        let span = location::Span {
+        let span = span::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
@@ -894,7 +885,7 @@ mod tests {
     }
 
     fn block_start(left_offset: usize) -> Token {
-        let span = location::Span {
+        let span = span::Span {
             left_visible_offset: left_offset,
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),

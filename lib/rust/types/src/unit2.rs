@@ -589,25 +589,25 @@ macro_rules! define_single_op_switch {
 #[macro_export]
 macro_rules! define_single_op {
     ($lhs:ident + $rhs:ident = $out:ident) => {
-        impl Add<$rhs> for $lhs {
+        impl $crate::unit2::Add<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident - $rhs:ident = $out:ident) => {
-        impl Sub<$rhs> for $lhs {
+        impl $crate::unit2::Sub<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident * $rhs:ident = $out:ident) => {
-        impl Mul<$rhs> for $lhs {
+        impl $crate::unit2::Mul<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident / $rhs:ident = $out:ident) => {
-        impl Div<$rhs> for $lhs {
+        impl $crate::unit2::Div<$rhs> for $lhs {
             type Output = $out;
         }
     };
@@ -623,25 +623,25 @@ macro_rules! define_single_op {
 #[macro_export]
 macro_rules! define_single_rev_op {
     ($lhs:ident + $rhs:ident = $out:ident) => {
-        impl RevAdd<$rhs> for $lhs {
+        impl $crate::unit2::RevAdd<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident - $rhs:ident = $out:ident) => {
-        impl RevSub<$rhs> for $lhs {
+        impl $crate::unit2::RevSub<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident * $rhs:ident = $out:ident) => {
-        impl RevMul<$rhs> for $lhs {
+        impl $crate::unit2::RevMul<$rhs> for $lhs {
             type Output = $out;
         }
     };
 
     ($lhs:ident / $rhs:ident = $out:ident) => {
-        impl RevDiv<$rhs> for $lhs {
+        impl $crate::unit2::RevDiv<$rhs> for $lhs {
             type Output = $out;
         }
     };
@@ -780,12 +780,12 @@ impl From<usize> for Bytes {
 /// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
 #[allow(missing_docs)]
 pub trait BytesStrOps {
-    fn slice(&self, range: std::ops::Range<Bytes>) -> &str;
+    fn slice(&self, range: ops::Range<Bytes>) -> &str;
 }
 
 impl BytesStrOps for str {
     #[inline(always)]
-    fn slice(&self, range: std::ops::Range<Bytes>) -> &str {
+    fn slice(&self, range: ops::Range<Bytes>) -> &str {
         &self[range.into_unchecked_raw_range()]
     }
 }

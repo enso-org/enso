@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::location;
+use crate::span;
 
 
 
@@ -53,6 +53,16 @@ where for<'t> With<'s, &'t T>: Debug
     }
 }
 
+impl<'s, 't, T> Debug for With<'s, &'t span::With<T>>
+where for<'x> With<'x, &'t T>: Debug
+{
+    default fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let off = self.span.left_visible_offset;
+        write!(f, "[off:{}, len:{}, repr:\"{}\"] ", off, self.span.len, self.repr())?;
+        Debug::fmt(&self.with_data(&self.data.elem), f)
+    }
+}
+
 
 
 // ===============
@@ -67,13 +77,13 @@ pub trait HasRepr<'s> {
     fn repr(&self) -> &'s str;
 }
 
-impl<'s, T> HasRepr<'s> for With<'s, location::With<T>> {
+impl<'s, T> HasRepr<'s> for With<'s, span::With<T>> {
     fn repr(&self) -> &'s str {
         self.source_slice(&self.source)
     }
 }
 
-impl<'s, T> HasRepr<'s> for With<'s, &location::With<T>> {
+impl<'s, T> HasRepr<'s> for With<'s, &span::With<T>> {
     fn repr(&self) -> &'s str {
         self.source_slice(&self.source)
     }

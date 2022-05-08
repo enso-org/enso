@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use crate::ast::Ast;
-use crate::location;
+use crate::span;
 use crate::token;
 use crate::token::Token;
 
@@ -32,14 +32,14 @@ impl TokenOrAst {
     }
 
     /// [`location::Span`] of the element.
-    pub fn span(&self) -> location::Span {
+    pub fn span(&self) -> span::Span {
         match self {
             Self::Token(t) => t.span,
             Self::Ast(t) => t.span,
         }
     }
 
-    pub fn trim_left(&mut self) -> location::Span {
+    pub fn trim_left(&mut self) -> span::Span {
         match self {
             Self::Token(t) => t.trim_left(),
             Self::Ast(t) => t.trim_left(),

@@ -37,9 +37,9 @@ use token_or_ast::TokenOrAst;
 
 pub mod ast;
 pub mod lexer;
-pub mod location;
 pub mod macros;
 pub mod source;
+pub mod span;
 pub mod token;
 pub mod token_or_ast;
 
@@ -150,10 +150,7 @@ pub struct MacroResolver<'a> {
 impl<'a> MacroResolver<'a> {
     pub fn new_root() -> Self {
         let current_segment = MatchedSegment {
-            header: location::With::new_no_left_offset_no_len(
-                Bytes::from(0),
-                token::Type::newline(),
-            ),
+            header: span::With::new_no_left_offset_no_len(Bytes::from(0), token::Type::newline()),
             body:   default(),
         };
         let resolved_segments = default();
@@ -460,7 +457,7 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
         }
     };
     for item in items {
-        if item.span().left_visible_offset == 0 || no_space_group.is_empty() {
+        if item.span().left_visible_offset.number == 0 || no_space_group.is_empty() {
             no_space_group.push(item)
         } else if !no_space_group.is_empty() {
             processs_no_space_group(&mut flattened, &mut no_space_group);
@@ -662,7 +659,7 @@ mod test {
 
     pub fn ident(repr: &str) -> Ast {
         match token::Type::parse_ident(repr) {
-            token::Type::Ident(ident) => location::With::new_no_left_offset_no_start(
+            token::Type::Ident(ident) => span::With::new_no_left_offset_no_start(
                 Bytes::from(repr.len()),
                 ast::Type::from(ast::Ident(ident)),
             ),
@@ -675,15 +672,6 @@ mod test {
     }
 }
 
-
-
-pub struct MyVisitor {}
-impl<'a> ast::AstVisitor<'a> for MyVisitor {
-    fn visit(&mut self, ast: &'a Ast) -> bool {
-        println!(">>> {:?}", ast);
-        true
-    }
-}
 
 
 fn main() {
