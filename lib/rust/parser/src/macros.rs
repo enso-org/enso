@@ -1,13 +1,20 @@
 use crate::prelude::*;
+
 use crate::token::Token;
 use crate::token_or_ast::TokenOrAst;
 use crate::Ast;
 use crate::Lexer;
+
 use enso_data_structures::im_list;
+use pattern::Pattern;
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod pattern;
 
-use pattern::Pattern;
 
 
 // ==================

@@ -4,6 +4,7 @@ use crate::location;
 use crate::source;
 use crate::token;
 use crate::token::Token;
+
 use enso_parser_ast_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
 use location::Span;

@@ -1,10 +1,9 @@
 use crate::prelude::*;
 
+use inflector::cases::snakecase::to_snake_case;
 use syn::Data;
 use syn::DeriveInput;
 use syn::Fields;
-
-use inflector::cases::snakecase::to_snake_case;
 
 
 

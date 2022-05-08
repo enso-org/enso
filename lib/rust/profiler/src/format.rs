@@ -2,16 +2,20 @@
 //!
 //! See: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md#profiling-data
 
-
-
 // TODO[kw]: Define the format independently of [`crate::internal`]'s types.
+
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod builder;
 
-pub use builder::Builder;
-
 pub use crate::internal::Timestamp;
 pub use crate::internal::Timestamped;
+pub use builder::Builder;
+
+
 
 /// Metadata of any type.
 pub type AnyMetadata = Box<serde_json::value::RawValue>;

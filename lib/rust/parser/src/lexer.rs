@@ -1,9 +1,11 @@
-use crate::location;
 use crate::prelude::*;
-use crate::source;
 use crate::source::traits::*;
+
+use crate::location;
+use crate::source;
 use crate::token;
 use crate::token::Token;
+
 use bumpalo::Bump;
 use ouroboros::self_referencing;
 use std::str;
@@ -211,7 +213,7 @@ impl<'s> Lexer<'s> {
 
     #[inline(always)]
     pub fn repr<'t, T: 't>(&'t self, element: T) -> &str
-    where source::With<'s, T>: source::HasRepr<'s> {
+    where source::With<'s, T>: HasRepr<'s> {
         source::With::new(&self.input, element).repr()
     }
 }
