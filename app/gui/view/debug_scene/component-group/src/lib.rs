@@ -143,9 +143,6 @@ fn init(app: &Application) {
     app.display.add_child(&component_group);
     app.display.add_child(&selection);
 
-    let scene = &app.display.default_scene;
-    let style = ensogl_core::display::shape::StyleWatchFrp::new(&scene.style_sheet);
-    let app_bg_color = style.get_color(theme::application::background);
     let red_slider_frp = &red_slider.inner().frp;
     let green_slider_frp = &green_slider.inner().frp;
     let blue_slider_frp = &blue_slider.inner().frp;
@@ -155,10 +152,6 @@ fn init(app: &Application) {
     let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
     frp::extend! { network
         init <- source_();
-        app_bg_color <- all(&app_bg_color, &init)._0();
-        component_group.set_fade_color <+ app_bg_color;
-        dimmed_component_group.set_fade_color <+ app_bg_color;
-
         red_slider_frp.set_value <+ init.constant(default_color.red);
         green_slider_frp.set_value <+ init.constant(default_color.green);
         blue_slider_frp.set_value <+ init.constant(default_color.blue);
