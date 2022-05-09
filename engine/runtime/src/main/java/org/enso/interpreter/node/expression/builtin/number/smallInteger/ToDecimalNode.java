@@ -4,7 +4,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Small_Int",
+    type = "Small_Integer",
     name = "to_decimal",
     description = "Conversion of integers to decimals.")
 public class ToDecimalNode extends Node {

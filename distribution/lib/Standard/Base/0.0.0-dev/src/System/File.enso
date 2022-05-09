@@ -5,6 +5,7 @@ import Standard.Base.Data.Text.Matching_Mode
 import Standard.Base.Data.Text.Text_Sub_Range
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Base.Runtime.Resource import all
 
 export Standard.Base.System.File.Option
 
@@ -32,7 +33,7 @@ polyglot java import java.nio.file.Path
          example_new = File.new Examples.csv_path
 new : (Text | File) -> File
 new path = case path of
-    Text -> File (Prim_Io.get_file path)
+    Text -> File (here.get_file path)
     _ -> path
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
@@ -129,7 +130,7 @@ write_text path contents (encoding=Encoding.utf_8) =
 
          example_cwd = File.current_directory
 current_directory : File
-current_directory = File (Prim_Io.get_cwd)
+current_directory = File (here.get_cwd)
 
 ## ALIAS Home Directory
 
@@ -142,7 +143,7 @@ current_directory = File (Prim_Io.get_cwd)
 
          example_home = File.home
 home : File
-home = here.new (Prim_Io.get_user_home)
+home = here.new (here.get_user_home)
 
 ## Lists files contained in the provided directory.
 
@@ -952,3 +953,25 @@ list_descendants file =
             False -> Nothing
     go file
     builder.to_vector
+
+## PRIVATE
+
+   Gets a file corresponding to the current working directory of the
+   program.
+get_cwd : File
+get_cwd = @Builtin_Method "File.get_cwd"
+
+## PRIVATE
+
+   Gets a file corresponding to the provided path.
+
+   Arguments:
+   - path: The path to obtain a file at.
+get_file : Text -> File
+get_file path = @Builtin_Method "File.get_file"
+
+## PRIVATE
+
+   Gets the textual path to the user's system-defined home directory.
+user_home : Text
+user_home = @Builtin_Method "File.user_home"

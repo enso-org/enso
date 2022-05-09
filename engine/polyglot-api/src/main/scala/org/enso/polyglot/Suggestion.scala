@@ -123,7 +123,8 @@ object Suggestion {
     reprType: String,
     isSuspended: Boolean,
     hasDefault: Boolean,
-    defaultValue: Option[String]
+    defaultValue: Option[String],
+    tagValues: Option[Seq[String]] = None
   ) extends ToLogString {
 
     /** @inheritdoc */

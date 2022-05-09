@@ -23,7 +23,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "not get executed upfront" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    foo = i -> ~x -> ~y -> if i == 0 then x else y
@@ -58,7 +58,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with method dispatch" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |type Foo
           |type Bar
@@ -77,7 +77,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with oversaturated arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
           |
           |main =
           |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
@@ -92,7 +92,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     "work properly with defaulted arguments" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base import all
           |
           |main = a -> (~b = Panic.throw 1) -> a
           |""".stripMargin

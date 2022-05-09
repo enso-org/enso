@@ -251,7 +251,8 @@ case object AliasAnalysis extends IRPass {
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
-      case err: IR.Error => err
+      case err: IR.Error                            => err
+      case ut: IR.Module.Scope.Definition.UnionType => ut
     }
   }
 

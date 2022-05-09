@@ -12,7 +12,7 @@ class GlobalScopeTest extends InterpreterTest {
 
     "use values from the global scope in their bodies" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.a = 10
           |Nothing.add_ten = b -> Nothing.a + b
@@ -25,7 +25,7 @@ class GlobalScopeTest extends InterpreterTest {
 
     "be able to call other functions in scope" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.adder = a -> b -> a + b
           |
@@ -42,7 +42,7 @@ class GlobalScopeTest extends InterpreterTest {
 
     "be able to be passed as values when in scope" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.adder = a -> b -> a + b
           |
@@ -58,7 +58,7 @@ class GlobalScopeTest extends InterpreterTest {
 
     "be able to mutually recurse in the global scope" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.decrementCall = number ->
           |  res = number - 1
@@ -75,7 +75,7 @@ class GlobalScopeTest extends InterpreterTest {
 
     "be suspended within blocks" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
           |
           |Nothing.a = 10/0
           |
