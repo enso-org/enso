@@ -1,6 +1,9 @@
+//! This module defines patterns Pattern used to validate incoming token stream against expected
+//! macro input.
+
 use crate::prelude::*;
 
-use crate::TokenOrAst;
+use crate::syntax;
 
 
 
@@ -26,6 +29,7 @@ pub enum Pattern {
 
 /// Any item. Can specify whether it requires the rhs spacing.
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub struct Item {
     pub has_rhs_spacing: Option<bool>,
 }
@@ -61,6 +65,8 @@ impl<T> ResolutionError<T> {
 /// ==================
 
 /// Successful pattern match result.
+#[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct Match<T> {
     pub matched:     Vec<T>,
     pub not_matched: Vec<T>,
@@ -75,7 +81,7 @@ impl<T> Match<T> {
 
 impl Pattern {
     /// Match the token stream with this pattern.
-    pub fn resolve<T: TryAsRef<TokenOrAst>>(
+    pub fn resolve<T: TryAsRef<syntax::Item>>(
         &self,
         mut input: Vec<T>,
         has_spacing_at_end: bool,

@@ -1,3 +1,6 @@
+//! Source code location. Every token and AST node are using [`Span`] to remember their location in
+//! the source code.
+
 use crate::prelude::*;
 
 use crate::Bytes;
@@ -165,16 +168,9 @@ impl<T> With<T> {
         Self { span, elem }
     }
 
+    /// Apply this span to the input element.
     #[inline(always)]
     pub fn with_elem<S>(&self, elem: S) -> With<S> {
-        let span = self.span;
-        With { span, elem }
-    }
-
-    /// Modify the element with the provided function.
-    #[inline(always)]
-    pub fn mod_elem<S>(self, f: impl FnOnce(T) -> S) -> With<S> {
-        let elem = f(self.elem);
         let span = self.span;
         With { span, elem }
     }
@@ -187,14 +183,14 @@ impl<T> With<T> {
         (left_span, token_right)
     }
 
-    /// Removes left offset spacing information.
+    /// Remove left offset spacing information.
     pub fn trim_left(&mut self) -> Span {
         let (left_span, right_span) = self.span.split_at_start();
         self.span = right_span;
         left_span
     }
 
-    /// Slices the provided slice. The left spacing offset is not used.
+    /// Slice the provided source code. The left spacing offset is not used.
     pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
         self.span.source_slice(source)
     }
@@ -233,5 +229,11 @@ impl<T> AsRef<With<T>> for With<T> {
 impl<T: Debug> Debug for With<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[off:{}, len:{}] {:#?}", self.span.left_visible_offset, self.span.len, self.elem)
+    }
+}
+
+impl<T: PartialEq> PartialEq<With<T>> for &With<T> {
+    fn eq(&self, other: &With<T>) -> bool {
+        <With<T> as PartialEq<With<T>>>::eq(*self, other)
     }
 }

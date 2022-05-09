@@ -1,7 +1,9 @@
+//! Token implementation. Tokens are output from the lexer. Read the docs of the main module to
+//! learn more about the parsing process steps.
 use crate::prelude::*;
 
 use crate::source;
-use crate::span;
+use crate::source::span;
 
 use enso_shapely_macros::tagged_enum;
 

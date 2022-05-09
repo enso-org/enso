@@ -1,11 +1,14 @@
+//! Implementation of lexer, a utility transforming source code into stream of tokens. Read the docs
+//! of the main module of this crate to learn more about the parsing process.
+
 use crate::prelude::*;
 use crate::source::traits::*;
 
 use crate::source;
-use crate::span;
-use crate::span::VisibleOffset;
-use crate::token;
-use crate::token::Token;
+use crate::source::span;
+use crate::source::span::VisibleOffset;
+use crate::syntax::token;
+use crate::syntax::token::Token;
 
 use bumpalo::Bump;
 use ouroboros::self_referencing;
@@ -84,10 +87,6 @@ impl<T: Debug> Debug for BumpVec<T> {
 }
 
 
-
-/// =====================
-/// === VisibleOffset ===
-/// =====================
 
 // ===============
 // === Pattern ===
@@ -335,7 +334,7 @@ impl<'s> Lexer<'s> {
 /// Based on https://en.wikipedia.org/wiki/Whitespace_character.
 const OTHER_UNICODE_SINGLE_SPACES: &str = "\u{1680}\u{202F}\u{205F}\u{3000}";
 const OTHER_UNICODE_SINGLE_SPACES_RANGE: (char, char) = ('\u{2000}', '\u{200A}');
-#[test]
+#[cfg(test)]
 const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FEFF}";
 
 /// Checks whether the provided character is a visible space and returns it's visible size. The tab
@@ -497,7 +496,8 @@ fn is_ident_char(t: char) -> bool {
 }
 
 impl token::Type {
-    pub fn parse_ident(repr: &str) -> Self {
+    /// Convert the provided string to ident. It's content will not be validated.
+    pub fn to_ident_unchecked(repr: &str) -> Self {
         let starts_with_underscore = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         if starts_with_underscore && repr.len() == 1 + lift_level {
@@ -510,10 +510,11 @@ impl token::Type {
 }
 
 impl<'s> Lexer<'s> {
+    /// Parse an identifier.
     fn ident(&mut self) {
         if let Some(tok) = self.token(|this| this.take_while_1(is_ident_char)) {
             let repr = self.repr(tok);
-            let tok = tok.with_elem(token::Type::parse_ident(repr));
+            let tok = tok.with_elem(token::Type::to_ident_unchecked(repr));
             self.submit_token(tok);
         }
     }
@@ -525,9 +526,8 @@ impl<'s> Lexer<'s> {
 // === Operator ===
 // ================
 
-
-
 impl<'s> Lexer<'s> {
+    /// Parse an operator.
     fn operator(&mut self) {
         let tok = self.token(|this| {
             if let Some(current) = this.current_char {
@@ -564,6 +564,7 @@ impl<'s> Lexer<'s> {
 // ==============
 
 impl<'s> Lexer<'s> {
+    /// Parse a symbol.
     fn symbol(&mut self) {
         if let Some(tok) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
             self.submit_token(tok.with_elem(token::Type::symbol()));
@@ -578,6 +579,7 @@ impl<'s> Lexer<'s> {
 // ==============
 
 impl<'s> Lexer<'s> {
+    /// Parse a number.
     fn number(&mut self) {
         let tok = self.token(|this| {
             if this.take_1(is_digit) {
@@ -601,6 +603,7 @@ fn is_inline_text_body(t: char) -> bool {
 }
 
 impl<'s> Lexer<'s> {
+    /// Parse a text literal.
     fn text(&mut self) {
         let tok = self.token(|this| this.take_1('"'));
         if let Some(tok) = tok {
@@ -652,7 +655,7 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     #[inline(always)]
     fn submit_line_as(&mut self, kind: token::Type) {
-        let tok = self.token(|this| this.take_line());
+        let tok = self.token(|this| this.take_all_newline_chars());
         if let Some(tok) = tok {
             self.submit_token(tok.with_elem(kind));
         }
@@ -680,7 +683,7 @@ impl<'s> Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    pub fn take_line(&mut self) {
+    fn take_all_newline_chars(&mut self) {
         self.take_while(|t| !is_newline_char(t))
     }
 
@@ -693,11 +696,6 @@ impl<'s> Lexer<'s> {
             }
         });
 
-        // left_visible_offset: usize,
-        // left_offset:         Bytes,
-        // start:               Bytes,
-        // len:                 Bytes,
-        // elem:                T,
         if let Some(tok) = tok {
             let block_indent = self.last_spaces_visible_offset;
             self.submit_token(tok.with_elem(token::Type::newline()));
@@ -738,6 +736,10 @@ impl<'s> Lexer<'s> {
 // === Glue ===
 // ============
 
+/// All defined parsers in order they should be fired. The order is determined by two factors:
+/// 1. The most common parsers should be first in order to minimize comparison for each new char.
+/// 2. Some parsers could consume input even if it should be qualified as something else. Thus, some
+///    parsers should be run first in order to make the token consuming process correct.
 const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
     |t| t.ident(),
     |t| t.operator(),
@@ -749,6 +751,7 @@ const PARSERS: &[for<'r> fn(&'r mut Lexer<'_>)] = &[
 ];
 
 impl<'s> Lexer<'s> {
+    /// Run the lexer. Returns [`true`] if the process succeeded.
     pub fn run(&mut self) -> bool {
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
         let mut any_parser_matched = true;
@@ -766,20 +769,20 @@ impl<'s> Lexer<'s> {
 }
 
 
-// ==================
-// === Test Utils ===
-// ==================
 
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
 fn test_from_repr<T>(repr: &str, elem: T) -> span::With<T> {
     span::With::new_no_left_offset_no_start(Bytes::from(repr.len()), elem)
 }
 
+#[cfg(test)]
 impl Token {
-    pub fn symbol(repr: &str) -> Self {
-        test_from_repr(repr, token::Type::symbol())
-    }
-
     // TODO: Tests only - should be refactored
+    // FIXME: shares some code with `to_ident_unchecked` - to be refactored.
     pub fn ident(repr: &str) -> Token {
         let is_free = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
@@ -792,12 +795,6 @@ impl Token {
         Token { span, elem: token::Type::ident(is_free, lift_level) }
     }
 }
-
-
-
-// =============
-// === Tests ===
-// =============
 
 #[cfg(test)]
 mod tests {
@@ -845,54 +842,54 @@ mod tests {
         let is_free = repr.starts_with('_');
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         let span = span::Span {
-            left_visible_offset: left_offset,
+            left_visible_offset: VisibleOffset::from(left_offset),
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: token::Kind::ident(is_free, lift_level) }
+        Token { span, elem: token::Type::ident(is_free, lift_level) }
     }
 
     fn wildcard(left_offset: usize, repr: &str) -> Token {
         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
         let span = span::Span {
-            left_visible_offset: left_offset,
+            left_visible_offset: VisibleOffset::from(left_offset),
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: token::Kind::wildcard(lift_level) }
+        Token { span, elem: token::Type::wildcard(lift_level) }
     }
 
     fn operator(left_offset: usize, repr: &str) -> Token {
         let span = span::Span {
-            left_visible_offset: left_offset,
+            left_visible_offset: VisibleOffset::from(left_offset),
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: token::Kind::operator() }
+        Token { span, elem: token::Type::operator() }
     }
 
     fn newline(left_offset: usize, repr: &str) -> Token {
         let span = span::Span {
-            left_visible_offset: left_offset,
+            left_visible_offset: VisibleOffset::from(left_offset),
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
             len:                 Bytes::from(repr.len()),
         };
-        Token { span, elem: token::Kind::newline() }
+        Token { span, elem: token::Type::newline() }
     }
 
     fn block_start(left_offset: usize) -> Token {
         let span = span::Span {
-            left_visible_offset: left_offset,
+            left_visible_offset: VisibleOffset::from(left_offset),
             left_offset:         Bytes::from(left_offset),
             start:               Bytes::from(0),
             len:                 Bytes::from(0),
         };
 
-        Token { span, elem: token::Kind::block_start() }
+        Token { span, elem: token::Type::block_start() }
     }
 
     #[test]

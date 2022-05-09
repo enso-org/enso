@@ -17,6 +17,6 @@ enso-data-structures = { path = "../data-structures" }
 enso-types = { path = "../types" }
 ouroboros = "0.14.2"
 enso-shapely-macros = { path = "../shapely/macros" }
-enso-parser-ast-visitor = { path = "src/ast/visitor" }
-enso-parser-ast-builder = { path = "src/ast/builder" }
+enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
+enso-parser-syntax-tree-builder = { path = "src/syntax/tree/builder" }
 

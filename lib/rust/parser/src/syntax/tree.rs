@@ -1,19 +1,20 @@
+//! Implementation of Syntax Tree, known as well as Abstract Syntax Tree, or AST.
 use crate::prelude::*;
 
 use crate::source;
-use crate::span;
-use crate::token;
-use crate::token::Token;
+use crate::source::span;
+use crate::syntax::token;
+use crate::syntax::token::Token;
 
-use enso_parser_ast_visitor::Visitor;
+use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
 use span::Span;
 
 
 
-// ===========
-// === Ast ===
-// ===========
+// ============
+// === Tree ===
+// ============
 
 /// The Abstract Syntax Tree of the language.
 ///
@@ -24,36 +25,38 @@ use span::Span;
 /// ```text
 /// println!("{:#?}", source::With::new(str, &ast));
 /// ```
-pub type Ast = span::With<Type>;
+pub type Tree = span::With<Type>;
 
-/// Macro providing [`Ast`] type definition. It is used to both define the ast [`Type`], and to
+/// Macro providing [`Tree`] type definition. It is used to both define the ast [`Type`], and to
 /// define impls for every token type in other modules.
 #[macro_export]
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
+    /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum(boxed)]
     #[derive(Clone, Eq, PartialEq, Visitor)]
     pub enum Type {
-        /// Invalid [`Ast`] fragment with an attached [`Error`].
+        /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
             pub error: Error,
-            pub ast: Ast,
+            pub ast: Tree,
         },
         /// A simple identifier, like `foo` or `bar`.
+        #[derive(Copy)]
         Ident {
             pub token: token::Ident,
         },
         /// A simple application, like `print "hello"`.
         App {
-            pub func: Ast,
-            pub arg: Ast,
+            pub func: Tree,
+            pub arg: Tree,
         },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
         /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
         /// [`OprSectionBoundary`] variant to learn more about operator section scope.
         OprApp {
-            pub lhs: Option<Ast>,
+            pub lhs: Option<Tree>,
             pub opr: OperatorOrError,
-            pub rhs: Option<Ast>,
+            pub rhs: Option<Tree>,
         },
         /// Defines the point where operator sections should be expanded to lambdas. Let's consider
         /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
@@ -61,7 +64,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
         OprSectionBoundary {
-            pub ast: Ast,
+            pub ast: Tree,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
@@ -71,7 +74,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
         /// application.
         MultiSegmentApp {
-            pub prefix: Option<Ast>,
+            pub prefix: Option<Tree>,
             pub segments: NonEmptyVec<MultiSegmentAppSegment>,
         }
     }
@@ -122,7 +125,7 @@ with_ast_definition!(define_ast_type());
 
 // === Invalid ===
 
-/// Error of parsing attached to an [`Ast`] node.
+/// Error of parsing attached to an [`Tree`] node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
 #[allow(missing_docs)]
 pub struct Error {
@@ -142,9 +145,9 @@ impl<'s> Debug for source::With<'s, &Error> {
     }
 }
 
-impl Ast {
+impl Tree {
     /// Constructor.
-    pub fn invalid(error: Error, ast: Ast) -> Self {
+    pub fn invalid(error: Error, ast: Tree) -> Self {
         let location = ast.span;
         let data = Type::from(Invalid(error, ast));
         location.with(data)
@@ -152,16 +155,16 @@ impl Ast {
 
     /// Constructor.
     pub fn with_error(self, message: &'static str) -> Self {
-        Ast::invalid(Error::new(message), self)
+        Tree::invalid(Error::new(message), self)
     }
 }
 
 
 // === App ===
 
-impl Ast {
+impl Tree {
     /// Constructor.
-    pub fn app(func: Ast, arg: Ast) -> Ast {
+    pub fn app(func: Tree, arg: Tree) -> Tree {
         let (left_offset_span, func) = func.split_at_start();
         let total = left_offset_span.extended_to(&arg);
         let ast_data = Type::from(App(func, arg));
@@ -189,9 +192,9 @@ impl MultipleOperatorError {
     }
 }
 
-impl Ast {
+impl Tree {
     /// Constructor.
-    pub fn opr_app(mut lhs: Option<Ast>, mut opr: OperatorOrError, rhs: Option<Ast>) -> Ast {
+    pub fn opr_app(mut lhs: Option<Tree>, mut opr: OperatorOrError, rhs: Option<Tree>) -> Tree {
         let left_offset_token = if let Some(lhs_val) = lhs {
             let (left_offset_token, new_lhs) = lhs_val.split_at_start();
             lhs = Some(new_lhs);
@@ -244,9 +247,9 @@ impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
 
 // === OprSectionBoundary ===
 
-impl Ast {
+impl Tree {
     /// Constructor.
-    pub fn opr_section_boundary(section: Ast) -> Ast {
+    pub fn opr_section_boundary(section: Tree) -> Tree {
         let (left_offset_span, section) = section.split_at_start();
         let total = left_offset_span.extended_to(&section);
         let ast_data = Type::from(OprSectionBoundary(section));
@@ -262,13 +265,13 @@ impl Ast {
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment {
     pub header: Token,
-    pub body:   Option<Ast>,
+    pub body:   Option<Tree>,
 }
 
-impl Ast {
+impl Tree {
     /// Constructor.
     pub fn multi_segment_app(
-        mut prefix: Option<Ast>,
+        mut prefix: Option<Tree>,
         mut segments: NonEmptyVec<MultiSegmentAppSegment>,
     ) -> Self {
         let left_span = if let Some(prefix) = prefix.as_mut() {
@@ -293,23 +296,23 @@ impl Ast {
 
 
 // ====================
-// === Ast Visitors ===
+// === Tree Visitors ===
 // ====================
 
 /// The visitor pattern for [`AST`].
 ///
 /// # Visitor traits
-/// This macro defines visitor traits, such as [`AstVisitor`] or [`SpanVisitor`], which provide
-/// abstraction for building a visitor for [`Ast`] and [`Span`] elements respectively. A visitor is
-/// a struct that is modified when traversing all elements of [`Ast`]. Visitors are also capable of
-/// tracking when they entered or exited a nested [`Ast`] structure, and they can control how deep
+/// This macro defines visitor traits, such as [`TreeVisitor`] or [`SpanVisitor`], which provide
+/// abstraction for building a visitor for [`Tree`] and [`Span`] elements respectively. A visitor is
+/// a struct that is modified when traversing all elements of [`Tree`]. Visitors are also capable of
+/// tracking when they entered or exited a nested [`Tree`] structure, and they can control how deep
 /// the traversal should be performed. To learn more, see the [`RefCollectorVisitor`]
-/// implementation, which traverses [`Ast`] and collects references to all [`Ast`] nodes in a
+/// implementation, which traverses [`Tree`] and collects references to all [`Tree`] nodes in a
 /// vector.
 ///
 /// # Visitable traits
-/// This macro also defines visitable traits, such as [`AstVisitable`] or [`SpanVisitable`], which
-/// provide [`Ast`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
+/// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`], which
+/// provide [`Tree`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
 /// [`visit_span_mut`]. These functions let you run visitors. However, as defining a visitor is
 /// relatively complex, a set of traversal functions are provided, such as [`map`], [`map_mut`],
 /// [`map_span`], or [`map_span_mut`].
@@ -322,7 +325,7 @@ impl Ast {
 ///     fn visit(&mut self, elem: &T);
 /// }
 /// ```
-/// Such definition could be implemented for every [`Ast`] node (the [`T`] parameter).
+/// Such definition could be implemented for every [`Tree`] node (the [`T`] parameter).
 /// Unfortunately, due to Rust compiler errors, Rust is not able to compile such a definition. We
 /// could move to it as soon as this error gets resolved:
 /// https://github.com/rust-lang/rust/issues/96634.
@@ -470,50 +473,50 @@ macro_rules! define_visitor_for_tokens {
             $( $variant:ident $({$($args:tt)*})? ),* $(,)?
         }
     ) => {
-        impl<'a> AstVisitable<'a> for token::$kind {}
-        impl<'a> AstVisitableMut<'a> for token::$kind {}
+        impl<'a> TreeVisitable<'a> for token::$kind {}
+        impl<'a> TreeVisitableMut<'a> for token::$kind {}
         impl<'a> SpanVisitable<'a> for token::$kind {}
         impl<'a> SpanVisitableMut<'a> for token::$kind {}
         $(
-            impl<'a> AstVisitable<'a> for token::$variant {}
-            impl<'a> AstVisitableMut<'a> for token::$variant {}
+            impl<'a> TreeVisitable<'a> for token::$variant {}
+            impl<'a> TreeVisitableMut<'a> for token::$variant {}
             impl<'a> SpanVisitable<'a> for token::$variant {}
             impl<'a> SpanVisitableMut<'a> for token::$variant {}
         )*
     };
 }
 
-define_visitor!(Ast, visit, visit_mut);
+define_visitor!(Tree, visit, visit_mut);
 define_visitor!(Span, visit_span, visit_span_mut);
 crate::with_token_definition!(define_visitor_for_tokens());
 
 
 // === Special cases ===
 
-impl<'a> AstVisitable<'a> for Ast {
-    fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
+impl<'a> TreeVisitable<'a> for Tree {
+    fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
         if visitor.visit(self) {
             self.elem.visit(visitor)
         }
     }
 }
 
-impl<'a> AstVisitableMut<'a> for Ast {
-    fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
+impl<'a> TreeVisitableMut<'a> for Tree {
+    fn visit_mut<V: TreeVisitorMut>(&'a mut self, visitor: &mut V) {
         if visitor.visit_mut(self) {
             self.elem.visit_mut(visitor)
         }
     }
 }
 
-impl<'a, T: AstVisitable<'a>> AstVisitable<'a> for span::With<T> {
-    default fn visit<V: AstVisitor<'a>>(&'a self, visitor: &mut V) {
+impl<'a, T: TreeVisitable<'a>> TreeVisitable<'a> for span::With<T> {
+    default fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
         self.elem.visit(visitor)
     }
 }
 
-impl<'a, T: AstVisitableMut<'a>> AstVisitableMut<'a> for span::With<T> {
-    default fn visit_mut<V: AstVisitorMut>(&'a mut self, visitor: &mut V) {
+impl<'a, T: TreeVisitableMut<'a>> TreeVisitableMut<'a> for span::With<T> {
+    default fn visit_mut<V: TreeVisitorMut>(&'a mut self, visitor: &mut V) {
         self.elem.visit_mut(visitor)
     }
 }
@@ -540,23 +543,23 @@ impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for span::With<T> {
 // === RefCollectorVisitor ===
 // ===========================
 
-/// A visitor collecting references to all [`Ast`] nodes.
+/// A visitor collecting references to all [`Tree`] nodes.
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct RefCollectorVisitor<'a> {
-    pub vec: Vec<&'a Ast>,
+    pub vec: Vec<&'a Tree>,
 }
 
-impl<'a> AstVisitor<'a> for RefCollectorVisitor<'a> {
-    fn visit(&mut self, ast: &'a Ast) -> bool {
+impl<'a> TreeVisitor<'a> for RefCollectorVisitor<'a> {
+    fn visit(&mut self, ast: &'a Tree) -> bool {
         self.vec.push(ast);
         true
     }
 }
 
-impl Ast {
-    /// Collect references to all [`Ast`] nodes and return them in a vector.
-    pub fn collect_vec_ref(&self) -> Vec<&Ast> {
+impl Tree {
+    /// Collect references to all [`Tree`] nodes and return them in a vector.
+    pub fn collect_vec_ref(&self) -> Vec<&Tree> {
         let mut visitor = RefCollectorVisitor::default();
         self.visit(&mut visitor);
         visitor.vec
@@ -569,20 +572,20 @@ impl Ast {
 // === FnVisitor ===
 // =================
 
-/// A visitor allowing running a function on every [`Ast`] node.
+/// A visitor allowing running a function on every [`Tree`] node.
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct FnVisitor<F>(pub F);
 
-impl<'a, T, F: Fn(&'a Ast) -> T> AstVisitor<'a> for FnVisitor<F> {
-    fn visit(&mut self, ast: &'a Ast) -> bool {
+impl<'a, T, F: Fn(&'a Tree) -> T> TreeVisitor<'a> for FnVisitor<F> {
+    fn visit(&mut self, ast: &'a Tree) -> bool {
         (self.0)(ast);
         true
     }
 }
 
-impl<T, F: Fn(&mut Ast) -> T> AstVisitorMut for FnVisitor<F> {
-    fn visit_mut(&mut self, ast: &mut Ast) -> bool {
+impl<T, F: Fn(&mut Tree) -> T> TreeVisitorMut for FnVisitor<F> {
+    fn visit_mut(&mut self, ast: &mut Tree) -> bool {
         (self.0)(ast);
         true
     }
@@ -603,15 +606,15 @@ impl<T, F: Fn(&mut Span) -> T> SpanVisitorMut for FnVisitor<F> {
 }
 
 
-impl Ast {
-    /// Map the provided function over each [`Ast`] node. The function results will be discarded.
-    pub fn map<T>(&self, f: impl Fn(&Ast) -> T) {
+impl Tree {
+    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
+    pub fn map<T>(&self, f: impl Fn(&Tree) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit(&mut visitor);
     }
 
-    /// Map the provided function over each [`Ast`] node. The function results will be discarded.
-    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Ast) -> T) {
+    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
+    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree) -> T) {
         let mut visitor = FnVisitor(f);
         self.visit_mut(&mut visitor);
     }

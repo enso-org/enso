@@ -70,6 +70,7 @@ pub fn run(
         variant_names.iter().map(|v| if is_boxed { quote!(Box<#v>) } else { quote!(#v) });
     output.push(quote! {
         #(#enum_attrs)*
+        #[allow(missing_docs)]
         #vis enum #enum_name {
             #(#variant_names(#variant_bodies)),*
         }
@@ -116,6 +117,7 @@ pub fn run(
     let enum_variant_name = quote::format_ident!("{}Variant", enum_name);
     output.push(quote! {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        #[allow(missing_docs)]
         #vis enum #enum_variant_name {
             #(#variant_names),*
         }
@@ -129,11 +131,13 @@ pub fn run(
         }
 
         impl #enum_name {
+            /// Abstract variant representation of this struct.
             #[inline(always)]
             pub fn variant(&self) -> #enum_variant_name {
                 self.into()
             }
 
+            /// Check whether this struct is the given variant.
             #[inline(always)]
             pub fn is(&self, variant: #enum_variant_name) -> bool {
                 self.variant() == variant
@@ -161,6 +165,7 @@ pub fn run(
             #(#enum_attrs)*
             #(#variant_attrs)*
             #[derive(Debug)]
+            #[allow(missing_docs)]
             #vis struct #variant_name #fields
         });
 
@@ -196,6 +201,7 @@ pub fn run(
         };
         output.push(quote! {
             impl #enum_name {
+                /// Constructor.
                 #[inline(always)]
                 pub fn #variant_snake_ident(#(#names: #types),*) -> Self {
                     Self::#variant_name (#cons)
@@ -216,6 +222,7 @@ pub fn run(
         //     App {func, args}
         // }
         output.push(quote! {
+            /// Constructor.
             #[inline(always)]
             #[allow(non_snake_case)]
             pub fn #variant_name(#(#names: #types),*) -> #variant_name {
@@ -241,6 +248,7 @@ pub fn run(
         let variant_check_ident = quote::format_ident!("is_{}", variant_snake_name);
         output.push(quote! {
             impl #enum_name {
+                /// Check if this struct is the given variant.
                 #[inline(always)]
                 pub fn #variant_check_ident(&self) -> bool {
                     self.is(#enum_variant_name::#variant_name)

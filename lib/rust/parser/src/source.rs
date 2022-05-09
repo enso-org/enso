@@ -1,9 +1,13 @@
+//! Enso language source code related utilities, including a structure attaching source code to 
+//! other types or an abstraction allowing for getting the representation of an entity, such as
+//! [`Token`] (tokens remember the location only, in order to get their representation, the source
+//! code needs to be sampled).
+
 use crate::prelude::*;
 
-use crate::span;
+pub mod span;
 
-
-
+/// Popular tratis.
 pub mod traits {
     pub use super::HasRepr;
 }

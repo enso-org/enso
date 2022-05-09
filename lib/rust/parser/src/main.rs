@@ -1,3 +1,6 @@
+//! Enso parser.
+//! TODO: Process description
+
 #![recursion_limit = "256"]
 // === Features ===
 #![allow(incomplete_features)]
@@ -27,24 +30,24 @@ use crate::prelude::*;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use macros::pattern::Pattern;
-use token::Token;
-use token_or_ast::TokenOrAst;
+use source::span;
+use syntax::token::Token;
 
 
 // ==============
 // === Export ===
 // ==============
 
-pub mod ast;
 pub mod lexer;
 pub mod macros;
 pub mod source;
-pub mod span;
-pub mod token;
-pub mod token_or_ast;
+pub mod syntax;
+
+use lexer::Lexer;
+use syntax::token;
 
 
-
+/// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_types::traits::*;
@@ -52,20 +55,16 @@ pub mod prelude {
 }
 
 
-use ast::Ast;
-use lexer::Lexer;
-
-
 
 #[derive(Debug)]
 pub enum TokenOrAstOrMacroResolver<'a> {
-    TokenOrAst(TokenOrAst),
+    SyntaxItem(syntax::Item),
     MacroResolver(MacroResolver<'a>),
 }
 
-impl<'a> From<TokenOrAst> for TokenOrAstOrMacroResolver<'a> {
-    fn from(t: TokenOrAst) -> Self {
-        Self::TokenOrAst(t)
+impl<'a> From<syntax::Item> for TokenOrAstOrMacroResolver<'a> {
+    fn from(t: syntax::Item) -> Self {
+        Self::SyntaxItem(t)
     }
 }
 
@@ -75,20 +74,20 @@ impl<'a> From<MacroResolver<'a>> for TokenOrAstOrMacroResolver<'a> {
     }
 }
 
-impl<'a> TryAsRef<TokenOrAst> for TokenOrAstOrMacroResolver<'a> {
-    fn try_as_ref(&self) -> Option<&TokenOrAst> {
+impl<'a> TryAsRef<syntax::Item> for TokenOrAstOrMacroResolver<'a> {
+    fn try_as_ref(&self) -> Option<&syntax::Item> {
         match self {
-            Self::TokenOrAst(t) => Some(t),
+            Self::SyntaxItem(t) => Some(t),
             _ => None,
         }
     }
 }
 
-impl<'a> source::HasRepr<'a> for source::With<'a, &TokenOrAst> {
+impl<'a> source::HasRepr<'a> for source::With<'a, &syntax::Item> {
     fn repr(&self) -> &'a str {
         match self.data {
-            TokenOrAst::Token(t) => self.with_data(t).repr(),
-            TokenOrAst::Ast(t) => self.with_data(t).repr(),
+            syntax::Item::Token(t) => self.with_data(t).repr(),
+            syntax::Item::Tree(t) => self.with_data(t).repr(),
         }
     }
 }
@@ -211,10 +210,10 @@ impl<'a> Resolver<'a> {
         mut self,
         lexer: &Lexer<'b>,
         root_macro_map: &MacroMatchTree<'a>,
-        tokens: Vec<TokenOrAst>,
-    ) -> Ast {
+        tokens: Vec<syntax::Item>,
+    ) -> syntax::Tree {
         let mut stream = tokens.into_iter();
-        let mut opt_token: Option<TokenOrAst>;
+        let mut opt_token: Option<syntax::Item>;
         macro_rules! next_token {
             () => {{
                 opt_token = stream.next();
@@ -233,7 +232,7 @@ impl<'a> Resolver<'a> {
         next_token!();
         while let Some(token) = opt_token {
             let step_result = match token {
-                TokenOrAst::Token(token) => self.process_token(lexer, root_macro_map, token),
+                syntax::Item::Token(token) => self.process_token(lexer, root_macro_map, token),
                 _ => ResolverStep::NormalToken,
             };
             match step_result {
@@ -283,11 +282,11 @@ impl<'a> Resolver<'a> {
     fn resolve<'b>(
         lexer: &Lexer<'b>,
         m: MacroResolver<'a>,
-        prefix_tokens: Option<Vec<TokenOrAst>>,
-    ) -> Ast {
+        prefix_tokens: Option<Vec<syntax::Item>>,
+    ) -> syntax::Tree {
         let segments = NonEmptyVec::new_with_last(m.resolved_segments, m.current_segment);
-        let sss: NonEmptyVec<(Token, Vec<TokenOrAst>)> = segments.mapped(|segment| {
-            let mut ss: Vec<TokenOrAst> = vec![];
+        let sss: NonEmptyVec<(Token, Vec<syntax::Item>)> = segments.mapped(|segment| {
+            let mut ss: Vec<syntax::Item> = vec![];
             for item in segment.body {
                 let resolved_token = match item {
                     TokenOrAstOrMacroResolver::MacroResolver(m2) => {
@@ -304,7 +303,7 @@ impl<'a> Resolver<'a> {
                             Self::resolve(lexer, m2, None).into()
                         }
                     },
-                    TokenOrAstOrMacroResolver::TokenOrAst(t) => t,
+                    TokenOrAstOrMacroResolver::SyntaxItem(t) => t,
                 };
                 ss.push(resolved_token);
             }
@@ -419,31 +418,31 @@ impl<T> WithPrecedence<T> {
 }
 
 
-fn annotate_tokens_that_need_spacing(items: Vec<TokenOrAst>) -> Vec<TokenOrAst> {
+fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::Item> {
     items
         .into_iter()
         .map(|item| match item {
-            TokenOrAst::Token(_) => item,
-            TokenOrAst::Ast(ast) => match &ast.elem {
-                ast::Type::MultiSegmentApp(data) => {
+            syntax::Item::Token(_) => item,
+            syntax::Item::Tree(ast) => match &ast.elem {
+                syntax::tree::Type::MultiSegmentApp(data) => {
                     if data.segments.first().header.elem.variant() != token::TypeVariant::Symbol {
-                        TokenOrAst::Ast(
+                        syntax::Item::Tree(
                             ast.with_error(
                                 "This expression cannot be used in a non-spaced equation.",
                             ),
                         )
                     } else {
-                        TokenOrAst::Ast(ast)
+                        syntax::Item::Tree(ast)
                     }
                 }
-                _ => TokenOrAst::Ast(ast),
+                _ => syntax::Item::Tree(ast),
             },
         })
         .collect()
 }
 
-pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
-    type Tokens = Vec<TokenOrAst>;
+pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<syntax::Item>) -> syntax::Tree {
+    type Tokens = Vec<syntax::Item>;
     let mut flattened: Tokens = default();
     let mut no_space_group: Tokens = default();
     let processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
@@ -472,14 +471,14 @@ pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast
     resolve_operator_precedence_internal(lexer, flattened)
 }
 
-fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -> Ast {
+fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<syntax::Item>) -> syntax::Tree {
     // Reverse-polish notation encoding.
-    let mut output: Vec<TokenOrAst> = default();
-    let mut operator_stack: Vec<WithPrecedence<ast::OperatorOrError>> = default();
+    let mut output: Vec<syntax::Item> = default();
+    let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
     let mut last_token_was_ast = false;
     let mut last_token_was_opr = false;
     for item in items {
-        if let TokenOrAst::Token(token) = item && let token::Type::Operator(opr) = token.elem {
+        if let syntax::Item::Token(token) = item && let token::Type::Operator(opr) = token.elem {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
@@ -494,7 +493,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
                     Err(err) => err.operators.push(opr),
                     Ok(prev) => {
                         let operators = NonEmptyVec::new(*prev,vec![opr]);
-                        prev_opr.elem = Err(ast::MultipleOperatorError::new(operators));
+                        prev_opr.elem = Err(syntax::tree::MultipleOperatorError::new(operators));
                     }
                 }
             } else {
@@ -505,7 +504,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
                 {
                     // Prev operator in the [`operator_stack`] has a higher precedence.
                     let lhs = output.pop().map(token_to_ast);
-                    let ast = Ast::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
+                    let ast = syntax::Tree::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
                     output.push(ast.into());
                 }
                 operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
@@ -514,7 +513,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
             // Multiple non-operators next to each other.
             let lhs = token_to_ast(lhs);
             let rhs = token_to_ast(item);
-            let ast = Ast::app(lhs, rhs);
+            let ast = syntax::Tree::app(lhs, rhs);
             output.push(ast.into());
         } else {
             // Non-operator that follows previously consumed operator.
@@ -526,12 +525,12 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
     let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
     while let Some(opr) = operator_stack.pop() {
         let opt_lhs = output.pop().map(|t| token_to_ast(t));
-        opt_rhs = Some(Ast::opr_app(opt_lhs, opr.elem, opt_rhs));
+        opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
         panic!("Internal error. Not all tokens were consumed while constructing the expression.");
     }
-    Ast::opr_section_boundary(opt_rhs.unwrap()) // fixme
+    syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
 }
 
 
@@ -539,7 +538,7 @@ fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<TokenOrAst>) -
 impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
 where source::With<'s, &'t T>: Debug
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let t: &T = &**self.data;
         Debug::fmt(&self.with_data(t), f)
     }
@@ -550,7 +549,7 @@ where source::With<'s, &'t T>: Debug
 impl<'s, 't, T> Debug for source::With<'s, &'t Option<T>>
 where source::With<'s, &'t T>: Debug
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)), f)
     }
 }
@@ -560,27 +559,28 @@ where
     source::With<'s, &'t T>: Debug,
     source::With<'s, &'t E>: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)).map_err(|t| self.with_data(t)), f)
     }
 }
 
 
-fn token_to_ast(elem: TokenOrAst) -> Ast {
+fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
     match elem {
-        TokenOrAst::Token(token) => match token.elem {
-            token::Type::Ident(ident) => elem.span().with(ast::Type::from(ast::Ident(ident))),
+        syntax::Item::Token(token) => match token.elem {
+            token::Type::Ident(ident) =>
+                elem.span().with(syntax::tree::Type::from(syntax::tree::Ident(ident))),
             _ => panic!(),
         },
-        TokenOrAst::Ast(ast) => ast,
+        syntax::Item::Tree(ast) => ast,
     }
 }
 
 fn matched_segments_into_multi_segment_app<'s>(
     lexer: &Lexer<'s>,
-    prefix_tokens: Option<Vec<TokenOrAst>>,
-    matched_segments: NonEmptyVec<(Token, Vec<TokenOrAst>)>,
-) -> Ast {
+    prefix_tokens: Option<Vec<syntax::Item>>,
+    matched_segments: NonEmptyVec<(Token, Vec<syntax::Item>)>,
+) -> syntax::Tree {
     // FIXME: remove into_vec
     let segments = matched_segments
         .into_vec()
@@ -589,12 +589,12 @@ fn matched_segments_into_multi_segment_app<'s>(
             let header = segment.0;
             let body = (segment.1.len() > 0)
                 .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
-            ast::MultiSegmentAppSegment { header, body }
+            syntax::tree::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
     if let Ok(segments) = NonEmptyVec::try_from(segments) {
         let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
-        Ast::multi_segment_app(prefix, segments)
+        syntax::Tree::multi_segment_app(prefix, segments)
     } else {
         panic!()
     }
@@ -653,22 +653,25 @@ fn builtin_macros() -> MacroMatchTree<'static> {
 // === Main ===
 // ============
 
-#[test]
+#[cfg(test)]
 mod test {
     use super::*;
 
-    pub fn ident(repr: &str) -> Ast {
-        match token::Type::parse_ident(repr) {
+    pub fn ident(repr: &str) -> syntax::Tree {
+        match token::Type::to_ident_unchecked(repr) {
             token::Type::Ident(ident) => span::With::new_no_left_offset_no_start(
                 Bytes::from(repr.len()),
-                ast::Type::from(ast::Ident(ident)),
+                syntax::tree::Type::from(syntax::tree::Ident(ident)),
             ),
             _ => panic!(),
         }
     }
 
-    pub fn app_segment(header: Token, body: Option<Ast>) -> ast::MultiSegmentAppSegment {
-        ast::MultiSegmentAppSegment { header, body }
+    pub fn app_segment(
+        header: Token,
+        body: Option<syntax::Tree>,
+    ) -> syntax::tree::MultiSegmentAppSegment {
+        syntax::tree::MultiSegmentAppSegment { header, body }
     }
 }
 
@@ -703,12 +706,13 @@ fn main() {
     println!("{:#?}", source::With::new(str, &ast));
 
     // let seg1 =
-    //     test::app_segment(Token::symbol("("), Some(Ast::opr_section_boundary(test::ident("a"))));
-    // let seg2 = test::app_segment(Token::symbol(")"), None);
+    //     test::app_segment(Token::symbol("("),
+    // Some(syntax::Tree::opr_section_boundary(test::ident("a")))); let seg2 =
+    // test::app_segment(Token::symbol(")"), None);
     //
-    // let ast2 = Ast::opr_section_boundary(location::With::new_with_len(
+    // let ast2 = syntax::Tree::opr_section_boundary(location::With::new_with_len(
     //     Bytes::from(0),
-    //     ast::Data::MultiSegmentApp(MultiSegmentApp {
+    //     syntax::tree::Data::MultiSegmentApp(MultiSegmentApp {
     //         prefix:   None,
     //         segments: NonEmptyVec::try_from(vec![seg1, seg2]).unwrap(),
     //     }),
@@ -735,13 +739,14 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enso_parser_syntax_tree_builder::ast_builder;
 
-    fn one_shot(input: &str) -> Ast {
+    fn one_shot(input: &str) -> syntax::Tree {
         let mut lexer = Lexer::new(input);
         lexer.run();
         let root_macro_map = builtin_macros();
-        let mut resolver = Resolver::new_root();
-        let mut ast = resolver.run(
+        let resolver = Resolver::new_root();
+        let ast = resolver.run(
             &lexer,
             &root_macro_map,
             lexer.output.borrow_vec().iter().map(|t| (*t).into()).collect_vec(),

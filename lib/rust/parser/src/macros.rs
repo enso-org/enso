@@ -1,8 +1,13 @@
+//! Enso macro utilities. The parser contains a powerful macro resolution engine and a lot of the
+//! language constructs are defined as macros. This module contains macro definition structs and
+//! utilities allowing macros management.
+//
+//! Read the docs of the main module of this crate to learn more about the parsing process.
+
 use crate::prelude::*;
 
-use crate::token::Token;
-use crate::token_or_ast::TokenOrAst;
-use crate::Ast;
+use crate::syntax;
+use crate::syntax::token::Token;
 use crate::Lexer;
 
 use enso_data_structures::im_list;
@@ -41,13 +46,13 @@ pub struct Definition<'a> {
 }
 
 /// All the tokens matched as prefix of the resolved macro.
-pub type PrefixTokens = Option<Vec<TokenOrAst>>;
+pub type PrefixTokens = Option<Vec<syntax::Item>>;
 
 /// All the sections of the resolved macro.
-pub type MatchedSections = NonEmptyVec<(Token, Vec<TokenOrAst>)>;
+pub type MatchedSections = NonEmptyVec<(Token, Vec<syntax::Item>)>;
 
-/// A function that transforms matched macro tokens into [`Ast`].
-pub type Body = dyn for<'b> Fn(&Lexer<'b>, PrefixTokens, MatchedSections) -> Ast;
+/// A function that transforms matched macro tokens into [`syntax::Tree`].
+pub type Body = dyn for<'b> Fn(&Lexer<'b>, PrefixTokens, MatchedSections) -> syntax::Tree;
 
 
 

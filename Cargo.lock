@@ -1113,8 +1113,8 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "enso-data-structures",
- "enso-parser-ast-builder",
- "enso-parser-ast-visitor",
+ "enso-parser-syntax-tree-builder",
+ "enso-parser-syntax-tree-visitor",
  "enso-prelude",
  "enso-shapely-macros",
  "enso-types",
@@ -1122,7 +1122,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-parser-ast-builder"
+name = "enso-parser-syntax-tree-builder"
 version = "0.1.0"
 dependencies = [
  "enso-macro-utils",
@@ -1132,7 +1132,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-parser-ast-visitor"
+name = "enso-parser-syntax-tree-visitor"
 version = "0.1.0"
 dependencies = [
  "enso-macro-utils",

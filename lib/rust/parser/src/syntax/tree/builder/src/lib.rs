@@ -37,7 +37,7 @@ use std::mem;
 #[proc_macro]
 pub fn ast_builder(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output = expr(tokens);
-    let output = quote!(Ast::opr_section_boundary(#output));
+    let output = quote!(syntax::Tree::opr_section_boundary(#output));
     output.into()
 }
 
@@ -64,7 +64,7 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
         if output.is_empty() {
             *output = tok;
         } else {
-            *output = quote! {Ast::app(#output,#tok)};
+            *output = quote! {syntax::Tree::app(#output,#tok)};
         }
     };
     for token in tokens {
@@ -103,21 +103,21 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
                 let header = t.header;
                 let body = t.body;
                 let body = if !body.is_empty() {
-                    quote!(Some(Ast::opr_section_boundary(#body)))
+                    quote!(Some(syntax::Tree::opr_section_boundary(#body)))
                 } else {
                     quote!(None)
                 };
-                quote! { ast::MultiSegmentAppSegment { header: #header, body: #body } }
+                quote! { syntax::tree::MultiSegmentAppSegment { header: #header, body: #body } }
             })
             .collect();
         let pfx = prefix
-            .map(|t| quote! {Some(Box::new(Ast::opr_section_boundary(#t)))})
+            .map(|t| quote! {Some(Box::new(syntax::Tree::opr_section_boundary(#t)))})
             .unwrap_or_else(|| quote! {None});
         let segments = quote! {NonEmptyVec::try_from(vec![#(#segments),*]).unwrap()};
         output = quote! {
-            location::With::new_with_len(
+            span::With::new_no_left_offset_no_start(
                 Bytes::from(0),
-                ast::Data::MultiSegmentApp(ast::MultiSegmentApp {prefix: #pfx, segments: #segments})
+                syntax::tree::Type::MultiSegmentApp(Box::new(syntax::tree::MultiSegmentApp {prefix: #pfx, segments: #segments}))
             )
         }
     }

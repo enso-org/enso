@@ -37,7 +37,7 @@ use syn::Variant;
 /// === Derive Visitor ===
 /// ======================
 
-/// Implements [`AstVisitable`], [`AstVisitableMut`], [`SpanVisitable`], and [`SpanVisitableMut`].
+/// Implements [`TreeVisitable`], [`TreeVisitableMut`], [`SpanVisitable`], and [`SpanVisitableMut`].
 /// These traits are defined in the [`crate::ast`] module. Macros in this module hardcode the names
 /// of the traits and are not implemented in a generic way because the current Rust implementation
 /// does not understand generic definition. See the [`crate::ast`] module to learn more about the
@@ -47,22 +47,22 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;
     let (_impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
-    let body = gen_body(quote!(AstVisitable::visit), &decl.data, false);
-    let body_mut = gen_body(quote!(AstVisitableMut::visit_mut), &decl.data, true);
+    let body = gen_body(quote!(TreeVisitable::visit), &decl.data, false);
+    let body_mut = gen_body(quote!(TreeVisitableMut::visit_mut), &decl.data, true);
     let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
     let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
 
     let output = quote! {
-        impl<'a> AstVisitable<'a> for #ident #ty_generics {
-            fn visit<T: AstVisitor<'a>>(&'a self, visitor:&mut T) {
+        impl<'a> TreeVisitable<'a> for #ident #ty_generics {
+            fn visit<T: TreeVisitor<'a>>(&'a self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body
                 visitor.after_visiting_children();
             }
         }
 
-        impl<'a> AstVisitableMut<'a> for #ident #ty_generics {
-            fn visit_mut<T: AstVisitorMut>(&'a mut self, visitor:&mut T) {
+        impl<'a> TreeVisitableMut<'a> for #ident #ty_generics {
+            fn visit_mut<T: TreeVisitorMut>(&'a mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_mut
                 visitor.after_visiting_children();
