@@ -182,23 +182,23 @@ impl component::Frp<Model> for Frp {
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let background_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
-        let entries_base_color = style.get_color(theme::entries::text::color);
+        let entry_text_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
-            main_intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
-            main_color <- all_with3(&app_bg_color, &input.set_color, &main_intensity,
+            intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
+            main_color <- all_with3(&app_bg_color, &input.set_color, &intensity,
                 |a,b,c| color::mix(*a,*b,*c));
             app_bg_and_main_color <- all(&app_bg_color, &main_color);
             header_color <- all_with(&app_bg_and_main_color, &header_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
             background_color <- all_with(&app_bg_and_main_color, &background_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            entries_color <- all_with3(&app_bg_color, &entries_base_color, &main_intensity,
+            entry_color_with_intensity <- all_with3(&app_bg_color, &entry_text_color, &intensity,
                 |a,b,c| color::mix(*a,*b,*c));
-            entries_color_sampler <- entries_color.sampler();
+            entry_color_sampler <- entry_color_with_intensity.sampler();
         }
-        let params = entry::Params { color: entries_color_sampler };
+        let params = entry::Params { color: entry_color_sampler };
         model.entries.set_entry_params(params);
 
 
