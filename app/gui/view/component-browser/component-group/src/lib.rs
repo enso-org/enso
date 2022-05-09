@@ -137,7 +137,7 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         set_header(String),
         set_entries(list_view::entry::AnyModelProvider<Entry>),
-        set_leading_color(color::Rgba),
+        set_color(color::Rgba),
         set_dimmed(bool),
         set_width(f32),
     }
@@ -179,27 +179,26 @@ impl component::Frp<Model> for Frp {
         // === Colors ===
 
         let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
-        let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
-        let background_color_intensity = style.get_number(theme::background_color_intensity);
-        let dimmed_color_intensity = style.get_number(theme::dimmed_color_intensity);
-        let entries_text_base_color = style.get_color(theme::entries::text::color);
+        let header_intensity = style.get_number(theme::header::text::color_intensity);
+        let background_intensity = style.get_number(theme::background_color_intensity);
+        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
+        let entries_base_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
-            let input_leading_color = &input.set_leading_color;
-            dimmed_intensity <- input.set_dimmed.switch(&one, &dimmed_color_intensity);
-            leading_color <- all_with3(&app_bg_color, input_leading_color, &dimmed_intensity,
+            main_intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
+            main_color <- all_with3(&app_bg_color, &input.set_color, &main_intensity,
                 |a,b,c| color::mix(*a,*b,*c));
-            fade_and_leading_colors <- all(&app_bg_color, &leading_color);
-            header_color <- all_with(&fade_and_leading_colors, &header_text_color_intensity,
+            app_bg_and_main_color <- all(&app_bg_color, &main_color);
+            header_color <- all_with(&app_bg_and_main_color, &header_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            background_color <- all_with(&fade_and_leading_colors, &background_color_intensity,
+            background_color <- all_with(&app_bg_and_main_color, &background_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            entries_text_color <- all_with3(&app_bg_color, &entries_text_base_color, &dimmed_intensity,
+            entries_color <- all_with3(&app_bg_color, &entries_base_color, &main_intensity,
                 |a,b,c| color::mix(*a,*b,*c));
-            entries_text_color_sampler <- entries_text_color.sampler();
+            entries_color_sampler <- entries_color.sampler();
         }
-        let params = entry::Params { color: entries_text_color_sampler };
+        let params = entry::Params { color: entries_color_sampler };
         model.entries.recreate_entries_with_params(params);
 
 

@@ -157,8 +157,8 @@ fn init(app: &Application) {
         blue_slider_frp.set_value <+ init.constant(default_color.blue);
         sliders_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
-        component_group.set_leading_color <+ sliders_color;
-        dimmed_component_group.set_leading_color <+ sliders_color;
+        component_group.set_color <+ sliders_color;
+        dimmed_component_group.set_color <+ sliders_color;
 
         eval sliders_color((c) selection.color.set(c.into()));
     }
