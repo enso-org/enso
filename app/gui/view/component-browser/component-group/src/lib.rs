@@ -199,7 +199,7 @@ impl component::Frp<Model> for Frp {
             entries_color_sampler <- entries_color.sampler();
         }
         let params = entry::Params { color: entries_color_sampler };
-        model.entries.recreate_entries_with_params(params);
+        model.entries.set_entry_params(params);
 
 
         // === Header ===

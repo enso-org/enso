@@ -585,10 +585,9 @@ where E::Model: Default
         self.model.entries.set_label_layer(layer);
     }
 
-    pub fn recreate_entries_with_params(&self, params: E::Params) {
-        self.model.entries.set_entry_params(params);
+    pub fn set_entry_params(&self, params: E::Params) {
         let style_prefix = self.frp.style_prefix.value();
-        self.model.entries.recreate_entries_with_style_prefix(style_prefix.into());
+        self.model.entries.set_entry_params(params, style_prefix.into());
     }
 }
 

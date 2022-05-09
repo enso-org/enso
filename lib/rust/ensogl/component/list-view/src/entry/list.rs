@@ -192,8 +192,9 @@ where E::Model: Default
         }
     }
 
-    pub fn set_entry_params(&self, params: E::Params) {
+    pub fn set_entry_params(&self, params: E::Params, style_prefix: style::Path) {
         self.entry_params.replace(params);
+        self.recreate_entries_with_style_prefix(style_prefix);
     }
 
     /// Update displayed entries, giving new provider. New entries created by the function have
