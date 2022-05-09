@@ -54,7 +54,8 @@ impl From<&str> for Model {
 // === Params ===
 // ==============
 
-/// Style parameters of a [`View`].
+/// A type parametrizing the visual aspects of how an entry will be rendered in an instance of
+/// component group view.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {

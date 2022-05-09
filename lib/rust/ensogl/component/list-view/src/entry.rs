@@ -60,7 +60,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// be displayed.
     type Model: Debug + Default;
 
-    /// A type parametrizing visual aspects of how the entry will be rendered in an instance of
+    /// A type parametrizing the visual aspects of how the entry will be rendered in an instance of
     /// [`crate::ListView`].
     type Params: CloneRef + Debug + Default;
 
