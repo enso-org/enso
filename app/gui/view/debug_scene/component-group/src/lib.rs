@@ -64,12 +64,7 @@ struct MockEntries {
 
 impl MockEntries {
     fn new(entries: &[&str]) -> Self {
-        Self {
-            entries: entries
-                .iter()
-                .map(|&label| label.into())
-                .collect()
-        }
+        Self { entries: entries.iter().map(|&label| label.into()).collect() }
     }
 
     fn get_entry(&self, i: usize) -> Option<component_group::entry::Model> {

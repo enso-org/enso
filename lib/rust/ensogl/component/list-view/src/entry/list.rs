@@ -82,7 +82,16 @@ where E::Model: Default
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
-        List { logger, app, display_object, entries, entries_range, entry_params, provider, label_layer }
+        List {
+            logger,
+            app,
+            display_object,
+            entries,
+            entries_range,
+            entry_params,
+            provider,
+            label_layer,
+        }
     }
 
     /// The number of all entries in List, including not displayed.
