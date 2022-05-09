@@ -42,11 +42,12 @@ pub fn main() {
     });
 }
 
-fn make_number_picker(app: &Application) -> Leak<selector::NumberPicker> {
+fn make_number_picker(app: &Application, caption: &str) -> Leak<selector::NumberPicker> {
     let slider = app.new_view::<selector::NumberPicker>();
     slider.frp.allow_click_selection(true);
     slider.frp.resize(Vector2(400.0, 30.0));
     slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
+    slider.frp.set_caption(Some(caption.to_string()));
     app.display.add_child(&slider);
     Leak::new(slider)
 }
@@ -106,27 +107,9 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
 
-    // FIXME[mc] organize the code below into sections
 
-    let red_slider = make_number_picker(app);
-    red_slider.inner().frp.set_caption(Some("Red".to_string()));
-    red_slider.inner().set_position_y(300.0);
-    red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+    // === Component groups ===
 
-    let green_slider = make_number_picker(app);
-    green_slider.inner().frp.set_caption(Some("Green".to_string()));
-    green_slider.inner().set_position_y(250.0);
-    green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
-
-    let blue_slider = make_number_picker(app);
-    blue_slider.inner().frp.set_caption(Some("Blue".to_string()));
-    blue_slider.inner().set_position_y(200.0);
-    blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
-
-    let selection = list_view::selection::View::new(Logger::new("Selection"));
-    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
-    selection.corner_radius.set(5.0);
-    let selection_animation = Animation::<Vector2>::new(&network);
     let component_group = app.new_view::<component_group::View>();
     let dimmed_component_group = app.new_view::<component_group::View>();
     let provider = list_view::entry::AnyModelProvider::new(mock_entries);
@@ -134,14 +117,48 @@ fn init(app: &Application) {
     component_group.set_header(group_name.to_string());
     component_group.set_entries(&provider);
     component_group.set_width(150.0);
+    app.display.add_child(&component_group);
     dimmed_component_group.set_dimmed(true);
     dimmed_component_group.set_header("Input / Output".to_string());
     dimmed_component_group.set_entries(provider);
     dimmed_component_group.set_width(150.0);
     dimmed_component_group.set_position_x(-200.0);
     app.display.add_child(&dimmed_component_group);
-    app.display.add_child(&component_group);
+
+
+    // === Selection ===
+
+    let selection = list_view::selection::View::new(Logger::new("Selection"));
+    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    selection.corner_radius.set(5.0);
+    let selection_animation = Animation::<Vector2>::new(&network);
     app.display.add_child(&selection);
+
+    frp::extend! { network
+        selection_animation.target <+ component_group.selection_position_target;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+
+        eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
+        eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+        eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
+    }
+    selection_animation.target.emit(component_group.selection_position_target.value());
+    selection_animation.skip.emit(());
+
+
+    // === Color sliders ===
+
+    let red_slider = make_number_picker(app, "Red");
+    red_slider.inner().set_position_y(300.0);
+    red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+
+    let green_slider = make_number_picker(app, "Green");
+    green_slider.inner().set_position_y(250.0);
+    green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
+
+    let blue_slider = make_number_picker(app, "Blue");
+    blue_slider.inner().set_position_y(200.0);
+    blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
 
     let red_slider_frp = &red_slider.inner().frp;
     let green_slider_frp = &green_slider.inner().frp;
@@ -164,16 +181,8 @@ fn init(app: &Application) {
     }
     init.emit(());
 
-    frp::extend! { network
-        selection_animation.target <+ component_group.selection_position_target;
-        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
 
-        eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
-    }
-    selection_animation.target.emit(component_group.selection_position_target.value());
-    selection_animation.skip.emit(());
+    // === Forget ===
 
     std::mem::forget(network);
     std::mem::forget(selection);
