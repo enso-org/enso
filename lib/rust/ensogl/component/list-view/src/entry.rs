@@ -60,6 +60,8 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// be displayed.
     type Model: Debug + Default;
 
+    /// A type parametrizing visual aspects of how the entry will be rendered in an instance of
+    /// [`crate::ListView`].
     type Params: CloneRef + Debug + Default;
 
     /// An Object constructor.
@@ -85,6 +87,7 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 // === Label ===
 
 /// The [`Entry`] being a single text field displaying String.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
     display_object: display::object::Instance,
