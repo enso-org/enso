@@ -181,12 +181,12 @@ impl component::Frp<Model> for Frp {
 
         let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
         let background_color_intensity = style.get_number(theme::background_color_intensity);
-        let color_dim_factor = style.get_number(theme::color_dim_factor);
+        let dimmed_color_intensity = style.get_number(theme::dimmed_color_intensity);
         let entries_text_base_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
-            dim_factor <- input.set_dimmed.switch(&one, &color_dim_factor);
+            dim_factor <- input.set_dimmed.switch(&one, &dimmed_color_intensity);
             leading_color <- all_with3(&input.set_fade_color, &input.set_leading_color, &dim_factor,
                 |a,b,c| color::mix(*a,*b,*c));
             fade_and_leading_colors <- all(&input.set_fade_color, &leading_color);
