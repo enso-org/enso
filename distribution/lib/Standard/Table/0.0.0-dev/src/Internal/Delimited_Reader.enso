@@ -70,29 +70,33 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
         Integer -> format.row_limit
         _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
     if format.parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
-        translate_illegal_argument caught_panic =
-            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-        translate_problem java_problem =
+        translate_parsing_problem java_problem =
             if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
                 if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
                     if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
                         java_problem
+
+        translate_illegal_argument caught_panic =
+            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+        handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
+
         translate_parsing_failure caught_panic =
             Error.throw (translate_problem caught_panic.payload.cause.problem)
+        handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
+
         translate_parsing_exception caught_panic =
             cause = caught_panic.payload.cause.getCause
             if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
                 Error.throw (Parser_Error caught_panic.payload)
+        handle_parsing_exception = Panic.catch TextParsingException handler=translate_parsing_exception
 
         java_charset = format.encoding.to_java_charset
-        Panic.catch IllegalArgumentException handler=translate_illegal_argument <|
-            Panic.catch ParsingFailedException handler=translate_parsing_failure <|
-                Panic.catch TextParsingException handler=translate_parsing_exception <|
-                    Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
-                        warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                        reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
-                        result = Table.Table reader.read
-                        decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-                        parsing_problems = Vector.Vector reader.getReportedProblems . map translate_problem
-                        problems = decoding_problems + parsing_problems
-                        on_problems.attach_problems_after result problems
+        handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+            Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+                warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+                reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
+                result = Table.Table reader.read
+                decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
+                parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
+                problems = decoding_problems + parsing_problems
+                on_problems.attach_problems_after result problems

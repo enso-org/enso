@@ -60,7 +60,7 @@ spec =
             create_file name ending_style =
                 lines = ['a,b,c', 'd,e,f', '1,2,3']
                 text = lines.join ending_style
-                (path name).write_text text
+                (path name).write_text text Encoding.utf_8
 
             test_file name =
                 table = (File_Format.Delimited "," headers=True).read (path name) Problem_Behavior.Report_Error
