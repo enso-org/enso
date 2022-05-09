@@ -1546,6 +1546,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ensogl-tooltip",
  "futures 0.3.21",
  "wasm-bindgen",
  "wasm-bindgen-futures",
