@@ -19,9 +19,6 @@
 #![warn(unused_qualifications)]
 #![recursion_limit = "512"]
 
-pub mod entry;
-pub use entry::View as Entry;
-
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -35,6 +32,15 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
+
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod entry;
+pub use entry::View as Entry;
 
 
 
