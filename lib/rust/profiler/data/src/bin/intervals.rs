@@ -30,7 +30,6 @@ use enso_prelude::*;
 
 use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
-use enso_profiler_data::OpaqueMetadata;
 use std::collections;
 
 

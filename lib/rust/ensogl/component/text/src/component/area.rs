@@ -969,8 +969,8 @@ impl AreaModel {
     }
 
     fn paste(&self) {
-        // let paste_string = self.frp_endpoints.input.paste_string.clone_ref();
-        // clipboard::read_text(move |t| paste_string.emit(t));
+        let paste_string = self.frp_endpoints.input.paste_string.clone_ref();
+        clipboard::read_text(move |t| paste_string.emit(t));
     }
 
     /// Paste new text in the place of current selections / cursors. In case of pasting multiple

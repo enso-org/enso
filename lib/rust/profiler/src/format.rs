@@ -28,7 +28,8 @@ pub enum Event<'a> {
     /// Registers a label to be referenced by ID.
     #[serde(rename = "L")]
     Label {
-        /// The text content of the label.
+        /// The text content of the label. Might need to be an owned string, if the original data
+        /// contains an escape sequence.
         #[serde(rename = "l")]
         label: Cow<'a, str>,
     },

@@ -88,7 +88,6 @@ pub async fn main() {
 
     let sequence_diagram = SequenceDiagram::new(app);
     sequence_diagram.set_profile(profiles);
-    // sequence_diagram.set_origin.emit(flame_graph.origin() as f32 - 5534.0 + 45136.7);
 
     let graph_height: f32 = flame_graph.height();
     let sequence_diagram_offset = graph_height + sequence_diagram.height.value();
