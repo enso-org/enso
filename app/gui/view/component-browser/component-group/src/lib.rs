@@ -399,7 +399,7 @@ impl Model {
         let header_bottom_y = header_center_y - header_height / 2.0;
         let header_text_y =
             header_bottom_y + header_text_height + header_padding_bottom - viewport_height;
-        let header_text_y = header_text_y.max(-size.y / 2.0);
+        let header_text_y = header_text_y.max(-size.y / 2.0 + header_height / 2.0);
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
 

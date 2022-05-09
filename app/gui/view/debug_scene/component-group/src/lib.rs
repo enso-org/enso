@@ -161,27 +161,27 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let slider = slider(app);
     let network = frp::Network::new("Component Group Debug Scene");
     let selection = create_selection();
     let selection_animation = Animation::<Vector2>::new(&network);
-    let wide_selection = create_selection();
-    let wide_selection_animation = Animation::<Vector2>::new(&network);
 
-    let component_group = component_group(app);
-    component_group.model().display_object.layer.add_exclusive(&selection);
-    component_group.add_child(&selection);
-    let wide_component_group = wide_component_group(app);
-    app.display.add_child(&wide_component_group);
-    wide_component_group.add_child(&wide_selection);
+    let first_component_group = component_group(app);
+    first_component_group.model().display_object.layer.add_exclusive(&selection);
+    let second_component_group = component_group(app);
+    let group_name = "Second component group";
+    second_component_group.set_header(group_name.to_string());
+    second_component_group.set_width(150.0);
+    second_component_group.set_position_x(95.0);
+    second_component_group.set_background_color(color::Rgba(0.527, 0.837, 0.713, 1.0));
 
     let scroll_area = ScrollArea::new(app);
     scroll_area.set_position_xy(Vector2(-400.0, 100.0));
     scroll_area.resize(Vector2(250.0, 400.0));
     scroll_area.set_content_width(250.0);
-    scroll_area.set_content_height(1000.0);
+    scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
-    scroll_area.content().add_child(&component_group);
+    scroll_area.content().add_child(&first_component_group);
+    scroll_area.content().add_child(&second_component_group);
 
     let green_circle = green_circle::View::new(&app.logger);
     green_circle.size.set(Vector2(150.0, 150.0));
@@ -192,64 +192,29 @@ fn init(app: &Application) {
     // === Regular Component Group ===
 
     frp::extend! { network
-        selection_animation.target <+ component_group.selection_position_target;
+        selection_animation.target <+ first_component_group.selection_position_target;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
 
-        eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
+        eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
+        eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
+        eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
 
-        eval component_group.size((size) component_group.set_position_y(- size.y / 2.0));
+        eval first_component_group.size((size) first_component_group.set_position_y(- size.y / 2.0));
+        _eval <- all_with(&first_component_group.size, &second_component_group.size, f!((f, s) second_component_group.set_position_y(- s.y / 2.0 - f.y - 5.0)));
 
-        eval scroll_area.scroll_position_y((y) component_group.set_viewport_size(*y));
+        eval scroll_area.scroll_position_y((y) first_component_group.set_viewport_size(*y));
+        //eval scroll_area.scroll_position_y((y) second_component_group.set_viewport_size(*y));
     }
-    selection_animation.target.emit(component_group.selection_position_target.value());
+    selection_animation.target.emit(first_component_group.selection_position_target.value());
     selection_animation.skip.emit(());
     let mock_entries = MockEntries::new(10);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
-    component_group.set_entries(model_provider);
+    first_component_group.set_entries(model_provider.clone_ref());
+    second_component_group.set_entries(model_provider);
 
-
-    // === Wide Component Group ===
-
-    frp::extend! { network
-        wide_selection_animation.target <+ wide_component_group.selection_position_target;
-        eval wide_selection_animation.value ((pos) wide_selection.set_position_xy(*pos));
-
-        eval wide_component_group.suggestion_accepted ([](id) DEBUG!("[Wide] Accepted Suggestion {id}"));
-        eval wide_component_group.expression_accepted ([](id) DEBUG!("[Wide] Accepted Expression {id}"));
-
-        no_entries <- wide_component_group.entry_count.map(|count| *count == 0);
-        hide_selection <- no_entries.on_true();
-        show_selection <- no_entries.on_false();
-        eval_ hide_selection (wide_selection.color.set(color::Rgba::transparent().into()));
-        eval_ show_selection (wide_selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into()));
-    }
-    wide_selection_animation.target.emit(wide_component_group.selection_position_target.value());
-    wide_selection_animation.skip.emit(());
-
-
-    // === Setup slider to change entry count ===
-
-    let mock_entries = MockEntries::new(25);
-    let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
-    frp::extend! { network
-        int_value <- slider.frp.output.value.map(|v| *v as usize);
-        eval int_value([wide_component_group](i) {
-            mock_entries.set_count(*i);
-            wide_component_group.set_entries(model_provider.clone_ref());
-        });
-    }
-    slider.frp.set_value(10.0);
-    // Select the bottom left entry at the start.
-    let first_column = component_group::wide::ColumnId::new(0);
-    wide_component_group.select_entry(first_column, 0);
-
-    std::mem::forget(slider);
     std::mem::forget(network);
     std::mem::forget(selection);
     std::mem::forget(scroll_area);
-    std::mem::forget(component_group);
-    std::mem::forget(wide_component_group);
-    std::mem::forget(wide_selection);
+    std::mem::forget(first_component_group);
+    std::mem::forget(second_component_group);
 }
