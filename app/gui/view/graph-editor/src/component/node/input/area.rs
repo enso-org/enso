@@ -16,6 +16,7 @@ use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
+use enso_frp::stream::ValueProvider;
 use enso_text::text::Text;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -25,7 +26,6 @@ use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
 use ensogl_hardcoded_theme as theme;
-
 
 
 // =================
@@ -719,7 +719,7 @@ impl Area {
                     self.frp.private.output.pointer_style <+ pointer_style;
                 }
                 init_color.emit(());
-                // frp.output.view_mode.emit(frp.input.view_mode.value());
+                frp.output.view_mode.emit(frp.output.view_mode.value());
                 port_shape.display_object().clone_ref()
             };
 
@@ -880,7 +880,7 @@ impl Area {
             Some(frp.tp.clone_ref().into())
         });
 
-        // self.frp.output.view_mode.emit(self.frp.view_mode.value());
+        self.frp.private.output.view_mode.emit(self.frp.view_mode.value());
     }
 
     /// This function first assigns the new expression to the model and then emits the definition

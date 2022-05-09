@@ -14,6 +14,7 @@ use crate::Type;
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
+use enso_frp::stream::ValueProvider;
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -383,8 +384,8 @@ impl Model {
                     port_frp.set_view_mode              <+ self.frp.output.view_mode;
                 }
 
-                // port_frp.set_type_label_visibility.emit(self.frp.output.type_label_visibility.value());
-                // port_frp.set_view_mode.emit(self.frp.output.view_mode.value());
+                port_frp.set_type_label_visibility.emit(self.frp.output.type_label_visibility.value());
+                port_frp.set_view_mode.emit(self.frp.output.view_mode.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
