@@ -192,6 +192,11 @@ where E::Model: Default
         }
     }
 
+    /// Set params used in the displayed entries. Any newly created entries will use the styles
+    /// located at the `style_prefix` path in the application's style sheet.
+    ///
+    /// The function should be used sparingly, as it may be a costly operation. The implementation
+    /// may recreate all the displayed entries from scratch on every call.
     pub fn set_entry_params(&self, params: E::Params, style_prefix: style::Path) {
         self.entry_params.replace(params);
         self.recreate_entries_with_style_prefix(style_prefix);
