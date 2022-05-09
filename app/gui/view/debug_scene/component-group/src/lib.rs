@@ -151,33 +151,32 @@ fn init(app: &Application) {
     let red_slider = make_number_picker(app, "Red");
     red_slider.inner().set_position_y(300.0);
     red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+    let red_slider_frp = &red_slider.inner().frp;
 
     let green_slider = make_number_picker(app, "Green");
     green_slider.inner().set_position_y(250.0);
     green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
+    let green_slider_frp = &green_slider.inner().frp;
 
     let blue_slider = make_number_picker(app, "Blue");
     blue_slider.inner().set_position_y(200.0);
     blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
-
-    let red_slider_frp = &red_slider.inner().frp;
-    let green_slider_frp = &green_slider.inner().frp;
     let blue_slider_frp = &blue_slider.inner().frp;
-    let red_slider_value = &red_slider_frp.value;
-    let green_slider_value = &green_slider.inner().frp.value;
-    let blue_slider_value = &blue_slider.inner().frp.value;
+
     let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
         green_slider_frp.set_value <+ init.constant(default_color.green);
         blue_slider_frp.set_value <+ init.constant(default_color.blue);
-        sliders_color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
+        let red_slider_value = &red_slider_frp.value;
+        let green_slider_value = &green_slider_frp.value;
+        let blue_slider_value = &blue_slider_frp.value;
+        color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
-        component_group.set_color <+ sliders_color;
-        dimmed_component_group.set_color <+ sliders_color;
-
-        eval sliders_color((c) selection.color.set(c.into()));
+        component_group.set_color <+ color;
+        dimmed_component_group.set_color <+ color;
+        eval color((c) selection.color.set(c.into()));
     }
     init.emit(());
 
