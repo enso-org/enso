@@ -30,8 +30,6 @@ use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
-// FIXME[mc] cleanup spurious import
-use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
@@ -64,7 +62,7 @@ pub mod background {
         (style:Style, color:Vector4) {
             let sprite_width: Var<Pixels> = "input_size.x".into();
             let sprite_height: Var<Pixels> = "input_size.y".into();
-            let color = Var::<Rgba>::from(color);
+            let color = Var::<color::Rgba>::from(color);
             // TODO[MC,WD]: We should use Plane here, but it has a bug - renders wrong color. See:
             //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
             let shape = Rect((&sprite_width, &sprite_height)).fill(color);
@@ -139,8 +137,8 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         set_header(String),
         set_entries(list_view::entry::AnyModelProvider<Entry>),
-        set_fade_color(Rgba),
-        set_leading_color(Rgba),
+        set_fade_color(color::Rgba),
+        set_leading_color(color::Rgba),
         set_dimmed(bool),
         set_width(f32),
     }
