@@ -64,11 +64,10 @@ impl list_view::Entry for View {
         display_object.add_child(&label);
 
         let network = &label.network;
-
-        let color_param = params.color.clone();
+        let color = params.color.clone();
         let label_frp = &label.label.frp;
         frp::extend! { network
-            label_frp.set_color_all <+ color_param;
+            label_frp.set_color_all <+ color;
         }
 
         Self { logger, display_object, label }
