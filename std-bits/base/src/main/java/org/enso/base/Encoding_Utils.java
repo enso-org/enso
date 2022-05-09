@@ -88,15 +88,6 @@ public class Encoding_Utils {
     return new ResultWithWarnings<>(array, warnings.toString());
   }
 
-  private static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
-    int n = old.capacity();
-    int new_n = 2 * n + 1;
-    T o = allocate.apply(new_n);
-    old.flip();
-    put.accept(o, old);
-    return o;
-  }
-
   /**
    * Converts an array of encoded bytes into a string.
    *
@@ -180,5 +171,23 @@ public class Encoding_Utils {
     try (ReportingStreamDecoder decoder = create_stream_decoder(stream, charset)) {
       return action.apply(decoder);
     }
+  }
+
+  /**
+   * A generic function to resize a buffer.
+   *
+   * @param <T> the type of the buffer to allocate
+   * @param old the buffer to resize
+   * @param allocate a function allocating a buffer of required type of a given size
+   * @param put a function which can transfer data from the old buffer into the new one
+   * @return the new buffer with increased capacity
+   */
+  public static <T extends Buffer> T resize(T old, IntFunction<T> allocate, BiConsumer<T, T> put) {
+    int n = old.capacity();
+    int new_n = (3 * n) / 2 + 1;
+    T o = allocate.apply(new_n);
+    old.flip();
+    put.accept(o, old);
+    return o;
   }
 }
