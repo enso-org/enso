@@ -216,10 +216,8 @@ public class ReportingStreamDecoder extends Reader {
         outputBuffer.put(INVALID_CHARACTER);
         inputBuffer.position(inputBuffer.position() + cr.length());
       } else if (cr.isUnderflow()) {
-        System.out.println("U");
         break;
       } else if (cr.isOverflow()) {
-        System.out.println("O");
         growOutputBuffer();
       }
     }
@@ -258,7 +256,6 @@ public class ReportingStreamDecoder extends Reader {
    */
   private void ensureInputBufferHasEnoughFreeSpace(int bytesToRead) {
     if (inputBuffer == null) {
-      System.out.println("A");
       inputBuffer = ByteBuffer.allocate(bytesToRead);
     } else {
       int freeSpaceInInputBuffer = inputBuffer.capacity() - inputBuffer.remaining();
@@ -270,12 +267,10 @@ public class ReportingStreamDecoder extends Reader {
       inputBytesConsumedBeforeCurrentBuffer += inputBuffer.position();
 
       if (freeSpaceInInputBuffer < bytesToRead) {
-        System.out.println("B");
         var old = inputBuffer;
         inputBuffer = ByteBuffer.allocate(old.remaining() + bytesToRead);
         inputBuffer.put(old);
       } else {
-        System.out.println("C");
         inputBuffer.compact();
       }
     }

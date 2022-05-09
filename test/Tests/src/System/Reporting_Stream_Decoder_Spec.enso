@@ -80,7 +80,6 @@ spec =
                            byte in UTF-8 to represent, so the actual result
                            should be slightly smaller.
                         (v2.length < 200) . should_be_true
-                        IO.println v2.length
 
                         ## Now we read increasingly larger amounts, to trigger
                            and test all paths of the input buffer resizing
