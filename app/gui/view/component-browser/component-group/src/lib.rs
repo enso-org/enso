@@ -26,10 +26,12 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::Animation;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_shadow as shadow;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
 
@@ -86,9 +88,16 @@ pub mod header_background {
 
     ensogl_core::define_shape_system! {
         above = [background, list_view::background];
-        (style:Style, color:Vector4) {
+        (style:Style, color:Vector4, height: f32, shadow: f32) {
             let color = Var::<Rgba>::from(color);
-            Plane().fill(color).into()
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = height.into();
+            let bg = Rect((width.clone(), height.clone())).fill(color);
+            let rect = Rect((width, height.clone() * shadow));
+            let shadow_parameters = shadow::parameters_from_style_path(style,theme::header::shadow);
+            let shadow            = shadow::from_shape_with_parameters
+                (rect.into(),shadow_parameters);
+            (shadow + bg).into()
         }
     }
 }
@@ -180,6 +189,7 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
+        let shadow_height = Animation::new(network);
 
 
         // === Geometry ===
@@ -193,6 +203,13 @@ impl component::Frp<Model> for Frp {
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_viewport_size);
             eval size_and_header_geometry(((size, hdr_geom, vprt_size)) model.resize(*size, *hdr_geom, *vprt_size));
+            
+            viewport_size_greater_zero <- input.set_viewport_size.map(|s| *s > 0.0);
+            show_shadow <- viewport_size_greater_zero.on_true();
+            hide_shadow <- viewport_size_greater_zero.on_false();
+            shadow_height.target <+ show_shadow.constant(1.0);
+            shadow_height.target <+ hide_shadow.constant(0.0);
+            eval shadow_height.value ((v) model.header_background.shadow.set(*v));
         }
 
 
@@ -397,7 +414,8 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
-        self.header_background.size.set(Vector2(size.x, header_height));
+        self.header_background.height.set(header_height);
+        self.header_background.size.set(Vector2(size.x, header_height * 2.0));
         self.header_background.set_position_xy(Vector2(
             header_text_x + size.x / 2.0 - header_padding_left,
             header_text_y,

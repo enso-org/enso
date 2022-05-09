@@ -192,6 +192,15 @@ define_themes! { [light:0, dark:1]
                         right  = 2.5, 2.5;
                         bottom = 5.0, 5.0;
                     }
+                    shadow = shadow , shadow;
+                    shadow {
+                        size     = 5.0 , 5.0;
+                        spread   = -3.0 , -3.0;
+                        fading   = Rgba(0.09,0.055,0.125,0.0) , Lcha(0.0,0.0,0.0,0.0);
+                        exponent = 3.0 , 3.0;
+                        offset_x = 0.0 , 0.0;
+                        offset_y = -3.0 , -3.0;
+                    }
                 }
                 entries {
                     text {
