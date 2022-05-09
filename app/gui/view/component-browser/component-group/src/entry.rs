@@ -67,8 +67,11 @@ impl list_view::Entry for View {
         let color = params.color.clone();
         let label_frp = &label.label.frp;
         frp::extend! { network
+            init <- source_();
+            color <- all(&color, &init)._0();
             label_frp.set_color_all <+ color;
         }
+        init.emit(());
 
         Self { logger, display_object, label }
     }
