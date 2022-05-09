@@ -160,6 +160,7 @@ public class Encoding_Utils {
     return new ResultWithWarnings<>(out.toString(), warnings.toString());
   }
 
+  /** Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset. */
   private static ReportingStreamDecoder create_stream_decoder(InputStream stream, Charset charset) {
     CharsetDecoder decoder =
         charset
@@ -170,6 +171,9 @@ public class Encoding_Utils {
     return new ReportingStreamDecoder(stream, decoder);
   }
 
+  /**
+   * A helper function which runs an action with a created stream decoder and closes it afterwards.
+   */
   public static <R> R with_stream_decoder(
       InputStream stream, Charset charset, Function<ReportingStreamDecoder, R> action)
       throws IOException {

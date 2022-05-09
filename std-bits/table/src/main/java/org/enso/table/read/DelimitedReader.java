@@ -52,7 +52,7 @@ public class DelimitedReader {
   /**
    * Creates a new reader.
    *
-   * @param input a reader providing decoded input
+   * @param input a reader providing decoded input characters
    * @param delimiter the delimiter, should be a single character, but is a String for proper
    *     interoperability with Enso; if a string that does not fit in a single character is
    *     provided, an exception is raised

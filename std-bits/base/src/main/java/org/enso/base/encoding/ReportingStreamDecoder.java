@@ -15,6 +15,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.base.Encoding_Utils;
 
+/**
+ * A {@code Reader} which takes an {@code InputStream} and decodes it using a provided {@code
+ * CharsetDecoder}.
+ *
+ * <p>Functionally, it should be equivalent to {@code java.io.InputStreamReader}. The major
+ * difference is that this class allows more granular reporting of decoding issues - instead of just
+ * replacing malformed characters with a replacement or failing at the first error, it allows to
+ * both perform the replacements but also remember the positions at which the problems occurred and
+ * then return a bulk report of places where the issues have been encountered.
+ */
 public class ReportingStreamDecoder extends Reader {
   public ReportingStreamDecoder(InputStream stream, CharsetDecoder decoder) {
     bufferedInputStream = new BufferedInputStream(stream);
@@ -296,8 +306,10 @@ public class ReportingStreamDecoder extends Reader {
         return List.of("Encoding issues at byte " + encodingIssuePositions.get(0) + ".");
       }
 
-      String issues = encodingIssuePositions.stream().map(String::valueOf)
-          .collect(Collectors.joining(", ", "Encoding issues at bytes ", "."));
+      String issues =
+          encodingIssuePositions.stream()
+              .map(String::valueOf)
+              .collect(Collectors.joining(", ", "Encoding issues at bytes ", "."));
       return List.of(issues);
     }
   }
