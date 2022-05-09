@@ -212,7 +212,7 @@ fn init(app: &Application) {
         });
     }
     slider.frp.set_value(10.0);
-    // select bottom left entry at the start
+    // Select the bottom left entry at the start.
     let first_column = component_group::wide::ColumnId::new(0);
     wide_component_group.select_entry(first_column, 0);
 
