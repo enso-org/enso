@@ -70,6 +70,7 @@ impl list_view::Entry for View {
             init <- source_();
             color <- all(&color, &init)._0();
             label_frp.set_color_all <+ color;
+            label_frp.set_default_color <+ color;
         }
         init.emit(());
 
