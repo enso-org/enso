@@ -22,4 +22,5 @@ main =
     IO.println <| "Making data..."
     vector = here.create_vector here.vector_size
 
+    IO.println <| "Testing..."
     Bench.measure (vector.compute_bulk [Count, Minimum, Maximum]) "Count Min Max" here.iter_size here.num_iterations

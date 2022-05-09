@@ -1,5 +1,6 @@
 package org.enso.base.statistics;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.function.BiFunction;
@@ -8,6 +9,10 @@ import java.util.stream.Stream;
 public class CountMinMax {
   private static boolean isValid(Object v) {
     return !(v == null || (v instanceof Double && Double.isNaN((Double)v)));
+  }
+
+  public static Stream<Object> toObjectStream(Object[] array) {
+    return Arrays.stream(array);
   }
 
   public final int count;
