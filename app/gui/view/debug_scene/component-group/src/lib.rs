@@ -27,7 +27,17 @@ use ensogl_selector::Bounds;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
+use ensogl_scroll_area::ScrollArea;
+use ensogl_core::display::shape::*;
 
+mod green_circle {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Circle(70.px()).fill(color::Rgba::transparent()).into()
+        }
+    }
+}
 
 
 // ===================
@@ -118,7 +128,7 @@ fn component_group(app: &Application) -> component_group::View {
     let group_name = "Long group name with text overflowing the width";
     component_group.set_header(group_name.to_string());
     component_group.set_width(150.0);
-    component_group.set_position_x(-300.0);
+    component_group.set_position_x(75.0);
     component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     component_group
 }
@@ -159,12 +169,25 @@ fn init(app: &Application) {
     let wide_selection_animation = Animation::<Vector2>::new(&network);
 
     let component_group = component_group(app);
-    app.display.add_child(&component_group);
+    component_group.model().display_object.layer.add_exclusive(&selection);
     component_group.add_child(&selection);
     let wide_component_group = wide_component_group(app);
     app.display.add_child(&wide_component_group);
     wide_component_group.add_child(&wide_selection);
 
+    let scroll_area = ScrollArea::new(app);
+    scroll_area.set_position_xy(Vector2(-400.0, 100.0));
+    scroll_area.resize(Vector2(250.0, 400.0));
+    scroll_area.set_content_width(250.0);
+    scroll_area.set_content_height(1000.0);
+    app.display.add_child(&scroll_area);
+    scroll_area.content().add_child(&component_group);
+
+    let green_circle = green_circle::View::new(&app.logger);
+    green_circle.size.set(Vector2(150.0, 150.0));
+    green_circle.set_position_xy(Vector2(200.0, -150.0));
+    scroll_area.content().add_child(&green_circle);
+    std::mem::forget(green_circle);
 
     // === Regular Component Group ===
 
@@ -175,9 +198,16 @@ fn init(app: &Application) {
         eval component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
         eval component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
         eval_ component_group.header_accepted ([] DEBUG!("Accepted Header"));
+
+        eval component_group.size((size) component_group.set_position_y(- size.y / 2.0));
+
+        eval scroll_area.scroll_position_y((y) component_group.set_viewport_size(*y));
     }
     selection_animation.target.emit(component_group.selection_position_target.value());
     selection_animation.skip.emit(());
+    let mock_entries = MockEntries::new(10);
+    let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
+    component_group.set_entries(model_provider);
 
 
     // === Wide Component Group ===
@@ -205,9 +235,8 @@ fn init(app: &Application) {
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     frp::extend! { network
         int_value <- slider.frp.output.value.map(|v| *v as usize);
-        eval int_value([component_group, wide_component_group](i) {
+        eval int_value([wide_component_group](i) {
             mock_entries.set_count(*i);
-            component_group.set_entries(model_provider.clone_ref());
             wide_component_group.set_entries(model_provider.clone_ref());
         });
     }
@@ -219,6 +248,7 @@ fn init(app: &Application) {
     std::mem::forget(slider);
     std::mem::forget(network);
     std::mem::forget(selection);
+    std::mem::forget(scroll_area);
     std::mem::forget(component_group);
     std::mem::forget(wide_component_group);
     std::mem::forget(wide_selection);

@@ -80,6 +80,19 @@ pub mod background {
     }
 }
 
+/// The background of the header.
+pub mod header_background {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        above = [background, list_view::background];
+        (style:Style, color:Vector4) {
+            let color = Var::<Rgba>::from(color);
+            Plane().fill(color).into()
+        }
+    }
+}
+
 /// The transparent overlay over Component Group View Header, used for capturing mouse events.
 pub mod header_overlay {
     use super::*;
@@ -145,6 +158,7 @@ ensogl_core::define_endpoints_2! {
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_width(f32),
+        set_viewport_size(f32),
     }
     Output {
         selected_entry(Option<EntryId>),
@@ -177,8 +191,8 @@ impl component::Frp<Model> for Frp {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
             });
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
-            size_and_header_geometry <- all(&out.size, &header_geometry);
-            eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
+            size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_viewport_size);
+            eval size_and_header_geometry(((size, hdr_geom, vprt_size)) model.resize(*size, *hdr_geom, *vprt_size));
         }
 
 
@@ -191,12 +205,13 @@ impl component::Frp<Model> for Frp {
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
-                (text, (size, hdr_geom)) {
+                (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
             eval input.set_background_color((c) model.background.color.set(c.into()));
+            eval input.set_background_color((c) model.header_background.color.set(c.into()));
         }
 
 
@@ -266,12 +281,17 @@ impl component::Frp<Model> for Frp {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object: display::object::Instance,
-    header:         text::Area,
-    header_text:    Rc<RefCell<String>>,
-    header_overlay: header_overlay::View,
-    background:     background::View,
-    entries:        list_view::ListView<list_view::entry::Label>,
+    /// TODO
+    pub display_object:    display::object::InstanceWithLayer<display::scene::layer::Layer>,
+    header:            text::Area,
+    header_background: header_background::View,
+    header_text:       Rc<RefCell<String>>,
+    header_overlay:    header_overlay::View,
+    background:        background::View,
+    entries:           list_view::ListView<list_view::entry::Label>,
+    text_layer:        display::scene::layer::Layer,
+    header_layer:      display::scene::layer::Layer,
+    header_text_layer: display::scene::layer::Layer,
 }
 
 impl display::Object for Model {
@@ -288,30 +308,64 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let header_text = default();
         let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
-        let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
+
+        use display::scene::layer::Layer;
+        let cgv_layer = Layer::new_with_cam(
+            logger.clone_ref(),
+            &app.display.default_scene.layers.main.camera(),
+        );
+        let text_layer = display::scene::layer::Layer::new_with_cam(
+            logger.clone_ref(),
+            &app.display.default_scene.layers.main.camera(),
+        );
+        let header_layer = display::scene::layer::Layer::new_with_cam(
+            logger.clone_ref(),
+            &app.display.default_scene.layers.main.camera(),
+        );
+        let header_text_layer = Layer::new_with_cam(logger.clone_ref(), &header_layer.camera());
+        header_layer.add_sublayer(&header_text_layer);
+        text_layer.add_sublayer(&header_layer);
+        cgv_layer.add_sublayer(&text_layer);
+        let display_object = display::object::InstanceWithLayer::new(display_object, cgv_layer);
+        let background = background::View::new(&logger);
+        display_object.layer.add_exclusive(&background);
+        let header_background = header_background::View::new(&logger);
+        header_layer.add_exclusive(&header_background);
+        let header = text::Area::new(app);
+        header.add_to_scene_layer(&header_text_layer);
+        header_text_layer.add_exclusive(&header_overlay);
+        let entries = list_view::ListView::new(app);
         entries.set_style_prefix(ENTRIES_STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
+        entries.hide_selection();
+        display_object.layer.add_exclusive(&entries);
+        entries.set_label_layer2(text_layer.clone_ref());
         display_object.add_child(&background);
+        display_object.add_child(&header_background);
         display_object.add_child(&header);
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
 
-        let label_layer = &app.display.default_scene.layers.label;
-        header.add_to_scene_layer(label_layer);
-
-        entries.hide_selection();
-
-        Model { display_object, header, header_text, header_overlay, background, entries }
+        Model {
+            display_object,
+            text_layer,
+            header_overlay,
+            header_layer,
+            header_text_layer,
+            header,
+            header_text,
+            background,
+            header_background,
+            entries,
+        }
     }
 }
 
 impl Model {
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
+    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, viewport_height: f32) {
         // === Background ===
 
         self.background.size.set(size);
@@ -326,7 +380,9 @@ impl Model {
         let header_height = header_geometry.height;
         let header_center_y = size.y / 2.0 - header_height / 2.0;
         let header_bottom_y = header_center_y - header_height / 2.0;
-        let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
+        let header_text_y =
+            header_bottom_y + header_text_height + header_padding_bottom - viewport_height;
+        let header_text_y = header_text_y.max(-size.y / 2.0);
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
 
@@ -341,6 +397,11 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
+        self.header_background.size.set(Vector2(size.x, header_height));
+        self.header_background.set_position_xy(Vector2(
+            header_text_x + size.x / 2.0 - header_padding_left,
+            header_text_y,
+        ));
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {

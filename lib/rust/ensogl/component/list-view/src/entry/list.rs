@@ -8,6 +8,8 @@ use crate::entry::Entry;
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::scene::layer::Layer;
+use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::style;
 
 
@@ -65,7 +67,7 @@ pub struct List<E: CloneRef> {
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,
     entries_range:  Rc<CloneCell<Range<entry::Id>>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
-    label_layer:    Rc<Cell<LayerId>>,
+    label_layer:    Rc<RefCell<WeakLayer>>,
 }
 
 impl<E: Entry> List<E>
@@ -79,7 +81,7 @@ where E::Model: Default
         let entries_range = Rc::new(CloneCell::new(default()..default()));
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
-        let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
+        let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
         List { logger, app, display_object, entries, entries_range, provider, label_layer }
     }
 
@@ -220,11 +222,12 @@ where E::Model: Default
     /// Sets the scene layer where the labels will be placed.
     pub fn set_label_layer(&self, label_layer: LayerId) {
         if let Some(layer) =
-            self.app.display.default_scene.layers.get_sublayer(self.label_layer.get())
+            self.label_layer.borrow().upgrade()
         {
             for entry in &*self.entries.borrow() {
                 entry.entry.set_label_layer(&layer);
             }
+            self.label_layer.replace(layer.downgrade());
         } else {
             error!(
                 self.logger,
@@ -232,12 +235,19 @@ where E::Model: Default
                 exist in the scene"
             );
         }
-        self.label_layer.set(label_layer);
+    }
+
+    /// Sets the scene layer where the labels will be placed.
+    pub fn set_label_layer2(&self, label_layer: Layer) {
+        for entry in &*self.entries.borrow() {
+            entry.entry.set_label_layer(&label_layer);
+        }
+        self.label_layer.replace(label_layer.downgrade());
     }
 
     fn create_new_entry(&self, style_prefix: &style::Path) -> DisplayedEntry<E> {
         let layers = &self.app.display.default_scene.layers;
-        let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
+        let layer = self.label_layer.borrow().upgrade().unwrap_or_else(|| {
             error!(
                 self.logger,
                 "Cannot set layer {self.label_layer:?} for labels: the layer does \
