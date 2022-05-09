@@ -588,7 +588,7 @@ where E::Model: Default
     /// Set params used in the displayed entries.
     ///
     /// The function should be used sparingly, as it may be a costly operation. The implementation
-    /// may recreate all the displayed entries from scratch on every call.
+    /// may recreate all the displayed entries from scratch.
     pub fn set_entry_params(&self, params: E::Params) {
         let style_prefix = self.frp.style_prefix.value();
         self.model.entries.set_entry_params(params, style_prefix.into());
