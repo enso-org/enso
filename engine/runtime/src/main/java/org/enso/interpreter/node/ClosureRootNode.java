@@ -73,4 +73,8 @@ public class ClosureRootNode extends EnsoRootNode {
     state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
     return new Stateful(state, result);
   }
+
+  final ExpressionNode getBody() {
+    return body;
+  }
 }
