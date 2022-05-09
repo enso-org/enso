@@ -81,7 +81,7 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
         handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
 
         translate_parsing_failure caught_panic =
-            Error.throw (translate_problem caught_panic.payload.cause.problem)
+            Error.throw (translate_parsing_problem caught_panic.payload.cause.problem)
         handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
 
         translate_parsing_exception caught_panic =

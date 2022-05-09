@@ -170,7 +170,7 @@ public class ReportingStreamDecoder extends Reader {
       eof = true;
     }
 
-    ensureInputBufferHasEnoughFreeSpace(bytesActuallyRead);
+    ensureInputBufferHasEnoughFreeSpace(Math.max(0, bytesActuallyRead));
 
     if (bytesActuallyRead > 0) {
       inputBuffer.put(workArray, 0, bytesActuallyRead);
