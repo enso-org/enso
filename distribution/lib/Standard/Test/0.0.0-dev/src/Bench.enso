@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.System
 
 ## Measure the amount of time it takes to execute a given computation.
 

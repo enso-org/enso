@@ -14,8 +14,6 @@ import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Map
 
-import Standard.Base.Error.Extensions as Errors
-
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
 

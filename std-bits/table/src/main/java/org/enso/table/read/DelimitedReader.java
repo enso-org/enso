@@ -148,6 +148,7 @@ public class DelimitedReader {
     settings.setMaxColumns(maxColumns);
     settings.setSkipEmptyLines(false);
     settings.setKeepQuotes(true);
+    settings.setLineSeparatorDetectionEnabled(true);
     CsvParser parser = new CsvParser(settings);
     parser.beginParsing(inputStream);
     return parser;

@@ -1,5 +1,8 @@
-from Standard.Builtins import all
-from Standard.Builtins export Nil, Cons
+from Standard.Base.Data.Numbers import all
+from Standard.Base.Error.Common import Error
+from Standard.Base.Data.Boolean import True, False
+import Standard.Base.Nothing
+import Standard.Base.Runtime.Unsafe
 
 ## The basic cons-list type.
 
@@ -11,9 +14,18 @@ from Standard.Builtins export Nil, Cons
    > Example
      A list containing the elements `1`, `2`, and `3`, in this order is:
          Cons 1 (Cons 2 (Cons 3 Nil))
+## Cons lists.
 type List
-    Nil
-    Cons
+
+    ## The type that indicates the end of a cons list.
+    type Nil
+
+    ## A cons cell for a cons list.
+
+       Arguments:
+       - x: The element at this position in the list.
+       - xs: The rest of the list.
+    type Cons x xs
 
     ## Computes the number of elements in the list.
 
@@ -264,7 +276,7 @@ type List
 
              import Standard.Examples
 
-             example_head = Examples.list.head
+             example_head = Examples.list.x
     head : Any ! Empty_Error
     head = case this of
         Cons a _ -> a
@@ -364,4 +376,3 @@ map_helper list cons f = case list of
         Unsafe.set_atom_field cons 1 res
         @Tail_Call here.map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil
-

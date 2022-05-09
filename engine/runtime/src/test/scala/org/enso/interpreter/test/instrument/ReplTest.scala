@@ -23,7 +23,7 @@ class ReplTest
     "initialize properly" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main = Debug.breakpoint
           |""".stripMargin
@@ -34,7 +34,7 @@ class ReplTest
     "be able to execute arbitrary code in the caller scope" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 1
@@ -54,7 +54,7 @@ class ReplTest
     "return the last evaluated value back to normal execution flow" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    a = 5
@@ -72,8 +72,8 @@ class ReplTest
     "allow to access Text representations of the returned values" in {
       val code =
         """
-          |from Standard.Builtins import all
           |polyglot java import java.util.regex.Pattern
+          |import Standard.Base.Runtime.Debug
           |
           |type Foo a b
           |
@@ -116,7 +116,7 @@ class ReplTest
     "be able to define its local variables" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -134,7 +134,7 @@ class ReplTest
     "not overwrite bindings" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -151,7 +151,9 @@ class ReplTest
     "access and modify monadic state" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |run =
           |    State.put Number 10
@@ -171,7 +173,7 @@ class ReplTest
     "be able to list local variables in its scope" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -197,7 +199,7 @@ class ReplTest
     "be able to list bindings it has created" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -224,7 +226,7 @@ class ReplTest
     "allow to be nested" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    10 * Debug.breakpoint + 1
@@ -247,7 +249,7 @@ class ReplTest
     "behave well when nested" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 1
@@ -274,7 +276,7 @@ class ReplTest
     "handle errors gracefully" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    Debug.breakpoint
@@ -294,7 +296,8 @@ class ReplTest
     "attach language stack traces to the exception" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
+          |from Standard.Base.Error.Common import Panic
           |
           |main =
           |    Debug.breakpoint
@@ -320,7 +323,7 @@ class ReplTest
     "not pollute bindings upon nested error" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    Debug.breakpoint

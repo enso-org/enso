@@ -1,0 +1,211 @@
+from Standard.Base import Nothing, File, Illegal_Argument_Error, True, False
+
+import Standard.Base.Data.Time.Date
+
+import Standard.Table.Io.File_Read
+import Standard.Table.Io.File_Format
+from Standard.Table.Io.Excel import Excel_Range
+from Standard.Table.Io.Excel import Sheet_Names, Range_Names, Sheet, Range
+
+import Standard.Test
+
+spec =
+    Test.group 'Excel Range' <|
+        check_range range sheet_name tlbr_vector =
+            range.sheet_name . should_equal sheet_name
+            range.top_row . should_equal (tlbr_vector.at 0)
+            range.left_column . should_equal (tlbr_vector.at 1)
+            range.bottom_row . should_equal (tlbr_vector.at 2)
+            range.right_column . should_equal (tlbr_vector.at 3)
+
+        Test.specify 'should be able to parse A1 format' <|
+            check_range (Excel_Range.from_address "Test!EE4") 'Test' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "Test!A1:D5") 'Test' [1, 1, 5, 4]
+            check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
+            check_range (Excel_Range.from_address "Test!1:4") 'Test' [1, Nothing, 4, Nothing]
+            check_range (Excel_Range.from_address "Test!CB") 'Test' [Nothing, 80, Nothing, 80]
+            check_range (Excel_Range.from_address "Test!DD:XAZ") 'Test' [Nothing, 108, Nothing, 16276]
+            check_range (Excel_Range.from_address "'Hello World'!$EE4") 'Hello World' [4, 135, 4, 135]
+            check_range (Excel_Range.from_address "Test!A1:$D$5") 'Test' [1, 1, 5, 4]
+            check_range (Excel_Range.from_address "Test!1234") 'Test' [1234, Nothing, 1234, Nothing]
+            check_range (Excel_Range.from_address "Test!$1:$4") 'Test' [1, Nothing, 4, Nothing]
+            check_range (Excel_Range.from_address "Test!$CB") 'Test' [Nothing, 80, Nothing, 80]
+            check_range (Excel_Range.from_address "Test!$DD:$XAZ") 'Test' [Nothing, 108, Nothing, 16276]
+
+        Test.specify 'should be able to parse RC format' <|
+            check_range (Excel_Range.from_address "Test!R1C1") 'Test' [1, 1, 1, 1]
+            check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
+
+        Test.specify 'should fail gracefully for invalid patterns' <|
+            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument_Error
+            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for a cell' <|
+            check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123]
+            check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123]
+            Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
+            Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
+            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for a range' <|
+            check_range (Excel_Range.for_range "Hello World" 55 120 123 14) 'Hello World' [14, 55, 120, 123]
+            check_range (Excel_Range.for_range "Hello World" "BC" 120 "DS" 14) 'Hello World' [14, 55, 120, 123]
+            Excel_Range.for_range "Test" 55 120 123 14 . address . should_equal "Test!BC14:DS120"
+            Excel_Range.for_range "Hello World" 55 120 123 14 . address . should_equal "'Hello World'!BC14:DS120"
+            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for a column' <|
+            check_range (Excel_Range.for_columns "Hello World" 123) 'Hello World' [Nothing, 123, Nothing, 123]
+            check_range (Excel_Range.for_columns "Hello World" "DS") 'Hello World' [Nothing, 123, Nothing, 123]
+            Excel_Range.for_columns "Test" 123 . address . should_equal "Test!DS"
+            Excel_Range.for_columns "Hello World" 123 . address . should_equal "'Hello World'!DS"
+            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for columns' <|
+            check_range (Excel_Range.for_columns "Hello World" "BC" 123) 'Hello World' [Nothing, 55, Nothing, 123]
+            check_range (Excel_Range.for_columns "Hello World" 55 "DS") 'Hello World' [Nothing, 55, Nothing, 123]
+            Excel_Range.for_columns "Test" 55 123 . address . should_equal "Test!BC:DS"
+            Excel_Range.for_columns "Hello World" "BC" "DS" . address . should_equal "'Hello World'!BC:DS"
+            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for a row' <|
+            check_range (Excel_Range.for_rows "Hello World" 123) 'Hello World' [123, Nothing, 123, Nothing]
+            Excel_Range.for_rows "Test" 123 . address . should_equal "Test!123"
+            Excel_Range.for_rows "Hello World" 123 . address . should_equal "'Hello World'!123"
+            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument_Error
+
+        Test.specify 'should allow Range creation for rows' <|
+            check_range (Excel_Range.for_rows "Hello World" 55 123) 'Hello World' [55, Nothing, 123, Nothing]
+            Excel_Range.for_rows "Test" 55 123 . address . should_equal "Test!55:123"
+            Excel_Range.for_rows "Hello World" 55 123 . address . should_equal "'Hello World'!55:123"
+            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error
+            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error
+
+    xlsx_sheet = Enso_Project.data / "TestSheet.xlsx"
+    xlsx_path = xlsx_sheet.path
+
+    xls_sheet = Enso_Project.data / "TestSheetOld.xls"
+    xls_path = xls_sheet.path
+
+    col_a = ["Test", "Here", "Is", "Data"]
+    col_b = [1, 2, 3, 4]
+    # col_c = [Date.new 2022 06 12, Date.new 2022 10 20, Date.new 2022 07 30, Date.new 2022 10 15]
+
+    check_column col expected =
+        start = col.length - expected.length
+        0.up_to start . map i->(col.at i . should_equal Nothing)
+        start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
+
+    check_table table =
+        check_column (table.at "A") col_a
+        check_column (table.at "B") col_b
+        ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
+           https://www.pivotaltracker.com/story/show/181755990
+        # check_column (table.at "C") col_c
+
+    Test.group "Read XLSX / XLS Files" <|
+        Test.specify "should let you read the sheet names with File_Format.Auto" <|
+            sheet_names = ["Sheet1", "Another"]
+            xlsx_sheet.read . should_equal sheet_names
+            File.read xlsx_sheet . should_equal sheet_names
+            File.read xlsx_path . should_equal sheet_names
+            xls_sheet.read . should_equal sheet_names
+            File.read xls_sheet . should_equal sheet_names
+            File.read xls_path . should_equal sheet_names
+
+        Test.specify "should let you read the sheet names with File_Format.Excel" <|
+            sheet_names = ["Sheet1", "Another"]
+            xlsx_sheet.read File_Format.Excel . should_equal sheet_names
+            xls_sheet.read File_Format.Excel . should_equal sheet_names
+
+        Test.specify "should let you read the range names" <|
+            range_names = ["myData"]
+            xlsx_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
+            xls_sheet.read (File_Format.Excel Range_Names) . should_equal range_names
+
+        Test.specify "should let you read by sheet index" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet 1))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read by sheet name" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read XLS by sheet index" <|
+            table = xls_sheet.read (File_Format.Excel (Sheet 1))
+            check_table table
+
+            table_2 = xls_sheet.read (File_Format.Excel (Sheet 1 (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+        Test.specify "should let you read XLS by sheet name" <|
+            table = xls_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+        Test.specify "should let you read by range" <|
+            table = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!10:13"))
+            check_table <| xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A10:C13"))
+
+        Test.specify "should let you read by range name" <|
+            table = xlsx_sheet.read (File_Format.Excel (Range "myData"))
+            table.length . should_equal col_a.length
+            check_table <| table
+
+        Test.specify "should let you restrict number of rows read and skip rows" <|
+            table = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1"))
+            check_table table
+
+            table_2 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length)))
+            table_2.length . should_equal col_a.length
+            check_table <| table_2
+
+            table_3 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" (table.length - col_a.length) 2))
+            table_3.length . should_equal 2
+
+            table_4 = xlsx_sheet.read (File_Format.Excel (Sheet "Sheet1" row_limit=6))
+            table_4.length . should_equal 6
+
+    Test.group "Problems" <|
+        Test.specify "should handle non-existing file gracefully" <|
+            bad_file = Enso_Project.data / "DoesNotExists.xlsx"
+            bad_file.read (File_Format.Excel (Range "Sheet1!A:C")) . should_fail_with File.File_Not_Found
+
+        Test.specify "should handle wrong xls_format gracefully" <|
+            xlsx_sheet.read (File_Format.Excel (Range "Sheet1!A:C") True) . should_fail_with File.Io_Error
+            xls_sheet.read (File_Format.Excel (Range "Sheet1!A:C") False) . should_fail_with File.Io_Error
+
+
+main = Test.Suite.run_main here.spec

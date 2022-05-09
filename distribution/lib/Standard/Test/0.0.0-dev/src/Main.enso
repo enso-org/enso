@@ -1,6 +1,6 @@
 from Standard.Base import all
-
-import Standard.Builtins
+import Standard.Base.Runtime.State
+import Standard.Base.System
 
 ## Creates a new test group, describing properties of the object
    described by `this`.
