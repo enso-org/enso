@@ -109,8 +109,10 @@ spec =
                 (File_Format.Delimited "," headers=True encoding=Encoding.utf_16_be).read (Enso_Project.data / "utf16_invalid.csv") on_problems
             tester_2 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
-                table.at 'a' . to_vector . should_equal ['ą']
+                # This column does not raise a problem - the '\uFFFD' is simply present in the input file.
+                table.at 'a' . to_vector . should_equal ['\uFFFD']
                 table.at 'b' . to_vector . should_equal ['\uFFFF']
+                # However, this column will raise a problem as the '\uFFFD' comes from replacing an invalid codepoint.
                 table.at 'c' . to_vector . should_equal ['\uFFFD']
             problems_2 = [Encoding_Error "Encoding issues at byte 22."]
             Problems.test_problem_handling action_2 problems_2 tester_2
