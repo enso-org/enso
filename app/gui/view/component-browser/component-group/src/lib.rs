@@ -186,15 +186,17 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
-            dim_factor <- input.set_dimmed.switch(&one, &dimmed_color_intensity);
-            leading_color <- all_with3(&input.set_fade_color, &input.set_leading_color, &dim_factor,
+            let input_fade_color = &input.set_fade_color;
+            let input_leading_color = &input.set_leading_color;
+            dimmed_intensity <- input.set_dimmed.switch(&one, &dimmed_color_intensity);
+            leading_color <- all_with3(input_fade_color, input_leading_color, &dimmed_intensity,
                 |a,b,c| color::mix(*a,*b,*c));
-            fade_and_leading_colors <- all(&input.set_fade_color, &leading_color);
+            fade_and_leading_colors <- all(input_fade_color, &leading_color);
             header_color <- all_with(&fade_and_leading_colors, &header_text_color_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
             background_color <- all_with(&fade_and_leading_colors, &background_color_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            entries_text_color <- all_with3(&input.set_fade_color, &entries_text_base_color, &dim_factor,
+            entries_text_color <- all_with3(input_fade_color, &entries_text_base_color, &dimmed_intensity,
                 |a,b,c| color::mix(*a,*b,*c));
             entries_text_color_sampler <- entries_text_color.sampler();
         }
