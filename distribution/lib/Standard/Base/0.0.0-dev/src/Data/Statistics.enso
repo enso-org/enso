@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error
 from Standard.Base.Data.Vector import Empty_Error
 
 import Standard.Base.Data.Ordering.Comparator
@@ -53,8 +53,8 @@ type Statistic
 count_min_max : Vector -> [Any]
 count_min_max data =
     invalid c = if c.is_nothing then True else (if c.is_a Number then c.is_nan else False)
-    min v c = Vector.incomparable_value_wrapper (if c.is_nothing then v else (if v < c then v else c))
-    max v c = Vector.incomparable_value_wrapper (if c.is_nothing then v else (if v > c then v else c))
+    min v c = if c.is_nothing then v else (Vector.handle_incomparable_value (if v < c then v else c))
+    max v c = if c.is_nothing then v else (Vector.handle_incomparable_value (if v > c then v else c))
 
     0.up_to data.length . fold [0, Nothing, Nothing] acc->idx->
         val = data.at idx

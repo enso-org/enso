@@ -960,7 +960,7 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        here.incomparable_value_wrapper <|
+        here.handle_incomparable_value <|
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->
@@ -1165,8 +1165,6 @@ type Partition_Accumulator true_builder false_builder ix
 type Incomparable_Values_Error
 
 ## ADVANCED
-incomparable_value_wrapper ~function =
-    throw_handler = _ -> Error.throw Incomparable_Values_Error
-    Panic.catch No_Such_Method_Error handler=throw_handler <|
-        Panic.catch Unsupported_Argument_Types handler=throw_handler <|
-            Panic.catch Type_Error handler=throw_handler function
+handle_incomparable_value ~function =
+    handle t = Panic.catch t handler=(_->Error.throw Incomparable_Values_Error)
+    handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
