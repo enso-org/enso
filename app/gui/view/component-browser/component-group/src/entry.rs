@@ -1,3 +1,7 @@
+//! This module defines an entry in a component group view.
+//!
+//! The entry data is represented by the [`Model`] and visualized by the [`View`].
+
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
@@ -11,8 +15,22 @@ use ensogl_list_view as list_view;
 use ensogl_list_view::entry::Label;
 
 
+
+// ===============
+// === Aliases ===
+// ===============
+
+/// ID of a component group entry in a ListView.
 pub type Id = list_view::entry::Id;
 
+
+
+// =============
+// === Model ===
+// =============
+
+/// Data underlying an entry in a component group view.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub label: String,
@@ -30,6 +48,14 @@ impl From<&str> for Model {
     }
 }
 
+
+
+// ==============
+// === Params ===
+// ==============
+
+/// Style parameters of a [`View`].
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
     pub color: frp::Sampler<Rgba>,
@@ -46,6 +72,13 @@ impl Default for Params {
     }
 }
 
+
+
+// =============
+// === View ===
+// =============
+
+/// A visual representation of a [`Model`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
     logger:         Logger,
