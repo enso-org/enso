@@ -75,9 +75,9 @@ impl Default for Params {
 
 
 
-// =============
+// ============
 // === View ===
-// =============
+// ============
 
 /// A visual representation of a [`Model`].
 #[derive(Clone, CloneRef, Debug)]
