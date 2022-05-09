@@ -177,7 +177,7 @@ impl component::Frp<Model> for Frp {
         }
 
 
-        // === Color calculations ===
+        // === Colors ===
 
         let header_text_color_intensity = style.get_number(theme::header::text::color_intensity);
         let background_color_intensity = style.get_number(theme::background_color_intensity);
