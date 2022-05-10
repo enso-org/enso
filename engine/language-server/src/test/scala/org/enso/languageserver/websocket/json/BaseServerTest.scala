@@ -37,11 +37,11 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
-import org.enso.logger.NoopSampler
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.profiling.NoopSampler
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
