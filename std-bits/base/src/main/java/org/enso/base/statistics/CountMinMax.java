@@ -16,6 +16,7 @@ public class CountMinMax {
   }
 
   public final int count;
+  public final boolean comparatorError;
   public final Object minimum;
   public final Object maximum;
 
@@ -24,6 +25,8 @@ public class CountMinMax {
     BiFunction<Object, Object, Object> max_function = (current, value) -> current == null || objectComparator.compare(current, value) < 0 ? value : current;
 
     int count = 0;
+
+    boolean min_max_failed = false;
     Object minimum = null;
     Object maximum = null;
 
@@ -31,12 +34,20 @@ public class CountMinMax {
     while (iterator.hasNext()) {
       Object value = iterator.next();
       count++;
-      minimum = min_function.apply(minimum, value);
-      maximum = max_function.apply(maximum, value);
+
+      if (!min_max_failed) {
+        try {
+          minimum = min_function.apply(minimum, value);
+          maximum = max_function.apply(maximum, value);
+        } catch (Exception e) {
+          min_max_failed = true;
+        }
+      }
     }
 
     this.count = count;
-    this.minimum = minimum;
-    this.maximum = maximum;
+    this.comparatorError = min_max_failed;
+    this.minimum = min_max_failed ? null : minimum;
+    this.maximum = min_max_failed ? null : maximum;
   }
 }

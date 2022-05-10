@@ -5,7 +5,7 @@ import java.util.Arrays;
 /***
  * Set of descriptive statistics for numerical data sets
  */
-public class SingleValue {
+public class Moments {
 
   /** Statistic to compute the total of the values. */
   public static final Statistic SUM = new Sum();
@@ -13,18 +13,34 @@ public class SingleValue {
   /** Statistic to compute the mean average of the values. */
   public static final Statistic MEAN = new Mean();
 
+  /** Statistic to compute the sample variance of the values. */
   public static final Statistic VARIANCE = new Variance(false);
 
+  /** Statistic to compute the population variance of the values. */
   public static final Statistic VARIANCE_POPULATION = new Variance(true);
 
+  /** Statistic to compute the sample standard deviation of the values. */
   public static final Statistic STANDARD_DEVIATION = new StandardDeviation(false);
 
+  /** Statistic to compute the population standard deviation of the values. */
   public static final Statistic STANDARD_DEVIATION_POPULATION = new StandardDeviation(true);
 
+  /** Statistic to compute the sample skewness of the values. */
   public static final Statistic SKEW = new Skew(false);
 
+  /** Statistic to compute the population skewness of the values. */
   public static final Statistic SKEW_POPULATION = new Skew(true);
 
+  /** Statistic to compute the sample kurtosis of the values. */
+  public static final Statistic KURTOSIS = new Kurtosis();
+
+  /**
+   * Compute a set of statistics on a data set.
+   *
+   * @param data set of values.
+   * @param statistics set of statistics to compute.
+   * @return computed statistics.
+   */
   public static double[] compute(Double[] data, Statistic[] statistics) {
     if (statistics.length == 0) {
       return new double[0];

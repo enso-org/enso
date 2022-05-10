@@ -1,19 +1,33 @@
-from Standard.Base import all
+from Standard.Base import Nothing, Vector, Number, True, Illegal_Argument_Error
 
 import Standard.Base.Data.Statistics
 from Standard.Base.Data.Statistics import all
 
 import Standard.Test
 
+# === Test Resources ===
+
+type Ord number
+
+Ord.compare_to : Ord -> Ordering
+Ord.compare_to that = this.number.compare_to that.number
+
+type No_Ord number
+
+# Tests
+
 spec =
     number_set = [0.4, -18.56, -16.99, -16.43, -45.84, 13.44, -6.85, 9.68, -8.55, 10.87, 10.38, 33.85, -41.02, 1.87, -26.52, -13.87, -39.06, 25.92, -16.01, 42.01]
     missing_set = number_set.map_with_index i->v->(if i % 5 == 4 then Nothing else v)
     with_nans_set = number_set.map_with_index i->v->(if i % 5 == 4 then (if i % 10 == 9 then Number.nan else Nothing) else v)
     text_set = ["A", "B", Nothing, "D"]
+
+    ord_set = [Ord 10, Ord 2, Nothing, Ord 9]
+    no_ord_set = [No_Ord 10, No_Ord 2, Nothing, No_Ord 9]
     
     double_error = 0.000001
 
-    Test.group "Statistics:" <|
+    Test.group "Statistics" <|
         Test.specify "Should be able to count valid values" <|
             number_set.compute . should_equal 20
             missing_set.compute . should_equal 16
@@ -44,6 +58,7 @@ spec =
             number_set.compute Variance . should_equal 582.0137832 epsilon=double_error
             missing_set.compute Variance . should_equal 431.0218867 epsilon=double_error
             with_nans_set.compute Variance . should_equal 431.0218867 epsilon=double_error
+            [1].compute Variance . is_nan . should_equal True
 
         Test.specify "Should be able to get population variance of values" <|
             number_set.compute (Variance True) . should_equal 552.913094 epsilon=double_error
@@ -54,20 +69,64 @@ spec =
             number_set.compute Standard_Deviation . should_equal 24.12496183 epsilon=double_error
             missing_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
             with_nans_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
+            [1].compute Standard_Deviation . is_nan . should_equal True
 
         Test.specify "Should be able to get sample standard deviation of values" <|
             number_set.compute (Standard_Deviation True) . should_equal 23.51410415 epsilon=double_error
             missing_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
             with_nans_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
 
-        Test.specify "Should be able to get sample skew of values" <|
+        Test.specify "Should be able to get sample skewness of values" <|
             number_set.compute Skew . should_equal 0.165086552 epsilon=double_error
             missing_set.compute Skew . should_equal 0.084238123 epsilon=double_error
             with_nans_set.compute Skew . should_equal 0.084238123 epsilon=double_error
+            [1, 2].compute Skew . is_nan . should_equal True
 
-        Test.specify "Should be able to get population skew of values" <|
+        Test.specify "Should be able to get population skewness of values" <|
             number_set.compute (Skew True) . should_equal 0.152437706 epsilon=double_error
             missing_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
             with_nans_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
+            [1, 2].compute (Skew True) . is_nan . should_equal True
+
+        Test.specify "Should be able to get sample kurtosis of values" <|
+            number_set.compute Kurtosis . should_equal -0.449422438 epsilon=double_error
+            missing_set.compute Kurtosis . should_equal -0.201991074 epsilon=double_error
+            with_nans_set.compute Kurtosis . should_equal -0.201991074 epsilon=double_error
+            [1, 2, 3].compute Kurtosis . is_nan . should_equal True
+
+        Test.specify "Should allow bulk computation" <|
+            stats = [Count, Minimum, Mean, Variance, Skew]
+            expected = [20, -45.84, -5.064, 582.0137832, 0.165086552]
+            values = number_set.compute_bulk stats
+            values.map_with_index i->v->((expected.at i - v).abs < double_error) . any v->(v == True) . should_equal True
+
+        Test.specify "Should be able to count valid values on empty Vector" <|
+            [].compute . should_equal 0
+
+        Test.specify "Should fail with Empty_Error on other statistics for empty Vector" <|
+            [].compute Minimum . should_fail_with Vector.Empty_Error
+            [].compute Maximum . should_fail_with Vector.Empty_Error
+            [].compute Sum . should_fail_with Vector.Empty_Error
+            [].compute Mean . should_fail_with Vector.Empty_Error
+            [].compute Variance . should_fail_with Vector.Empty_Error
+            [].compute Skew . should_fail_with Vector.Empty_Error
+            [].compute Kurtosis . should_fail_with Vector.Empty_Error
+
+        Test.specify "Should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
+            text_set.compute Sum . should_fail_with Illegal_Argument_Error
+            text_set.compute Mean . should_fail_with Illegal_Argument_Error
+            text_set.compute Variance . should_fail_with Illegal_Argument_Error
+            text_set.compute Skew . should_fail_with Illegal_Argument_Error
+            text_set.compute Kurtosis . should_fail_with Illegal_Argument_Error
+
+        Test.specify "Should be able to do Count, Minimum and Maximum on custom type with compare_to" <|
+            ord_set.compute . should_equal 3
+            ord_set.compute Minimum . should_equal (Ord 2)
+            ord_set.compute Maximum . should_equal (Ord 10)
+
+        Test.specify "Should fail with Incomparable_Values_Error on custom type without compare_to" <|
+            no_ord_set.compute . should_equal 3
+            no_ord_set.compute Minimum . should_fail_with Vector.Incomparable_Values_Error
+            no_ord_set.compute Maximum . should_fail_with Vector.Incomparable_Values_Error
 
 main = Test.Suite.run_main here.spec
