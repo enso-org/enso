@@ -12,8 +12,9 @@ use enso_web as web;
 // === Entry point ===
 // ===================
 
+/// Startup function for running and profiling a test workflow.
 #[wasm_bindgen]
-#[allow(dead_code)]
+#[allow(dead_code)] // Used from JavaScript.
 pub async fn entry_point_profile() {
     web::forward_panic_hook_to_console();
     ensogl_text_msdf_sys::initialized().await;
@@ -22,7 +23,7 @@ pub async fn entry_point_profile() {
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";
     let selected = enso_config::ARGS.test_workflow.as_ref().expect(need_workflow);
-    reflect_match!(options, match selected {
+    reflect_match!(match selected as options {
         "add_node" => profile_add_node().await,
         "new_project" => profile_new_project().await,
         _ => panic!("Unknown workflow: {selected}. Must be one of: {options:?}."),

@@ -238,7 +238,7 @@ macro_rules! unreachable_panic {
 /// use enso_prelude::*;
 ///
 /// let selected = "foo";
-/// let out = reflect_match!(options, match selected {
+/// let out = reflect_match!(match selected as options {
 ///     "bar" => Ok(1),
 ///     "baz" => Ok(2),
 ///     _ => Err(format!("Unexpected choice: {selected}. Must be one of: {options:?}.")),
@@ -281,7 +281,7 @@ macro_rules! reflect_match {
             _ if $dispatch.matches($candidate) => $branch,
         })
     };
-    ($candidates:ident, match $value:tt { $( $branches:tt )* }) => {
+    (match $value:tt as $candidates:tt { $( $branches:tt )* }) => {
         reflect_match!(@acc (dispatch, $value, $candidates, { $( $branches )* }) -> {})
     };
 }
