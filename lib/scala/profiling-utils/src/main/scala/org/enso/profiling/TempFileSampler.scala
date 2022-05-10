@@ -14,7 +14,7 @@ import scala.util.Using
   *
   * @param output the output stream to write the collected statistics to
   */
-final class OutputStreamSampler(output: File) extends MethodsSampler {
+final class TempFileSampler(output: File) extends MethodsSampler {
 
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
@@ -63,7 +63,7 @@ final class OutputStreamSampler(output: File) extends MethodsSampler {
   def isSamplingStarted: Boolean =
     this.samplingStarted
 }
-object OutputStreamSampler {
+object TempFileSampler {
 
   /** Create an instance of [[MethodsSampler]] that writes the data to the
     * temporary `.npss` file with the provided prefix.
@@ -71,8 +71,9 @@ object OutputStreamSampler {
     * @param prefix the prefix of the temp file.
     * @return the [[MethodsSampler]] instance
     */
-  def apply(prefix: String): OutputStreamSampler = {
+  def apply(prefix: String): TempFileSampler = {
     val path = Files.createTempFile(s"$prefix-", ".npss")
-    new OutputStreamSampler(path.toFile)
+    Files.deleteIfExists(path)
+    new TempFileSampler(path.toFile)
   }
 }

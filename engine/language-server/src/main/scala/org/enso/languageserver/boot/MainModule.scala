@@ -44,7 +44,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
-import org.enso.profiling.{NoopSampler, OutputStreamSampler}
+import org.enso.profiling.{NoopSampler, TempFileSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -230,7 +230,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           runtimeConnector,
           sessionRouter,
           if (serverConfig.isProfilingEnabled) {
-            val s = OutputStreamSampler("context-registry")
+            val s = TempFileSampler("context-registry")
             JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
             s
           } else NoopSampler()
