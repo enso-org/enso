@@ -6,6 +6,8 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Table.Internal.Delimited_Reader
 
+import Standard.Table.Io.Excel as Excel_Module
+
 ## This type needs to be here to allow for the usage of Standard.Table
    functions. Ideally, it would be an interface within Standard.Base and
    expanded by additional implementations in Standard.Table.
@@ -25,6 +27,10 @@ type Auto
         if ".log".equals_ignore_case extension then Ref.put output File_Format.Text
         if ".csv".equals_ignore_case extension then Ref.put output (File_Format.Delimited ',')
         if ".tsv".equals_ignore_case extension then Ref.put output (File_Format.Delimited '\t')
+        if ".xlsx".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xlsm".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xls".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".xlt".equals_ignore_case extension then Ref.put output File_Format.Excel
 
         Ref.get output
 
@@ -112,3 +118,28 @@ type Delimited
 ## A setting to infer the default behaviour of some option.
 type Infer
 
+## Read the file to a `Table` from an Excel file
+type Excel
+    ## Read Excels files into a Table or Vector.
+
+       Arguments:
+       - section: The `Excel_Section` to read from the workbook.
+         This can be one of:
+         - `Sheet_Names` - outputs a `Vector` of sheet names.
+         - `Range_Names` - outputs a `Vector` of range names.
+         - `Sheet` - outputs a `Table` containing the specified sheet.
+         - `Range` - outputs a `Table` containing the specified range.
+       - `xls_format`:
+         If set to `True`, the file is read as an Excel 95-2003 format.
+         If set to `False`, the file is read as an Excel 2007+ format.
+         `Infer` will attempt to deduce this from the extension of the filename.
+    type Excel (section:Excel_Section=Excel_Module.Sheet_Names) (xls_format:(True|False|Infer)=Infer)
+
+    ## Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read file on_problems =
+        format = if this.xls_format != Infer then this.xls_format else
+            extension = file.extension
+            (extension.equals_ignore_case ".xls") || (extension.equals_ignore_case ".xlt")
+
+        Excel_Module.read_excel file this.section on_problems format
