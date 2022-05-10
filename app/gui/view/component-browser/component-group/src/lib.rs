@@ -184,6 +184,9 @@ impl component::Frp<Model> for Frp {
 
         // === Colors ===
 
+        fn mix(colors: &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
+            color::mix(colors.0, colors.1, *coefficient)
+        }
         let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let bg_intensity = style.get_number(theme::background_color_intensity);
@@ -193,15 +196,14 @@ impl component::Frp<Model> for Frp {
             init <- source_();
             one <- init.constant(1.0);
             intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
-            main_color <- all_with3(&app_bg_color, &input.set_color, &intensity,
-                |a,b,c| color::mix(*a,*b,*c));
+            app_bg_color <- all(&app_bg_color, &init)._0();
+            app_bg_and_input_color <- all(&app_bg_color, &input.set_color);
+            main_color <- app_bg_and_input_color.all_with(&intensity, mix);
             app_bg_and_main_color <- all(&app_bg_color, &main_color);
-            header_color <- all_with(&app_bg_and_main_color, &header_intensity,
-                |(a,b),c| color::mix(*a,*b,*c));
-            bg_color <- all_with(&app_bg_and_main_color, &bg_intensity,
-                |(a,b),c| color::mix(*a,*b,*c));
-            entry_color_with_intensity <- all_with3(&app_bg_color, &entry_text_color, &intensity,
-                |a,b,c| color::mix(*a,*b,*c));
+            header_color <- app_bg_and_main_color.all_with(&header_intensity, mix);
+            bg_color <- app_bg_and_main_color.all_with(&bg_intensity, mix);
+            app_bg_and_entry_text_color <- all(&app_bg_color, &entry_text_color);
+            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
             entry_color_sampler <- entry_color_with_intensity.sampler();
         }
         let params = entry::Params { color: entry_color_sampler };
