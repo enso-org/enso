@@ -186,7 +186,7 @@ impl component::Frp<Model> for Frp {
 
         let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
         let header_intensity = style.get_number(theme::header::text::color_intensity);
-        let background_intensity = style.get_number(theme::background_color_intensity);
+        let bg_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let entry_text_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
@@ -198,7 +198,7 @@ impl component::Frp<Model> for Frp {
             app_bg_and_main_color <- all(&app_bg_color, &main_color);
             header_color <- all_with(&app_bg_and_main_color, &header_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
-            background_color <- all_with(&app_bg_and_main_color, &background_intensity,
+            bg_color <- all_with(&app_bg_and_main_color, &bg_intensity,
                 |(a,b),c| color::mix(*a,*b,*c));
             entry_color_with_intensity <- all_with3(&app_bg_color, &entry_text_color, &intensity,
                 |a,b,c| color::mix(*a,*b,*c));
@@ -222,7 +222,7 @@ impl component::Frp<Model> for Frp {
                 })
             );
             model.header.set_color_all <+ header_color;
-            eval background_color((c) model.background.color.set(c.into()));
+            eval bg_color((c) model.background.color.set(c.into()));
         }
 
 
