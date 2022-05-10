@@ -116,7 +116,23 @@ object StdBits {
     } else file.getName
   }
 
-  def buildStdLibPackage(name: String, root: File, cacheFactory: sbt.util.CacheStoreFactory, log: sbt.Logger, defaultDevEnsoVersion: String) = Def.task {
+  /**
+   * Builds a single standard library package `name`. Should only be used
+   * in tasks used in local development.
+   *
+   * @param name name of the package, see `stdBitsProjects` in build.sbt
+   * @param root top directory where distribution is being built
+   * @param cache used for persisting the cached information
+   * @param log logger used in the task
+   * @param defaultDevEnsoVersion default `dev` version
+   */
+  def buildStdLibPackage(
+    name: String,
+    root: File,
+    cacheFactory: sbt.util.CacheStoreFactory,
+    log: sbt.Logger,
+    defaultDevEnsoVersion: String
+  ) = Def.task {
     log.info(s"Building standard library package for '$name'")
     val prefix = "Standard"
     val targetPkgRoot = root / "lib" / prefix / name / defaultDevEnsoVersion
@@ -124,12 +140,6 @@ object StdBits {
     if (!sourceDir.exists) {
       throw new RuntimeException("Invalid standard library package " + name)
     }
-    LibraryManifestGenerator.generateManifests(
-      List(BundledLibrary(s"$prefix.$name", defaultDevEnsoVersion)),
-      file("distribution"),
-      log,
-      cacheFactory
-    )
     val result = DistributionPackage.copyDirectoryIncremental(
       source      = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion"),
       destination = targetPkgRoot,
@@ -137,7 +147,6 @@ object StdBits {
     )
     if (result) {
       log.info(s"Package '$name' has been updated")
-      DistributionPackage.fixLibraryManifest(targetPkgRoot, defaultDevEnsoVersion, log)
     } else {
       log.info(s"No changes detected for '$name' package")
     }

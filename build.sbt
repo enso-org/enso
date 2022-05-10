@@ -1757,8 +1757,9 @@ lazy val buildStdLib = inputKey[Unit]("Build an individual standard library pack
 buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
   val root: File = engineDistributionRoot.value
-  // Ensure that a complete distribution was built at least once
-  // Becasuse of `if` has to delegate to another input key
+  // Ensure that a complete distribution was built at least once.
+  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task defintion (sbt restriction).
   if ((root / "manifest.yaml").exists) {
     pkgStdLibInternal.toTask(cmd)
   } else buildEngineDistribution
@@ -1766,22 +1767,22 @@ buildStdLib := Def.inputTaskDyn {
 
 lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
 pkgStdLibInternal := Def.inputTaskDyn {
-  val cmd = allStdBits.parsed
-  val root = engineDistributionRoot.value
-  val log: sbt.Logger          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
+  val cmd             = allStdBits.parsed
+  val root            = engineDistributionRoot.value
+  val log: sbt.Logger = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
   cmd match {
-    case "Base" =>
+    case "Base"       =>
       (`std-base` / Compile / packageBin).value
-    case "Database" =>
+    case "Database"   =>
       (`std-database` / Compile / packageBin).value
     case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
-    case "Image" =>
+    case "Image"      =>
       (`std-image` / Compile / packageBin).value
-    case "Table" =>
+    case "Table"      =>
       (`std-table` / Compile / packageBin).value
-    case _ =>
+    case _            =>
   }
   StdBits.buildStdLibPackage(cmd, root, cacheFactory, log, defaultDevEnsoVersion)
 }.evaluated
