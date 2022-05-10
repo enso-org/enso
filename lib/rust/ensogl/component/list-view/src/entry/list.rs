@@ -61,8 +61,9 @@ impl IdAtYPosition {
 pub type List<E> = ListData<E, <E as Entry>::Params>;
 
 /// Data of a [`List`].
-#[derive(Clone, CloneRef, Debug)]
-#[clone_ref(bound = "E:CloneRef, P:CloneRef")]
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[clone_ref(bound = "E:CloneRef")]
 pub struct ListData<E, P> {
     logger:         Logger,
     app:            Application,
