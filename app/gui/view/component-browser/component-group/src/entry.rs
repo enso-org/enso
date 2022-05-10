@@ -31,15 +31,9 @@ pub type Id = list_view::entry::Id;
 
 /// Data underlying an entry in a component group view.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, From)]
 pub struct Model {
     pub label: String,
-}
-
-impl From<String> for Model {
-    fn from(label: String) -> Self {
-        Model { label }
-    }
 }
 
 impl From<&str> for Model {
