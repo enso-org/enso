@@ -94,6 +94,7 @@ pub struct Label {
     pub label:      text::Area,
     text:           Rc<RefCell<String>>,
     max_width_px:   Rc<Cell<f32>>,
+    /// Note: Networks extending this field will not outlive [`Label`].
     pub network:    enso_frp::Network,
     style_watch:    StyleWatchFrp,
 }
