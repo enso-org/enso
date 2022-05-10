@@ -24,6 +24,7 @@ class TruffleContextInitialization(
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     Future {
+      logger.info("Initializing Runtime context...")
       truffleContext.initialize(LanguageInfo.ID)
       eventStream.publish(InitializedEvent.TruffleContextInitialized)
       logger.info("Initialized Runtime context.")
