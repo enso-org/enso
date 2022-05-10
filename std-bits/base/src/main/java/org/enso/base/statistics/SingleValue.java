@@ -7,14 +7,10 @@ import java.util.Arrays;
  */
 public class SingleValue {
 
-  /**
-   * Statistic to compute the total of the values.
-   */
+  /** Statistic to compute the total of the values. */
   public static final Statistic SUM = new Sum();
 
-  /**
-   * Statistic to compute the mean average of the values.
-   */
+  /** Statistic to compute the mean average of the values. */
   public static final Statistic MEAN = new Mean();
 
   public static final Statistic VARIANCE = new Variance(false);
@@ -29,19 +25,19 @@ public class SingleValue {
 
   public static final Statistic SKEW_POPULATION = new Skew(true);
 
-  public static double[] compute(double[] data, Statistic[] statistics) {
+  public static double[] compute(Double[] data, Statistic[] statistics) {
     if (statistics.length == 0) {
       return new double[0];
     }
 
     // Get Order
-    int order = Arrays.stream(statistics).mapToInt(Statistic::order).max().getAsInt();
+    int order = Arrays.stream(statistics).mapToInt(s -> s == null ? 0 : s.order()).max().getAsInt();
 
     // Compute
     long count = 0;
     double[] totals = new double[order];
-    for (double value : data) {
-      if (Double.isNaN(value)) {
+    for (Double value : data) {
+      if (value == null || Double.isNaN(value)) {
         continue;
       }
 
@@ -55,6 +51,8 @@ public class SingleValue {
 
     // Create Stats
     final long _count = count;
-    return Arrays.stream(statistics).mapToDouble(s -> s.evaluate(_count, totals)).toArray();
+    return Arrays.stream(statistics)
+        .mapToDouble(s -> s == null ? Double.NaN : s.evaluate(_count, totals))
+        .toArray();
   }
 }
