@@ -1,32 +1,13 @@
-package org.enso.logger
+package org.enso.profiling
 
 import org.netbeans.modules.sampler.Sampler
 
-import java.io.{DataOutputStream, FileOutputStream}
+import java.io.{DataOutputStream, File, FileOutputStream}
 import java.nio.file.Files
 import java.util.concurrent.{CompletableFuture, Executor, Executors}
 
 import scala.concurrent.duration.Duration
 import scala.util.Using
-import java.io.File
-
-/** Sampler gathers the application performance statistics. */
-trait MethodsSampler {
-
-  /** Start gathering the application statistics. */
-  def start(): Unit
-
-  /** Stop gathering the application statistics and write it to the output. */
-  def stop(): Unit
-
-  /** Stop gathering the application statistics after the provided delay and
-    * write it to the output.
-    *
-    * @param delay the duration to wait before stopping
-    * @param ec the execution context
-    */
-  def stop(delay: Duration)(implicit ec: Executor): Unit
-}
 
 /** Gathers application performance statistics that can be visualised in Java
   * VisualVM, and writes it to the provided output.
@@ -38,9 +19,9 @@ final class OutputStreamSampler(output: File) extends MethodsSampler {
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
 
-  def getSiblingFile(ext : String): File = {
-    val newName = output.getName().replace(".npss", ext)
-    return new File(output.getParent(), newName)
+  def getSiblingFile(ext: String): File = {
+    val newName = output.getName.replace(".npss", ext)
+    new File(output.getParent, newName)
   }
 
   /** @inheritdoc */
@@ -57,7 +38,9 @@ final class OutputStreamSampler(output: File) extends MethodsSampler {
     this.synchronized {
       if (samplingStarted) {
         samplingStarted = false
-        Using.resource(new DataOutputStream(new FileOutputStream(output)))(sampler.stopAndWriteTo)
+        Using.resource(new DataOutputStream(new FileOutputStream(output)))(
+          sampler.stopAndWriteTo
+        )
       }
     }
 
@@ -92,23 +75,4 @@ object OutputStreamSampler {
     val path = Files.createTempFile(s"$prefix-", ".npss")
     new OutputStreamSampler(path.toFile)
   }
-}
-
-/** Sampler that does nothing. */
-final class NoopSampler extends MethodsSampler {
-
-  /** @inheritdoc */
-  override def start(): Unit = ()
-
-  /** @inheritdoc */
-  override def stop(): Unit = ()
-
-  /** @inheritdoc */
-  override def stop(delay: Duration)(implicit ec: Executor): Unit = ()
-}
-object NoopSampler {
-
-  /** Create an instance of [[NoopSampler]]. */
-  def apply(): NoopSampler =
-    new NoopSampler
 }

@@ -41,10 +41,10 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.{NoopSampler, OutputStreamSampler}
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.profiling.{NoopSampler, OutputStreamSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -233,8 +233,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
             val s = OutputStreamSampler("context-registry")
             JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
             s
-          }
-          else NoopSampler()
+          } else NoopSampler()
         ),
       "context-registry"
     )

@@ -247,6 +247,7 @@ lazy val enso = (project in file("."))
     pkg,
     cli,
     `task-progress-notifications`,
+    `profiling-utils`,
     `logging-utils`,
     `logging-service`,
     `logging-truffle-connector`,
@@ -680,27 +681,36 @@ lazy val `akka-native` = project
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
 
+lazy val `profiling-utils` = project
+  .in(file("lib/scala/profiling-utils"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      exclude ("org.netbeans.api", "org-openide-loaders")
+      exclude ("org.netbeans.api", "org-openide-nodes")
+      // exclude following when RELEASE140 is out:
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
+      //   exclude("org.netbeans.api", "org-openide-util-lookup")
+      //   exclude("org.netbeans.api", "org-openide-util")
+      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude ("org.netbeans.api", "org-openide-filesystems")
+      exclude ("org.netbeans.api", "org-openide-util-ui")
+      exclude ("org.netbeans.api", "org-openide-awt")
+      exclude ("org.netbeans.api", "org-openide-modules")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+    )
+  )
+
 lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
-      exclude("org.netbeans.api", "org-openide-loaders")
-      exclude("org.netbeans.api", "org-openide-nodes")
-//    exclude following when RELEASE140 is out:
-//      exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
-//      exclude("org.netbeans.api", "org-netbeans-api-progress")
-//      exclude("org.netbeans.api", "org-openide-util-lookup")
-//      exclude("org.netbeans.api", "org-openide-util")
-//      exclude("org.netbeans.api", "org-openide-dialogs")
-      exclude("org.netbeans.api", "org-openide-filesystems")
-      exclude("org.netbeans.api", "org-openide-util-ui")
-      exclude("org.netbeans.api", "org-openide-awt")
-      exclude("org.netbeans.api", "org-openide-modules")
-      exclude("org.netbeans.api", "org-netbeans-api-annotations-common"),
-      "org.scalatest"   %% "scalatest"                    % scalatestVersion % Test
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
 
@@ -1081,6 +1091,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`docs-generator`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
