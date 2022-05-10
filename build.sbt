@@ -155,7 +155,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 ThisBuild / javacOptions ++= Seq(
   "-encoding",   // Provide explicit encoding (the next line)
   "UTF-8",       // Specify character encoding used by Java source files.
-  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
+  "-deprecation",// Shows a description of each use or override of a deprecated member or class.
+  "-g"           // Include debugging information
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -1152,6 +1153,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "eu.timepit"         %% "refined"               % refinedVersion,
+     "junit" % "junit" % "4.12" % Test,
+     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
       // This dependency is needed only so that developers don't download Frgaal manually.
       // Sadly it cannot be placed under plugins either because meta dependencies are not easily
       // accessible from the non-meta build definition.
