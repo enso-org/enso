@@ -149,7 +149,9 @@ object Main {
       .build()
     val lsProfilingOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_PROFILING)
-      .desc("Enables the Language Server profiling")
+      .desc(
+        "Enables the Language Server profiling. The output is written to system temp directory."
+      )
       .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)
