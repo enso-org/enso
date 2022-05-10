@@ -1,0 +1,20 @@
+## Specifies options for parsing text data in a table to more specific types.
+
+   Arguments:
+   - trim_values: Trim whitespace before parsing.
+   - allow_leading_zeros: Specifies if values starting with leading zeroes
+     should be treated as numbers. Defaults to `False`, because converting such
+     values to numbers is a lossy operation - after converting such a number
+     back to text the leading zeroes will get lost.
+   - decimal_point: The character used to separate the integer part from the
+     fractional part of a number. Defaults to '.'. Can be changed for example to
+     ',' to allow for European format.
+   - thousand_separator: A separator that can be used to separate groups of
+     digits in numbers. It can be set to ',' to allow for notation like
+     '1,000,000.0'.
+   - datetime_formats: Expected datetime formats.
+   - date_formats: Expected date formats.
+   - time_formats: Expected time formats.
+   - true_values: Values representing True.
+   - false_values: Values representing False.
+type Parser_Options trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]

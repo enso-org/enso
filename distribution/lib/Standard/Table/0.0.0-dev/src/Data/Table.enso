@@ -527,6 +527,19 @@ type Table
                 problems = java_table.getProblems
                 Aggregate_Column_Helper.parse_aggregated_problems problems
 
+    ## Parses columns within a Table to a specific value type.
+       By default, it looks at all `Text` columns and attempts to deduce the
+       type (columns with other types are not affected). If `column_types` are
+       provided, only selected columns are parsed, according to the specified
+       type.
+
+       The default parser options only parse values where the process is
+       reversible (e.g., 0123 would not be converted to an integer as there is
+       a leading 0). However, settings in the Parser_Options can control this.
+    parse_values : Parser_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Parser_Options column_types=Nothing on_problems=Report_Warning =
+        Error.throw "TODO"
+
     ## ALIAS Filter Rows
        ALIAS Mask Columns
 

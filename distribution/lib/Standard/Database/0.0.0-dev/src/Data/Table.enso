@@ -666,6 +666,13 @@ type Table
             on_problems.attach_problems_before problems <|
                 this.updated_context_and_columns new_ctx new_columns
 
+    ## Parsing values is not supported in database tables, the table has to be
+       materialized first with `to_dataframe`.
+    parse_values : Parser_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Parser_Options column_types=Nothing on_problems=Report_Warning =
+        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
+        Error.throw (Unsupported_Database_Operation_Error msg)
+
     ## UNSTABLE
 
        Returns a new Table without rows that contained missing values in any of

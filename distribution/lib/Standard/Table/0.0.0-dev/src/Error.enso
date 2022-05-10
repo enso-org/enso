@@ -118,3 +118,10 @@ type Invalid_Location (location:Text)
 Invalid_Location.to_display_text : Text
 Invalid_Location.to_display_text =
     "The location '"+this.location+"' is not valid."
+
+## Indicates that a given value did not fit to the
+type Invalid_Format column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+
+Invalid_Format.to_display_text : Text
+Invalid_Format.to_display_text =
+    this.cells.length+" cells in column "+this.column+" had invalid format for datatype "+this.datatype.to_text+"."
