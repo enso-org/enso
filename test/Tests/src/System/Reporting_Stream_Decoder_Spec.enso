@@ -9,7 +9,6 @@ import Standard.Test
 import Standard.Test.Problems
 
 spec =
-    sample_file = Enso_Project.data / "sample.txt"
     windows_file = Enso_Project.data / "windows.txt"
 
     read_file_one_by_one file java_charset expected_size expected_problems=[] =
@@ -102,10 +101,12 @@ spec =
             f.delete
 
         Test.specify "should allow reading a UTF-8 file" <|
+            f = Enso_Project.data / "transient" / "utf8.txt"
             encoding = Encoding.utf_8
             java_charset = encoding.to_java_charset
-            expected_contents = sample_file.read_text
-            contents = read_file_one_by_one sample_file java_charset expected_contents.length
+            f.write_text ((0.up_to 100).map _->'Hello World!' . join '\n') Encoding.utf_8
+            expected_contents = f.read_text
+            contents = read_file_one_by_one f java_charset expected_contents.length
             contents.should_equal expected_contents
 
         Test.specify "should allow reading a Windows file" <|
