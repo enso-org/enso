@@ -356,6 +356,36 @@ The license file can be found at `licenses/BSD-3-Clause`.
 Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.21.0`.
 
 
+'org-netbeans-api-progress', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-progress-RELEASE130`.
+
+
+'org-netbeans-api-progress-nb', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-api-progress-nb-RELEASE130`.
+
+
+'org-netbeans-modules-sampler', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-netbeans-modules-sampler-RELEASE130`.
+
+
+'org-openide-dialogs', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-dialogs-RELEASE130`.
+
+
+'org-openide-util', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-RELEASE130`.
+
+
+'org-openide-util-lookup', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.netbeans.api.org-openide-util-lookup-RELEASE130`.
+
+
 'reactive-streams', licensed under the CC0, is distributed with the engine.
 The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
