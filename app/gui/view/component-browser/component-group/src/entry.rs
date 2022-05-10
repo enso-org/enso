@@ -88,7 +88,7 @@ impl list_view::Entry for View {
     fn new(app: &Application, style_prefix: &style::Path, params: &Self::Params) -> Self {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
-        let label = Label::new(app, style_prefix, &());
+        let label = Label::new(app, style_prefix);
         display_object.add_child(&label);
 
         let network = &label.network;

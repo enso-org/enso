@@ -100,17 +100,8 @@ pub struct Label {
 }
 
 impl Label {
-    fn update_label_content(&self) {
-        let text = self.text.borrow().clone();
-        self.label.set_content_truncated(text, self.max_width_px.get());
-    }
-}
-
-impl Entry for Label {
-    type Model = String;
-    type Params = ();
-
-    fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
+    /// Constructor.
+    pub fn new(app: &Application, style_prefix: &Path) -> Self {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
@@ -137,6 +128,20 @@ impl Entry for Label {
         }
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
+    }
+
+    fn update_label_content(&self) {
+        let text = self.text.borrow().clone();
+        self.label.set_content_truncated(text, self.max_width_px.get());
+    }
+}
+
+impl Entry for Label {
+    type Model = String;
+    type Params = ();
+
+    fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
+        Self::new(app, style_prefix)
     }
 
     fn update(&self, model: &Self::Model) {
@@ -187,7 +192,7 @@ impl Entry for GlyphHighlightedLabel {
     type Params = ();
 
     fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
-        let inner = Label::new(app, style_prefix, &());
+        let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");
         let highlight_color = inner.style_watch.get_color(text_style.sub("highlight"));
