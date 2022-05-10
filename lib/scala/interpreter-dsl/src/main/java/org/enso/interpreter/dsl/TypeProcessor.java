@@ -128,7 +128,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
           .forEach(
               entry -> {
                 String[] elements = entry.split(":");
-                if (!elements[3].isEmpty()) {
+                if (elements.length == 4 && !elements[3].isEmpty()) {
                   out.println(
                       "    public static void final String "
                           + elements[0].toUpperCase()
