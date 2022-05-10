@@ -205,7 +205,7 @@ impl component::Frp<Model> for Frp {
             entry_color_sampler <- entry_color_with_intensity.sampler();
         }
         let params = entry::Params { color: entry_color_sampler };
-        model.entries.set_entry_params(params);
+        model.entries.set_entry_params_and_recreate_entries(params);
 
 
         // === Header ===

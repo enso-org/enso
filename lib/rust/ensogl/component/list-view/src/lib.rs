@@ -585,13 +585,10 @@ where E::Model: Default
         self.model.entries.set_label_layer(layer);
     }
 
-    /// Set params used in the displayed entries.
-    ///
-    /// The function should be used sparingly, as it may be a costly operation. The implementation
-    /// may recreate all the displayed entries from scratch.
-    pub fn set_entry_params(&self, params: E::Params) {
+    /// Set params used in the displayed entries and recreate all displayed entries.
+    pub fn set_entry_params_and_recreate_entries(&self, params: E::Params) {
         let style_prefix = self.frp.style_prefix.value();
-        self.model.entries.set_entry_params(params, style_prefix.into());
+        self.model.entries.set_entry_params_and_recreate_entries(params, style_prefix.into());
     }
 }
 
