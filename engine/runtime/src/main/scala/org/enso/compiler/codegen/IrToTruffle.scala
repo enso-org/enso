@@ -18,6 +18,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
+  ExpressionAnnotations,
   MethodDefinitions,
   Patterns,
   UppercaseNames
@@ -78,6 +79,7 @@ import org.enso.compiler.core.IR.Name.Special
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.OptionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -233,13 +235,14 @@ class IrToTruffle(
         }
 
         val (assignments, reads) = argumentExpressions.unzip
-
-        atomCons.initializeFields(
-          localScope,
-          assignments.toArray,
-          reads.toArray,
-          argDefs: _*
-        )
+        if (!atomCons.isInitialized) {
+          atomCons.initializeFields(
+            localScope,
+            assignments.toArray,
+            reads.toArray,
+            argDefs: _*
+          )
+        }
       }
 
     // Register the method definitions in scope
@@ -289,30 +292,69 @@ class IrToTruffle(
         )
 
         val function = methodDef.body match {
+          case fn: IR.Function if isBuiltinMethod(fn.body) =>
+            // For builtin types that own the builtin method we only check that
+            // the method has been registered during the initialization of builtins
+            // and not attempt to register it in the scope (can't redefined methods).
+            // For non-builtin types (or modules) that own the builtin method
+            // we have to look up the function and register it in the scope.
+            val builtinFunction = context.getBuiltins
+              .getBuiltinFunction(cons, methodDef.methodName.name, language)
+            builtinFunction.toScala
+              .map(Some(_))
+              .toRight(
+                new CompilerError(
+                  s"Unable to find Truffle Node for method ${cons.getName()}.${methodDef.methodName.name}"
+                )
+              )
+              .left
+              .flatMap(l =>
+                // Builtin Types Number and Integer have methods only for documentation purposes
+                if (
+                  cons == context.getBuiltins.number().getNumber ||
+                  cons == context.getBuiltins.number().getInteger
+                ) Right(None)
+                else Left(l)
+              )
+              .map(_.filterNot(_ => cons.isBuiltin))
           case fn: IR.Function =>
-            val (body, arguments) =
-              expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+            val bodyBuilder =
+              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
               moduleScope,
-              body,
+              () => bodyBuilder.bodyNode(),
               makeSection(methodDef.location),
               cons,
               methodDef.methodName.name
             )
             val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-            new RuntimeFunction(
-              callTarget,
-              null,
-              new FunctionSchema(arguments: _*)
+            val arguments  = bodyBuilder.args()
+            Right(
+              Some(
+                new RuntimeFunction(
+                  callTarget,
+                  null,
+                  new FunctionSchema(arguments: _*)
+                )
+              )
             )
           case _ =>
-            throw new CompilerError(
-              "Method bodies must be functions at the point of codegen."
+            Left(
+              new CompilerError(
+                "Method bodies must be functions at the point of codegen."
+              )
             )
         }
-        moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+        function match {
+          case Left(failure) =>
+            throw failure
+          case Right(Some(fun)) =>
+            moduleScope.registerMethod(cons, methodDef.methodName.name, fun)
+          case _ =>
+          // Don't register dummy function nodes
+        }
       }
     })
 
@@ -348,18 +390,19 @@ class IrToTruffle(
 
         val function = methodDef.body match {
           case fn: IR.Function =>
-            val (body, arguments) =
-              expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+            val bodyBuilder =
+              new expressionProcessor.BuildFunctionBody(fn.arguments, fn.body)
             val rootNode = MethodRootNode.build(
               language,
               expressionProcessor.scope,
               moduleScope,
-              body,
+              () => bodyBuilder.bodyNode(),
               makeSection(methodDef.location),
               toType,
               methodDef.methodName.name
             )
             val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            val arguments  = bodyBuilder.args()
             new RuntimeFunction(
               callTarget,
               null,
@@ -378,6 +421,19 @@ class IrToTruffle(
   // ==========================================================================
   // === Utility Functions ====================================================
   // ==========================================================================
+
+  /** Checks if the expression has a @Builtin_Method annotation
+    *
+    * @param expression the expression to check
+    * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
+    */
+  private def isBuiltinMethod(expression: IR.Expression): Boolean = {
+    expression
+      .getMetadata(ExpressionAnnotations)
+      .exists(
+        _.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName)
+      )
+  }
 
   /** Creates a source section from a given location in the code.
     *
@@ -681,8 +737,7 @@ class IrToTruffle(
         ErrorNode.build(
           context.getBuiltins
             .error()
-            .syntaxError()
-            .newInstance(
+            .makeSyntaxError(
               Text.create(
                 "Type operators are not currently supported at runtime."
               )
@@ -727,8 +782,7 @@ class IrToTruffle(
 
             val error = context.getBuiltins
               .error()
-              .compileError()
-              .newInstance(Text.create(message))
+              .makeCompileError(Text.create(message))
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
@@ -824,24 +878,28 @@ class IrToTruffle(
           )
 
           runtimeConsOpt.map { atomCons =>
-            val any      = context.getBuiltins.any
-            val array    = context.getBuiltins.mutable.array
-            val bool     = context.getBuiltins.bool
-            val number   = context.getBuiltins.number
-            val polyglot = context.getBuiltins.polyglot.getPolyglot
-            val text     = context.getBuiltins.text
+            val any          = context.getBuiltins.any
+            val array        = context.getBuiltins.array
+            val builtinBool  = context.getBuiltins.bool().getBool
+            val builtinTrue  = context.getBuiltins.bool().getTrue
+            val builtinFalse = context.getBuiltins.bool().getFalse
+            val number       = context.getBuiltins.number
+            val polyglot     = context.getBuiltins.polyglot
+            val text         = context.getBuiltins.text
             val branchNode: BranchNode =
-              if (atomCons == bool.getTrue) {
+              if (atomCons == builtinTrue) {
                 BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
-              } else if (atomCons == bool.getFalse) {
+              } else if (atomCons == builtinFalse) {
                 BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
-              } else if (atomCons == bool.getBool) {
+              } else if (atomCons == builtinBool) {
                 BooleanConstructorBranchNode.build(
-                  bool,
+                  builtinBool,
+                  builtinTrue,
+                  builtinFalse,
                   branchCodeNode.getCallTarget
                 )
-              } else if (atomCons == text.getText) {
-                TextBranchNode.build(text.getText, branchCodeNode.getCallTarget)
+              } else if (atomCons == text) {
+                TextBranchNode.build(text, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getInteger) {
                 IntegerBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == number.getDecimal) {
@@ -852,9 +910,9 @@ class IrToTruffle(
               } else if (atomCons == number.getNumber) {
                 NumberBranchNode.build(number, branchCodeNode.getCallTarget)
               } else if (atomCons == array) {
-                ArrayBranchNode.build(array, branchCodeNode.getCallTarget)
+                ArrayBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == polyglot) {
-                PolyglotBranchNode.build(polyglot, branchCodeNode.getCallTarget)
+                PolyglotBranchNode.build(atomCons, branchCodeNode.getCallTarget)
               } else if (atomCons == any) {
                 CatchAllBranchNode.build(branchCodeNode.getCallTarget)
               } else {
@@ -1120,53 +1178,43 @@ class IrToTruffle(
         case err: Error.Syntax =>
           context.getBuiltins
             .error()
-            .syntaxError()
-            .newInstance(Text.create(err.message))
+            .makeSyntaxError(Text.create(err.message))
         case err: Error.Redefined.Binding =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Method =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.MethodClashWithAtom =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Conversion =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.Atom =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Redefined.ThisArg =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Resolution =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case err: Error.Conversion =>
           context.getBuiltins
             .error()
-            .compileError()
-            .newInstance(Text.create(err.message))
+            .makeCompileError(Text.create(err.message))
         case _: Error.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
@@ -1187,59 +1235,72 @@ class IrToTruffle(
       * @return a node for the final shape of function body and pre-processed
       *         argument definitions.
       */
-    def buildFunctionBody(
-      arguments: List[IR.DefinitionArgument],
-      body: IR.Expression
-    ): (BlockNode, Array[ArgumentDefinition]) = {
-      val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
+    class BuildFunctionBody(
+      val arguments: List[IR.DefinitionArgument],
+      val body: IR.Expression
+    ) {
+      private val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
+      private lazy val slots = computeSlots()
+      private lazy val bodyN = computeBodyNode()
 
-      val argDefinitions = new Array[ArgumentDefinition](arguments.size)
-      val argExpressions = new ArrayBuffer[RuntimeExpression]
-      val seenArgNames   = mutable.Set[String]()
+      def args(): Array[ArgumentDefinition] = slots._2
+      def bodyNode(): BlockNode             = bodyN
 
-      // Note [Rewriting Arguments]
-      val argSlots =
-        arguments.zipWithIndex.map { case (unprocessedArg, idx) =>
-          val arg = argFactory.run(unprocessedArg, idx)
-          argDefinitions(idx) = arg
+      private def computeBodyNode(): BlockNode = {
+        val (argSlots, _, argExpressions) = slots
 
-          val occInfo = unprocessedArg
-            .unsafeGetMetadata(
-              AliasAnalysis,
-              "No occurrence on an argument definition."
+        val bodyExpr = body match {
+          case IR.Foreign.Definition(lang, code, _, _, _) =>
+            buildForeignBody(
+              lang,
+              code,
+              arguments.map(_.name.name),
+              argSlots
             )
-            .unsafeAs[AliasAnalysis.Info.Occurrence]
-
-          val slot = scope.createVarSlot(occInfo.id)
-          val readArg =
-            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-          val assignArg = AssignmentNode.build(readArg, slot)
-
-          argExpressions.append(assignArg)
-
-          val argName = arg.getName
-
-          if (seenArgNames contains argName) {
-            throw new IllegalStateException(
-              s"A duplicate argument name, $argName, was found during codegen."
-            )
-          } else seenArgNames.add(argName)
-          slot
+          case _ => ExpressionProcessor.this.run(body)
         }
-
-      val bodyExpr = body match {
-        case IR.Foreign.Definition(lang, code, _, _, _) =>
-          buildForeignBody(
-            lang,
-            code,
-            arguments.map(_.name.name),
-            argSlots
-          )
-        case _ => this.run(body)
+        BlockNode.build(argExpressions.toArray, bodyExpr)
       }
 
-      val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
-      (fnBodyNode, argDefinitions)
+      private def computeSlots(): (
+        List[FrameSlot],
+        Array[ArgumentDefinition],
+        ArrayBuffer[RuntimeExpression]
+      ) = {
+        val seenArgNames   = mutable.Set[String]()
+        val argDefinitions = new Array[ArgumentDefinition](arguments.size)
+        val argExpressions = new ArrayBuffer[RuntimeExpression]
+        // Note [Rewriting Arguments]
+        val argSlots = arguments.zipWithIndex.map {
+          case (unprocessedArg, idx) =>
+            val arg = argFactory.run(unprocessedArg, idx)
+            argDefinitions(idx) = arg
+
+            val occInfo = unprocessedArg
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "No occurrence on an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
+
+            val slot = scope.createVarSlot(occInfo.id)
+            val readArg =
+              ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+            val assignArg = AssignmentNode.build(readArg, slot)
+
+            argExpressions.append(assignArg)
+
+            val argName = arg.getName
+
+            if (seenArgNames contains argName) {
+              throw new IllegalStateException(
+                s"A duplicate argument name, $argName, was found during codegen."
+              )
+            } else seenArgNames.add(argName)
+            slot
+        }
+        (argSlots, argDefinitions, argExpressions)
+      }
     }
 
     private def buildForeignBody(
@@ -1269,18 +1330,18 @@ class IrToTruffle(
       body: IR.Expression,
       location: Option[IdentifiedLocation]
     ): CreateFunctionNode = {
-      val (fnBodyNode, argDefinitions) = buildFunctionBody(arguments, body)
+      val bodyBuilder = new BuildFunctionBody(arguments, body)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
         moduleScope,
-        fnBodyNode,
+        bodyBuilder.bodyNode(),
         makeSection(location),
         scopeName
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
-      val expr = CreateFunctionNode.build(callTarget, argDefinitions)
+      val expr = CreateFunctionNode.build(callTarget, bodyBuilder.args())
 
       setLocation(expr, location)
     }
@@ -1359,8 +1420,7 @@ class IrToTruffle(
             ErrorNode.build(
               context.getBuiltins
                 .error()
-                .syntaxError()
-                .newInstance(
+                .makeSyntaxError(
                   Text.create(
                     "Typeset literals are not yet supported at runtime."
                   )

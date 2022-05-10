@@ -23,6 +23,7 @@ import scala.concurrent.Future
   * @param jvmSettings settings to use for the JVM that will host the engine
   * @param discardOutput specifies if the process output should be discarded or
   *                      printed to parent's streams
+  * @param profilingEnabled enables the language server profiling
   * @param deferredLoggingServiceEndpoint a future that is completed once the
   *                                       logging service has been fully set-up;
   *                                       if the child component should connect
@@ -38,5 +39,6 @@ case class LanguageServerDescriptor(
   engineVersion: SemVer,
   jvmSettings: JVMSettings,
   discardOutput: Boolean,
+  profilingEnabled: Boolean,
   deferredLoggingServiceEndpoint: Future[Option[Uri]]
 )

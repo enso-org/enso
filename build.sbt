@@ -3,13 +3,11 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
+import java.nio.file.Paths
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -157,7 +155,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 ThisBuild / javacOptions ++= Seq(
   "-encoding",   // Provide explicit encoding (the next line)
   "UTF-8",       // Specify character encoding used by Java source files.
-  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
+  "-deprecation",// Shows a description of each use or override of a deprecated member or class.
+  "-g"           // Include debugging information
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -247,6 +246,7 @@ lazy val enso = (project in file("."))
     pkg,
     cli,
     `task-progress-notifications`,
+    `profiling-utils`,
     `logging-utils`,
     `logging-service`,
     `logging-truffle-connector`,
@@ -680,6 +680,29 @@ lazy val `akka-native` = project
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
 
+lazy val `profiling-utils` = project
+  .in(file("lib/scala/profiling-utils"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      exclude ("org.netbeans.api", "org-openide-loaders")
+      exclude ("org.netbeans.api", "org-openide-nodes")
+      // exclude following when RELEASE140 is out:
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
+      //   exclude("org.netbeans.api", "org-openide-util-lookup")
+      //   exclude("org.netbeans.api", "org-openide-util")
+      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude ("org.netbeans.api", "org-openide-filesystems")
+      exclude ("org.netbeans.api", "org-openide-util-ui")
+      exclude ("org.netbeans.api", "org-openide-awt")
+      exclude ("org.netbeans.api", "org-openide-modules")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+    )
+  )
+
 lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
@@ -952,7 +975,10 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0.1" exclude ("com.google.code.findbugs", "jsr305")
+    libraryDependencies ++= Seq(
+      "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
+      "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
+    )
   )
 
 // ============================================================================
@@ -1067,6 +1093,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`docs-generator`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1128,8 +1155,11 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
+    Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
+    Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
@@ -1147,7 +1177,13 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
-      "eu.timepit"         %% "refined"               % refinedVersion
+      "eu.timepit"         %% "refined"               % refinedVersion,
+     "junit" % "junit" % "4.12" % Test,
+     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
+      // This dependency is needed only so that developers don't download Frgaal manually.
+      // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+      // accessible from the non-meta build definition.
+      FrgaalJavaCompiler.frgaal
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1166,7 +1202,7 @@ lazy val runtime = (project in file("engine/runtime"))
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides,
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map("ENSO_TEST_DISABLE_IR_CACHE" -> "false"),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
@@ -1347,7 +1383,19 @@ lazy val launcher = project
       )
       .value,
     assembly / test := {},
-    assembly / assemblyOutputPath := file("launcher.jar")
+    assembly / assemblyOutputPath := file("launcher.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
+    }
   )
   .settings(
     (Test / test) := (Test / test)

@@ -51,6 +51,14 @@ pub use entry::Entry;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
+
+
+
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -189,7 +197,7 @@ impl<E: Entry> Model<E> {
 
     /// Update the displayed entries list when _view_ has changed - the list was scrolled or
     /// resized.
-    fn update_after_view_change(&self, view: &View) {
+    fn update_after_view_change(&self, view: &View, style_prefix: display::style::Path) {
         let visible_entries = Self::visible_entries(view, self.entries.entry_count());
         let padding = self.doubled_padding_with_shape_padding();
         let padding = Vector2(padding, padding);
@@ -198,14 +206,20 @@ impl<E: Entry> Model<E> {
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
-        self.entries.update_entries(visible_entries, entry_width);
+        self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
 
-    fn set_entries(&self, provider: entry::AnyModelProvider<E>, view: &View) {
+    fn set_entries(
+        &self,
+        provider: entry::AnyModelProvider<E>,
+        view: &View,
+        style_prefix: display::style::Path,
+    ) {
         let visible_entries = Self::visible_entries(view, provider.entry_count());
         let padding = self.doubled_padding_with_shape_padding();
         let entry_width = view.size.x - padding;
-        self.entries.update_entries_new_provider(provider, visible_entries, entry_width);
+        let entries = &self.entries;
+        entries.update_entries_new_provider(provider, visible_entries, entry_width, style_prefix);
     }
 
     fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {
@@ -299,6 +313,7 @@ ensogl_core::define_endpoints! {
         set_entries(entry::AnyModelProvider<E>),
         select_entry(Option<entry::Id>),
         chose_entry(entry::Id),
+        set_style_prefix(String),
         show_background_shadow(bool),
         set_background_corners_radius(f32),
         set_background_color(color::Rgba),
@@ -533,12 +548,17 @@ where E::Model: Default
             view_info <- all_with(&view_y.value,&frp.size, |y,size|
                 View{position_y:*y,size:*size}
             );
+            default_style_prefix <- init.constant(DEFAULT_STYLE_PATH.to_string());
+            style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
+            eval style_prefix ((path)
+                model.entries.recreate_entries_with_style_prefix(path.into()));
+            view_and_style <- all(&view_info,&style_prefix);
             // This should go before handling mouse events to have proper checking of
-            eval view_info ((view) model.update_after_view_change(view));
-            _new_entries <- frp.set_entries.map2(&view_info, f!((entries,view)
-                model.set_entries(entries.clone_ref(),view)
-            ));
-
+            eval view_and_style (((view,style_prefix))
+                model.update_after_view_change(view,style_prefix.into()));
+            _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries,(view,style_prefix))
+                model.set_entries(entries.clone_ref(),view,style_prefix.into()))
+            );
 
             frp.source.selection_position_target <+ all_with3(
                 &selection_y.target,

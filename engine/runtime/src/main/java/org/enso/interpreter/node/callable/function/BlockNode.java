@@ -1,8 +1,12 @@
 package org.enso.interpreter.node.callable.function;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 
 /**
@@ -30,6 +34,10 @@ public class BlockNode extends ExpressionNode {
     return new BlockNode(expressions, returnExpr);
   }
 
+  public static BlockNode buildSilent(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new BlockNode(expressions, returnExpr);
+  }
+
   /**
    * Executes the body of the function.
    *
@@ -43,5 +51,17 @@ public class BlockNode extends ExpressionNode {
       statement.executeVoid(frame);
     }
     return returnExpr.executeGeneric(frame);
+  }
+
+  @Override
+  public InstrumentableNode materializeInstrumentableNodes(
+      Set<Class<? extends Tag>> materializedTags) {
+    if (materializedTags.contains(StandardTags.StatementTag.class)) {
+      for (int i = 0; i < statements.length; i++) {
+        statements[i] = insert(StatementNode.wrap(statements[i]));
+      }
+      this.returnExpr = insert(StatementNode.wrap(returnExpr));
+    }
+    return this;
   }
 }

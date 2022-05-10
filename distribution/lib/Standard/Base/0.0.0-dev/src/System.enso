@@ -1,0 +1,58 @@
+## Functionality for interacting with the host system.
+
+## PRIVATE
+
+   Create a system process, returning the exit code, and the outputs to both
+   standard out and standard error.
+
+   Arguments:
+   - command: The name of the system process.
+   - arguments: An array of arguments to the system process.
+   - input: The input to pass to the process via standard input.
+   - redirect_in: Specifies if the standard input of the program should be
+     redirected to the started process.
+   - redirect_out: Specifies if the standard output of the started process
+     should be redirected to the program's standard output.
+   - redirect_err: Specifies if the standard error output of the started
+     process should be redirected to the program's standard error output.
+create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
+create_process command arguments input redirect_in redirect_out redirect_err = @Builtin_Method "System.create_process"
+
+## Exits the Enso program, returning the provided code to the parent
+   process.
+
+   Arguments:
+   - code: The numerical exit code for the Enso program.
+
+   > Example
+     Exit the enso program with a failure.
+
+         System.exit 42
+exit : Integer -> Nothing
+exit code = @Builtin_Method "System.exit"
+
+## Gets the nanosecond resolution system time at the moment of the call.
+
+   > Example
+     Getting the current value of the nanosecond timer.
+
+         System.nano_time
+nano_time : Integer
+nano_time = @Builtin_Method "System.nano_time"
+
+## PRIVATE
+
+   Get the name of the current platform upon which the program is running.
+os : Text
+os = @Builtin_Method "System.os"
+
+## PRIVATE
+
+   The type representing the result of a subprocess exiting.
+
+   Arguments:
+   - exit_code: The exit code of the child process.
+   - stdout: Any values printed to standard out by the child process.
+   - stderr: Any values printed to standard error by the child process.
+@Builtin_Type
+type System_Process_Result exit_code stdout stderr

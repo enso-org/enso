@@ -1,7 +1,6 @@
 package org.enso.searcher
 
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsUpdate,
   SuggestionArgumentAction,
@@ -84,7 +83,7 @@ trait SuggestionsRepo[F[_]] {
     * @return the result of applying the updates
     */
   def applyTree(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): F[Seq[QueryResult[SuggestionUpdate]]]
 
   /** Apply the sequence of actions on the database.

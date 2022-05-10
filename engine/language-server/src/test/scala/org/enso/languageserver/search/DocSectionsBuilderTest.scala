@@ -57,9 +57,9 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
           | > Example
           |   Throwing an error to show that something is unimplemented.
           |
-          |       import Standard.Base.Error.Extensions
+          |       import Standard.Base.Error.Common as Errors
           |
-          |       example_unimplemented = Extensions.unimplemented
+          |       example_unimplemented = Errors.unimplemented
           |""".stripMargin.linesIterator.mkString("\n")
       val expected = Seq(
         DocSection.Tag("ADVANCED", ""),
@@ -73,7 +73,7 @@ class DocSectionsBuilderTest extends AnyWordSpec with Matchers {
         DocSection.Marked(
           DocSection.Mark.Example(),
           Some("Example"),
-          " Throwing an error to show that something is unimplemented. <pre><code>import Standard.Base.Error.Extensions</code><br /><code>example_unimplemented = Extensions.unimplemented</code><br /></pre>"
+          " Throwing an error to show that something is unimplemented. <pre><code>import Standard.Base.Error.Common as Errors</code><br /><code>example_unimplemented = Errors.unimplemented</code><br /></pre>"
         )
       )
 
