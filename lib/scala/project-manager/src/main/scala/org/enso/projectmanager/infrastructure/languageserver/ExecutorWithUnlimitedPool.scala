@@ -95,6 +95,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       environment                = distributionConfiguration.environment,
       loggerConnection           = descriptor.deferredLoggingServiceEndpoint
     )
+    val additionalArguments =
+      Option.when(descriptor.profilingEnabled)("--server-profiling").toSeq
     val runSettings = runner
       .startLanguageServer(
         options             = options,
@@ -102,7 +104,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
         logMasking          = Masking.isMaskingEnabled,
-        additionalArguments = Seq()
+        additionalArguments = additionalArguments
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>

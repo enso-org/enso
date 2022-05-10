@@ -14,6 +14,7 @@ import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
+
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
@@ -39,6 +40,7 @@ object Main {
   private val DOCS_OPTION                    = "docs"
   private val PREINSTALL_OPTION              = "preinstall-dependencies"
   private val LANGUAGE_SERVER_OPTION         = "server"
+  private val LANGUAGE_SERVER_PROFILING      = "server-profiling"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
@@ -150,6 +152,12 @@ object Main {
     val lsOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_OPTION)
       .desc("Runs Language Server")
+      .build()
+    val lsProfilingOption = CliOption.builder
+      .longOpt(LANGUAGE_SERVER_PROFILING)
+      .desc(
+        "Enables the Language Server profiling. The output is written to system temp directory."
+      )
       .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)
@@ -327,6 +335,7 @@ object Main {
       .addOption(newProjectAuthorNameOpt)
       .addOption(newProjectAuthorEmailOpt)
       .addOption(lsOption)
+      .addOption(lsProfilingOption)
       .addOption(deamonizeOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -792,7 +801,6 @@ object Main {
   private def parseServerOptions(
     line: CommandLine
   ): Either[String, LanguageServerConfig] =
-    // format: off
     for {
       rootId <- Option(line.getOptionValue(ROOT_ID_OPTION))
         .toRight("Root id must be provided")
@@ -805,16 +813,25 @@ object Main {
         .toRight("Root path must be provided")
       interface = Option(line.getOptionValue(INTERFACE_OPTION))
         .getOrElse("127.0.0.1")
-      rpcPortStr = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
+      rpcPortStr = Option(line.getOptionValue(RPC_PORT_OPTION))
+        .getOrElse("8080")
       rpcPort <- Either
         .catchNonFatal(rpcPortStr.toInt)
         .leftMap(_ => "Port must be integer")
-      dataPortStr = Option(line.getOptionValue(DATA_PORT_OPTION)).getOrElse("8081")
+      dataPortStr = Option(line.getOptionValue(DATA_PORT_OPTION))
+        .getOrElse("8081")
       dataPort <- Either
         .catchNonFatal(dataPortStr.toInt)
         .leftMap(_ => "Port must be integer")
-    } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
-  // format: on
+      profilingEnabled = line.hasOption(LANGUAGE_SERVER_PROFILING)
+    } yield boot.LanguageServerConfig(
+      interface,
+      rpcPort,
+      dataPort,
+      rootId,
+      rootPath,
+      profilingEnabled
+    )
 
   /** Prints the version of the Enso executable.
     *
