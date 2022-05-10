@@ -1,5 +1,7 @@
 //! Names of fonts embedded in the app.
 
+// === Features ===
+#![feature(const_trait_impl)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -14,18 +16,29 @@
 
 
 
-// =================
-// === Constants ===
-// =================
+pub trait FontDefinition {
+    fn regular(&self) -> &'static str;
+    fn bold(&self) -> &'static str;
+    fn mono(&self) -> &'static str;
+    fn mono_bold(&self) -> &'static str;
+}
 
-/// Full name of the regular sans-serif font from the DejaVu font family.
-pub const DEJA_VU_SANS: &str = "DejaVuSans";
+#[derive(Copy, Clone, Debug)]
+pub struct DejaVuSans {}
 
-/// Full name of the bold sans-serif font from the DejaVu font family.
-pub const DEJA_VU_SANS_BOLD: &str = "DejaVuSans-Bold";
+pub const DEJA_VU_SANS: DejaVuSans = DejaVuSans {};
 
-/// Full name of the regular monospaced sans-serif font from the DejaVu font family.
-pub const DEJA_VU_SANS_MONO: &str = "DejaVuSansMono";
-
-/// Full name of the bold monospaced sans-serif font from the DejaVu font family.
-pub const DEJA_VU_SANS_MONO_BOLD: &str = "DejaVuSansMono-Bold";
+impl const FontDefinition for DejaVuSans {
+    fn regular(&self) -> &'static str {
+        "DejaVuSans"
+    }
+    fn bold(&self) -> &'static str {
+        "DejaVuSans-Bold"
+    }
+    fn mono(&self) -> &'static str {
+        "DejaVuSansMono"
+    }
+    fn mono_bold(&self) -> &'static str {
+        "DejaVuSansMono-Bold"
+    }
+}
