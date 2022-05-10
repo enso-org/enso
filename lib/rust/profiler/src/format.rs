@@ -299,7 +299,7 @@ mod tests {
     /// Verify that the current implementation can deserialize escaped paths in the json file.
     #[test]
     fn escaped_json() {
-        // Example data containing every type of event and every encoding of each field.
+        // Example data containing a string with escaped characters.
         const LOG: &str = r#"[{"L":{"l":"entry_point_ide (app\\ui\\src\\lib.rs:134)"}}]"#;
         // Check that we can deserialize the data.
         let _events: Vec<format::Event> = serde_json::from_str(LOG).unwrap();

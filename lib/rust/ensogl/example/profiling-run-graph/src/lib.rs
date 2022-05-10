@@ -92,7 +92,6 @@ pub async fn main() {
     let graph_height: f32 = flame_graph.height();
     let sequence_diagram_offset = graph_height + sequence_diagram.height.value();
     sequence_diagram.set_position_y(-sequence_diagram_offset);
-    sequence_diagram.set_position_x(5534.0 - 45136.7); //FIXME
 
     scene.add_child(&sequence_diagram);
     scene.layers.main.add_exclusive(&sequence_diagram);
@@ -228,8 +227,9 @@ fn make_rendering_performance_blocks(
 async fn get_data_raw() -> Option<String> {
     use wasm_bindgen::JsCast;
 
-    let file_name = get_target_file_from_url().unwrap_or_else(|| DEFAULT_LOG_NAME.to_owned());
-    let url = &["assets/", &file_name].concat();
+    let file_name = get_target_file_from_url();
+    let file_name = file_name.as_deref().unwrap_or(DEFAULT_LOG_NAME);
+    let url = &["assets/", file_name].concat();
     let mut opts = web_sys::RequestInit::new();
     opts.method("GET");
     opts.mode(web_sys::RequestMode::Cors);
