@@ -3,7 +3,7 @@ package org.enso.table.read;
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import java.io.InputStream;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,7 +52,7 @@ public class DelimitedReader {
   /**
    * Creates a new reader.
    *
-   * @param inputStream the stream to read from
+   * @param input a reader providing decoded input characters
    * @param delimiter the delimiter, should be a single character, but is a String for proper
    *     interoperability with Enso; if a string that does not fit in a single character is
    *     provided, an exception is raised
@@ -72,7 +72,7 @@ public class DelimitedReader {
    *     to be discarded anyway)
    */
   public DelimitedReader(
-      InputStream inputStream,
+      Reader input,
       String delimiter,
       String quote,
       String quoteEscape,
@@ -132,11 +132,11 @@ public class DelimitedReader {
     this.keepInvalidRows = keepInvalidRows;
     this.warningsAsErrors = warningsAsErrors;
 
-    parser = setupCsvParser(inputStream);
+    parser = setupCsvParser(input);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
-  private CsvParser setupCsvParser(InputStream inputStream) {
+  private CsvParser setupCsvParser(Reader input) {
     CsvParserSettings settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(false);
     CsvFormat format = new CsvFormat();
@@ -150,7 +150,7 @@ public class DelimitedReader {
     settings.setKeepQuotes(true);
     settings.setLineSeparatorDetectionEnabled(true);
     CsvParser parser = new CsvParser(settings);
-    parser.beginParsing(inputStream);
+    parser.beginParsing(input);
     return parser;
   }
 
