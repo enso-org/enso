@@ -34,7 +34,7 @@ mod js {
         }
     ")]
     extern "C" {
-        /// Sets object's CSS 3D transform.
+        // Sets object's CSS 3D transform.
         #[allow(unsafe_code)]
         pub fn set_object_transform(dom: &web::JsValue, matrix_array: &web::Object);
     }

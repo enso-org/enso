@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Builtins
 import Standard.Test.Bench
 
 polyglot java import java.util.Random

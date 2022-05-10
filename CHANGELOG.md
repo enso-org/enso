@@ -114,6 +114,8 @@
 - [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
   `with_step` allowing to change the range step.][3408]
 - [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
+- [Implemented a basic reader for the `Delimited` file format.][3424]
+- [Implemented a reader for the `Excel` file format.][3425]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -175,6 +177,8 @@
 [3390]: https://github.com/enso-org/enso/pull/3390
 [3408]: https://github.com/enso-org/enso/pull/3408
 [3415]: https://github.com/enso-org/enso/pull/3415
+[3424]: https://github.com/enso-org/enso/pull/3424
+[3425]: https://github.com/enso-org/enso/pull/3425
 
 #### Enso Compiler
 
@@ -186,6 +190,11 @@
 - [Fixed execution of defaulted arguments of Atom Constructors][3358]
 - [Converting Enso Date to java.time.LocalDate and back][3374]
 - [Functions with all-defaulted arguments now execute automatically][3414]
+- [Provide `tagValues` for function arguments in the language server][3422]
+- [Delay construction of Truffle nodes to speed initialization][3429]
+- [Frgaal compiler integration to allow for latest Java constructs][3421]
+- [Support for Chrome developer tools --inspect option][3432]
+- [Move Builtin Types and Methods definitions to stdlib][3363]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -198,6 +207,11 @@
 [3412]: https://github.com/enso-org/enso/pull/3412
 [3414]: https://github.com/enso-org/enso/pull/3414
 [3417]: https://github.com/enso-org/enso/pull/3417
+[3422]: https://github.com/enso-org/enso/pull/3422
+[3429]: https://github.com/enso-org/enso/pull/3429
+[3421]: https://github.com/enso-org/enso/pull/3421
+[3432]: https://github.com/enso-org/enso/pull/3432
+[3363]: https://github.com/enso-org/enso/pull/3363
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

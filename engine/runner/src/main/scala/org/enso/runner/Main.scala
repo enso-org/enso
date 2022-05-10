@@ -23,11 +23,13 @@ import scala.Console.err
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
+import java.util.Collections
 
 /** The main CLI entry point class. */
 object Main {
 
   private val RUN_OPTION                     = "run"
+  private val INSPECT_OPTION                 = "inspect"
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
   private val PROJECT_NAME_OPTION            = "new-project-name"
@@ -89,6 +91,10 @@ object Main {
       .argName("file")
       .longOpt(RUN_OPTION)
       .desc("Runs a specified Enso file.")
+      .build
+    val inspect = CliOption.builder
+      .longOpt(INSPECT_OPTION)
+      .desc("Start the Chrome inspector when --run is used.")
       .build
     val docs = CliOption.builder
       .longOpt(DOCS_OPTION)
@@ -320,6 +326,7 @@ object Main {
       .addOption(help)
       .addOption(repl)
       .addOption(run)
+      .addOption(inspect)
       .addOption(docs)
       .addOption(preinstall)
       .addOption(newOpt)
@@ -477,6 +484,7 @@ object Main {
     * @param logLevel       log level to set for the engine runtime
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
+    * @param inspect        shall inspect option be enabled
     */
   private def run(
     path: String,
@@ -484,7 +492,8 @@ object Main {
     logLevel: LogLevel,
     logMasking: Boolean,
     enableIrCaches: Boolean,
-    enableAutoParallelism: Boolean
+    enableAutoParallelism: Boolean,
+    inspect: Boolean
   ): Unit = {
     val file = new File(path)
     if (!file.exists) {
@@ -515,7 +524,10 @@ object Main {
       logMasking,
       enableIrCaches,
       strictErrors          = true,
-      enableAutoParallelism = enableAutoParallelism
+      enableAutoParallelism = enableAutoParallelism,
+      options =
+        if (inspect) Collections.singletonMap("inspect", "")
+        else Collections.emptyMap
     )
     if (projectMode) {
       PackageManager.Default.loadPackage(file) match {
@@ -741,6 +753,7 @@ object Main {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
       s"""from Standard.Base import all
+         |import Standard.Base.Runtime.Debug
          |
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin
@@ -964,7 +977,8 @@ object Main {
         logLevel,
         logMasking,
         shouldEnableIrCaches(line),
-        line.hasOption(AUTO_PARALLELISM_OPTION)
+        line.hasOption(AUTO_PARALLELISM_OPTION),
+        line.hasOption(INSPECT_OPTION)
       )
     }
     if (line.hasOption(REPL_OPTION)) {

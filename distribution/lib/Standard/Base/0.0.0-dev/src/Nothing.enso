@@ -1,0 +1,7 @@
+## The type that has only a singleton value.
+
+   It is often used alongside a value of type a to provide a Maybe or
+   Option abstraction. The type a | Nothing is semantically equivalent to
+   Maybe a.
+@Builtin_Type
+type Nothing

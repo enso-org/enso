@@ -114,10 +114,7 @@ public abstract class CreateProcessNode extends Node {
       Text returnOut = Text.create(out.toString());
       Text returnErr = Text.create(err.toString());
 
-      return ctx.getBuiltins()
-          .system()
-          .getSystemProcessResult()
-          .newInstance(exitCode, returnOut, returnErr);
+      return ctx.getBuiltins().system().makeSystemResult(exitCode, returnOut, returnErr);
     } catch (IOException | InterruptedException e) {
       throw new PanicException(e.getMessage(), this);
     }
