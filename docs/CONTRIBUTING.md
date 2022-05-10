@@ -666,7 +666,9 @@ The project manager will look for the appropriate subdirectory in the _engines_
 directory of the distribution folder. Distribution paths are printed when you
 run project manager with `-v` verbose logging.
 
-Btw. you can specify `ENSO_JVM_OPTS` to turn [debugging of the Engine runtime](debugger/README.md) on:
+Btw. you can specify `ENSO_JVM_OPTS` to turn
+[debugging of the Engine runtime](debugger/README.md) on:
+
 ```bash
 $ export ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005
 $ ./built-distribution/enso-project-manager-0.0.0-dev-linux-amd64/enso/bin/project-manager --no-log-masking -v
