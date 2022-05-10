@@ -23,7 +23,8 @@ use ensogl_core::display::style;
 /// simpler: In vast majority of cases we want to align list elements to the left.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
-pub struct DisplayedEntry<E: CloneRef> {
+#[clone_ref(bound = "E:CloneRef")]
+pub struct DisplayedEntry<E> {
     pub id:    Rc<Cell<Option<entry::Id>>>,
     pub entry: E,
 }
@@ -57,19 +58,23 @@ impl IdAtYPosition {
 /// A view containing an entry list, arranged in column.
 ///
 /// Not all entries are displayed at once, only those visible.
+pub type List<E> = ListData<E, <E as Entry>::Params>;
+
+/// Data of a [`List`].
 #[derive(Clone, CloneRef, Debug)]
-pub struct List<E: Entry> {
+#[clone_ref(bound = "E:CloneRef, P:CloneRef")]
+pub struct ListData<E, P> {
     logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,
     entries_range:  Rc<CloneCell<Range<entry::Id>>>,
-    entry_params:   Rc<RefCell<E::Params>>,
+    entry_params:   Rc<RefCell<P>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
     label_layer:    Rc<Cell<LayerId>>,
 }
 
-impl<E: Entry> List<E>
+impl<E: Entry> ListData<E, E::Params>
 where E::Model: Default
 {
     /// Entry List View constructor.
@@ -297,7 +302,7 @@ where E::Model: Default
     }
 }
 
-impl<E: Entry> display::Object for List<E> {
+impl<E, P> display::Object for ListData<E, P> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
