@@ -71,7 +71,8 @@ compute_bulk data statistics=[Count, Sum] =
     java_stats = statistics.map .to_java
     single_value = java_stats.any s->s.is_nothing.not
 
-    empty_wrapper = if data.length == 0 then Error.throw Empty_Error else _
+    empty_map s = if s == Count then 0 else Error.throw Empty_Error
+    empty_wrapper = if data.length == 0 then statistics.map empty_map else _
 
     empty_wrapper <|
         count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing

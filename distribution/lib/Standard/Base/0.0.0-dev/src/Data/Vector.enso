@@ -1166,5 +1166,5 @@ type Incomparable_Values_Error
 
 ## ADVANCED
 handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(_->Error.throw Incomparable_Values_Error)
+    handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
     handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function

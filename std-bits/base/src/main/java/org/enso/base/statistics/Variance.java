@@ -20,6 +20,6 @@ public class Variance implements Statistic {
   public double evaluate(long n, double[] sums) {
     return n < (population ? 1 : 2)
         ? Double.NaN
-        : (n * sums[1] - sums[0] * sums[0]) / (population ? n : n - 1);
+        : (sums[1] - sums[0] * sums[0] / n) / (population ? n : n - 1);
   }
 }

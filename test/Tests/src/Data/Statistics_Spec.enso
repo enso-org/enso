@@ -1,17 +1,73 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Statistics
+from Standard.Base.Data.Statistics import all
+
 import Standard.Test
 
-spec = <|
-    Test.group "Statistics single value core" <|
+spec =
+    number_set = [0.4, -18.56, -16.99, -16.43, -45.84, 13.44, -6.85, 9.68, -8.55, 10.87, 10.38, 33.85, -41.02, 1.87, -26.52, -13.87, -39.06, 25.92, -16.01, 42.01]
+    missing_set = number_set.map_with_index i->v->(if i % 5 == 4 then Nothing else v)
+    with_nans_set = number_set.map_with_index i->v->(if i % 5 == 4 then (if i % 10 == 9 then Number.nan else Nothing) else v)
+    text_set = ["A", "B", Nothing, "D"]
+    
+    double_error = 0.000001
+
+    Test.group "Statistics:" <|
         Test.specify "Should be able to count valid values" <|
-            ``
+            number_set.compute . should_equal 20
+            missing_set.compute . should_equal 16
+            with_nans_set.compute . should_equal 16
+            text_set.compute . should_equal 3
 
-    Test.group "Statistics single value moment based" <|
+        Test.specify "Should be able to get minimum of maximum values" <|
+            number_set.compute Minimum . should_equal -45.84 epsilon=double_error
+            missing_set.compute Minimum . should_equal -41.02 epsilon=double_error
+            with_nans_set.compute Minimum . should_equal -41.02 epsilon=double_error
+            text_set.compute Minimum . should_equal "A"
+            number_set.compute Maximum . should_equal 42.01 epsilon=double_error
+            missing_set.compute Maximum . should_equal 33.85 epsilon=double_error
+            with_nans_set.compute Maximum . should_equal 33.85 epsilon=double_error
+            text_set.compute Maximum . should_equal "D"
 
-        Test.specify "text bytes" <|
-            "Lore".utf_8 . should_equal [76, 111, 114, 101]
+        Test.specify "Should be able to get sum of values" <|
+            number_set.compute Sum . should_equal -101.28 epsilon=double_error
+            missing_set.compute Sum . should_equal -81.8 epsilon=double_error
+            with_nans_set.compute Sum . should_equal -81.8 epsilon=double_error
 
-    Test.group "Statistic errors" <|
+        Test.specify "Should be able to get mean of values" <|
+            number_set.compute Mean . should_equal -5.064 epsilon=double_error
+            missing_set.compute Mean . should_equal -5.1125 epsilon=double_error
+            with_nans_set.compute Mean . should_equal -5.1125 epsilon=double_error
+
+        Test.specify "Should be able to get sample variance of values" <|
+            number_set.compute Variance . should_equal 582.0137832 epsilon=double_error
+            missing_set.compute Variance . should_equal 431.0218867 epsilon=double_error
+            with_nans_set.compute Variance . should_equal 431.0218867 epsilon=double_error
+
+        Test.specify "Should be able to get population variance of values" <|
+            number_set.compute (Variance True) . should_equal 552.913094 epsilon=double_error
+            missing_set.compute (Variance True) . should_equal 404.0830188 epsilon=double_error
+            with_nans_set.compute (Variance True) . should_equal 404.0830188 epsilon=double_error
+
+        Test.specify "Should be able to get population standard deviation of values" <|
+            number_set.compute Standard_Deviation . should_equal 24.12496183 epsilon=double_error
+            missing_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
+            with_nans_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
+
+        Test.specify "Should be able to get sample standard deviation of values" <|
+            number_set.compute (Standard_Deviation True) . should_equal 23.51410415 epsilon=double_error
+            missing_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
+            with_nans_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
+
+        Test.specify "Should be able to get sample skew of values" <|
+            number_set.compute Skew . should_equal 0.165086552 epsilon=double_error
+            missing_set.compute Skew . should_equal 0.084238123 epsilon=double_error
+            with_nans_set.compute Skew . should_equal 0.084238123 epsilon=double_error
+
+        Test.specify "Should be able to get population skew of values" <|
+            number_set.compute (Skew True) . should_equal 0.152437706 epsilon=double_error
+            missing_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
+            with_nans_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
 
 main = Test.Suite.run_main here.spec
