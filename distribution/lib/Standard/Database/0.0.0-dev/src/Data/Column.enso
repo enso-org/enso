@@ -114,7 +114,7 @@ type Column
        defaults to the current type if not provided.
     make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
     make_binary_op op_kind operand new_type=Nothing operand_type=Nothing =
-        actual_new_type = if new_type.is_nothing then this.sql_type else new_type
+        actual_new_type = new_type.if_nothing this.sql_type
         case operand of
             Column _ _ _ other_expr _ ->
                 case Helpers.check_integrity this operand of
@@ -124,7 +124,7 @@ type Column
                         new_expr = IR.Operation op_kind [this.expression, other_expr]
                         Column this.name this.connection actual_new_type new_expr this.context
             _ ->
-                actual_operand_type = if operand_type.is_nothing then this.sql_type else operand_type
+                actual_operand_type = operand_type.if_nothing this.sql_type
                 other = IR.make_constant actual_operand_type operand
                 new_expr = IR.Operation op_kind [this.expression, other]
                 Column this.name this.connection actual_new_type new_expr this.context
@@ -139,7 +139,7 @@ type Column
          operator.
     make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
     make_unary_op op_kind new_type=Nothing =
-        actual_new_type = if new_type.is_nothing then this.sql_type else new_type
+        actual_new_type = new_type.if_nothing this.sql_type
         new_expr = IR.Operation op_kind [this.expression]
         Column this.name this.connection actual_new_type new_expr this.context
 
@@ -605,7 +605,7 @@ type Aggregate_Column_Builder
    - new_type: The SQL type of the result column.
 make_aggregate : Column -> Text -> Text -> Sql_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
-    actual_new_type = if new_type.is_nothing then column.sql_type else new_type
+    actual_new_type = new_type.if_nothing column.sql_type
     expr = IR.Operation operation [column.expression]
     case Helpers.ensure_name_is_sane name_suffix of
         True ->

@@ -236,6 +236,15 @@ type Any
     is_nothing : Boolean
     is_nothing = False
 
+    ## If this is Nothing then returns `function`.
+
+       > Example
+         If the value "Hello" is nothing return "".
+
+             "Hello".if_nothing ""
+    if_nothing : Any
+    if_nothing ~_ = this
+
     ## Executes the provided handler on an error, or returns a non-error value
        unchanged.
 
