@@ -46,12 +46,12 @@ pub use list::List;
 ///
 /// The entries should not assume any padding - it will be granted by ListView itself. The Display
 /// Object position of this component is docked to the middle of left entry's boundary. It differs
-/// from usual behaviour of EnsoGl components, but makes the entries alignment much simpler.
+/// from usual behaviour of EnsoGl components, but makes the entries' alignment much simpler.
 ///
 /// This trait abstracts over model and its updating in order to support re-using shapes and gui
 /// components, so they are not deleted and created again. The ListView component does not create
 /// Entry object for each entry provided, and during scrolling, the instantiated objects will be
-/// reused: they position will be changed and they will be updated using `update` method.
+/// reused: they position will be changed, and they will be updated using `update` method.
 pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// The model of this entry. The entry should be a representation of data from the Model.
     /// For example, the entry being just a caption can have [`String`] as its model - the text to
@@ -75,6 +75,10 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
     /// in [`text::Area::add_to_scene_layer`] method.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
+
+    fn selected(&self) {}
+
+    fn deselected(&self) {}
 }
 
 
@@ -88,16 +92,16 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
-    display_object: display::object::Instance,
-    pub label:      text::Area,
-    text:           Rc<RefCell<String>>,
-    max_width_px:   Rc<Cell<f32>>,
+    display_object:  display::object::Instance,
+    pub label:       text::Area,
+    text:            frp::Source<String>,
+    max_width_px:    frp::Source<f32>,
     /// The `network` is public to allow extending it in components based on a [`Label`]. This
     /// should only be done for components that are small extensions of a Label, where creating a
     /// separate network for them would be an unnecessary overhead.
     /// Note: Networks extending this field will not outlive [`Label`].
-    pub network:    enso_frp::Network,
-    style_watch:    StyleWatchFrp,
+    pub network:     enso_frp::Network,
+    pub style_watch: StyleWatchFrp,
 }
 
 impl Label {
@@ -188,9 +192,9 @@ pub struct GlyphHighlightedLabel {
 
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
-    type Params = ();
+    type Params = <Label as Entry>::Params;
 
-    fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
+    fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");

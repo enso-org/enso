@@ -5,11 +5,13 @@ mod define_macro;
 use crate::icon::common_part::*;
 use crate::prelude::*;
 
+use crate::display;
+use crate::display::Scene;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::compound::path::path;
+use ensogl::display::Attribute;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
-
 
 
 // =================
@@ -45,6 +47,21 @@ pub struct UnknownIcon {
 }
 
 
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct AnyIcon {
+    #[derivative(Debug = "ignore")]
+    pub view:         Box<dyn display::Object>,
+    pub strong_color: DynamicParam<Attribute<Vector4>>,
+    pub weak_color:   DynamicParam<Attribute<Vector4>>,
+}
+
+impl display::Object for AnyIcon {
+    fn display_object(&self) -> &display::object::Instance<Scene> {
+        self.view.display_object()
+    }
+}
+
 
 // =============
 // === Icons ===
@@ -56,7 +73,7 @@ crate::define_icons! {
 pub mod star(Star) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let shape = FiveStar(7.0.px(),0.447);
             let shape = shape.fill(style.get_color(theme::favorites));
             shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -68,7 +85,7 @@ pub mod star(Star) {
 pub mod data_input(DataInput) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Border ===
 
@@ -88,7 +105,7 @@ pub mod data_input(DataInput) {
             // === Shape ===
 
             let shape = border + arrow;
-            let shape = shape.fill(style.get_color(strong_color));
+            let shape = shape.fill(strong_color);
             shape.shrink(SHRINK_AMOUNT.px()).into()
         }
     }
@@ -98,7 +115,7 @@ pub mod data_input(DataInput) {
 pub mod data_output(DataOutput) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Border ===
 
@@ -119,7 +136,7 @@ pub mod data_output(DataOutput) {
             // === Shape ===
 
             let shape = border + arrow;
-            let shape = shape.fill(style.get_color(strong));
+            let shape = shape.fill(strong_color);
             shape.shrink(SHRINK_AMOUNT.px()).into()
         }
     }
@@ -129,7 +146,7 @@ pub mod data_output(DataOutput) {
 pub mod text_input(TextInput) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Border ===
 
@@ -170,7 +187,7 @@ pub mod text_input(TextInput) {
 pub mod number_input(NumberInput) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Border ===
 
@@ -226,7 +243,7 @@ pub mod number_input(NumberInput) {
 pub mod table_edit(TableEdit) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             // We need to create the table in two parts, left and right of the cursor to achieve the
             // right cell arangement.
             let left_table  = table(2,2).translate(((-8.0).px(),(-4.5).px()));
@@ -245,7 +262,7 @@ pub mod table_edit(TableEdit) {
 pub mod convert(Convert) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let upper_arrow = arrow(10.0,1.0,4.5,6.0).rotate((-PI/2.0).radians());
             let upper_arrow = upper_arrow.translate(((-8.0).px(),1.0.px()));
             let lower_arrow = arrow(10.0,1.0,4.5,6.0).rotate((PI/2.0).radians());
@@ -262,9 +279,9 @@ pub mod convert(Convert) {
 pub mod dataframe_clean(DataframeClean) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let table_color = weak_color;
-            let table       = table(2,3).translate(((-8.0).px(),(-6.5).px())).fill(table_color);
+            let table       = table(2,3).translate(((-8.0).px(),(-6.5).px())).fill(table_color.clone());
             let bottom_line = Rect((13.0.px(),1.0.px())).corners_radius(1.0.px()).fill(table_color);
             let bottom_line = bottom_line.translate_y((-6.0).px());
 
@@ -290,12 +307,12 @@ pub mod dataframe_clean(DataframeClean) {
 pub mod add_column(AddColumn) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let old_color = weak_color;
             let new_color = strong_color;
 
             let old_column = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(old_color);
-            let new_column = table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(new_color);
+            let new_column = table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(new_color.clone());
             let plus       = plus(5.0,1.0).fill(new_color).translate_x(5.0.px());
 
             let shape = old_column + new_column + plus;
@@ -309,12 +326,12 @@ pub mod add_column(AddColumn) {
 pub mod add_row(AddRow) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let old_color = weak_color;
             let new_color = strong_color;
 
             let old_row = table(3,1).translate(((-6.5).px(),3.0.px())).fill(old_color);
-            let new_row = table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(new_color);
+            let new_row = table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(new_color.clone());
             let plus = plus(5.0,1.0).fill(new_color).translate_y((-5.0).px());
 
             let shape = old_row + new_row + plus;
@@ -328,7 +345,7 @@ pub mod add_row(AddRow) {
 pub mod select_column(SelectColumn) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let unselected = table(2,3).translate(((-8.0).px(),(-6.5).px()));
             let unselected = unselected.fill(weak_color);
             let selected   = table(1,3).translate((3.0.px(),(-6.5).px()));
@@ -345,7 +362,7 @@ pub mod select_column(SelectColumn) {
 pub mod select_row(SelectRow) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let unselected = table(3,2).translate(((-6.5).px(),(-1.0).px()));
             let unselected = unselected.fill(weak_color);
             let selected   = table(3,1).translate(((-6.5).px(),(-8.0).px()));
@@ -362,12 +379,12 @@ pub mod select_row(SelectRow) {
 pub mod dataframe_map_column(DataframeMapColumn) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let weak_color   = weak_color;
             let strong_color = strong_color;
 
             let weak_column   = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(weak_color);
-            let strong_column = table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(strong_color);
+            let strong_column = table(1,3).translate(((-4.0).px(),(-6.5).px())).fill(strong_color.clone());
             let lightning     = lightning_bolt().translate_x(5.25.px()).fill(strong_color);
 
             let shape = weak_column + strong_column + lightning;
@@ -381,12 +398,12 @@ pub mod dataframe_map_column(DataframeMapColumn) {
 pub mod dataframe_map_row(DataframeMapRow) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let weak_color   = weak_color;
             let strong_color = strong_color;
 
             let weak_row   = table(3,1).translate(((-6.5).px(),3.0.px())).fill(weak_color);
-            let strong_row = table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(strong_color);
+            let strong_row = table(3,1).translate(((-6.5).px(),(-1.0).px())).fill(strong_color.clone());
             let lightning  = lightning_bolt().rotate((PI/2.0).radians());
             let lightning  = lightning.translate_y((-5.25).px()).fill(strong_color);
 
@@ -401,11 +418,11 @@ pub mod dataframe_map_row(DataframeMapRow) {
 pub mod dataframes_join(DataframesJoin) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let column_color = weak_color;
             let plus_color   = strong_color;
 
-            let left_column  = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(column_color);
+            let left_column  = table(1,3).translate(((-8.0).px(),(-6.5).px())).fill(column_color.clone());
             let right_column = table(1,3).translate((3.0.px(),(-6.5).px())).fill(column_color);
             let plus         = plus(5.0,1.0).fill(plus_color);
 
@@ -420,11 +437,11 @@ pub mod dataframes_join(DataframesJoin) {
 pub mod dataframes_union(DataframesUnion) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let row_color  = weak_color;
             let plus_color = strong_color;
 
-            let top_row    = table(3,1).translate(((-6.5).px(),3.0.px())).fill(row_color);
+            let top_row    = table(3,1).translate(((-6.5).px(),3.0.px())).fill(row_color.clone());
             let bottom_row = table(3,1).translate(((-6.5).px(),(-8.0).px())).fill(row_color);
             let plus       = plus(5.0,1.0).fill(plus_color);
 
@@ -439,7 +456,7 @@ pub mod dataframes_union(DataframesUnion) {
 pub mod sigma(Sigma) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let shape = path(2.0,&[
                 ( 4.0 ,  4.0),
                 ( 4.0 ,  5.5),
@@ -461,7 +478,7 @@ pub mod sigma(Sigma) {
 pub mod split_text(SplitText) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Page border ===
 
@@ -509,7 +526,7 @@ pub mod split_text(SplitText) {
 pub mod data_science(DataScience) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let blue = style.get_color(theme::data_science::blue);
             let rect1 = Rect((4.0.px(),4.0.px())).translate(((-5.5).px(),3.0.px())).fill(blue);
             let rect2 = Rect((4.0.px(),4.0.px())).translate_y((-5.5).px()).fill(blue);
@@ -533,7 +550,7 @@ pub mod data_science(DataScience) {
 pub mod network(Network) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let circle = Circle(1.0.px())
                 .fill(style.get_color(theme::network::_0));
             let arc1 = RoundedArc((10.5/3.0*1.0).px(),(PI/2.0).radians(),1.5.px())
@@ -555,7 +572,7 @@ pub mod network(Network) {
 pub mod system(System) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
             let background = background.translate_y((-0.5).px());
             let background = background.fill(style.get_color(theme::system::background));
@@ -579,7 +596,7 @@ pub mod system(System) {
 pub mod libraries(Libraries) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let rect0 = Rect((6.5.px(),6.5.px())).corners_radius(1.0.px());
             let rect0 = rect0.fill(style.get_color(theme::libraries::_0));
             let rect0 = rect0.translate(((-3.75).px(),3.75.px()));
@@ -607,7 +624,7 @@ pub mod libraries(Libraries) {
 pub mod marketplace(Marketplace) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let plus = plus(6.5,1.5);
             let plus = plus.fill(style.get_color(theme::libraries::_0));
             let plus = plus.translate(((-3.75).px(),3.75.px()));
@@ -636,7 +653,7 @@ pub mod marketplace(Marketplace) {
 pub mod io(IO) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let half_arrow = arrow(14.0,5.0,7.0,11.0).rotate((PI/2.0).radians()) - HalfPlane();
             let upper      = half_arrow.translate((7.0.px(),0.5.px()));
             let lower      = half_arrow.rotate(PI.radians()).translate(((-7.0).px(),(-1.0).px()));
@@ -657,7 +674,7 @@ pub mod io(IO) {
 pub mod preparation(Preparation) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
 
             // === Outline ===
 
@@ -699,17 +716,17 @@ pub mod preparation(Preparation) {
 pub mod join(Join) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let left_circle   = Circle(5.0.px()).translate_x((-3.0).px());
             let right_circle  = Circle(5.0.px()).translate_x(3.0.px());
             let left_outline  = &left_circle - left_circle.shrink(0.5.px());
             let right_outline = &right_circle - right_circle.shrink(0.5.px());
             let intersection  = &left_circle * &right_circle;
 
-            let left_circle   = left_circle.fill(weak_color);
+            let left_circle   = left_circle.fill(weak_color.clone());
             let right_circle  = right_circle.fill(weak_color);
             let intersection  = intersection.fill(style.get_color(theme::join::medium));
-            let left_outline  = left_outline.fill(strong_color);
+            let left_outline  = left_outline.fill(strong_color.clone());
             let right_outline = right_outline.fill(strong_color);
 
             let shape = left_circle + right_circle + intersection + left_outline + right_outline;
@@ -724,7 +741,7 @@ pub mod join(Join) {
 pub mod text(Text) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let page = Rect((10.0.px(),14.0.px())).corners_radius(2.0.px());
             let page = page.translate_x((-2.0).px());
             let page = &page - page.shrink(1.0.px());
@@ -748,7 +765,7 @@ pub mod text(Text) {
 pub mod date_and_time(DateAndTime) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let circle = Circle(7.75.px());
             let circle = &circle - circle.shrink(1.0.px());
 
@@ -769,7 +786,7 @@ pub mod date_and_time(DateAndTime) {
 pub mod spatial(Spatial) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let circle   = Circle(4.5.px()).translate_y(3.5.px());
             let circle   = &circle - circle.shrink(2.0.px());
             let triangle = Triangle(7.0,5.75).rotate(PI.radians()).translate_y((-2.125).px());
@@ -794,7 +811,7 @@ pub mod spatial(Spatial) {
 pub mod predictive(Predictive) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let circle = Circle(5.5.px());
             let sphere = &circle - circle.shrink(1.0.px());
 
@@ -819,7 +836,7 @@ pub mod predictive(Predictive) {
 pub mod machine_learning(MachineLearning) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let body = Rect((10.0.px(),15.0.px()))
                 .corners_radiuses(5.0.px(),5.0.px(),2.0.px(),2.0.px())
                 .translate_y((-0.5).px());
@@ -846,7 +863,7 @@ pub mod machine_learning(MachineLearning) {
 pub mod computer_vision(ComputerVision) {
     ensogl::define_shape_system! {
         above = [crate::background, ensogl_list_view::background, ensogl_list_view::selection];
-        (style: Style, strong_color: Vector2, weak_color: Vector2) {
+        (style: Style, strong_color: Vector4, weak_color: Vector4) {
             let lens    = Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
             let outline = Circle(4.5.px()) - Circle(3.5.px());
             let outline = outline.fill(strong_color);

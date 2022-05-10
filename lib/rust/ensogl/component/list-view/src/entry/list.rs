@@ -19,8 +19,8 @@ use ensogl_core::display::style;
 /// A displayed entry in select component.
 ///
 /// The Display Object position of this component is docked to the middle of left entry's boundary.
-/// It differs from usual behaviour of EnsoGL components, but makes the entries alignment much
-/// simpler: In vast majority of cases we want to align list elements to the left.
+/// It differs from usual behaviour of EnsoGL components, but makes the entries' alignment much
+/// simpler: In the vast majority of cases we want to align list elements to the left.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "E:CloneRef")]
@@ -73,6 +73,7 @@ pub struct ListData<E, P> {
     entry_params:   Rc<RefCell<P>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
     label_layer:    Rc<Cell<LayerId>>,
+    selected_entry: Rc<Cell<Option<entry::Id>>>,
 }
 
 impl<E, P: Default> ListData<E, P> {
@@ -86,6 +87,7 @@ impl<E, P: Default> ListData<E, P> {
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
+        let selected_entry = default();
         Self {
             logger,
             app,
@@ -95,6 +97,7 @@ impl<E, P: Default> ListData<E, P> {
             entry_params,
             provider,
             label_layer,
+            selected_entry,
         }
     }
 }
@@ -228,6 +231,24 @@ impl<E: Entry> ListData<E, E::Params> {
     ) {
         self.entry_params.replace(params);
         self.recreate_entries_with_style_prefix(style_prefix);
+    }
+
+    pub fn entry_selected(&self, id: Option<entry::Id>) {
+        let previous_id = self.selected_entry.get();
+        if id != previous_id {
+            let entries = self.entries.borrow();
+            let previously_selected = previous_id
+                .and_then(|id| entries.iter().find(|entry| entry.id.get().contains(&id)));
+            let selected =
+                id.and_then(|id| entries.iter().find(|entry| entry.id.get().contains(&id)));
+            if let Some(entry) = previously_selected {
+                entry.entry.deselected();
+            }
+            if let Some(entry) = selected {
+                entry.entry.selected();
+            }
+            self.selected_entry.set(id);
+        }
     }
 
     /// Update displayed entries, giving new provider. New entries created by the function have

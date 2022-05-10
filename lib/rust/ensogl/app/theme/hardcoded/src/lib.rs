@@ -205,6 +205,7 @@ define_themes! { [light:0, dark:1]
                     icon_text_gap = 5.0, 5.0;
                     icon {
                         size = 16.0, 16.0;
+                        weak_color_intensity = 0.5, 0.5;
                     }
                 }
                 padding = 4.0, 4.0;

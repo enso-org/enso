@@ -71,16 +71,25 @@ macro_rules! define_icons {
         }
 
         impl Id {
-            pub fn create_shape(&self, logger: impl AnyLogger, size: Vector2) -> Box<dyn $crate::ensogl::display::Object> {
+            pub fn create_shape(&self, logger: impl AnyLogger, size: Vector2) -> $crate::icon::AnyIcon {
                 match self {
                     $(
                     Self::$variant => {
                         let view = $name::View::new(logger);
                         view.size.set(size);
-                        Box::new(view)
+                        let strong_color = view.strong_color.clone_ref();
+                        let weak_color = view.weak_color.clone_ref();
+                        let view = Box::new(view);
+                        $crate::icon::AnyIcon {view, strong_color, weak_color}
                     }
                     )*
                 }
+            }
+
+            pub fn for_each<F: FnMut(Self)>(mut f: F) {
+                $(
+                f(Self::$variant);
+                )*
             }
         }
 

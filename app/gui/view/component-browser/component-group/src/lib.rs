@@ -37,7 +37,7 @@ use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::traits::*;
 use ensogl::application::Application;
-use ensogl::data::color::Rgba;
+use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
 use ensogl_gui_component::component;
@@ -193,7 +193,8 @@ impl component::Frp<Model> for Frp {
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let bg_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
-        let entry_text_color = style.get_color(theme::entries::text::color);
+        let icon_weak_color_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
+        let entry_text_color = style.get_color(theme::entry::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
@@ -208,6 +209,12 @@ impl component::Frp<Model> for Frp {
             entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
             entry_color_sampler <- entry_color_with_intensity.sampler();
         }
+        let params = entry::Params {
+            text_color,
+            icon_weak_color,
+            icon_strong_color: main_color,
+            background_color,
+        };
         let params = entry::Params { color: entry_color_sampler };
         model.entries.set_entry_params_and_recreate_entries(params);
 

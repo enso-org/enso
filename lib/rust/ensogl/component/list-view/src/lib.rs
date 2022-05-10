@@ -515,6 +515,7 @@ where E::Model: Default
             jumped_below <- jump_target.on_change().filter(|t| matches!(t, JumpTarget::BelowAll));
             frp.source.tried_to_move_out_above <+ jumped_above.constant(());
             frp.source.tried_to_move_out_below <+ jumped_below.constant(());
+            eval frp.selected_entry((entry) model.entries.entry_selected(*entry));
 
 
             // === Chosen Entry ===
@@ -595,7 +596,7 @@ where E::Model: Default
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
             eval style_prefix ([model, style, style_watch](path) {
                 style.connect_with_prefix(&style_watch, &path.into());
-                model.entries.recreate_entries_with_style_prefix(path.into()));
+                model.entries.recreate_entries_with_style_prefix(path.into());
             });
             view_and_style <- all(view_info, style.padding, style.entry_padding, style_prefix);
             // This should go before handling mouse events to have proper checking of
