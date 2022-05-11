@@ -102,7 +102,7 @@ compute_bulk data statistics=[Count, Sum] =
 
    Arguments:
    - statistic: Statistic to calculate.
-Vector.Vector.compute : Vector -> Statistic -> Any
+Vector.Vector.compute : Statistic -> Any
 Vector.Vector.compute statistic=Count =
     this.compute_bulk [statistic] . first
 
@@ -111,6 +111,6 @@ Vector.Vector.compute statistic=Count =
 
    Arguments:
    - statistics: Set of statistics to calculate.
-Vector.Vector.compute_bulk : [Statistic] -> [Number]
+Vector.Vector.compute_bulk : [Statistic] -> [Any]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
     here.compute_bulk this statistics

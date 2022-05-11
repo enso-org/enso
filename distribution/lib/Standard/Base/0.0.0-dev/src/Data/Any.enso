@@ -242,7 +242,7 @@ type Any
          If the value "Hello" is nothing return "".
 
              "Hello".if_nothing ""
-    if_nothing : Any
+    if_nothing : Any -> Any
     if_nothing ~_ = this
 
     ## Executes the provided handler on an error, or returns a non-error value

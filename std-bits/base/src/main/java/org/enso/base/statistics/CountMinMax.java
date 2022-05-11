@@ -39,7 +39,7 @@ public class CountMinMax {
         try {
           minimum = min_function.apply(minimum, value);
           maximum = max_function.apply(maximum, value);
-        } catch (Exception e) {
+        } catch (ClassCastException e) {
           min_max_failed = true;
         }
       }

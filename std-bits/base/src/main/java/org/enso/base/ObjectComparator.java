@@ -1,5 +1,7 @@
 package org.enso.base;
 
+import org.graalvm.polyglot.PolyglotException;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -129,6 +131,10 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    return fallbackComparator.apply(thisValue, thatValue);
+    try {
+      return fallbackComparator.apply(thisValue, thatValue);
+    } catch (PolyglotException ensoError) {
+      throw new ClassCastException(ensoError.getMessage());
+    }
   }
 }
