@@ -39,6 +39,7 @@ public class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
+  @Builtin(pkg = "mutable", description = "Creates an uninitialized array of a given size.")
   public Array(long size) {
     this.items = new Object[(int) size];
   }

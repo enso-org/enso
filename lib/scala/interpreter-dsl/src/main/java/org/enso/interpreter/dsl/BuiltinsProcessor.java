@@ -34,7 +34,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
-        if (elt.getKind() == ElementKind.METHOD) {
+        if (elt.getKind() == ElementKind.METHOD || elt.getKind() == ElementKind.CONSTRUCTOR) {
           try {
             handleMethodElement(elt, roundEnv);
           } catch (Exception ioe) {
@@ -54,35 +54,51 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
   public void handleMethodElement(Element element, RoundEnvironment roundEnv) throws IOException {
     ExecutableElement method = (ExecutableElement) element;
-    String methodName = method.getSimpleName().toString();
     Element owner = element.getEnclosingElement();
     if (owner.getKind() == ElementKind.CLASS) {
       TypeElement tpeElement = (TypeElement) owner;
       PackageElement pkgElement = (PackageElement) tpeElement.getEnclosingElement();
       Builtin annotation = element.getAnnotation(Builtin.class);
-
+      boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
+      String methodName =
+              !annotation.name().isEmpty() ? annotation.name() :
+                      isConstructor ? "new" : method.getSimpleName().toString();
       String builtinPkg =
           annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
+      String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
       ClassName builtinMethodNode =
           new ClassName(
               builtinPkg,
-              methodName.substring(0, 1).toUpperCase() + methodName.substring(1) + "Node");
+              methodName.substring(0, 1).toUpperCase() + methodName.substring(1) + optConstrSuffix + "Node");
       ClassName ownerClass =
           new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
       JavaFileObject gen =
           processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
       MethodGenerator methodGen = new MethodGenerator(method);
       generateBuiltinMethodNode(
-          gen, methodGen, methodName, annotation.description(), builtinMethodNode, ownerClass);
+          gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
     }
   }
 
+  /**
+   * Generates a Java class for @BuiltinMethod Node.
+   *
+   * @param gen processor's generator
+   * @param mgen generator for `execute` method
+   * @param methodName target name of the BuiltingMethod (Snake-case)
+   * @param ownerMethodName the name of the annotated method
+   * @param description short description for the node
+   * @param builtinNode class name of the target node
+   * @param ownerClazz class name of the owner of the annotated method
+   * @throws IOException throws an exception when we cannot write the new class
+   */
   private void generateBuiltinMethodNode(
       JavaFileObject gen,
       MethodGenerator mgen,
       String methodName,
+      String ownerMethodName,
       String description,
       ClassName builtinNode,
       ClassName ownerClazz)
@@ -107,7 +123,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println("public class " + builtinNode.name() + " extends Node {");
       out.println();
 
-      for (String line : mgen.generateMethod(methodName, ownerClazz.name())) {
+      for (String line : mgen.generateMethod(ownerMethodName, ownerClazz.name())) {
         out.println("  " + line);
       }
 
@@ -128,6 +144,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
     private final String returnTpe;
     private final List<MethodParameter> params;
     private final boolean isStatic;
+    private final boolean isConstructor;
 
     public MethodGenerator(ExecutableElement method) {
       this(
@@ -135,13 +152,15 @@ public class BuiltinsProcessor extends AbstractProcessor {
           method.getParameters().stream()
               .map(v -> fromVariableElementToMethodParameter(v))
               .collect(Collectors.toList()),
-          method.getModifiers().contains(Modifier.STATIC));
+          method.getModifiers().contains(Modifier.STATIC),
+          method.getKind() == ElementKind.CONSTRUCTOR);
     }
 
-    private MethodGenerator(String returnTpe, List<MethodParameter> params, boolean isStatic) {
+    private MethodGenerator(String returnTpe, List<MethodParameter> params, boolean isStatic, boolean isConstructor) {
       this.returnTpe = returnTpe;
       this.params = params;
       this.isStatic = isStatic;
+      this.isConstructor = isConstructor;
     }
 
     public String[] generateMethod(String name, String owner) {
@@ -155,14 +174,21 @@ public class BuiltinsProcessor extends AbstractProcessor {
             ", "
                 + StringUtils.join(params.stream().map(x -> x.declaredParameter()).toArray(), ", ");
         paramsApplied =
-            ", " + StringUtils.join(params.stream().map(x -> x.name()).toArray(), ", ");
+            StringUtils.join(params.stream().map(x -> x.name()).toArray(), ", ");
       }
-      String thisParamTpe = isStatic ? "Object" : owner;
+      String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
+      String targetReturnTpe = isConstructor ? "Object" : returnTpe;
+      String body;
+      if (isConstructor) {
+        body = "  return new " + owner + "(" + paramsApplied + ");";
+      } else {
+        body = isStatic
+                ? "  return " + owner + "." + name + "(" + paramsApplied + ");"
+                : "  return _this." + name + "(" + paramsApplied + ");";
+      }
       return new String[] {
-        returnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {",
-        isStatic
-            ? "  return " + owner + "." + name + "(" + paramsApplied + ");"
-            : "  return _this." + name + "(" + paramsApplied + ");",
+        targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {",
+        body,
         "}"
       };
     }
