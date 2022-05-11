@@ -75,6 +75,31 @@ pub struct ListData<E, P> {
     label_layer:    Rc<Cell<LayerId>>,
 }
 
+impl<E, P: Default> ListData<E, P>
+{
+    /// Entry List View constructor.
+    pub fn new(parent: impl AnyLogger, app: &Application) -> Self {
+        let app = app.clone_ref();
+        let logger = Logger::new_sub(parent, "entry::List");
+        let entries = default();
+        let entries_range = Rc::new(CloneCell::new(default()..default()));
+        let entry_params = default();
+        let display_object = display::object::Instance::new(&logger);
+        let provider = default();
+        let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
+        Self {
+            logger,
+            app,
+            display_object,
+            entries,
+            entries_range,
+            entry_params,
+            provider,
+            label_layer,
+        }
+    }
+}
+
 impl<E, P> ListData<E, P>
 {
     /// The number of all entries in List, including not displayed.
@@ -126,28 +151,6 @@ impl<E, P> ListData<E, P>
 impl<E: Entry> ListData<E, E::Params>
 where E::Model: Default
 {
-    /// Entry List View constructor.
-    pub fn new(parent: impl AnyLogger, app: &Application) -> Self {
-        let app = app.clone_ref();
-        let logger = Logger::new_sub(parent, "entry::List");
-        let entries = default();
-        let entries_range = Rc::new(CloneCell::new(default()..default()));
-        let entry_params = default();
-        let display_object = display::object::Instance::new(&logger);
-        let provider = default();
-        let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
-        List {
-            logger,
-            app,
-            display_object,
-            entries,
-            entries_range,
-            entry_params,
-            provider,
-            label_layer,
-        }
-    }
-
     /// Update displayed entries to show the given range and limit their display width to at most
     /// `max_width_px`. Any newly created entries will use the styles located at the `style_prefix`
     /// path in the application's style sheet.
