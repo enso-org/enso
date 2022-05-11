@@ -3,11 +3,13 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
+import sbt.complete.DefaultParsers._
+import sbt.complete.Parser
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
-import java.nio.file.Paths
+
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -1784,6 +1786,44 @@ buildEngineDistribution := {
   )
   log.info(s"Engine package created at $root")
 }
+
+val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
+val allStdBits: Parser[String] = stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val buildStdLib = inputKey[Unit]("Build an individual standard library package")
+buildStdLib := Def.inputTaskDyn {
+  val cmd: String = allStdBits.parsed
+  val root: File = engineDistributionRoot.value
+  // Ensure that a complete distribution was built at least once.
+  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task defintion (sbt restriction).
+  if ((root / "manifest.yaml").exists) {
+    pkgStdLibInternal.toTask(cmd)
+  } else buildEngineDistribution
+}.evaluated
+
+lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
+pkgStdLibInternal := Def.inputTaskDyn {
+  val cmd             = allStdBits.parsed
+  val root            = engineDistributionRoot.value
+  val log: sbt.Logger = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
+  cmd match {
+    case "Base"       =>
+      (`std-base` / Compile / packageBin).value
+    case "Database"   =>
+      (`std-database` / Compile / packageBin).value
+    case "Google_Api" =>
+      (`std-google-api` / Compile / packageBin).value
+    case "Image"      =>
+      (`std-image` / Compile / packageBin).value
+    case "Table"      =>
+      (`std-table` / Compile / packageBin).value
+    case _            =>
+  }
+  StdBits.buildStdLibPackage(cmd, root, cacheFactory, log, defaultDevEnsoVersion)
+}.evaluated
+
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
