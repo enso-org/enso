@@ -46,10 +46,8 @@ public class Moments {
       return new double[0];
     }
 
-    // Get Order
     int order = Arrays.stream(statistics).mapToInt(s -> s == null ? 0 : s.order()).max().getAsInt();
 
-    // Compute
     long count = 0;
     double[] totals = new double[order];
     for (Double value : data) {
@@ -65,7 +63,6 @@ public class Moments {
       }
     }
 
-    // Create Stats
     final long _count = count;
     return Arrays.stream(statistics)
         .mapToDouble(s -> s == null ? Double.NaN : s.evaluate(_count, totals))
