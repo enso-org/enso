@@ -80,7 +80,9 @@ compute_bulk data statistics=[Count, Sum] =
                 Error.throw (Illegal_Argument_Error ("Can only compute " + v.to_text + " on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_invalid
 
-    empty_map s = if (s == Count) || (s == Sum) then 0 else Error.throw Empty_Error
+    empty_map s = if (s == Count) || (s == Sum) then 0 else
+        if (s == Minimum) || (s == Maximum) then Error.throw Empty_Error else
+            Number.nan
 
     if data.length == 0 then statistics.map empty_map else
         count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing

@@ -100,17 +100,19 @@ spec =
             values = number_set.compute_bulk stats
             values.map_with_index i->v->((expected.at i - v).abs < double_error) . any v->(v == True) . should_equal True
 
-        Test.specify "should be able to count valid values on empty Vector" <|
+        Test.specify "should be able to count and sum on empty Vector" <|
             [].compute . should_equal 0
+            [].compute Sum . should_equal 0
 
-        Test.specify "should fail with Empty_Error on other statistics for empty Vector" <|
+        Test.specify "should fail with Empty_Error for Minimuma and Maximum on empty Vector" <|
             [].compute Minimum . should_fail_with Vector.Empty_Error
             [].compute Maximum . should_fail_with Vector.Empty_Error
-            [].compute Sum . should_fail_with Vector.Empty_Error
-            [].compute Mean . should_fail_with Vector.Empty_Error
-            [].compute Variance . should_fail_with Vector.Empty_Error
-            [].compute Skew . should_fail_with Vector.Empty_Error
-            [].compute Kurtosis . should_fail_with Vector.Empty_Error
+
+        Test.specify "should be NaN for other statistics  sum on empty Vector" <|
+            [].compute Mean . is_nan . should_equal True
+            [].compute Variance . is_nan . should_equal True
+            [].compute Skew . is_nan . should_equal True
+            [].compute Kurtosis . is_nan . should_equal True
 
         Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
             text_set.compute Sum . should_fail_with Illegal_Argument_Error
