@@ -94,6 +94,9 @@ pub struct Label {
     pub label:      text::Area,
     text:           Rc<RefCell<String>>,
     max_width_px:   Rc<Cell<f32>>,
+    /// The `network` is public to allow extending it in components based on a [`Label`]. This
+    /// should only be done for components that are small extensions of a Label, where creating a
+    /// separate network for them would be an unnecessary overhead.
     /// Note: Networks extending this field will not outlive [`Label`].
     pub network:    enso_frp::Network,
     style_watch:    StyleWatchFrp,
