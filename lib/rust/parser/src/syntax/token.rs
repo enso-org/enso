@@ -13,9 +13,11 @@ use enso_shapely_macros::tagged_enum;
 // === Token ===
 // =============
 
+pub type Lexeme<'s, T> = source::With<'s, span::With<T>>;
+
 /// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
 /// parsing pipeline.
-pub type Token<'s> = source::With<'s, span::With<Type>>;
+pub type Token<'s> = Lexeme<'s, Type>;
 
 
 

@@ -74,19 +74,19 @@ impl Span {
         With { span: self, elem }
     }
 
-    /// Extend the span to cover the other span. Please note that the [`other`] span position has to
-    /// be bigger than self's one. This condition is not checked.
-    pub fn extend_to(&mut self, other: impl Into<Span>) {
-        panic!()
-        // let other = other.into();
-        // self.len = other.start + other.len - self.start;
-    }
-
-    /// Consuming version of [`extend_to`].
-    pub fn extended_to(mut self, other: impl Into<Span>) -> Self {
-        self.extend_to(other);
-        self
-    }
+    // /// Extend the span to cover the other span. Please note that the [`other`] span position has
+    // to /// be bigger than self's one. This condition is not checked.
+    // pub fn extend_to(&mut self, other: impl Into<Span>) {
+    //     panic!()
+    //     // let other = other.into();
+    //     // self.len = other.start + other.len - self.start;
+    // }
+    //
+    // /// Consuming version of [`extend_to`].
+    // pub fn extended_to(mut self, other: impl Into<Span>) -> Self {
+    //     self.extend_to(other);
+    //     self
+    // }
 
     /// Split the span at the provided byte offset. The offset is counted from the span [`start`]
     /// position, which does not include the [`left_offset`]. It means that evaluating
@@ -183,17 +183,17 @@ impl<T> With<T> {
         left_span
     }
 
-    /// Extend the span to cover the other span. Please note that the [`other`] span position has to
-    /// be bigger than self's one. This condition is not checked.
-    pub fn extend_to<S>(&mut self, other: &With<S>) {
-        self.span.extended_to(other.span);
-    }
-
-    /// Consuming version of [`extend_to`].
-    pub fn extended_to<S>(mut self, other: &With<S>) -> Self {
-        self.extend_to(other);
-        self
-    }
+    // /// Extend the span to cover the other span. Please note that the [`other`] span position has
+    // to /// be bigger than self's one. This condition is not checked.
+    // pub fn extend_to<S>(&mut self, other: &With<S>) {
+    //     self.span.extended_to(other.span);
+    // }
+    //
+    // /// Consuming version of [`extend_to`].
+    // pub fn extended_to<S>(mut self, other: &With<S>) -> Self {
+    //     self.extend_to(other);
+    //     self
+    // }
 
     pub fn split_at(&self, offset: Bytes) -> (With<()>, With<()>) {
         let (left, right) = self.span.split_at(offset);

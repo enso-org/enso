@@ -8,6 +8,7 @@ use crate::source;
 use crate::source::span;
 use crate::source::span::VisibleOffset;
 use crate::syntax::token;
+use crate::syntax::token::Lexeme;
 use crate::syntax::token::Token;
 
 use bumpalo::Bump;
@@ -194,50 +195,30 @@ impl<'s> Lexer<'s> {
         }
     }
 
-    // /// Get the representation of the provided element. The element has to know its span (start
-    // and /// ens position).
-    // #[inline(always)]
-    // pub fn repr<'t, T: 't>(&'t self, element: T) -> &str
-    // where source::With<'s, T>: HasRepr<'s> {
-    //     source::With::new(&self.input, element).repr()
-    // }
-
-    /// Run the provided function. If it consumed any chars, returns the output of the function and
-    /// the span of the consumed tokens. Returns [`None`] otherwise.
+    /// Run the provided function and compute how much input it consumed.
     #[inline(always)]
-    pub fn token<T>(
-        &mut self,
-        f: impl FnOnce(&mut Self) -> T,
-    ) -> Option<source::With<'s, span::With<T>>> {
+    pub fn run_and_get_offset<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, Bytes) {
         let start = self.current_offset;
-        let (elem, len) = self.run_and_check_offset(f);
-        (len > Bytes::from(0)).as_some_from(|| {
-            let repr = self.input.slice(start..start + len);
-            self.token_with_len_and_repr(len, repr, elem)
-        })
+        let out = f(self);
+        let len = self.current_offset - start;
+        (out, len)
     }
 
-    /// A zero-length token which is placed before currently consumed spaces, if any.
+    /// Run the provided function. If it consumed any chars, return the [`Lexeme`] containing the
+    /// provided function output. Returns [`None`] otherwise.
     #[inline(always)]
-    pub fn marker_token<T>(&mut self, elem: T) -> span::With<source::With<'s, T>> {
-        let left_offset = Bytes::from(0);
-        let left_visible_offset = VisibleOffset::from(0);
-        let start = self.current_offset - self.last_spaces_offset;
-        let len = Bytes::from(0);
-        let repr = self.input.slice(start..start + len);
-        let span = span::Span { left_visible_offset, left_offset, len };
-        let elem = source::With(repr, elem);
-        span::With { span, elem }
+    pub fn lexeme<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Lexeme<'s, T>> {
+        let start = self.current_offset;
+        let (elem, len) = self.run_and_get_offset(f);
+        (len > Bytes::from(0)).as_some_from(|| {
+            let repr = self.input.slice(start..start + len);
+            self.new_lexeme(len, repr, elem)
+        })
     }
 
     /// Token constructor with explicit start and len values.
     #[inline(always)]
-    fn token_with_len_and_repr<T>(
-        &mut self,
-        len: Bytes,
-        repr: &'s str,
-        elem: T,
-    ) -> source::With<'s, span::With<T>> {
+    fn new_lexeme<T>(&mut self, len: Bytes, repr: &'s str, elem: T) -> Lexeme<'s, T> {
         let left_offset = self.last_spaces_offset;
         let left_visible_offset = self.last_spaces_visible_offset;
         (self.last_spaces_visible_offset, self.last_spaces_offset) = self.spaces();
@@ -245,19 +226,24 @@ impl<'s> Lexer<'s> {
         source::With(repr, span::With { span, elem })
     }
 
-    /// Run the provided function and compute how much input it consumed.
+    /// A zero-length token which is placed before currently consumed spaces, if any.
     #[inline(always)]
-    pub fn run_and_check_offset<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, Bytes) {
-        let start = self.current_offset;
-        let out = f(self);
-        let len = self.current_offset - start;
-        (out, len)
+    pub fn marker_lexeme<T>(&mut self, elem: T) -> Lexeme<'s, T> {
+        let left_offset = Bytes::from(0);
+        let left_visible_offset = VisibleOffset::from(0);
+        let start = self.current_offset - self.last_spaces_offset;
+        let len = Bytes::from(0);
+        let repr = self.input.slice(start..start + len);
+        let span = span::Span { left_visible_offset, left_offset, len };
+        source::With(repr, span::With { span, elem })
     }
+
+
 
     /// Run the provided function and check if it consumed any input.
     #[inline(always)]
     pub fn try_running(&mut self, f: impl FnOnce(&mut Self)) -> bool {
-        let (_, offset) = self.run_and_check_offset(f);
+        let (_, offset) = self.run_and_get_offset(f);
         offset > Bytes::from(0)
     }
 
@@ -525,7 +511,7 @@ impl token::Type {
 impl<'s> Lexer<'s> {
     /// Parse an identifier.
     fn ident(&mut self) {
-        if let Some(tok) = self.token(|this| this.take_while_1(is_ident_char)) {
+        if let Some(tok) = self.lexeme(|this| this.take_while_1(is_ident_char)) {
             let repr = tok.code;
             let tok = tok.with_elem(token::Type::to_ident_unchecked(repr));
             self.submit_token(source::With(repr, tok));
@@ -542,7 +528,7 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse an operator.
     fn operator(&mut self) {
-        let tok = self.token(|this| {
+        let tok = self.lexeme(|this| {
             if let Some(current) = this.current_char {
                 match current {
                     '.' => this.take_while_1('.'),
@@ -715,7 +701,7 @@ impl<'s> Lexer<'s> {
 //             let next_line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
 //             if !next_line_empty {
 //                 if block_indent > self.current_block_indent {
-//                     let block_start = self.marker_token(token::Type::block_start());
+//                     let block_start = self.marker_lexeme(token::Type::block_start());
 //                     self.submit_token(block_start);
 //                     self.push_block_indent(block_indent);
 //                 } else {
