@@ -117,6 +117,7 @@
 - [Implemented a basic reader for the `Delimited` file format.][3424]
 - [Implemented a reader for the `Excel` file format.][3425]
 - [Added custom encoding support to the `Delimited` file format reader.][3430]
+- [Implemented `compute` method on `Vector` for statistics calculations.][3442]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -181,6 +182,7 @@
 [3424]: https://github.com/enso-org/enso/pull/3424
 [3425]: https://github.com/enso-org/enso/pull/3425
 [3430]: https://github.com/enso-org/enso/pull/3430
+[3442]: https://github.com/enso-org/enso/pull/3442
 
 #### Enso Compiler
 
