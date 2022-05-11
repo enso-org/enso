@@ -960,7 +960,7 @@ type Vector
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        recovered = Panic.recover Any
+        here.handle_incomparable_value <|
             builder = here.new_builder
             this.fold Map.empty existing->
                 item->
@@ -969,12 +969,6 @@ type Vector
                         builder.append item
                         existing.insert key True
             builder.to_vector
-
-        recovered.map_error e-> case e of
-            No_Such_Method_Error _ _ -> Incomparable_Values_Error
-            Unsupported_Argument_Types _ -> Incomparable_Values_Error
-            Type_Error _ _ _ -> Incomparable_Values_Error
-            _ -> Panic.throw e
 
 
     ## UNSTABLE
@@ -1169,3 +1163,10 @@ type Partition_Accumulator true_builder false_builder ix
    An error indicating that the vector contains incomparable types.
 
 type Incomparable_Values_Error
+
+## ADVANCED
+   Catches possible errors from comparing values and throws an
+   Incomparable_Values_Error if any occur.
+handle_incomparable_value ~function =
+    handle t = Panic.catch t handler=(Error.throw Incomparable_Values_Error)
+    handle No_Such_Method_Error <| handle Type_Error <| handle Unsupported_Argument_Types <| function
