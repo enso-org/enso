@@ -1447,6 +1447,7 @@ struct NodeCreationContext<'a> {
 }
 
 impl GraphEditorModelWithNetwork {
+    #[profile(Objective)]
     fn create_node(
         &self,
         ctx: &NodeCreationContext,

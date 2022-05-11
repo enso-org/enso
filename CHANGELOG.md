@@ -116,6 +116,7 @@
 - [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
 - [Implemented a basic reader for the `Delimited` file format.][3424]
 - [Implemented a reader for the `Excel` file format.][3425]
+- [Added custom encoding support to the `Delimited` file format reader.][3430]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -179,6 +180,7 @@
 [3415]: https://github.com/enso-org/enso/pull/3415
 [3424]: https://github.com/enso-org/enso/pull/3424
 [3425]: https://github.com/enso-org/enso/pull/3425
+[3430]: https://github.com/enso-org/enso/pull/3430
 
 #### Enso Compiler
 
@@ -193,6 +195,7 @@
 - [Provide `tagValues` for function arguments in the language server][3422]
 - [Delay construction of Truffle nodes to speed initialization][3429]
 - [Frgaal compiler integration to allow for latest Java constructs][3421]
+- [Support for Chrome developer tools --inspect option][3432]
 - [Move Builtin Types and Methods definitions to stdlib][3363]
 - [Reduce boilerplate by generating BuiltinMethod nodes from simple method signatures][3444]
 
@@ -210,6 +213,7 @@
 [3422]: https://github.com/enso-org/enso/pull/3422
 [3429]: https://github.com/enso-org/enso/pull/3429
 [3421]: https://github.com/enso-org/enso/pull/3421
+[3432]: https://github.com/enso-org/enso/pull/3432
 [3363]: https://github.com/enso-org/enso/pull/3363
 [3444]: https://github.com/enso-org/enso/pull/3444
 

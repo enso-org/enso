@@ -98,9 +98,13 @@ impl BackendService {
 #[derive(Clone, Debug, Default)]
 pub struct Startup {
     /// The configuration of connection to the backend service.
-    pub backend:      BackendService,
+    pub backend:       BackendService,
     /// The project name we want to open on startup.
-    pub project_name: Option<ProjectName>,
+    pub project_name:  Option<ProjectName>,
+    /// Whether to open directly to the project view, skipping the welcome screen.
+    pub initial_view:  InitialView,
+    /// Identifies the element to create the IDE's DOM nodes as children of.
+    pub dom_parent_id: Option<String>,
 }
 
 impl Startup {
@@ -108,6 +112,34 @@ impl Startup {
     pub fn from_web_arguments() -> FallibleResult<Startup> {
         let backend = BackendService::from_web_arguments(&ARGS)?;
         let project_name = ARGS.project.clone().map(Into::into);
-        Ok(Startup { backend, project_name })
+        let initial_view = match ARGS.project {
+            Some(_) => InitialView::Project,
+            None => InitialView::WelcomeScreen,
+        };
+        let dom_parent_id = None;
+        Ok(Startup { backend, project_name, initial_view, dom_parent_id })
     }
+
+    /// Identifies the element to create the IDE's DOM nodes as children of.
+    pub fn dom_parent_id(&self) -> &str {
+        // The main entry point requires that this matches the ID defined in `index.html`.
+        match &self.dom_parent_id {
+            Some(id) => id.as_ref(),
+            None => "root",
+        }
+    }
+}
+
+
+// === InitialView ===
+
+/// Identifies the view initially active on startup.
+#[derive(Clone, Copy, Debug, Derivative)]
+#[derivative(Default)]
+pub enum InitialView {
+    /// Start to the Welcome Screen.
+    #[derivative(Default)]
+    WelcomeScreen,
+    /// Start to the Project View.
+    Project,
 }
