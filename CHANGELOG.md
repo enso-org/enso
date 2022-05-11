@@ -197,7 +197,8 @@
 - [Frgaal compiler integration to allow for latest Java constructs][3421]
 - [Support for Chrome developer tools --inspect option][3432]
 - [Move Builtin Types and Methods definitions to stdlib][3363]
-- [Reduce boilerplate by generating BuiltinMethod nodes from simple method signatures][3444]
+- [Reduce boilerplate by generating BuiltinMethod nodes from simple method
+  signatures][3444]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248

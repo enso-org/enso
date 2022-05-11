@@ -89,7 +89,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       throws IOException {
     String ensoMethodName = methodName.replaceAll("([^_A-Z])([A-Z])", "$1_$2").toLowerCase();
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
-      out.println("package " + builtinNode.getPkgName() + ";");
+      out.println("package " + builtinNode.pkg() + ";");
       out.println();
       for (String importPkg : necessaryImports) {
         out.println("import " + importPkg + ";");
@@ -98,16 +98,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println();
       out.println(
           "@BuiltinMethod(type = \""
-              + ownerClazz.getName()
+              + ownerClazz.name()
               + "\", name = \""
               + ensoMethodName
               + "\", description = \""
               + description
               + "\")");
-      out.println("public class " + builtinNode.getName() + " extends Node {");
+      out.println("public class " + builtinNode.name() + " extends Node {");
       out.println();
 
-      for (String line : mgen.generateMethod(methodName, ownerClazz.name)) {
+      for (String line : mgen.generateMethod(methodName, ownerClazz.name())) {
         out.println("  " + line);
       }
 
@@ -155,7 +155,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
             ", "
                 + StringUtils.join(params.stream().map(x -> x.declaredParameter()).toArray(), ", ");
         paramsApplied =
-            ", " + StringUtils.join(params.stream().map(x -> x.getName()).toArray(), ", ");
+            ", " + StringUtils.join(params.stream().map(x -> x.name()).toArray(), ", ");
       }
       String thisParamTpe = isStatic ? "Object" : owner;
       return new String[] {
@@ -168,44 +168,17 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
   }
 
-  private class ClassName {
-    private final String name;
-    private final String pkgName;
-
-    private ClassName(Name pkgName, Name name) {
-      this(pkgName.toString(), name.toString());
-    }
-
-    private ClassName(String pkgName, String name) {
-      this.name = name;
-      this.pkgName = pkgName;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public String getPkgName() {
-      return pkgName;
+  private record ClassName(String pkg, String name) {
+    private ClassName(Name pkgName, Name nameSeq) {
+      this(pkgName.toString(), nameSeq.toString());
     }
 
     public String fullyQualifiedName() {
-      return pkgName + "." + name;
+      return pkg + "." + name;
     }
   }
 
-  private class MethodParameter {
-    public String getName() {
-      return name;
-    }
-
-    private final String name;
-    private final String tpe;
-
-    private MethodParameter(String name, String tpe) {
-      this.name = name;
-      this.tpe = tpe;
-    }
+  private record MethodParameter(String name, String tpe) {
 
     public String declaredParameter() {
       return tpe + " " + name;
