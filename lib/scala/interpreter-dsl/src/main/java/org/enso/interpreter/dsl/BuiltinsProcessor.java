@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  * processor and deliver a RootNode for the method.
  */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.Builtin")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
 public class BuiltinsProcessor extends AbstractProcessor {
 
@@ -207,5 +206,10 @@ public class BuiltinsProcessor extends AbstractProcessor {
     public String declaredParameter() {
       return tpe + " " + name;
     }
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
   }
 }

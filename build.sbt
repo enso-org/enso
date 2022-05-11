@@ -1171,7 +1171,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
-      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}",
     ),
     Test / fork := true,
     Test / envVars ++= distributionEnvironmentOverrides ++ Map("ENSO_TEST_DISABLE_IR_CACHE" -> "false"),
@@ -1184,7 +1184,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / javacOptions) ++= Seq(
       "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full

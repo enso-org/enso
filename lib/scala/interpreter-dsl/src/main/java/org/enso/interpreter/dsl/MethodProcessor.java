@@ -19,7 +19,6 @@ import org.openide.util.lookup.ServiceProvider;
  * metadata necessary for automatic builtin methods initialization.
  */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor {
 
@@ -472,5 +471,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
 
   private String capitalize(String name) {
     return name.substring(0, 1).toUpperCase() + name.substring(1);
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
   }
 }
