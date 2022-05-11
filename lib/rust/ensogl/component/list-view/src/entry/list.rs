@@ -148,6 +148,27 @@ impl<E, P> ListData<E, P>
     }
 }
 
+impl<E: Entry, P> ListData<E, P>
+{
+    /// Sets the scene layer where the labels will be placed.
+    pub fn set_label_layer(&self, label_layer: LayerId) {
+        let default_scene_layers = &self.app.display.default_scene.layers;
+        if let Some(layer) = default_scene_layers.get_sublayer(self.label_layer.get())
+        {
+            for entry in &*self.entries.borrow() {
+                entry.entry.set_label_layer(&layer);
+            }
+        } else {
+            error!(
+                self.logger,
+                "Cannot set layer {label_layer:?} for labels: the layer does not \
+                exist in the scene"
+            );
+        }
+        self.label_layer.set(label_layer);
+    }
+}
+
 impl<E: Entry> ListData<E, E::Params>
 where E::Model: Default
 {
@@ -249,24 +270,6 @@ where E::Model: Default
         }
         self.entries_range.set(range);
         self.provider.set(provider);
-    }
-
-    /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, label_layer: LayerId) {
-        if let Some(layer) =
-            self.app.display.default_scene.layers.get_sublayer(self.label_layer.get())
-        {
-            for entry in &*self.entries.borrow() {
-                entry.entry.set_label_layer(&layer);
-            }
-        } else {
-            error!(
-                self.logger,
-                "Cannot set layer {label_layer:?} for labels: the layer does not \
-                exist in the scene"
-            );
-        }
-        self.label_layer.set(label_layer);
     }
 
     fn create_new_entry(&self, style_prefix: &style::Path) -> DisplayedEntry<E> {
