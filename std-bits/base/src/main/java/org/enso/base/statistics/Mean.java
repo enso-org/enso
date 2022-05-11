@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public class Mean implements Statistic {
+public class Mean implements MomentStatistic {
   @Override
   public int order() {
     return 1;

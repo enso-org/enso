@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public class StandardDeviation implements Statistic {
+public class StandardDeviation implements MomentStatistic {
   private final Variance variance;
 
   public StandardDeviation(boolean population) {

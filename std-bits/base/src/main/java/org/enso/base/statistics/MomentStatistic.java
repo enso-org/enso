@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public interface Statistic {
+public interface MomentStatistic {
   /***
    * Maximum order needed to compute the statistic
    * @return Max order needed. 0 if only need the count.

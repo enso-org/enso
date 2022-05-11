@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public class Kurtosis implements Statistic {
+public class Kurtosis implements MomentStatistic {
   private final Variance variance;
 
   public Kurtosis() {

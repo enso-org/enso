@@ -8,7 +8,7 @@ polyglot java import org.enso.base.statistics.CountMinMax
 
 type Statistic
     ## PRIVATE
-       Convert the Enso Statistic into Java equivalent
+       Convert the Enso Statistic into Java equivalent.
     to_java : SingleValue
     to_java = case this of
         Sum -> Moments.SUM
@@ -19,37 +19,37 @@ type Statistic
         Kurtosis -> Moments.KURTOSIS
         _ -> Nothing
 
-    ## Count the number of non-Nothing values
+    ## Count the number of non-Nothing and non-NaN values.
     type Count
 
-    ## The minimum value
+    ## The minimum value.
     type Minimum
 
-    ## The maximum value
+    ## The maximum value.
     type Maximum
 
-    ## Sum the non-Nothing values
+    ## Sum the non-Nothing and non-NaN values.
     type Sum
 
-    ## The sample mean of the values
+    ## The sample mean of the values.
     type Mean
 
-    ## The variance of the values
+    ## The variance of the values.
        Arguments:
-       - population: specifies if data is a sample or the population
+       - population: specifies if data is a sample or the population.
     type Variance (population:Boolean=False)
 
-    ## The standard deviation of the values
+    ## The standard deviation of the values.
        Arguments:
-       - population: specifies if data is a sample or the population
+       - population: specifies if data is a sample or the population.
     type Standard_Deviation (population:Boolean=False)
 
-    ## The skewness of the values
+    ## The skewness of the values.
        Arguments:
-       - population: specifies if data is a sample or the population
+       - population: specifies if data is a sample or the population.
     type Skew (population:Boolean=False)
 
-    ## The sample kurtosis of the values
+    ## The sample kurtosis of the values.
     type Kurtosis
 
 ## Compute a single statistic on a vector like object.
@@ -80,7 +80,7 @@ compute_bulk data statistics=[Count, Sum] =
                 Error.throw (Illegal_Argument_Error ("Can only compute " + v.to_text + " on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_invalid
 
-    empty_map s = if s == Count then 0 else Error.throw Empty_Error
+    empty_map s = if (s == Count) || (s == Sum) then 0 else Error.throw Empty_Error
 
     if data.length == 0 then statistics.map empty_map else
         count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing

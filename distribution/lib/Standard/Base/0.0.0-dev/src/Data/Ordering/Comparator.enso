@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import Any, Ordering, Nothing, Vector
 
 polyglot java import org.enso.base.ObjectComparator
 
@@ -11,7 +11,7 @@ polyglot java import org.enso.base.ObjectComparator
      Otherwise can support a custom fallback comparator.
 new : Nothing | (Any->Any->Ordering)
 new custom_comparator=Nothing =
-    comparator_to_java cmp x y = cmp x y . to_sign
+    comparator_to_java cmp x y = Vector.handle_incomparable_value (cmp x y . to_sign)
 
     case custom_comparator of
         Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)

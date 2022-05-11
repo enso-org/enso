@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public class Sum implements Statistic {
+public class Sum implements MomentStatistic {
   @Override
   public int order() {
     return 1;

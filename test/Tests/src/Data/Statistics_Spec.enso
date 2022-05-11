@@ -1,4 +1,4 @@
-from Standard.Base import Nothing, Vector, Number, True, Illegal_Argument_Error
+from Standard.Base import Nothing, Vector, Number, True, Illegal_Argument_Error, False
 
 import Standard.Base.Data.Statistics
 from Standard.Base.Data.Statistics import all
@@ -10,7 +10,7 @@ import Standard.Test
 type Ord number
 
 Ord.compare_to : Ord -> Ordering
-Ord.compare_to that = this.number.compare_to that.number
+Ord.compare_to that = that.number.compare_to this.number
 
 type No_Ord number
 
@@ -121,12 +121,15 @@ spec =
 
         Test.specify "should be able to do Count, Minimum and Maximum on custom type with compare_to" <|
             ord_set.compute . should_equal 3
-            ord_set.compute Minimum . should_equal (Ord 2)
-            ord_set.compute Maximum . should_equal (Ord 10)
+            ord_set.compute Minimum . should_equal (Ord 10)
+            ord_set.compute Maximum . should_equal (Ord 2)
 
         Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
             no_ord_set.compute . should_equal 3
             no_ord_set.compute Minimum . should_fail_with Vector.Incomparable_Values_Error
             no_ord_set.compute Maximum . should_fail_with Vector.Incomparable_Values_Error
+
+        Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
+            [1, False].compute Minimum . should_fail_with Vector.Incomparable_Values_Error
 
 main = Test.Suite.run_main here.spec

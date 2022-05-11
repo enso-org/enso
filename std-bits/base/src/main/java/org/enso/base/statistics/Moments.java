@@ -8,31 +8,31 @@ import java.util.Arrays;
 public class Moments {
 
   /** Statistic to compute the total of the values. */
-  public static final Statistic SUM = new Sum();
+  public static final MomentStatistic SUM = new Sum();
 
   /** Statistic to compute the mean average of the values. */
-  public static final Statistic MEAN = new Mean();
+  public static final MomentStatistic MEAN = new Mean();
 
   /** Statistic to compute the sample variance of the values. */
-  public static final Statistic VARIANCE = new Variance(false);
+  public static final MomentStatistic VARIANCE = new Variance(false);
 
   /** Statistic to compute the population variance of the values. */
-  public static final Statistic VARIANCE_POPULATION = new Variance(true);
+  public static final MomentStatistic VARIANCE_POPULATION = new Variance(true);
 
   /** Statistic to compute the sample standard deviation of the values. */
-  public static final Statistic STANDARD_DEVIATION = new StandardDeviation(false);
+  public static final MomentStatistic STANDARD_DEVIATION = new StandardDeviation(false);
 
   /** Statistic to compute the population standard deviation of the values. */
-  public static final Statistic STANDARD_DEVIATION_POPULATION = new StandardDeviation(true);
+  public static final MomentStatistic STANDARD_DEVIATION_POPULATION = new StandardDeviation(true);
 
   /** Statistic to compute the sample skewness of the values. */
-  public static final Statistic SKEW = new Skew(false);
+  public static final MomentStatistic SKEW = new Skew(false);
 
   /** Statistic to compute the population skewness of the values. */
-  public static final Statistic SKEW_POPULATION = new Skew(true);
+  public static final MomentStatistic SKEW_POPULATION = new Skew(true);
 
   /** Statistic to compute the sample kurtosis of the values. */
-  public static final Statistic KURTOSIS = new Kurtosis();
+  public static final MomentStatistic KURTOSIS = new Kurtosis();
 
   /**
    * Compute a set of statistics on a data set.
@@ -41,7 +41,7 @@ public class Moments {
    * @param statistics set of statistics to compute.
    * @return computed statistics.
    */
-  public static double[] compute(Double[] data, Statistic[] statistics) {
+  public static double[] compute(Double[] data, MomentStatistic[] statistics) {
     if (statistics.length == 0) {
       return new double[0];
     }

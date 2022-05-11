@@ -1,6 +1,6 @@
 package org.enso.base.statistics;
 
-public class Skew implements Statistic {
+public class Skew implements MomentStatistic {
   private final Boolean population;
   private final StandardDeviation standardDeviation;
 

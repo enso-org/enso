@@ -23,7 +23,7 @@ public class CountMinMax {
   public CountMinMax(Stream<Object> values, Comparator<Object> objectComparator) {
     int count = 0;
 
-    boolean min_max_failed = false;
+    boolean comparatorFailed = false;
     Object minimum = null;
     Object maximum = null;
 
@@ -32,19 +32,19 @@ public class CountMinMax {
       Object value = iterator.next();
       count++;
 
-      if (!min_max_failed) {
+      if (!comparatorFailed) {
         try {
           minimum = minimum == null || objectComparator.compare(minimum, value) > 0 ? value : minimum;
           maximum = maximum == null || objectComparator.compare(maximum, value) < 0 ? value : maximum;
         } catch (ClassCastException e) {
-          min_max_failed = true;
+          comparatorFailed = true;
         }
       }
     }
 
     this.count = count;
-    this.comparatorError = min_max_failed;
-    this.minimum = min_max_failed ? null : minimum;
-    this.maximum = min_max_failed ? null : maximum;
+    this.comparatorError = comparatorFailed;
+    this.minimum = comparatorFailed ? null : minimum;
+    this.maximum = comparatorFailed ? null : maximum;
   }
 }

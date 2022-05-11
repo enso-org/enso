@@ -131,10 +131,6 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    try {
-      return fallbackComparator.apply(thisValue, thatValue);
-    } catch (PolyglotException ensoError) {
-      throw new ClassCastException(ensoError.getMessage());
-    }
+    return fallbackComparator.apply(thisValue, thatValue);
   }
 }
