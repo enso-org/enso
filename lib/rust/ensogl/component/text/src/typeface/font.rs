@@ -27,7 +27,7 @@ pub mod msdf;
 // =================
 
 /// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = embedded_fonts::DEFAULT_FAMILY.regular();
+pub const DEFAULT_FONT: &str = embedded_fonts::DefaultFamily::regular();
 
 
 
@@ -354,7 +354,7 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
-    const TEST_FONT_NAME: &str = embedded_fonts::DEFAULT_FAMILY.mono_bold();
+    const TEST_FONT_NAME: &str = embedded_fonts::DefaultFamily::mono_bold();
 
     fn create_test_font() -> Font {
         let embedded_fonts = EmbeddedFonts::create_and_fill();

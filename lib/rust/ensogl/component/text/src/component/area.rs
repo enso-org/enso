@@ -606,7 +606,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load(embedded_fonts::DEFAULT_FAMILY.mono());
+            let font = fonts.load(embedded_fonts::DefaultFamily::mono());
             let glyph_system = typeface::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))

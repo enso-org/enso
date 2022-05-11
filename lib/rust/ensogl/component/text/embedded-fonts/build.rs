@@ -51,7 +51,7 @@ mod deja_vu {
 
     use enso_build_utilities::GithubRelease;
     use ensogl_text_embedded_fonts_names::FontFamily;
-    use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
+    use ensogl_text_embedded_fonts_names::DejaVuSans;
     use std::path;
 
     pub const PACKAGE: GithubRelease<&str> = GithubRelease {
@@ -80,10 +80,10 @@ mod deja_vu {
     }
 
     pub const FONTS_TO_EXTRACT: &[&str] = &[
-        DEJA_VU_SANS.regular(),
-        DEJA_VU_SANS.bold(),
-        DEJA_VU_SANS.mono(),
-        DEJA_VU_SANS.mono_bold(),
+        DejaVuSans::regular(),
+        DejaVuSans::bold(),
+        DejaVuSans::mono(),
+        DejaVuSans::mono_bold(),
     ];
 
     pub fn extract_all_fonts(package_path: &path::Path) {

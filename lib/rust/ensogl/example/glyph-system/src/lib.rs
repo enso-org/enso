@@ -44,7 +44,7 @@ pub fn main() {
 
 fn init(world: &World) {
     let fonts = world.default_scene.extension::<font::Registry>();
-    let font = fonts.load(embedded_fonts::DEFAULT_FAMILY.regular());
+    let font = fonts.load(embedded_fonts::DefaultFamily::regular());
     let glyph_system = glyph::System::new(&world.default_scene, font);
     let height = 32.0;
     let color = color::Rgba::new(0.5, 0.0, 0.0, 1.0);

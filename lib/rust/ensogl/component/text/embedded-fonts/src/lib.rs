@@ -1,5 +1,5 @@
-//! Implementation of embedded fonts loading and a definition of the [`DEFAULT`] font family used
-//! in the app.
+//! Implementation of embedded fonts loading and a definition of the [`DefaultFamily`] used in the
+//! app.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -18,20 +18,15 @@ use enso_prelude::*;
 use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 
 
-// ===============
-// === Exports ===
-// ===============
+
+// ===========================
+// === Exports and Aliases ===
+// ===========================
 
 pub use embedded_fonts_names::FontFamily;
 
-
-
-// =================
-// === Constants ===
-// =================
-
 /// The default font family used in the app.
-pub const DEFAULT_FAMILY: embedded_fonts_names::DejaVuSans = embedded_fonts_names::DEJA_VU_SANS;
+pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
 
 
 
@@ -78,12 +73,12 @@ mod test {
     use crate::*;
 
     use ensogl_text_embedded_fonts_names::FontFamily;
-    use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
+    use ensogl_text_embedded_fonts_names::DejaVuSans;
 
     #[test]
     fn loading_embedded_fonts() {
         let fonts = EmbeddedFonts::create_and_fill();
-        let example_font = fonts.font_data_by_name.get(DEJA_VU_SANS.regular()).unwrap();
+        let example_font = fonts.font_data_by_name.get(DejaVuSans::regular()).unwrap();
 
         assert_eq!(0x00, example_font[0]);
         assert_eq!(0x01, example_font[1]);

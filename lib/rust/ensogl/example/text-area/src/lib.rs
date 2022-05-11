@@ -54,7 +54,7 @@ fn init(app: Application) {
     let zalgo = "Z̮̞̠͙͔ͅḀ̗̞͈̻̗Ḷ͙͎̯̹̞͓G̻O̭̗̮";
     let text = quote.to_string() + snowman + zalgo;
     area.set_content(text.clone() + "\n" + text.as_str());
-    area.set_font(embedded_fonts::DEFAULT_FAMILY.regular());
+    area.set_font(embedded_fonts::DefaultFamily::regular());
     area.focus();
     area.hover();
     area.set_cursor_at_end();
