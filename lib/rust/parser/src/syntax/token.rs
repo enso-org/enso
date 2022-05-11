@@ -15,7 +15,7 @@ use enso_shapely_macros::tagged_enum;
 
 /// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
 /// parsing pipeline.
-pub type Token = span::With<Type>;
+pub type Token<'s> = source::With<'s, span::With<Type>>;
 
 
 
@@ -55,36 +55,10 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     }
 }}}
 
-impl<'s> Debug for source::With<'s, &Type> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self.data, f)
-    }
-}
-
-macro_rules! generate_debug_impls {
-    (
-        $(#$enum_meta:tt)*
-        pub enum $enum:ident {
-            $(
-                $(#$variant_meta:tt)*
-                $variant:ident $({$($fields:tt)*})?
-            ),* $(,)?
-        }
-    ) => {
-        $(
-            impl<'s> Debug for source::With<'s, &$variant> {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    Debug::fmt(&self.data, f)
-                }
-            }
-        )*
-    };
-}
-
-macro_rules! define_token_type {
+macro_rules! identity {
     ($($ts:tt)*) => {
         $($ts)*
-        generate_debug_impls! { $($ts)* }
     };
 }
-with_token_definition!(define_token_type());
+
+with_token_definition!(identity());

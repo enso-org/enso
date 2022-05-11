@@ -237,6 +237,18 @@ impl<V, R> IntoUncheckedRawRange for std::ops::Range<UnitData<V, R>> {
     }
 }
 
+pub trait IntoUncheckedRawRangeFrom {
+    type InnerType;
+    fn into_unchecked_raw_range_from(self) -> std::ops::RangeFrom<Self::InnerType>;
+}
+
+impl<V, R> IntoUncheckedRawRangeFrom for std::ops::RangeFrom<UnitData<V, R>> {
+    type InnerType = R;
+    fn into_unchecked_raw_range_from(self) -> std::ops::RangeFrom<Self::InnerType> {
+        self.start.repr..
+    }
+}
+
 
 
 // ===============
@@ -779,13 +791,20 @@ impl From<usize> for Bytes {
 
 /// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
 #[allow(missing_docs)]
-pub trait BytesStrOps {
-    fn slice(&self, range: ops::Range<Bytes>) -> &str;
+pub trait BytesStrOps<Range> {
+    fn slice(&self, range: Range) -> &str;
 }
 
-impl BytesStrOps for str {
+impl BytesStrOps<ops::Range<Bytes>> for str {
     #[inline(always)]
     fn slice(&self, range: ops::Range<Bytes>) -> &str {
         &self[range.into_unchecked_raw_range()]
+    }
+}
+
+impl BytesStrOps<ops::RangeFrom<Bytes>> for str {
+    #[inline(always)]
+    fn slice(&self, range: ops::RangeFrom<Bytes>) -> &str {
+        &self[range.into_unchecked_raw_range_from()]
     }
 }

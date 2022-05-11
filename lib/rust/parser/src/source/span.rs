@@ -45,31 +45,28 @@ impl Display for VisibleOffset {
 pub struct Span {
     pub left_visible_offset: VisibleOffset,
     pub left_offset:         Bytes,
-    /// The start position of the span. Does not include the [`left_offset`]. Used mainly to fast
-    /// check the repr of the token in the input string.
-    pub start:               Bytes,
     pub len:                 Bytes,
 }
 
 impl Span {
     /// Constructor.
-    pub fn new_no_left_offset(start: Bytes, len: Bytes) -> Self {
+    pub fn new_no_left_offset(len: Bytes) -> Self {
         let left_visible_offset = VisibleOffset::from(0);
         let left_offset = Bytes::from(0);
-        Self { left_visible_offset, left_offset, start, len }
+        Self { left_visible_offset, left_offset, len }
     }
 
     /// Constructor.
-    pub fn new_no_left_offset_no_len(start: Bytes) -> Self {
+    pub fn new_no_left_offset_no_len() -> Self {
         let len = Bytes::from(0);
-        Self::new_no_left_offset(start, len)
+        Self::new_no_left_offset(len)
     }
 
-    /// Constructor.
-    pub fn new_no_left_offset_no_start(len: Bytes) -> Self {
-        let start = Bytes::from(0);
-        Self::new_no_left_offset(start, len)
-    }
+    // /// Constructor.
+    // pub fn new_no_left_offset_no_start(len: Bytes) -> Self {
+    //     let start = Bytes::from(0);
+    //     Self::new_no_left_offset(start, len)
+    // }
 
     /// Constructor of associated span value.
     #[inline(always)]
@@ -80,8 +77,9 @@ impl Span {
     /// Extend the span to cover the other span. Please note that the [`other`] span position has to
     /// be bigger than self's one. This condition is not checked.
     pub fn extend_to(&mut self, other: impl Into<Span>) {
-        let other = other.into();
-        self.len = other.start + other.len - self.start;
+        panic!()
+        // let other = other.into();
+        // self.len = other.start + other.len - self.start;
     }
 
     /// Consuming version of [`extend_to`].
@@ -98,16 +96,14 @@ impl Span {
         let left_span = {
             let left_visible_offset = self.left_visible_offset;
             let left_offset = self.left_offset;
-            let start = self.start;
             let len = self.len - offset;
-            Span { left_visible_offset, left_offset, start, len }
+            Span { left_visible_offset, left_offset, len }
         };
         let right_span = {
             let left_visible_offset = VisibleOffset::from(0);
             let left_offset = Bytes::from(0);
-            let start = self.start + offset;
             let len = self.len - offset;
-            Span { left_visible_offset, left_offset, start, len }
+            Span { left_visible_offset, left_offset, len }
         };
         (left_span, right_span)
     }
@@ -118,10 +114,10 @@ impl Span {
         self.split_at(Bytes::from(0))
     }
 
-    /// Slices the provided slice. The left spacing offset is not used.
-    pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
-        source.slice(self.start..self.start + self.len)
-    }
+    // /// Slices the provided slice. The left spacing offset is not used.
+    // pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
+    //     source.slice(self.start..self.start + self.len)
+    // }
 }
 
 impl AsRef<Span> for Span {
@@ -146,25 +142,22 @@ pub struct With<T> {
     pub span: Span,
 }
 
+pub fn With<T>(span: Span, elem: T) -> With<T> {
+    With { elem, span }
+}
+
 impl<T> With<T> {
     /// Constructor.
     #[inline(always)]
-    pub fn new_no_left_offset(start: Bytes, len: Bytes, elem: T) -> Self {
-        let span = Span::new_no_left_offset(start, len);
+    pub fn new_no_left_offset(len: Bytes, elem: T) -> Self {
+        let span = Span::new_no_left_offset(len);
         Self { span, elem }
     }
 
     /// Constructor.
     #[inline(always)]
-    pub fn new_no_left_offset_no_len(start: Bytes, elem: T) -> Self {
-        let span = Span::new_no_left_offset_no_len(start);
-        Self { span, elem }
-    }
-
-    /// Constructor.
-    #[inline(always)]
-    pub fn new_no_left_offset_no_start(len: Bytes, elem: T) -> Self {
-        let span = Span::new_no_left_offset_no_start(len);
+    pub fn new_no_left_offset_no_len(elem: T) -> Self {
+        let span = Span::new_no_left_offset_no_len();
         Self { span, elem }
     }
 
@@ -190,11 +183,6 @@ impl<T> With<T> {
         left_span
     }
 
-    /// Slice the provided source code. The left spacing offset is not used.
-    pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
-        self.span.source_slice(source)
-    }
-
     /// Extend the span to cover the other span. Please note that the [`other`] span position has to
     /// be bigger than self's one. This condition is not checked.
     pub fn extend_to<S>(&mut self, other: &With<S>) {
@@ -205,6 +193,11 @@ impl<T> With<T> {
     pub fn extended_to<S>(mut self, other: &With<S>) -> Self {
         self.extend_to(other);
         self
+    }
+
+    pub fn split_at(&self, offset: Bytes) -> (With<()>, With<()>) {
+        let (left, right) = self.span.split_at(offset);
+        (With(left, ()), With(right, ()))
     }
 }
 
@@ -228,7 +221,8 @@ impl<T> AsRef<With<T>> for With<T> {
 
 impl<T: Debug> Debug for With<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off:{}, len:{}] {:#?}", self.span.left_visible_offset, self.span.len, self.elem)
+        write!(f, "[off:{}, len:{}] ", self.span.left_visible_offset, self.span.len)?;
+        Debug::fmt(&self.elem, f)
     }
 }
 
