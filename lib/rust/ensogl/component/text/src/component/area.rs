@@ -32,7 +32,7 @@ use ensogl_core::DEPRECATED_Animation;
 #[cfg(target_arch = "wasm32")]
 use ensogl_text_embedded_fonts as embedded_fonts;
 #[cfg(target_arch = "wasm32")]
-use ensogl_text_embedded_fonts::FontDefinition;
+use ensogl_text_embedded_fonts::FontFamily;
 use std::ops::Not;
 
 
@@ -606,7 +606,7 @@ impl AreaModel {
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
-            let font = fonts.load(embedded_fonts::DEFAULT.mono());
+            let font = fonts.load(embedded_fonts::DEFAULT_FAMILY.mono());
             let glyph_system = typeface::glyph::System::new(&scene, font);
             display_object.add_child(&glyph_system);
             Rc::new(RefCell::new(glyph_system))

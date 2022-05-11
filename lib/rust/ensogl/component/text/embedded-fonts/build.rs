@@ -50,7 +50,7 @@ mod deja_vu {
     use crate::FillMapRsFile;
 
     use enso_build_utilities::GithubRelease;
-    use ensogl_text_embedded_fonts_names::FontDefinition;
+    use ensogl_text_embedded_fonts_names::FontFamily;
     use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
     use std::path;
 

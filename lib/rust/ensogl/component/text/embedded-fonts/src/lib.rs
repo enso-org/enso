@@ -1,4 +1,5 @@
-//! Implementation of embedded fonts loading.
+//! Implementation of embedded fonts loading and a definition of the [`DEFAULT`] font family used
+//! in the app.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -21,7 +22,7 @@ use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 // === Exports ===
 // ===============
 
-pub use embedded_fonts_names::FontDefinition;
+pub use embedded_fonts_names::FontFamily;
 
 
 
@@ -29,8 +30,8 @@ pub use embedded_fonts_names::FontDefinition;
 // === Constants ===
 // =================
 
-/// The default font used in the app.
-pub const DEFAULT: embedded_fonts_names::DejaVuSans = embedded_fonts_names::DEJA_VU_SANS;
+/// The default font family used in the app.
+pub const DEFAULT_FAMILY: embedded_fonts_names::DejaVuSans = embedded_fonts_names::DEJA_VU_SANS;
 
 
 
@@ -76,7 +77,7 @@ impl Debug for EmbeddedFonts {
 mod test {
     use crate::*;
 
-    use ensogl_text_embedded_fonts_names::FontDefinition;
+    use ensogl_text_embedded_fonts_names::FontFamily;
     use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
 
     #[test]

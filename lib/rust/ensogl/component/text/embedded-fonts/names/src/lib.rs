@@ -16,19 +16,40 @@
 
 
 
-pub trait FontDefinition {
+// =================
+// === Constants ===
+// =================
+
+/// An object of the DejaVuSans type. Creating an object here makes it possible to avoid creating
+/// temporary objects in the places where the methods need to be referenced.
+pub const DEJA_VU_SANS: DejaVuSans = Default::default();
+
+
+
+// ==================
+// === FontFamily ===
+// ==================
+
+/// Trait with methods returning names of fonts in a given font family.
+#[allow(missing_docs)]
+pub trait FontFamily {
     fn regular(&self) -> &'static str;
     fn bold(&self) -> &'static str;
     fn mono(&self) -> &'static str;
     fn mono_bold(&self) -> &'static str;
 }
 
+
+
+// ==================
+// === DejaVuSans ===
+// ==================
+
+/// A type with methods returning names of fonts in the DejaVuSans font family.
 #[derive(Copy, Clone, Debug)]
 pub struct DejaVuSans {}
 
-pub const DEJA_VU_SANS: DejaVuSans = DejaVuSans {};
-
-impl const FontDefinition for DejaVuSans {
+impl const FontFamily for DejaVuSans {
     fn regular(&self) -> &'static str {
         "DejaVuSans"
     }
@@ -40,5 +61,11 @@ impl const FontDefinition for DejaVuSans {
     }
     fn mono_bold(&self) -> &'static str {
         "DejaVuSansMono-Bold"
+    }
+}
+
+impl const Default for DejaVuSans {
+    fn default() -> Self {
+        Self {}
     }
 }

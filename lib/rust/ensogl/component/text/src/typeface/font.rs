@@ -7,7 +7,7 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFonts;
-use ensogl_text_embedded_fonts::FontDefinition;
+use ensogl_text_embedded_fonts::FontFamily;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -27,7 +27,7 @@ pub mod msdf;
 // =================
 
 /// Default font the app will revert to if a desired font could not be loaded.
-pub const DEFAULT_FONT: &str = embedded_fonts::DEFAULT.regular();
+pub const DEFAULT_FONT: &str = embedded_fonts::DEFAULT_FAMILY.regular();
 
 
 
@@ -350,11 +350,11 @@ mod tests {
 
     use ensogl_text_embedded_fonts;
     use ensogl_text_embedded_fonts::EmbeddedFonts;
-    use ensogl_text_embedded_fonts::FontDefinition;
+    use ensogl_text_embedded_fonts::FontFamily;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
-    const TEST_FONT_NAME: &str = embedded_fonts::DEFAULT.mono_bold();
+    const TEST_FONT_NAME: &str = embedded_fonts::DEFAULT_FAMILY.mono_bold();
 
     fn create_test_font() -> Font {
         let embedded_fonts = EmbeddedFonts::create_and_fill();

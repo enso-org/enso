@@ -221,7 +221,7 @@ mod tests {
     use super::*;
 
     use ensogl_text_embedded_fonts::EmbeddedFonts;
-    use ensogl_text_embedded_fonts_names::FontDefinition;
+    use ensogl_text_embedded_fonts_names::FontFamily;
     use ensogl_text_embedded_fonts_names::DEJA_VU_SANS;
     use nalgebra::Vector2;
     use wasm_bindgen_test::wasm_bindgen_test;

@@ -15,7 +15,7 @@
 
 use ensogl_core::prelude::ImString;
 use ensogl_text_embedded_fonts as embedded_fonts;
-use ensogl_text_embedded_fonts::FontDefinition;
+use ensogl_text_embedded_fonts::FontFamily;
 
 
 
@@ -185,7 +185,7 @@ define_themes! { [light:0, dark:1]
             component_group {
                 header {
                     text {
-                        font = embedded_fonts::DEFAULT.bold(), embedded_fonts::DEFAULT.bold();
+                        font = embedded_fonts::DEFAULT_FAMILY.bold(), embedded_fonts::DEFAULT_FAMILY.bold();
                         size = 12.0, 12.0;
                     }
                     height = 27.0, 27.0;
@@ -197,7 +197,7 @@ define_themes! { [light:0, dark:1]
                 }
                 entries {
                     text {
-                        font = embedded_fonts::DEFAULT.regular(), embedded_fonts::DEFAULT.regular();
+                        font = embedded_fonts::DEFAULT_FAMILY.regular(), embedded_fonts::DEFAULT_FAMILY.regular();
                         size = 12.0, 12.0;
                     }
                 }
@@ -548,7 +548,7 @@ define_themes! { [light:0, dark:1]
             text {
                 highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
-                font      = embedded_fonts::DEFAULT.mono(), embedded_fonts::DEFAULT.mono();
+                font      = embedded_fonts::DEFAULT_FAMILY.mono(), embedded_fonts::DEFAULT_FAMILY.mono();
                 size      = 12.0, 12.0;
             }
             highlight {
