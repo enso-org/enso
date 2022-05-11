@@ -23,7 +23,7 @@ use ensogl_text_embedded_fonts_names as embedded_fonts_names;
 // === Exports and Aliases ===
 // ===========================
 
-pub use embedded_fonts_names::FontFamily;
+pub use embedded_fonts_names::FontFamily as Family;
 
 /// The default font family used in the app.
 pub type DefaultFamily = embedded_fonts_names::DejaVuSans;
@@ -72,8 +72,8 @@ impl Debug for EmbeddedFonts {
 mod test {
     use crate::*;
 
-    use ensogl_text_embedded_fonts_names::FontFamily;
     use ensogl_text_embedded_fonts_names::DejaVuSans;
+    use ensogl_text_embedded_fonts_names::FontFamily;
 
     #[test]
     fn loading_embedded_fonts() {

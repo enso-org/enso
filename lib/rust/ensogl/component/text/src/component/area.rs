@@ -32,7 +32,7 @@ use ensogl_core::DEPRECATED_Animation;
 #[cfg(target_arch = "wasm32")]
 use ensogl_text_embedded_fonts as embedded_fonts;
 #[cfg(target_arch = "wasm32")]
-use ensogl_text_embedded_fonts::FontFamily;
+use ensogl_text_embedded_fonts::Family;
 use std::ops::Not;
 
 

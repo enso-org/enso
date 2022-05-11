@@ -14,8 +14,8 @@
 #![warn(missing_debug_implementations)]
 
 use ensogl_core::prelude::ImString;
-use ensogl_text_embedded_fonts::FontFamily;
 use ensogl_text_embedded_fonts::DefaultFamily as DefaultFontFamily;
+use ensogl_text_embedded_fonts::Family;
 
 
 

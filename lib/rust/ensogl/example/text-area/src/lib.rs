@@ -29,7 +29,7 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_text::style;
 use ensogl_text::Area;
 use ensogl_text_embedded_fonts as embedded_fonts;
-use ensogl_text_embedded_fonts::FontFamily;
+use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys::run_once_initialized;
 
 

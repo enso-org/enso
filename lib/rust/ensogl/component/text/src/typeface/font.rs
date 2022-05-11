@@ -7,7 +7,7 @@ use ensogl_core::display::scene;
 use ensogl_core::display::Scene;
 use ensogl_text_embedded_fonts as embedded_fonts;
 use ensogl_text_embedded_fonts::EmbeddedFonts;
-use ensogl_text_embedded_fonts::FontFamily;
+use ensogl_text_embedded_fonts::Family;
 use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
@@ -350,7 +350,7 @@ mod tests {
 
     use ensogl_text_embedded_fonts;
     use ensogl_text_embedded_fonts::EmbeddedFonts;
-    use ensogl_text_embedded_fonts::FontFamily;
+    use ensogl_text_embedded_fonts::Family;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
