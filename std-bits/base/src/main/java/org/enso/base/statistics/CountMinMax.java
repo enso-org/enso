@@ -21,9 +21,6 @@ public class CountMinMax {
   public final Object maximum;
 
   public CountMinMax(Stream<Object> values, Comparator<Object> objectComparator) {
-    BiFunction<Object, Object, Object> min_function = (current, value) -> current == null || objectComparator.compare(current, value) > 0 ? value : current;
-    BiFunction<Object, Object, Object> max_function = (current, value) -> current == null || objectComparator.compare(current, value) < 0 ? value : current;
-
     int count = 0;
 
     boolean min_max_failed = false;
@@ -37,8 +34,8 @@ public class CountMinMax {
 
       if (!min_max_failed) {
         try {
-          minimum = min_function.apply(minimum, value);
-          maximum = max_function.apply(maximum, value);
+          minimum = minimum == null || objectComparator.compare(minimum, value) > 0 ? value : minimum;
+          maximum = maximum == null || objectComparator.compare(maximum, value) < 0 ? value : maximum;
         } catch (ClassCastException e) {
           min_max_failed = true;
         }

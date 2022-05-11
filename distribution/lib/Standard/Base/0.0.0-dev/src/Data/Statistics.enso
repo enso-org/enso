@@ -81,9 +81,8 @@ compute_bulk data statistics=[Count, Sum] =
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_invalid
 
     empty_map s = if s == Count then 0 else Error.throw Empty_Error
-    empty_wrapper = if data.length == 0 then statistics.map empty_map else _
 
-    empty_wrapper <|
+    if data.length == 0 then statistics.map empty_map else
         count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing
         stats_array = if skip_java_stats then Nothing else
             handle_unsupported <| Moments.compute data.to_array java_stats.to_array

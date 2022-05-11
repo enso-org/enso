@@ -1,12 +1,19 @@
 package org.enso.base.statistics;
 
-public class StandardDeviation extends Variance {
+public class StandardDeviation implements Statistic {
+  private final Variance variance;
+
   public StandardDeviation(boolean population) {
-    super(population);
+    this.variance = new Variance(population);
+  }
+
+  @Override
+  public int order() {
+    return this.variance.order();
   }
 
   @Override
   public double evaluate(long n, double[] sums) {
-    return Math.sqrt(super.evaluate(n, sums));
+    return Math.sqrt(this.variance.evaluate(n, sums));
   }
 }

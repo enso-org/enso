@@ -236,7 +236,8 @@ type Any
     is_nothing : Boolean
     is_nothing = False
 
-    ## If this is Nothing then returns `function`.
+    ## UNSTABLE
+       If this is Nothing then returns `function`.
 
        > Example
          If the value "Hello" is nothing return "".
