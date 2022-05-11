@@ -20,7 +20,7 @@
 // === FontFamily ===
 // ==================
 
-/// Trait with methods returning names of fonts in a given font family.
+/// Trait with methods returning names of fonts in a font family.
 #[allow(missing_docs)]
 pub trait FontFamily {
     fn regular() -> &'static str;
