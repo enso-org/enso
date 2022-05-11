@@ -36,7 +36,7 @@ public class MinOrMax extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         try {
-          if (current == null || Integer.signum(objectComparator.compare(current, value)) == minOrMax) {
+          if (current == null || Integer.signum(objectComparator.compare(value, current)) == minOrMax) {
             current = value;
           }
         } catch (ClassCastException e) {
