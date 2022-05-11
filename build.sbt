@@ -1149,16 +1149,27 @@ val distributionEnvironmentOverrides = {
   )
 }
 
+/** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
+  * and still compile down to JDK 11
+  */
+lazy val frgaalJavaCompilerSetting = Seq(
+  Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
+  // This dependency is needed only so that developers don't download Frgaal manually.
+  // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+  // accessible from the non-meta build definition.
+  libraryDependencies +=  FrgaalJavaCompiler.frgaal
+)
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
+    frgaalJavaCompilerSetting,
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
-    Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
@@ -1182,10 +1193,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "eu.timepit"         %% "refined"               % refinedVersion,
      "junit" % "junit" % "4.12" % Test,
      "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
-      // This dependency is needed only so that developers don't download Frgaal manually.
-      // Sadly it cannot be placed under plugins either because meta dependencies are not easily
-      // accessible from the non-meta build definition.
-      FrgaalJavaCompiler.frgaal
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1606,6 +1613,7 @@ val `database-polyglot-root` =
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
@@ -1628,6 +1636,7 @@ lazy val `std-base` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
@@ -1635,7 +1644,8 @@ lazy val `std-table` = project
       "com.ibm.icu"         % "icu4j"             % icuVersion,
       "com.univocity"       % "univocity-parsers" % "2.9.0",
       "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1",
+      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1654,6 +1664,7 @@ lazy val `std-table` = project
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
@@ -1676,6 +1687,7 @@ lazy val `std-image` = project
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
@@ -1699,6 +1711,7 @@ lazy val `std-google-api` = project
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
