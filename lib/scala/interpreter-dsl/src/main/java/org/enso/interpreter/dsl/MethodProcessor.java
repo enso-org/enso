@@ -39,17 +39,26 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
         if (elt.getKind() == ElementKind.CLASS) {
-          handleTypeELement((TypeElement) elt, roundEnv);
+          try {
+            handleTypeELement((TypeElement) elt, roundEnv);
+          } catch (IOException e) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+          }
+
         } else {
-          throw new RuntimeException(
-              "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
+          processingEnv
+              .getMessager()
+              .printMessage(
+                  Diagnostic.Kind.ERROR,
+                  "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
         }
       }
     }
     return true;
   }
 
-  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv) {
+  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv)
+      throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()
             .filter(
@@ -75,23 +84,22 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
     if (!def.validate(processingEnv)) {
       return;
     }
-    try {
-      generateCode(def);
-      String tpe = def.getType().toLowerCase();
-      if (tpe.isEmpty()) {
-        throw new InternalError(
-            "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+    generateCode(def);
+    String tpe = def.getType().toLowerCase();
+    if (tpe.isEmpty()) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Diagnostic.Kind.ERROR,
+              "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+      return;
+    }
+    String fullClassName = def.getPackageName() + "." + def.getClassName();
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+    if (def.hasAliases()) {
+      for (String alias : def.aliases()) {
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
       }
-      String fullClassName = def.getPackageName() + "." + def.getClassName();
-      registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
-      if (def.hasAliases()) {
-        for (String alias : def.aliases()) {
-          registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
-        }
-      }
-
-    } catch (IOException e) {
-      e.printStackTrace();
     }
   }
 

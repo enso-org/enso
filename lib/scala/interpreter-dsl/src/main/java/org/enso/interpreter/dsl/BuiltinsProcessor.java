@@ -6,6 +6,7 @@ import org.openide.util.lookup.ServiceProvider;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
+import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -36,12 +37,15 @@ public class BuiltinsProcessor extends AbstractProcessor {
         if (elt.getKind() == ElementKind.METHOD) {
           try {
             handleMethodElement(elt, roundEnv);
-          } catch (IOException ioe) {
-            ioe.printStackTrace();
+          } catch (Exception ioe) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ioe.getMessage());
           }
         } else {
-          throw new RuntimeException(
-              "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
+          processingEnv
+              .getMessager()
+              .printMessage(
+                  Diagnostic.Kind.ERROR,
+                  "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
         }
       }
     }
