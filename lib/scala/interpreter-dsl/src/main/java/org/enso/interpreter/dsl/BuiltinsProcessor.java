@@ -179,7 +179,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   private record MethodParameter(String name, String tpe) {
-
     public String declaredParameter() {
       return tpe + " " + name;
     }
