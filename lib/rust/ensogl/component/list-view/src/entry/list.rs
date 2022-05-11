@@ -165,9 +165,7 @@ impl<E: Entry, P> ListData<E, P> {
     }
 }
 
-impl<E: Entry> ListData<E, E::Params>
-where E::Model: Default
-{
+impl<E: Entry> ListData<E, E::Params> {
     /// Update displayed entries to show the given range and limit their display width to at most
     /// `max_width_px`. Any newly created entries will use the styles located at the `style_prefix`
     /// path in the application's style sheet.
