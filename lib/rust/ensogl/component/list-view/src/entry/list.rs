@@ -149,8 +149,8 @@ impl<E, P> ListData<E, P> {
 impl<E: Entry, P> ListData<E, P> {
     /// Sets the scene layer where the labels will be placed.
     pub fn set_label_layer(&self, label_layer: LayerId) {
-        let default_scene_layers = &self.app.display.default_scene.layers;
-        if let Some(layer) = default_scene_layers.get_sublayer(self.label_layer.get()) {
+        let layers = &self.app.display.default_scene.layers;
+        if let Some(layer) = layers.get_sublayer(self.label_layer.get()) {
             for entry in &*self.entries.borrow() {
                 entry.entry.set_label_layer(&layer);
             }
