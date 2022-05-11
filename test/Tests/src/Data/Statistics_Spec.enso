@@ -117,7 +117,7 @@ spec =
             [].compute . should_equal 0
             [].compute Sum . should_equal 0
 
-        Test.specify "should fail with Empty_Error for Minimuma and Maximum on empty Vector" <|
+        Test.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
             [].compute Minimum . should_fail_with Vector.Empty_Error
             [].compute Maximum . should_fail_with Vector.Empty_Error
 
