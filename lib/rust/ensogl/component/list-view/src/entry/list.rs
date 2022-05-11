@@ -75,8 +75,7 @@ pub struct ListData<E, P> {
     label_layer:    Rc<Cell<LayerId>>,
 }
 
-impl<E, P: Default> ListData<E, P>
-{
+impl<E, P: Default> ListData<E, P> {
     /// Entry List View constructor.
     pub fn new(parent: impl AnyLogger, app: &Application) -> Self {
         let app = app.clone_ref();
@@ -100,8 +99,7 @@ impl<E, P: Default> ListData<E, P>
     }
 }
 
-impl<E, P> ListData<E, P>
-{
+impl<E, P> ListData<E, P> {
     /// The number of all entries in List, including not displayed.
     pub fn entry_count(&self) -> usize {
         self.provider.get().entry_count()
@@ -148,13 +146,11 @@ impl<E, P> ListData<E, P>
     }
 }
 
-impl<E: Entry, P> ListData<E, P>
-{
+impl<E: Entry, P> ListData<E, P> {
     /// Sets the scene layer where the labels will be placed.
     pub fn set_label_layer(&self, label_layer: LayerId) {
         let default_scene_layers = &self.app.display.default_scene.layers;
-        if let Some(layer) = default_scene_layers.get_sublayer(self.label_layer.get())
-        {
+        if let Some(layer) = default_scene_layers.get_sublayer(self.label_layer.get()) {
             for entry in &*self.entries.borrow() {
                 entry.entry.set_label_layer(&layer);
             }
