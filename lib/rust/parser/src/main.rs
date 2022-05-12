@@ -99,7 +99,7 @@
 #![warn(unused_qualifications)]
 
 
-use crate::prelude::*;
+// use crate::prelude::*;
 
 // use enso_data_structures::im_list;
 // use enso_data_structures::im_list::List;
@@ -117,8 +117,8 @@ pub mod macros;
 pub mod source;
 pub mod syntax;
 
-use lexer::Lexer;
-use syntax::token;
+// use lexer::Lexer;
+// use syntax::token;
 
 
 /// Popular utilities, imported by most modules of this crate.

@@ -1,9 +1,9 @@
 //! This module defines patterns Pattern used to validate incoming token stream against expected
 //! macro input.
 
-use crate::prelude::*;
-
-use crate::syntax;
+// use crate::prelude::*;
+//
+// use crate::syntax;
 
 //
 //

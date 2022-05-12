@@ -7,12 +7,15 @@
 //! and rules of how the result inference should be performed.
 
 use paste::paste;
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 
 
 /// Common traits for built-in units.
 pub mod traits {
+    pub use super::BytesCowOps;
+    pub use super::BytesOps;
     pub use super::BytesStrOps;
     pub use super::DurationNumberOps;
     pub use super::DurationOps;
@@ -226,25 +229,20 @@ where R: Copy
 /// Allows transmuting [`Range<UnitData<V,R>>`] to [`Range<R>`].
 #[allow(missing_docs)]
 pub trait IntoUncheckedRawRange {
-    type InnerType;
-    fn into_unchecked_raw_range(self) -> std::ops::Range<Self::InnerType>;
+    type Output;
+    fn into_unchecked_raw_range(self) -> Self::Output;
 }
 
-impl<V, R> IntoUncheckedRawRange for std::ops::Range<UnitData<V, R>> {
-    type InnerType = R;
-    fn into_unchecked_raw_range(self) -> std::ops::Range<Self::InnerType> {
+impl<V, R> IntoUncheckedRawRange for ops::Range<UnitData<V, R>> {
+    type Output = ops::Range<R>;
+    fn into_unchecked_raw_range(self) -> Self::Output {
         self.start.repr..self.end.repr
     }
 }
 
-pub trait IntoUncheckedRawRangeFrom {
-    type InnerType;
-    fn into_unchecked_raw_range_from(self) -> std::ops::RangeFrom<Self::InnerType>;
-}
-
-impl<V, R> IntoUncheckedRawRangeFrom for std::ops::RangeFrom<UnitData<V, R>> {
-    type InnerType = R;
-    fn into_unchecked_raw_range_from(self) -> std::ops::RangeFrom<Self::InnerType> {
+impl<V, R> IntoUncheckedRawRange for ops::RangeFrom<UnitData<V, R>> {
+    type Output = ops::RangeFrom<R>;
+    fn into_unchecked_raw_range(self) -> Self::Output {
         self.start.repr..
     }
 }
@@ -783,9 +781,41 @@ define_ops![
     usize * Bytes = Bytes,
 ];
 
+/// Constructor.
+#[allow(non_snake_case)]
+pub fn Bytes(size: usize) -> Bytes {
+    Bytes::from(size)
+}
+
 impl From<usize> for Bytes {
     fn from(t: usize) -> Self {
         Bytes::unchecked_from(t)
+    }
+}
+
+/// Additional methods for [`Bytes`].
+pub trait BytesOps {
+    /// Check whether this bytes value is zero.
+    fn is_zero(&self) -> bool;
+
+    /// Check whether this bytes value is positive.
+    fn is_positive(&self) -> bool;
+
+    /// Check whether this bytes value is negative.
+    fn is_negative(&self) -> bool;
+}
+
+impl BytesOps for Bytes {
+    fn is_zero(&self) -> bool {
+        *self == Bytes::from(0)
+    }
+
+    fn is_positive(&self) -> bool {
+        *self > Bytes::from(0)
+    }
+
+    fn is_negative(&self) -> bool {
+        *self < Bytes::from(0)
     }
 }
 
@@ -805,6 +835,30 @@ impl BytesStrOps<ops::Range<Bytes>> for str {
 impl BytesStrOps<ops::RangeFrom<Bytes>> for str {
     #[inline(always)]
     fn slice(&self, range: ops::RangeFrom<Bytes>) -> &str {
-        &self[range.into_unchecked_raw_range_from()]
+        &self[range.into_unchecked_raw_range()]
+    }
+}
+
+/// Methods of the [`Bytes`] unit as extensions for the [`Cow`] type.
+#[allow(missing_docs)]
+pub trait BytesCowOps<'t, Range> {
+    fn slice(&self, range: Range) -> Cow<'t, str>;
+}
+
+impl<'t> BytesCowOps<'t, ops::Range<Bytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::Range<Bytes>) -> Cow<'t, str> {
+        match self {
+            Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
+            Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
+        }
+    }
+}
+
+impl<'t> BytesCowOps<'t, ops::RangeFrom<Bytes>> for Cow<'t, str> {
+    fn slice(&self, range: ops::RangeFrom<Bytes>) -> Cow<'t, str> {
+        match self {
+            Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
+            Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
+        }
     }
 }
