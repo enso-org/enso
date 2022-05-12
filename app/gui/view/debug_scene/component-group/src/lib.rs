@@ -44,16 +44,6 @@ pub fn main() {
     });
 }
 
-fn make_number_picker(app: &Application, caption: &str) -> Leak<selector::NumberPicker> {
-    let slider = app.new_view::<selector::NumberPicker>();
-    slider.frp.allow_click_selection(true);
-    slider.frp.resize(Vector2(400.0, 30.0));
-    slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
-    slider.frp.set_caption(Some(caption.to_string()));
-    app.display.add_child(&slider);
-    Leak::new(slider)
-}
-
 
 
 // ====================
@@ -142,15 +132,25 @@ fn wide_component_group(app: &Application) -> component_group::wide::View {
     wide_component_group
 }
 
-fn slider(app: &Application) -> selector::NumberPicker {
+fn items_slider(app: &Application) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
     app.display.add_child(&slider);
     slider.frp.resize(Vector2(400.0, 50.0));
     slider.frp.allow_click_selection(true);
     slider.frp.set_bounds(Bounds::new(0.0, 15.0));
-    slider.set_position_y(250.0);
+    slider.set_position_y(-250.0);
     slider.frp.set_caption(Some("Items count:".to_string()));
     slider
+}
+
+fn make_number_picker(app: &Application, caption: &str) -> Leak<selector::NumberPicker> {
+    let slider = app.new_view::<selector::NumberPicker>();
+    app.display.add_child(&slider);
+    slider.frp.allow_click_selection(true);
+    slider.frp.resize(Vector2(400.0, 30.0));
+    slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
+    slider.frp.set_caption(Some(caption.to_string()));
+    Leak::new(slider)
 }
 
 
@@ -161,7 +161,7 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let slider = slider(app);
+    let items_slider = items_slider(app);
     let network = frp::Network::new("Component Group Debug Scene");
     let selection = create_selection();
     let selection_animation = Animation::<Vector2>::new(&network);
@@ -214,19 +214,19 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(25);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     frp::extend! { network
-        int_value <- slider.frp.output.value.map(|v| *v as usize);
+        int_value <- items_slider.frp.output.value.map(|v| *v as usize);
         eval int_value([component_group, wide_component_group](i) {
             mock_entries.set_count(*i);
             component_group.set_entries(model_provider.clone_ref());
             wide_component_group.set_entries(model_provider.clone_ref());
         });
     }
-    slider.frp.set_value(10.0);
+    items_slider.frp.set_value(10.0);
     // Select the bottom left entry at the start.
     let first_column = component_group::wide::ColumnId::new(0);
     wide_component_group.select_entry(first_column, 0);
 
-    std::mem::forget(slider);
+    std::mem::forget(items_slider);
     std::mem::forget(network);
     std::mem::forget(selection);
     std::mem::forget(component_group);
