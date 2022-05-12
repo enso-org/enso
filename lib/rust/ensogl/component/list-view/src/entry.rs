@@ -75,10 +75,6 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// handled in a special way, and is often in different layer than shapes. See TODO comment
     /// in [`text::Area::add_to_scene_layer`] method.
     fn set_label_layer(&self, label_layer: &display::scene::Layer);
-
-    fn selected(&self) {}
-
-    fn deselected(&self) {}
 }
 
 

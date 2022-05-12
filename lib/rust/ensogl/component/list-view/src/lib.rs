@@ -515,7 +515,6 @@ where E::Model: Default
             jumped_below <- jump_target.on_change().filter(|t| matches!(t, JumpTarget::BelowAll));
             frp.source.tried_to_move_out_above <+ jumped_above.constant(());
             frp.source.tried_to_move_out_below <+ jumped_below.constant(());
-            eval frp.selected_entry((entry) model.entries.entry_selected(*entry));
 
 
             // === Chosen Entry ===

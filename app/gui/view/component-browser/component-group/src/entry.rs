@@ -151,7 +151,6 @@ pub struct View {
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
     max_width_px:      frp::Source<f32>, // Refactoring Idea: make Entry API more frp-like.
-    is_selected:       frp::Source<bool>,
     icon_strong_color: frp::Sampler<color::Rgba>,
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
@@ -177,33 +176,25 @@ impl list_view::Entry for View {
         frp::extend! { network
             init <- source_();
             max_width_px <- source::<f32>();
-            is_selected <- source::<bool>();
             icon_text_gap <- all(&icon_text_gap, &init)._0();
             label_x_position <- icon_text_gap.map(|gap| ICON_SIZE + gap);
             label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
-            label_color <- all_with4(&init, &params.text_color, &params.background_color, &is_selected,
-                |(), text_color, bg_color, is_selected| if *is_selected {*bg_color} else {*text_color}
-            );
-            icon_strong_color <- all_with4(&init, &params.icon_strong_color, &params.background_color, &is_selected,
-                |(), icon_color, bg_color, is_selected| if *is_selected {*bg_color} else {*icon_color}
-            ).sampler();
-            icon_weak_color <- all_with4(&init, &params.icon_weak_color, &params.background_color, &is_selected,
-                |(), icon_color, bg_color, is_selected| if *is_selected {*bg_color} else {*icon_color}
-            ).sampler();
-            label.inner.label.set_color_all <+ label_color;
-            label.inner.label.set_default_color <+ label_color;
-            eval icon_strong_color ([icon](color)
+            label.inner.label.set_color_all <+ params.text_color;
+            label.inner.label.set_default_color <+ params.text_color;
+            eval params.icon_strong_color ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());
                 }
             );
-            eval icon_weak_color ([icon](color)
+            eval params.icon_weak_color ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.weak_color.set(color.into());
                 }
             );
+            icon_strong_color <- params.icon_strong_color.sampler();
+            icon_weak_color <- params.icon_weak_color.sampler();
         }
         init.emit(());
         Self {
@@ -211,7 +202,6 @@ impl list_view::Entry for View {
             display_object,
             icon,
             max_width_px,
-            is_selected,
             icon_strong_color,
             icon_weak_color,
             label,
@@ -238,14 +228,6 @@ impl list_view::Entry for View {
 
     fn set_label_layer(&self, label_layer: &Layer) {
         self.label.set_label_layer(label_layer)
-    }
-
-    fn selected(&self) {
-        self.is_selected.emit(true);
-    }
-
-    fn deselected(&self) {
-        self.is_selected.emit(false);
     }
 }
 

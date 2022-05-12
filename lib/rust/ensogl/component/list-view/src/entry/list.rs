@@ -233,24 +233,6 @@ impl<E: Entry> ListData<E, E::Params> {
         self.recreate_entries_with_style_prefix(style_prefix);
     }
 
-    pub fn entry_selected(&self, id: Option<entry::Id>) {
-        let previous_id = self.selected_entry.get();
-        if id != previous_id {
-            let entries = self.entries.borrow();
-            let previously_selected = previous_id
-                .and_then(|id| entries.iter().find(|entry| entry.id.get().contains(&id)));
-            let selected =
-                id.and_then(|id| entries.iter().find(|entry| entry.id.get().contains(&id)));
-            if let Some(entry) = previously_selected {
-                entry.entry.deselected();
-            }
-            if let Some(entry) = selected {
-                entry.entry.selected();
-            }
-            self.selected_entry.set(id);
-        }
-    }
-
     /// Update displayed entries, giving new provider. New entries created by the function have
     /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
     /// path.
