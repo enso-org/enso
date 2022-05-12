@@ -8,11 +8,13 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
+use crate::FrpNetworkProvider;
 use crate::Type;
 
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
+use enso_frp::stream::ValueProvider;
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -120,7 +122,7 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints_2! {
     Input {
         set_size                  (Vector2),
         set_hover                 (bool),
@@ -161,11 +163,12 @@ pub struct Model {
     port_count:     Cell<usize>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
-    frp:            FrpEndpoints,
+    frp:            Rc<api::Private>,
 }
 
 impl Model {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(logger: impl AnyLogger, app: &Application, frp: &Frp) -> Self {
         let logger = Logger::new_sub(&logger, "output_ports");
         let display_object = display::object::Instance::new(&logger);
@@ -177,7 +180,7 @@ impl Model {
         let port_count = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let frp = frp.output.clone_ref();
+        let frp = frp.private.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
@@ -196,6 +199,7 @@ impl Model {
         .init()
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
@@ -228,10 +232,12 @@ impl Model {
         ports
     }
 
+    #[profile(Debug)]
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
     }
 
+    #[profile(Debug)]
     fn set_label(&self, content: impl Into<String>) {
         let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
         self.label.set_content(str);
@@ -239,6 +245,7 @@ impl Model {
     }
 
     /// Update expression type for the particular `ast::Id`.
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
             if let Some(frp) = &port.frp {
@@ -249,6 +256,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -262,6 +270,7 @@ impl Model {
 
     /// Traverse all span tree nodes that are considered ports. In case of empty span tree, include
     /// its root as the port as well.
+    #[profile(Debug)]
     fn traverse_borrowed_expression(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -274,6 +283,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw_mut(
         &self,
         mut f: impl FnMut(bool, &mut PortRefMut, &mut PortLayerBuilder),
@@ -293,6 +303,7 @@ impl Model {
     }
 
     /// Traverse all span tree nodes that are considered ports.
+    #[profile(Debug)]
     fn traverse_borrowed_expression_raw(
         &self,
         mut f: impl FnMut(bool, &PortRef, &mut PortLayerBuilder),
@@ -318,6 +329,7 @@ impl Model {
         count
     }
 
+    #[profile(Debug)]
     fn set_size(&self, size: Vector2) {
         self.ports.set_position_x(size.x / 2.0);
         self.traverse_borrowed_expression_mut(|is_a_port, node, _| {
@@ -327,10 +339,12 @@ impl Model {
         })
     }
 
+    #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.set_label(expression.code());
     }
 
+    #[profile(Debug)]
     fn build_port_shapes_on_new_expression(&self) {
         let mut port_index = 0;
         let mut id_crumbs_map = HashMap::new();
@@ -359,19 +373,19 @@ impl Model {
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network
-                    self.frp.source.on_port_hover <+ port_frp.on_hover.map
+                    self.frp.output.on_port_hover <+ port_frp.on_hover.map
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
+                    self.frp.output.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
 
-                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
-                    self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
-                    self.frp.source.tooltip             <+ port_frp.tooltip;
-                    port_frp.set_view_mode              <+ self.frp.view_mode;
+                    port_frp.set_size_multiplier        <+ self.frp.output.port_size_multiplier;
+                    self.frp.output.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                    port_frp.set_type_label_visibility  <+ self.frp.output.type_label_visibility;
+                    self.frp.output.tooltip             <+ port_frp.tooltip;
+                    port_frp.set_view_mode              <+ self.frp.output.view_mode;
                 }
 
-                port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
-                port_frp.set_view_mode.emit(self.frp.view_mode.value());
+                port_frp.set_type_label_visibility.emit(self.frp.output.type_label_visibility.value());
+                port_frp.set_view_mode.emit(self.frp.output.view_mode.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -379,6 +393,7 @@ impl Model {
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
 
+    #[profile(Debug)]
     fn init_definition_types(&self) {
         let port_count = self.port_count.get();
         let whole_expr_type = self.expression.borrow().whole_expr_type.clone();
@@ -399,6 +414,7 @@ impl Model {
         }
     }
 
+    #[profile(Debug)]
     fn set_expression(&self, new_expression: impl Into<node::Expression>) {
         let new_expression = Expression::from(new_expression.into());
         if DEBUG {
@@ -452,7 +468,7 @@ impl Area {
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(logger, app, &frp));
-        let network = &frp.network;
+        let network = &frp.network();
         let label_color = color::Animation::new(network);
 
         let hysteretic_transition =
@@ -468,10 +484,10 @@ impl Area {
             hysteretic_transition.to_start <+ on_hover_in;
             hysteretic_transition.to_end   <+ on_hover_out;
 
-            frp.source.port_size_multiplier <+ hysteretic_transition.value;
+            frp.private.output.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
 
-            frp.source.type_label_visibility <+ frp.set_type_label_visibility;
+            frp.private.output.type_label_visibility <+ frp.set_type_label_visibility;
 
 
             // === Expression ===
@@ -482,12 +498,12 @@ impl Area {
 
             // === Label Color ===
 
-            port_hover                             <- frp.on_port_hover.map(|t| t.is_on());
-            frp.source.body_hover                  <+ frp.set_hover || port_hover;
+            port_hover                             <- frp.output.on_port_hover.map(|t| t.is_on());
+            frp.private.output.body_hover                  <+ frp.set_hover || port_hover;
             expr_vis                               <- frp.body_hover || frp.set_expression_visibility;
             in_normal_mode                         <- frp.set_view_mode.map(|m| m.is_normal());
             expr_vis                               <- expr_vis && in_normal_mode;
-            frp.source.expression_label_visibility <+ expr_vis;
+            frp.private.output.expression_label_visibility <+ expr_vis;
 
             let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));
             let label_vis_alpha = label_vis_color.alpha;
@@ -500,7 +516,7 @@ impl Area {
 
             // === View Mode ===
 
-            frp.source.view_mode <+ frp.set_view_mode;
+            frp.private.output.view_mode <+ frp.set_view_mode;
         }
 
         label_color.target_alpha(0.0);
