@@ -10,9 +10,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
+ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
-ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-text-msdf-sys = { path = "../../../../../lib/rust/ensogl/component/text/msdf-sys" }
 ide-view-component-group = { path = "../../component-browser/component-group" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

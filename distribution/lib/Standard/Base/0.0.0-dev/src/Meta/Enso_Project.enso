@@ -1,39 +1,49 @@
-from Standard.Base import all
+import Standard.Base.System.File
 
-import Standard.Builtins
+## Functionality for inspecting the current project.
+type Project_Description
 
-## Returns the root directory of the project.
+    ## A representation of an Enso project.
 
-   > Example
-     Get the root directory of the project.
+       Arguments:
+       - prim_root_file: The primitive root file of the project.
+       - prim_config: The primitive config of the project.
+    @Builtin_Type
+    type Project_Description prim_root_file prim_config
 
-         Enso_Project.root
-Builtins.Project_Description.root : File.File
-Builtins.Project_Description.root = File.new this.prim_root_file.getPath
 
-## Returns the root data directory of the project.
+    ## Returns the root directory of the project.
 
-   > Example
-     Get the data directory of the project.
+       > Example
+         Get the root directory of the project.
 
-         Enso_Project.data
-Builtins.Project_Description.data : File.File
-Builtins.Project_Description.data = this.root / "data"
+             Enso_Project.root
+    root : File.File
+    root = File.new this.prim_root_file.getPath
 
-## Returns the name of the project.
+    ## Returns the root data directory of the project.
 
-   > Example
-     Get the name of the project.
+       > Example
+         Get the data directory of the project.
 
-         Enso_Project.name
-Builtins.Project_Description.name : Text
-Builtins.Project_Description.name = this.prim_config.name
+             Enso_Project.data
+    data : File.File
+    data = this.root / "data"
 
-## Returns the namespace of the project.
+    ## Returns the name of the project.
 
-   > Example
-     Get the namespace of the project.
+       > Example
+         Get the name of the project.
 
-         Enso_Project.namespace
-Builtins.Project_Description.namespace : Text
-Builtins.Project_Description.namespace = this.prim_config.namespace
+             Enso_Project.name
+    name : Text
+    name = this.prim_config.name
+
+    ## Returns the namespace of the project.
+
+       > Example
+         Get the namespace of the project.
+
+             Enso_Project.namespace
+    namespace : Text
+    namespace = this.prim_config.namespace

@@ -4,70 +4,103 @@ import org.enso.interpreter.dsl.model.MethodDefinition;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.openide.util.lookup.ServiceProvider;
 
-/** The processor used to generate code from the {@link BuiltinMethod} annotation. */
+/**
+ * The processor used to generate code from the {@link BuiltinMethod} annotation and collect
+ * metadata necessary for automatic builtin methods initialization.
+ */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
-public class MethodProcessor extends AbstractProcessor {
+public class MethodProcessor extends BuiltinsMetadataProcessor {
+
+  private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
 
   /**
-   * Processes annotated elements, generating code for each of them.
+   * Processes annotated elements, generating code for each of them. The method also records
+   * information about builtin method in an internal map that will be dumped on the last round of
+   * processing.
    *
    * @param annotations annotation being processed this round.
    * @param roundEnv additional round information.
    * @return {@code true}
    */
   @Override
-  public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+  public boolean handleProcess(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
-        TypeElement element = (TypeElement) elt;
-        ExecutableElement executeMethod =
-            element.getEnclosedElements().stream()
-                .filter(
-                    x -> {
-                      if (!(x instanceof ExecutableElement)) return false;
-                      Name name = x.getSimpleName();
-                      return name.contentEquals("execute");
-                    })
-                .map(x -> (ExecutableElement) x)
-                .findFirst()
-                .orElseGet(
-                    () -> {
-                      processingEnv
-                          .getMessager()
-                          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
-                      return null;
-                    });
-        if (executeMethod == null) continue;
-        String pkgName =
-            processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
-        MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
-        if (!def.validate(processingEnv)) {
-          continue;
-        }
-        try {
-          generateCode(def);
-        } catch (IOException e) {
-          e.printStackTrace();
+        if (elt.getKind() == ElementKind.CLASS) {
+          try {
+            handleTypeELement((TypeElement) elt, roundEnv);
+          } catch (IOException e) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+          }
+
+        } else {
+          processingEnv
+              .getMessager()
+              .printMessage(
+                  Diagnostic.Kind.ERROR,
+                  "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
         }
       }
     }
-
     return true;
+  }
+
+  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv)
+      throws IOException {
+    ExecutableElement executeMethod =
+        element.getEnclosedElements().stream()
+            .filter(
+                x -> {
+                  if (!(x instanceof ExecutableElement)) return false;
+                  Name name = x.getSimpleName();
+                  return name.contentEquals("execute");
+                })
+            .map(x -> (ExecutableElement) x)
+            .findFirst()
+            .orElseGet(
+                () -> {
+                  processingEnv
+                      .getMessager()
+                      .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
+                  return null;
+                });
+    if (executeMethod == null) return;
+    String pkgName =
+        processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+
+    MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
+    if (!def.validate(processingEnv)) {
+      return;
+    }
+    generateCode(def);
+    String tpe = def.getType().toLowerCase();
+    if (tpe.isEmpty()) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Diagnostic.Kind.ERROR,
+              "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+      return;
+    }
+    String fullClassName = def.getPackageName() + "." + def.getClassName();
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+    if (def.hasAliases()) {
+      for (String alias : def.aliases()) {
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+      }
+    }
   }
 
   private final List<String> necessaryImports =
@@ -391,6 +424,47 @@ public class MethodProcessor extends AbstractProcessor {
     }
   }
 
+  /**
+   * Dumps the information about the collected builtin methods to {@link
+   * MethodProcessor#metadataPath()} resource file.
+   *
+   * <p>The format of a single row in the metadata file: <full name of the method>:<class name of
+   * the root node>
+   *
+   * @param writer a writer to the metadata resource
+   * @param pastEntries entries from the previously created metadata file, if any. Entries that
+   *     should not be appended to {@code writer} should be removed
+   * @throws IOException
+   */
+  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+    for (Filer f : builtinMethods.keySet()) {
+      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        if (pastEntries.containsKey(entry.getKey())) {
+          pastEntries.remove(entry.getKey());
+        }
+      }
+    }
+  }
+
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName) {
+    Map<String, String> methods = builtinMethods.get(f);
+    if (methods == null) {
+      methods = new HashMap<>();
+      builtinMethods.put(f, methods);
+    }
+    methods.put(name, clazzName);
+  }
+
+  @Override
+  protected String metadataPath() {
+    return MethodDefinition.META_PATH;
+  }
+
+  protected void cleanup() {
+    builtinMethods.clear();
+  }
+
   private String warningCheck(MethodDefinition.ArgumentDefinition arg) {
     return "(" + mkArgumentInternalVarName(arg) + " instanceof WithWarnings)";
   }
@@ -405,5 +479,10 @@ public class MethodProcessor extends AbstractProcessor {
 
   private String capitalize(String name) {
     return name.substring(0, 1).toUpperCase() + name.substring(1);
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
   }
 }

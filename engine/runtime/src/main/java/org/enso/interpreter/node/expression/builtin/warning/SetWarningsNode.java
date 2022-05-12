@@ -25,7 +25,7 @@ public abstract class SetWarningsNode extends Node {
     if (warnings.length() == 0) {
       return value.getValue();
     }
-    Warning[] warningsCast = new Warning[warnings.length()];
+    Warning[] warningsCast = new Warning[(int) warnings.length()];
     System.arraycopy(warnings.getItems(), 0, warningsCast, 0, warningsCast.length);
     return new WithWarnings(value.getValue(), warningsCast);
   }
@@ -35,7 +35,7 @@ public abstract class SetWarningsNode extends Node {
     if (warnings.length() == 0) {
       return value;
     }
-    Warning[] warningsCast = new Warning[warnings.length()];
+    Warning[] warningsCast = new Warning[(int) warnings.length()];
     System.arraycopy(warnings.getItems(), 0, warningsCast, 0, warningsCast.length);
     return new WithWarnings(value, warningsCast);
   }

@@ -1,8 +1,9 @@
 //! Shape used for the LabeledLine.
+
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display::shape::*;
 
 
 

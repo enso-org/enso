@@ -1,0 +1,117 @@
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types
+from Standard.Base.Data.Vector import Empty_Error
+
+import Standard.Base.Data.Ordering.Comparator
+
+polyglot java import org.enso.base.statistics.Moments
+polyglot java import org.enso.base.statistics.CountMinMax
+
+type Statistic
+    ## PRIVATE
+       Convert the Enso Statistic into Java equivalent.
+    to_java : SingleValue
+    to_java = case this of
+        Sum -> Moments.SUM
+        Mean -> Moments.MEAN
+        Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
+        Standard_Deviation p -> if p then Moments.STANDARD_DEVIATION_POPULATION else Moments.STANDARD_DEVIATION
+        Skew p -> if p then Moments.SKEW_POPULATION else Moments.SKEW
+        Kurtosis -> Moments.KURTOSIS
+        _ -> Nothing
+
+    ## Count the number of non-Nothing and non-NaN values.
+    type Count
+
+    ## The minimum value.
+    type Minimum
+
+    ## The maximum value.
+    type Maximum
+
+    ## Sum the non-Nothing and non-NaN values.
+    type Sum
+
+    ## The sample mean of the values.
+    type Mean
+
+    ## The variance of the values.
+       Arguments:
+       - population: specifies if data is a sample or the population.
+    type Variance (population:Boolean=False)
+
+    ## The standard deviation of the values.
+       Arguments:
+       - population: specifies if data is a sample or the population.
+    type Standard_Deviation (population:Boolean=False)
+
+    ## The skewness of the values.
+       Arguments:
+       - population: specifies if data is a sample or the population.
+    type Skew (population:Boolean=False)
+
+    ## The sample kurtosis of the values.
+    type Kurtosis
+
+## Compute a single statistic on a vector like object.
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistic: Statistic to calculate.
+compute : Vector -> Statistic -> Any
+compute data statistic=Count =
+    here.compute_bulk data [statistic] . first
+
+
+## Compute a set of statistics on a vector like object.
+
+   Arguments:
+   - data: Vector like object which has a `to_array` method.
+   - statistics: Set of statistics to calculate.
+compute_bulk : Vector -> [Statistic] -> [Any]
+compute_bulk data statistics=[Count, Sum] =
+
+    count_min_max = statistics.any s->((s.is_a Count) || (s.is_a Minimum) || (s.is_a Maximum))
+
+    java_stats = statistics.map .to_java
+    skip_java_stats = java_stats.all s->s.is_nothing
+    report_invalid _ =
+        statistics.map_with_index i->v->
+            if java_stats.at i . is_nothing then Nothing else
+                Error.throw (Illegal_Argument_Error ("Can only compute " + v.to_text + " on numerical data sets."))
+    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_invalid
+
+    empty_map s = if (s == Count) || (s == Sum) then 0 else
+        if (s == Minimum) || (s == Maximum) then Error.throw Empty_Error else
+            Number.nan
+
+    if data.length == 0 then statistics.map empty_map else
+        count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing
+        stats_array = if skip_java_stats then Nothing else
+            handle_unsupported <| Moments.compute data.to_array java_stats.to_array
+
+        statistics.map_with_index i->s->case s of
+            Count -> count_min_max_values.count
+            Minimum ->
+                if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
+                    count_min_max_values.minimum
+            Maximum ->
+                if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
+                    count_min_max_values.maximum
+            _ -> stats_array.at i
+
+## Compute a single statistic on the vector.
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Vector.Vector.compute : Statistic -> Any
+Vector.Vector.compute statistic=Count =
+    this.compute_bulk [statistic] . first
+
+
+## Compute statistics on the vector.
+
+   Arguments:
+   - statistics: Set of statistics to calculate.
+Vector.Vector.compute_bulk : [Statistic] -> [Any]
+Vector.Vector.compute_bulk statistics=[Count, Sum] =
+    here.compute_bulk this statistics

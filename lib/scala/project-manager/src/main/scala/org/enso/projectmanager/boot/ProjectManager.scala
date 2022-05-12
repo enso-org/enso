@@ -1,8 +1,5 @@
 package org.enso.projectmanager.boot
 
-import java.io.IOException
-import java.util.concurrent.ScheduledThreadPoolExecutor
-
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
@@ -13,7 +10,10 @@ import org.enso.projectmanager.boot.Globals.{
   FailureExitCode,
   SuccessExitCode
 }
-import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
+import org.enso.projectmanager.boot.configuration.{
+  MainProcessConfig,
+  ProjectManagerConfig
+}
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
@@ -21,6 +21,9 @@ import zio.ZIO.effectTotal
 import zio._
 import zio.console._
 import zio.interop.catz.core._
+
+import java.io.IOException
+import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
@@ -52,11 +55,13 @@ object ProjectManager extends App with LazyLogging {
     Runtime(environment, new ZioPlatform(computeExecutionContext))
 
   /** Main process starting up the server. */
-  def mainProcess(logLevel: LogLevel): ZIO[ZEnv, IOException, Unit] = {
+  def mainProcess(
+    processConfig: MainProcessConfig
+  ): ZIO[ZEnv, IOException, Unit] = {
     val mainModule =
       new MainModule[ZIO[ZEnv, +*, +*]](
         config,
-        logLevel,
+        processConfig,
         computeExecutionContext
       )
     for {
@@ -125,12 +130,14 @@ object ProjectManager extends App with LazyLogging {
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else {
-      val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
-      val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
+      val verbosity        = options.getOptions.count(_ == Cli.option.verbose)
+      val logMasking       = !options.hasOption(Cli.NO_LOG_MASKING)
+      val profilingEnabled = options.hasOption(Cli.ENABLE_PROFILING)
       logger.info("Starting Project Manager...")
       for {
         logLevel <- setupLogging(verbosity, logMasking)
-        exitCode <- mainProcess(logLevel).fold(
+        procConf = MainProcessConfig(logLevel, profilingEnabled)
+        exitCode <- mainProcess(procConf).fold(
           th => {
             logger.error("Main process execution failed.", th)
             FailureExitCode

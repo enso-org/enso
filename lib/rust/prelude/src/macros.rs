@@ -191,6 +191,12 @@ macro_rules! f__ {
     };
 }
 
+
+
+// ===================
+// === Unreachable ===
+// ===================
+
 /// A macro for use in situations where the code is unreachable.
 ///
 /// This macro will panic in debug builds, but in release builds it expands to
@@ -212,4 +218,102 @@ macro_rules! unreachable_panic {
             }
         }
     };
+}
+
+
+
+// ====================
+// === ReflectMatch ===
+// ====================
+
+/// Used to match a value against a set of candidates, while keeping track of the candidates.
+///
+/// This achieves the same function as using a `HashMap` to dispatch between a set of handlers, but
+/// does not require reifying the handlers, which can be inconvenient (e.g. if they contain
+/// `.await`, of if they need conflicting captures from the environment).
+///
+/// # Example
+///
+/// ```
+/// use enso_prelude::*;
+///
+/// let selected = "foo";
+/// let out = reflect_match!(match selected as options {
+///     "bar" => Ok(1),
+///     "baz" => Ok(2),
+///     _ => Err(format!("Unexpected choice: {selected}. Must be one of: {options:?}.")),
+/// });
+/// ```
+///
+/// This is functionally equivalent to:
+///
+/// ```
+/// # use std::collections::HashMap;
+///
+/// let selected = "foo";
+/// let mut dispatch = HashMap::new();
+/// dispatch.insert("bar", 1);
+/// dispatch.insert("baz", 2);
+/// let options = dispatch.keys();
+/// let error = format!("Unexpected choice: {selected}. Must be one of: {options:?}.");
+/// let out = dispatch.get(selected).ok_or(error);
+/// ```
+#[macro_export]
+macro_rules! reflect_match {
+    (@acc ($dispatch:ident, $value:expr, $candidates:ident, {
+        _ => $fallback:expr $(,)?
+    }) -> {$( $branches:tt )*}) => {{
+        let mut $dispatch = $crate::ReflectMatch::new($value);
+        match () {
+            $( $branches )*
+            _ => {
+                let $candidates = $dispatch.into_candidates();
+                $fallback
+            }
+        }
+    }};
+    (@acc ($dispatch:ident, $value:expr, $candidates:ident, {
+        $candidate:literal => $branch:expr,
+        $( $rest:tt )*
+    }) -> {$( $branches:tt )*}) => {
+        reflect_match!(@acc ($dispatch, $value, $candidates, { $( $rest )* }) -> {
+            $( $branches )*
+            _ if $dispatch.matches($candidate) => $branch,
+        })
+    };
+    (match $value:tt as $candidates:tt { $( $branches:tt )* }) => {
+        reflect_match!(@acc (dispatch, $value, $candidates, { $( $branches )* }) -> {})
+    };
+}
+
+
+// === ReflectMatch Runtime Support ===
+
+/// Match a value against a set of candidates; if no match is found, the list of candidates is
+/// available. See [`reflect_match!`] for motivation and usage examples.
+#[derive(Debug)]
+pub struct ReflectMatch<T, U> {
+    value:      T,
+    candidates: Vec<U>,
+}
+
+impl<T, U> ReflectMatch<T, U> {
+    /// Create a new dispatcher, for a given value.
+    pub fn new(value: T) -> Self {
+        let candidates = Default::default();
+        Self { value, candidates }
+    }
+
+    /// Test the value against a candidate. Return whether it's a match.
+    pub fn matches(&mut self, key: U) -> bool
+    where T: PartialEq<U> {
+        let matches = self.value == key;
+        self.candidates.push(key);
+        matches
+    }
+
+    /// Return the candidates the match was tested against.
+    pub fn into_candidates(self) -> Vec<U> {
+        self.candidates
+    }
 }
