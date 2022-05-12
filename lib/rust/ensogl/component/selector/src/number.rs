@@ -1,6 +1,5 @@
 ///! Frp of the number selector.
 use crate::prelude::*;
-use crate::shape::*;
 use ensogl_core::display::shape::*;
 
 use crate::bounds::absolute_value;
@@ -51,9 +50,6 @@ impl Frp {
         model.show_background(true);
 
         let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
-
-        let track_shape_system = scene.shapes.shape_system(PhantomData::<track::Shape>);
-        track_shape_system.shape_system.set_pointer_events(false);
 
         let background_click = relative_shape_down_position(network, scene, &model.background);
         let track_click = relative_shape_down_position(network, scene, &model.track);

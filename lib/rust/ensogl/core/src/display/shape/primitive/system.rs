@@ -48,19 +48,22 @@ pub struct ShapeSystem {
     pub sprite_system:  SpriteSystem,
     pub shape:          Rc<RefCell<def::AnyShape>>,
     pub material:       Rc<RefCell<Material>>,
-    pub pointer_events: Rc<Cell<bool>>,
+    /// Enables or disables pointer events on this shape system. All shapes of a shape system which
+    /// has pointer events disabled would be completely transparent for the mouse (they would pass
+    /// through all mouse events).
+    pub pointer_events: Immutable<bool>,
 }
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<'t, S, Sh>(scene: S, shape: Sh) -> Self
+    pub fn new<'t, S, Sh>(scene: S, shape: Sh, pointer_events: bool) -> Self
     where
         S: Into<&'t Scene>,
         Sh: Into<def::AnyShape>, {
         let shape = shape.into();
         let sprite_system = SpriteSystem::new(scene);
         let material = Rc::new(RefCell::new(Self::surface_material()));
-        let pointer_events = Rc::new(Cell::new(true));
+        let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let this = Self { sprite_system, shape, material, pointer_events };
         this.reload_shape();
@@ -81,14 +84,6 @@ impl ShapeSystem {
         material
     }
 
-    /// Enables or disables pointer events on this shape system. All shapes of a shape system which
-    /// has pointer events disabled would be completely transparent for the mouse (they would pass
-    /// through all mouse events).
-    pub fn set_pointer_events(&self, val: bool) {
-        self.pointer_events.set(val);
-        self.reload_shape();
-    }
-
     /// Replaces the shape definition.
     pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
         let shape = shape.into();
@@ -97,9 +92,9 @@ impl ShapeSystem {
     }
 
     /// Generates the shape again. It is used after some parameters are changed, like setting new
-    /// `pointer_events` value.
+    /// `shape`.
     fn reload_shape(&self) {
-        let code = shader::builder::Builder::run(&*self.shape.borrow(), self.pointer_events.get());
+        let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
         self.material.borrow_mut().set_code(code);
         self.reload_material();
     }
@@ -326,24 +321,24 @@ macro_rules! define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
 
     (
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $($arg:ident = $arg_val:tt;)*
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*}
     ) => {
-        $crate::_define_shape_system! {
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            [style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+        $crate::define_shape_system! {
+            $($arg = $arg_val;)*
+            (style : Style, $($gpu_param : $gpu_param_type),*){$($body)*}
         }
     }
 }
@@ -354,6 +349,7 @@ macro_rules! _define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
@@ -544,9 +540,11 @@ macro_rules! _define_shape_system {
                 }
 
                 fn new(scene:&display::scene::Scene) -> Self {
-                    let style_watch  = display::shape::StyleWatch::new(&scene.style_sheet);
-                    let shape_def    = Self::shape_def(&style_watch);
-                    let shape_system = display::shape::ShapeSystem::new(scene,&shape_def);
+                    let style_watch   = display::shape::StyleWatch::new(&scene.style_sheet);
+                    let shape_def     = Self::shape_def(&style_watch);
+                    let _events       = true;
+                    $( let _events     = $pointer_events; )?
+                    let shape_system = display::shape::ShapeSystem::new(scene,&shape_def,_events);
                     $(
                         let name = stringify!($gpu_param);
                         let val  = gpu::data::default::gpu_default::<$gpu_param_type>();

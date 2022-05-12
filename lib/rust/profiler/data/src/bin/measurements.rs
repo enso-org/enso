@@ -46,14 +46,14 @@ fn print_measurement<Metadata>(
         indent.push_str("  ");
     }
     println!("{}{}", indent, measurement.label);
-    println!("{}  intervals:", indent);
+    print!("{}", indent);
     for active in &measurement.intervals {
         let interval = profile[*active].interval;
-        println!("{}    interval: {}", indent, fmt_interval(interval));
+        print!("  {}", fmt_interval(interval));
     }
-    println!("{}  children:", indent);
+    println!();
     for child in &measurement.children {
-        print_measurement(profile, *child, i + 2);
+        print_measurement(profile, *child, i + 1);
     }
 }
 

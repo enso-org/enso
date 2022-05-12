@@ -185,6 +185,7 @@ impl Layer {
     }
 
     /// Constructor.
+    #[profile(Detail)]
     pub fn new_with_cam(logger: Logger, camera: &Camera2d) -> Self {
         let this = Self::new(logger);
         this.set_camera(camera);
@@ -556,6 +557,7 @@ impl LayerModel {
     }
 
     /// Consume all dirty flags and update the ordering of elements if needed.
+    #[profile(Debug)]
     pub(crate) fn update_internal(
         &self,
         global_element_depth_order: Option<&DependencyGraph<LayerItem>>,

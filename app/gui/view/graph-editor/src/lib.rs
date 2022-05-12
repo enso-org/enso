@@ -2861,7 +2861,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.node_editing_finished <+ node_being_edited.sample(&edit_switch);
         out.node_editing_started  <+ edit_node;
 
-        out.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));;
+        out.node_being_edited <+ out.node_editing_started.map(|n| Some(*n));
         out.node_being_edited <+ out.node_editing_finished.constant(None);
         out.node_editing      <+ out.node_being_edited.map(|t|t.is_some());
 
@@ -2869,11 +2869,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
 
         eval out.node_editing_started ([model] (id) {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
                 node.model().input.frp.set_edit_mode(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_finished");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
                 node.model().input.set_edit_mode(false);
             }

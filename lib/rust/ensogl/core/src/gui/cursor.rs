@@ -136,6 +136,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::define_shape_system! {
+        pointer_events = false;
         ( press  : f32
         , radius : f32
         , color  : Vector4
@@ -209,12 +210,6 @@ impl CursorModel {
         let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add_exclusive(&view);
         port_selection_layer.add_exclusive(&port_selection);
-
-        for layer in &[tgt_layer, port_selection_layer] {
-            let registry = &layer.shape_system_registry;
-            let shape_sys = registry.shape_system(&scene, PhantomData::<shape::DynamicShape>);
-            shape_sys.shape_system.set_pointer_events(false);
-        }
 
         Self { logger, scene, display_object, view, port_selection, style }
     }

@@ -137,6 +137,7 @@ impl display::Object for ScrollArea {
 
 impl ScrollArea {
     /// Create a new scroll area for use in the given application.
+    #[profile(Detail)]
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");

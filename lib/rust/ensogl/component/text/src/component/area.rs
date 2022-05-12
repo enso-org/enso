@@ -612,12 +612,8 @@ impl AreaModel {
         let single_line = default();
         let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
 
-        // FIXME[WD]: These settings should be managed wiser. They should be set up during
-        // initialization of the shape system, not for every area creation. To be improved during
-        // refactoring of the architecture some day.
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol = &shape_system.shape_system.sprite_system.symbol;
-        shape_system.shape_system.set_pointer_events(false);
 
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
         // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
