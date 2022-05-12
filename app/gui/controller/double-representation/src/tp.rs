@@ -89,6 +89,13 @@ impl QualifiedName {
         Ok(QualifiedName { project_name, module_segments, name })
     }
 
+    /// Get all segments of the fully qualified name.
+    pub fn segments(&self) -> impl Iterator<Item = &str> {
+        let module_segments = self.module_segments.iter();
+        let name = self.name.as_ref();
+        self.project_name.segments().chain(module_segments.map(|seg| seg.as_ref())).chain(Some(name))
+    }
+
     /// Check if the name is defined directly in the given module.
     pub fn in_module(&self, module: &module::QualifiedName) -> bool {
         self.project_name == module.project_name && &self.module_segments == module.id.segments()

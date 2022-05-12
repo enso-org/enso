@@ -114,10 +114,16 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
+        let mut id_by_path = EntryIdByPath::new();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
+                    let path: Vec<String> = match &entry.self_type {
+                        Some(name) => name.segments().map(|s| s.to_string()).collect(),
+                        None => entry.module.segments().map(|s| s.to_string()).collect(),
+                    };
+                    id_by_path.set(path.iter().chain(Some(&entry.name)), id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -131,7 +137,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            id_by_path: default(),
+            id_by_path: RefCell::new(id_by_path),
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -203,7 +209,8 @@ impl SuggestionDatabase {
     }
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
-        let segments = path.split('.');
+        use ast::opr::predefined::ACCESS;
+        let segments = path.split(ACCESS);
         let id_by_path = &self.id_by_path.borrow();
         let id = id_by_path.get(segments);
         id.and_then(|id| self.lookup(*id).ok())
