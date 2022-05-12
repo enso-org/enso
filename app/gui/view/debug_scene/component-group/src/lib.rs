@@ -29,11 +29,11 @@ use list_view::entry::AnyModelProvider;
 
 
 
-mod green_circle {
+mod transparent_circle {
     use super::*;
     ensogl_core::define_shape_system! {
         (style:Style) {
-            Circle(70.px()).fill(color::Rgba::transparent()).into()
+            Circle(5.px()).fill(color::Rgba::transparent()).into()
         }
     }
 }
@@ -174,13 +174,13 @@ fn init(app: &Application) {
 
     let scroll_area = ScrollArea::new(app);
     scroll_area.set_position_xy(Vector2(0.0, 100.0));
-    scroll_area.resize(Vector2(250.0, 400.0));
-    scroll_area.set_content_width(250.0);
+    scroll_area.resize(Vector2(170.0, 400.0));
+    scroll_area.set_content_width(150.0);
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
 
     let camera = &scroll_area.content_layer().camera();
-    let parent_layer = Some(scroll_area.content_layer());
+    let parent_layer = scroll_area.content_layer();
     let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
     let first_component_group = component_group(app, &layers);
@@ -194,11 +194,13 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
 
-    let green_circle = green_circle::View::new(&app.logger);
-    green_circle.size.set(Vector2(150.0, 150.0));
-    green_circle.set_position_xy(Vector2(200.0, -150.0));
-    scroll_area.content().add_child(&green_circle);
-    std::mem::forget(green_circle);
+    // This is a workaround for a bug - without this transparent shape the content of the scroll
+    // area is invisible.
+    let transparent_circle = transparent_circle::View::new(&app.logger);
+    transparent_circle.size.set(Vector2(150.0, 150.0));
+    transparent_circle.set_position_xy(Vector2(200.0, -150.0));
+    scroll_area.content().add_child(&transparent_circle);
+    std::mem::forget(transparent_circle);
 
     // === Regular Component Group ===
 

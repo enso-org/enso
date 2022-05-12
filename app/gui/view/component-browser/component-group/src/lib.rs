@@ -306,7 +306,12 @@ impl component::Frp<Model> for Frp {
 }
 
 
-/// A set of scene layers shared for every Component Group.
+
+// ==============
+// === Layers ===
+// ==============
+
+/// A set of scene layers shared by every Component Group.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
     background:  layer::Layer,
@@ -318,9 +323,9 @@ pub struct Layers {
 impl Layers {
     /// Constructor.
     ///
-    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer`
-    /// as sublayers if it is provided.
-    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: Option<&layer::Layer>) -> Self {
+    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer` as
+    /// sublayers.
+    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: &layer::Layer) -> Self {
         let background = layer::Layer::new_with_cam(logger.clone_ref(), camera);
         let text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
         let header = layer::Layer::new_with_cam(logger.clone_ref(), camera);
@@ -330,9 +335,7 @@ impl Layers {
         background.add_sublayer(&header);
         header.add_sublayer(&header_text);
 
-        if let Some(parent_layer) = parent_layer {
-            parent_layer.add_sublayer(&background);
-        }
+        parent_layer.add_sublayer(&background);
 
         Self { background, header, text, header_text }
     }
@@ -353,7 +356,6 @@ pub struct Model {
     header_overlay:    header_overlay::View,
     background:        background::View,
     entries:           list_view::ListView<list_view::entry::Label>,
-    layers:            Rc<RefCell<Option<Layers>>>,
 }
 
 impl display::Object for Model {
@@ -371,7 +373,6 @@ impl component::Model for Model {
         let header_text = default();
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
-
         let background = background::View::new(&logger);
         let header_background = header_background::View::new(&logger);
         let header = text::Area::new(app);
@@ -395,7 +396,6 @@ impl component::Model for Model {
             background,
             header_background,
             entries,
-            layers: default(),
         }
     }
 }
@@ -410,8 +410,6 @@ impl Model {
         self.entries.set_label_layer(&layers.text);
         layers.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.header_text);
-
-        *self.layers.borrow_mut() = Some(layers.clone_ref());
     }
 
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {

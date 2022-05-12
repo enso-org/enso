@@ -8,6 +8,7 @@ use crate::config::InitialView;
 use crate::executor::web::EventLoopExecutor;
 use crate::initializer::setup_global_executor;
 use crate::Ide;
+
 use enso_frp::future::EventOutputExt;
 use enso_web::Closure;
 use enso_web::HtmlDivElement;

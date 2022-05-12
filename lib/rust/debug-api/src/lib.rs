@@ -1,5 +1,6 @@
 //! Functionality for producing debug information.
 
+// === Features ===
 #![feature(extern_types)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]

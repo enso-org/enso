@@ -196,7 +196,7 @@ define_themes! { [light:0, dark:1]
                     shadow {
                         size     = 13.0 , 13.0;
                         spread   = 0.0 , 0.0;
-                        fading   = Rgba(0.09,0.055,0.125,0.0) , Lcha(0.0,0.0,0.0,0.0);
+                        fading   = shadow::fading , shadow::fading;
                         exponent = 1.8 , 1.8;
                         offset_x = 0.0 , 0.0;
                         offset_y = -3.0 , -3.0;
