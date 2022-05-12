@@ -333,11 +333,11 @@ macro_rules! define_shape_system {
     };
 
     (
-        $($arg:ident = [$($arg_val:tt)*];)*
+        $($arg:ident = $arg_val:tt;)*
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*}
     ) => {
         $crate::define_shape_system! {
-            $($arg = [$($arg_val)*];)*
+            $($arg = $arg_val;)*
             (style : Style, $($gpu_param : $gpu_param_type),*){$($body)*}
         }
     }
