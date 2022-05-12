@@ -95,10 +95,9 @@ pub mod header_background {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
             let bg = Rect((width.clone(), height.clone())).fill(color);
-            let rect = Rect((width, height.clone() * shadow));
-            let shadow_parameters = shadow::parameters_from_style_path(style,theme::header::shadow);
-            let shadow            = shadow::from_shape_with_parameters
-                (rect.into(),shadow_parameters);
+            let shadow_rect = Rect((width, height * shadow));
+            let shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
         }
     }
@@ -433,7 +432,7 @@ impl Model {
         self.entries.set_position_y(-header_height / 2.0);
         self.header_background.height.set(header_height);
 
-        self.header_background.size.set(Vector2(size.x, header_height + 5.0));
+        self.header_background.size.set(Vector2(size.x, header_height * 2.0));
         self.header_background.set_position_y(header_center_y);
     }
 
