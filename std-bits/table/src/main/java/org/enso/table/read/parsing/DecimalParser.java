@@ -60,6 +60,10 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
     return result;
   }
 
+  /**
+   * Assumes that the provided string represents a valid integer, in particular that it is not
+   * empty.
+   */
   private boolean hasLeadingZeros(String s) {
     int firstDigitPos = 0;
     if (s.charAt(0) == '+' || s.charAt(0) == '-') {

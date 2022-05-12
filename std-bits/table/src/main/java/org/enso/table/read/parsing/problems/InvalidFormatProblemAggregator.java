@@ -5,7 +5,7 @@ import java.util.List;
 
 public class InvalidFormatProblemAggregator implements ProblemAggregator {
 
-  private List<String> invalidFormatCells = new ArrayList<>();
+  private final List<String> invalidFormatCells = new ArrayList<>();
 
   public void reportInvalidFormat(String cell) {
     invalidFormatCells.add(cell);

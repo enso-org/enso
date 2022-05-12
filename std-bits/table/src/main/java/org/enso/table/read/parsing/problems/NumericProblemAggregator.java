@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NumericProblemAggregator extends InvalidFormatProblemAggregator {
-  private List<String> leadingZerosCells;
+  private final List<String> leadingZerosCells = new ArrayList<>();
 
   public void reportLeadingZeroes(String cell) {
     leadingZerosCells.add(cell);
