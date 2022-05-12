@@ -171,6 +171,8 @@ ensogl_core::define_endpoints_2! {
         set_background_color(Rgba),
         set_width(f32),
         /// Sets the y-position of the header from the top of the component group. (in pixels)
+        ///
+        /// It can't move past the bottom border of the component group.
         set_header_pos(f32),
     }
     Output {
@@ -210,9 +212,17 @@ impl component::Frp<Model> for Frp {
                 model.resize(*size, *hdr_geom, *hdr_pos)
             );
 
-            viewport_size_greater_zero <- input.set_header_pos.map(|s| *s > 0.0);
-            show_shadow <- viewport_size_greater_zero.on_true();
-            hide_shadow <- viewport_size_greater_zero.on_false();
+
+            // === Show/hide shadow ===
+
+            header_moved_down <- input.set_header_pos.map(|s| *s > 0.0);
+            on_header_at_top <- header_moved_down.on_false();
+            is_header_at_bottom <- size_and_header_geometry.map(
+                f!(((_, geom, _)) model.is_header_at_bottom(*geom))
+            );
+            on_header_at_bottom <- is_header_at_bottom.on_true();
+            show_shadow <- header_moved_down.on_true().gate_not(&is_header_at_bottom);
+            hide_shadow <- any(&on_header_at_top, &on_header_at_bottom);
             shadow_height.target <+ show_shadow.constant(1.0);
             shadow_height.target <+ hide_shadow.constant(0.0);
             eval shadow_height.value ((v) model.header_background.shadow.set(*v));
@@ -404,7 +414,7 @@ impl Model {
         *self.layers.borrow_mut() = Some(layers.clone_ref());
     }
 
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, viewport_height: f32) {
+    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
         // === Background ===
 
         self.background.size.set(size);
@@ -418,7 +428,7 @@ impl Model {
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
         let header_center_y = size.y / 2.0 - header_height / 2.0;
-        let header_center_y = header_center_y - viewport_height;
+        let header_center_y = header_center_y - header_pos;
         let header_center_y = header_center_y.max(-size.y / 2.0 + header_height / 2.0);
         let header_bottom_y = header_center_y - header_height / 2.0;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
@@ -445,6 +455,15 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
+    }
+
+    /// Is header at the bottom of the component group?
+    fn is_header_at_bottom(&self, header_geometry: HeaderGeometry) -> bool {
+        let height = self.background.size.get().y;
+        let header_height = header_geometry.height;
+        let bottom_y = -height / 2.0 + header_height / 2.0;
+        let header_y = self.header_background.position().y;
+        (header_y - bottom_y).abs() < f32::EPSILON
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
