@@ -85,8 +85,10 @@ impl ShapeSystem {
     /// has pointer events disabled would be completely transparent for the mouse (they would pass
     /// through all mouse events).
     pub fn set_pointer_events(&self, val: bool) {
-        self.pointer_events.set(val);
-        self.reload_shape();
+        let old_val = self.pointer_events.replace(val);
+        if val != old_val {
+            self.reload_shape();
+        }
     }
 
     /// Replaces the shape definition.
