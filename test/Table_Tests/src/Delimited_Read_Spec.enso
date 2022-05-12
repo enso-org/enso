@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Problem_Behavior
+from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 
 import Standard.Table
 import Standard.Table.Data.Column
@@ -54,6 +55,72 @@ spec =
             r2 = File.read directory (File_Format.Delimited "," headers=True) Problem_Behavior.Report_Error
             r2.should_fail_with File.Io_Error
 
+        Test.specify "should work with all kinds of line endings" <|
+            path name = Enso_Project.data / 'transient' / name
+            create_file name ending_style =
+                lines = ['a,b,c', 'd,e,f', '1,2,3']
+                text = lines.join ending_style
+                (path name).write_text text Encoding.utf_8
+
+            test_file name =
+                table = File.read (path name) (File_Format.Delimited "," headers=True) Problem_Behavior.Report_Error
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['d', '1']
+                table.at 'b' . to_vector . should_equal ['e', '2']
+                table.at 'c' . to_vector . should_equal ['f', '3']
+
+            create_file 'crlf.csv' '\r\n'
+            test_file 'crlf.csv'
+            create_file 'lf.csv' '\n'
+            test_file 'lf.csv'
+            create_file 'cr.csv' '\r'
+            test_file 'cr.csv'
+
+            # Currently mixed line endings are not supported.
+            (path 'mixed.csv').write_text 'a,b,c\nd,e,f\r1,2,3'
+            File.read (path 'mixed.csv') (File_Format.Delimited "," headers=True) Problem_Behavior.Report_Error . should_fail_with Invalid_Row
+
+        Test.specify "should work with Windows-1252 encoding" <|
+            table = File.read (Enso_Project.data / "windows.csv") (File_Format.Delimited "," headers=True encoding=Encoding.windows_1252) Problem_Behavior.Report_Error
+            table.columns.map .name . should_equal ['a', 'b', 'c']
+            table.at 'a' . to_vector . should_equal ['$¢']
+            table.at 'b' . to_vector . should_equal ['¤']
+            table.at 'c' . to_vector . should_equal ['¥']
+
+        Test.specify "should work with UTF-16 encoding" <|
+            table = File.read (Enso_Project.data / "utf16.csv") (File_Format.Delimited "," headers=True encoding=Encoding.utf_16_be) Problem_Behavior.Report_Error
+            table.columns.map .name . should_equal ['ą', '🚀b', 'ć😎']
+            table.at 'ą' . to_vector . should_equal ['ą']
+            table.at '🚀b' . to_vector . should_equal ['✨🚀🚧😍😃😍😎😙😉☺']
+            table.at 'ć😎' . to_vector . should_equal ['แมวมีสี่ขา']
+
+        Test.specify "should report errors when encountering malformed characters" <|
+            utf8_file = (Enso_Project.data / "transient" / "utf8_invalid.csv")
+            utf8_bytes = [97, 44, 98, 44, 99, 10, -60, -123, 44, -17, -65, -65, 44, -61, 40, -61, 40, 10]
+            utf8_file.write_bytes utf8_bytes
+            action_1 on_problems =
+                utf8_file.read (File_Format.Delimited "," headers=True) on_problems
+            tester_1 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                table.at 'a' . to_vector . should_equal ['ą']
+                table.at 'b' . to_vector . should_equal ['\uFFFF']
+                table.at 'c' . to_vector . should_equal ['\uFFFD(\uFFFD(']
+            problems_1 = [Encoding_Error "Encoding issues at bytes 13, 15."]
+            Problems.test_problem_handling action_1 problems_1 tester_1
+
+            action_2 on_problems =
+                (Enso_Project.data / "utf16_invalid.csv").read (File_Format.Delimited "," headers=True encoding=Encoding.utf_16_be) on_problems
+            tester_2 table =
+                table.columns.map .name . should_equal ['a', 'b', 'c']
+                # This column does not raise a problem - the '\uFFFD' is simply present in the input file.
+                table.at 'a' . to_vector . should_equal ['\uFFFD']
+                table.at 'b' . to_vector . should_equal ['\uFFFF']
+                # However, this column will raise a problem as the '\uFFFD' comes from replacing an invalid codepoint.
+                table.at 'c' . to_vector . should_equal ['\uFFFD']
+            problems_2 = [Encoding_Error "Encoding issues at byte 22."]
+            Problems.test_problem_handling action_2 problems_2 tester_2
+
+
         Test.specify "should handle duplicated columns" <|
             table = File.read (Enso_Project.data / "duplicated_columns.csv") (File_Format.Delimited "," headers=True)
             table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
@@ -81,7 +148,7 @@ spec =
 
         Test.specify "should behave correctly in presence of a mismatched quote" <|
             action_1 on_problems =
-                (File_Format.Delimited "," headers=True).read (Enso_Project.data / "mismatched_quote.csv") on_problems
+                File.read (Enso_Project.data / "mismatched_quote.csv") (File_Format.Delimited "," headers=True) on_problems
 
             tester_1 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -92,7 +159,7 @@ spec =
             Problems.test_problem_handling action_1 problems_1 tester_1
 
             action_2 on_problems =
-                (File_Format.Delimited "," headers=True).read (Enso_Project.data / "mismatched_quote2.csv") on_problems
+                File.read (Enso_Project.data / "mismatched_quote2.csv") (File_Format.Delimited "," headers=True) on_problems
 
             tester_2 table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -104,7 +171,7 @@ spec =
 
         Test.specify "should handle too long and too short rows" <|
             action keep_invalid_rows on_problems =
-                (File_Format.Delimited "," headers=True keep_invalid_rows=keep_invalid_rows).read (Enso_Project.data / "varying_rows.csv") on_problems
+                File.read (Enso_Project.data / "varying_rows.csv") (File_Format.Delimited "," headers=True keep_invalid_rows=keep_invalid_rows) on_problems
 
             tester_kept table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -124,7 +191,7 @@ spec =
 
         Test.specify "should aggregate invalid rows over some limit" <|
             action on_problems =
-                (File_Format.Delimited "," headers=True keep_invalid_rows=False).read (Enso_Project.data / "many_invalid_rows.csv") on_problems
+                File.read (Enso_Project.data / "many_invalid_rows.csv") (File_Format.Delimited "," headers=True keep_invalid_rows=False) on_problems
 
             tester table =
                 table.columns.map .name . should_equal ['a', 'b', 'c']
@@ -167,9 +234,9 @@ spec =
         Test.specify "should check arguments" <|
             path = (Enso_Project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            (File_Format.Delimited "," headers=False quote='abc').read path pb . should_fail_with Illegal_Argument_Error
-            (File_Format.Delimited "," headers=False quote='🚧').read path pb . should_fail_with Illegal_Argument_Error
-            (File_Format.Delimited "," headers=False quote_escape='//').read path pb . should_fail_with Illegal_Argument_Error
-            (File_Format.Delimited 'a\u{301}' headers=False).read path pb . should_fail_with Illegal_Argument_Error
+            path.read (File_Format.Delimited "," headers=False quote='abc') pb . should_fail_with Illegal_Argument_Error
+            path.read (File_Format.Delimited "," headers=False quote='🚧') pb . should_fail_with Illegal_Argument_Error
+            path.read (File_Format.Delimited "," headers=False quote_escape='//') pb . should_fail_with Illegal_Argument_Error
+            path.read (File_Format.Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument_Error
 
 main = Test.Suite.run_main here.spec

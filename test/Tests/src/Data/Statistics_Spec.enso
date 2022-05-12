@@ -1,0 +1,150 @@
+from Standard.Base import Nothing, Vector, Number, True, Illegal_Argument_Error, False
+
+import Standard.Base.Data.Statistics
+from Standard.Base.Data.Statistics import all
+
+import Standard.Test
+
+# === Test Resources ===
+
+type Ord number
+
+Ord.compare_to : Ord -> Ordering
+Ord.compare_to that = that.number.compare_to this.number
+
+type No_Ord number
+
+# Tests
+
+spec =
+    simple_set = [1, 2, 3, 4, 5]
+    number_set = [0.4, -18.56, -16.99, -16.43, -45.84, 13.44, -6.85, 9.68, -8.55, 10.87, 10.38, 33.85, -41.02, 1.87, -26.52, -13.87, -39.06, 25.92, -16.01, 42.01]
+    missing_set = number_set.map_with_index i->v->(if i % 5 == 4 then Nothing else v)
+    with_nans_set = number_set.map_with_index i->v->(if i % 5 == 4 then (if i % 10 == 9 then Number.nan else Nothing) else v)
+    text_set = ["A", "B", Nothing, "D"]
+
+    ord_set = [Ord 10, Ord 2, Nothing, Ord 9]
+    no_ord_set = [No_Ord 10, No_Ord 2, Nothing, No_Ord 9]
+    
+    double_error = 0.000001
+
+    Test.group "Statistics" <|
+        Test.specify "should be able to count valid values" <|
+            simple_set.compute . should_equal 5
+            number_set.compute . should_equal 20
+            missing_set.compute . should_equal 16
+            with_nans_set.compute . should_equal 16
+            text_set.compute . should_equal 3
+
+        Test.specify "should be able to get minimum of maximum values" <|
+            simple_set.compute Minimum . should_equal 1
+            number_set.compute Minimum . should_equal -45.84 epsilon=double_error
+            missing_set.compute Minimum . should_equal -41.02 epsilon=double_error
+            with_nans_set.compute Minimum . should_equal -41.02 epsilon=double_error
+            text_set.compute Minimum . should_equal "A"
+            simple_set.compute Maximum . should_equal 5
+            number_set.compute Maximum . should_equal 42.01 epsilon=double_error
+            missing_set.compute Maximum . should_equal 33.85 epsilon=double_error
+            with_nans_set.compute Maximum . should_equal 33.85 epsilon=double_error
+            text_set.compute Maximum . should_equal "D"
+
+        Test.specify "should be able to get sum of values" <|
+            simple_set.compute Sum . should_equal 15 epsilon=double_error
+            number_set.compute Sum . should_equal -101.28 epsilon=double_error
+            missing_set.compute Sum . should_equal -81.8 epsilon=double_error
+            with_nans_set.compute Sum . should_equal -81.8 epsilon=double_error
+
+        Test.specify "should be able to get mean of values" <|
+            simple_set.compute Mean . should_equal 3 epsilon=double_error
+            number_set.compute Mean . should_equal -5.064 epsilon=double_error
+            missing_set.compute Mean . should_equal -5.1125 epsilon=double_error
+            with_nans_set.compute Mean . should_equal -5.1125 epsilon=double_error
+
+        Test.specify "should be able to get sample variance of values" <|
+            simple_set.compute Variance . should_equal 2.5 epsilon=double_error
+            number_set.compute Variance . should_equal 582.0137832 epsilon=double_error
+            missing_set.compute Variance . should_equal 431.0218867 epsilon=double_error
+            with_nans_set.compute Variance . should_equal 431.0218867 epsilon=double_error
+            [1].compute Variance . is_nan . should_equal True
+
+        Test.specify "should be able to get population variance of values" <|
+            simple_set.compute (Variance True) . should_equal 2 epsilon=double_error
+            number_set.compute (Variance True) . should_equal 552.913094 epsilon=double_error
+            missing_set.compute (Variance True) . should_equal 404.0830188 epsilon=double_error
+            with_nans_set.compute (Variance True) . should_equal 404.0830188 epsilon=double_error
+
+        Test.specify "should be able to get population standard deviation of values" <|
+            simple_set.compute Standard_Deviation . should_equal 1.58113883 epsilon=double_error
+            number_set.compute Standard_Deviation . should_equal 24.12496183 epsilon=double_error
+            missing_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
+            with_nans_set.compute Standard_Deviation . should_equal 20.76106661 epsilon=double_error
+            [1].compute Standard_Deviation . is_nan . should_equal True
+
+        Test.specify "should be able to get sample standard deviation of values" <|
+            simple_set.compute (Standard_Deviation True) . should_equal 1.414213562 epsilon=double_error
+            number_set.compute (Standard_Deviation True) . should_equal 23.51410415 epsilon=double_error
+            missing_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
+            with_nans_set.compute (Standard_Deviation True) . should_equal 20.1018163 epsilon=double_error
+
+        Test.specify "should be able to get sample skewness of values" <|
+            simple_set.compute Skew . should_equal 0 epsilon=double_error
+            number_set.compute Skew . should_equal 0.165086552 epsilon=double_error
+            missing_set.compute Skew . should_equal 0.084238123 epsilon=double_error
+            with_nans_set.compute Skew . should_equal 0.084238123 epsilon=double_error
+            [1, 2].compute Skew . is_nan . should_equal True
+
+        Test.specify "should be able to get population skewness of values" <|
+            simple_set.compute (Skew True) . should_equal 0 epsilon=double_error
+            number_set.compute (Skew True) . should_equal 0.152437706 epsilon=double_error
+            missing_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
+            with_nans_set.compute (Skew True) . should_equal 0.076125664 epsilon=double_error
+            [1, 2].compute (Skew True) . is_nan . should_equal True
+
+        Test.specify "should be able to get sample kurtosis of values" <|
+            simple_set.compute Kurtosis . should_equal -1.2 epsilon=double_error
+            number_set.compute Kurtosis . should_equal -0.449422438 epsilon=double_error
+            missing_set.compute Kurtosis . should_equal -0.201991074 epsilon=double_error
+            with_nans_set.compute Kurtosis . should_equal -0.201991074 epsilon=double_error
+            [1, 2, 3].compute Kurtosis . is_nan . should_equal True
+
+        Test.specify "should allow bulk computation" <|
+            stats = [Count, Minimum, Mean, Variance, Skew]
+            expected = [20, -45.84, -5.064, 582.0137832, 0.165086552]
+            values = number_set.compute_bulk stats
+            values.map_with_index i->v->((expected.at i - v).abs < double_error) . any v->(v == True) . should_equal True
+
+        Test.specify "should be able to count and sum on empty Vector" <|
+            [].compute . should_equal 0
+            [].compute Sum . should_equal 0
+
+        Test.specify "should fail with Empty_Error for Minimum and Maximum on empty Vector" <|
+            [].compute Minimum . should_fail_with Vector.Empty_Error
+            [].compute Maximum . should_fail_with Vector.Empty_Error
+
+        Test.specify "should be NaN for other statistics sum on empty Vector" <|
+            [].compute Mean . is_nan . should_equal True
+            [].compute Variance . is_nan . should_equal True
+            [].compute Skew . is_nan . should_equal True
+            [].compute Kurtosis . is_nan . should_equal True
+
+        Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
+            text_set.compute Sum . should_fail_with Illegal_Argument_Error
+            text_set.compute Mean . should_fail_with Illegal_Argument_Error
+            text_set.compute Variance . should_fail_with Illegal_Argument_Error
+            text_set.compute Skew . should_fail_with Illegal_Argument_Error
+            text_set.compute Kurtosis . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should be able to do Count, Minimum and Maximum on custom type with compare_to" <|
+            ord_set.compute . should_equal 3
+            ord_set.compute Minimum . should_equal (Ord 10)
+            ord_set.compute Maximum . should_equal (Ord 2)
+
+        Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
+            no_ord_set.compute . should_equal 3
+            no_ord_set.compute Minimum . should_fail_with Vector.Incomparable_Values_Error
+            no_ord_set.compute Maximum . should_fail_with Vector.Incomparable_Values_Error
+
+        Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
+            [1, False].compute Minimum . should_fail_with Vector.Incomparable_Values_Error
+
+main = Test.Suite.run_main here.spec

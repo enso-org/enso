@@ -249,8 +249,8 @@ us = here.from_language_tag "en-US"
          example_new = Locale.new "en" "GB" "UTF-8"
 new : Text -> Text | Nothing -> Text | Nothing -> Locale
 new language country=Nothing variant=Nothing =
-    country_text = if country.is_nothing then "" else country
-    variant_text = if variant.is_nothing then "" else variant
+    country_text = country.if_nothing ""
+    variant_text = variant.if_nothing ""
     java_locale = JavaLocale.new language country_text variant_text
     here.from_java java_locale
 

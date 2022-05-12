@@ -2,7 +2,7 @@
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 
-use enso_integration_test::prelude::*;
+use enso_gui::integration_test::prelude::*;
 
 use approx::assert_abs_diff_eq;
 use enso_frp::future::FutureEvent;
@@ -20,6 +20,7 @@ use ensogl::display::scene::test_utils::MouseExt;
 use ensogl::display::Scene;
 use ordered_float::OrderedFloat;
 use std::time::Duration;
+use wasm_bindgen_test::wasm_bindgen_test;
 
 
 
@@ -27,7 +28,7 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 async fn create_new_project_and_add_nodes() {
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let graph_editor = test.graph_editor();
 
     assert_eq!(graph_editor.nodes().all.len(), 2);
@@ -44,7 +45,7 @@ async fn create_new_project_and_add_nodes() {
 
 #[wasm_bindgen_test]
 async fn debug_mode() {
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let project = test.project_view();
     let graph_editor = test.graph_editor();
 
@@ -84,7 +85,7 @@ async fn debug_mode() {
 
 #[wasm_bindgen_test]
 async fn zooming() {
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let project = test.project_view();
     let graph_editor = test.graph_editor();
     let camera = test.ide.ensogl_app.display.default_scene.layers.main.camera();
@@ -120,7 +121,7 @@ async fn zooming() {
 #[wasm_bindgen_test]
 async fn adding_node_with_add_node_button() {
     const INITIAL_NODE_COUNT: usize = 2;
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let graph_editor = test.graph_editor();
     let scene = &test.ide.ensogl_app.display.default_scene;
 
@@ -165,7 +166,7 @@ added",
 
 #[wasm_bindgen_test]
 async fn adding_node_by_clicking_on_the_output_port() {
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let graph_editor = test.graph_editor();
     let (node_1_id, _, node_1) = add_node_with_internal_api(&graph_editor, "1 + 1").await;
 
@@ -182,7 +183,7 @@ async fn adding_node_by_clicking_on_the_output_port() {
 
 #[wasm_bindgen_test]
 async fn new_nodes_placement_with_nodes_selected() {
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let graph_editor = test.graph_editor();
     let InitialNodes { above: (node_1_id, node_1), below: (node_2_id, node_2) } =
         InitialNodes::obtain_from_graph_editor(&graph_editor);
@@ -351,7 +352,7 @@ async fn mouse_oriented_node_placement() {
         }
     }
 
-    let test = IntegrationTestOnNewProject::setup().await;
+    let test = Fixture::setup_new_project().await;
     let scene = &test.ide.ensogl_app.display.default_scene;
     let graph_editor = test.graph_editor();
     let gap_x = graph_editor.default_x_gap_between_nodes.value();

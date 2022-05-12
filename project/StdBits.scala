@@ -1,9 +1,11 @@
+import LibraryManifestGenerator.BundledLibrary
 import sbt.Keys._
 import sbt._
 import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
+import java.io.File
 import scala.sys.process.Process
 
 object StdBits {
@@ -112,5 +114,41 @@ object StdBits {
       val name = file.getName
       name.stripSuffix(".jar")
     } else file.getName
+  }
+
+  /**
+   * Builds a single standard library package `name`. Should only be used
+   * in tasks used in local development.
+   *
+   * @param name name of the package, see `stdBitsProjects` in build.sbt
+   * @param root top directory where distribution is being built
+   * @param cache used for persisting the cached information
+   * @param log logger used in the task
+   * @param defaultDevEnsoVersion default `dev` version
+   */
+  def buildStdLibPackage(
+    name: String,
+    root: File,
+    cacheFactory: sbt.util.CacheStoreFactory,
+    log: sbt.Logger,
+    defaultDevEnsoVersion: String
+  ) = Def.task {
+    log.info(s"Building standard library package for '$name'")
+    val prefix = "Standard"
+    val targetPkgRoot = root / "lib" / prefix / name / defaultDevEnsoVersion
+    val sourceDir = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion")
+    if (!sourceDir.exists) {
+      throw new RuntimeException("Invalid standard library package " + name)
+    }
+    val result = DistributionPackage.copyDirectoryIncremental(
+      source      = file(s"distribution/lib/$prefix/$name/$defaultDevEnsoVersion"),
+      destination = targetPkgRoot,
+      cache = cacheFactory.sub("engine-libraries").make(s"$prefix.$name"),
+    )
+    if (result) {
+      log.info(s"Package '$name' has been updated")
+    } else {
+      log.info(s"No changes detected for '$name' package")
+    }
   }
 }
