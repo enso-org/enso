@@ -273,6 +273,7 @@ pub struct BreadcrumbModel {
 
 impl BreadcrumbModel {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(
         app: &Application,
         frp: &Frp,

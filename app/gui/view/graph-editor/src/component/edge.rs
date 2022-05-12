@@ -1075,6 +1075,7 @@ pub struct Frp {
 
 impl Frp {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             def source_width    = source();
@@ -1166,6 +1167,7 @@ impl display::Object for EdgeModelData {
 
 impl Edge {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(app: &Application) -> Self {
         let network = frp::Network::new("node_edge");
         let data = Rc::new(EdgeModelData::new(&app.display.default_scene, &network));
@@ -1277,6 +1279,7 @@ pub struct EdgeModelData {
 
 impl EdgeModelData {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(scene: &Scene, network: &frp::Network) -> Self {
         let logger = Logger::new("edge");
         let display_object = display::object::Instance::new(&logger);
