@@ -167,8 +167,13 @@ impl SuggestionDatabase {
                 },
                 entry::Update::Remove { id } => {
                     let removed = entries.remove(&id);
-                    if removed.is_none() {
-                        error!(self.logger, "Received Remove event for nonexistent id: {id}");
+                    match removed {
+                        Some(entry) => {
+                            id_by_path.remove(entry_path(&entry));
+                        }
+                        None => {
+                            error!(self.logger, "Received Remove event for nonexistent id: {id}");
+                        }
                     }
                 }
                 entry::Update::Modify { id, modification, .. } => {
