@@ -412,10 +412,11 @@ impl Model {
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
         let header_center_y = size.y / 2.0 - header_height / 2.0;
+        let header_center_y = header_center_y - viewport_height;
+        let header_center_y = header_center_y.max(- size.y / 2.0 + header_height / 2.0);
         let header_bottom_y = header_center_y - header_height / 2.0;
         let header_text_y =
-            header_bottom_y + header_text_height + header_padding_bottom - viewport_height;
-        let header_text_y = header_text_y.max(-size.y / 2.0 + header_height / 2.0);
+            header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
 
@@ -432,11 +433,8 @@ impl Model {
         self.entries.set_position_y(-header_height / 2.0);
         self.header_background.height.set(header_height);
 
-        self.header_background.size.set(Vector2(size.x, header_height * 2.0));
-        self.header_background.set_position_xy(Vector2(
-            header_text_x + size.x / 2.0 - header_padding_left,
-            header_text_y,
-        ));
+        self.header_background.size.set(Vector2(size.x, header_height + 5.0));
+        self.header_background.set_position_y(header_center_y);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {

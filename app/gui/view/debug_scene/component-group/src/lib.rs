@@ -172,7 +172,7 @@ fn init(app: &Application) {
         eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
 
         eval first_component_group.size((size) first_component_group.set_position_y(- size.y / 2.0));
-        _eval <- all_with(&first_component_group.size, &second_component_group.size, f!((f, s) second_component_group.set_position_y(- s.y / 2.0 - f.y - 5.0)));
+        _eval <- all_with(&first_component_group.size, &second_component_group.size, f!((f, s) second_component_group.set_position_y(- s.y / 2.0 - f.y)));
 
         eval scroll_area.scroll_position_y((y) first_component_group.set_viewport_size(*y));
         is_partially_scrolled <- scroll_area.scroll_position_y.map2(&first_component_group.size, f!([](y, s)  *y > s.y ));
