@@ -18,10 +18,13 @@ use wasm_bindgen::prelude::*;
 use enso_profiler_data as profiler_data;
 use enso_profiler_flame_graph as profiler_flame_graph;
 use ensogl_core::application;
+use ensogl_core::application::command::FrpNetworkProvider;
+use ensogl_core::application::tooltip::Placement;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator;
 use ensogl_core::display::style::theme;
+use ensogl_core::frp;
 use ensogl_flame_graph as flame_graph;
 
 
@@ -35,25 +38,33 @@ use ensogl_flame_graph as flame_graph;
 #[allow(dead_code)]
 pub async fn entry_point_render_profile_flamegraph() {
     use ensogl_core::display::object::ObjectOps;
-    let app = application::Application::new("root");
+    let app = &application::Application::new("root");
     let world = &app.display;
     let scene = &world.default_scene;
+    let network = app.frp.network();
     let navigator = navigator::Navigator::new(scene, &scene.camera());
     init_theme(scene);
     let data = get_data().await;
     let profile: profiler_data::Profile<profiler_data::OpaqueMetadata> = data.parse().unwrap();
     let mut builder = profiler_flame_graph::FlamegraphBuilder::default();
     builder.add_profile(&profile);
-    let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), &app);
+    let flame_graph = flame_graph::FlameGraph::from_data(builder.into(), app);
     scene.add_child(&flame_graph);
     scene.layers.main.add_exclusive(&flame_graph);
     world.keep_alive_forever();
+    let tooltip = ensogl_tooltip::Tooltip::new(app);
+    scene.add_child(&tooltip);
+    tooltip.frp.set_placement.emit(Placement::Right);
+    frp::extend! { network
+        tooltip.frp.set_style <+ app.frp.tooltip.map(|tt| tt.clone().with_placement(Placement::Right));
+    }
     world
         .on
         .before_frame
         .add(move |_time| {
             let _keep_alive = &navigator;
             let _keep_alive = &flame_graph;
+            let _keep_alive = &tooltip;
         })
         .forget();
 }
@@ -67,7 +78,7 @@ pub async fn entry_point_render_profile_flamegraph() {
 async fn get_data() -> String {
     use wasm_bindgen::JsCast;
 
-    let url = "/profile.json";
+    let url = "assets/profile.json";
     let mut opts = web_sys::RequestInit::new();
     opts.method("GET");
     opts.mode(web_sys::RequestMode::Cors);
@@ -88,6 +99,7 @@ fn init_theme(scene: &display::Scene) {
     let theme = theme::Theme::new();
     const COLOR_PATH: &str = "flame_graph_color";
     theme.set(COLOR_PATH, color::Rgb::new(1.0, 45.0 / 255.0, 0.0));
+    theme.set("component.label.text", color::Lcha::black());
     theme_manager.register("theme", theme);
     theme_manager.set_enabled(&["theme".to_string()]);
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);

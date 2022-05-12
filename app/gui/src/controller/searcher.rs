@@ -194,6 +194,7 @@ pub struct ParsedInput {
 
 impl ParsedInput {
     /// Constructor from the plain input.
+    #[profile(Debug)]
     fn new(input: impl Into<String>, parser: &Parser) -> FallibleResult<Self> {
         let mut input = input.into();
         let leading_spaces = input.chars().take_while(|c| *c == ' ').count();
@@ -421,6 +422,7 @@ impl Data {
     /// Committing node will then edit the exiting node's expression instead of adding a new one.
     /// Additionally searcher should restore information about intended method, so we will be able
     /// to suggest arguments.
+    #[profile(Debug)]
     fn new_with_edited_node(
         project_name: project::QualifiedName,
         graph: &controller::Graph,
@@ -498,6 +500,7 @@ impl Searcher {
     }
 
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
+    #[profile(Task)]
     pub fn new_from_graph_controller(
         parent: impl AnyLogger,
         ide: controller::Ide,
@@ -563,6 +566,7 @@ impl Searcher {
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
     /// in a new action list (the appropriate notification will be emitted).
+    #[profile(Debug)]
     pub fn set_input(&self, new_input: String) -> FallibleResult {
         debug!(self.logger, "Manually setting input to {new_input}.");
         let parsed_input = ParsedInput::new(new_input, self.ide.parser())?;
@@ -600,6 +604,7 @@ impl Searcher {
     /// This function should be called when user do the _use as suggestion_ action as a code
     /// suggestion (see struct documentation). The picked suggestion will be remembered, and the
     /// searcher's input will be updated and returned by this function.
+    #[profile(Debug)]
     pub fn use_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
         info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
         let id = self.data.borrow().input.next_completion_id();
@@ -695,6 +700,7 @@ impl Searcher {
     }
 
     /// See `execute_action` documentation.
+    #[profile(Task)]
     pub fn execute_action_by_index(&self, index: usize) -> FallibleResult<Option<ast::Id>> {
         let error = || NoSuchAction { index };
         let action = {
@@ -724,6 +730,7 @@ impl Searcher {
     /// If the searcher was brought by editing existing node, the input is set as a new node
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
+    #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         let expr_and_method = || {
@@ -772,6 +779,7 @@ impl Searcher {
     ///
     /// The example piece of code will be inserted as a new function definition, and in current
     /// graph the node calling this function will appear.
+    #[profile(Debug)]
     pub fn add_example(
         &self,
         example: &action::Example,
@@ -814,6 +822,7 @@ impl Searcher {
         Ok(added_node_id)
     }
 
+    #[profile(Debug)]
     fn invalidate_fragments_added_by_picking(&self) {
         let mut data = self.data.borrow_mut();
         let data = data.deref_mut();
@@ -844,6 +853,7 @@ impl Searcher {
     ///
     /// The current list will be set as "Loading" and Language Server will be requested for a new
     /// list - once it be retrieved, the new list will be set and notification will be emitted.
+    #[profile(Debug)]
     fn reload_list(&self) {
         let this_type = self.this_arg_type_for_next_completion();
         let return_types = match self.data.borrow().input.next_completion_id() {
@@ -858,6 +868,7 @@ impl Searcher {
 
     /// Get the typename of "this" value for current completion context. Returns `Future`, as the
     /// type information might not have came yet from the Language Server.
+    #[profile(Debug)]
     fn this_arg_type_for_next_completion(&self) -> impl Future<Output = Option<String>> {
         let next_id = self.data.borrow().input.next_completion_id();
         let logger = self.logger.clone_ref();
@@ -931,6 +942,7 @@ impl Searcher {
     }
 
     /// Process multiple completion responses from the engine into a single list of suggestion.
+    #[profile(Debug)]
     fn make_action_list(
         &self,
         completion_responses: Vec<json_rpc::Result<language_server::response::Completion>>,

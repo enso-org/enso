@@ -300,6 +300,7 @@ impl WorldData {
     /// function is more precise than time obtained from the [`window.performance().now()`] one.
     /// Follow this link to learn more:
     /// https://stackoverflow.com/questions/38360250/requestanimationframe-now-vs-performance-now-time-discrepancy.
+    #[profile(Objective)]
     pub fn run_next_frame(&self, time: animation::TimeInfo) {
         let previous_frame_stats = self.stats.begin_frame();
         if let Some(stats) = previous_frame_stats {
@@ -319,6 +320,7 @@ impl WorldData {
     ///
     /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
     /// structure with static timeline may be put. For details, see docs of [`garbage::Collector`].
+    #[profile(Debug)]
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
     }
