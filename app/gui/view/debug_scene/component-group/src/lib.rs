@@ -107,7 +107,6 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 
 fn create_selection() -> list_view::selection::View {
     let selection = list_view::selection::View::new(Logger::new("Selection"));
-    selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     selection.corner_radius.set(5.0);
     selection
@@ -191,6 +190,7 @@ fn init(app: &Application) {
 
     // === Wide Component Group ===
 
+    wide_selection.color.set(color::Rgba(0.527, 0.554, 0.18, 1.0).into());
     frp::extend! { network
         wide_selection_animation.target <+ wide_component_group.selection_position_target;
         eval wide_selection_animation.value ((pos) wide_selection.set_position_xy(*pos));
