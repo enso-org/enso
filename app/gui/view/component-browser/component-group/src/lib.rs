@@ -20,19 +20,21 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::application::traits::*;
+use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
-use ensogl_core::Animation;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
+use ensogl_core::display::scene::layer;
+use ensogl_core::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
-use ensogl_shadow as shadow;
 use ensogl_list_view as list_view;
+use ensogl_shadow as shadow;
 use ensogl_text as text;
 
 
@@ -203,7 +205,7 @@ impl component::Frp<Model> for Frp {
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_viewport_size);
             eval size_and_header_geometry(((size, hdr_geom, vprt_size)) model.resize(*size, *hdr_geom, *vprt_size));
-            
+
             viewport_size_greater_zero <- input.set_viewport_size.map(|s| *s > 0.0);
             show_shadow <- viewport_size_greater_zero.on_true();
             hide_shadow <- viewport_size_greater_zero.on_false();
@@ -290,6 +292,38 @@ impl component::Frp<Model> for Frp {
 }
 
 
+/// A set of scene layers shared for every Component Group.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Layers {
+    background:  layer::Layer,
+    text:        layer::Layer,
+    header:      layer::Layer,
+    header_text: layer::Layer,
+}
+
+impl Layers {
+    /// Constructor.
+    ///
+    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer`
+    /// as sublayers if it is provided.
+    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: Option<&layer::Layer>) -> Self {
+        let background = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let header = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+
+        background.add_sublayer(&text);
+        background.add_sublayer(&header);
+        header.add_sublayer(&header_text);
+
+        if let Some(parent_layer) = parent_layer {
+            parent_layer.add_sublayer(&background);
+        }
+
+        Self { background, header, text, header_text }
+    }
+}
+
 
 // =============
 // === Model ===
@@ -298,17 +332,14 @@ impl component::Frp<Model> for Frp {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    /// TODO
-    pub display_object:    display::object::InstanceWithLayer<display::scene::layer::Layer>,
+    display_object:    display::object::Instance,
     header:            text::Area,
     header_background: header_background::View,
     header_text:       Rc<RefCell<String>>,
     header_overlay:    header_overlay::View,
     background:        background::View,
     entries:           list_view::ListView<list_view::entry::Label>,
-    text_layer:        display::scene::layer::Layer,
-    header_layer:      display::scene::layer::Layer,
-    header_text_layer: display::scene::layer::Layer,
+    layers:            Rc<RefCell<Option<Layers>>>,
 }
 
 impl display::Object for Model {
@@ -327,39 +358,15 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
 
-        use display::scene::layer::Layer;
-        let cgv_layer = Layer::new_with_cam(
-            logger.clone_ref(),
-            &app.display.default_scene.layers.main.camera(),
-        );
-        let text_layer = display::scene::layer::Layer::new_with_cam(
-            logger.clone_ref(),
-            &app.display.default_scene.layers.main.camera(),
-        );
-        let header_layer = display::scene::layer::Layer::new_with_cam(
-            logger.clone_ref(),
-            &app.display.default_scene.layers.main.camera(),
-        );
-        let header_text_layer = Layer::new_with_cam(logger.clone_ref(), &header_layer.camera());
-        header_layer.add_sublayer(&header_text_layer);
-        text_layer.add_sublayer(&header_layer);
-        cgv_layer.add_sublayer(&text_layer);
-        let display_object = display::object::InstanceWithLayer::new(display_object, cgv_layer);
         let background = background::View::new(&logger);
-        display_object.layer.add_exclusive(&background);
         let header_background = header_background::View::new(&logger);
-        header_layer.add_exclusive(&header_background);
         let header = text::Area::new(app);
-        header.add_to_scene_layer(&header_text_layer);
-        header_text_layer.add_exclusive(&header_overlay);
         let entries = list_view::ListView::new(app);
         entries.set_style_prefix(ENTRIES_STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
-        display_object.layer.add_exclusive(&entries);
-        entries.set_label_layer2(text_layer.clone_ref());
         display_object.add_child(&background);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
@@ -368,20 +375,29 @@ impl component::Model for Model {
 
         Model {
             display_object,
-            text_layer,
             header_overlay,
-            header_layer,
-            header_text_layer,
             header,
             header_text,
             background,
             header_background,
             entries,
+            layers: default(),
         }
     }
 }
 
 impl Model {
+    pub fn set_layers(&self, layers: &Layers) {
+        layers.background.add_exclusive(&self.background);
+        layers.header_text.add_exclusive(&self.header_overlay);
+        layers.background.add_exclusive(&self.entries);
+        self.entries.set_label_layer2(layers.text.clone_ref());
+        layers.header.add_exclusive(&self.header_background);
+        self.header.add_to_scene_layer(&layers.header_text);
+
+        *self.layers.borrow_mut() = Some(layers.clone_ref());
+    }
+
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, viewport_height: f32) {
         // === Background ===
 
@@ -415,6 +431,7 @@ impl Model {
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
         self.header_background.height.set(header_height);
+
         self.header_background.size.set(Vector2(size.x, header_height * 2.0));
         self.header_background.set_position_xy(Vector2(
             header_text_x + size.x / 2.0 - header_padding_left,
