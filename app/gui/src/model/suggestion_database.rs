@@ -27,6 +27,14 @@ pub use example::Example;
 
 
 
+// ===============
+// === Aliases ===
+// ===============
+
+type EntryIdByPath = ensogl::data::HashMapTree<String, entry::Id>;
+
+
+
 // ==============
 // === Errors ===
 // ==============
@@ -65,6 +73,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     logger:        Logger,
     entries:       RefCell<HashMap<entry::Id, Rc<Entry>>>,
+    id_by_path:    RefCell<EntryIdByPath>,
     examples:      RefCell<Vec<Rc<Example>>>,
     version:       Cell<SuggestionsDatabaseVersion>,
     notifications: notification::Publisher<Notification>,
@@ -75,10 +84,11 @@ impl SuggestionDatabase {
     pub fn new_empty(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "SuggestionDatabase");
         let entries = default();
+        let id_by_path = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, examples, version, notifications }
+        Self { logger, entries, id_by_path, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
@@ -176,7 +186,6 @@ impl SuggestionDatabase {
         self.notifications.notify(Notification::Updated);
     }
 
-
     /// Look up given id in the suggestion database and if it is a known method obtain a pointer to
     /// it.
     pub fn lookup_method_ptr(
@@ -190,6 +199,12 @@ impl SuggestionDatabase {
     /// Search the database for an entry of method identified by given id.
     pub fn lookup_method(&self, id: MethodId) -> Option<Rc<Entry>> {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
+    }
+
+    pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
+        let segments = path.split('.');
+        let id = self.id_by_path.get(segments);
+        id.and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
