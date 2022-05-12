@@ -137,7 +137,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::define_shape_system! {
-        pointer_events = [false];
+        pointer_events = false;
         ( press  : f32
         , radius : f32
         , color  : Vector4

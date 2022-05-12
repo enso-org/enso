@@ -321,13 +321,13 @@ macro_rules! define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = [$pointer_events:tt];)?
+        $(pointer_events = $pointer_events:tt;)?
         ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
     ) => {
         $crate::_define_shape_system! {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = [$pointer_events];)?
+            $(pointer_events = $pointer_events;)?
             [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
         }
     };
@@ -349,7 +349,7 @@ macro_rules! _define_shape_system {
     (
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = [$pointer_events:tt];)?
+        $(pointer_events = $pointer_events:tt;)?
         [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}

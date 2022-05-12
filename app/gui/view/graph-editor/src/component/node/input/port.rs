@@ -57,7 +57,7 @@ pub mod viz {
     use super::*;
     ensogl::define_shape_system! {
         above = [hover];
-        pointer_events = [false];
+        pointer_events = false;
         (style:Style, color:Vector4) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();

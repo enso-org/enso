@@ -287,7 +287,7 @@ pub mod joint {
     use super::*;
 
     ensogl::define_shape_system! {
-        pointer_events = [false];
+        pointer_events = false;
         (color_rgba:Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
             let joint         = Circle((radius-PADDING.px())/2.0);

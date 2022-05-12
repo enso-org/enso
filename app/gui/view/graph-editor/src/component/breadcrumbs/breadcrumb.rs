@@ -73,7 +73,7 @@ mod icon {
     use super::*;
 
     ensogl::define_shape_system! {
-        pointer_events = [false];
+        pointer_events = false;
         (red:f32,green:f32,blue:f32,alpha:f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
@@ -99,7 +99,7 @@ mod separator {
     use super::*;
 
     ensogl::define_shape_system! {
-        pointer_events = [false];
+        pointer_events = false;
         (red:f32,green:f32,blue:f32,alpha:f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
