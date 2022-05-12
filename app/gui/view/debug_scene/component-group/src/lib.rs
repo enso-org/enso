@@ -141,14 +141,14 @@ fn items_slider(app: &Application) -> selector::NumberPicker {
     slider
 }
 
-fn color_component_slider(app: &Application, caption: &str) -> Leak<selector::NumberPicker> {
+fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
     app.display.add_child(&slider);
     slider.frp.allow_click_selection(true);
     slider.frp.resize(Vector2(400.0, 30.0));
     slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
     slider.frp.set_caption(Some(caption.to_string()));
-    Leak::new(slider)
+    slider
 }
 
 
@@ -229,19 +229,19 @@ fn init(app: &Application) {
     // === Color sliders ===
 
     let red_slider = color_component_slider(app, "Red");
-    red_slider.inner().set_position_y(300.0);
-    red_slider.inner().set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
-    let red_slider_frp = &red_slider.inner().frp;
+    red_slider.set_position_y(300.0);
+    red_slider.set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+    let red_slider_frp = &red_slider.frp;
 
     let green_slider = color_component_slider(app, "Green");
-    green_slider.inner().set_position_y(250.0);
-    green_slider.inner().set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
-    let green_slider_frp = &green_slider.inner().frp;
+    green_slider.set_position_y(250.0);
+    green_slider.set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
+    let green_slider_frp = &green_slider.frp;
 
     let blue_slider = color_component_slider(app, "Blue");
-    blue_slider.inner().set_position_y(200.0);
-    blue_slider.inner().set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
-    let blue_slider_frp = &blue_slider.inner().frp;
+    blue_slider.set_position_y(200.0);
+    blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
+    let blue_slider_frp = &blue_slider.frp;
 
     let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
     frp::extend! { network
@@ -263,6 +263,9 @@ fn init(app: &Application) {
 
     // === Forget ===
 
+    std::mem::forget(red_slider);
+    std::mem::forget(green_slider);
+    std::mem::forget(blue_slider);
     std::mem::forget(items_slider);
     std::mem::forget(network);
     std::mem::forget(selection);
