@@ -747,6 +747,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
+ "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
  "wasm-bindgen",
@@ -2331,6 +2332,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
+ "ensogl-label",
  "ensogl-list-view",
  "ensogl-text",
 ]
