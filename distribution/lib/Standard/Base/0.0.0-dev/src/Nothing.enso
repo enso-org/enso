@@ -1,7 +1,30 @@
-## The type that has only a singleton value.
+from Standard.Base import Boolean, True
 
-   It is often used alongside a value of type a to provide a Maybe or
-   Option abstraction. The type a | Nothing is semantically equivalent to
-   Maybe a.
-@Builtin_Type
 type Nothing
+    ## The type that has only a singleton value. Nothing in Enso is used as an
+       universal value to indicate the lack of presence of a value.
+
+       It is often used alongside a value of type a to provide a Maybe or
+       Option abstraction. The type a | Nothing is semantically equivalent to
+       Maybe a.
+    @Builtin_Type
+    type Nothing
+
+    ## Checks if the type is an instance of `Nothing`.
+
+       > Example
+         Checking if the value 1 is nothing.
+
+             1.is_nothing
+    is_nothing : Boolean
+    is_nothing = True
+
+    ## UNSTABLE
+       If this is Nothing then returns `function`.
+
+       > Example
+         If the value "Hello" is nothing return "".
+
+             "Hello".if_nothing ""
+    if_nothing : Any -> Any
+    if_nothing ~function = function

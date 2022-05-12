@@ -6,6 +6,7 @@
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
+#![recursion_limit = "512"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -17,14 +18,13 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-#![recursion_limit = "512"]
 
+use ensogl_core::application::traits::*;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
-use ensogl_core::application::traits::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
@@ -32,6 +32,13 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_text as text;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod wide;
 
 
 
@@ -67,13 +74,8 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let sprite_width: Var<Pixels> = "input_size.x".into();
-            let sprite_height: Var<Pixels> = "input_size.y".into();
             let color = Var::<Rgba>::from(color);
-            // TODO[MC,WD]: We should use Plane here, but it has a bug - renders wrong color. See:
-            //   https://github.com/enso-org/enso/pull/3373#discussion_r849054476
-            let shape = Rect((&sprite_width, &sprite_height)).fill(color);
-            shape.into()
+            Plane().fill(color).into()
         }
     }
 }

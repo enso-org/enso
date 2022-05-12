@@ -17,6 +17,7 @@ class DirectoriesInitialization(directoriesConfig: ProjectDirectoriesConfig)(
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     Future {
+      logger.info("Initializing directories...")
       directoriesConfig.createDirectories()
       logger.info("Initialized directories.")
       InitializationComponent.Initialized

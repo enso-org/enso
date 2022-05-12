@@ -51,7 +51,7 @@ public abstract class SortNode extends Node {
 
   Object runSort(Comparator<Object> compare, Array _this, Context context) {
     doSort(_this.getItems(), compare);
-    LoopNode.reportLoopCount(this, _this.length());
+    LoopNode.reportLoopCount(this, (int) _this.length());
     return context.getBuiltins().nothing().newInstance();
   }
 

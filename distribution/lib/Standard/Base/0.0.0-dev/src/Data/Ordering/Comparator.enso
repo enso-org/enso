@@ -1,12 +1,17 @@
-from Standard.Base import all
+from Standard.Base import Any, Ordering, Nothing, Vector
 
 polyglot java import org.enso.base.ObjectComparator
 
 ## ADVANCED
-   Creates a Java Comparator object which can call En
+   Creates a Java Comparator object which can call Enso compare_to
+
+   Arguments:
+   - custom_comparator:
+     If `Nothing` will get a singleton instance for `.compare_to`.
+     Otherwise can support a custom fallback comparator.
 new : Nothing | (Any->Any->Ordering)
 new custom_comparator=Nothing =
-    comparator_to_java cmp x y = cmp x y . to_sign
+    comparator_to_java cmp x y = Vector.handle_incomparable_value (cmp x y . to_sign)
 
     case custom_comparator of
         Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)

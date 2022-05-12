@@ -8,18 +8,18 @@ spec = Test.group 'JSON conversion' <|
     clothes = Enso_Project.data/'clothes.csv' . read_csv
     simple_empty = Enso_Project.data/'simple_empty.csv' . read_csv
 
-    Test.specify 'Should convert tables to a format compatible with Json.Array.to_table' <|
+    Test.specify 'should convert tables to a format compatible with Json.Array.to_table' <|
         clothes_json = clothes.to_json
         clothes_json.to_table ['Id', 'Name', 'Quantity', 'Rating', 'Price'] . should_equal clothes
 
-    Test.specify 'Should write JSON tables to disk' <|
+    Test.specify 'should write JSON tables to disk' <|
         out = Enso_Project.data / 'out.json'
         out.delete_if_exists
         simple_empty.write_json out
         (Json.parse out.read_text).to_table ['a', 'b', 'c'] . should_equal simple_empty
         out.delete_if_exists
 
-    Test.specify 'Should write JSON tables to disk using the write method' <|
+    Test.specify 'should write JSON tables to disk using the write method' <|
         out = Enso_Project.data / 'out.json'
         out.delete_if_exists
         simple_empty.write out Table.Format.Json

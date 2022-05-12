@@ -24,6 +24,7 @@ polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.Encoding_Utils
 
 ## UNSTABLE
 
@@ -751,7 +752,7 @@ Text.is_whitespace =
          "Hello".bytes (Encoding.ascii)
 Text.bytes : Encoding -> Problem_Behavior -> Vector.Vector Byte
 Text.bytes encoding on_problems=Report_Warning =
-    result = Text_Utils.get_bytes this (encoding . to_java_charset)
+    result = Encoding_Utils.get_bytes this (encoding . to_java_charset)
     vector = Vector.Vector result.result
     if result.warnings.is_nothing then vector else
         on_problems.attach_problems_after vector [Encoding_Error result.warnings]
@@ -774,7 +775,7 @@ Text.bytes encoding on_problems=Report_Warning =
          "Hello".bytes (Encoding.ascii)
 Text.from_bytes : Vector.Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
-    result = Text_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
+    result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
         on_problems.attach_problems_after result.result [Encoding_Error result.warnings]
 

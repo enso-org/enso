@@ -41,6 +41,7 @@ import org.enso.loggingservice.LogLevel
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.profiling.NoopSampler
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
@@ -52,6 +53,7 @@ import org.scalatest.OptionValues
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -187,7 +189,8 @@ class BaseServerTest
           config,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
-          sessionRouter
+          sessionRouter,
+          NoopSampler()
         )
       )
 

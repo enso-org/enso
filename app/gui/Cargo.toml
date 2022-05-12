@@ -13,6 +13,7 @@ double-representation = { version = "0.1.0", path = "controller/double-represent
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
 enso-data-structures = { path = "../../lib/rust/data-structures" }
+enso-debug-api = { path = "../../lib/rust/debug-api" }
 enso-debug-scene = { path = "view/debug_scene" }
 enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger"}
@@ -52,6 +53,7 @@ uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 # See for more information. https://github.com/rustwasm/wasm-bindgen/issues/2774
 # Should be removed once 0.2.80 is available.
 wasm-bindgen = { version = "=0.2.78" }
+wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 websocket = "0.23.0"

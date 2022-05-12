@@ -116,6 +116,8 @@
 - [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
 - [Implemented a basic reader for the `Delimited` file format.][3424]
 - [Implemented a reader for the `Excel` file format.][3425]
+- [Added custom encoding support to the `Delimited` file format reader.][3430]
+- [Implemented `compute` method on `Vector` for statistics calculations.][3442]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -179,6 +181,8 @@
 [3415]: https://github.com/enso-org/enso/pull/3415
 [3424]: https://github.com/enso-org/enso/pull/3424
 [3425]: https://github.com/enso-org/enso/pull/3425
+[3430]: https://github.com/enso-org/enso/pull/3430
+[3442]: https://github.com/enso-org/enso/pull/3442
 
 #### Enso Compiler
 
@@ -195,6 +199,8 @@
 - [Frgaal compiler integration to allow for latest Java constructs][3421]
 - [Support for Chrome developer tools --inspect option][3432]
 - [Move Builtin Types and Methods definitions to stdlib][3363]
+- [Reduce boilerplate by generating BuiltinMethod nodes from simple method
+  signatures][3444]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -212,6 +218,7 @@
 [3421]: https://github.com/enso-org/enso/pull/3421
 [3432]: https://github.com/enso-org/enso/pull/3432
 [3363]: https://github.com/enso-org/enso/pull/3363
+[3444]: https://github.com/enso-org/enso/pull/3444
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

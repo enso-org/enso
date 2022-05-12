@@ -326,6 +326,44 @@ commands['integration-test'].rust = async function (argv) {
     }
 }
 
+// === Profile ===
+
+commands.profile = command('Profile the application')
+commands.profile.rust = async function (argv) {
+    console.log(`Building with full optimization. This may take a few minutes...`)
+    let defaults = { 'profiling-level': 'debug' }
+    let argv2 = Object.assign({}, defaults, argv)
+    await commands.build.rust(argv2)
+}
+commands.profile.js = async function (argv) {
+    await installJsDeps()
+    console.log(`Profiling the application.` + argv)
+    let workflow = argv['workflow']
+    let save_profile = argv[`save-profile`]
+    if (workflow === undefined) {
+        console.error(
+            `'Profile' command requires a workflow argument. ` +
+                `For a list of available workflows, pass --workflow=help`
+        )
+        return
+    }
+    if (save_profile === undefined) {
+        console.error(
+            `'Profile' command requires a --save-profile argument ` +
+                `indicating path to output file.`
+        )
+        return
+    }
+    let out_path = path.resolve(save_profile)
+    const tail = ['--entry-point=profile', '--workflow=' + workflow, '--save-profile=' + out_path]
+    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
+        targetArgs
+    )
+    await cmd.with_cwd(paths.ide_desktop.root, async () => {
+        await run('npm', ['run', 'start', '--'].concat(args).concat(tail))
+    })
+}
+
 // === Lint ===
 
 commands.lint = command(`Lint the codebase`)

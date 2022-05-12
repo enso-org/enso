@@ -15,9 +15,9 @@ public class ObjectComparator implements Comparator<Object> {
    * @return Comparator object
    */
   public static ObjectComparator getInstance(
-      BiFunction<Object, Object, Integer> fallbackComparator) {
+      BiFunction<Object, Object, Long> fallbackComparator) {
     if (INSTANCE == null) {
-      INSTANCE = new ObjectComparator(fallbackComparator);
+      INSTANCE = new ObjectComparator((l, r) -> fallbackComparator.apply(l, r).intValue());
     }
 
     return INSTANCE;
