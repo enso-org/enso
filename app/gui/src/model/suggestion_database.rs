@@ -131,6 +131,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
+            id_by_path: default(),
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -203,8 +204,9 @@ impl SuggestionDatabase {
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
         let segments = path.split('.');
-        let id = self.id_by_path.get(segments);
-        id.and_then(|id| self.lookup(id).ok())
+        let id_by_path = &self.id_by_path.borrow();
+        let id = id_by_path.get(segments);
+        id.and_then(|id| self.lookup(*id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -610,5 +612,29 @@ mod test {
         assert_eq!(db.lookup(3).unwrap().arguments.len(), 3);
         assert_eq!(db.lookup(3).unwrap().arguments[2].name, "NewArg");
         assert_eq!(db.version.get(), 8);
+    }
+
+    #[test]
+    fn lookup_by_path() {
+        // Test a DB with sample data.
+        let entry = language_server::types::SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let db_entry = SuggestionsDatabaseEntry { id: 12, suggestion: entry };
+        let response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![db_entry],
+            current_version: 456,
+        };
+        let db = SuggestionDatabase::from_ls_response(response);
+        let lookup = db.lookup_by_path("TestProject.TestModule.TextAtom");
+        assert!(lookup.is_some());
+        // TODO[MC]: do we want to get ID here too? do we have it?
+        assert_eq!(lookup.unwrap().name, "TextAtom".to_string());
     }
 }
