@@ -22,6 +22,7 @@ import java.util.Arrays;
 /** A primitve boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
+@Builtin(pkg = "mutable", name = "Standard.Base.Data.Array.Array")
 public class Array implements TruffleObject {
   private final Object[] items;
 

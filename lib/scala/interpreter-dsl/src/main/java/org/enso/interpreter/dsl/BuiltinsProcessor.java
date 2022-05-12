@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,6 +41,12 @@ public class BuiltinsProcessor extends AbstractProcessor {
           } catch (Exception ioe) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ioe.getMessage());
           }
+        } else if (elt.getKind() == ElementKind.CLASS) {
+          try {
+            handleClassElement(elt, roundEnv);
+          } catch (IOException ioe) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ioe.getMessage());
+          }
         } else {
           processingEnv
               .getMessager()
@@ -50,6 +57,37 @@ public class BuiltinsProcessor extends AbstractProcessor {
       }
     }
     return true;
+  }
+
+  public void handleClassElement(Element element, RoundEnvironment roundEnv) throws IOException {
+    TypeElement elt = (TypeElement) element;
+    Builtin annotation = element.getAnnotation(Builtin.class);
+    String clazzName = element.getSimpleName().toString();
+    String builtinPkg =
+            annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
+    ClassName builtinType =  new ClassName(builtinPkg, clazzName);
+    JavaFileObject gen =
+            processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
+    Optional<String> stdLibName = annotation.name().isEmpty() ? Optional.empty() : Optional.of(annotation.name());
+    generateBuiltinType(gen, builtinType, stdLibName);
+  }
+
+  private void generateBuiltinType(
+          JavaFileObject gen,
+          ClassName builtinType,
+          Optional<String> stdLibName) throws IOException {
+    try (PrintWriter out = new PrintWriter(gen.openWriter())) {
+      out.println("package " + builtinType.pkg() + ";");
+      out.println();
+      for (String importPkg : typeNecessaryImports) {
+        out.println("import " + importPkg + ";");
+      }
+      out.println();
+      String stdLib = stdLibName.map(n -> "(name = \"" + n + "\")").orElse("");
+      out.println("@BuiltinType" + stdLib);
+      out.println("public class " + builtinType.name() + " extends Builtin {}");
+      out.println();
+    }
   }
 
   public void handleMethodElement(Element element, RoundEnvironment roundEnv) throws IOException {
@@ -107,7 +145,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinNode.pkg() + ";");
       out.println();
-      for (String importPkg : necessaryImports) {
+      for (String importPkg : methodNecessaryImports) {
         out.println("import " + importPkg + ";");
       }
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
@@ -132,7 +170,10 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
   }
 
-  private final List<String> necessaryImports =
+  private final List<String> typeNecessaryImports =
+     Arrays.asList("org.enso.interpreter.dsl.BuiltinType",
+                   "org.enso.interpreter.node.expression.builtin.Builtin");
+  private final List<String> methodNecessaryImports =
       Arrays.asList("com.oracle.truffle.api.nodes.Node", "org.enso.interpreter.dsl.BuiltinMethod");
 
   private MethodParameter fromVariableElementToMethodParameter(VariableElement v) {
