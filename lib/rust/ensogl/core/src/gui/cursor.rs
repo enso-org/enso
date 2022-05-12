@@ -4,7 +4,6 @@ use crate::display::shape::*;
 use crate::gui::style::*;
 use crate::prelude::*;
 
-use crate::application::command::FrpNetworkProvider;
 use crate::data::color;
 use crate::define_style;
 use crate::display;
@@ -163,7 +162,7 @@ pub mod shape {
 // === Frp ===
 // ===========
 
-crate::define_endpoints_2! {
+crate::define_endpoints! {
     Input {
         set_style (Style),
     }
@@ -240,7 +239,7 @@ impl Cursor {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         let frp = Frp::new();
-        let network = frp.network();
+        let network = &frp.network;
         let model = CursorModel::new(scene);
         let mouse = &scene.mouse.frp;
 
@@ -457,10 +456,10 @@ impl Cursor {
 
             // === Outputs ===
 
-            frp.private.output.position             <+ position;
-            frp.private.output.screen_position      <+ screen_position;
-            frp.private.output.scene_position       <+ scene_position;
-            frp.private.output.scene_position_delta <+ scene_position_delta;
+            frp.source.position             <+ position;
+            frp.source.screen_position      <+ screen_position;
+            frp.source.scene_position       <+ scene_position;
+            frp.source.scene_position_delta <+ scene_position_delta;
         }
 
         // Hide on init.

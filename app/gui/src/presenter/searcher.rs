@@ -37,7 +37,6 @@ struct Model {
 }
 
 impl Model {
-    #[profile(Debug)]
     fn new(
         parent: impl AnyLogger,
         controller: controller::Searcher,
@@ -48,7 +47,6 @@ impl Model {
         Self { logger, controller, view, input_view }
     }
 
-    #[profile(Debug)]
     fn input_changed(&self, new_input: &str) {
         if let Err(err) = self.controller.set_input(new_input.to_owned()) {
             error!(self.logger, "Error while setting new searcher input: {err}");
@@ -71,7 +69,6 @@ impl Model {
         }
     }
 
-    #[profile(Task)]
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
@@ -110,7 +107,6 @@ pub struct Searcher {
 
 impl Searcher {
     /// Constructor. The returned structure works rigth away.
-    #[profile(Task)]
     pub fn new(
         parent: impl AnyLogger,
         controller: controller::Searcher,
@@ -155,7 +151,6 @@ impl Searcher {
 
     /// Setup new, appropriate searcher controller for the edition of `node_view`, and construct
     /// presenter handling it.
-    #[profile(Task)]
     pub fn setup_controller(
         parent: impl AnyLogger,
         ide_controller: controller::Ide,
@@ -194,7 +189,6 @@ impl Searcher {
     /// editing finishes. The `entry_id` might be none in case where the searcher should accept
     /// the node input without any entry selected. If the commitment will result in creating a new
     /// node, its AST id is returned.
-    #[profile(Task)]
     pub fn commit_editing(self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         self.model.commit_editing(entry_id)
     }

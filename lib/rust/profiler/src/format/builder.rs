@@ -43,7 +43,6 @@ impl<'a> Builder<'a> {
         // Get or register label.
         let next_label_id = self.labels.len();
         let label = *self.labels.entry(label).or_insert_with(|| {
-            let label = label.into();
             self.events.push(format::Event::Label { label });
             format::Label(next_label_id)
         });

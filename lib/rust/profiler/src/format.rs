@@ -5,7 +5,6 @@
 use serde;
 use serde::Deserialize;
 use serde::Serialize;
-use std::borrow::Cow;
 
 
 // ==============
@@ -33,10 +32,9 @@ pub enum Event<'a> {
     /// Registers a label to be referenced by ID.
     #[serde(rename = "L")]
     Label {
-        /// The text content of the label. Might need to be an owned string, if the original data
-        /// contains an escape sequence.
+        /// The text content of the label.
         #[serde(rename = "l")]
-        label: Cow<'a, str>,
+        label: &'a str,
     },
     /// The beginning of a measurement that starts in the paused state.
     #[serde(rename = "C")]
@@ -299,14 +297,5 @@ mod tests {
         // As an easy way of implementing this, we check a stricter property here: That
         // re-serializing the data structures produces the same blob as the input.
         assert_eq!(LOG, serde_json::to_string(&events).unwrap());
-    }
-
-    /// Verify that the current implementation can deserialize escaped paths in the json file.
-    #[test]
-    fn escaped_json() {
-        // Example data containing a string with escaped characters.
-        const LOG: &str = r#"[{"L":{"l":"entry_point_ide (app\\ui\\src\\lib.rs:134)"}}]"#;
-        // Check that we can deserialize the data.
-        let _events: Vec<format::Event> = serde_json::from_str(LOG).unwrap();
     }
 }
