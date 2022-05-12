@@ -652,14 +652,96 @@ mod test {
             current_version: 456,
         };
         let db = SuggestionDatabase::from_ls_response(response);
-        let atom_lookup = db.lookup_by_path("TestProject.TestModule.TextAtom");
+        let atom_path = "TestProject.TestModule.TextAtom";
+        let atom_lookup = db.lookup_by_path(atom_path);
         assert!(atom_lookup.is_some());
         // TODO[MC]: do we want to get ID here too? do we have it?
         assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
-        let method_lookup = db.lookup_by_path("Standard.Builtins.Main.System.create_process");
+        let method_path = "Standard.Builtins.Main.System.create_process";
+        let method_lookup = db.lookup_by_path(method_path);
         assert!(method_lookup.is_some());
         assert_eq!(method_lookup.unwrap().name, "create_process".to_string());
         let nonexistent_lookup = db.lookup_by_path("Standard.Builtins.Main.create_process");
         assert!(nonexistent_lookup.is_none());
+
+        // Test after the DB got an update.
+        /*
+        {
+          "type": "module",
+          "module": "local.Unnamed_6.Main",
+          "documentation": null,
+          "documentationHtml": null,
+          "reexport": null
+        }
+         */
+        let module_entry = SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        /*
+        {
+          "type": "local",
+          "externalId": "51202bfb-340a-4362-95f1-5d4be55da40d",
+          "module": "local.Unnamed_6.Main",
+          "name": "operator1",
+          "returnType": "Standard.Base.Data.Vector.Vector",
+          "scope": {
+            "start": {
+              "line": 3,
+              "character": 6
+            },
+            "end": {
+              "line": 6,
+              "character": 0
+            }
+          }
+        }
+         */
+        let local_entry = SuggestionEntry::Local {
+            module:      "local.Unnamed_6.Main".to_string(),
+            name:        "operator1".to_string(),
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id: None,
+            scope:       (default()..=default()).into(),
+        };
+        let modification = Box::new(SuggestionsDatabaseModification {
+            arguments:          vec![],
+            module:             Some(FieldUpdate::set("NewProject.NewModule".to_string())),
+            self_type:          None,
+            return_type:        None,
+            documentation:      None,
+            documentation_html: None,
+            scope:              None,
+        });
+        // let renamed_atom_entry = SuggestionEntry::Atom {
+        //     name: "RenamedAtom".to_string(), ..atom_entry
+        // };
+        // let add_update = entry::Update::Add { id: 1,
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![
+                entry::Update::Add { id: 1, suggestion: module_entry },
+                entry::Update::Add { id: 2, suggestion: local_entry },
+                entry::Update::Remove { id: 15 },
+                entry::Update::Modify { id: 12, external_id: None, modification },
+            ],
+            current_version: 3,
+        };
+        db.apply_update_event(update);
+        let module_lookup = db.lookup_by_path("local.Unnamed_6.Main");
+        assert!(module_lookup.is_some());
+        // FIXME: assert_eq!(module_lookup.unwrap().module, "local.Unnamed_6.Main".to_string());
+        let local_lookup = db.lookup_by_path("local.Unnamed_6.Main.operator1");
+        assert!(local_lookup.is_some());
+        assert_eq!(local_lookup.unwrap().name, "operator1".to_string());
+        let removed_lookup = db.lookup_by_path(method_path);
+        // TODO[MC]: add test re-adding other item at same ID, verify that path still returns None
+        assert!(removed_lookup.is_none());
+        let old_modified_lookup = db.lookup_by_path(atom_path);
+        assert!(old_modified_lookup.is_none());
+        let new_modified_lookup = db.lookup_by_path("NewProject.NewModule.TextAtom");
+        assert!(new_modified_lookup.is_some());
+        assert_eq!(new_modified_lookup.unwrap().name, "TextAtom".to_string());
     }
 }
