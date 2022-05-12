@@ -31,12 +31,13 @@ object StdBits {
       val libraryUpdates = (Compile / update).value
       val log            = streams.value.log
 
-      val ignoredConfigurations: NameFilter =
+      val validConfig: NameFilter =
         if (ignoreScalaLibrary)
-          new ExactFilter(Configurations.ScalaTool.name)
-        else NothingFilter
+          new ExactFilter(Configurations.Runtime.name) - new ExactFilter(Configurations.ScalaTool.name)
+        else
+          new ExactFilter(Configurations.Runtime.name)
       val configFilter: ConfigurationFilter =
-        DependencyFilter.configurationFilter(-ignoredConfigurations)
+        DependencyFilter.configurationFilter(name = validConfig)
 
       val graalOrg = new ExactFilter("org.graalvm.sdk")
       val relevantFiles =
