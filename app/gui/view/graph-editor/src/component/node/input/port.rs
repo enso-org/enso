@@ -97,7 +97,6 @@ impl Shape {
     /// Constructor.
     #[profile(Debug)]
     pub fn new(logger: &Logger, size: Vector2, hover_height: f32) -> Self {
-
         let root = display::object::Instance::new(logger);
         let hover = hover::View::new(logger);
         let viz = viz::View::new(logger);
