@@ -20,7 +20,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::application::traits::*;
-use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -29,6 +28,7 @@ use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
+use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::scene::layer;
 use ensogl_core::Animation;
 use ensogl_gui_component::component;
