@@ -17,7 +17,6 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 
-import Standard.Table.Data.Group_By_Key
 import Standard.Table.Data.Aggregate_Column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table

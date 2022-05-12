@@ -4,10 +4,7 @@ import org.enso.interpreter.dsl.model.MethodDefinition;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
@@ -22,7 +19,6 @@ import org.openide.util.lookup.ServiceProvider;
  * metadata necessary for automatic builtin methods initialization.
  */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor {
 
@@ -42,54 +38,69 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
-        TypeElement element = (TypeElement) elt;
-        ExecutableElement executeMethod =
-            element.getEnclosedElements().stream()
-                .filter(
-                    x -> {
-                      if (!(x instanceof ExecutableElement)) return false;
-                      Name name = x.getSimpleName();
-                      return name.contentEquals("execute");
-                    })
-                .map(x -> (ExecutableElement) x)
-                .findFirst()
-                .orElseGet(
-                    () -> {
-                      processingEnv
-                          .getMessager()
-                          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
-                      return null;
-                    });
-        if (executeMethod == null) continue;
-        String pkgName =
-            processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
-
-        MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
-        if (!def.validate(processingEnv)) {
-          continue;
-        }
-        try {
-          generateCode(def);
-          String tpe = def.getType().toLowerCase();
-          if (tpe.isEmpty()) {
-            throw new InternalError(
-                "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
-          }
-          String fullClassName = def.getPackageName() + "." + def.getClassName();
-          registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
-          if (def.hasAliases()) {
-            for (String alias : def.aliases()) {
-              registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
-            }
+        if (elt.getKind() == ElementKind.CLASS) {
+          try {
+            handleTypeELement((TypeElement) elt, roundEnv);
+          } catch (IOException e) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
 
-        } catch (IOException e) {
-          e.printStackTrace();
+        } else {
+          processingEnv
+              .getMessager()
+              .printMessage(
+                  Diagnostic.Kind.ERROR,
+                  "Invalid use of " + annotation.getSimpleName() + " with " + elt.getKind());
         }
       }
     }
-
     return true;
+  }
+
+  private void handleTypeELement(TypeElement element, RoundEnvironment roundEnv)
+      throws IOException {
+    ExecutableElement executeMethod =
+        element.getEnclosedElements().stream()
+            .filter(
+                x -> {
+                  if (!(x instanceof ExecutableElement)) return false;
+                  Name name = x.getSimpleName();
+                  return name.contentEquals("execute");
+                })
+            .map(x -> (ExecutableElement) x)
+            .findFirst()
+            .orElseGet(
+                () -> {
+                  processingEnv
+                      .getMessager()
+                      .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
+                  return null;
+                });
+    if (executeMethod == null) return;
+    String pkgName =
+        processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+
+    MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
+    if (!def.validate(processingEnv)) {
+      return;
+    }
+    generateCode(def);
+    String tpe = def.getType().toLowerCase();
+    if (tpe.isEmpty()) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Diagnostic.Kind.ERROR,
+              "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+      return;
+    }
+    String fullClassName = def.getPackageName() + "." + def.getClassName();
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+    if (def.hasAliases()) {
+      for (String alias : def.aliases()) {
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+      }
+    }
   }
 
   private final List<String> necessaryImports =
@@ -468,5 +479,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
 
   private String capitalize(String name) {
     return name.substring(0, 1).toUpperCase() + name.substring(1);
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
   }
 }

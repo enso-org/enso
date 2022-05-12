@@ -11,6 +11,7 @@ import scala.concurrent.ExecutionContext
   * @param dataPort a data port that the server listen to
   * @param contentRootUuid an id of content root
   * @param contentRootPath a path to the content root
+  * @param isProfilingEnabled is the application profiling enabled
   */
 case class LanguageServerConfig(
   interface: String,
@@ -18,6 +19,7 @@ case class LanguageServerConfig(
   dataPort: Int,
   contentRootUuid: UUID,
   contentRootPath: String,
+  isProfilingEnabled: Boolean,
   name: String                              = "language-server",
   computeExecutionContext: ExecutionContext = ExecutionContext.global
 )

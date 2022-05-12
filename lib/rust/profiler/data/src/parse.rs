@@ -285,7 +285,7 @@ impl<M: serde::de::DeserializeOwned> LogVisitor<M> {
                 format::Event::Pause { id, timestamp } =>
                     visitor.visit_pause(log_pos, id, timestamp),
                 format::Event::Metadata(metadata) => visitor.visit_metadata(log_pos, metadata),
-                format::Event::Label { label } => visitor.visit_label(log_pos, label),
+                format::Event::Label { label } => visitor.visit_label(log_pos, label.as_ref()),
             };
             result.map_err(|error| crate::EventError { log_pos: i, error })?;
             event_count += 1;

@@ -60,11 +60,13 @@ impl Collector {
     /// The collector is designed to handle EnsoGL component's FRP networks and models, but any
     /// structure with static timeline may be put. See [`Collector`] docs for information when
     /// the object will be finally dropped.
+    #[profile(Debug)]
     pub fn collect<T: 'static>(&self, object: T) {
         self.garbage.borrow_mut().before_pixel_sync.push(Box::new(object));
     }
 
     /// Pixel value requested (the points 1 and 2 in [`Collector`] docs).
+    #[profile(Debug)]
     pub fn pixel_synced(&self) {
         let mut garbage = self.garbage.borrow_mut();
         let objects_being_moved = std::mem::take(&mut garbage.before_pixel_sync);
@@ -72,6 +74,7 @@ impl Collector {
     }
 
     /// Pixel value retrieved (the point 3 in [`Collector`] docs).
+    #[profile(Debug)]
     pub fn pixel_updated(&self) {
         let mut garbage = self.garbage.borrow_mut();
         let objects_being_moved = std::mem::take(&mut garbage.before_pixel_update);
@@ -79,6 +82,7 @@ impl Collector {
     }
 
     /// Mouse events handled (the point 4 in [`Collector`] docs).
+    #[profile(Debug)]
     pub fn mouse_events_handled(&self) {
         let mut garbage = self.garbage.borrow_mut();
         drop(std::mem::take(&mut garbage.before_mouse_events));

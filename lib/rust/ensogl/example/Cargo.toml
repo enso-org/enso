@@ -18,7 +18,6 @@ ensogl-example-glyph-system = { path = "glyph-system" }
 ensogl-example-list-view = { path = "list-view" }
 ensogl-example-mouse-events = { path = "mouse-events" }
 ensogl-example-profiling-run-graph = { path = "profiling-run-graph" }
-ensogl-example-render-profile = { path = "render-profile" }
 ensogl-example-render-profile-flamegraph = { path = "render-profile-flamegraph" }
 ensogl-example-scroll-area = { path = "scroll-area" }
 ensogl-example-shape-system = { path = "shape-system" }
