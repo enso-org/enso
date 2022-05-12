@@ -17,4 +17,11 @@ public @interface Builtin {
 
   /** @return a short description of this method. */
   String description() default "";
+
+  /**
+   * @return when applied to a method/constructor with varargs,
+   *        will generate methods with parameters repeated up to the value.
+   *        Must be zero when there are no varaargs in the parameters list.
+   */
+  int expandVarargs() default 0;
 }

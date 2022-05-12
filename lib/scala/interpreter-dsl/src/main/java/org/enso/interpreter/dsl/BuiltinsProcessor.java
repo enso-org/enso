@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * The processor used to generate code from the methods of the runtime representations annotated
@@ -98,23 +100,51 @@ public class BuiltinsProcessor extends AbstractProcessor {
       PackageElement pkgElement = (PackageElement) tpeElement.getEnclosingElement();
       Builtin annotation = element.getAnnotation(Builtin.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
-      String methodName =
-              !annotation.name().isEmpty() ? annotation.name() :
-                      isConstructor ? "new" : method.getSimpleName().toString();
       String builtinPkg =
           annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
-      String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
-      ClassName builtinMethodNode =
-          new ClassName(
-              builtinPkg,
-              methodName.substring(0, 1).toUpperCase() + methodName.substring(1) + optConstrSuffix + "Node");
-      ClassName ownerClass =
-          new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
-      JavaFileObject gen =
-          processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-      MethodGenerator methodGen = new MethodGenerator(method);
-      generateBuiltinMethodNode(
-          gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
+
+      if (annotation.expandVarargs() != 0) {
+        if (annotation.expandVarargs() < 0) throw new RuntimeException("Invalid varargs value in @Builtin annotation. Must be positive");
+        if (!annotation.name().isEmpty()) throw new RuntimeException("Name cannot be non-empty when varargs are used");
+
+        IntStream.rangeClosed(1, annotation.expandVarargs()).forEach(i -> {
+          String methodName = (isConstructor ? "new" : method.getSimpleName().toString()) + "_" + i;
+          String noUnderscoresMethodName = methodName.replaceAll("_", "");
+          String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
+          ClassName builtinMethodNode =
+                  new ClassName(
+                          builtinPkg,
+                          noUnderscoresMethodName.substring(0, 1).toUpperCase() + noUnderscoresMethodName.substring(1) + optConstrSuffix + "Node");
+          ClassName ownerClass =
+                  new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
+          try {
+            JavaFileObject gen =
+                    processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
+            MethodGenerator methodGen = new MethodGenerator(method, i);
+            generateBuiltinMethodNode(
+                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
+        });
+      } else {
+        String methodName =
+                !annotation.name().isEmpty() ? annotation.name() :
+                        isConstructor ? "new" : method.getSimpleName().toString();
+
+        String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
+        ClassName builtinMethodNode =
+                new ClassName(
+                        builtinPkg,
+                        methodName.substring(0, 1).toUpperCase() + methodName.substring(1) + optConstrSuffix + "Node");
+        ClassName ownerClass =
+                new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
+        JavaFileObject gen =
+                processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
+        MethodGenerator methodGen = new MethodGenerator(method, 0);
+        generateBuiltinMethodNode(
+                gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
+      }
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
     }
@@ -176,8 +206,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
   private final List<String> methodNecessaryImports =
       Arrays.asList("com.oracle.truffle.api.nodes.Node", "org.enso.interpreter.dsl.BuiltinMethod");
 
-  private MethodParameter fromVariableElementToMethodParameter(VariableElement v) {
-    return new MethodParameter(v.getSimpleName().toString(), v.asType().toString());
+  private MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
+    return new MethodParameter(i, v.getSimpleName().toString(), v.asType().toString());
   }
 
   /** Method generator encapsulates the generation of the `execute` method. */
@@ -186,22 +216,41 @@ public class BuiltinsProcessor extends AbstractProcessor {
     private final List<MethodParameter> params;
     private final boolean isStatic;
     private final boolean isConstructor;
+    private final int varargExpansion;
+    private final boolean needsVarargExpansion;
 
-    public MethodGenerator(ExecutableElement method) {
-      this(
-          method.getReturnType().toString(),
-          method.getParameters().stream()
-              .map(v -> fromVariableElementToMethodParameter(v))
-              .collect(Collectors.toList()),
-          method.getModifiers().contains(Modifier.STATIC),
-          method.getKind() == ElementKind.CONSTRUCTOR);
+    public MethodGenerator(ExecutableElement method, int expandedVarargs) {
+      this(method, method.getParameters(), expandedVarargs);
     }
 
-    private MethodGenerator(String returnTpe, List<MethodParameter> params, boolean isStatic, boolean isConstructor) {
+    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs) {
+      this(
+          method.getReturnType().toString(),
+          IntStream.range(0, method.getParameters().size()).mapToObj(i ->
+                  fromVariableElementToMethodParameter(i, params.get(i))).collect(Collectors.toList()),
+          method.getModifiers().contains(Modifier.STATIC),
+          method.getKind() == ElementKind.CONSTRUCTOR,
+          expandedVarargs,
+          method.isVarArgs());
+    }
+
+    private MethodGenerator(
+            String returnTpe,
+            List<MethodParameter> params,
+            boolean isStatic,
+            boolean isConstructor,
+            int expandedVarargs,
+            boolean isVarargs) {
       this.returnTpe = returnTpe;
       this.params = params;
       this.isStatic = isStatic;
       this.isConstructor = isConstructor;
+      this.varargExpansion = expandedVarargs;
+      this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
+    }
+
+    private Optional<Integer> expandVararg(int paramIndex) {
+      return needsVarargExpansion && params.size() >= (paramIndex + 1) ? Optional.of(varargExpansion) : Optional.empty();
     }
 
     public String[] generateMethod(String name, String owner) {
@@ -213,9 +262,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
       } else {
         paramsDef =
             ", "
-                + StringUtils.join(params.stream().map(x -> x.declaredParameter()).toArray(), ", ");
+                + StringUtils.join(params.stream().flatMap(x -> x.declaredParameters(expandVararg(x.index))).toArray(), ", ");
         paramsApplied =
-            StringUtils.join(params.stream().map(x -> x.name()).toArray(), ", ");
+            StringUtils.join(params.stream().flatMap(x -> x.names(expandVararg(x.index))).toArray(), ", ");
       }
       String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
       String targetReturnTpe = isConstructor ? "Object" : returnTpe;
@@ -245,9 +294,37 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
   }
 
-  private record MethodParameter(String name, String tpe) {
-    public String declaredParameter() {
-      return tpe + " " + name;
+  /**
+   * MethodParameter encapsulates the generation of string representation of the parameter.
+   * Additionally, it can optionally expand vararg parameters.
+   */
+  private record MethodParameter(int index, String name, String tpe) {
+    /**
+     * Returns a parameter's declaration.
+     * If the parameter represents a vararg, the declaration is repeated. Otherwise return a single
+     * element Stream of declarations.
+     *
+     * @param expand For a non-empty value n, the parameter must be repeated n-times.
+     * @return A string representation of the parameter, potentially repeated for varargs
+     */
+    public Stream<String> declaredParameters(Optional<Integer> expand) {
+      // If the parameter is the expanded vararg we must get rid of the `[]` suffix
+      String parameterTpe = expand.isEmpty() ? tpe : tpe.substring(0, tpe.length() - 2);
+      return names(expand).map(n -> parameterTpe + " " + n);
+    }
+
+    /**
+     * Returns a parameter's name..
+     * If the parameter represents a vararg, the name is repeated. Otherwise return a single
+     * element Stream of declarations.
+     *
+     * @param expand For a non-empty value n, the parameter must be repeated n-times.
+     * @return A string representation of the parameter, potentially repeated for varargs
+     */
+    public Stream<String> names(Optional<Integer> expand) {
+      return expand.map(e->
+        IntStream.range(0, e).mapToObj(i-> name + "_" + (i+1))
+      ).orElse(Stream.of(name));
     }
   }
 

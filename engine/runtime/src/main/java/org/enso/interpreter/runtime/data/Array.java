@@ -9,7 +9,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -31,6 +30,7 @@ public class Array implements TruffleObject {
    *
    * @param items the element values
    */
+  @Builtin(pkg = "mutable", expandVarargs = 4, description = "Creates an array with given elements.")
   public Array(Object... items) {
     this.items = items;
   }
