@@ -257,7 +257,9 @@ struct Column<const COLUMNS: usize> {
 impl<const COLUMNS: usize> Column<COLUMNS> {
     /// Constructor.
     fn new(app: &Application, id: ColumnId) -> Self {
-        Self { id, provider: default(), list_view: app.new_view::<list_view::ListView<Entry>>() }
+        let list_view = app.new_view::<list_view::ListView<Entry>>();
+        list_view.set_style_prefix(entry::STYLE_PATH);
+        Self { id, provider: default(), list_view }
     }
 
     /// An entry count for this column.

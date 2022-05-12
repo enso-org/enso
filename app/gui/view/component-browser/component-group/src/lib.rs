@@ -51,14 +51,6 @@ pub use entry::View as Entry;
 
 
 
-// =================
-// === Constants ===
-// =================
-
-const ENTRIES_STYLE_PATH: &str = theme::entries::HERE.str;
-
-
-
 // ==========================
 // === Shapes Definitions ===
 // ==========================
@@ -327,7 +319,7 @@ impl component::Model for Model {
         let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
         let entries = app.new_view::<list_view::ListView<Entry>>();
-        entries.set_style_prefix(ENTRIES_STYLE_PATH);
+        entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);

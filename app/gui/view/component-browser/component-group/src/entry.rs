@@ -11,6 +11,7 @@ use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::style;
 use ensogl_core::display::Scene;
+use ensogl_hardcoded_theme::application::component_browser::component_group::entries as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::Label;
 
@@ -22,6 +23,15 @@ use ensogl_list_view::entry::Label;
 
 /// ID of a component group entry in a ListView.
 pub type Id = list_view::entry::Id;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// Path to the theme of the component group entries in the application style sheet.
+pub const STYLE_PATH: &str = theme::HERE.str;
 
 
 
