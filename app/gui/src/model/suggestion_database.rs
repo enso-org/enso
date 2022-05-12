@@ -659,5 +659,7 @@ mod test {
         let method_lookup = db.lookup_by_path("Standard.Builtins.Main.System.create_process");
         assert!(method_lookup.is_some());
         assert_eq!(method_lookup.unwrap().name, "create_process".to_string());
+        let nonexistent_lookup = db.lookup_by_path("Standard.Builtins.Main.create_process");
+        assert!(nonexistent_lookup.is_none());
     }
 }
