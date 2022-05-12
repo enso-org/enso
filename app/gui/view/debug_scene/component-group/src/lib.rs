@@ -112,18 +112,17 @@ fn create_selection() -> list_view::selection::View {
     selection
 }
 
-fn component_group(app: &Application) -> component_group::View {
+fn create_component_group(app: &Application) -> component_group::View {
     let component_group = app.new_view::<component_group::View>();
-    let group_name = "Long group name with text overflowing the width";
-    component_group.set_header(group_name.to_string());
+    app.display.add_child(&component_group);
     component_group.set_width(150.0);
-    component_group.set_position_x(-300.0);
     component_group
 }
 
 fn wide_component_group(app: &Application) -> component_group::wide::View {
     let wide_component_group = app.new_view::<component_group::wide::View>();
-    wide_component_group.set_position_x(100.0);
+    app.display.add_child(&wide_component_group);
+    wide_component_group.set_position_x(250.0);
     wide_component_group.set_width(450.0);
     wide_component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
     wide_component_group.set_no_items_label_text("No local variables.");
@@ -166,11 +165,16 @@ fn init(app: &Application) {
     let wide_selection = create_selection();
     let wide_selection_animation = Animation::<Vector2>::new(&network);
 
-    let component_group = component_group(app);
-    app.display.add_child(&component_group);
+    let component_group = create_component_group(app);
     component_group.add_child(&selection);
+    let group_name = "Long group name with text overflowing the width";
+    component_group.set_header(group_name.to_string());
+    component_group.set_position_x(-150.0);
+    let dimmed_component_group = create_component_group(app);
+    dimmed_component_group.set_dimmed(true);
+    dimmed_component_group.set_header("Input / Output".to_string());
+    dimmed_component_group.set_position_x(-350.0);
     let wide_component_group = wide_component_group(app);
-    app.display.add_child(&wide_component_group);
     wide_component_group.add_child(&wide_selection);
 
 
@@ -214,9 +218,10 @@ fn init(app: &Application) {
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     frp::extend! { network
         int_value <- items_slider.frp.output.value.map(|v| *v as usize);
-        eval int_value([component_group, wide_component_group](i) {
+        eval int_value([component_group, dimmed_component_group, wide_component_group](i) {
             mock_entries.set_count(*i);
             component_group.set_entries(model_provider.clone_ref());
+            dimmed_component_group.set_entries(model_provider.clone_ref());
             wide_component_group.set_entries(model_provider.clone_ref());
         });
     }
@@ -229,17 +234,17 @@ fn init(app: &Application) {
     // === Color sliders ===
 
     let red_slider = color_component_slider(app, "Red");
-    red_slider.set_position_y(300.0);
+    red_slider.set_position_y(350.0);
     red_slider.set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
     let red_slider_frp = &red_slider.frp;
 
     let green_slider = color_component_slider(app, "Green");
-    green_slider.set_position_y(250.0);
+    green_slider.set_position_y(300.0);
     green_slider.set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
     let green_slider_frp = &green_slider.frp;
 
     let blue_slider = color_component_slider(app, "Blue");
-    blue_slider.set_position_y(200.0);
+    blue_slider.set_position_y(250.0);
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
@@ -255,7 +260,7 @@ fn init(app: &Application) {
         color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         component_group.set_color <+ color;
-        // dimmed_component_group.set_color <+ color;
+        dimmed_component_group.set_color <+ color;
         eval color((c) selection.color.set(c.into()));
     }
     init.emit(());
@@ -270,6 +275,7 @@ fn init(app: &Application) {
     std::mem::forget(network);
     std::mem::forget(selection);
     std::mem::forget(component_group);
+    std::mem::forget(dimmed_component_group);
     std::mem::forget(wide_component_group);
     std::mem::forget(wide_selection);
 }
