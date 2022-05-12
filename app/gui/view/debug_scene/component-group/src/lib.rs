@@ -18,14 +18,14 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::shape::*;
 use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
+use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
-use ensogl_scroll_area::ScrollArea;
-use ensogl_core::display::shape::*;
 
 mod green_circle {
     use super::*;
@@ -99,6 +99,49 @@ impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
 
 
 
+// ==================================
+// === Component Group Controller ===
+// ==================================
+
+/// An example abstraction to arrange component groups inside the scroll area.
+#[derive(Debug, Clone, CloneRef)]
+struct ComponentGroupController {
+    component_groups: Rc<Vec<component_group::View>>,
+}
+
+impl ComponentGroupController {
+    fn init(
+        component_groups: &[component_group::View],
+        network: &frp::Network,
+        scroll_area: &ScrollArea,
+    ) {
+        Self { component_groups: Rc::new(component_groups.to_vec()) }
+            .init_inner(network, scroll_area)
+    }
+
+    fn init_inner(&self, network: &frp::Network, scroll_area: &ScrollArea) {
+        for (i, group) in self.component_groups.iter().enumerate() {
+            let this = self.clone_ref();
+            frp::extend! { network
+                eval group.size([group, this](size)
+                    group.set_position_y(-size.y / 2.0 - this.heights_sum(i))
+                );
+                is_scrolled <- scroll_area.scroll_position_y.map(f!([this] (s) *s > this.heights_sum(i)));
+                change_hdr_pos <- scroll_area.scroll_position_y.gate(&is_scrolled);
+                reset_hdr_pos <- is_scrolled.on_false();
+                eval change_hdr_pos([group, this](y) group.set_header_pos(*y - this.heights_sum(i)));
+                eval_ reset_hdr_pos(group.set_header_pos(0.0));
+            }
+        }
+    }
+
+    /// Return a sum of heights of first `n` component groups.
+    fn heights_sum(&self, n: usize) -> f32 {
+        self.component_groups.iter().take(n).map(|g| g.size.value().y).sum()
+    }
+}
+
+
 // ========================
 // === Init Application ===
 // ========================
@@ -160,17 +203,14 @@ fn init(app: &Application) {
         eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
         eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
         eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
-
-        eval first_component_group.size((size) first_component_group.set_position_y(- size.y / 2.0));
-        _eval <- all_with(&first_component_group.size, &second_component_group.size, f!((f, s) second_component_group.set_position_y(- s.y / 2.0 - f.y)));
-
-        eval scroll_area.scroll_position_y((y) first_component_group.set_header_pos(*y));
-        is_partially_scrolled <- scroll_area.scroll_position_y.map2(&first_component_group.size, f!([](y, s)  *y > s.y ));
-        change_viewport_second_cgv <- scroll_area.scroll_position_y.gate(&is_partially_scrolled);
-        reset_viewport_second_cgv <- is_partially_scrolled.on_false();
-        _eval <- change_viewport_second_cgv.map2(&first_component_group.size, f!((y, s) second_component_group.set_header_pos(*y - s.y)));
-        eval_ reset_viewport_second_cgv(second_component_group.set_header_pos(0.0));
     }
+
+    ComponentGroupController::init(
+        &[first_component_group.clone_ref(), second_component_group.clone_ref()],
+        &network,
+        &scroll_area,
+    );
+
     let mock_entries = MockEntries::new(10);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
