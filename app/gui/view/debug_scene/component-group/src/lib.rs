@@ -18,13 +18,9 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene::layer;
 use ensogl_core::frp;
-use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
-use ensogl_selector as selector;
-use ensogl_selector::Bounds;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
@@ -84,12 +80,6 @@ impl MockEntries {
             entries: PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect(),
             count:   Cell::new(count),
         })
-    }
-
-    fn set_count(&self, count: usize) {
-        if self.entries.len() >= count {
-            self.count.set(count);
-        }
     }
 
     fn get_entry(&self, id: list_view::entry::Id) -> Option<String> {
@@ -174,12 +164,12 @@ fn init(app: &Application) {
         eval first_component_group.size((size) first_component_group.set_position_y(- size.y / 2.0));
         _eval <- all_with(&first_component_group.size, &second_component_group.size, f!((f, s) second_component_group.set_position_y(- s.y / 2.0 - f.y)));
 
-        eval scroll_area.scroll_position_y((y) first_component_group.set_viewport_size(*y));
+        eval scroll_area.scroll_position_y((y) first_component_group.set_header_pos(*y));
         is_partially_scrolled <- scroll_area.scroll_position_y.map2(&first_component_group.size, f!([](y, s)  *y > s.y ));
         change_viewport_second_cgv <- scroll_area.scroll_position_y.gate(&is_partially_scrolled);
         reset_viewport_second_cgv <- is_partially_scrolled.on_false();
-        _eval <- change_viewport_second_cgv.map2(&first_component_group.size, f!((y, s) second_component_group.set_viewport_size(*y - s.y)));
-        eval_ reset_viewport_second_cgv(second_component_group.set_viewport_size(0.0));
+        _eval <- change_viewport_second_cgv.map2(&first_component_group.size, f!((y, s) second_component_group.set_header_pos(*y - s.y)));
+        eval_ reset_viewport_second_cgv(second_component_group.set_header_pos(0.0));
     }
     let mock_entries = MockEntries::new(10);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());

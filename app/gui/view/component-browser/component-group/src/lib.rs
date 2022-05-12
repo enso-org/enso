@@ -130,6 +130,7 @@ struct HeaderGeometry {
     padding_left:   f32,
     padding_right:  f32,
     padding_bottom: f32,
+    shadow_size:    f32,
 }
 
 impl HeaderGeometry {
@@ -138,12 +139,13 @@ impl HeaderGeometry {
         let padding_left = style.get_number(theme::header::padding::left);
         let padding_right = style.get_number(theme::header::padding::right);
         let padding_bottom = style.get_number(theme::header::padding::bottom);
+        let shadow_size = style.get_number(theme::header::shadow::size);
 
         frp::extend! { network
             init <- source_();
-            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
-                |_,&height,&padding_left,&padding_right,&padding_bottom|
-                    Self{height,padding_left,padding_right,padding_bottom}
+            theme <- all_with6(&init,&height,&padding_left,&padding_right,&padding_bottom,&shadow_size,
+                |_,&height,&padding_left,&padding_right,&padding_bottom,&shadow_size|
+                    Self{height,padding_left,padding_right,padding_bottom,shadow_size}
             );
             theme_sampler <- theme.sampler();
         }
@@ -168,7 +170,8 @@ ensogl_core::define_endpoints_2! {
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_width(f32),
-        set_viewport_size(f32),
+        /// Sets the y-position of the header from the top of the component group. (in pixels)
+        set_header_pos(f32),
     }
     Output {
         selected_entry(Option<EntryId>),
@@ -202,10 +205,12 @@ impl component::Frp<Model> for Frp {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
             });
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
-            size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_viewport_size);
-            eval size_and_header_geometry(((size, hdr_geom, vprt_size)) model.resize(*size, *hdr_geom, *vprt_size));
+            size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_header_pos);
+            eval size_and_header_geometry(((size, hdr_geom, hdr_pos))
+                model.resize(*size, *hdr_geom, *hdr_pos)
+            );
 
-            viewport_size_greater_zero <- input.set_viewport_size.map(|s| *s > 0.0);
+            viewport_size_greater_zero <- input.set_header_pos.map(|s| *s > 0.0);
             show_shadow <- viewport_size_greater_zero.on_true();
             hide_shadow <- viewport_size_greater_zero.on_false();
             shadow_height.target <+ show_shadow.constant(1.0);
@@ -386,6 +391,8 @@ impl component::Model for Model {
 }
 
 impl Model {
+    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
         layers.background.add_exclusive(&self.background);
         layers.header_text.add_exclusive(&self.header_overlay);
@@ -412,12 +419,20 @@ impl Model {
         let header_height = header_geometry.height;
         let header_center_y = size.y / 2.0 - header_height / 2.0;
         let header_center_y = header_center_y - viewport_height;
-        let header_center_y = header_center_y.max(- size.y / 2.0 + header_height / 2.0);
+        let header_center_y = header_center_y.max(-size.y / 2.0 + header_height / 2.0);
         let header_bottom_y = header_center_y - header_height / 2.0;
-        let header_text_y =
-            header_bottom_y + header_text_height + header_padding_bottom;
+        let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
+
+
+        // === Header Background ===
+
+        self.header_background.height.set(header_height);
+        let shadow_size = header_geometry.shadow_size;
+        let header_background_height = header_height + shadow_size * 2.0;
+        self.header_background.size.set(Vector2(size.x, header_background_height));
+        self.header_background.set_position_y(header_center_y);
 
 
         // === Header Overlay ===
@@ -430,10 +445,6 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
-        self.header_background.height.set(header_height);
-
-        self.header_background.size.set(Vector2(size.x, header_height * 2.0));
-        self.header_background.set_position_y(header_center_y);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
