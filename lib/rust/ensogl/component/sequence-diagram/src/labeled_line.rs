@@ -1,10 +1,12 @@
 //! A visual line capped with an arrow, that shows a tooltip on mouse hover.
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use crate::shape;
 use crate::shape::CAP_WIDTH;
 use crate::shape::HOVER_PADDING;
+
 use ensogl::frp;
 use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
