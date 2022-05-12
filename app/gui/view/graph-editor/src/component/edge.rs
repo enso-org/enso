@@ -287,6 +287,7 @@ pub mod joint {
     use super::*;
 
     ensogl::define_shape_system! {
+        pointer_events = [false];
         (color_rgba:Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
             let joint         = Circle((radius-PADDING.px())/2.0);
@@ -1286,13 +1287,6 @@ impl EdgeModelData {
         let front = Front::new(Logger::new_sub(&logger, "front"));
         let back = Back::new(Logger::new_sub(&logger, "back"));
         let joint = joint::View::new(Logger::new_sub(&logger, "joint"));
-
-        let shape_system = scene
-            .layers
-            .main
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<joint::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
 
         display_object.add_child(&front);
         display_object.add_child(&back);
