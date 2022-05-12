@@ -306,6 +306,7 @@ mod test {
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
+    use engine_protocol::language_server::SuggestionEntry;
     use engine_protocol::language_server::SuggestionEntryArgument;
     use engine_protocol::language_server::SuggestionEntryScope;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
@@ -329,7 +330,7 @@ mod test {
         assert_eq!(db.version.get(), 123);
 
         // Non-empty db
-        let entry = language_server::types::SuggestionEntry::Atom {
+        let entry = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
             module:             "TestProject.TestModule".to_string(),
             arguments:          vec![],
@@ -354,7 +355,7 @@ mod test {
     #[test]
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
-        let entry1 = language_server::types::SuggestionEntry::Atom {
+        let entry1 = SuggestionEntry::Atom {
             name:               "Entry1".to_owned(),
             module:             "TestProject.TestModule".to_owned(),
             arguments:          vec![],
@@ -363,7 +364,7 @@ mod test {
             documentation_html: None,
             external_id:        None,
         };
-        let entry2 = language_server::types::SuggestionEntry::Atom {
+        let entry2 = SuggestionEntry::Atom {
             name:               "Entry2".to_owned(),
             module:             "TestProject.TestModule".to_owned(),
             arguments:          vec![],
@@ -372,7 +373,7 @@ mod test {
             documentation_html: None,
             external_id:        None,
         };
-        let new_entry2 = language_server::types::SuggestionEntry::Atom {
+        let new_entry2 = SuggestionEntry::Atom {
             name:               "NewEntry2".to_owned(),
             module:             "TestProject.TestModule".to_owned(),
             arguments:          vec![],
@@ -402,7 +403,7 @@ mod test {
             has_default:   true,
             default_value: Some("13".to_owned()),
         };
-        let entry3 = language_server::types::SuggestionEntry::Function {
+        let entry3 = SuggestionEntry::Function {
             external_id: None,
             name:        "entry3".to_string(),
             module:      "TestProject.TestModule".to_string(),
@@ -624,7 +625,7 @@ mod test {
     #[test]
     fn lookup_by_path() {
         // Test a DB with sample data.
-        let entry = language_server::types::SuggestionEntry::Atom {
+        let atom_entry = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
             module:             "TestProject.TestModule".to_string(),
             arguments:          vec![],
@@ -633,15 +634,30 @@ mod test {
             documentation_html: None,
             external_id:        None,
         };
-        let db_entry = SuggestionsDatabaseEntry { id: 12, suggestion: entry };
+        let method_entry = SuggestionEntry::Method {
+            name:               "create_process".to_string(),
+            module:             "Standard.Builtins.Main".to_string(),
+            self_type:          "Standard.Builtins.Main.System".to_string(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
+            SuggestionsDatabaseEntry { id, suggestion }
+        }
         let response = language_server::response::GetSuggestionDatabase {
-            entries:         vec![db_entry],
+            entries:         vec![db_entry(12, atom_entry), db_entry(15, method_entry)],
             current_version: 456,
         };
         let db = SuggestionDatabase::from_ls_response(response);
-        let lookup = db.lookup_by_path("TestProject.TestModule.TextAtom");
-        assert!(lookup.is_some());
+        let atom_lookup = db.lookup_by_path("TestProject.TestModule.TextAtom");
+        assert!(atom_lookup.is_some());
         // TODO[MC]: do we want to get ID here too? do we have it?
-        assert_eq!(lookup.unwrap().name, "TextAtom".to_string());
+        assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
+        let method_lookup = db.lookup_by_path("Standard.Builtins.Main.System.create_process");
+        assert!(method_lookup.is_some());
+        assert_eq!(method_lookup.unwrap().name, "create_process".to_string());
     }
 }
