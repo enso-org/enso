@@ -154,9 +154,11 @@ impl SuggestionDatabase {
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
+            let mut id_by_path = self.id_by_path.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
+                        id_by_path.set(entry_path(&entry), id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -297,7 +299,11 @@ fn entry_path(entry: &Entry) -> impl Iterator<Item = String> {
         Some(name) => name.segments().map(|s| s.to_string()).collect(),
         None => entry.module.segments().map(|s| s.to_string()).collect(),
     };
-    path.into_iter().chain(Some(entry.name.clone()))
+    let suffix = match entry.kind {
+        Kind::Module => None,
+        _ => Some(entry.name.clone()),
+    };
+    path.into_iter().chain(suffix)
 }
 
 
