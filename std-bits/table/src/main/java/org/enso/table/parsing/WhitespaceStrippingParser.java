@@ -1,7 +1,7 @@
-package org.enso.table.read.parsing;
+package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.read.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
 public class WhitespaceStrippingParser<PA extends ProblemAggregator> extends TypeParser<PA> {
   private final TypeParser<PA> innerParser;

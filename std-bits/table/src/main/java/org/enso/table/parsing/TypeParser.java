@@ -1,10 +1,10 @@
-package org.enso.table.read.parsing;
+package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.read.WithProblems;
-import org.enso.table.read.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
 public abstract class TypeParser<PA extends ProblemAggregator> {
   public abstract Object parseSingleValue(String text, PA problemAggregator);

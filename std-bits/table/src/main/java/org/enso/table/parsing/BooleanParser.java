@@ -1,8 +1,8 @@
-package org.enso.table.read.parsing;
+package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.read.parsing.problems.InvalidFormatProblemAggregator;
+import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
 
 public class BooleanParser extends TypeParser<InvalidFormatProblemAggregator> {
 

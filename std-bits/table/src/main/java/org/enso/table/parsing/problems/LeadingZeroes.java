@@ -1,4 +1,4 @@
-package org.enso.table.read.parsing.problems;
+package org.enso.table.parsing.problems;
 
 import java.util.List;
 

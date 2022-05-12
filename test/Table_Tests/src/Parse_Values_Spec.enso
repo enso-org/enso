@@ -4,25 +4,66 @@ from Standard.Table import all
 from Standard.Table.Data.Table as Table_Internal import Empty_Error
 
 import Standard.Base.Data.Time.Date
-import Standard.Table.Data.Storage
 import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
-from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
+
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection
+
+from Standard.Table.Error as Table_Errors import Invalid_Format
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
-        Error.throw "TODO"
+        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Integer]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345, Nothing]
+
     Test.specify "should correctly parse decimals" <|
+        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Decimal]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345, Nothing]
+
+        t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "000.0000", "0010.", "12345."]]]
+        t4 = t3.parse_values column_types=[Column_Type_Selection 0  Decimal]
+        t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345]
+
+        t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
+        t6 = t5.parse_values column_types=[Column_Type_Selection 0  Decimal]
+        t6.at "floats" . to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
+
+    Test.specify "should warn on leading zeros in numbers, if asked" pending="TODO" <|
         Error.throw "TODO"
-    Test.specify "should warn on leading zeros in numbers" <|
-        Error.throw "TODO"
+
     Test.specify "should correctly parse booleans" <|
-        Error.throw "TODO"
+        t1 = Table.new [["bools", ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Boolean]
+        t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
+
     Test.specify "should warn when cells do not fit the expected format" <|
-        Error.throw "TODO"
+        ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "10", Nothing]]
+        # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
+        floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "+-1", "100.", Nothing]]
+        bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true"]]
+        t = Table.new [ints, floats, bools]
+
+        action = t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=_
+        tester t =
+            t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
+            t.at "ints" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, 100, Nothing]
+            t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True]
+        problems =
+            ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1"]
+            floats = Invalid_Format "ints" Decimal ["1e6", "foobar", "", "+-1"]
+            bools = Invalid_Format "bools" Integer ["fAlSE", "foobar", "", "0", "1"]
+            [ints, floats, bools]
+        Problems.test_problem_handling action problems tester
+
     Test.specify "should leave not selected columns unaffected" <|
-        Error.throw "TODO"
+        t1 = Table.new [["A", ["1", "2"]], ["B", ["3", "4"]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection "B" Integer]
+        t2.at "A" . to_vector . should_equal ["1", "2"]
+        t2.at "B" . to_vector . should_equal [3, 4]
+
     Test.specify "should correctly parse date and time" pending="TODO" <|
         Error.throw "TODO"
 
@@ -30,16 +71,17 @@ spec = Test.group "Table.parse_values" <|
         # TODO: ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
         Error.throw "TODO"
 
-    Test.specify "should allow to specify a thousands separator and custom decimal point" <|
+    Test.specify "should allow to specify a thousands separator and custom decimal point" pending="TODO" <|
         Error.throw "TODO"
 
-    Test.specify "should allow to specify custom values for booleans" <|
+    Test.specify "should allow to specify custom values for booleans" pending="TODO" <|
         Error.throw "TODO"
 
-    Test.specify "should trim input values by default" <|
+    Test.specify "should trim input values by default" pending="TODO" <|
         ## TODO columns for each type, with some whitespace
         Error.throw "TODO"
 
-    Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
+    Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
         Error.throw "TODO"
 
+main = Test.Suite.run_main here.spec

@@ -1,8 +1,8 @@
-package org.enso.table.read.parsing;
+package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.read.parsing.problems.NumericProblemAggregator;
+import org.enso.table.parsing.problems.NumericProblemAggregator;
 
 public class IntegerParser extends TypeParser<NumericProblemAggregator> {
   private final String thousandsSeparator;

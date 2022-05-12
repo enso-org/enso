@@ -4,7 +4,9 @@ import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Table.Io.Csv
 import Standard.Visualization
-import Standard.Base.Data.Time.Date
+from Standard.Base.Data.Time.Date as Date_Module import Date
+from Standard.Base.Data.Time as Time_Module import Time
+from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
@@ -12,6 +14,8 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
+from Standard.Table.Data.Serialization_Options as Serialization_Options_Module import Serialization_Options
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Column_Mapping
@@ -535,9 +539,10 @@ type Table
 
        The default parser options only parse values where the process is
        reversible (e.g., 0123 would not be converted to an integer as there is
-       a leading 0). However, settings in the Parser_Options can control this.
-    parse_values : Parser_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values parser=Parser_Options column_types=Nothing on_problems=Report_Warning =
+       a leading 0). However, settings in the `Serialization_Options` can
+       control this.
+    parse_values : Serialization_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Serialization_Options column_types=Nothing on_problems=Report_Warning =
         columns = this.columns
 
         find_datatype index column =
@@ -562,9 +567,9 @@ type Table
                     Integer -> Error.throw "TODO"
                     Decimal -> Error.throw "TODO"
                     Boolean -> Error.throw "TODO"
-                    Date -> Error.unimplemented "Parsing dates is not implemented yet."
-                    Time -> Error.unimplemented "Parsing dates is not implemented yet."
-                    Time_Of_Day -> Error.unimplemented "Parsing dates is not implemented yet."
+                    Date _ -> Error.unimplemented "Parsing dates is not implemented yet."
+                    Time _ -> Error.unimplemented "Parsing dates is not implemented yet."
+                    Time_Of_Day _ -> Error.unimplemented "Parsing dates is not implemented yet."
                 _ = parser
                 Error.throw "TODO"
         here.new new_columns
@@ -1306,7 +1311,7 @@ Text.write_to_spreadsheet cell = cell.setCellValue this
    Arguments:
    - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
      which should be set by this method.
-Date.Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
+Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
 
 
 

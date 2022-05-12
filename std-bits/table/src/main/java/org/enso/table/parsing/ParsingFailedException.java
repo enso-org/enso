@@ -1,6 +1,6 @@
-package org.enso.table.read;
+package org.enso.table.parsing;
 
-import org.enso.table.read.parsing.problems.ParsingProblem;
+import org.enso.table.parsing.problems.ParsingProblem;
 
 /**
  * An exception thrown when a problem occured during parsing and the parser is running in a mode

@@ -1,10 +1,10 @@
-package org.enso.table.read.parsing;
+package org.enso.table.parsing;
 
 import java.text.DecimalFormat;
 import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.read.parsing.problems.NumericProblemAggregator;
+import org.enso.table.parsing.problems.NumericProblemAggregator;
 
 public class DecimalParser extends TypeParser<NumericProblemAggregator> {
   private final char thousandsSeparatorChar;
