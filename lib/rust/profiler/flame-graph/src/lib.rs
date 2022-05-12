@@ -18,13 +18,6 @@ use enso_profiler_data as data;
 type RowNumber = i32;
 
 
-// =======================
-// === Label Formating ===
-// =======================
-
-fn with_timing_info(base: &str, [t1, t2]: [f64; 2]) -> String {
-    format!("{}\n[{:.2},{:.2}]", base, t1, t2)
-}
 
 // ==================
 // === Block Data ===
@@ -174,7 +167,6 @@ impl<'p, Metadata> CallgraphBuilder<'p, Metadata> {
             return;
         }
         let label = self.profile[active.measurement].label.to_string();
-        let label = with_timing_info(&label, [start, end]);
         self.blocks.push(Block { start, end, label, row, block_type: Activity::Active });
         for child in &active.children {
             self.visit_interval(*child, row + 1);
@@ -236,13 +228,9 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
                     let active_interval = [current_start, current_end];
                     let sleep_interval = [current_end, next_start];
 
-
                     let label_active = self.profile[current.measurement].label.to_string();
-                    let label_active = with_timing_info(&label_active, active_interval);
                     let label_sleep =
                         format!("{} (inactive)", self.profile[current.measurement].label);
-                    let label_sleep = with_timing_info(&label_sleep, sleep_interval);
-
 
                     self.blocks.push(Block {
                         start: active_interval[0],
@@ -265,15 +253,10 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
             // Add first inactive interval.
             let first = measurement.intervals.first().unwrap(); // There are at least two intervals.
             let first = &self.profile[*first];
-            let inactive_interval = [measurement.created.into_ms(), first.interval.start.into_ms()];
-            let label = with_timing_info(
-                &self.profile[first.measurement].label.to_string(),
-                inactive_interval,
-            );
             self.blocks.push(Block {
-                start: inactive_interval[0],
-                end: inactive_interval[1],
-                label,
+                start: measurement.created.into_ms(),
+                end: first.interval.start.into_ms(),
+                label: self.profile[first.measurement].label.to_string(),
                 row,
                 block_type: Activity::Paused,
             });
@@ -281,18 +264,10 @@ impl<'p, Metadata> RungraphBuilder<'p, Metadata> {
             // Add last active interval.
             let last = measurement.intervals.last().unwrap(); // There are at least two intervals.
             let last = &self.profile[*last];
-            let active_interval = [
-                last.interval.start.into_ms(),
-                last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
-            ];
-            let label = with_timing_info(
-                &self.profile[last.measurement].label.to_string(),
-                active_interval,
-            );
             self.blocks.push(Block {
-                start: active_interval[0],
-                end: active_interval[1],
-                label,
+                start: last.interval.start.into_ms(),
+                end: last.interval.end.map(|end| end.into_ms()).unwrap_or(f64::INFINITY),
+                label: self.profile[last.measurement].label.to_string(),
                 row,
                 block_type: Activity::Active,
             });

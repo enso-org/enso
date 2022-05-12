@@ -22,7 +22,6 @@ use crate::typeface::pen;
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
 use ensogl_core::application;
-use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
@@ -31,6 +30,7 @@ use ensogl_core::gui::cursor;
 use ensogl_core::system::web::clipboard;
 use ensogl_core::DEPRECATED_Animation;
 use std::ops::Not;
+
 
 
 // =================
@@ -158,7 +158,7 @@ impl Lines {
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints_2! {
+ensogl_core::define_endpoints! {
     Input {
         /// Insert character of the last pressed key at every cursor.
         insert_char_of_last_pressed_key(),
@@ -308,9 +308,9 @@ pub struct Area {
 }
 
 impl Deref for Area {
-    type Target = api::Public;
+    type Target = Frp;
     fn deref(&self) -> &Self::Target {
-        &self.frp.public
+        &self.frp
     }
 }
 
@@ -318,18 +318,17 @@ impl Area {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
-        let data = Rc::new(AreaModel::new(app, frp.clone_ref()));
+        let data = Rc::new(AreaModel::new(app, &frp.output));
         Self { data, frp }.init()
     }
 
     fn init(self) -> Self {
-        let network = self.frp.network();
+        let network = &self.frp.network;
         let model = &self.data;
         let scene = &model.app.display.default_scene;
         let mouse = &scene.mouse.frp;
-        let frp = &self.frp;
-        let input = &self.frp.private.input;
-        let out = &self.frp.private.output;
+        let input = &self.frp.input;
+        let out = &self.frp.output;
         let pos = DEPRECATED_Animation::<Vector2>::new(network);
         let keyboard = &scene.keyboard;
         let m = &model;
@@ -346,7 +345,7 @@ impl Area {
 
             hover_events  <- bool(&input.unhover,&input.hover);
             hovered       <- any(&input.set_hover,&hover_events);
-            out.hovered <+ hovered;
+            out.source.hovered <+ hovered;
 
 
             // === Pointer Style ===
@@ -354,7 +353,7 @@ impl Area {
             pointer_style <- hovered.map(|hovered| {
                 if *hovered { cursor::Style::new_text_cursor() } else { cursor::Style::default() }
             });
-            out.pointer_style <+ pointer_style;
+            out.source.pointer_style <+ pointer_style;
 
 
             // === Set / Add cursor ===
@@ -481,13 +480,13 @@ impl Area {
             key_to_insert <= key_inserted.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert,&key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
-            eval input.set_content ([frp](s) {
-                frp.public.set_cursor(&default());
-                frp.public.select_all();
-                frp.public.insert(s);
-                frp.public.remove_all_cursors();
+            eval input.set_content ([input](s) {
+                input.set_cursor(&default());
+                input.select_all();
+                input.insert(s);
+                input.remove_all_cursors();
             });
-            frp.public.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
+            input.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
                 m.text_truncated_with_ellipsis(text.clone(), m.default_font_size(), *max_width_px)
             }));
 
@@ -500,15 +499,15 @@ impl Area {
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
-            out.default_color <+ input.set_default_color;
+            self.frp.source.default_color <+ self.frp.set_default_color;
 
             eval input.set_default_text_size ((t) {
                 m.buffer.frp.set_default_text_size(*t);
                 m.redraw(true);
             });
-            eval input.set_color_all         ([frp](color) {
+            eval input.set_color_all         ([input](color) {
                 let all_bytes = buffer::Range::from(Bytes::from(0)..Bytes(i32::max_value()));
-                frp.public.set_color_bytes.emit((all_bytes,*color));
+                input.set_color_bytes.emit((all_bytes,*color));
             });
             // FIXME: The color-setting operation is very slow now. For every new color, the whole
             //        text is re-drawn. See https://github.com/enso-org/ide/issues/1031
@@ -516,7 +515,7 @@ impl Area {
                 m.buffer.frp.set_color_bytes.emit(*t);
                 m.redraw(false);
             });
-            out.selection_color <+ input.set_selection_color;
+            self.frp.source.selection_color <+ self.frp.set_selection_color;
 
 
             // === Style ===
@@ -529,8 +528,8 @@ impl Area {
 
             // The `content` event should be fired first, as any listener for `changed` may want to
             // read the new content, so it should be up-to-date.
-            out.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
-            out.changed <+ m.buffer.frp.text_change;
+            self.frp.source.content <+ m.buffer.frp.text_change.map(f_!(m.buffer.text()));
+            self.frp.source.changed <+ m.buffer.frp.text_change;
         }
         self
     }
@@ -582,7 +581,7 @@ pub struct AreaModel {
     layer: Rc<CloneRefCell<display::scene::Layer>>,
 
     logger:         Logger,
-    frp_endpoints:  Rc<Frp>,
+    frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
     #[cfg(target_arch = "wasm32")]
@@ -594,7 +593,7 @@ pub struct AreaModel {
 
 impl AreaModel {
     /// Constructor.
-    pub fn new(app: &Application, frp_endpoints: Rc<Frp>) -> Self {
+    pub fn new(app: &Application, frp_endpoints: &FrpEndpoints) -> Self {
         let app = app.clone_ref();
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
@@ -647,7 +646,6 @@ impl AreaModel {
     fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
 
     #[cfg(target_arch = "wasm32")]
-    #[profile(Debug)]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -759,7 +757,6 @@ impl AreaModel {
         Location(line, column)
     }
 
-    #[profile(Debug)]
     fn init(self) -> Self {
         self.redraw(true);
         self
@@ -779,8 +776,8 @@ impl AreaModel {
         let width = widths.into_iter().max_by(|x, y| x.partial_cmp(y).unwrap()).unwrap_or_default();
         if size_may_change {
             let height = self.calculate_height();
-            self.frp_endpoints.private.output.width.emit(width);
-            self.frp_endpoints.private.output.height.emit(height);
+            self.frp_endpoints.source.width.emit(width);
+            self.frp_endpoints.source.height.emit(height);
         }
     }
 
@@ -1018,8 +1015,6 @@ impl AreaModel {
     }
 
     #[cfg(target_arch = "wasm32")]
-    #[profile(Debug)]
-    #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
@@ -1079,9 +1074,9 @@ impl display::Object for Area {
     }
 }
 
-impl FrpNetworkProvider for Area {
+impl application::command::FrpNetworkProvider for Area {
     fn network(&self) -> &frp::Network {
-        self.frp.network()
+        &self.frp.network
     }
 }
 

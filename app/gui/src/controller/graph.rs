@@ -841,7 +841,6 @@ impl Handle {
     }
 
     /// Sets the given's node expression.
-    #[profile(Debug)]
     pub fn set_expression_ast(&self, id: ast::Id, expression: Ast) -> FallibleResult {
         info!(self.logger, "Setting node {id} expression to `{expression.repr()}`");
         self.update_definition_ast(|definition| {
@@ -1053,7 +1052,6 @@ pub mod tests {
             self.module_path.method_pointer(self.project_name.clone(), self.graph_id.to_string())
         }
 
-        #[profile(Debug)]
         pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
             use model::suggestion_database::SuggestionDatabase;
             let entries = self.suggestions.iter();
