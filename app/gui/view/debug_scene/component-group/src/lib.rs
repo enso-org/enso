@@ -129,7 +129,7 @@ fn component_group(app: &Application) -> component_group::View {
     component_group.set_header(group_name.to_string());
     component_group.set_width(150.0);
     component_group.set_position_x(-300.0);
-    component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    component_group.set_color(color::Rgba(0.527, 0.554, 0.18, 1.0));
     component_group
 }
 

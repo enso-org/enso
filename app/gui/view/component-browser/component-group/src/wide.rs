@@ -15,7 +15,7 @@ use ensogl_core::application::traits::*;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::EntryId;
+use crate::entry;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
@@ -45,7 +45,7 @@ const MINIMAL_HEIGHT: f32 = ENTRY_HEIGHT;
 // ===============
 
 /// Type of the component group items.
-type Entry = list_view::entry::Label;
+type Entry = crate::Entry;
 
 newtype_prim! {
     /// An index of the column.
@@ -104,7 +104,7 @@ impl<const COLUMNS: usize> list_view::entry::ModelProvider<Entry> for ModelProvi
         entry_count_in_column::<COLUMNS>(*self.column_id, total_entry_count)
     }
 
-    fn get(&self, id: EntryId) -> Option<String> {
+    fn get(&self, id: entry::Id) -> Option<entry::Model> {
         let total_entry_count = self.inner.entry_count();
         let idx = local_idx_to_global::<COLUMNS>(*self.column_id, id, total_entry_count);
         self.inner.get(idx)
@@ -123,16 +123,16 @@ ensogl_core::define_endpoints_2! {
         /// described in
         /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
         accept_suggestion(),
-        select_entry(ColumnId, EntryId),
+        select_entry(ColumnId, entry::Id),
         set_entries(AnyModelProvider<Entry>),
         set_background_color(Rgba),
         set_width(f32),
         set_no_items_label_text(String),
     }
     Output {
-        selected_entry(Option<EntryId>),
-        suggestion_accepted(EntryId),
-        expression_accepted(EntryId),
+        selected_entry(Option<entry::Id>),
+        suggestion_accepted(entry::Id),
+        expression_accepted(entry::Id),
         /// While resizing the list of entries, the selection will follow the selected entry if
         /// possible. If the entry disappears, the selection will move to some visible entry in the same
         /// column if possible. If there are no more entries in this column, the selection will move to
@@ -265,14 +265,13 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
         self.provider.get().entry_count()
     }
 
-    /// Transforms `entry_id` into the actual [`EntryId`] for the underlying
+    /// Transforms `entry_id` into the actual [`entry::Id`] for the underlying
     /// [`list_view::ListView`].
     ///
-    /// [`EntryId`] of the Wide Component Group counts from the bottom (the bottom most entry has an
-    /// id of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so
-    /// that the top most entry has an id of 0). This function converts the former to the
-    /// latter.
-    fn reverse_index(&self, entry_id: EntryId) -> EntryId {
+    /// [`entry::Id`] of the Wide Component Group counts from the bottom (the bottom most entry has
+    /// an id of 0), but the underlying [`list_view::ListView`] starts its ids from the top (so
+    /// that the top most entry has an id of 0). This function converts the former to the latter.
+    fn reverse_index(&self, entry_id: entry::Id) -> entry::Id {
         reverse_index(entry_id, self.len())
     }
 
@@ -432,9 +431,9 @@ fn entry_count_in_column<const COLUMNS: usize>(
 /// has a "global" index of `COLUMNS + 2 = 5`.
 fn local_idx_to_global<const COLUMNS: usize>(
     column: ColumnId,
-    entry: EntryId,
+    entry: entry::Id,
     total_entry_count: usize,
-) -> EntryId {
+) -> entry::Id {
     let reversed_index =
         reverse_index(entry, entry_count_in_column::<COLUMNS>(column, total_entry_count));
     COLUMNS * reversed_index + *column
@@ -442,6 +441,6 @@ fn local_idx_to_global<const COLUMNS: usize>(
 
 /// "Reverse" the index in such a way that the first entry becomes the last, and the last becomes
 /// the first.
-fn reverse_index(index: EntryId, entries_count: usize) -> EntryId {
+fn reverse_index(index: entry::Id, entries_count: usize) -> entry::Id {
     entries_count.saturating_sub(index).saturating_sub(1)
 }
