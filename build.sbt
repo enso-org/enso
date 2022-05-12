@@ -977,6 +977,7 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
@@ -1221,7 +1222,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / javacOptions) ++= Seq(
       "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
