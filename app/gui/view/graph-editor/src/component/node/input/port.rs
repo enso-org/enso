@@ -95,7 +95,6 @@ pub struct Shape {
 
 impl Shape {
     /// Constructor.
-    #[profile(Debug)]
     pub fn new(logger: &Logger, scene: &Scene, size: Vector2, hover_height: f32) -> Self {
         let root = display::object::Instance::new(logger);
         let hover = hover::View::new(logger);
@@ -181,7 +180,6 @@ impl Model {
     /// as some are skipped. For example, given the expression `(((foo)))`, the inner parentheses
     /// will be skipped, as there is no point in making them ports. The skip algorithm is
     /// implemented as part of the port are initialization.
-    #[profile(Debug)]
     pub fn init_shape(
         &mut self,
         logger: impl AnyLogger,

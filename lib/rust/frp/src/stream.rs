@@ -306,7 +306,7 @@ impl<Out: Data> EventEmitter for NodeData<Out> {
 impl<Out: Data> ValueProvider for NodeData<Out> {
     fn value(&self) -> Out {
         if !self.use_caching() {
-            Out::default();
+            panic!("Trying to read not cached value.")
         }
         self.value_cache.borrow().clone()
     }
