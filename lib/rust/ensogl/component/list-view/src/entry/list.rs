@@ -7,7 +7,6 @@ use crate::entry::Entry;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::style;
@@ -220,27 +219,9 @@ where E::Model: Default
     }
 
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, label_layer: LayerId) {
-        if let Some(layer) =
-            self.label_layer.borrow().upgrade()
-        {
-            for entry in &*self.entries.borrow() {
-                entry.entry.set_label_layer(&layer);
-            }
-            self.label_layer.replace(layer.downgrade());
-        } else {
-            error!(
-                self.logger,
-                "Cannot set layer {label_layer:?} for labels: the layer does not \
-                exist in the scene"
-            );
-        }
-    }
-
-    /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer2(&self, label_layer: Layer) {
+    pub fn set_label_layer(&self, label_layer: &Layer) {
         for entry in &*self.entries.borrow() {
-            entry.entry.set_label_layer(&label_layer);
+            entry.entry.set_label_layer(label_layer);
         }
         self.label_layer.replace(label_layer.downgrade());
     }

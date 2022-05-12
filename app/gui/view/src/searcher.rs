@@ -135,7 +135,7 @@ impl Model {
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
         let action_list_gap_path = ensogl_hardcoded_theme::application::searcher::action_list_gap;
         let action_list_gap = style.get_number_or(action_list_gap_path, 0.0);
-        list.set_label_layer(scene.layers.node_searcher_text.id());
+        list.set_label_layer(&scene.layers.node_searcher_text);
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);

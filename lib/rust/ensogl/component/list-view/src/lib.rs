@@ -580,12 +580,8 @@ where E::Model: Default
     }
 
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, layer: LayerId) {
+    pub fn set_label_layer(&self, layer: &Layer) {
         self.model.entries.set_label_layer(layer);
-    }
-    /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer2(&self, layer: Layer) {
-        self.model.entries.set_label_layer2(layer);
     }
 }
 

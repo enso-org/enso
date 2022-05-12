@@ -390,7 +390,7 @@ impl Model {
         layers.background.add_exclusive(&self.background);
         layers.header_text.add_exclusive(&self.header_overlay);
         layers.background.add_exclusive(&self.entries);
-        self.entries.set_label_layer2(layers.text.clone_ref());
+        self.entries.set_label_layer(&layers.text);
         layers.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.header_text);
 
