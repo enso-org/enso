@@ -8,7 +8,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encodi
 from Standard.Table.Io.File_Format import Infer
 
 polyglot java import org.enso.table.read.DelimitedReader
-polyglot java import org.enso.table.parsing.ParsingFailedException
+polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows

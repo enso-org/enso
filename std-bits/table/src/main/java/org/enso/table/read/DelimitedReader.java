@@ -14,7 +14,6 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.parsing.ParsingFailedException;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;

@@ -24,9 +24,14 @@ import Standard.Table.Data.Position
 import Standard.Table.Data.Aggregate_Column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
+
+polyglot java import org.enso.table.parsing.IntegerParser
+polyglot java import org.enso.table.parsing.DecimalParser
+polyglot java import org.enso.table.parsing.BooleanParser
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -563,15 +568,21 @@ type Table
             Nothing -> column
             Auto -> Error.unimplemented "Automatic datatype inference is not implemented yet."
             _ ->
+                parse_options = parser
+                thousand_separator = if parse_options.thousand_separator.is_empty then Nothing else parse_options.thousand_separator
                 parser = case expected_type of
-                    Integer -> Error.throw "TODO"
-                    Decimal -> Error.throw "TODO"
-                    Boolean -> Error.throw "TODO"
+                    Integer -> IntegerParser.new thousand_separator parse_options.allow_leading_zeros
+                    Decimal -> DecimalParser.new parse_options.decimal_point thousand_separator parse_options.allow_leading_zeros
+                    Boolean -> BooleanParser.new parse_options.true_values.to_array parse_options.false_values.to_array
                     Date _ -> Error.unimplemented "Parsing dates is not implemented yet."
                     Time _ -> Error.unimplemented "Parsing dates is not implemented yet."
                     Time_Of_Day _ -> Error.unimplemented "Parsing dates is not implemented yet."
-                _ = parser
-                Error.throw "TODO"
+                ## TODO stripping whitespace
+                storage = column.java_column.getStorage
+                new_storage_and_problems = parser.parseColumn storage
+                ## TODO problems
+                new_storage = new_storage_and_problems.value
+                Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
         here.new new_columns
 
     ## ALIAS Filter Rows

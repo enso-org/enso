@@ -1,4 +1,4 @@
-package org.enso.table.parsing;
+package org.enso.table.read;
 
 import org.enso.table.parsing.problems.ParsingProblem;
 

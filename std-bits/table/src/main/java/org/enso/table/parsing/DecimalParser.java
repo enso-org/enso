@@ -14,9 +14,14 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
   private final boolean leadingZerosAllowed;
 
   public DecimalParser(
-      final char decimalPoint, final String thousandsSeparator, final boolean leadingZerosAllowed) {
+      final String decimalPoint, final String thousandsSeparator, final boolean leadingZerosAllowed) {
     this.leadingZerosAllowed = leadingZerosAllowed;
-    this.decimalPoint = decimalPoint;
+
+    if (decimalPoint.length() != 1) {
+      throw new IllegalArgumentException("The `decimalPoint` should consist of exactly one code point.");
+    } else {
+      this.decimalPoint = decimalPoint.charAt(0);
+    }
 
     if (thousandsSeparator != null) {
       if (thousandsSeparator.length() != 1) {
@@ -33,7 +38,7 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
 
     decimalFormat = new DecimalFormat();
     var symbols = decimalFormat.getDecimalFormatSymbols();
-    symbols.setDecimalSeparator(decimalPoint);
+    symbols.setDecimalSeparator(this.decimalPoint);
     decimalFormat.setDecimalFormatSymbols(symbols);
   }
 
