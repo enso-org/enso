@@ -23,6 +23,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
@@ -148,14 +149,18 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         api: &Self::Private,
         _app: &Application,
         model: &Model<COLUMNS>,
-        _style: &StyleWatchFrp,
+        style: &StyleWatchFrp,
     ) {
         let network = &api.network;
         let input = &api.input;
         let out = &api.output;
+        let entry_text_color = style.get_color(theme::entries::text::color);
         frp::extend! { network
+            init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
+            entry_text_color <- all(&entry_text_color, &init)._0();
+            entry_color_sampler <- entry_text_color.sampler();
 
             selected_column_and_entry <- any(...);
             update_selected_entry <- selected_column_and_entry.sample(&out.size);
@@ -189,6 +194,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             eval_ show_no_items_label(model.show_no_items_label());
             eval_ hide_no_items_label(model.hide_no_items_label());
         }
+        init.emit(());
 
         for column in model.columns.iter() {
             let col_id = column.id.clone_ref();
@@ -225,6 +231,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
             }
+            let params = entry::Params { color: entry_color_sampler.clone() };
+            column.list_view.set_entry_params_and_recreate_entries(params);
         }
     }
 
