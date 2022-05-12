@@ -3,7 +3,6 @@ package org.enso.searcher.sql
 import java.util.UUID
 
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsAction,
   ExportsUpdate,
@@ -41,7 +40,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(initQuery.transactionally)
+    db.run(initQuery)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
@@ -58,7 +57,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(getAllMethodsQuery(calls))
 
   override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery)
+    db.run(getAllModulesQuery.transactionally)
 
   /** @inheritdoc */
   override def search(
@@ -86,7 +85,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def applyTree(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): Future[Seq[QueryResult[SuggestionUpdate]]] =
     db.run(applyTreeQuery(tree).transactionally)
 
@@ -383,9 +382,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the result of applying updates with the new database version
     */
   private def applyTreeQuery(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): DBIO[Seq[QueryResult[SuggestionUpdate]]] = {
-    val queries = tree.toVector.map {
+    val queries = tree.map {
       case update @ SuggestionUpdate(suggestion, action) =>
         val query = action match {
           case SuggestionAction.Add() =>

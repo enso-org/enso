@@ -3,11 +3,13 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
+import sbt.complete.DefaultParsers._
+import sbt.complete.Parser
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
-import java.nio.file.Paths
+
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -155,7 +157,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 ThisBuild / javacOptions ++= Seq(
   "-encoding",   // Provide explicit encoding (the next line)
   "UTF-8",       // Specify character encoding used by Java source files.
-  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
+  "-deprecation",// Shows a description of each use or override of a deprecated member or class.
+  "-g"           // Include debugging information
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -245,6 +248,7 @@ lazy val enso = (project in file("."))
     pkg,
     cli,
     `task-progress-notifications`,
+    `profiling-utils`,
     `logging-utils`,
     `logging-service`,
     `logging-truffle-connector`,
@@ -678,6 +682,29 @@ lazy val `akka-native` = project
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
 
+lazy val `profiling-utils` = project
+  .in(file("lib/scala/profiling-utils"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.netbeans.api" % "org-netbeans-modules-sampler" % "RELEASE130"
+      exclude ("org.netbeans.api", "org-openide-loaders")
+      exclude ("org.netbeans.api", "org-openide-nodes")
+      // exclude following when RELEASE140 is out:
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress-nb")
+      //   exclude("org.netbeans.api", "org-netbeans-api-progress")
+      //   exclude("org.netbeans.api", "org-openide-util-lookup")
+      //   exclude("org.netbeans.api", "org-openide-util")
+      //   exclude("org.netbeans.api", "org-openide-dialogs")
+      exclude ("org.netbeans.api", "org-openide-filesystems")
+      exclude ("org.netbeans.api", "org-openide-util-ui")
+      exclude ("org.netbeans.api", "org-openide-awt")
+      exclude ("org.netbeans.api", "org-openide-modules")
+      exclude ("org.netbeans.api", "org-netbeans-api-annotations-common")
+    )
+  )
+
 lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
@@ -950,6 +977,7 @@ lazy val searcher = project
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
+    frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
       "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
@@ -1068,6 +1096,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`docs-generator`)
+  .dependsOn(`profiling-utils`)
   .dependsOn(testkit % Test)
   .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
@@ -1121,16 +1150,27 @@ val distributionEnvironmentOverrides = {
   )
 }
 
+/** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
+  * and still compile down to JDK 11
+  */
+lazy val frgaalJavaCompilerSetting = Seq(
+  Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
+  // This dependency is needed only so that developers don't download Frgaal manually.
+  // Sadly it cannot be placed under plugins either because meta dependencies are not easily
+  // accessible from the non-meta build definition.
+  libraryDependencies +=  FrgaalJavaCompiler.frgaal
+)
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
+    frgaalJavaCompilerSetting,
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
-    Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
@@ -1152,10 +1192,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "eu.timepit"         %% "refined"               % refinedVersion,
-      // This dependency is needed only so that developers don't download Frgaal manually.
-      // Sadly it cannot be placed under plugins either because meta dependencies are not easily
-      // accessible from the non-meta build definition.
-      FrgaalJavaCompiler.frgaal
+     "junit" % "junit" % "4.12" % Test,
+     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1184,7 +1222,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / javacOptions) ++= Seq(
       "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked"
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -1355,7 +1394,19 @@ lazy val launcher = project
       )
       .value,
     assembly / test := {},
-    assembly / assemblyOutputPath := file("launcher.jar")
+    assembly / assemblyOutputPath := file("launcher.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
+    }
   )
   .settings(
     (Test / test) := (Test / test)
@@ -1564,6 +1615,7 @@ val `database-polyglot-root` =
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
@@ -1586,6 +1638,7 @@ lazy val `std-base` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
@@ -1593,7 +1646,8 @@ lazy val `std-table` = project
       "com.ibm.icu"         % "icu4j"             % icuVersion,
       "com.univocity"       % "univocity-parsers" % "2.9.0",
       "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
-      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1",
+      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1612,6 +1666,7 @@ lazy val `std-table` = project
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `image-polyglot-root` / "std-image.jar",
@@ -1634,6 +1689,7 @@ lazy val `std-image` = project
 lazy val `std-google-api` = project
   .in(file("std-bits") / "google-api")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `google-api-polyglot-root` / "std-google-api.jar",
@@ -1657,6 +1713,7 @@ lazy val `std-google-api` = project
 lazy val `std-database` = project
   .in(file("std-bits") / "database")
   .settings(
+    frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
       `database-polyglot-root` / "std-database.jar",
@@ -1744,6 +1801,44 @@ buildEngineDistribution := {
   )
   log.info(s"Engine package created at $root")
 }
+
+val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
+val allStdBits: Parser[String] = stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+
+lazy val buildStdLib = inputKey[Unit]("Build an individual standard library package")
+buildStdLib := Def.inputTaskDyn {
+  val cmd: String = allStdBits.parsed
+  val root: File = engineDistributionRoot.value
+  // Ensure that a complete distribution was built at least once.
+  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task defintion (sbt restriction).
+  if ((root / "manifest.yaml").exists) {
+    pkgStdLibInternal.toTask(cmd)
+  } else buildEngineDistribution
+}.evaluated
+
+lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
+pkgStdLibInternal := Def.inputTaskDyn {
+  val cmd             = allStdBits.parsed
+  val root            = engineDistributionRoot.value
+  val log: sbt.Logger = streams.value.log
+  val cacheFactory    = streams.value.cacheStoreFactory
+  cmd match {
+    case "Base"       =>
+      (`std-base` / Compile / packageBin).value
+    case "Database"   =>
+      (`std-database` / Compile / packageBin).value
+    case "Google_Api" =>
+      (`std-google-api` / Compile / packageBin).value
+    case "Image"      =>
+      (`std-image` / Compile / packageBin).value
+    case "Table"      =>
+      (`std-table` / Compile / packageBin).value
+    case _            =>
+  }
+  StdBits.buildStdLibPackage(cmd, root, cacheFactory, log, defaultDevEnsoVersion)
+}.evaluated
+
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")

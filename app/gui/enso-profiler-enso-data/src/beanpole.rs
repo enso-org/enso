@@ -5,14 +5,10 @@
 //! and many other data complexities); as a result, it is better suited to display of large numbers
 //! of events spread unevenly over a long time range than any UML renderers I[KW] am aware of.
 
-
-
-// ===============
-// === Diagram ===
-// ===============
-
 use crate::backend::Direction;
 use crate::Metadata;
+
+
 
 /// The data necessary to create a diagram of message timings.
 #[derive(Debug, Default)]

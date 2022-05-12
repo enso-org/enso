@@ -774,6 +774,7 @@ class Config {
     public authentication_enabled: boolean
     public email: string
     public application_config_url: string
+    public test_workflow: string
     public skip_min_version_check: boolean
     public preferred_engine_version: SemVer
 
@@ -840,6 +841,9 @@ class Config {
         this.application_config_url = ok(other.application_config_url)
             ? tryAsString(other.application_config_url)
             : this.application_config_url
+        this.test_workflow = ok(other.test_workflow)
+            ? tryAsString(other.test_workflow)
+            : this.test_workflow
         this.skip_min_version_check = ok(other.skip_min_version_check)
             ? tryAsBoolean(other.skip_min_version_check)
             : this.skip_min_version_check

@@ -67,7 +67,7 @@ prepare_aggregate_columns aggregates table =
     pass_1 = valid_resolved_aggregate_columns.map c->(if c.new_name.is_nothing then Nothing else unique.make_unique c.new_name)
     renamed_columns = pass_1.map_with_index i->name->
         agg = valid_resolved_aggregate_columns.at i
-        new_name = (if name.is_nothing then unique.make_unique (here.default_aggregate_column_name agg) else name)
+        new_name = name.if_nothing (unique.make_unique (here.default_aggregate_column_name agg))
         Pair new_name agg
 
     # Build Problems Output
@@ -116,7 +116,7 @@ resolve_aggregate table problem_builder aggregate_column =
     resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
     resolve c =
         res = Table_Helpers.resolve_column_helper table_columns c problem_builder
-        if res.is_nothing then Error.throw Internal_Missing_Column_Error else res
+        res.if_nothing (Error.throw Internal_Missing_Column_Error)
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
@@ -189,13 +189,13 @@ java_aggregator name column =
         First c _ ignore_nothing ordering ->
             if ordering.is_nothing then FirstAggregator.new name c.java_column ignore_nothing else
                 ordering_array = ordering.map .java_column
-                FirstAggregator.new name c.java_column ignore_nothing ordering_array.to_array (Comparator.new)
+                FirstAggregator.new name c.java_column ignore_nothing ordering_array.to_array Comparator.new
         Last c _ ignore_nothing ordering ->
             if ordering.is_nothing then LastAggregator.new name c.java_column ignore_nothing else
                 ordering_array = ordering.map .java_column
-                LastAggregator.new name c.java_column ignore_nothing ordering_array.to_array (Comparator.new)
-        Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1
-        Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1
+                LastAggregator.new name c.java_column ignore_nothing ordering_array.to_array Comparator.new
+        Maximum c _ -> MinOrMaxAggregator.new name c.java_column 1 Comparator.new
+        Minimum c _ -> MinOrMaxAggregator.new name c.java_column -1 Comparator.new
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
         Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote

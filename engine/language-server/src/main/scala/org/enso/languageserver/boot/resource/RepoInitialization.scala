@@ -43,7 +43,7 @@ class RepoInitialization(
       for {
         _ <- Future {
           logger.info(
-            "Initializing suggestions repo [{}].",
+            "Initializing suggestions repo [{}]...",
             MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
@@ -75,7 +75,7 @@ class RepoInitialization(
       for {
         _ <- Future {
           logger.info(
-            "Initializing versions repo [{}].",
+            "Initializing versions repo [{}]...",
             MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }

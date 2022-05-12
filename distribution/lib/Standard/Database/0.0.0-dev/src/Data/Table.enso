@@ -507,8 +507,8 @@ type Table
             Text -> wrap_elem elem
             Column _ _ _ _ _ -> wrap_elem elem
             Order_Rule elem Nothing my_order my_nulls ->
-                chosen_order = if my_order.is_nothing then order else my_order
-                chosen_nulls = if my_nulls.is_nothing then missing_last else my_nulls
+                chosen_order = my_order.if_nothing order
+                chosen_nulls = my_nulls.if_nothing missing_last
                 [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
             Order_Rule _ _ _ _ ->
                 Error.throw <| Unsupported_Database_Operation_Error "Custom comparators are not supported in Database"

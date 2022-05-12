@@ -77,7 +77,7 @@ impl Initializer {
     pub async fn start(self) -> Result<Ide, FailedIde> {
         info!(self.logger, "Starting IDE with the following config: {self.config:?}");
 
-        let ensogl_app = ensogl::application::Application::new("root");
+        let ensogl_app = ensogl::application::Application::new(self.config.dom_parent_id());
         Initializer::register_views(&ensogl_app);
         let view = ensogl_app.new_view::<ide_view::root::View>();
 
@@ -85,8 +85,9 @@ impl Initializer {
         // We are doing it early, because Controllers initialization
         // takes some time and Welcome Screen might be visible for a brief moment while
         // controllers are not ready.
-        if self.config.project_name.is_some() {
-            view.switch_view_to_project();
+        match self.config.initial_view {
+            config::InitialView::WelcomeScreen => (),
+            config::InitialView::Project => view.switch_view_to_project(),
         }
 
         let status_bar = view.status_bar().clone_ref();
