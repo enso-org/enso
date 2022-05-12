@@ -1,9 +1,12 @@
+from Standard.Base import all
+import Standard.Base.Data.Time
+
 ## The type representing inferring the column type automatically based on values
    present in the column.
 
    The most specific type which is valid for all values in a column is chosen:
    - if all values are integers, `Integer` is chosen,
-   - if the column contains integers and decimals, `Decimal` is chosen,
+   - if all values are decimals or integers, `Decimal` is chosen,
    - if all values are booleans, `Boolean` is chosen,
    - if the values are all the same time type (a date, a time or a date-time),
      that type is chosen,
@@ -18,4 +21,4 @@ type Auto
      index.
    - datatype: The desired datatype for the column or `Auto` to infer the type
      from the data.
-type Column_Type_Selection (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Time|DateTime|Boolean)=Auto
+type Column_Type_Selection (column:Text|Integer) datatype:(Auto|Integer|Decimal|Date|Time|Time_Of_Day|Boolean)=Auto

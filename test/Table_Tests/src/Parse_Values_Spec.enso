@@ -1,0 +1,45 @@
+from Standard.Base import all
+from Standard.Table import all
+
+from Standard.Table.Data.Table as Table_Internal import Empty_Error
+
+import Standard.Base.Data.Time.Date
+import Standard.Table.Data.Storage
+import Standard.Test
+import Standard.Test.Problems
+import Standard.Visualization
+from Standard.Table.Error as Table_Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names
+
+spec = Test.group "Table.parse_values" <|
+    Test.specify "should correctly parse integers" <|
+        Error.throw "TODO"
+    Test.specify "should correctly parse decimals" <|
+        Error.throw "TODO"
+    Test.specify "should warn on leading zeros in numbers" <|
+        Error.throw "TODO"
+    Test.specify "should correctly parse booleans" <|
+        Error.throw "TODO"
+    Test.specify "should warn when cells do not fit the expected format" <|
+        Error.throw "TODO"
+    Test.specify "should leave not selected columns unaffected" <|
+        Error.throw "TODO"
+    Test.specify "should correctly parse date and time" pending="TODO" <|
+        Error.throw "TODO"
+
+    Test.specify "should guess the datatype for columns" pending="TODO" <|
+        # TODO: ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
+        Error.throw "TODO"
+
+    Test.specify "should allow to specify a thousands separator and custom decimal point" <|
+        Error.throw "TODO"
+
+    Test.specify "should allow to specify custom values for booleans" <|
+        Error.throw "TODO"
+
+    Test.specify "should trim input values by default" <|
+        ## TODO columns for each type, with some whitespace
+        Error.throw "TODO"
+
+    Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
+        Error.throw "TODO"
+

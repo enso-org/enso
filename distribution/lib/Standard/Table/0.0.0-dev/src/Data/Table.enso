@@ -538,7 +538,36 @@ type Table
        a leading 0). However, settings in the Parser_Options can control this.
     parse_values : Parser_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
     parse_values parser=Parser_Options column_types=Nothing on_problems=Report_Warning =
-        Error.throw "TODO"
+        columns = this.columns
+
+        find_datatype index column =
+            matching_input = column_types.find selection->
+                selector = selection.column
+                case selector of
+                    Text -> column.name == selector
+                    Integer -> index == selector
+            matching_input.datatype.catch
+
+        expected_types = case column_types of
+            Nothing -> columns.map _->Auto
+            _ ->
+                ## TODO check duplicate names and OOB indices and attach problems here
+                columns.map_with_index find_datatype
+
+        new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
+            Nothing -> column
+            Auto -> Error.unimplemented "Automatic datatype inference is not implemented yet."
+            _ ->
+                parser = case expected_type of
+                    Integer -> Error.throw "TODO"
+                    Decimal -> Error.throw "TODO"
+                    Boolean -> Error.throw "TODO"
+                    Date -> Error.unimplemented "Parsing dates is not implemented yet."
+                    Time -> Error.unimplemented "Parsing dates is not implemented yet."
+                    Time_Of_Day -> Error.unimplemented "Parsing dates is not implemented yet."
+                _ = parser
+                Error.throw "TODO"
+        here.new new_columns
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
