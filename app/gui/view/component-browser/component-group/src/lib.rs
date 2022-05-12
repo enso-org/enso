@@ -170,7 +170,7 @@ ensogl_core::define_endpoints_2! {
         set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
         set_background_color(Rgba),
         set_width(f32),
-        /// Sets the y-position of the header from the top of the component group. (in pixels)
+        /// Sets the y-position of the header from the top of the component group.
         ///
         /// It can't move past the bottom border of the component group.
         set_header_pos(f32),
