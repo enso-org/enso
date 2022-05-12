@@ -119,11 +119,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let path: Vec<String> = match &entry.self_type {
-                        Some(name) => name.segments().map(|s| s.to_string()).collect(),
-                        None => entry.module.segments().map(|s| s.to_string()).collect(),
-                    };
-                    id_by_path.set(path.iter().chain(Some(&entry.name)), id);
+                    id_by_path.set(entry_path(&entry), id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -288,6 +284,20 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
     fn from(database: language_server::response::GetSuggestionDatabase) -> Self {
         Self::from_ls_response(database)
     }
+}
+
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+fn entry_path(entry: &Entry) -> impl Iterator<Item = String> {
+    let path: Vec<String> = match &entry.self_type {
+        Some(name) => name.segments().map(|s| s.to_string()).collect(),
+        None => entry.module.segments().map(|s| s.to_string()).collect(),
+    };
+    path.into_iter().chain(Some(entry.name.clone()))
 }
 
 
