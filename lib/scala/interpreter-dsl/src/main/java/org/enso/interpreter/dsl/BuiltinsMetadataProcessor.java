@@ -4,6 +4,7 @@ import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.*;
@@ -76,9 +77,10 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
           writer.close();
         }
       } catch (IOException e) {
-        e.printStackTrace();
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+      } finally {
+        cleanup();
       }
-      cleanup();
       return true;
     } else {
       return handleProcess(annotations, roundEnv);
