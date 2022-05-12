@@ -1,4 +1,4 @@
-package org.enso.table.read;
+package org.enso.table.read.parsing.problems;
 
 /** A problem which indicates how many additional invalid rows were encountered. */
 public class AdditionalInvalidRows implements ParsingProblem {

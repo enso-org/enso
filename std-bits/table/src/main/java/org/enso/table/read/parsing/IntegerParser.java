@@ -2,12 +2,14 @@ package org.enso.table.read.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.read.parsing.problems.NumericProblemAggregator;
 
-public class IntegerParser extends TypeParser {
-  private final char thousandsSeparatorChar;
+public class IntegerParser extends TypeParser<NumericProblemAggregator> {
   private final String thousandsSeparator;
+  private final boolean leadingZerosAllowed;
 
-  public IntegerParser(final String thousandsSeparator) {
+  public IntegerParser(final String thousandsSeparator, final boolean leadingZerosAllowed) {
+    this.leadingZerosAllowed = leadingZerosAllowed;
     if (thousandsSeparator != null) {
       if (thousandsSeparator.length() != 1) {
         throw new IllegalArgumentException(
@@ -15,27 +17,50 @@ public class IntegerParser extends TypeParser {
       }
 
       this.thousandsSeparator = thousandsSeparator;
-      thousandsSeparatorChar = thousandsSeparator.charAt(0);
     } else {
       this.thousandsSeparator = null;
-      thousandsSeparatorChar = '\0';
     }
   }
 
-  public Object parseSingleValue(String text) {
-    for (int i = 0; i < text.length(); ++i) {
-      char c = text.charAt(i);
-      boolean ok =
-          ('0' <= c && c <= '9') || (thousandsSeparator != null && c == thousandsSeparatorChar);
-      if (!ok) return INVALID_FORMAT;
+  @Override
+  public Object parseSingleValue(String text, NumericProblemAggregator problemAggregator) {
+    if (thousandsSeparator != null
+        && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
     }
 
     String replaced = thousandsSeparator == null ? text : text.replace(thousandsSeparator, "");
-    return Long.valueOf(replaced);
+    try {
+      long value = Long.parseLong(replaced);
+
+      if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
+        problemAggregator.reportLeadingZeroes(text);
+      }
+
+      return value;
+    } catch (NumberFormatException exception) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
+    }
+  }
+
+  private boolean hasLeadingZeros(String s) {
+    int firstDigitPos = 0;
+    if (s.charAt(0) == '+' || s.charAt(0) == '-') {
+      firstDigitPos = 1;
+    }
+
+    return s.charAt(firstDigitPos) == '0' && firstDigitPos + 1 < s.length();
   }
 
   @Override
   public Builder makeBuilderWithCapacity(long capacity) {
     return NumericBuilder.createLongBuilder((int) capacity);
+  }
+
+  @Override
+  public NumericProblemAggregator makeProblemAggregator() {
+    return null;
   }
 }

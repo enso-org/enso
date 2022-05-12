@@ -1,18 +1,21 @@
 package org.enso.table.read.parsing;
 
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.text.ParseException;
+import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
+import org.enso.table.read.parsing.problems.NumericProblemAggregator;
 
-public class DecimalParser extends TypeParser {
+public class DecimalParser extends TypeParser<NumericProblemAggregator> {
   private final char thousandsSeparatorChar;
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;
+  private final boolean leadingZerosAllowed;
 
-  public DecimalParser(final char decimalPoint, final String thousandsSeparator) {
+  public DecimalParser(
+      final char decimalPoint, final String thousandsSeparator, final boolean leadingZerosAllowed) {
+    this.leadingZerosAllowed = leadingZerosAllowed;
     this.decimalPoint = decimalPoint;
 
     if (thousandsSeparator != null) {
@@ -34,24 +37,47 @@ public class DecimalParser extends TypeParser {
     decimalFormat.setDecimalFormatSymbols(symbols);
   }
 
-  public Object parseSingleValue(String text) {
-    for (int i = 0; i < text.length(); ++i) {
-      char c = text.charAt(i);
-      boolean ok =
-          ('0' <= c && c <= '9') || (thousandsSeparator != null && c == thousandsSeparatorChar);
-      if (!ok) return INVALID_FORMAT;
+  @Override
+  public Object parseSingleValue(String text, NumericProblemAggregator problemAggregator) {
+    if (thousandsSeparator != null
+        && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
     }
 
     String replaced = thousandsSeparator == null ? text : text.replace(thousandsSeparator, "");
-    try {
-      return decimalFormat.parse(replaced);
-    } catch (ParseException e) {
-      return INVALID_FORMAT;
+    ParsePosition pos = new ParsePosition(0);
+    double result = decimalFormat.parse(replaced, pos).doubleValue();
+    if (pos.getIndex() != replaced.length()) {
+      problemAggregator.reportInvalidFormat(text);
+      return null;
     }
+
+    if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
+      problemAggregator.reportLeadingZeroes(text);
+    }
+
+    return result;
+  }
+
+  private boolean hasLeadingZeros(String s) {
+    int firstDigitPos = 0;
+    if (s.charAt(0) == '+' || s.charAt(0) == '-') {
+      firstDigitPos = 1;
+    }
+
+    return s.charAt(firstDigitPos) == '0'
+        && firstDigitPos + 1 < s.length()
+        && s.charAt(firstDigitPos + 1) != decimalPoint;
   }
 
   @Override
   public Builder makeBuilderWithCapacity(long capacity) {
     return NumericBuilder.createLongBuilder((int) capacity);
+  }
+
+  @Override
+  public NumericProblemAggregator makeProblemAggregator() {
+    return new NumericProblemAggregator();
   }
 }
