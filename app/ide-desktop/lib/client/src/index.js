@@ -121,6 +121,14 @@ optParser.options('backend-path', {
     describe: 'Set the path of a local project manager to use for running projects',
 })
 
+optParser.options('directory', {
+    group: configOptionsGroup,
+    describe: `Run the process in the specified directory, instead of the current working directory.`,
+    hidden: true,
+    requiresArg: true,
+    type: `string`,
+})
+
 // === Debug Options ===
 
 let debugOptionsGroup = 'Debug Options:'
@@ -135,7 +143,8 @@ optParser.options('verbose', {
 optParser.options('entry-point', {
     group: debugOptionsGroup,
     describe: 'Run an alternative entry point (e.g. one of the debug scenes)',
-    //    requiresArg : true
+    requiresArg: true,
+    type: `string`,
 })
 
 optParser.options('dev', {
@@ -452,6 +461,9 @@ let mainWindow = null
 let origin = null
 
 async function main(args) {
+    if (args.directory !== undefined) {
+        process.chdir(args.directory)
+    }
     runBackend()
     console.log('Starting the IDE service.')
     if (args.server !== false) {

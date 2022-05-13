@@ -23,6 +23,14 @@ const pipe = promisify(stream.pipeline)
 process.on('unhandledRejection', error => {
     throw error
 })
+
+// =========================
+// === Working directory ===
+// =========================
+
+// The directory this script was originally run from.
+const initCwd = process.cwd()
+
 process.chdir(paths.root)
 
 // ========================
@@ -50,13 +58,15 @@ async function gzip(input, output) {
 }
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
+/// The working directory for the command will be set to the root of the cargo workspace.
 async function run_cargo(command, args) {
-    await cmd.run(command, args.concat(cargoArgs))
+    await cmd.run(command, args.concat(cargoArgs), paths.root)
 }
 
 /// Run the command with the provided args and all args passed to this script after the `--` symbol.
-async function run(command, args) {
-    await cmd.run(command, args)
+/// The working directory for the command will be set to the directory containing the root npm package.
+async function run_npm(command, args) {
+    await cmd.run(command, args, paths.ide_desktop.root)
 }
 
 /// Defines a new command argument builder.
@@ -68,9 +78,7 @@ function command(docs) {
 /// platform.
 async function build_project_manager() {
     console.log(`Getting project manager manager.`)
-    await cmd.with_cwd(paths.ide_desktop.lib.projectManager, async () => {
-        await run('npm', ['run-script build'])
-    })
+    await cmd.run('npm', ['run-script', 'build'], paths.ide_desktop.lib.projectManager)
 }
 
 /// Run the local project manager binary.
@@ -98,9 +106,7 @@ let commands = {}
 
 commands.clean = command(`Clean all build artifacts`)
 commands.clean.js = async function () {
-    await cmd.with_cwd(paths.ide_desktop.root, async () => {
-        await run('npm', ['run', 'clean'])
-    })
+    await run_npm('npm', ['run', 'clean'])
     try {
         await fs.unlink(paths.dist.init)
         await fs.unlink(paths.dist.buildInit)
@@ -118,7 +124,7 @@ commands.check.rust = async function () {
     await run_cargo('cargo', [
         'check',
         '--workspace',
-        ' -p',
+        '-p',
         'enso-integration-test',
         '--all-targets',
     ])
@@ -136,7 +142,7 @@ commands.build.options = {
 commands.build.js = async function () {
     await installJsDeps()
     console.log(`Building JS target.`)
-    await run('npm', ['run', 'build'])
+    await run_npm('npm', ['run', 'build'])
 }
 
 // We build WASM binaries from Rust code using `wasm-pack`. Intermediate temporary directory is used
@@ -253,24 +259,22 @@ commands.start.rust = async function (argv) {
 
 commands.start.js = async function (argv) {
     await installJsDeps()
-    console.log(`Building JS target.` + argv)
-    const args = []
+    console.log(`Building JS target.`)
+    const frontendArgs = []
+    frontendArgs.push('--directory', initCwd)
     if (argv.backend) {
-        // The backend path is being prepended here, as appending would be incorrect.
-        // That is because `targetArgs` might include `-- …` and appended args could
-        // end up being passed to the spawned backend process.
-        args.push('--backend-path')
-        args.push(paths.get_project_manager_path(paths.dist.bin))
+        frontendArgs.push('--backend-path', paths.get_project_manager_path(paths.dist.bin))
     } else {
-        args.push('--no-backend')
+        frontendArgs.push('--no-backend')
     }
-    args.concat(targetArgs)
     if (argv.dev) {
-        args.push('--dev')
+        frontendArgs.push('--dev')
     }
-    await cmd.with_cwd(paths.ide_desktop.root, async () => {
-        await run('npm', ['run', 'start', '--'].concat(args))
-    })
+    // `targetArgs` may contain `--`, which causes any subsequent args to be passed to the backend;
+    // pass our `frontendArgs` before the `targetArgs` so that `targetArgs` cannot affect their
+    // interpretation.
+    const args = frontendArgs.concat(targetArgs)
+    await run_npm('npm', ['run', 'start', '--'].concat(args))
 }
 
 // === Test ===
@@ -330,16 +334,16 @@ commands['integration-test'].rust = async function (argv) {
 
 commands.profile = command('Profile the application')
 commands.profile.rust = async function (argv) {
-    console.log(`Building with full optimization. This may take a few minutes...`)
+    console.log(`Building with full optimization.`)
     let defaults = { 'profiling-level': 'debug' }
     let argv2 = Object.assign({}, defaults, argv)
     await commands.build.rust(argv2)
 }
 commands.profile.js = async function (argv) {
     await installJsDeps()
-    console.log(`Profiling the application.` + argv)
-    let workflow = argv['workflow']
-    let save_profile = argv[`save-profile`]
+    console.log(`Profiling the application.`)
+    const workflow = argv['workflow']
+    const saveProfile = argv[`save-profile`]
     if (workflow === undefined) {
         console.error(
             `'Profile' command requires a workflow argument. ` +
@@ -347,21 +351,21 @@ commands.profile.js = async function (argv) {
         )
         return
     }
-    if (save_profile === undefined) {
+    if (saveProfile === undefined) {
         console.error(
             `'Profile' command requires a --save-profile argument ` +
                 `indicating path to output file.`
         )
         return
     }
-    let out_path = path.resolve(save_profile)
-    const tail = ['--entry-point=profile', '--workflow=' + workflow, '--save-profile=' + out_path]
-    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
-        targetArgs
-    )
-    await cmd.with_cwd(paths.ide_desktop.root, async () => {
-        await run('npm', ['run', 'start', '--'].concat(args).concat(tail))
-    })
+    const args = []
+    args.push('--directory', initCwd)
+    args.push('--backend-path', paths.get_project_manager_path(paths.dist.bin))
+    args.push('--entry-point', 'profile')
+    args.push('--workflow', workflow)
+    args.push('--save-profile', saveProfile)
+    args.push(...targetArgs)
+    await run_npm('npm', ['run', 'start', '--'].concat(args))
 }
 
 // === Lint ===
@@ -425,26 +429,23 @@ commands.watch.common = async function (argv) {
 
     // Run watch processes.
 
-    const rust_process = cmd.with_cwd(paths.root, async () => {
-        let build_args = []
-        if (argv.crate !== undefined) {
-            build_args.push(`--crate=${argv.crate}`)
-        }
-        build_args = build_args.join(' ')
-        const shellCommand =
-            '"' +
-            `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
-            cargoArgs.join(' ') +
-            '"'
-        // We ignore changes in README.md because `wasm-pack` copies it, which triggers `cargo watch`
-        // because of this bug: https://github.com/notify-rs/notify/issues/259
-        const ignore = ['--ignore', 'README.md']
-        let args = new Array().concat('watch', ignore, '-s', `${shellCommand}`)
-        return cmd.run('cargo', args)
-    })
-    const js_process = cmd.with_cwd(paths.ide_desktop.root, async () => {
-        return run('npm', ['run', 'watch'])
-    })
+    let build_args = []
+    if (argv.crate !== undefined) {
+        build_args.push(`--crate=${argv.crate}`)
+    }
+    build_args = build_args.join(' ')
+    const shellCommand =
+        '"' +
+        `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
+        cargoArgs.join(' ') +
+        '"'
+    // We ignore changes in README.md because `wasm-pack` copies it, which triggers `cargo watch`
+    // because of this bug: https://github.com/notify-rs/notify/issues/259
+    const ignore = ['--ignore', 'README.md']
+    const args = ['watch', ignore, '-s', `${shellCommand}`]
+    const rust_process = cmd.run_shell('cargo', args, paths.root)
+
+    const js_process = run_npm('npm', ['run', 'watch'])
 
     await rust_process
     await js_process
@@ -459,9 +460,7 @@ commands.dist.rust = async function (argv) {
 
 commands.dist.js = async function () {
     await installJsDeps()
-    await cmd.with_cwd(paths.ide_desktop.root, async () => {
-        await run('npm', ['run', 'dist'])
-    })
+    await run_npm('npm', ['run', 'dist'])
 }
 
 // === CI Gen ===
@@ -645,9 +644,7 @@ async function installJsDeps() {
     // Otherwise adding new dependency will require a clean build on CI.
     if (!initialized || isCI) {
         console.log('Installing application dependencies.')
-        await cmd.with_cwd(paths.ide_desktop.root, async () => {
-            await cmd.run('npm', ['run', 'install'])
-        })
+        await run_npm('npm', ['run', 'install'])
     }
     if (!initialized) {
         console.log('Downloading binary assets.')
@@ -675,17 +672,16 @@ async function downloadJsAssets() {
     const ideAssetsUrl = `https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip`
     const unzippedAssets = path.join(workdir, 'ide-assets-main', 'content', 'assets')
     const jsLibAssets = path.join(paths.ide_desktop.lib.content, 'assets')
-    await cmd.with_cwd(workdir, async () => {
-        await cmd.run('curl', [
-            '--retry',
-            '4',
-            '--retry-connrefused',
-            '-fsSL',
-            '-o',
-            ideAssetsMainZip,
-            ideAssetsUrl,
-        ])
-    })
+    const args = [
+        '--retry',
+        '4',
+        '--retry-connrefused',
+        '-fsSL',
+        '-o',
+        ideAssetsMainZip,
+        ideAssetsUrl,
+    ]
+    await cmd.run('curl', args, workdir)
 
     const assetsArchive = await unzipper.Open.file(path.join(workdir, ideAssetsMainZip))
     await assetsArchive.extract({ path: workdir })

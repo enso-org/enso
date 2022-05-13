@@ -34,11 +34,11 @@ async function with_cwd(dir, fn) {
     return out
 }
 
-function run(cmd, args) {
+function run_shell(cmd, args, cwd) {
     let out = ''
     return new Promise((resolve, reject) => {
         console.log(`Calling '${cmd} ${args.join(' ')}'`)
-        let proc = spawn(cmd, args, { stdio: 'inherit', shell: true })
+        let proc = spawn(cmd, args, { stdio: 'inherit', cwd: cwd, shell: true })
         proc.on('exit', code => {
             if (code) process.exit(code)
             resolve(out)
@@ -46,10 +46,21 @@ function run(cmd, args) {
     })
 }
 
+function run(cmd, args, cwd) {
+    return new Promise((resolve, reject) => {
+        console.log(`Calling '${cmd} ${args.join(' ')}'`)
+        let proc = spawn(cmd, args, { stdio: 'inherit', cwd: cwd })
+        proc.on('exit', code => {
+            if (code) process.exit(code)
+            resolve()
+        })
+    })
+}
+
 function run_read(cmd, args) {
     let out = ''
     return new Promise((resolve, reject) => {
-        let proc = spawn(cmd, args, { shell: true })
+        let proc = spawn(cmd, args)
         proc.stderr.pipe(process.stderr)
         proc.stdout.on('data', data => {
             out += data
@@ -114,6 +125,7 @@ async function get_node_lts_version() {
 module.exports = {
     section,
     run,
+    run_shell,
     run_read,
     check_version,
     get_npm_info,
