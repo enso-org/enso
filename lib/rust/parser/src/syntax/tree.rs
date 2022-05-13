@@ -183,9 +183,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
         /// around the whole `.sum 1` expression.
-        // OprSectionBoundary {
-        //     pub ast: Tree,
-        // },
+        OprSectionBoundary {
+            pub ast: Tree<'s>,
+        },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
         /// segment starts with a token and contains an expression. Some multi-segment functions can
         /// have a prefix, an expression that is argument of the function, but is placed before the
@@ -243,215 +243,6 @@ impl<'s> Tree<'s> {
     }
 }
 
-pub struct Builder<T = ()> {
-    pub span: T,
-}
-
-// pub trait PartialBuilder {
-//     fn build(self);
-// }
-//
-// impl<S, T> PartialBuilder for (Builder<Option<S>>, T) {
-//     default fn build(self) {
-//         todo!()
-//     }
-// }
-//
-// impl<S, T> PartialBuilder for (Builder<Option<S>>, Option<T>) {
-//     fn build(self) {
-//         todo!()
-//     }
-// }
-
-// pub trait PartialParentSpanBuilder2<T> {
-//     type Output;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<T>) -> Self::Output;
-// }
-//
-// impl<'s, T> PartialParentSpanBuilder2<Option<Span<'s>>> for T
-// where
-//     T: PartialParentSpanBuilder2<Span<'s>, Output = Span<'s>>,
-//     T: PartialParentSpanBuilder2<(), Output = Span<'s>>,
-// {
-//     type Output = Span<'s>;
-//     default fn extend_parent_span2(
-//         &mut self,
-//         builder: ParentSpanBuilder<Option<Span<'s>>>,
-//     ) -> Self::Output {
-//         match builder.span {
-//             Some(span) => <T as PartialParentSpanBuilder2<Span<'s>>>::extend_parent_span2(
-//                 self,
-//                 ParentSpanBuilder::new(span),
-//             ),
-//             None => <T as PartialParentSpanBuilder2<()>>::extend_parent_span2(
-//                 self,
-//                 ParentSpanBuilder::new(()),
-//             ),
-//         }
-//     }
-// }
-//
-// impl<'s, T> PartialParentSpanBuilder2<Option<Span<'s>>> for Option<T>
-// where
-//     T: PartialParentSpanBuilder2<Span<'s>, Output = Span<'s>>,
-//     T: PartialParentSpanBuilder2<(), Output = Span<'s>>,
-// {
-//     type Output = Option<Span<'s>>;
-//     fn extend_parent_span2(
-//         &mut self,
-//         builder: ParentSpanBuilder<Option<Span<'s>>>,
-//     ) -> Self::Output {
-//         match self {
-//             Some(elem) => match builder.span {
-//                 Some(span) => Some(elem.extend_parent_span2(ParentSpanBuilder::new(span))),
-//                 None => Some(elem.extend_parent_span2(ParentSpanBuilder::new(()))),
-//             },
-//             None => builder.span,
-//         }
-//     }
-// }
-//
-// impl<T> PartialParentSpanBuilder2<()> for Option<T>
-// where T: PartialParentSpanBuilder2<()>
-// {
-//     type Output = Option<<T as PartialParentSpanBuilder2<()>>::Output>;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         self.as_mut().map(|t| t.extend_parent_span2(builder))
-//     }
-// }
-//
-// impl<'s> PartialParentSpanBuilder2<()> for Tree<'s> {
-//     type Output = Span<'s>;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         self.span.trim_as_first_child()
-//     }
-// }
-//
-// impl<'s> PartialParentSpanBuilder2<Span<'s>> for Tree<'s> {
-//     type Output = Span<'s>;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
-//         builder.span.extended(&self.span)
-//     }
-// }
-//
-// impl<T, E> PartialParentSpanBuilder2<()> for Result<T, E>
-// where
-//     T: PartialParentSpanBuilder2<()>,
-//     E: PartialParentSpanBuilder2<(), Output = <T as PartialParentSpanBuilder2<()>>::Output>,
-// {
-//     type Output = <T as PartialParentSpanBuilder2<()>>::Output;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         match self {
-//             Ok(t) => t.extend_parent_span2(builder),
-//             Err(t) => t.extend_parent_span2(builder),
-//         }
-//     }
-// }
-//
-// impl<'s, T, E> PartialParentSpanBuilder2<Span<'s>> for Result<T, E>
-// where
-//     T: PartialParentSpanBuilder2<Span<'s>>,
-//     E: PartialParentSpanBuilder2<
-//         Span<'s>,
-//         Output = <T as PartialParentSpanBuilder2<Span<'s>>>::Output,
-//     >,
-// {
-//     type Output = <T as PartialParentSpanBuilder2<Span<'s>>>::Output;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
-//         match self {
-//             Ok(t) => t.extend_parent_span2(builder),
-//             Err(t) => t.extend_parent_span2(builder),
-//         }
-//     }
-// }
-//
-//
-// #[derive(Default)]
-// pub struct ParentSpanBuilder<T> {
-//     pub span: T,
-// }
-//
-// impl<T> ParentSpanBuilder<T> {
-//     pub fn new(span: T) -> Self {
-//         Self { span }
-//     }
-//
-//     pub fn extend<S: PartialParentSpanBuilder<T>>(
-//         self,
-//         elem: &mut S,
-//     ) -> ParentSpanBuilder<S::Output> {
-//         ParentSpanBuilder::new(elem.extend_parent_span(self))
-//     }
-//
-//     pub fn extend2<S: PartialParentSpanBuilder2<T>>(
-//         self,
-//         elem: &mut S,
-//     ) -> ParentSpanBuilder<S::Output> {
-//         ParentSpanBuilder::new(elem.extend_parent_span2(self))
-//     }
-// }
-//
-//
-//
-// pub trait PartialParentSpanBuilder<T> {
-//     type Output;
-//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<T>) -> Self::Output;
-// }
-//
-// impl<'s> PartialParentSpanBuilder<()> for Tree<'s> {
-//     type Output = Span<'s>;
-//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         self.span.trim_as_first_child()
-//     }
-// }
-//
-//
-//
-// impl<T> PartialParentSpanBuilder<()> for Option<T>
-// where T: PartialParentSpanBuilder<()>
-// {
-//     type Output = Option<<T as PartialParentSpanBuilder<()>>::Output>;
-//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         self.as_mut().map(|t| t.extend_parent_span(builder))
-//     }
-// }
-//
-// impl<T, E> PartialParentSpanBuilder<()> for Result<T, E>
-// where
-//     T: PartialParentSpanBuilder<()>,
-//     E: PartialParentSpanBuilder<(), Output = <T as PartialParentSpanBuilder<()>>::Output>,
-// {
-//     type Output = <T as PartialParentSpanBuilder<()>>::Output;
-//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
-//         match self {
-//             Ok(t) => t.extend_parent_span(builder),
-//             Err(t) => t.extend_parent_span(builder),
-//         }
-//     }
-// }
-//
-// impl<'s> PartialParentSpanBuilder<Span<'s>> for Tree<'s> {
-//     type Output = Span<'s>;
-//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
-//         builder.span.extended(&self.span)
-//     }
-// }
-
-// impl<T> PartialParentSpanBuilder<Option<T>> for ParentSpanBuilder {
-//     type Output = Span<'s>;
-//     fn extend(self, elem: &mut Tree<'s>) -> ParentSpanBuilder<Self::Output> {
-//         ParentSpanBuilder::new(elem.span.trim_as_first_child())
-//     }
-// }
-//
-// impl<'s> PartialParentSpanBuilder<Tree<'s>> for ParentSpanBuilder<Span<'s>> {
-//     type Output = Span<'s>;
-//     fn extend(self, elem: &mut Tree<'s>) -> ParentSpanBuilder<Self::Output> {
-//         ParentSpanBuilder::new(self.span.extended(elem))
-//     }
-// }
-
-
 
 // === App ===
 
@@ -460,7 +251,6 @@ impl<'s> Tree<'s> {
     pub fn app(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
         let mut span = func.span.trim_as_first_child();
         span.extend(&arg);
-        // let span = ParentSpanBuilder::<()>::default().extend(&mut func).extend(&mut arg).span;
         Tree(span, Type::from(App(func, arg)))
     }
 }
@@ -491,13 +281,6 @@ impl<'s> SpanExtend<'s> for MultipleOperatorError<'s> {
     }
 }
 
-// impl<'s> PartialParentSpanBuilder2<Span<'s>> for MultipleOperatorError<'s> {
-//     type Output = Span<'s>;
-//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
-//         builder.span.extended(&self.span)
-//     }
-// }
-
 impl<'s> Tree<'s> {
     /// Constructor.
     pub fn opr_app(
@@ -505,13 +288,17 @@ impl<'s> Tree<'s> {
         mut opr: OperatorOrError<'s>,
         rhs: Option<Tree<'s>>,
     ) -> Tree<'s> {
-        // let span = ParentSpanBuilder::default().extend(&mut lhs).extend(&mut opr);
-        // let span = ParentSpanBuilder::<()>::default().extend2(&mut lhs);
         let mut span = match &mut lhs {
             Some(lhs) => lhs.span.trim_as_first_child().extended(&opr),
             None => match &mut opr {
                 Ok(opr) => opr.trim_as_first_child(),
-                Err(err) => err.operators.first_mut().trim_as_first_child(),
+                Err(err) => {
+                    let mut span = err.operators.first_mut().trim_as_first_child();
+                    for elem in err.operators.iter().skip(1) {
+                        span.extend(elem)
+                    }
+                    span
+                }
             },
         };
         span.extend(&rhs);
@@ -519,31 +306,29 @@ impl<'s> Tree<'s> {
     }
 }
 
-//
-//
-// // === OprSectionBoundary ===
-//
-// impl Tree {
-//     /// Constructor.
-//     pub fn opr_section_boundary(section: Tree) -> Tree {
-//         let (left_offset_span, section) = section.split_at_start();
-//         let total = left_offset_span.extended_to(&section);
-//         let ast_data = Type::from(OprSectionBoundary(section));
-//         total.with(ast_data)
-//     }
-// }
-//
-//
-// // === MultiSegmentApp ===
-//
-// /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail`
-// expression. #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-// #[allow(missing_docs)]
-// pub struct MultiSegmentAppSegment {
-//     pub header: Token,
-//     pub body:   Option<Tree>,
-// }
-//
+
+
+// === OprSectionBoundary ===
+
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn opr_section_boundary(mut section: Tree<'s>) -> Tree<'s> {
+        let span = section.span.trim_as_first_child();
+        Tree(span, Type::from(OprSectionBoundary(section)))
+    }
+}
+
+
+// === MultiSegmentApp ===
+
+/// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct MultiSegmentAppSegment<'s> {
+    pub header: token::Token<'s>,
+    pub body:   Option<Tree<'s>>,
+}
+
 // impl Tree {
 //     /// Constructor.
 //     pub fn multi_segment_app(
@@ -568,9 +353,6 @@ impl<'s> Tree<'s> {
 //         total.with(data)
 //     }
 // }
-//
-//
-//
 
 
 
@@ -760,18 +542,21 @@ macro_rules! define_visitor_for_tokens {
         impl<'a, 's> TreeVisitableMut<'a, 's> for token::$kind {}
         // impl<'a, 's> SpanVisitable<'a> for token::$kind {}
         // impl<'a, 's> SpanVisitableMut<'a> for token::$kind {}
-        $(
-            impl<'a, 's> TreeVisitable<'a, 's> for token::$variant<'s> {}
-            impl<'a, 's> TreeVisitableMut<'a, 's> for token::$variant<'s> {}
-            // impl<'a, 's> SpanVisitable<'a> for token::$variant {}
-            // impl<'a, 's> SpanVisitableMut<'a> for token::$variant {}
-        )*
+        // $(
+        //     impl<'a, 's> TreeVisitable<'a, 's> for token::$variant<'s> {}
+        //     impl<'a, 's> TreeVisitableMut<'a, 's> for token::$variant<'s> {}
+        //     // impl<'a, 's> SpanVisitable<'a> for token::$variant {}
+        //     // impl<'a, 's> SpanVisitableMut<'a> for token::$variant {}
+        // )*
     };
 }
 
 define_visitor!(Tree, visit, visit_mut);
 // define_visitor!(Span, visit_span, visit_span_mut);
 crate::with_token_definition!(define_visitor_for_tokens());
+
+impl<'a, 's, T> TreeVisitable<'a, 's> for token::Token<'s, T> {}
+impl<'a, 's, T> TreeVisitableMut<'a, 's> for token::Token<'s, T> {}
 
 
 // === Special cases ===
