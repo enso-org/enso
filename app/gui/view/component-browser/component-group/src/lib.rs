@@ -96,14 +96,12 @@ pub mod header_background {
             let color = Var::<Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let rect = Rect((width, height));
-            let bg = rect.fill(color);
-            let shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
-            let shadow = shadow::from_shape_with_parameters_and_alpha(
-                rect.into(),
-                shadow_parameters,
-                &shadow_intensity
-            );
+            let bg = Rect((width.clone(), height.clone())).fill(color);
+            // We use wider and shorter rect for the shadow to avoid antialiasing artifacts.
+            let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            shadow_parameters.size = shadow_parameters.size * shadow_intensity;
+            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
         }
     }
@@ -178,7 +176,7 @@ ensogl_core::define_endpoints_2! {
         set_width(f32),
         /// Sets the y-position of the header from the top of the component group.
         ///
-        /// It can't move past the bottom border of the component group.
+        /// It can't move past the top and bottom borders of the component group.
         set_header_pos(f32),
     }
     Output {
@@ -220,10 +218,7 @@ impl component::Frp<Model> for Frp {
 
             // === Show/hide shadow ===
 
-            distance_to_border <- all_with(&input.set_header_pos, &header_geometry,
-                f!((_, g) model.distance_to_border(*g))
-            );
-            shadow <- distance_to_border.map(|p| (*p / HEADER_SHADOW_PEAK).min(1.0));
+            shadow <- input.set_header_pos.map(|p| (*p / HEADER_SHADOW_PEAK).min(1.0));
             eval shadow((v) model.header_background.shadow_intensity.set(*v));
         }
 
@@ -424,10 +419,12 @@ impl Model {
         let header_text_height = self.header.height.value();
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
-        let header_center_y = size.y / 2.0 - header_height / 2.0;
+        let half_header_height = header_height / 2.0;
+        let header_center_y = size.y / 2.0 - half_header_height;
         let header_center_y = header_center_y - header_pos;
-        let header_center_y = header_center_y.max(-size.y / 2.0 + header_height / 2.0);
-        let header_bottom_y = header_center_y - header_height / 2.0;
+        let header_center_y = header_center_y.max(-size.y / 2.0 + half_header_height);
+        let header_center_y = header_center_y.min(size.y / 2.0 - half_header_height);
+        let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
@@ -437,6 +434,9 @@ impl Model {
 
         self.header_background.height.set(header_height);
         let shadow_size = header_geometry.shadow_size;
+        let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
+        // We clip the shadow near the bottom of the component group.
+        let shadow_size = shadow_size.min(distance_to_bottom);
         let header_background_height = header_height + shadow_size * 2.0;
         self.header_background.size.set(Vector2(size.x, header_background_height));
         self.header_background.set_position_y(header_center_y);
@@ -452,19 +452,6 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
-    }
-
-    /// A minimum distance between the header and either the top or the bottom border of the
-    /// component group.
-    fn distance_to_border(&self, header_geometry: HeaderGeometry) -> f32 {
-        let height = self.background.size.get().y;
-        let header_height = header_geometry.height;
-        let header_y = self.header_background.position().y;
-        let header_top = header_y + header_height / 2.0;
-        let header_bottom = header_y - header_height / 2.0;
-        let distance_to_top = (height / 2.0 - header_top).abs();
-        let distance_to_bottom = (-height / 2.0 - header_bottom).abs();
-        distance_to_top.min(distance_to_bottom)
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
