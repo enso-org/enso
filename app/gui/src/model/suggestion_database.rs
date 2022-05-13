@@ -35,7 +35,7 @@ pub use example::Example;
 struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<String, Option<entry::Id>>>);
 
 impl EntryIdByPath {
-    fn set_and_warn_if_exists<P, I>(&self, path: P, id: SuggestionId, logger: &Logger)
+    fn set_and_warn_if_exists<P, I>(&self, path: P, id: entry::Id, logger: &Logger)
     where
         P: IntoIterator<Item = I>,
         I: Into<String>, {
@@ -69,7 +69,7 @@ impl EntryIdByPath {
         }
     }
 
-    fn get<P, I>(&self, path: P) -> Option<SuggestionId>
+    fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
         I: Into<String>, {
@@ -77,8 +77,6 @@ impl EntryIdByPath {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
-        // Option::flatten(maybe_value)
-        // Option::flatten(Option::as_deref(self.0.borrow().get(segments)))
     }
 }
 
