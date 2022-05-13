@@ -1504,7 +1504,7 @@ class IrToTruffle(
               s"argument<${name.map(_.name).getOrElse(String.valueOf(position))}>"
 
             val section = value.location
-              .map(loc => source.createSection(loc.start, loc.end))
+              .map(loc => source.createSection(loc.start, loc.length))
               .orNull
 
             val callTarget = Truffle.getRuntime.createCallTarget(
