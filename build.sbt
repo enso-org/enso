@@ -1152,6 +1152,8 @@ val distributionEnvironmentOverrides = {
   )
 }
 
+val frgaalSourceLevel = "18"
+
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
   */
@@ -1166,7 +1168,7 @@ lazy val frgaalJavaCompilerSetting = Seq(
   // accessible from the non-meta build definition.
   libraryDependencies += FrgaalJavaCompiler.frgaal,
   // Ensure that our tooling uses the right Java version for checking the code.
-  Compile / javacOptions ++= Seq("-source", "17")
+  Compile / javacOptions ++= Seq("-source", frgaalSourceLevel)
 )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1181,7 +1183,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(
       Defaults.compilersSetting
     ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", "17"),
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
