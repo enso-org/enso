@@ -6,6 +6,7 @@ use crate::prelude::*;
 use crate::Bytes;
 
 
+pub struct Span {}
 
 // impl<'s> Offset<'s> {
 // /// Constructor.

@@ -16,7 +16,7 @@ use source::Lexeme;
 
 /// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
 /// parsing pipeline.
-pub type Token<'s> = Lexeme<'s, Type>;
+pub type Token<'s, T = Variant> = Lexeme<'s, T>;
 
 
 
@@ -32,7 +32,7 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     #[tagged_enum]
     #[derive(Clone, Copy, PartialEq, Eq)]
     #[allow(missing_docs)]
-    pub enum Type {
+    pub enum Variant {
         Newline,
         Symbol,
         BlockStart,
@@ -56,10 +56,31 @@ macro_rules! with_token_definition { ($f:ident ($($args:tt)*)) => { $f! { $($arg
     }
 }}}
 
-macro_rules! identity {
-    ($($ts:tt)*) => {
-        $($ts)*
+macro_rules! generate_token_aliases {
+    (
+        $(#$enum_meta:tt)*
+        pub enum $enum:ident {
+            $(
+                $(#$variant_meta:tt)*
+                $variant:ident $({$($fields:tt)*})?
+            ),* $(,)?
+        }
+    ) => {
+        $(
+            pub type $variant<'s> = Token<'s, variant::$variant>;
+        )*
     };
 }
 
-with_token_definition!(identity());
+macro_rules! define_token_type {
+    ($($ts:tt)*) => {
+        pub mod variant {
+            use super::*;
+            $($ts)*
+        }
+        generate_token_aliases! { $($ts)* }
+    };
+}
+
+with_token_definition!(define_token_type());
+pub use variant::Variant;

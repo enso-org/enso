@@ -355,3 +355,27 @@ impl<T> From<NonEmptyVec<T>> for Vec<T> {
         v.elems
     }
 }
+
+impl<T> IntoIterator for NonEmptyVec<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonEmptyVec<T> {
+    type Item = &'a T;
+    type IntoIter = slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonEmptyVec<T> {
+    type Item = &'a mut T;
+    type IntoIter = slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
+    }
+}

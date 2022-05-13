@@ -5,6 +5,8 @@
 
 use crate::prelude::*;
 
+// FIXME:
+use crate::syntax::tree::Span;
 
 
 // =====================
@@ -62,6 +64,12 @@ pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Cow<'s, str>>) -> Offs
     Offset { visible, code }
 }
 
+impl<'s> Offset<'s> {
+    pub fn len(&self) -> Bytes {
+        Bytes(self.code.len())
+    }
+}
+
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
     fn as_ref(&self) -> &Offset<'s> {
         self
@@ -83,9 +91,9 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
 /// ```text
 /// println!("{:#?}", source::Lexeme::new(str, &ast));
 /// ```
-#[derive(Deref, DerefMut, PartialEq)]
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct Lexeme<'s, T = ()> {
+pub struct Lexeme<'s, T> {
     #[deref]
     #[deref_mut]
     pub data:        T,
@@ -121,7 +129,7 @@ impl<'s, T> Lexeme<'s, T> {
     /// Split the lexeme at the provided byte offset. The offset is counted from the [`code`] start
     /// position, which does not include the [`left_offset`]. It means that evaluating
     /// `split_at(Bytes::from(0))` will split the lexeme into left offset and a left-trimmed lexeme.
-    pub fn split_at(self, offset: Bytes) -> (Lexeme<'s>, Lexeme<'s>, T) {
+    pub fn split_at(self, offset: Bytes) -> (Lexeme<'s, ()>, Lexeme<'s, ()>, T) {
         let left_lexeme_offset = self.left_offset;
         let right_lexeme_offset = Offset::default();
         let left = Lexeme(left_lexeme_offset, self.code.slice(Bytes::from(0)..offset), ());
@@ -130,7 +138,7 @@ impl<'s, T> Lexeme<'s, T> {
     }
 
     /// A version of [`split_at`] that discards the associated data.
-    pub fn split_at_(self, offset: Bytes) -> (Lexeme<'s>, Lexeme<'s>) {
+    pub fn split_at_(self, offset: Bytes) -> (Lexeme<'s, ()>, Lexeme<'s, ()>) {
         let (left, right, _) = self.split_at(offset);
         (left, right)
     }
@@ -138,5 +146,17 @@ impl<'s, T> Lexeme<'s, T> {
     /// Replace the associated data in this lexeme.
     pub fn with<S>(self, elem: S) -> Lexeme<'s, S> {
         Lexeme(self.left_offset, self.code, elem)
+    }
+
+    pub fn trim_as_first_child(&mut self) -> Span<'s> {
+        let left_offset = mem::take(&mut self.left_offset);
+        let length = Bytes(self.code.len());
+        Span { left_offset, length }
+    }
+
+    pub fn span(&self) -> Span<'s> {
+        let left_offset = self.left_offset.clone();
+        let length = Bytes(self.code.len());
+        Span { left_offset, length }
     }
 }

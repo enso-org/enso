@@ -36,6 +36,7 @@ use syn::Variant;
 /// ======================
 /// === Derive Visitor ===
 /// ======================
+use quote::ToTokens;
 
 /// Implements [`TreeVisitable`], [`TreeVisitableMut`], [`SpanVisitable`], and [`SpanVisitableMut`].
 /// These traits are defined in the [`crate::ast`] module. Macros in this module hardcode the names
@@ -46,45 +47,57 @@ use syn::Variant;
 pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let ident = &decl.ident;
-    let (_impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
+    let (impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let body = gen_body(quote!(TreeVisitable::visit), &decl.data, false);
     let body_mut = gen_body(quote!(TreeVisitableMut::visit_mut), &decl.data, true);
     let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
     let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
 
+    let mut impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
+    let impl_generics_len = impl_generics_vec.len();
+    let mut impl_generics = quote!();
+    if impl_generics_len > 0 {
+        let v: Vec<_> = impl_generics_vec.into_iter().take(impl_generics_len - 1).skip(1).collect();
+        impl_generics = quote!(#(#v)*);
+    } else {
+        impl_generics = quote!('s);
+    }
+    let impl_generics = quote!(<'a, #impl_generics>);
+
     let output = quote! {
-        impl<'a> TreeVisitable<'a> for #ident #ty_generics {
-            fn visit<T: TreeVisitor<'a>>(&'a self, visitor:&mut T) {
+        impl #impl_generics TreeVisitable #impl_generics for #ident #ty_generics {
+            fn visit<T: TreeVisitor #impl_generics>(&'a self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body
                 visitor.after_visiting_children();
             }
         }
 
-        impl<'a> TreeVisitableMut<'a> for #ident #ty_generics {
-            fn visit_mut<T: TreeVisitorMut>(&'a mut self, visitor:&mut T) {
+        impl #impl_generics TreeVisitableMut #impl_generics for #ident #ty_generics {
+            fn visit_mut<T: TreeVisitorMut<'s>>(&'a mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_mut
                 visitor.after_visiting_children();
             }
         }
 
-        impl<'a> SpanVisitable<'a> for #ident #ty_generics {
-            fn visit_span<T: SpanVisitor<'a>>(&'a self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body_span
-                visitor.after_visiting_children();
-            }
-        }
-
-        impl<'a> SpanVisitableMut<'a> for #ident #ty_generics {
-            fn visit_span_mut<T: SpanVisitorMut>(&'a mut self, visitor:&mut T) {
-                visitor.before_visiting_children();
-                #body_span_mut
-                visitor.after_visiting_children();
-            }
-        }
+        // impl<'a> SpanVisitable<'a> for #ident #ty_generics {
+        //     fn visit_span<T: SpanVisitor<'a>>(&'a self, visitor:&mut T) {
+        //         visitor.before_visiting_children();
+        //         #body_span
+        //         visitor.after_visiting_children();
+        //     }
+        // }
+        //
+        // impl<'a> SpanVisitableMut<'a> for #ident #ty_generics {
+        //     fn visit_span_mut<T: SpanVisitorMut>(&'a mut self, visitor:&mut T) {
+        //         visitor.before_visiting_children();
+        //         #body_span_mut
+        //         visitor.after_visiting_children();
+        //     }
+        // }
     };
+
     output.into()
 }
 

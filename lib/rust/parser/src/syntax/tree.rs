@@ -1,248 +1,524 @@
 //! Implementation of Syntax Tree, known as well as Abstract Syntax Tree, or AST.
-// use crate::prelude::*;
-//
+use crate::prelude::*;
+
 // use crate::source;
-// use crate::source::span;
-// use crate::syntax::token;
+use crate::source::Offset;
+use crate::syntax::token;
 // use crate::syntax::token::Token;
 
-// use enso_parser_syntax_tree_visitor::Visitor;
-// use enso_shapely_macros::tagged_enum;
+use enso_parser_syntax_tree_visitor::Visitor;
+use enso_shapely_macros::tagged_enum;
 // use span::Span;
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Span<'s> {
+    pub left_offset: Offset<'s>,
+    pub length:      Bytes,
+}
+
+impl<'s> Span<'s> {
+    pub fn trim_as_first_child(&mut self) -> Span<'s> {
+        let left_offset = mem::take(&mut self.left_offset);
+        let length = self.length;
+        Span { left_offset, length }
+    }
+
+    pub fn extend_raw(&mut self, other: &Span<'s>) {
+        self.length += other.left_offset.len() + other.length;
+    }
+
+    pub fn extend<T: SpanExtend<'s>>(&mut self, elem: &T) {
+        elem.extend_span(self);
+    }
+
+    pub fn extended<T: SpanExtend<'s>>(mut self, elem: &T) -> Self {
+        elem.extend_span(&mut self);
+        self
+    }
+}
+
+impl<'s> AsRef<Span<'s>> for Span<'s> {
+    fn as_ref(&self) -> &Span<'s> {
+        self
+    }
+}
+
+
+pub trait SpanExtend<'s> {
+    fn extend_span(&self, span: &mut Span<'s>);
+}
+
+impl<'s, T> SpanExtend<'s> for token::Token<'s, T> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        span.extend(&self.span())
+    }
+}
+
+impl<'s> SpanExtend<'s> for Span<'s> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        span.extend_raw(&self)
+    }
+}
+
+impl<'s> SpanExtend<'s> for Tree<'s> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        span.extend_raw(self.as_ref())
+    }
+}
+
+impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for Vec<T> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        for elem in self {
+            elem.extend_span(span);
+        }
+    }
+}
+
+impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for NonEmptyVec<T> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        for elem in self {
+            elem.extend_span(span);
+        }
+    }
+}
+
+impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for Option<T> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        if let Some(elem) = self {
+            elem.extend_span(span);
+        }
+    }
+}
+
+impl<'s, T: SpanExtend<'s>, E: SpanExtend<'s>> SpanExtend<'s> for Result<T, E> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        match self {
+            Ok(t) => t.extend_span(span),
+            Err(t) => t.extend_span(span),
+        }
+    }
+}
+
+
 //
-//
-//
-// // ============
-// // === Tree ===
-// // ============
-//
-// /// The Abstract Syntax Tree of the language.
-// ///
-// /// # Connection to the source file
-// /// Please note, that the AST does NOT contain sources, it keeps track of the char offsets only.
-// If /// you want to pretty print it, you should attach sources to it. The easiest way to do it is
-// by /// using the [`sources::With`] data, for example as:
-// /// ```text
-// /// println!("{:#?}", source::With::new(str, &ast));
-// /// ```
+// impl<'s, 't, T> SpanExtend<&'t Vec<T>> for Span<'s>
+// where Span<'s>: SpanExtend<&'t T>
+// {
+//     fn extend(&mut self, other: &'t Vec<T>) {
+//         for item in other {
+//             // <Span<'s> as SpanExtend<&'t T>>::extend(&mut self, item);
+//             // self.extend(item);
+//         }
+//     }
+// }
+
+
+
+// ============
+// === Tree ===
+// ============
+
+/// The Abstract Syntax Tree of the language.
+///
+/// # Connection to the source file
+/// Please note, that the AST does NOT contain sources, it keeps track of the char offsets only. If
+/// you want to pretty print it, you should attach sources to it. The easiest way to do it is by
+/// using the [`sources::With`] data, for example as:
+/// ```text
+/// println!("{:#?}", source::With::new(str, &ast));
+/// ```
 // pub type Tree = span::With<Type>;
+
+#[derive(Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
+pub struct Tree<'s> {
+    #[deref]
+    #[deref_mut]
+    pub variant: Box<Type<'s>>,
+    pub span:    Span<'s>,
+}
+
+pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Box<Type<'s>>>) -> Tree<'s> {
+    let variant = variant.into();
+    Tree { variant, span }
+}
+
+impl<'s> AsRef<Span<'s>> for Tree<'s> {
+    fn as_ref(&self) -> &Span<'s> {
+        &self.span
+    }
+}
+
+/// Macro providing [`Tree`] type definition. It is used to both define the ast [`Type`], and to
+/// define impls for every token type in other modules.
+#[macro_export]
+macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
+    /// [`Tree`] variants definition. See its docs to learn more.
+    #[tagged_enum]
+    #[derive(Clone, Eq, PartialEq, Visitor)]
+    pub enum Type<'s> {
+        /// Invalid [`Tree`] fragment with an attached [`Error`].
+        Invalid {
+            pub error: Error,
+            pub ast: Tree<'s>,
+        },
+        /// A simple identifier, like `foo` or `bar`.
+        Ident {
+            pub token: token::Ident<'s>,
+        },
+        /// A simple application, like `print "hello"`.
+        App {
+            pub func: Tree<'s>,
+            pub arg: Tree<'s>,
+        },
+        /// Application of an operator, like `a + b`. The left or right operands might be missing,
+        /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
+        /// [`OprSectionBoundary`] variant to learn more about operator section scope.
+        OprApp {
+            pub lhs: Option<Tree<'s>>,
+            pub opr: OperatorOrError<'s>,
+            pub rhs: Option<Tree<'s>>,
+        },
+        /// Defines the point where operator sections should be expanded to lambdas. Let's consider
+        /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
+        /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
+        /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
+        /// around the whole `.sum 1` expression.
+        // OprSectionBoundary {
+        //     pub ast: Tree,
+        // },
+        /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
+        /// segment starts with a token and contains an expression. Some multi-segment functions can
+        /// have a prefix, an expression that is argument of the function, but is placed before the
+        /// first token. Lambda is a good example for that. In an expression
+        /// `Vector x y z -> x + y + z`, the `->` token is the beginning of the section, the
+        /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
+        /// application.
+        // MultiSegmentApp {
+        //     pub prefix: Option<Tree>,
+        //     pub segments: NonEmptyVec<MultiSegmentAppSegment>,
+        // }
+        Test {
+            pub token: token::Ident<'s>,
+        }
+    }
+}};}
+
+macro_rules! identity {
+    ($($ts:tt)*) => {
+        $($ts)*
+    };
+}
+
+with_ast_definition!(identity());
+
+
+
+// === Invalid ===
+
+/// Error of parsing attached to an [`Tree`] node.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct Error {
+    pub message: &'static str,
+}
+
+impl Error {
+    /// Constructor.
+    pub fn new(message: &'static str) -> Self {
+        Self { message }
+    }
+}
+
+
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn invalid(error: Error, mut ast: Tree<'s>) -> Self {
+        let span = ast.span.trim_as_first_child();
+        Tree(span, Type::from(Invalid(error, ast)))
+    }
+
+    /// Constructor.
+    pub fn with_error(self, message: &'static str) -> Self {
+        Tree::invalid(Error::new(message), self)
+    }
+}
+
+pub struct Builder<T = ()> {
+    pub span: T,
+}
+
+// pub trait PartialBuilder {
+//     fn build(self);
+// }
 //
-// /// Macro providing [`Tree`] type definition. It is used to both define the ast [`Type`], and to
-// /// define impls for every token type in other modules.
-// #[macro_export]
-// macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
-//     /// [`Tree`] variants definition. See its docs to learn more.
-//     #[tagged_enum(boxed)]
-//     #[derive(Clone, Eq, PartialEq, Visitor)]
-//     pub enum Type {
-//         /// Invalid [`Tree`] fragment with an attached [`Error`].
-//         Invalid {
-//             pub error: Error,
-//             pub ast: Tree,
-//         },
-//         /// A simple identifier, like `foo` or `bar`.
-//         #[derive(Copy)]
-//         Ident {
-//             pub token: token::Ident,
-//         },
-//         /// A simple application, like `print "hello"`.
-//         App {
-//             pub func: Tree,
-//             pub arg: Tree,
-//         },
-//         /// Application of an operator, like `a + b`. The left or right operands might be
-// missing,         /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
-//         /// [`OprSectionBoundary`] variant to learn more about operator section scope.
-//         OprApp {
-//             pub lhs: Option<Tree>,
-//             pub opr: OperatorOrError,
-//             pub rhs: Option<Tree>,
-//         },
-//         /// Defines the point where operator sections should be expanded to lambdas. Let's
-// consider         /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum
-// 1)`, not to         /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator
-// section         /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will
-// be placed         /// around the whole `.sum 1` expression.
-//         OprSectionBoundary {
-//             pub ast: Tree,
-//         },
-//         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
-//         /// segment starts with a token and contains an expression. Some multi-segment functions
-// can         /// have a prefix, an expression that is argument of the function, but is placed
-// before the         /// first token. Lambda is a good example for that. In an expression
-//         /// `Vector x y z -> x + y + z`, the `->` token is the beginning of the section, the
-//         /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
-//         /// application.
-//         MultiSegmentApp {
-//             pub prefix: Option<Tree>,
-//             pub segments: NonEmptyVec<MultiSegmentAppSegment>,
+// impl<S, T> PartialBuilder for (Builder<Option<S>>, T) {
+//     default fn build(self) {
+//         todo!()
+//     }
+// }
+//
+// impl<S, T> PartialBuilder for (Builder<Option<S>>, Option<T>) {
+//     fn build(self) {
+//         todo!()
+//     }
+// }
+
+// pub trait PartialParentSpanBuilder2<T> {
+//     type Output;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<T>) -> Self::Output;
+// }
+//
+// impl<'s, T> PartialParentSpanBuilder2<Option<Span<'s>>> for T
+// where
+//     T: PartialParentSpanBuilder2<Span<'s>, Output = Span<'s>>,
+//     T: PartialParentSpanBuilder2<(), Output = Span<'s>>,
+// {
+//     type Output = Span<'s>;
+//     default fn extend_parent_span2(
+//         &mut self,
+//         builder: ParentSpanBuilder<Option<Span<'s>>>,
+//     ) -> Self::Output {
+//         match builder.span {
+//             Some(span) => <T as PartialParentSpanBuilder2<Span<'s>>>::extend_parent_span2(
+//                 self,
+//                 ParentSpanBuilder::new(span),
+//             ),
+//             None => <T as PartialParentSpanBuilder2<()>>::extend_parent_span2(
+//                 self,
+//                 ParentSpanBuilder::new(()),
+//             ),
 //         }
 //     }
-// }};}
-//
-// macro_rules! define_ast_type {
-//     ($($ts:tt)*) => {
-//         $($ts)*
-//         define_debug_impls!{$($ts)*}
-//     };
 // }
 //
-// macro_rules! define_debug_impls {
-//     (
-//         $(#$enum_meta:tt)*
-//         pub enum Type {
-//             $(
-//                 $(#$meta:tt)*
-//                 $variant:ident {
-//                     $(
-//                         pub $field:ident: $field_ty:ty
-//                     ),* $(,)?
-//                }
-//             ),* $(,)?
+// impl<'s, T> PartialParentSpanBuilder2<Option<Span<'s>>> for Option<T>
+// where
+//     T: PartialParentSpanBuilder2<Span<'s>, Output = Span<'s>>,
+//     T: PartialParentSpanBuilder2<(), Output = Span<'s>>,
+// {
+//     type Output = Option<Span<'s>>;
+//     fn extend_parent_span2(
+//         &mut self,
+//         builder: ParentSpanBuilder<Option<Span<'s>>>,
+//     ) -> Self::Output {
+//         match self {
+//             Some(elem) => match builder.span {
+//                 Some(span) => Some(elem.extend_parent_span2(ParentSpanBuilder::new(span))),
+//                 None => Some(elem.extend_parent_span2(ParentSpanBuilder::new(()))),
+//             },
+//             None => builder.span,
 //         }
-//     ) => {
-//         impl<'s> Debug for source::With<'s, &Type> {
-//             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//                 match self.data {
-//                     $(Type::$variant(t) => Debug::fmt(&self.with_data(t), f)),*
-//                 }
-//             }
+//     }
+// }
+//
+// impl<T> PartialParentSpanBuilder2<()> for Option<T>
+// where T: PartialParentSpanBuilder2<()>
+// {
+//     type Output = Option<<T as PartialParentSpanBuilder2<()>>::Output>;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         self.as_mut().map(|t| t.extend_parent_span2(builder))
+//     }
+// }
+//
+// impl<'s> PartialParentSpanBuilder2<()> for Tree<'s> {
+//     type Output = Span<'s>;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         self.span.trim_as_first_child()
+//     }
+// }
+//
+// impl<'s> PartialParentSpanBuilder2<Span<'s>> for Tree<'s> {
+//     type Output = Span<'s>;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
+//         builder.span.extended(&self.span)
+//     }
+// }
+//
+// impl<T, E> PartialParentSpanBuilder2<()> for Result<T, E>
+// where
+//     T: PartialParentSpanBuilder2<()>,
+//     E: PartialParentSpanBuilder2<(), Output = <T as PartialParentSpanBuilder2<()>>::Output>,
+// {
+//     type Output = <T as PartialParentSpanBuilder2<()>>::Output;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         match self {
+//             Ok(t) => t.extend_parent_span2(builder),
+//             Err(t) => t.extend_parent_span2(builder),
 //         }
-//
-//         $(
-//             impl<'s> Debug for source::With<'s, &$variant> {
-//                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//                     f.debug_struct(stringify!($variant))
-//                         $( .field(stringify!($field), &self.with_data(&self.$field)) )*
-//                         .finish()
-//                 }
-//             }
-//         )*
-//     };
-// }
-// with_ast_definition!(define_ast_type());
-//
-//
-// // === Invalid ===
-//
-// /// Error of parsing attached to an [`Tree`] node.
-// #[derive(Clone, Copy, Debug, Eq, PartialEq, Visitor)]
-// #[allow(missing_docs)]
-// pub struct Error {
-//     pub message: &'static str,
-// }
-//
-// impl Error {
-//     /// Constructor.
-//     pub fn new(message: &'static str) -> Self {
-//         Self { message }
 //     }
 // }
 //
-// impl<'s> Debug for source::With<'s, &Error> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         Debug::fmt(&self.data, f)
-//     }
-// }
-//
-// impl Tree {
-//     /// Constructor.
-//     pub fn invalid(error: Error, ast: Tree) -> Self {
-//         let location = ast.span;
-//         let data = Type::from(Invalid(error, ast));
-//         location.with(data)
-//     }
-//
-//     /// Constructor.
-//     pub fn with_error(self, message: &'static str) -> Self {
-//         Tree::invalid(Error::new(message), self)
+// impl<'s, T, E> PartialParentSpanBuilder2<Span<'s>> for Result<T, E>
+// where
+//     T: PartialParentSpanBuilder2<Span<'s>>,
+//     E: PartialParentSpanBuilder2<
+//         Span<'s>,
+//         Output = <T as PartialParentSpanBuilder2<Span<'s>>>::Output,
+//     >,
+// {
+//     type Output = <T as PartialParentSpanBuilder2<Span<'s>>>::Output;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
+//         match self {
+//             Ok(t) => t.extend_parent_span2(builder),
+//             Err(t) => t.extend_parent_span2(builder),
+//         }
 //     }
 // }
 //
 //
-// // === App ===
+// #[derive(Default)]
+// pub struct ParentSpanBuilder<T> {
+//     pub span: T,
+// }
 //
-// impl Tree {
-//     /// Constructor.
-//     pub fn app(func: Tree, arg: Tree) -> Tree {
-//         let (left_offset_span, func) = func.split_at_start();
-//         let total = left_offset_span.extended_to(&arg);
-//         let ast_data = Type::from(App(func, arg));
-//         total.with(ast_data)
+// impl<T> ParentSpanBuilder<T> {
+//     pub fn new(span: T) -> Self {
+//         Self { span }
+//     }
+//
+//     pub fn extend<S: PartialParentSpanBuilder<T>>(
+//         self,
+//         elem: &mut S,
+//     ) -> ParentSpanBuilder<S::Output> {
+//         ParentSpanBuilder::new(elem.extend_parent_span(self))
+//     }
+//
+//     pub fn extend2<S: PartialParentSpanBuilder2<T>>(
+//         self,
+//         elem: &mut S,
+//     ) -> ParentSpanBuilder<S::Output> {
+//         ParentSpanBuilder::new(elem.extend_parent_span2(self))
 //     }
 // }
 //
 //
-// // === OprApp ===
 //
-// /// Operator or [`MultipleOperatorError`].
-// pub type OperatorOrError = Result<span::With<token::Operator>, MultipleOperatorError>;
-//
-// /// Error indicating multiple operators found next to each other, like `a + * b`.
-// #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
-// #[allow(missing_docs)]
-// pub struct MultipleOperatorError {
-//     pub operators: NonEmptyVec<span::With<token::Operator>>,
+// pub trait PartialParentSpanBuilder<T> {
+//     type Output;
+//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<T>) -> Self::Output;
 // }
 //
-// impl MultipleOperatorError {
-//     /// Constructor.
-//     pub fn new(operators: NonEmptyVec<span::With<token::Operator>>) -> Self {
-//         Self { operators }
+// impl<'s> PartialParentSpanBuilder<()> for Tree<'s> {
+//     type Output = Span<'s>;
+//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         self.span.trim_as_first_child()
 //     }
 // }
 //
-// impl Tree {
-//     /// Constructor.
-//     pub fn opr_app(mut lhs: Option<Tree>, mut opr: OperatorOrError, rhs: Option<Tree>) -> Tree {
-//         let left_offset_token = if let Some(lhs_val) = lhs {
-//             let (left_offset_token, new_lhs) = lhs_val.split_at_start();
-//             lhs = Some(new_lhs);
-//             left_offset_token
-//         } else {
-//             match &mut opr {
-//                 Ok(opr) => {
-//                     let (left_offset_token, new_opr) = opr.split_at_start();
-//                     *opr = new_opr;
-//                     left_offset_token
-//                 }
-//                 Err(err) => {
-//                     let first = err.operators.first_mut();
-//                     let (left_offset_token, new_opr) = first.split_at_start();
-//                     *first = new_opr;
-//                     left_offset_token
-//                 }
-//             }
-//         };
-//         let total = if let Some(ref rhs) = rhs {
-//             left_offset_token.extended_to(rhs)
-//         } else {
-//             match &opr {
-//                 Ok(opr) => left_offset_token.extended_to(opr),
-//                 Err(e) => left_offset_token.extended_to(e.operators.last()),
-//             }
-//         };
-//         let ast_data = Type::from(OprApp(lhs, opr, rhs));
-//         total.with(ast_data)
+//
+//
+// impl<T> PartialParentSpanBuilder<()> for Option<T>
+// where T: PartialParentSpanBuilder<()>
+// {
+//     type Output = Option<<T as PartialParentSpanBuilder<()>>::Output>;
+//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         self.as_mut().map(|t| t.extend_parent_span(builder))
 //     }
 // }
 //
-// impl<'s> Debug for source::With<'s, &MultipleOperatorError> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("MultipleOperatorError")
-//             .field("operators", &self.with_data(&self.operators))
-//             .finish()
+// impl<T, E> PartialParentSpanBuilder<()> for Result<T, E>
+// where
+//     T: PartialParentSpanBuilder<()>,
+//     E: PartialParentSpanBuilder<(), Output = <T as PartialParentSpanBuilder<()>>::Output>,
+// {
+//     type Output = <T as PartialParentSpanBuilder<()>>::Output;
+//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<()>) -> Self::Output {
+//         match self {
+//             Ok(t) => t.extend_parent_span(builder),
+//             Err(t) => t.extend_parent_span(builder),
+//         }
 //     }
 // }
 //
-// impl<'s> Debug for source::With<'s, &MultiSegmentAppSegment> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("MultiSegmentAppSegment")
-//             .field("header", &self.with_data(&self.header))
-//             .field("body", &self.with_data(&self.body))
-//             .finish()
+// impl<'s> PartialParentSpanBuilder<Span<'s>> for Tree<'s> {
+//     type Output = Span<'s>;
+//     fn extend_parent_span(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
+//         builder.span.extended(&self.span)
 //     }
 // }
+
+// impl<T> PartialParentSpanBuilder<Option<T>> for ParentSpanBuilder {
+//     type Output = Span<'s>;
+//     fn extend(self, elem: &mut Tree<'s>) -> ParentSpanBuilder<Self::Output> {
+//         ParentSpanBuilder::new(elem.span.trim_as_first_child())
+//     }
+// }
+//
+// impl<'s> PartialParentSpanBuilder<Tree<'s>> for ParentSpanBuilder<Span<'s>> {
+//     type Output = Span<'s>;
+//     fn extend(self, elem: &mut Tree<'s>) -> ParentSpanBuilder<Self::Output> {
+//         ParentSpanBuilder::new(self.span.extended(elem))
+//     }
+// }
+
+
+
+// === App ===
+
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn app(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
+        let mut span = func.span.trim_as_first_child();
+        span.extend(&arg);
+        // let span = ParentSpanBuilder::<()>::default().extend(&mut func).extend(&mut arg).span;
+        Tree(span, Type::from(App(func, arg)))
+    }
+}
+
+
+// === OprApp ===
+
+/// Operator or [`MultipleOperatorError`].
+pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError<'s>>;
+
+/// Error indicating multiple operators found next to each other, like `a + * b`.
+#[derive(Clone, Debug, Eq, PartialEq, Visitor)]
+#[allow(missing_docs)]
+pub struct MultipleOperatorError<'s> {
+    pub operators: NonEmptyVec<token::Operator<'s>>,
+}
+
+impl<'s> MultipleOperatorError<'s> {
+    /// Constructor.
+    pub fn new(operators: NonEmptyVec<token::Operator<'s>>) -> Self {
+        Self { operators }
+    }
+}
+
+impl<'s> SpanExtend<'s> for MultipleOperatorError<'s> {
+    fn extend_span(&self, span: &mut Span<'s>) {
+        span.extend(&self.operators)
+    }
+}
+
+// impl<'s> PartialParentSpanBuilder2<Span<'s>> for MultipleOperatorError<'s> {
+//     type Output = Span<'s>;
+//     fn extend_parent_span2(&mut self, builder: ParentSpanBuilder<Span<'s>>) -> Self::Output {
+//         builder.span.extended(&self.span)
+//     }
+// }
+
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn opr_app(
+        mut lhs: Option<Tree<'s>>,
+        mut opr: OperatorOrError<'s>,
+        rhs: Option<Tree<'s>>,
+    ) -> Tree<'s> {
+        // let span = ParentSpanBuilder::default().extend(&mut lhs).extend(&mut opr);
+        // let span = ParentSpanBuilder::<()>::default().extend2(&mut lhs);
+        let mut span = match &mut lhs {
+            Some(lhs) => lhs.span.trim_as_first_child().extended(&opr),
+            None => match &mut opr {
+                Ok(opr) => opr.trim_as_first_child(),
+                Err(err) => err.operators.first_mut().trim_as_first_child(),
+            },
+        };
+        span.extend(&rhs);
+        Tree(span, Type::from(OprApp(lhs, opr, rhs)))
+    }
+}
+
 //
 //
 // // === OprSectionBoundary ===
@@ -295,220 +571,227 @@
 //
 //
 //
-// // ====================
-// // === Tree Visitors ===
-// // ====================
-//
-// /// The visitor pattern for [`AST`].
-// ///
-// /// # Visitor traits
-// /// This macro defines visitor traits, such as [`TreeVisitor`] or [`SpanVisitor`], which provide
-// /// abstraction for building a visitor for [`Tree`] and [`Span`] elements respectively. A visitor
-// is /// a struct that is modified when traversing all elements of [`Tree`]. Visitors are also
-// capable of /// tracking when they entered or exited a nested [`Tree`] structure, and they can
-// control how deep /// the traversal should be performed. To learn more, see the
-// [`RefCollectorVisitor`] /// implementation, which traverses [`Tree`] and collects references to
-// all [`Tree`] nodes in a /// vector.
-// ///
-// /// # Visitable traits
-// /// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`],
-// which /// provide [`Tree`] elements with such functions as [`visit`], [`visit_mut`],
-// [`visit_span`], or /// [`visit_span_mut`]. These functions let you run visitors. However, as
-// defining a visitor is /// relatively complex, a set of traversal functions are provided, such as
-// [`map`], [`map_mut`], /// [`map_span`], or [`map_span_mut`].
-// ///
-// /// # Generalization of the implementation
-// /// The current implementation bases on a few non-generic traits. One might define a way better
-// /// implementation (causing way less boilerplate), such as:
-// /// ```text
-// /// pub trait Visitor<T> {
-// ///     fn visit(&mut self, elem: &T);
-// /// }
-// /// ```
-// /// Such definition could be implemented for every [`Tree`] node (the [`T`] parameter).
-// /// Unfortunately, due to Rust compiler errors, Rust is not able to compile such a definition. We
-// /// could move to it as soon as this error gets resolved:
-// /// https://github.com/rust-lang/rust/issues/96634.
-// macro_rules! define_visitor {
-//     ($name:ident, $visit:ident, $visit_mut:ident) => {
-//         paste! {
-//             define_visitor_internal! {
-//                 $name,
-//                 $visit,
-//                 $visit_mut,
-//                 [<$name Visitor>],
-//                 [<$name VisitorMut>],
-//                 [<$name Visitable>],
-//                 [<$name VisitableMut>]
-//             }
-//         }
-//     };
-// }
-//
-// /// Internal helper for [`define_visitor`].
-// macro_rules! define_visitor_internal {
-//     (
-//         $name:ident,
-//         $visit:ident,
-//         $visit_mut:ident,
-//         $visitor:ident,
-//         $visitor_mut:ident,
-//         $visitable:ident,
-//         $visitable_mut:ident
-//     ) => {
-//         /// The visitor trait. See documentation of [`define_visitor`] to learn more.
-//         #[allow(missing_docs)]
-//         pub trait $visitor<'a> {
-//             fn before_visiting_children(&mut self) {}
-//             fn after_visiting_children(&mut self) {}
-//             /// Visit the given [`ast`] node. If it returns [`true`], children of the node will
-// be             /// traversed as well.
-//             fn visit(&mut self, ast: &'a $name) -> bool;
-//         }
-//
-//         /// The visitor trait. See documentation of [`define_visitor`] to learn more.
-//         #[allow(missing_docs)]
-//         pub trait $visitor_mut {
-//             fn before_visiting_children(&mut self) {}
-//             fn after_visiting_children(&mut self) {}
-//             /// Visit the given [`ast`] node. If it returns [`true`], children of the node will
-// be             /// traversed as well.
-//             fn visit_mut(&mut self, ast: &mut $name) -> bool;
-//         }
-//
-//         /// The visitable trait. See documentation of [`define_visitor`] to learn more.
-//         #[allow(missing_docs)]
-//         pub trait $visitable<'a> {
-//             fn $visit<V: $visitor<'a>>(&'a self, _visitor: &mut V) {}
-//         }
-//
-//         /// The visitable trait. See documentation of [`define_visitor`] to learn more.
-//         #[allow(missing_docs)]
-//         pub trait $visitable_mut<'a> {
-//             fn $visit_mut<V: $visitor_mut>(&'a mut self, _visitor: &mut V) {}
-//         }
-//
-//         impl<'a, T: $visitable<'a>> $visitable<'a> for Box<T> {
-//             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-//                 $visitable::$visit(&**self, visitor)
-//             }
-//         }
-//
-//         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Box<T> {
-//             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-//                 $visitable_mut::$visit_mut(&mut **self, visitor)
-//             }
-//         }
-//
-//         impl<'a, T: $visitable<'a>> $visitable<'a> for Option<T> {
-//             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-//                 if let Some(elem) = self {
-//                     $visitable::$visit(elem, visitor)
-//                 }
-//             }
-//         }
-//
-//         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Option<T> {
-//             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-//                 if let Some(elem) = self {
-//                     $visitable_mut::$visit_mut(elem, visitor)
-//                 }
-//             }
-//         }
-//
-//         impl<'a, T: $visitable<'a>, E: $visitable<'a>> $visitable<'a> for Result<T, E> {
-//             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-//                 match self {
-//                     Ok(elem) => $visitable::$visit(elem, visitor),
-//                     Err(elem) => $visitable::$visit(elem, visitor),
-//                 }
-//             }
-//         }
-//
-//         impl<'a, T: $visitable_mut<'a>, E: $visitable_mut<'a>> $visitable_mut<'a> for Result<T,
-// E> {             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-//                 match self {
-//                     Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
-//                     Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
-//                 }
-//             }
-//         }
-//
-//         impl<'a, T: $visitable<'a>> $visitable<'a> for Vec<T> {
-//             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-//                 self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-//             }
-//         }
-//
-//         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for Vec<T> {
-//             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-//                 self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
-//             }
-//         }
-//
-//         impl<'a, T: $visitable<'a>> $visitable<'a> for NonEmptyVec<T> {
-//             fn $visit<V: $visitor<'a>>(&'a self, visitor: &mut V) {
-//                 self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-//             }
-//         }
-//
-//         impl<'a, T: $visitable_mut<'a>> $visitable_mut<'a> for NonEmptyVec<T> {
-//             fn $visit_mut<V: $visitor_mut>(&'a mut self, visitor: &mut V) {
-//                 self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
-//             }
-//         }
-//
-//         impl<'a> $visitable<'a> for &str {}
-//         impl<'a> $visitable<'a> for str {}
-//
-//         impl<'a> $visitable_mut<'a> for &str {}
-//         impl<'a> $visitable_mut<'a> for str {}
-//     };
-// }
-//
-// macro_rules! define_visitor_for_tokens {
-//     (
-//         $(#$kind_meta:tt)*
-//         pub enum $kind:ident {
-//             $( $variant:ident $({$($args:tt)*})? ),* $(,)?
-//         }
-//     ) => {
-//         impl<'a> TreeVisitable<'a> for token::$kind {}
-//         impl<'a> TreeVisitableMut<'a> for token::$kind {}
-//         impl<'a> SpanVisitable<'a> for token::$kind {}
-//         impl<'a> SpanVisitableMut<'a> for token::$kind {}
-//         $(
-//             impl<'a> TreeVisitable<'a> for token::$variant {}
-//             impl<'a> TreeVisitableMut<'a> for token::$variant {}
-//             impl<'a> SpanVisitable<'a> for token::$variant {}
-//             impl<'a> SpanVisitableMut<'a> for token::$variant {}
-//         )*
-//     };
-// }
-//
-// define_visitor!(Tree, visit, visit_mut);
+
+
+
+// =====================
+// === Tree Visitors ===
+// =====================
+
+/// The visitor pattern for [`AST`].
+///
+/// # Visitor traits
+/// This macro defines visitor traits, such as [`TreeVisitor`] or [`SpanVisitor`], which provide
+/// abstraction for building a visitor for [`Tree`] and [`Span`] elements respectively. A visitor is
+/// a struct that is modified when traversing all elements of [`Tree`]. Visitors are also capable of
+/// tracking when they entered or exited a nested [`Tree`] structure, and they can control how deep
+/// the traversal should be performed. To learn more, see the [`RefCollectorVisitor`]
+/// implementation, which traverses [`Tree`] and collects references to all [`Tree`] nodes in a
+/// vector.
+///
+/// # Visitable traits
+/// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`], which
+/// provide [`Tree`] elements with such functions as [`visit`], [`visit_mut`], [`visit_span`], or
+/// [`visit_span_mut`]. These functions let you run visitors. However, as defining a visitor is
+/// relatively complex, a set of traversal functions are provided, such as [`map`], [`map_mut`],
+/// [`map_span`], or [`map_span_mut`].
+///
+/// # Generalization of the implementation
+/// The current implementation bases on a few non-generic traits. One might define a way better
+/// implementation (causing way less boilerplate), such as:
+/// ```text
+/// pub trait Visitor<T> {
+///     fn visit(&mut self, elem: &T);
+/// }
+/// ```
+/// Such definition could be implemented for every [`Tree`] node (the [`T`] parameter).
+/// Unfortunately, due to Rust compiler errors, Rust is not able to compile such a definition. We
+/// could move to it as soon as this error gets resolved:
+/// https://github.com/rust-lang/rust/issues/96634.
+macro_rules! define_visitor {
+    ($name:ident, $visit:ident, $visit_mut:ident) => {
+        paste! {
+            define_visitor_internal! {
+                $name,
+                $visit,
+                $visit_mut,
+                [<$name Visitor>],
+                [<$name VisitorMut>],
+                [<$name Visitable>],
+                [<$name VisitableMut>]
+            }
+        }
+    };
+}
+
+/// Internal helper for [`define_visitor`].
+macro_rules! define_visitor_internal {
+    (
+        $name:ident,
+        $visit:ident,
+        $visit_mut:ident,
+        $visitor:ident,
+        $visitor_mut:ident,
+        $visitable:ident,
+        $visitable_mut:ident
+    ) => {
+        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
+        pub trait $visitor<'a, 's> {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+            /// traversed as well.
+            fn visit(&mut self, ast: &'a $name<'s>) -> bool;
+        }
+
+        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
+        pub trait $visitor_mut<'s> {
+            fn before_visiting_children(&mut self) {}
+            fn after_visiting_children(&mut self) {}
+            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+            /// traversed as well.
+            fn visit_mut(&mut self, ast: &mut $name<'s>) -> bool;
+        }
+
+        /// The visitable trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
+        pub trait $visitable<'a, 's> {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, _visitor: &mut V) {}
+        }
+
+        /// The visitable trait. See documentation of [`define_visitor`] to learn more.
+        #[allow(missing_docs)]
+        pub trait $visitable_mut<'a, 's> {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, _visitor: &mut V) {}
+        }
+
+        impl<'a, 's, T: $visitable<'a, 's>> $visitable<'a, 's> for Box<T> {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, visitor: &mut V) {
+                $visitable::$visit(&**self, visitor)
+            }
+        }
+
+        impl<'a, 's, T: $visitable_mut<'a, 's>> $visitable_mut<'a, 's> for Box<T> {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
+                $visitable_mut::$visit_mut(&mut **self, visitor)
+            }
+        }
+
+        impl<'a, 's, T: $visitable<'a, 's>> $visitable<'a, 's> for Option<T> {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable::$visit(elem, visitor)
+                }
+            }
+        }
+
+        impl<'a, 's, T: $visitable_mut<'a, 's>> $visitable_mut<'a, 's> for Option<T> {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
+                if let Some(elem) = self {
+                    $visitable_mut::$visit_mut(elem, visitor)
+                }
+            }
+        }
+
+        impl<'a, 's, T: $visitable<'a, 's>, E: $visitable<'a, 's>> $visitable<'a, 's>
+            for Result<T, E>
+        {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable::$visit(elem, visitor),
+                    Err(elem) => $visitable::$visit(elem, visitor),
+                }
+            }
+        }
+
+        impl<'a, 's, T: $visitable_mut<'a, 's>, E: $visitable_mut<'a, 's>> $visitable_mut<'a, 's>
+            for Result<T, E>
+        {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
+                match self {
+                    Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                    Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
+                }
+            }
+        }
+
+        impl<'a, 's, T: $visitable<'a, 's>> $visitable<'a, 's> for Vec<T> {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, 's, T: $visitable_mut<'a, 's>> $visitable_mut<'a, 's> for Vec<T> {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, 's, T: $visitable<'a, 's>> $visitable<'a, 's> for NonEmptyVec<T> {
+            fn $visit<V: $visitor<'a, 's>>(&'a self, visitor: &mut V) {
+                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, 's, T: $visitable_mut<'a, 's>> $visitable_mut<'a, 's> for NonEmptyVec<T> {
+            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
+                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            }
+        }
+
+        impl<'a, 's> $visitable<'a, 's> for &str {}
+        impl<'a, 's> $visitable<'a, 's> for str {}
+
+        impl<'a, 's> $visitable_mut<'a, 's> for &str {}
+        impl<'a, 's> $visitable_mut<'a, 's> for str {}
+    };
+}
+
+macro_rules! define_visitor_for_tokens {
+    (
+        $(#$kind_meta:tt)*
+        pub enum $kind:ident {
+            $( $variant:ident $({$($args:tt)*})? ),* $(,)?
+        }
+    ) => {
+        impl<'a, 's> TreeVisitable<'a, 's> for token::$kind {}
+        impl<'a, 's> TreeVisitableMut<'a, 's> for token::$kind {}
+        // impl<'a, 's> SpanVisitable<'a> for token::$kind {}
+        // impl<'a, 's> SpanVisitableMut<'a> for token::$kind {}
+        $(
+            impl<'a, 's> TreeVisitable<'a, 's> for token::$variant<'s> {}
+            impl<'a, 's> TreeVisitableMut<'a, 's> for token::$variant<'s> {}
+            // impl<'a, 's> SpanVisitable<'a> for token::$variant {}
+            // impl<'a, 's> SpanVisitableMut<'a> for token::$variant {}
+        )*
+    };
+}
+
+define_visitor!(Tree, visit, visit_mut);
 // define_visitor!(Span, visit_span, visit_span_mut);
-// crate::with_token_definition!(define_visitor_for_tokens());
-//
-//
-// // === Special cases ===
-//
-// impl<'a> TreeVisitable<'a> for Tree {
-//     fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
-//         if visitor.visit(self) {
-//             self.elem.visit(visitor)
-//         }
-//     }
-// }
-//
-// impl<'a> TreeVisitableMut<'a> for Tree {
-//     fn visit_mut<V: TreeVisitorMut>(&'a mut self, visitor: &mut V) {
-//         if visitor.visit_mut(self) {
-//             self.elem.visit_mut(visitor)
-//         }
-//     }
-// }
-//
+crate::with_token_definition!(define_visitor_for_tokens());
+
+
+// === Special cases ===
+
+impl<'a, 's> TreeVisitable<'a, 's> for Tree<'s> {
+    fn visit<V: TreeVisitor<'a, 's>>(&'a self, visitor: &mut V) {
+        if visitor.visit(self) {
+            self.variant.visit(visitor)
+        }
+    }
+}
+
+impl<'a, 's> TreeVisitableMut<'a, 's> for Tree<'s> {
+    fn visit_mut<V: TreeVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
+        if visitor.visit_mut(self) {
+            self.variant.visit_mut(visitor)
+        }
+    }
+}
+
 // impl<'a, T: TreeVisitable<'a>> TreeVisitable<'a> for span::With<T> {
 //     default fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
 //         self.elem.visit(visitor)
@@ -536,9 +819,8 @@
 //         }
 //     }
 // }
-//
-//
-//
+
+
 // // ===========================
 // // === RefCollectorVisitor ===
 // // ===========================

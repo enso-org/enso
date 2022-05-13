@@ -20,13 +20,13 @@ use syn::Fields;
 ///
 /// ```text
 /// #[tagged_enum(boxed)]
-/// pub enum Ast {
+/// pub enum Ast<'s> {
 ///     Ident {
-///         name: String
+///         token: Token<'s>
 ///     }
 ///     App {
-///         func: Ast,
-///         arg: Ast
+///         func: Ast<'s>,
+///         arg: Ast<'s>,
 ///     }
 /// }
 /// ```
@@ -36,6 +36,12 @@ pub fn run(
 ) -> proc_macro::TokenStream {
     let is_boxed = attr.into_iter().any(|t| t.to_string() == "boxed");
     let decl = syn::parse_macro_input!(input as DeriveInput);
+    let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
+    let mut where_clause = enso_macro_utils::new_where_clause(vec![]);
+    for inherent_where_clause in inherent_where_clause_opt {
+        where_clause.predicates.extend(inherent_where_clause.predicates.iter().cloned())
+    }
+
     let data = match &decl.data {
         Data::Enum(data) => data,
         _ => panic!("This macro is meant for enum structs only."),
@@ -49,12 +55,12 @@ pub fn run(
     // === Main Enum Struct ===
     // ========================
 
-    // pub enum Ast {
-    //     Ident(Box<Ident>),
-    //     App(Box<App>)
+    // pub enum Ast<'s> {
+    //     Ident(Box<Ident<'s>>),
+    //     App(Box<App<'s>>)
     // }
     //
-    // impl Debug for Ast {
+    // impl<'s> Debug for Ast<'s> {
     //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     //         match self {
     //             Self::Ident(t) => Debug::fmt(&t,f),
@@ -66,16 +72,21 @@ pub fn run(
     let enum_name = &decl.ident;
     let enum_attrs = &decl.attrs;
     let variant_names: Vec<_> = data.variants.iter().map(|v| &v.ident).collect();
-    let variant_bodies =
-        variant_names.iter().map(|v| if is_boxed { quote!(Box<#v>) } else { quote!(#v) });
+    let variant_bodies = variant_names.iter().map(|v| {
+        if is_boxed {
+            quote!(Box<#v #ty_generics>)
+        } else {
+            quote!(#v #ty_generics)
+        }
+    });
     output.push(quote! {
         #(#enum_attrs)*
         #[allow(missing_docs)]
-        #vis enum #enum_name {
+        #vis enum #enum_name #ty_generics #where_clause {
             #(#variant_names(#variant_bodies)),*
         }
 
-        impl Debug for #enum_name {
+        impl #impl_generics Debug for #enum_name #ty_generics #where_clause {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
                     #(Self::#variant_names(t) => Debug::fmt(&t,f)),*
@@ -96,8 +107,8 @@ pub fn run(
     //     App
     // }
     //
-    // impl From<&Ast> for AstVariant {
-    //     fn from(t:&Ast) -> Self {
+    // impl<'s> From<&Ast<'s>> for AstVariant {
+    //     fn from(t:&Ast<'s>) -> Self {
     //         match t {
     //             Ast::Ident(_) => AstVariant::Ident,
     //             Ast::App(_) => AstVariant::App,
@@ -105,7 +116,7 @@ pub fn run(
     //     }
     // }
     //
-    // impl Ast {
+    // impl<'s> Ast<'s> {
     //     pub fn variant(&self) -> AstVariant {
     //         self.into()
     //     }
@@ -122,15 +133,15 @@ pub fn run(
             #(#variant_names),*
         }
 
-        impl From<&#enum_name> for #enum_variant_name {
-            fn from(t:&#enum_name) -> Self {
+        impl #impl_generics From<&#enum_name #ty_generics> for #enum_variant_name #where_clause {
+            fn from(t:&#enum_name #ty_generics) -> Self {
                 match t {
                     #(#enum_name::#variant_names(_) => Self::#variant_names),*
                 }
             }
         }
 
-        impl #enum_name {
+        impl #impl_generics #enum_name #ty_generics #where_clause {
             /// Abstract variant representation of this struct.
             #[inline(always)]
             pub fn variant(&self) -> #enum_variant_name {
@@ -150,12 +161,12 @@ pub fn run(
         // === Variant Structs ===
         // =======================
 
-        // pub struct Ident {
-        //     pub name: String
+        // pub struct Ident<'s> {
+        //     pub token: Token<'s>
         // }
-        // pub struct App {
-        //     pub func: Ast,
-        //     pub args: Ast
+        // pub struct App<'s> {
+        //     pub func: Ast<'s>,
+        //     pub args: Ast<'s>,
         // }
         let variant_attrs = &variant.attrs;
         let variant_name = &variant.ident;
@@ -166,7 +177,7 @@ pub fn run(
             #(#variant_attrs)*
             #[derive(Debug)]
             #[allow(missing_docs)]
-            #vis struct #variant_name #fields
+            #vis struct #variant_name #ty_generics #fields #where_clause
         });
 
 
@@ -175,7 +186,7 @@ pub fn run(
         // === Constructors ===
         // ====================
 
-        // impl Ast {
+        // impl<'s> Ast<'s> {
         //     pub fn ident(name: String) -> Self {
         //         Self::Ident(Box::new(Ident{name}))
         //     }
@@ -200,7 +211,7 @@ pub fn run(
             quote!(#variant_name { #(#names),* })
         };
         output.push(quote! {
-            impl #enum_name {
+            impl #impl_generics #enum_name #ty_generics #where_clause {
                 /// Constructor.
                 #[inline(always)]
                 pub fn #variant_snake_ident(#(#names: #types),*) -> Self {
@@ -215,17 +226,18 @@ pub fn run(
         // === Unnamed Struct Like Constructors ===
         // ========================================
 
-        // pub fn Ident(name: String) -> Ident {
+        // pub fn Ident<'s>(token: Token<'s>) -> Token<'s> {
         //     Ident {name}
         // }
-        // pub fn App(func: Ast, args: Ast) -> App {
+        // pub fn App<'s>(func: Ast<'s>, args: Ast<'s>) -> App<'s> {
         //     App {func, args}
         // }
         output.push(quote! {
             /// Constructor.
             #[inline(always)]
             #[allow(non_snake_case)]
-            pub fn #variant_name(#(#names: #types),*) -> #variant_name {
+            pub fn #variant_name #impl_generics (#(#names: #types),*)
+            -> #variant_name #ty_generics #where_clause {
                 #variant_name { #(#names),* }
             }
         });
@@ -236,7 +248,7 @@ pub fn run(
         // === Variant Checks ===
         // ======================
 
-        // impl Ast {
+        // impl<'s> Ast<'s> {
         //     pub fn is_ident(&self) -> bool {
         //         self.is(AstVariant::Ident)
         //     }
@@ -247,7 +259,7 @@ pub fn run(
         // }
         let variant_check_ident = quote::format_ident!("is_{}", variant_snake_name);
         output.push(quote! {
-            impl #enum_name {
+            impl #impl_generics #enum_name #ty_generics #where_clause {
                 /// Check if this struct is the given variant.
                 #[inline(always)]
                 pub fn #variant_check_ident(&self) -> bool {
@@ -257,27 +269,27 @@ pub fn run(
         });
 
 
-
         // ===================
         // === Conversions ===
         // ===================
 
-        // impl From<Ident> for Ast {
-        //     fn from(variant: Ident) -> Self {
+        // impl<'s> From<Ident<'s>> for Ast<'s> {
+        //     fn from(variant: Ident<'s>) -> Self {
         //         Self::Ident(Box::new(variant))
         //     }
         // }
         //
-        // impl From<Ident> for Ast {
-        //     fn from(variant: Ident) -> Self {
-        //         Self::Ident(Box::new(variant))
+        // impl<'s> From<App<'s>> for Ast<'s> {
+        //     fn from(variant: App<'s>) -> Self {
+        //         Self::App(Box::new(variant))
         //     }
         // }
         let cons = if is_boxed { quote!(Box::new(variant)) } else { quote!(variant) };
         output.push(quote! {
-            impl From<#variant_name> for #enum_name {
+            impl #impl_generics From<#variant_name #ty_generics> for #enum_name #ty_generics
+            #where_clause {
                 #[inline(always)]
-                fn from(variant: #variant_name) -> Self {
+                fn from(variant: #variant_name #ty_generics) -> Self {
                     Self::#variant_name(#cons)
                 }
             }
