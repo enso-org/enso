@@ -27,28 +27,36 @@ pub use example::Example;
 
 
 
-// =================
-// === EntryPath ===
-// =================
+// ============
+// === Path ===
+// ============
 
-type EntryPathSegment = String;
+type PathSegment = String;
 
-struct EntryPath {
-    segments: Vec<EntryPathSegment>,
+#[derive(Debug)]
+pub struct Path {
+    segments: Vec<PathSegment>,
 }
 
-impl EntryPath {
+impl Path {
     fn from_segments<I, S>(segments: I) -> Self
     where
         I: IntoIterator<Item = S>,
-        S: Into<EntryPathSegment>, {
+        S: Into<PathSegment>, {
         let segments = segments.into_iter().map(|s| s.into()).collect();
         Self { segments }
     }
 }
 
-impl From<&Entry> for EntryPath {
-    fn from(entry: &Entry) -> EntryPath {
+impl From<&str> for Path {
+    fn from(path: &str) -> Path {
+        use ast::opr::predefined::ACCESS;
+        Path::from_segments(path.split(ACCESS))
+    }
+}
+
+impl From<&Entry> for Path {
+    fn from(entry: &Entry) -> Path {
         let mut segments: Vec<_> = match &entry.self_type {
             Some(name) => name.segments().map(|s| s.to_string()).collect(),
             None => entry.module.segments().map(|s| s.to_string()).collect(),
@@ -56,7 +64,7 @@ impl From<&Entry> for EntryPath {
         if !matches!(entry.kind, Kind::Module) {
             segments.push(entry.name.clone());
         }
-        EntryPath { segments }
+        Path { segments }
     }
 }
 
@@ -68,11 +76,11 @@ impl From<&Entry> for EntryPath {
 
 #[derive(Clone, Debug, Default)]
 struct EntryIdByPath {
-    tree: RefCell<ensogl::data::HashMapTree<EntryPathSegment, Option<entry::Id>>>,
+    tree: RefCell<ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>>,
 }
 
 impl EntryIdByPath {
-    fn set_and_warn_if_exists(&self, path: impl Into<EntryPath>, id: entry::Id, logger: &Logger) {
+    fn set_and_warn_if_exists(&self, path: impl Into<Path>, id: entry::Id, logger: &Logger) {
         let mut tree = self.tree.borrow_mut();
         let mut node_constructed = false;
         let construct_empty_node_and_set_constructed = || {
@@ -87,7 +95,7 @@ impl EntryIdByPath {
         }
     }
 
-    fn remove_and_warn_if_absent(&self, path: impl Into<EntryPath>, logger: &Logger) {
+    fn remove_and_warn_if_absent(&self, path: impl Into<Path>, logger: &Logger) {
         let mut tree = self.tree.borrow_mut();
         let path = path.into();
         let old_value = tree.remove(path.segments.iter());
@@ -100,7 +108,7 @@ impl EntryIdByPath {
         }
     }
 
-    fn get(&self, path: impl Into<EntryPath>) -> Option<entry::Id> {
+    fn get(&self, path: impl Into<Path>) -> Option<entry::Id> {
         let path = path.into();
         match self.tree.borrow().get(path.segments.iter()) {
             Some(Some(value)) => Some(*value),
@@ -287,11 +295,8 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
-        use ast::opr::predefined::ACCESS;
-        let segments = path.split(ACCESS);
-        let entry_path = EntryPath::from_segments(segments);
-        self.entry_id_by_path.get(entry_path).and_then(|id| self.lookup(id).ok())
+    pub fn lookup_by_path(&self, path: impl Into<Path>) -> Option<Rc<Entry>> {
+        self.entry_id_by_path.get(path.into()).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
