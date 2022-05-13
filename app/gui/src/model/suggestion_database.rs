@@ -27,61 +27,72 @@ pub use example::Example;
 
 
 
+// =================
+// === EntryPath ===
+// =================
+
 type EntryPathSegment = String;
 
-struct EntryPath(Vec<EntryPathSegment>);
+struct EntryPath {
+    segments: Vec<EntryPathSegment>,
+}
+
+impl EntryPath {
+    fn from_segments<I, S>(segments: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<EntryPathSegment>, {
+        let segments = segments.into_iter().map(|s| s.into()).collect();
+        Self { segments }
+    }
+}
 
 impl From<&Entry> for EntryPath {
     fn from(entry: &Entry) -> EntryPath {
-        let mut path: Vec<_> = match &entry.self_type {
+        let mut segments: Vec<_> = match &entry.self_type {
             Some(name) => name.segments().map(|s| s.to_string()).collect(),
             None => entry.module.segments().map(|s| s.to_string()).collect(),
         };
         if !matches!(entry.kind, Kind::Module) {
-            path.push(entry.name.clone());
+            segments.push(entry.name.clone());
         }
-        EntryPath(path)
+        EntryPath { segments }
     }
 }
 
-// impl IntoIterator for EntryPath {
-//     type Item = EntryPathSegment;
-//     type IntoIter = Vec<EntryPathSegment>::IntoIter;
 
-//     fn into_iter(&self) -> Self::IntoIter {
-//         self.0.into_iter()
-//     }
-// }
 
 // =====================
 // === EntryIdByPath ===
 // =====================
 
 #[derive(Clone, Debug, Default)]
-struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<EntryPathSegment, Option<entry::Id>>>);
+struct EntryIdByPath {
+    tree: RefCell<ensogl::data::HashMapTree<EntryPathSegment, Option<entry::Id>>>,
+}
 
 impl EntryIdByPath {
     fn set_and_warn_if_exists(&self, path: impl Into<EntryPath>, id: entry::Id, logger: &Logger) {
-        let mut tree = self.0.borrow_mut();
+        let mut tree = self.tree.borrow_mut();
         let mut node_constructed = false;
         let construct_empty_node_and_set_constructed = || {
             node_constructed = true;
             None
         };
         let path = path.into();
-        tree.set_with(path.0.iter(), Some(id), construct_empty_node_and_set_constructed);
+        tree.set_with(path.segments.iter(), Some(id), construct_empty_node_and_set_constructed);
         if !node_constructed {
-            let path = path.0.join(".");
+            let path = path.segments.join(".");
             warning!(logger, "An entry at {path} was overwritten with new value {id}.");
         }
     }
 
     fn remove_and_warn_if_absent(&self, path: impl Into<EntryPath>, logger: &Logger) {
-        let mut tree = self.0.borrow_mut();
+        let mut tree = self.tree.borrow_mut();
         let path = path.into();
-        let old_value = tree.remove(path.0.iter());
+        let old_value = tree.remove(path.segments.iter());
         if old_value.is_none() {
-            let path = path.0.join(".");
+            let path = path.segments.join(".");
             warning!(
                 logger,
                 "When removing an entry at {path} some id was expected but none was found."
@@ -91,7 +102,7 @@ impl EntryIdByPath {
 
     fn get(&self, path: impl Into<EntryPath>) -> Option<entry::Id> {
         let path = path.into();
-        match self.0.borrow().get(path.0.iter()) {
+        match self.tree.borrow().get(path.segments.iter()) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
@@ -278,8 +289,8 @@ impl SuggestionDatabase {
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
         use ast::opr::predefined::ACCESS;
-        let segments = path.split(ACCESS).map(|s| s.to_string()).collect();
-        let entry_path = EntryPath(segments);
+        let segments = path.split(ACCESS);
+        let entry_path = EntryPath::from_segments(segments);
         self.entry_id_by_path.get(entry_path).and_then(|id| self.lookup(id).ok())
     }
 
