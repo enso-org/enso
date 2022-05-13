@@ -132,6 +132,7 @@ impl FreeformPathToIdMap {
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
         let mut tree = self.tree.borrow_mut();
+        // FIXME: only remove a node if node.value.is_some(), then prune if node.is_leaf()
         let old_value = tree.remove(path.segments.iter());
         old_value.flatten().is_some()
     }
@@ -866,10 +867,12 @@ mod test {
     #[test]
     fn freeform_path_to_id_map() {
         let map: FreeformPathToIdMap = default();
+        let package_path = "Foo".into();
         let path = "Foo.Bar.baz".into();
         assert_eq!(map.check_if_exists_and_remove(&path), false);
         assert_eq!(map.check_if_exists_and_set(&path, 2), false);
         assert_eq!(map.get(path.clone()), Some(2));
+        assert_eq!(map.check_if_exists_and_remove(&package_path), false);
         assert_eq!(map.check_if_exists_and_set(&path, 3), true);
         assert_eq!(map.get(path.clone()), Some(3));
         assert_eq!(map.check_if_exists_and_remove(&path), true);
