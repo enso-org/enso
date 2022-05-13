@@ -16,16 +16,17 @@ spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
         t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
         t2 = t1.parse_values column_types=[Column_Type_Selection 0  Integer]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345, Nothing]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
 
     Test.specify "should correctly parse decimals" <|
         t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
         t2 = t1.parse_values column_types=[Column_Type_Selection 0  Decimal]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345, Nothing]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
+        t2.at "ints" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "0.0", "10.0", "12345.0", "Nothing"]
 
         t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "000.0000", "0010.", "12345."]]]
         t4 = t3.parse_values column_types=[Column_Type_Selection 0  Decimal]
-        t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, 1, 1, 0, 10, 12345]
+        t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
 
         t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
         t6 = t5.parse_values column_types=[Column_Type_Selection 0  Decimal]
@@ -49,7 +50,7 @@ spec = Test.group "Table.parse_values" <|
         action = t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=_
         tester t =
             t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
-            t.at "ints" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, 100, Nothing]
+            t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, 100, Nothing]
             t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True]
         problems =
             ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1"]
