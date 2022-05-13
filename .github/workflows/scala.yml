@@ -258,7 +258,7 @@ jobs:
       - name: Enable assertions for tests
         shell: bash
         run: |
-          echo "ENSO_JVM_OPTS=-ea" >> $GITHUB_ENV
+          echo "JAVA_TOOL_OPTIONS=-ea" >> $GITHUB_ENV
 
       - name: Prepare configuration for the Database tests
         shell: bash
