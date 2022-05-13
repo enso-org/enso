@@ -6,6 +6,7 @@ use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
 use crate::notification;
 
+use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
@@ -27,18 +28,23 @@ pub use example::Example;
 
 
 
-// ============
-// === Path ===
-// ============
+// ====================
+// === FreeformPath ===
+// ====================
 
 type PathSegment = ImString;
 
+/// A path entered by a User, not guaranteed to correspond to any existing entity. The path is
+/// formed of segments with no guaranteed semantic meaning.
+///
+/// A conversion from a string value is performed by splitting the string into segments separated
+/// by the [`ACCESS`] character.
 #[derive(Debug, Default)]
-pub struct Path {
+pub struct FreeformPath {
     segments: Vec<PathSegment>,
 }
 
-impl Path {
+impl FreeformPath {
     fn from_segments<I, S>(segments: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -48,27 +54,26 @@ impl Path {
     }
 }
 
-impl From<&str> for Path {
-    fn from(path: &str) -> Path {
-        use ast::opr::predefined::ACCESS;
-        Path::from_segments(path.split(ACCESS))
+impl From<&str> for FreeformPath {
+    fn from(path: &str) -> FreeformPath {
+        FreeformPath::from_segments(path.split(ACCESS))
     }
 }
 
-impl From<&Entry> for Path {
-    fn from(entry: &Entry) -> Path {
+impl From<&Entry> for FreeformPath {
+    fn from(entry: &Entry) -> FreeformPath {
         match entry.kind {
             Kind::Method => {
                 let mut path = match &entry.self_type {
-                    Some(name) => Path::from_segments(name.segments()),
+                    Some(name) => FreeformPath::from_segments(name.segments()),
                     None => default(),
                 };
                 path.segments.push(entry.name.clone().into());
                 path
             }
-            Kind::Module => Path::from_segments(entry.module.segments()),
+            Kind::Module => FreeformPath::from_segments(entry.module.segments()),
             _ => {
-                let mut path = Path::from_segments(entry.module.segments());
+                let mut path = FreeformPath::from_segments(entry.module.segments());
                 path.segments.push(entry.name.clone().into());
                 path
             }
@@ -78,17 +83,22 @@ impl From<&Entry> for Path {
 
 
 
-// ===================
-// === PathToIdMap ===
-// ===================
+// ===========================
+// === FreeformPathToIdMap ===
+// ===========================
 
 #[derive(Clone, Debug, Default)]
-struct PathToIdMap {
+struct FreeformPathToIdMap {
     tree: RefCell<ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>>,
 }
 
-impl PathToIdMap {
-    fn warn_if_exists_and_set(&self, path: impl Into<Path>, id: entry::Id, logger: &Logger) {
+impl FreeformPathToIdMap {
+    fn warn_if_exists_and_set(
+        &self,
+        path: impl Into<FreeformPath>,
+        id: entry::Id,
+        logger: &Logger,
+    ) {
         let path = path.into();
         let existed = self.check_if_exists_and_set(&path, id);
         if existed {
@@ -97,7 +107,7 @@ impl PathToIdMap {
         }
     }
 
-    fn warn_if_absent_and_remove(&self, path: impl Into<Path>, logger: &Logger) {
+    fn warn_if_absent_and_remove(&self, path: impl Into<FreeformPath>, logger: &Logger) {
         let path = path.into();
         let existed = self.check_if_exists_and_remove(&path);
         if !existed {
@@ -109,7 +119,7 @@ impl PathToIdMap {
         }
     }
 
-    fn check_if_exists_and_set(&self, path: &Path, id: entry::Id) -> bool {
+    fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
         let mut tree = self.tree.borrow_mut();
         let mut node_constructed = false;
         let construct_empty_node_and_set_constructed = || {
@@ -120,13 +130,13 @@ impl PathToIdMap {
         !node_constructed
     }
 
-    fn check_if_exists_and_remove(&self, path: &Path) -> bool {
+    fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
         let mut tree = self.tree.borrow_mut();
         let old_value = tree.remove(path.segments.iter());
         old_value.flatten().is_some()
     }
 
-    fn get(&self, path: impl Into<Path>) -> Option<entry::Id> {
+    fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
         let path = path.into();
         match self.tree.borrow().get(path.segments.iter()) {
             Some(Some(value)) => Some(*value),
@@ -172,12 +182,12 @@ pub enum Notification {
 /// argument names and types.
 #[derive(Clone, Debug)]
 pub struct SuggestionDatabase {
-    logger:         Logger,
-    entries:        RefCell<HashMap<entry::Id, Rc<Entry>>>,
-    path_to_id_map: PathToIdMap,
-    examples:       RefCell<Vec<Rc<Example>>>,
-    version:        Cell<SuggestionsDatabaseVersion>,
-    notifications:  notification::Publisher<Notification>,
+    logger:                  Logger,
+    entries:                 RefCell<HashMap<entry::Id, Rc<Entry>>>,
+    freeform_path_to_id_map: FreeformPathToIdMap,
+    examples:                RefCell<Vec<Rc<Example>>>,
+    version:                 Cell<SuggestionsDatabaseVersion>,
+    notifications:           notification::Publisher<Notification>,
 }
 
 impl SuggestionDatabase {
@@ -185,11 +195,11 @@ impl SuggestionDatabase {
     pub fn new_empty(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "SuggestionDatabase");
         let entries = default();
-        let path_to_id_map = default();
+        let freeform_path_to_id_map = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, path_to_id_map, examples, version, notifications }
+        Self { logger, entries, freeform_path_to_id_map, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
@@ -215,12 +225,12 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        let path_to_id_map = PathToIdMap::default();
+        let freeform_path_to_id_map = FreeformPathToIdMap::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    path_to_id_map.warn_if_exists_and_set(&entry, id, &logger);
+                    freeform_path_to_id_map.warn_if_exists_and_set(&entry, id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -234,7 +244,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            path_to_id_map,
+            freeform_path_to_id_map,
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -258,7 +268,8 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        self.path_to_id_map.warn_if_exists_and_set(&entry, id, &self.logger);
+                        let path_to_id = &self.freeform_path_to_id_map;
+                        path_to_id.warn_if_exists_and_set(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -269,7 +280,8 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            self.path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
+                            let path_to_id = &self.freeform_path_to_id_map;
+                            path_to_id.warn_if_absent_and_remove(&*entry, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -279,9 +291,10 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        self.path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
+                        let path_to_id = &self.freeform_path_to_id_map;
+                        path_to_id.warn_if_absent_and_remove(&*entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        self.path_to_id_map.warn_if_exists_and_set(&*entry, id, &self.logger);
+                        path_to_id.warn_if_exists_and_set(&*entry, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -313,8 +326,12 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    pub fn lookup_by_path(&self, path: impl Into<Path>) -> Option<Rc<Entry>> {
-        self.path_to_id_map.get(path.into()).and_then(|id| self.lookup(id).ok())
+    /// Search the database for an entry at given fully qualified `freeform_path`.
+    pub fn lookup_by_fully_qualified_path(
+        &self,
+        freeform_path: impl Into<FreeformPath>,
+    ) -> Option<Rc<Entry>> {
+        self.freeform_path_to_id_map.get(freeform_path.into()).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -724,7 +741,7 @@ mod test {
     }
 
     #[test]
-    fn lookup_by_path() {
+    fn lookup_by_fully_qualified_path() {
         // Test a DB with sample data.
         let atom_entry = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
@@ -759,17 +776,18 @@ mod test {
         };
         let db = SuggestionDatabase::from_ls_response(response);
         let atom_path = "TestProject.TestModule.TextAtom";
-        let atom_lookup = db.lookup_by_path(atom_path);
+        let atom_lookup = db.lookup_by_fully_qualified_path(atom_path);
         assert!(atom_lookup.is_some());
         assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
         let project_name = "TestProject";
-        let project_lookup = db.lookup_by_path(project_name);
+        let project_lookup = db.lookup_by_fully_qualified_path(project_name);
         assert!(project_lookup.is_none());
         let method_path = "Standard.Builtins.Main.System.create_process";
-        let method_lookup = db.lookup_by_path(method_path);
+        let method_lookup = db.lookup_by_fully_qualified_path(method_path);
         assert!(method_lookup.is_some());
         assert_eq!(method_lookup.unwrap().name, "create_process".to_string());
-        let nonexistent_lookup = db.lookup_by_path("Standard.Builtins.Main.create_process");
+        let nonexistent_path = "Standard.Builtins.Main.create_process";
+        let nonexistent_lookup = db.lookup_by_fully_qualified_path(nonexistent_path);
         assert_eq!(nonexistent_lookup, None);
 
         // Test after the DB got an update.
@@ -805,19 +823,20 @@ mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        let module_lookup = db.lookup_by_path("local.Unnamed_6.Main");
+        let module_lookup = db.lookup_by_fully_qualified_path("local.Unnamed_6.Main");
         assert!(module_lookup.is_some());
         assert_eq!(module_lookup.unwrap().name, "Main".to_string());
-        let local_lookup = db.lookup_by_path("local.Unnamed_6.Main.operator1");
+        let local_lookup = db.lookup_by_fully_qualified_path("local.Unnamed_6.Main.operator1");
         assert!(local_lookup.is_some());
         assert_eq!(local_lookup.unwrap().name, "operator1".to_string());
-        let removed_lookup = db.lookup_by_path(method_path);
+        let removed_lookup = db.lookup_by_fully_qualified_path(method_path);
         assert!(removed_lookup.is_none());
-        let old_modified_lookup = db.lookup_by_path(atom_path);
-        assert_eq!(old_modified_lookup, None);
-        let new_modified_lookup = db.lookup_by_path("NewProject.NewModule.TextAtom");
-        assert!(new_modified_lookup.is_some());
-        assert_eq!(new_modified_lookup.unwrap().name, "TextAtom".to_string());
+        let old_atom_lookup = db.lookup_by_fully_qualified_path(atom_path);
+        assert_eq!(old_atom_lookup, None);
+        let new_atom_path = "NewProject.NewModule.TextAtom";
+        let new_atom_lookup = db.lookup_by_fully_qualified_path(new_atom_path);
+        assert!(new_atom_lookup.is_some());
+        assert_eq!(new_atom_lookup.unwrap().name, "TextAtom".to_string());
 
         // Test after an update adds a new entry at a previously removed ID.
         let function_entry = SuggestionEntry::Function {
@@ -836,9 +855,10 @@ mod test {
             current_version: 3,
         };
         db.apply_update_event(update);
-        let removed_lookup = db.lookup_by_path(method_path);
+        let removed_lookup = db.lookup_by_fully_qualified_path(method_path);
         assert_eq!(removed_lookup, None);
-        let function_lookup = db.lookup_by_path("NewProject.NewModule.testFunction1");
+        let function_path = "NewProject.NewModule.testFunction1";
+        let function_lookup = db.lookup_by_fully_qualified_path(function_path);
         assert!(function_lookup.is_some());
         assert_eq!(function_lookup.unwrap().name, "testFunction1".to_string());
     }
