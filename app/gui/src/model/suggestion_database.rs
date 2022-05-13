@@ -88,32 +88,42 @@ struct EntryIdByPath {
 }
 
 impl EntryIdByPath {
-    fn set_and_warn_if_exists(&self, path: impl Into<Path>, id: entry::Id, logger: &Logger) {
+    fn warn_if_exists_and_set(&self, path: impl Into<Path>, id: entry::Id, logger: &Logger) {
+        let path = path.into();
+        let existed = self.check_if_exists_and_set(&path, id);
+        if existed {
+            let path = path.segments;
+            warning!(logger, "An entry at {path:?} was overwritten with new value {id}.");
+        }
+    }
+
+    fn warn_if_absent_and_remove(&self, path: impl Into<Path>, logger: &Logger) {
+        let path = path.into();
+        let existed = self.check_if_exists_and_remove(&path);
+        if !existed {
+            let path = path.segments;
+            let msg = format!(
+                "When removing an entry at {path:?} some id was expected but none was found."
+            );
+            warning!(logger, "{msg}");
+        }
+    }
+
+    fn check_if_exists_and_set(&self, path: &Path, id: entry::Id) -> bool {
         let mut tree = self.tree.borrow_mut();
         let mut node_constructed = false;
         let construct_empty_node_and_set_constructed = || {
             node_constructed = true;
             None
         };
-        let path = path.into();
         tree.set_with(path.segments.iter(), Some(id), construct_empty_node_and_set_constructed);
-        if !node_constructed {
-            let path = path.segments;
-            warning!(logger, "An entry at {path:?} was overwritten with new value {id}.");
-        }
+        !node_constructed
     }
 
-    fn remove_and_warn_if_absent(&self, path: impl Into<Path>, logger: &Logger) {
+    fn check_if_exists_and_remove(&self, path: &Path) -> bool {
         let mut tree = self.tree.borrow_mut();
-        let path = path.into();
         let old_value = tree.remove(path.segments.iter());
-        if old_value.is_none() {
-            let path = path.segments;
-            warning!(
-                logger,
-                "When removing an entry at {path:?} some id was expected but none was found."
-            );
-        }
+        old_value.flatten().is_some()
     }
 
     fn get(&self, path: impl Into<Path>) -> Option<entry::Id> {
@@ -210,7 +220,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    entry_id_by_path.set_and_warn_if_exists(&entry, id, &logger);
+                    entry_id_by_path.warn_if_exists_and_set(&entry, id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -248,7 +258,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        self.entry_id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
+                        self.entry_id_by_path.warn_if_exists_and_set(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -259,7 +269,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            self.entry_id_by_path.remove_and_warn_if_absent(&*entry, &self.logger);
+                            self.entry_id_by_path.warn_if_absent_and_remove(&*entry, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -269,9 +279,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        self.entry_id_by_path.remove_and_warn_if_absent(&*entry, &self.logger);
+                        self.entry_id_by_path.warn_if_absent_and_remove(&*entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        self.entry_id_by_path.set_and_warn_if_exists(&*entry, id, &self.logger);
+                        self.entry_id_by_path.warn_if_exists_and_set(&*entry, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -752,6 +762,9 @@ mod test {
         let atom_lookup = db.lookup_by_path(atom_path);
         assert!(atom_lookup.is_some());
         assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
+        let project_name = "TestProject";
+        let project_lookup = db.lookup_by_path(project_name);
+        assert!(project_lookup.is_none());
         let method_path = "Standard.Builtins.Main.System.create_process";
         let method_lookup = db.lookup_by_path(method_path);
         assert!(method_lookup.is_some());
