@@ -152,7 +152,12 @@ impl ComponentGroupController {
 
 // === Helpers ====
 
-fn component_group(app: &Application, header: &str, background_color: color::Rgba, layers: &component_group::Layers) -> component_group::View {
+fn component_group(
+    app: &Application,
+    header: &str,
+    background_color: color::Rgba,
+    layers: &component_group::Layers,
+) -> component_group::View {
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
     component_group.set_header(header.to_string());

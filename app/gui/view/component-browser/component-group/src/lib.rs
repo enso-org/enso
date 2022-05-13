@@ -100,8 +100,8 @@ pub mod header_background {
             let bg = rect.fill(color);
             let shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
             let shadow = shadow::from_shape_with_parameters_and_alpha(
-                rect.into(), 
-                shadow_parameters, 
+                rect.into(),
+                shadow_parameters,
                 &shadow_intensity
             );
             (shadow + bg).into()
