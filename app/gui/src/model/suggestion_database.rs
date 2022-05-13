@@ -27,12 +27,53 @@ pub use example::Example;
 
 
 
-// ===============
-// === Aliases ===
-// ===============
+// =====================
+// === EntryIdByPath ===
+// =====================
 
-type EntryIdByPath = ensogl::data::HashMapTree<String, entry::Id>;
+#[derive(Clone, Debug, Default)]
+struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<String, Option<entry::Id>>>);
 
+impl EntryIdByPath {
+    fn set_and_warn_if_exists(&self, entry: &Entry, id: SuggestionId, logger: &Logger) {
+        let mut tree = self.0.borrow_mut();
+        let mut node_constructed = false;
+        let construct_node_and_set_constructed = || {
+            node_constructed = true;
+            None
+        };
+        let path = entry_path(entry);
+        tree.set_with(path.iter(), Some(id), construct_node_and_set_constructed);
+        if !node_constructed {
+            let path = path.join(".");
+            warning!(logger, "Overwriting an entry at {path} with new value {id}.");
+        }
+    }
+
+    fn remove_and_warn_if_absent(&self, entry: &Entry, logger: &Logger) {
+        let mut tree = self.0.borrow_mut();
+        let path = entry_path(entry);
+        let old_value = tree.remove(path.iter());
+        if old_value.is_none() {
+            let path = path.join(".");
+            warning!(
+                logger,
+                "When removing an entry at {path} some id was expected but none was found."
+            );
+        }
+    }
+
+    fn get(&self, path: &str) -> Option<SuggestionId> {
+        use ast::opr::predefined::ACCESS;
+        let segments = path.split(ACCESS);
+        match self.0.borrow().get(segments) {
+            Some(Some(value)) => Some(*value),
+            _ => None,
+        }
+        // Option::flatten(maybe_value)
+        // Option::flatten(Option::as_deref(self.0.borrow().get(segments)))
+    }
+}
 
 
 // ==============
@@ -73,7 +114,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     logger:        Logger,
     entries:       RefCell<HashMap<entry::Id, Rc<Entry>>>,
-    id_by_path:    RefCell<EntryIdByPath>,
+    id_by_path:    EntryIdByPath,
     examples:      RefCell<Vec<Rc<Example>>>,
     version:       Cell<SuggestionsDatabaseVersion>,
     notifications: notification::Publisher<Notification>,
@@ -114,12 +155,12 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        let mut id_by_path = EntryIdByPath::new();
+        let id_by_path = EntryIdByPath::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    id_by_path.set(entry_path(&entry), id);
+                    id_by_path.set_and_warn_if_exists(&entry, id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -133,7 +174,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            id_by_path: RefCell::new(id_by_path),
+            id_by_path,
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -154,11 +195,10 @@ impl SuggestionDatabase {
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
-            let mut id_by_path = self.id_by_path.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        id_by_path.set(entry_path(&entry), id);
+                        self.id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -169,7 +209,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            id_by_path.remove(entry_path(&entry));
+                            self.id_by_path.remove_and_warn_if_absent(&entry, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -179,9 +219,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        id_by_path.remove(entry_path(&entry));
+                        self.id_by_path.remove_and_warn_if_absent(&entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        id_by_path.set(entry_path(&entry), id);
+                        self.id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -214,11 +254,7 @@ impl SuggestionDatabase {
     }
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
-        use ast::opr::predefined::ACCESS;
-        let segments = path.split(ACCESS);
-        let id_by_path = &self.id_by_path.borrow();
-        let id = id_by_path.get(segments);
-        id.and_then(|id| self.lookup(*id).ok())
+        self.id_by_path.get(path).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -301,16 +337,15 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 // === Helpers ===
 // ===============
 
-fn entry_path(entry: &Entry) -> impl Iterator<Item = String> {
-    let path: Vec<String> = match &entry.self_type {
+fn entry_path(entry: &Entry) -> Vec<String> {
+    let mut path: Vec<_> = match &entry.self_type {
         Some(name) => name.segments().map(|s| s.to_string()).collect(),
         None => entry.module.segments().map(|s| s.to_string()).collect(),
     };
-    let suffix = match entry.kind {
-        Kind::Module => None,
-        _ => Some(entry.name.clone()),
-    };
-    path.into_iter().chain(suffix)
+    if !matches!(entry.kind, Kind::Module) {
+        path.push(entry.name.clone());
+    }
+    path
 }
 
 
