@@ -33,7 +33,7 @@ pub use example::Example;
 
 type PathSegment = ImString;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Path {
     segments: Vec<PathSegment>,
 }
@@ -57,14 +57,22 @@ impl From<&str> for Path {
 
 impl From<&Entry> for Path {
     fn from(entry: &Entry) -> Path {
-        let mut segments: Vec<ImString> = match &entry.self_type {
-            Some(name) => name.segments().map(|s| s.into()).collect(),
-            None => entry.module.segments().map(|s| s.into()).collect(),
-        };
-        if !matches!(entry.kind, Kind::Module) {
-            segments.push(entry.name.clone().into());
+        match entry.kind {
+            Kind::Method => {
+                let mut path = match &entry.self_type {
+                    Some(name) => Path::from_segments(name.segments()),
+                    None => default(),
+                };
+                path.segments.push(entry.name.clone().into());
+                path
+            }
+            Kind::Module => Path::from_segments(entry.module.segments()),
+            _ => {
+                let mut path = Path::from_segments(entry.module.segments());
+                path.segments.push(entry.name.clone().into());
+                path
+            }
         }
-        Path { segments }
     }
 }
 
