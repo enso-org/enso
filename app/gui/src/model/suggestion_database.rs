@@ -27,41 +27,61 @@ pub use example::Example;
 
 
 
+type EntryPathSegment = String;
+
+struct EntryPath(Vec<EntryPathSegment>);
+
+impl From<&Entry> for EntryPath {
+    fn from(entry: &Entry) -> EntryPath {
+        let mut path: Vec<_> = match &entry.self_type {
+            Some(name) => name.segments().map(|s| s.to_string()).collect(),
+            None => entry.module.segments().map(|s| s.to_string()).collect(),
+        };
+        if !matches!(entry.kind, Kind::Module) {
+            path.push(entry.name.clone());
+        }
+        EntryPath(path)
+    }
+}
+
+// impl IntoIterator for EntryPath {
+//     type Item = EntryPathSegment;
+//     type IntoIter = Vec<EntryPathSegment>::IntoIter;
+
+//     fn into_iter(&self) -> Self::IntoIter {
+//         self.0.into_iter()
+//     }
+// }
+
 // =====================
 // === EntryIdByPath ===
 // =====================
 
 #[derive(Clone, Debug, Default)]
-struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<String, Option<entry::Id>>>);
+struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<EntryPathSegment, Option<entry::Id>>>);
 
 impl EntryIdByPath {
-    fn set_and_warn_if_exists<P, I>(&self, path: P, id: entry::Id, logger: &Logger)
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<String>, {
+    fn set_and_warn_if_exists(&self, path: impl Into<EntryPath>, id: entry::Id, logger: &Logger) {
         let mut tree = self.0.borrow_mut();
         let mut node_constructed = false;
         let construct_empty_node_and_set_constructed = || {
             node_constructed = true;
             None
         };
-        let path: Vec<String> = path.into_iter().map(|s| s.into()).collect();
-        tree.set_with(path.iter(), Some(id), construct_empty_node_and_set_constructed);
+        let path = path.into();
+        tree.set_with(path.0.iter(), Some(id), construct_empty_node_and_set_constructed);
         if !node_constructed {
-            let path = path.join(".");
+            let path = path.0.join(".");
             warning!(logger, "An entry at {path} was overwritten with new value {id}.");
         }
     }
 
-    fn remove_and_warn_if_absent<P, I>(&self, path: P, logger: &Logger)
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<String>, {
+    fn remove_and_warn_if_absent(&self, path: impl Into<EntryPath>, logger: &Logger) {
         let mut tree = self.0.borrow_mut();
-        let path: Vec<String> = path.into_iter().map(|s| s.into()).collect();
-        let old_value = tree.remove(path.iter());
+        let path = path.into();
+        let old_value = tree.remove(path.0.iter());
         if old_value.is_none() {
-            let path = path.join(".");
+            let path = path.0.join(".");
             warning!(
                 logger,
                 "When removing an entry at {path} some id was expected but none was found."
@@ -69,11 +89,9 @@ impl EntryIdByPath {
         }
     }
 
-    fn get<P, I>(&self, path: P) -> Option<entry::Id>
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<String>, {
-        match self.0.borrow().get(path) {
+    fn get(&self, path: impl Into<EntryPath>) -> Option<entry::Id> {
+        let path = path.into();
+        match self.0.borrow().get(path.0.iter()) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
@@ -165,7 +183,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    entry_id_by_path.set_and_warn_if_exists(entry_path(&entry), id, &logger);
+                    entry_id_by_path.set_and_warn_if_exists(&entry, id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -203,8 +221,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path = entry_path(&entry);
-                        self.entry_id_by_path.set_and_warn_if_exists(path, id, &self.logger);
+                        self.entry_id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -215,8 +232,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path = entry_path(&entry);
-                            self.entry_id_by_path.remove_and_warn_if_absent(path, &self.logger);
+                            self.entry_id_by_path.remove_and_warn_if_absent(&*entry, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -226,11 +242,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_path = entry_path(&entry);
-                        self.entry_id_by_path.remove_and_warn_if_absent(old_path, &self.logger);
+                        self.entry_id_by_path.remove_and_warn_if_absent(&*entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        let new_path = entry_path(&entry);
-                        self.entry_id_by_path.set_and_warn_if_exists(new_path, id, &self.logger);
+                        self.entry_id_by_path.set_and_warn_if_exists(&*entry, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -264,8 +278,9 @@ impl SuggestionDatabase {
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
         use ast::opr::predefined::ACCESS;
-        let segments = path.split(ACCESS);
-        self.entry_id_by_path.get(segments).and_then(|id| self.lookup(id).ok())
+        let segments = path.split(ACCESS).map(|s| s.to_string()).collect();
+        let entry_path = EntryPath(segments);
+        self.entry_id_by_path.get(entry_path).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -340,23 +355,6 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
     fn from(database: language_server::response::GetSuggestionDatabase) -> Self {
         Self::from_ls_response(database)
     }
-}
-
-
-
-// ===============
-// === Helpers ===
-// ===============
-
-fn entry_path(entry: &Entry) -> Vec<String> {
-    let mut path: Vec<_> = match &entry.self_type {
-        Some(name) => name.segments().map(|s| s.to_string()).collect(),
-        None => entry.module.segments().map(|s| s.to_string()).collect(),
-    };
-    if !matches!(entry.kind, Kind::Module) {
-        path.push(entry.name.clone());
-    }
-    path
 }
 
 
