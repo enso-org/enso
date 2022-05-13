@@ -33,13 +33,13 @@ use ensogl_hardcoded_theme as theme;
 #[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct Parameters {
-    base_color: Var<color::Rgba>,
-    fading:     Var<color::Rgba>,
-    pub size:   Var<f32>,
-    pub spread: Var<f32>,
-    exponent:   Var<f32>,
-    offset_x:   Var<f32>,
-    offset_y:   Var<f32>,
+    pub base_color: Var<color::Rgba>,
+    pub fading:     Var<color::Rgba>,
+    pub size:       Var<f32>,
+    pub spread:     Var<f32>,
+    pub exponent:   Var<f32>,
+    pub offset_x:   Var<f32>,
+    pub offset_y:   Var<f32>,
 }
 
 /// Loads shadow parameters from the given style, at the given path. The structure of the style
