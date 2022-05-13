@@ -122,11 +122,11 @@ impl FreeformPathToIdMap {
     fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
         let mut tree = self.tree.borrow_mut();
         let mut node_constructed = false;
-        let construct_empty_node_and_set_constructed = || {
+        let set_node_constructed_and_return_none = || {
             node_constructed = true;
             None
         };
-        tree.set_with(path.segments.iter(), Some(id), construct_empty_node_and_set_constructed);
+        tree.set_with(path.segments.iter(), Some(id), set_node_constructed_and_return_none);
         !node_constructed
     }
 
