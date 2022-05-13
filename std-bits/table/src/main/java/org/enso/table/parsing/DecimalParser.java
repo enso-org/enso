@@ -52,8 +52,8 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
 
     String replaced = thousandsSeparator == null ? text : text.replace(thousandsSeparator, "");
     ParsePosition pos = new ParsePosition(0);
-    double result = decimalFormat.parse(replaced, pos).doubleValue();
-    if (pos.getIndex() != replaced.length()) {
+    Number result = decimalFormat.parse(replaced, pos);
+    if (result == null || pos.getIndex() != replaced.length()) {
       problemAggregator.reportInvalidFormat(text);
       return null;
     }
@@ -62,7 +62,7 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
       problemAggregator.reportLeadingZeroes(text);
     }
 
-    return result;
+    return result.doubleValue();
   }
 
   /**
@@ -82,7 +82,7 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
 
   @Override
   public Builder makeBuilderWithCapacity(long capacity) {
-    return NumericBuilder.createLongBuilder((int) capacity);
+    return NumericBuilder.createDoubleBuilder((int) capacity);
   }
 
   @Override

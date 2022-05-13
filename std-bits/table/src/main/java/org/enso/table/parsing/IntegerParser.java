@@ -65,6 +65,6 @@ public class IntegerParser extends TypeParser<NumericProblemAggregator> {
 
   @Override
   public NumericProblemAggregator makeProblemAggregator() {
-    return null;
+    return new NumericProblemAggregator();
   }
 }

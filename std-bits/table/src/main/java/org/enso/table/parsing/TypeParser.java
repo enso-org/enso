@@ -19,8 +19,12 @@ public abstract class TypeParser<PA extends ProblemAggregator> {
 
     for (int i = 0; i < sourceStorage.size(); ++i) {
       String cell = sourceStorage.getItem(i);
-      Object parsed = parseSingleValue(cell, aggregator);
-      builder.appendNoGrow(parsed);
+      if (cell != null) {
+        Object parsed = parseSingleValue(cell, aggregator);
+        builder.appendNoGrow(parsed);
+      } else {
+        builder.appendNoGrow(null);
+      }
     }
 
     return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());
