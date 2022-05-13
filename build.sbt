@@ -1166,7 +1166,7 @@ lazy val frgaalJavaCompilerSetting = Seq(
   // accessible from the non-meta build definition.
   libraryDependencies += FrgaalJavaCompiler.frgaal,
   // Ensure that our tooling uses the right Java version for checking the code.
-  javacOptions ++= Seq("-source", "17")
+  Compile / javacOptions ++= Seq("-source", "17")
 )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1181,6 +1181,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(
       Defaults.compilersSetting
     ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", "17"),
     Test / parallelExecution := false,
     Test / logBuffered := false,
     Test / testOptions += Tests.Argument(
