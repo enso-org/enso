@@ -958,6 +958,7 @@ name = "enso-debug-api"
 version = "0.1.0"
 dependencies = [
  "derivative",
+ "futures 0.3.21",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -1503,6 +1504,7 @@ dependencies = [
 name = "ensogl-example-profiling-run-graph"
 version = "0.1.0"
 dependencies = [
+ "enso-debug-api",
  "enso-frp",
  "enso-profiler",
  "enso-profiler-data",

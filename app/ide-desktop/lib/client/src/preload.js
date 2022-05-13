@@ -63,10 +63,28 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
     quit: data => ipcRenderer.send('quit-ide'),
 })
 
-// Used for capturing profiling data.
+// Save and load profile data.
+let onProfiles = [];
+let profilesLoaded;
+ipcRenderer.on('profiles-loaded', (event, profiles) => {
+    for (const callback of onProfiles) {
+        callback(profiles)
+    }
+    onProfiles = [];
+    profilesLoaded = profiles;
+})
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
     saveProfile: data => ipcRenderer.send('save-profile', data),
+    // Requests any loaded profiling logs.
+    loadProfiles: callback => {
+        if (profilesLoaded === undefined) {
+            ipcRenderer.send('load-profiles')
+            onProfiles.push(callback)
+        } else {
+            callback(profilesLoaded)
+        }
+    },
 })
 
 // Access to the system console that Electron was run from.

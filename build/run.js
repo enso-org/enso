@@ -368,6 +368,34 @@ commands.profile.js = async function (argv) {
     await run_npm('npm', ['run', 'start', '--'].concat(args))
 }
 
+commands['view-profile'] = command('View a graph of a performance profile.')
+commands['view-profile'].rust = async function (argv) {
+    await commands.build.rust([])
+}
+commands['view-profile'].js = async function (argv) {
+    await installJsDeps()
+    const positionalArgsIncludingSubcommand = argv._
+    const profiles = positionalArgsIncludingSubcommand.slice(1)
+    if (!profiles.length) {
+        console.error(`'view-profile' command requires at least one profile file argument.`)
+        return
+    }
+    const paths = profiles.join(' ')
+    console.log(`Launching graph of: ${paths}.`)
+    if (profiles.length > 1) {
+        console.error(`When rendering a callgraph, cannot use more than one profile.`)
+        return
+    }
+    const args = []
+    args.push('--directory', initCwd)
+    args.push('--no-backend')
+    args.push('--entry-point', 'profiling_run_graph')
+    for (const path of profiles) {
+        args.push('--load-profile', path)
+    }
+    await run_npm('npm', ['run', 'start', '--'].concat(args))
+}
+
 // === Lint ===
 
 commands.lint = command(`Lint the codebase`)

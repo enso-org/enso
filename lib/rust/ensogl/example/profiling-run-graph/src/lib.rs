@@ -1,7 +1,4 @@
-//! Demo scene showing a sample flame graph. Can be used to display a log file, if you have one.
-//! To do so, set the `PROFILER_LOG_NAME` to contain the profiling log name and it
-//! will be used for rendering the visualisation. See the docs of `PROFILER_LOG_NAME` for more
-//! information.
+//! Render a profile as a callgraph. Can also be used without any input data as a demo scene.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -204,8 +201,17 @@ fn make_rendering_performance_blocks(
 // === Profiler Log Reading ===
 // ============================
 
+/// Read the data from a file specified on the command line.
+async fn get_data_file() -> Option<String> {
+    let files = enso_debug_api::load_profiles()?.await;
+    if files.len() > 1 {
+        ERROR!("Entry point profiling-run-graph doesn't support multiple profile file arguments.");
+    }
+    files.into_iter().next()
+}
+
 /// Read the `PROFILER_LOG_NAME` data from a file.
-async fn get_data_raw() -> Option<String> {
+async fn get_data_http() -> Option<String> {
     use wasm_bindgen::JsCast;
 
     let url = &["assets/", PROFILER_LOG_NAME?].concat();
@@ -225,7 +231,10 @@ async fn get_data_raw() -> Option<String> {
 }
 
 async fn get_log_data() -> Vec<Profile<Metadata>> {
-    let data = get_data_raw().await;
+    let data = match get_data_file().await {
+        Some(data) => Some(data),
+        None => get_data_http().await,
+    };
     let data = data.map(|data| {
         parse_multiprocess_profile(&data)
             .filter_map(|result| match result {
