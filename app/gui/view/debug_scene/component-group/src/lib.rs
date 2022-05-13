@@ -152,14 +152,13 @@ impl ComponentGroupController {
 
 // === Helpers ====
 
-fn component_group(app: &Application, layers: &component_group::Layers) -> component_group::View {
+fn component_group(app: &Application, header: &str, background_color: color::Rgba, layers: &component_group::Layers) -> component_group::View {
     let component_group = app.new_view::<component_group::View>();
     component_group.model().set_layers(layers);
-    let group_name = "Long group name with text overflowing the width";
-    component_group.set_header(group_name.to_string());
+    component_group.set_header(header.to_string());
     component_group.set_width(150.0);
     component_group.set_position_x(75.0);
-    component_group.set_background_color(color::Rgba(0.927, 0.937, 0.913, 1.0));
+    component_group.set_background_color(background_color);
     component_group
 }
 
@@ -183,13 +182,12 @@ fn init(app: &Application) {
     let parent_layer = scroll_area.content_layer();
     let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
-    let first_component_group = component_group(app, &layers);
-    let second_component_group = component_group(app, &layers);
+    let group_name = "Long group name with text overflowing the width";
+    let color = color::Rgba(0.927, 0.937, 0.913, 1.0);
+    let first_component_group = component_group(app, group_name, color, &layers);
     let group_name = "Second component group";
-    second_component_group.set_header(group_name.to_string());
-    second_component_group.set_width(150.0);
-    second_component_group.set_position_x(75.0);
-    second_component_group.set_background_color(color::Rgba(0.527, 0.837, 0.713, 1.0));
+    let color = color::Rgba(0.527, 0.837, 0.713, 1.0);
+    let second_component_group = component_group(app, group_name, color, &layers);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);

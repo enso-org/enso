@@ -92,15 +92,18 @@ pub mod header_background {
 
     ensogl_core::define_shape_system! {
         above = [background, list_view::background];
-        // `shadow_percentage` is a percentage of shadow intensity (between 0.0 and 1.0).
-        (style:Style, color:Vector4, height: f32, shadow_percentage: f32) {
+        (style:Style, color:Vector4, height: f32, shadow_intensity: f32) {
             let color = Var::<Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let bg = Rect((width.clone(), height.clone())).fill(color);
-            let shadow_rect = Rect((width, height * shadow_percentage));
+            let rect = Rect((width, height));
+            let bg = rect.fill(color);
             let shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
-            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
+            let shadow = shadow::from_shape_with_parameters_and_alpha(
+                rect.into(), 
+                shadow_parameters, 
+                &shadow_intensity
+            );
             (shadow + bg).into()
         }
     }
@@ -221,7 +224,7 @@ impl component::Frp<Model> for Frp {
                 f!((_, g) model.distance_to_border(*g))
             );
             shadow <- distance_to_border.map(|p| (*p / HEADER_SHADOW_PEAK).min(1.0));
-            eval shadow((v) model.header_background.shadow_percentage.set(*v));
+            eval shadow((v) model.header_background.shadow_intensity.set(*v));
         }
 
 
