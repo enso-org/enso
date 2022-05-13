@@ -35,24 +35,30 @@ pub use example::Example;
 struct EntryIdByPath(RefCell<ensogl::data::HashMapTree<String, Option<entry::Id>>>);
 
 impl EntryIdByPath {
-    fn set_and_warn_if_exists(&self, entry: &Entry, id: SuggestionId, logger: &Logger) {
+    fn set_and_warn_if_exists<P, I>(&self, path: P, id: SuggestionId, logger: &Logger)
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<String>, {
         let mut tree = self.0.borrow_mut();
         let mut node_constructed = false;
-        let construct_node_and_set_constructed = || {
+        let construct_empty_node_and_set_constructed = || {
             node_constructed = true;
             None
         };
-        let path = entry_path(entry);
-        tree.set_with(path.iter(), Some(id), construct_node_and_set_constructed);
+        let path: Vec<String> = path.into_iter().map(|s| s.into()).collect();
+        tree.set_with(path.iter(), Some(id), construct_empty_node_and_set_constructed);
         if !node_constructed {
             let path = path.join(".");
-            warning!(logger, "Overwriting an entry at {path} with new value {id}.");
+            warning!(logger, "An entry at {path} was overwritten with new value {id}.");
         }
     }
 
-    fn remove_and_warn_if_absent(&self, entry: &Entry, logger: &Logger) {
+    fn remove_and_warn_if_absent<P, I>(&self, path: P, logger: &Logger)
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<String>, {
         let mut tree = self.0.borrow_mut();
-        let path = entry_path(entry);
+        let path: Vec<String> = path.into_iter().map(|s| s.into()).collect();
         let old_value = tree.remove(path.iter());
         if old_value.is_none() {
             let path = path.join(".");
@@ -63,10 +69,11 @@ impl EntryIdByPath {
         }
     }
 
-    fn get(&self, path: &str) -> Option<SuggestionId> {
-        use ast::opr::predefined::ACCESS;
-        let segments = path.split(ACCESS);
-        match self.0.borrow().get(segments) {
+    fn get<P, I>(&self, path: P) -> Option<SuggestionId>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<String>, {
+        match self.0.borrow().get(path) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
@@ -160,7 +167,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    id_by_path.set_and_warn_if_exists(&entry, id, &logger);
+                    id_by_path.set_and_warn_if_exists(entry_path(&entry), id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -198,7 +205,8 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        self.id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
+                        let path = entry_path(&entry);
+                        self.id_by_path.set_and_warn_if_exists(path, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -209,7 +217,8 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            self.id_by_path.remove_and_warn_if_absent(&entry, &self.logger);
+                            let path = entry_path(&entry);
+                            self.id_by_path.remove_and_warn_if_absent(path, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -219,9 +228,11 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        self.id_by_path.remove_and_warn_if_absent(&entry, &self.logger);
+                        let old_path = entry_path(&entry);
+                        self.id_by_path.remove_and_warn_if_absent(old_path, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        self.id_by_path.set_and_warn_if_exists(&entry, id, &self.logger);
+                        let new_path = entry_path(&entry);
+                        self.id_by_path.set_and_warn_if_exists(new_path, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -254,7 +265,9 @@ impl SuggestionDatabase {
     }
 
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
-        self.id_by_path.get(path).and_then(|id| self.lookup(id).ok())
+        use ast::opr::predefined::ACCESS;
+        let segments = path.split(ACCESS);
+        self.id_by_path.get(segments).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
