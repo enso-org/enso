@@ -179,7 +179,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
+                        id_by_path.remove(entry_path(&entry));
                         let errors = entry.apply_modifications(*modification);
+                        id_by_path.set(entry_path(&entry), id);
                         for error in errors {
                             error!(
                                 self.logger,
