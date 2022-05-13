@@ -795,7 +795,7 @@ mod test {
         db.apply_update_event(update);
         let module_lookup = db.lookup_by_path("local.Unnamed_6.Main");
         assert!(module_lookup.is_some());
-        // FIXME: assert_eq!(module_lookup.unwrap().module, "local.Unnamed_6.Main".to_string());
+        assert_eq!(module_lookup.unwrap().name, "Main".to_string());
         let local_lookup = db.lookup_by_path("local.Unnamed_6.Main.operator1");
         assert!(local_lookup.is_some());
         assert_eq!(local_lookup.unwrap().name, "operator1".to_string());
