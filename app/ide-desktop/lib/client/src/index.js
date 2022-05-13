@@ -336,10 +336,7 @@ function secureWebPreferences(webPreferences) {
     delete webPreferences.experimentalFeatures
     delete webPreferences.enableBlinkFeatures
     delete webPreferences.allowpopups
-    // TODO[WD]: We may want to enable it and use IPC to communicate with preload script.
-    //           https://stackoverflow.com/questions/38335004/how-to-pass-parameters-from-main-process-to-render-processes-in-electron
-    // webPreferences.contextIsolation = true
-    webPreferences.enableRemoteModule = true
+    delete webPreferences.contextIsolation
     return webPreferences
 }
 
