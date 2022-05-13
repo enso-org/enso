@@ -6,14 +6,14 @@ import org.openide.util.lookup.ServiceProvider;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
+import com.sun.tools.javac.code.Attribute;
+
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 public class BuiltinsProcessor extends AbstractProcessor {
 
   private static final String BuiltinsPkg = "org.enso.interpreter.node.expression.builtin";
+  private static final String WrapExceptionElementName = "wrapException";
 
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -95,6 +96,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
   public void handleMethodElement(Element element, RoundEnvironment roundEnv) throws IOException {
     ExecutableElement method = (ExecutableElement) element;
     Element owner = element.getEnclosingElement();
+
     if (owner.getKind() == ElementKind.CLASS) {
       TypeElement tpeElement = (TypeElement) owner;
       PackageElement pkgElement = (PackageElement) tpeElement.getEnclosingElement();
@@ -102,6 +104,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
           annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
+
+      Attribute.Class[] exceptionWrappers = getClassElementFromAnnotation(element, Builtin.class, WrapExceptionElementName);
+      Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
 
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0) throw new RuntimeException("Invalid varargs value in @Builtin annotation. Must be positive");
@@ -120,9 +125,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
           try {
             JavaFileObject gen =
                     processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-            MethodGenerator methodGen = new MethodGenerator(method, i);
+            MethodGenerator methodGen = new MethodGenerator(method, i, exceptionWrappers);
             generateBuiltinMethodNode(
-                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
+                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
           } catch (IOException ioe) {
             throw new RuntimeException(ioe);
           }
@@ -141,13 +146,57 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
         JavaFileObject gen =
                 processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-        MethodGenerator methodGen = new MethodGenerator(method, 0);
+        MethodGenerator methodGen = new MethodGenerator(method, 0, exceptionWrappers);
         generateBuiltinMethodNode(
-                gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass);
+                gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
       }
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
     }
+  }
+
+  private Map<String, Integer> builtinTypesParametersCount(RoundEnvironment roundEnv) {
+    return roundEnv
+            .getElementsAnnotatedWith(BuiltinType.class)
+            .stream()
+            .collect(Collectors.toMap(e -> e.getSimpleName().toString(), e -> e.getAnnotation(BuiltinType.class).params().length));
+  }
+
+  /**
+   * Return the annotation type's element value, when its type is declared to involve Class (or Class[]).
+   * Sadly this cannot be simply retrieved by invoking the <element>() method and one has to go through mirrors.
+   * Refer to <a href="https://area-51.blog/2009/02/13/getting-class-values-from-annotations-in-an-annotationprocessor/">blog</a>
+   * for details.
+   *
+   * @param element element annotated with the given annotation
+   * @param annotationClass the class representation of the annotation
+   * @param annotationMethodName the name of the element in the annotation type having Class<?> type
+   * @return even-length array of class annotation values, if present
+   */
+  private Attribute.Class[] getClassElementFromAnnotation(Element element, Class<?> annotationClass, String annotationMethodName) {
+    Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getName());
+    TypeMirror builtinType = builtinElement.asType();
+
+    AnnotationValue value = null;
+    for (AnnotationMirror am: element.getAnnotationMirrors()) {
+      if (am.getAnnotationType().equals(builtinType)) {
+        for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet() ) {
+          if (annotationMethodName.equals(entry.getKey().getSimpleName().toString())) {
+            value = entry.getValue();
+            break;
+          }
+        }
+      }
+    }
+
+    if (value != null) {
+      List<Attribute.Class> elems = ((List<Attribute.Class>)value.getValue());
+      if ((elems.size() % 2) != 0) {
+        throw new RuntimeException("Length of `" + annotationMethodName + "`value has to be even");
+      }
+      return elems.toArray(new Attribute.Class[0]);
+    }
+    return new Attribute.Class[0];
   }
 
   /**
@@ -160,6 +209,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
    * @param description short description for the node
    * @param builtinNode class name of the target node
    * @param ownerClazz class name of the owner of the annotated method
+   * @param builtinTypesParamCount a map from builtin types to their parameters count
    * @throws IOException throws an exception when we cannot write the new class
    */
   private void generateBuiltinMethodNode(
@@ -169,7 +219,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
       String ownerMethodName,
       String description,
       ClassName builtinNode,
-      ClassName ownerClazz)
+      ClassName ownerClazz,
+      Map<String, Integer> builtinTypesParamCount)
       throws IOException {
     String ensoMethodName = methodName.replaceAll("([^_A-Z])([A-Z])", "$1_$2").toLowerCase();
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
@@ -191,7 +242,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println("public class " + builtinNode.name() + " extends Node {");
       out.println();
 
-      for (String line : mgen.generateMethod(ownerMethodName, ownerClazz.name())) {
+      for (String line : mgen.generateMethod(ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
         out.println("  " + line);
       }
 
@@ -204,10 +255,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
      Arrays.asList("org.enso.interpreter.dsl.BuiltinType",
                    "org.enso.interpreter.node.expression.builtin.Builtin");
   private final List<String> methodNecessaryImports =
-      Arrays.asList("com.oracle.truffle.api.nodes.Node", "org.enso.interpreter.dsl.BuiltinMethod");
+      Arrays.asList(
+              "com.oracle.truffle.api.nodes.Node",
+              "org.enso.interpreter.dsl.BuiltinMethod",
+              "org.enso.interpreter.runtime.builtin.Builtins",
+              "org.enso.interpreter.runtime.Context",
+              "org.enso.interpreter.runtime.error.PanicException");
 
   private MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
-    return new MethodParameter(i, v.getSimpleName().toString(), v.asType().toString());
+    return new MethodParameter(i, v.getSimpleName().toString(), v.asType().toString(),
+            v.getAnnotationMirrors().stream().map(am -> am.toString()).collect(Collectors.toList()));
   }
 
   /** Method generator encapsulates the generation of the `execute` method. */
@@ -218,12 +275,13 @@ public class BuiltinsProcessor extends AbstractProcessor {
     private final boolean isConstructor;
     private final int varargExpansion;
     private final boolean needsVarargExpansion;
+    private final Attribute.Class[] exceptionWrappers;
 
-    public MethodGenerator(ExecutableElement method, int expandedVarargs) {
-      this(method, method.getParameters(), expandedVarargs);
+    public MethodGenerator(ExecutableElement method, int expandedVarargs, Attribute.Class[] exceptionWrappers) {
+      this(method, method.getParameters(), expandedVarargs, exceptionWrappers);
     }
 
-    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs) {
+    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs, Attribute.Class[] exceptionWrappers) {
       this(
           method.getReturnType().toString(),
           IntStream.range(0, method.getParameters().size()).mapToObj(i ->
@@ -231,7 +289,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
           method.getModifiers().contains(Modifier.STATIC),
           method.getKind() == ElementKind.CONSTRUCTOR,
           expandedVarargs,
-          method.isVarArgs());
+          method.isVarArgs(),
+          exceptionWrappers);
     }
 
     private MethodGenerator(
@@ -240,20 +299,31 @@ public class BuiltinsProcessor extends AbstractProcessor {
             boolean isStatic,
             boolean isConstructor,
             int expandedVarargs,
-            boolean isVarargs) {
+            boolean isVarargs,
+            Attribute.Class[] exceptionWrappers) {
       this.returnTpe = returnTpe;
       this.params = params;
       this.isStatic = isStatic;
       this.isConstructor = isConstructor;
       this.varargExpansion = expandedVarargs;
       this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
+      this.exceptionWrappers = exceptionWrappers;
     }
 
     private Optional<Integer> expandVararg(int paramIndex) {
       return needsVarargExpansion && params.size() >= (paramIndex + 1) ? Optional.of(varargExpansion) : Optional.empty();
     }
 
-    public String[] generateMethod(String name, String owner) {
+    private String fromAnnotationValueToClassName(Attribute.Class clazz) {
+      String[] clazzElements = clazz.classType.baseType().toString().split("\\.");
+      if (clazzElements.length == 0) {
+        return clazz.classType.baseType().toString();
+      } else {
+        return clazzElements[clazzElements.length - 1];
+      }
+    }
+
+    public List<String> generateMethod(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
       String paramsDef;
       String paramsApplied;
       if (params.isEmpty()) {
@@ -276,13 +346,44 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 ? "  return " + owner + "." + name + "(" + paramsApplied + ");"
                 : "  return _this." + name + "(" + paramsApplied + ");";
       }
-      return new String[] {
-        targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {",
-        body,
-        "}"
-      };
+      boolean wrapsExceptions = exceptionWrappers.length != 0;
+      if (wrapsExceptions) {
+        List<String> wrappedBody = new ArrayList<>();
+        wrappedBody.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
+        wrappedBody.add("  try {");
+        wrappedBody.add("  " + body);
+
+        for (int i=0; i < exceptionWrappers.length; i+=2) {
+          String from = fromAnnotationValueToClassName(exceptionWrappers[i]);
+          String to = fromAnnotationValueToClassName(exceptionWrappers[i+1]);
+          int toParamCount = errorParametersCount(exceptionWrappers[i+1], builtinTypesParameterCounts);
+          String errorParamsApplied = StringUtils.join(params.stream().limit(toParamCount - 1).flatMap(x -> x.names(Optional.empty())).toArray(), ", ");
+          wrappedBody.addAll(List.of(
+            "  } catch (" + from + " exception) {",
+            "    Builtins builtins = Context.get(this).getBuiltins();",
+            "    throw new PanicException(builtins.error().make" + to + "(_this, " + errorParamsApplied + "), this);",
+            "  }"
+          ));
+        }
+        wrappedBody.add("}");
+        return wrappedBody;
+      } else {
+        return List.of(
+                targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {",
+                body,
+                "}"
+        );
+      }
     }
+
+    private int errorParametersCount(Attribute.Class clazz, Map<String, Integer> builtinTypesParameterCounts) {
+      String clazzSimple = fromAnnotationValueToClassName(clazz);
+      // `this` counts as 1
+      return builtinTypesParameterCounts.getOrDefault(clazzSimple, 1);
+    }
+
   }
+
 
   private record ClassName(String pkg, String name) {
     private ClassName(Name pkgName, Name nameSeq) {
@@ -298,7 +399,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
    * MethodParameter encapsulates the generation of string representation of the parameter.
    * Additionally, it can optionally expand vararg parameters.
    */
-  private record MethodParameter(int index, String name, String tpe) {
+  private record MethodParameter(int index, String name, String tpe, List<String> annotations) {
     /**
      * Returns a parameter's declaration.
      * If the parameter represents a vararg, the declaration is repeated. Otherwise return a single
@@ -310,7 +411,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
     public Stream<String> declaredParameters(Optional<Integer> expand) {
       // If the parameter is the expanded vararg we must get rid of the `[]` suffix
       String parameterTpe = expand.isEmpty() ? tpe : tpe.substring(0, tpe.length() - 2);
-      return names(expand).map(n -> parameterTpe + " " + n);
+      String copiedAnnotations = annotations.isEmpty() ? "" : (StringUtils.joinWith(" ", annotations.toArray()) + " ");
+      return names(expand).map(n -> copiedAnnotations + parameterTpe + " " + n);
     }
 
     /**

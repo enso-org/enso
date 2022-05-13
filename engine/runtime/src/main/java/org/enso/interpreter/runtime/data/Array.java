@@ -8,7 +8,9 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndexError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -30,7 +32,10 @@ public class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin(pkg = "mutable", expandVarargs = 4, description = "Creates an array with given elements.")
+  @Builtin(
+      pkg = "mutable",
+      expandVarargs = 4,
+      description = "Creates an array with given elements.")
   public Array(Object... items) {
     this.items = items;
   }
@@ -103,6 +108,25 @@ public class Array implements TruffleObject {
   @ExportMessage
   long getArraySize() {
     return items.length;
+  }
+
+  @Builtin(
+      pkg = "mutable",
+      name = "at",
+      description = "Gets an array element at the given index.",
+      wrapException = {IndexOutOfBoundsException.class, InvalidArrayIndexError.class})
+  public Object get(long index) {
+    return getItems()[(int) index];
+  }
+
+  @Builtin(
+      pkg = "mutable",
+      name = "setAt",
+      description = "Gets an array element at the given index.",
+      wrapException = {IndexOutOfBoundsException.class, InvalidArrayIndexError.class})
+  public Object set(long index, @AcceptsError Object value) {
+    getItems()[(int) index] = value;
+    return this;
   }
 
   /**
