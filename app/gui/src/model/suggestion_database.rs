@@ -39,7 +39,7 @@ type PathSegment = ImString;
 ///
 /// A conversion from a string value is performed by splitting the string into segments separated
 /// by the [`ACCESS`] character.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct FreeformPath {
     segments: Vec<PathSegment>,
 }
@@ -861,5 +861,18 @@ mod test {
         let function_lookup = db.lookup_by_fully_qualified_path(function_path);
         assert!(function_lookup.is_some());
         assert_eq!(function_lookup.unwrap().name, "testFunction1".to_string());
+    }
+
+    #[test]
+    fn freeform_path_to_id_map() {
+        let map: FreeformPathToIdMap = default();
+        let path = "Foo.Bar.baz".into();
+        assert_eq!(map.check_if_exists_and_remove(&path), false);
+        assert_eq!(map.check_if_exists_and_set(&path, 2), false);
+        assert_eq!(map.get(path.clone()), Some(2));
+        assert_eq!(map.check_if_exists_and_set(&path, 3), true);
+        assert_eq!(map.get(path.clone()), Some(3));
+        assert_eq!(map.check_if_exists_and_remove(&path), true);
+        assert_eq!(map.check_if_exists_and_remove(&path), false);
     }
 }
