@@ -751,7 +751,6 @@ mod test {
         let atom_path = "TestProject.TestModule.TextAtom";
         let atom_lookup = db.lookup_by_path(atom_path);
         assert!(atom_lookup.is_some());
-        // TODO[MC]: do we want to get ID here too? do we have it?
         assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
         let method_path = "Standard.Builtins.Main.System.create_process";
         let method_lookup = db.lookup_by_path(method_path);
