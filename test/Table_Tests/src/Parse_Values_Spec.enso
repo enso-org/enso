@@ -41,21 +41,21 @@ spec = Test.group "Table.parse_values" <|
         t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
 
     Test.specify "should warn when cells do not fit the expected format" <|
-        ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "10", Nothing]]
+        ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]]
         # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
-        floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "+-1", "100.", Nothing]]
-        bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true"]]
+        floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "--1", "+-1", "100.", "-+1"]]
+        bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true", "truefalse"]]
         t = Table.new [ints, floats, bools]
 
         action = t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=_
         tester t =
-            t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
-            t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, 100, Nothing]
-            t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True]
+            t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
+            t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
+            t.at "bools" . to_vector . should_equal [True, False, Nothing, Nothing, Nothing, Nothing, Nothing, True, Nothing]
         problems =
-            ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1"]
-            floats = Invalid_Format "ints" Decimal ["1e6", "foobar", "", "+-1"]
-            bools = Invalid_Format "bools" Integer ["fAlSE", "foobar", "", "0", "1"]
+            ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
+            floats = Invalid_Format "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
+            bools = Invalid_Format "bools" Integer ["fAlSE", "foobar", "", "0", "1", "truefalse"]
             [ints, floats, bools]
         Problems.test_problem_handling action problems tester
 
@@ -64,6 +64,12 @@ spec = Test.group "Table.parse_values" <|
         t2 = t1.parse_values column_types=[Column_Type_Selection "B" Integer]
         t2.at "A" . to_vector . should_equal ["1", "2"]
         t2.at "B" . to_vector . should_equal [3, 4]
+
+    Test.specify "should report missing columns in Column_Type_Selection" pending="TODO" <|
+        Error.throw "TODO"
+
+    Test.specify "should report duplicate columns in Column_Type_Selection" pending="TODO" <|
+        Error.throw "TODO"
 
     Test.specify "should correctly parse date and time" pending="TODO" <|
         Error.throw "TODO"

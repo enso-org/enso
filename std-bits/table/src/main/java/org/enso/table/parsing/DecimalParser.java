@@ -14,11 +14,14 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
   private final boolean leadingZerosAllowed;
 
   public DecimalParser(
-      final String decimalPoint, final String thousandsSeparator, final boolean leadingZerosAllowed) {
+      final String decimalPoint,
+      final String thousandsSeparator,
+      final boolean leadingZerosAllowed) {
     this.leadingZerosAllowed = leadingZerosAllowed;
 
     if (decimalPoint.length() != 1) {
-      throw new IllegalArgumentException("The `decimalPoint` should consist of exactly one code point.");
+      throw new IllegalArgumentException(
+          "The `decimalPoint` should consist of exactly one code point.");
     } else {
       this.decimalPoint = decimalPoint.charAt(0);
     }
@@ -51,6 +54,13 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
     }
 
     String replaced = thousandsSeparator == null ? text : text.replace(thousandsSeparator, "");
+
+    // If the number starts with a plus, we need to remove it because DecimalFormat does not like
+    // it. But we also ensure that we do not let through a "+-" by accident.
+    if (replaced.length() >= 2 && replaced.charAt(0) == '+' && replaced.charAt(1) != '-') {
+      replaced = replaced.substring(1);
+    }
+
     ParsePosition pos = new ParsePosition(0);
     Number result = decimalFormat.parse(replaced, pos);
     if (result == null || pos.getIndex() != replaced.length()) {
