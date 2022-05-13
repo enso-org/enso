@@ -5,11 +5,13 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
-
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -155,10 +157,10 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",   // Provide explicit encoding (the next line)
-  "UTF-8",       // Specify character encoding used by Java source files.
-  "-deprecation",// Shows a description of each use or override of a deprecated member or class.
-  "-g"           // Include debugging information
+  "-encoding",    // Provide explicit encoding (the next line)
+  "UTF-8",        // Specify character encoding used by Java source files.
+  "-deprecation", // Shows a description of each use or override of a deprecated member or class.
+  "-g"            // Include debugging information
 )
 
 ThisBuild / scalacOptions ++= Seq(
@@ -979,8 +981,8 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
     version := "0.1",
     frgaalJavaCompilerSetting,
     libraryDependencies ++= Seq(
-      "org.apache.commons"      % "commons-lang3" % commonsLangVersion,
-      "org.netbeans.api" % "org-openide-util-lookup" % "RELEASE130"
+      "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
+      "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE130"
     )
   )
 
@@ -1150,15 +1152,23 @@ val distributionEnvironmentOverrides = {
   )
 }
 
+val frgaalSourceLevel = "18"
+
 /** A setting to replace javac with Frgaal compiler, allowing to use latest Java features in the code
   * and still compile down to JDK 11
   */
 lazy val frgaalJavaCompilerSetting = Seq(
-  Compile/compile/compilers := FrgaalJavaCompiler.compilers((Compile / dependencyClasspath).value, compilers.value, javaVersion),
+  Compile / compile / compilers := FrgaalJavaCompiler.compilers(
+    (Compile / dependencyClasspath).value,
+    compilers.value,
+    javaVersion
+  ),
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
   // accessible from the non-meta build definition.
-  libraryDependencies +=  FrgaalJavaCompiler.frgaal
+  libraryDependencies += FrgaalJavaCompiler.frgaal,
+  // Ensure that our tooling uses the right Java version for checking the code.
+  Compile / javacOptions ++= Seq("-source", frgaalSourceLevel)
 )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1170,10 +1180,15 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(Defaults.compilersSetting), // Compile benchmarks with javac, due to jmh issues
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
     Test / parallelExecution := false,
     Test / logBuffered := false,
-    Test / testOptions += Tests.Argument("-oD"), // show timings for individual tests
+    Test / testOptions += Tests.Argument(
+      "-oD"
+    ), // show timings for individual tests
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ circe ++ Seq(
@@ -1192,8 +1207,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
       "org.typelevel"      %% "cats-core"             % catsVersion,
       "eu.timepit"         %% "refined"               % refinedVersion,
-     "junit" % "junit" % "4.12" % Test,
-     "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep"),
+      "junit"               % "junit"                 % "4.12"            % Test,
+      "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -1212,7 +1227,9 @@ lazy val runtime = (project in file("engine/runtime"))
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     Test / fork := true,
-    Test / envVars ++= distributionEnvironmentOverrides ++ Map("ENSO_TEST_DISABLE_IR_CACHE" -> "false"),
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+    ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
@@ -1803,12 +1820,14 @@ buildEngineDistribution := {
 }
 
 val stdBitsProjects = List("Base", "Database", "Google_Api", "Image", "Table")
-val allStdBits: Parser[String] = stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
+val allStdBits: Parser[String] =
+  stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
-lazy val buildStdLib = inputKey[Unit]("Build an individual standard library package")
+lazy val buildStdLib =
+  inputKey[Unit]("Build an individual standard library package")
 buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
-  val root: File = engineDistributionRoot.value
+  val root: File  = engineDistributionRoot.value
   // Ensure that a complete distribution was built at least once.
   // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
   // delegate to another task defintion (sbt restriction).
@@ -1824,21 +1843,26 @@ pkgStdLibInternal := Def.inputTaskDyn {
   val log: sbt.Logger = streams.value.log
   val cacheFactory    = streams.value.cacheStoreFactory
   cmd match {
-    case "Base"       =>
+    case "Base" =>
       (`std-base` / Compile / packageBin).value
-    case "Database"   =>
+    case "Database" =>
       (`std-database` / Compile / packageBin).value
     case "Google_Api" =>
       (`std-google-api` / Compile / packageBin).value
-    case "Image"      =>
+    case "Image" =>
       (`std-image` / Compile / packageBin).value
-    case "Table"      =>
+    case "Table" =>
       (`std-table` / Compile / packageBin).value
-    case _            =>
+    case _ =>
   }
-  StdBits.buildStdLibPackage(cmd, root, cacheFactory, log, defaultDevEnsoVersion)
+  StdBits.buildStdLibPackage(
+    cmd,
+    root,
+    cacheFactory,
+    log,
+    defaultDevEnsoVersion
+  )
 }.evaluated
-
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
