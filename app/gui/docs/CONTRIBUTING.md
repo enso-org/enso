@@ -102,19 +102,6 @@ setup:
   environment variable to explicitly enable regeneration of the interface files.
   The `flatc` is run as part of `build.rs` script of the `enso-protocol package.
 
-- **(Optional) The Latest version of `wasm-opt`**
-
-  The version of `wasm-opt` that comes bundled with `wasm-pack` can be out of
-  date and slow. We recommend to install a newer version from the
-  [binaryen releases](https://github.com/WebAssembly/binaryen/releases), or
-  [compile the newest version from scratch](https://github.com/WebAssembly/binaryen#building=).
-  `wasm-pack` will pick up the locally installed version automatically and use
-  it instead of the bundled one. Binaryen packages are also available through
-  some system package managers (apt/pacman/brew), check whether the version
-  there is newer than the bundled version of wasm-pack (which is true for all of
-  them as of wasm-pack 0.10.2, which bundles version 90 which was released Dec
-  2019).
-
 <br/>
 
 ## Working with sources
