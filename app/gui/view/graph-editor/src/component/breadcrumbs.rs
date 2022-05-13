@@ -189,6 +189,7 @@ impl BreadcrumbsModel {
     /// Constructor.
     /// The `gap_width` describes an empty space on the left of all the content. This space will be
     /// covered by the background and is intended to make room for windows control buttons.
+    #[profile(Detail)]
     pub fn new(app: Application, frp: &Frp) -> Self {
         let scene = &app.display.default_scene;
         let project_name = app.new_view();

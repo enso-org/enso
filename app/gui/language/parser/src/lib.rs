@@ -120,7 +120,6 @@ impl Parser {
 
     /// Program is expected to be single non-empty line module. The line's AST is
     /// returned. The program is parsed with empty IdMap.
-    #[profile(Debug)]
     pub fn parse_line_ast(&self, program: impl Str) -> FallibleResult<Ast> {
         self.parse_line_with_id_map(program, default()).map(|line| line.elem)
     }

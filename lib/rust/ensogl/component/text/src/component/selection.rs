@@ -57,6 +57,7 @@ pub mod shape {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        pointer_events = false;
         (style:Style, selection:f32, start_time:f32, letter_width:f32, color_rgb:Vector3<f32>) {
             let width_abs      = Var::<f32>::from("abs(input_size.x)");
             let height         = Var::<f32>::from("input_size.y");

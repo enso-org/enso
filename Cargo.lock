@@ -91,7 +91,6 @@ dependencies = [
  "derive_more",
  "enso-data-structures",
  "enso-prelude",
- "enso-profiler",
  "enso-shapely",
  "enso-text",
  "failure",
@@ -1518,9 +1517,7 @@ dependencies = [
  "ensogl-text-msdf-sys",
  "ensogl-tooltip",
  "futures 0.3.21",
- "qstring",
  "serde",
- "url 2.2.2",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -1540,7 +1537,6 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
- "ensogl-tooltip",
  "futures 0.3.21",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3368,15 +3364,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
-]
-
-[[package]]
-name = "qstring"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d464fae65fff2680baf48019211ce37aaec0c78e9264c84a3e484717f965104e"
-dependencies = [
- "percent-encoding 2.1.0",
 ]
 
 [[package]]
