@@ -1164,7 +1164,9 @@ lazy val frgaalJavaCompilerSetting = Seq(
   // This dependency is needed only so that developers don't download Frgaal manually.
   // Sadly it cannot be placed under plugins either because meta dependencies are not easily
   // accessible from the non-meta build definition.
-  libraryDependencies += FrgaalJavaCompiler.frgaal
+  libraryDependencies += FrgaalJavaCompiler.frgaal,
+  // Ensure that our tooling uses the right Java version for checking the code.
+  javacOptions ++= Seq("-source", "17")
 )
 
 lazy val runtime = (project in file("engine/runtime"))
