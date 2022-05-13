@@ -93,7 +93,7 @@ impl QualifiedName {
     pub fn segments(&self) -> impl Iterator<Item = &str> {
         let module_segments = self.module_segments.iter().map(|seg| seg.as_ref());
         let name = self.name.as_ref();
-        self.project_name.segments().chain(module_segments).chain(Some(name))
+        self.project_name.segments().chain(module_segments).chain(iter::once(name))
     }
 
     /// Check if the name is defined directly in the given module.
