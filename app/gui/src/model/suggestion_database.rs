@@ -31,7 +31,7 @@ pub use example::Example;
 // === Path ===
 // ============
 
-type PathSegment = String;
+type PathSegment = ImString;
 
 #[derive(Debug)]
 pub struct Path {
@@ -57,12 +57,12 @@ impl From<&str> for Path {
 
 impl From<&Entry> for Path {
     fn from(entry: &Entry) -> Path {
-        let mut segments: Vec<_> = match &entry.self_type {
-            Some(name) => name.segments().map(|s| s.to_string()).collect(),
-            None => entry.module.segments().map(|s| s.to_string()).collect(),
+        let mut segments: Vec<ImString> = match &entry.self_type {
+            Some(name) => name.segments().map(|s| s.into()).collect(),
+            None => entry.module.segments().map(|s| s.into()).collect(),
         };
         if !matches!(entry.kind, Kind::Module) {
-            segments.push(entry.name.clone());
+            segments.push(entry.name.clone().into());
         }
         Path { segments }
     }
@@ -90,8 +90,8 @@ impl EntryIdByPath {
         let path = path.into();
         tree.set_with(path.segments.iter(), Some(id), construct_empty_node_and_set_constructed);
         if !node_constructed {
-            let path = path.segments.join(".");
-            warning!(logger, "An entry at {path} was overwritten with new value {id}.");
+            let path = path.segments;
+            warning!(logger, "An entry at {path:?} was overwritten with new value {id}.");
         }
     }
 
@@ -100,10 +100,10 @@ impl EntryIdByPath {
         let path = path.into();
         let old_value = tree.remove(path.segments.iter());
         if old_value.is_none() {
-            let path = path.segments.join(".");
+            let path = path.segments;
             warning!(
                 logger,
-                "When removing an entry at {path} some id was expected but none was found."
+                "When removing an entry at {path:?} some id was expected but none was found."
             );
         }
     }
