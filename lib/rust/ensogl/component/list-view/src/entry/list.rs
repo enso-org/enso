@@ -23,7 +23,8 @@ use ensogl_core::display::style;
 /// simpler: In vast majority of cases we want to align list elements to the left.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
-pub struct DisplayedEntry<E: CloneRef> {
+#[clone_ref(bound = "E:CloneRef")]
+pub struct DisplayedEntry<E> {
     pub id:    Rc<Cell<Option<entry::Id>>>,
     pub entry: E,
 }
@@ -57,32 +58,48 @@ impl IdAtYPosition {
 /// A view containing an entry list, arranged in column.
 ///
 /// Not all entries are displayed at once, only those visible.
-#[derive(Clone, CloneRef, Debug)]
-pub struct List<E: CloneRef> {
+pub type List<E> = ListData<E, <E as Entry>::Params>;
+
+/// Data of a [`List`].
+#[derive(CloneRef, Debug, Derivative)]
+#[derivative(Clone(bound = ""))]
+#[clone_ref(bound = "E:CloneRef")]
+pub struct ListData<E, P> {
     logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,
     entries_range:  Rc<CloneCell<Range<entry::Id>>>,
+    entry_params:   Rc<RefCell<P>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
     label_layer:    Rc<Cell<LayerId>>,
 }
 
-impl<E: Entry> List<E>
-where E::Model: Default
-{
+impl<E, P: Default> ListData<E, P> {
     /// Entry List View constructor.
     pub fn new(parent: impl AnyLogger, app: &Application) -> Self {
         let app = app.clone_ref();
         let logger = Logger::new_sub(parent, "entry::List");
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
+        let entry_params = default();
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
-        List { logger, app, display_object, entries, entries_range, provider, label_layer }
+        Self {
+            logger,
+            app,
+            display_object,
+            entries,
+            entries_range,
+            entry_params,
+            provider,
+            label_layer,
+        }
     }
+}
 
+impl<E, P> ListData<E, P> {
     /// The number of all entries in List, including not displayed.
     pub fn entry_count(&self) -> usize {
         self.provider.get().entry_count()
@@ -127,7 +144,28 @@ where E::Model: Default
             Entry((-y / entry::HEIGHT + 0.5) as entry::Id)
         }
     }
+}
 
+impl<E: Entry, P> ListData<E, P> {
+    /// Sets the scene layer where the labels will be placed.
+    pub fn set_label_layer(&self, label_layer: LayerId) {
+        let layers = &self.app.display.default_scene.layers;
+        if let Some(layer) = layers.get_sublayer(self.label_layer.get()) {
+            for entry in &*self.entries.borrow() {
+                entry.entry.set_label_layer(&layer);
+            }
+        } else {
+            error!(
+                self.logger,
+                "Cannot set layer {label_layer:?} for labels: the layer does not \
+                exist in the scene"
+            );
+        }
+        self.label_layer.set(label_layer);
+    }
+}
+
+impl<E: Entry> ListData<E, E::Params> {
     /// Update displayed entries to show the given range and limit their display width to at most
     /// `max_width_px`. Any newly created entries will use the styles located at the `style_prefix`
     /// path in the application's style sheet.
@@ -181,6 +219,17 @@ where E::Model: Default
         }
     }
 
+    /// Set params used in the displayed entries and recreate all displayed entries. The entries
+    /// will use the styles located at the `style_prefix` path in the application's style sheet.
+    pub fn set_entry_params_and_recreate_entries(
+        &self,
+        params: E::Params,
+        style_prefix: style::Path,
+    ) {
+        self.entry_params.replace(params);
+        self.recreate_entries_with_style_prefix(style_prefix);
+    }
+
     /// Update displayed entries, giving new provider. New entries created by the function have
     /// their maximum width set to `max_width_px` and use the styles located at the `style_prefix`
     /// path.
@@ -217,24 +266,6 @@ where E::Model: Default
         self.provider.set(provider);
     }
 
-    /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, label_layer: LayerId) {
-        if let Some(layer) =
-            self.app.display.default_scene.layers.get_sublayer(self.label_layer.get())
-        {
-            for entry in &*self.entries.borrow() {
-                entry.entry.set_label_layer(&layer);
-            }
-        } else {
-            error!(
-                self.logger,
-                "Cannot set layer {label_layer:?} for labels: the layer does not \
-                exist in the scene"
-            );
-        }
-        self.label_layer.set(label_layer);
-    }
-
     fn create_new_entry(&self, style_prefix: &style::Path) -> DisplayedEntry<E> {
         let layers = &self.app.display.default_scene.layers;
         let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
@@ -245,7 +276,7 @@ where E::Model: Default
             );
             layers.main.clone_ref()
         });
-        let entry = E::new(&self.app, style_prefix);
+        let entry = E::new(&self.app, style_prefix, &self.entry_params.borrow());
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
         entry.entry.set_position_x(entry::PADDING);
@@ -276,7 +307,7 @@ where E::Model: Default
     }
 }
 
-impl<E: CloneRef> display::Object for List<E> {
+impl<E, P> display::Object for ListData<E, P> {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }

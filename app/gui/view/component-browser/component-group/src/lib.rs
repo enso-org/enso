@@ -26,7 +26,7 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
-use ensogl_core::data::color::Rgba;
+use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
@@ -42,22 +42,13 @@ pub mod wide;
 
 
 
-// =================
-// === Constants ===
-// =================
+// ==============
+// === Export ===
+// ==============
 
-const ENTRIES_STYLE_PATH: &str = theme::entries::HERE.str;
+pub mod entry;
+pub use entry::View as Entry;
 
-
-
-// ===============
-// === Aliases ===
-// ===============
-
-// Note[ao]: This could be `entry::Id` once we will have `entry` module with Component Group's
-// entries related structures (those are not quite the same as stuff in `list_view::entry` - that's
-// why we don't just import that module).
-type EntryId = list_view::entry::Id;
 
 
 // ==========================
@@ -74,11 +65,14 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let color = Var::<Rgba>::from(color);
+            let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
         }
     }
 }
+
+
+// === Header Overlay ===
 
 /// The transparent overlay over Component Group View Header, used for capturing mouse events.
 pub mod header_overlay {
@@ -142,14 +136,15 @@ ensogl_core::define_endpoints_2! {
         /// [Component Browser Design Doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#key-binding-dictionary)
         accept_suggestion(),
         set_header(String),
-        set_entries(list_view::entry::AnyModelProvider<list_view::entry::Label>),
-        set_background_color(Rgba),
+        set_entries(list_view::entry::AnyModelProvider<Entry>),
+        set_color(color::Rgba),
+        set_dimmed(bool),
         set_width(f32),
     }
     Output {
-        selected_entry(Option<EntryId>),
-        suggestion_accepted(EntryId),
-        expression_accepted(EntryId),
+        selected_entry(Option<entry::Id>),
+        suggestion_accepted(entry::Id),
+        expression_accepted(entry::Id),
         is_header_selected(bool),
         header_accepted(),
         selection_size(Vector2<f32>),
@@ -171,7 +166,6 @@ impl component::Frp<Model> for Frp {
         // === Geometry ===
 
         frp::extend! { network
-
             let header_geometry = HeaderGeometry::from_style(style, network);
             height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
@@ -182,10 +176,37 @@ impl component::Frp<Model> for Frp {
         }
 
 
+        // === Colors ===
+
+        fn mix(colors: &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
+            color::mix(colors.0, colors.1, *coefficient)
+        }
+        let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
+        let header_intensity = style.get_number(theme::header::text::color_intensity);
+        let bg_intensity = style.get_number(theme::background_color_intensity);
+        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
+        let entry_text_color = style.get_color(theme::entries::text::color);
+        frp::extend! { network
+            init <- source_();
+            one <- init.constant(1.0);
+            intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
+            app_bg_color <- all(&app_bg_color, &init)._0();
+            app_bg_and_input_color <- all(&app_bg_color, &input.set_color);
+            main_color <- app_bg_and_input_color.all_with(&intensity, mix);
+            app_bg_and_main_color <- all(&app_bg_color, &main_color);
+            header_color <- app_bg_and_main_color.all_with(&header_intensity, mix);
+            bg_color <- app_bg_and_main_color.all_with(&bg_intensity, mix);
+            app_bg_and_entry_text_color <- all(&app_bg_color, &entry_text_color);
+            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
+            entry_color_sampler <- entry_color_with_intensity.sampler();
+        }
+        let params = entry::Params { color: entry_color_sampler };
+        model.entries.set_entry_params_and_recreate_entries(params);
+
+
         // === Header ===
 
         frp::extend! { network
-            init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
@@ -196,7 +217,14 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            eval input.set_background_color((c) model.background.color.set(c.into()));
+            model.header.set_default_color <+ header_color;
+            // FIXME[AO,MC]: set_color_all should not be necessary, but set_default_color alone
+            // does not work as it misses a call to `redraw`. Fixing set_default_color is postponed
+            // (https://www.pivotaltracker.com/story/show/182139606), because text::Area is used in
+            // many places of the code and testing them all carefully will take more time than we
+            // can afford before a release scheduled for June 2022.
+            model.header.set_color_all <+ header_color;
+            eval bg_color((c) model.background.color.set(c.into()));
         }
 
 
@@ -216,7 +244,6 @@ impl component::Frp<Model> for Frp {
         // === Entries ===
 
         frp::extend! { network
-            model.entries.set_background_color <+ input.set_background_color;
             model.entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
         }
@@ -271,7 +298,7 @@ pub struct Model {
     header_text:    Rc<RefCell<String>>,
     header_overlay: header_overlay::View,
     background:     background::View,
-    entries:        list_view::ListView<list_view::entry::Label>,
+    entries:        list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -291,8 +318,8 @@ impl component::Model for Model {
         let background = background::View::new(&logger);
         let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
-        let entries = app.new_view::<list_view::ListView<list_view::entry::Label>>();
-        entries.set_style_prefix(ENTRIES_STYLE_PATH);
+        let entries = app.new_view::<list_view::ListView<Entry>>();
+        entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
@@ -421,9 +448,7 @@ mod tests {
             ensogl_hardcoded_theme::builtin::light::enable(&app);
             let cgv = View::new(&app);
             cgv.set_width(100.0);
-            let entries = AnyModelProvider::<list_view::entry::Label>::new(vec![
-                "Entry 1", "Entry 2", "Entry 3",
-            ]);
+            let entries = AnyModelProvider::<Entry>::new(vec!["Entry 1", "Entry 2", "Entry 3"]);
             cgv.set_entries(entries);
             Test { app, cgv }
         }
