@@ -119,12 +119,12 @@ pub enum Notification {
 /// argument names and types.
 #[derive(Clone, Debug)]
 pub struct SuggestionDatabase {
-    logger:        Logger,
-    entries:       RefCell<HashMap<entry::Id, Rc<Entry>>>,
-    id_by_path:    EntryIdByPath,
-    examples:      RefCell<Vec<Rc<Example>>>,
-    version:       Cell<SuggestionsDatabaseVersion>,
-    notifications: notification::Publisher<Notification>,
+    logger:           Logger,
+    entries:          RefCell<HashMap<entry::Id, Rc<Entry>>>,
+    entry_id_by_path: EntryIdByPath,
+    examples:         RefCell<Vec<Rc<Example>>>,
+    version:          Cell<SuggestionsDatabaseVersion>,
+    notifications:    notification::Publisher<Notification>,
 }
 
 impl SuggestionDatabase {
@@ -132,11 +132,11 @@ impl SuggestionDatabase {
     pub fn new_empty(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "SuggestionDatabase");
         let entries = default();
-        let id_by_path = default();
+        let entry_id_by_path = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, id_by_path, examples, version, notifications }
+        Self { logger, entries, entry_id_by_path, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
@@ -162,12 +162,12 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        let id_by_path = EntryIdByPath::default();
+        let entry_id_by_path = EntryIdByPath::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    id_by_path.set_and_warn_if_exists(entry_path(&entry), id, &logger);
+                    entry_id_by_path.set_and_warn_if_exists(entry_path(&entry), id, &logger);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -181,7 +181,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            id_by_path,
+            entry_id_by_path,
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -206,7 +206,7 @@ impl SuggestionDatabase {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
                         let path = entry_path(&entry);
-                        self.id_by_path.set_and_warn_if_exists(path, id, &self.logger);
+                        self.entry_id_by_path.set_and_warn_if_exists(path, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -218,7 +218,7 @@ impl SuggestionDatabase {
                     match removed {
                         Some(entry) => {
                             let path = entry_path(&entry);
-                            self.id_by_path.remove_and_warn_if_absent(path, &self.logger);
+                            self.entry_id_by_path.remove_and_warn_if_absent(path, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -229,10 +229,10 @@ impl SuggestionDatabase {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
                         let old_path = entry_path(&entry);
-                        self.id_by_path.remove_and_warn_if_absent(old_path, &self.logger);
+                        self.entry_id_by_path.remove_and_warn_if_absent(old_path, &self.logger);
                         let errors = entry.apply_modifications(*modification);
                         let new_path = entry_path(&entry);
-                        self.id_by_path.set_and_warn_if_exists(new_path, id, &self.logger);
+                        self.entry_id_by_path.set_and_warn_if_exists(new_path, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -267,7 +267,7 @@ impl SuggestionDatabase {
     pub fn lookup_by_path(&self, path: &str) -> Option<Rc<Entry>> {
         use ast::opr::predefined::ACCESS;
         let segments = path.split(ACCESS);
-        self.id_by_path.get(segments).and_then(|id| self.lookup(id).ok())
+        self.entry_id_by_path.get(segments).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
