@@ -36,13 +36,13 @@ impl<'s> Item<'s> {
         }
     }
 
-    // /// [`location::Span`] of the element.
-    // pub fn span(&self) -> span::Span {
-    //     match self {
-    //         Self::Token(t) => t.span,
-    //         Self::Tree(t) => t.span,
-    //     }
-    // }
+    /// [`location::Span`] of the element.
+    pub fn span(&self) -> span::SpanRef<'_, 's> {
+        match self {
+            Self::Token(t) => t.span2(),
+            Self::Tree(t) => t.span.as_ref(),
+        }
+    }
 
     /// Remove left offset spacing information.
     pub fn trim_as_first_child(&mut self) -> span::Span {

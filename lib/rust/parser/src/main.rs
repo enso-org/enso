@@ -103,7 +103,7 @@ use crate::prelude::*;
 
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
-// use macros::pattern::Pattern;
+use macros::pattern::Pattern;
 // use source::span;
 use syntax::token::Token;
 
@@ -118,7 +118,7 @@ pub mod source;
 pub mod syntax;
 
 use lexer::Lexer;
-// use syntax::token;
+use syntax::token;
 
 
 /// Popular utilities, imported by most modules of this crate.
@@ -229,34 +229,43 @@ pub struct MacroResolver<'s> {
     pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
 }
 
-// impl<'a> MacroResolver<'a> {
-//     /// A new macro resolver with a special "root" segment definition. The "root" segment does
-// not     /// exist in the source code, it is simply the whole expression being parsed. It is
-// treated     /// as a macro in order to unify the algorithms.
-//     pub fn new_root() -> Self {
-//         let current_segment = MatchedSegment {
-//             header: span::With::new_no_left_offset_no_len(Bytes::from(0),
-// token::Type::newline()),             body:   default(),
-//         };
-//         let resolved_segments = default();
-//         let possible_next_segments = default();
-//         let matched_macro_def = Some(Rc::new(macros::Definition {
-//             rev_prefix_pattern: None,
-//             segments:           im_list::NonEmpty::singleton(macros::SegmentDefinition {
-//                 header:  "__ROOT__",
-//                 pattern: Pattern::Everything,
-//             }),
-//             body:               Rc::new(|lexer, _, v| {
-//                 if v.len() != 1 {
-//                     panic!()
-//                 }
-//                 let t = v.into_vec().pop().unwrap().1;
-//                 resolve_operator_precedence(lexer, t)
-//             }),
-//         }));
-//         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
-//     }
+// pub fn Token<'s, T>(
+//     left_offset: Offset<'s>,
+//     code: impl Into<Cow<'s, str>>,
+//     data: T,
+// ) -> Token<'s, T> {
+//     let code = code.into();
+//     Token { data, left_offset, code }
 // }
+
+impl<'a> MacroResolver<'a> {
+    /// A new macro resolver with a special "root" segment definition. The "root" segment does not
+    /// exist in the source code, it is simply the whole expression being parsed. It is treated
+    /// as a macro in order to unify the algorithms.
+    pub fn new_root() -> Self {
+        let current_segment = MatchedSegment {
+            header: Token(default(), "", token::Variant::newline()),
+            body:   default(),
+        };
+        let resolved_segments = default();
+        let possible_next_segments = default();
+        let matched_macro_def = Some(Rc::new(macros::Definition {
+            rev_prefix_pattern: None,
+            segments:           im_list::NonEmpty::singleton(macros::SegmentDefinition {
+                header:  "__ROOT__",
+                pattern: Pattern::Everything,
+            }),
+            body:               Rc::new(|lexer, _, v| {
+                if v.len() != 1 {
+                    panic!()
+                }
+                let t = v.into_vec().pop().unwrap().1;
+                resolve_operator_precedence(lexer, t)
+            }),
+        }));
+        Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
+    }
+}
 //
 #[derive(Debug)]
 pub struct MatchedSegment<'s> {
@@ -478,146 +487,158 @@ pub struct MatchedSegment<'s> {
 // }
 //
 //
-// // FIXME: hardcoded values + not finished implementation.
-// pub fn precedence_of(operator: &str) -> usize {
-//     match operator {
-//         "+" => 3,
-//         "-" => 3,
-//         "*" => 7,
-//         _ => panic!("Operator not supported: {}", operator),
-//     }
-// }
+// FIXME: hardcoded values + not finished implementation.
+pub fn precedence_of(operator: &str) -> usize {
+    match operator {
+        "+" => 3,
+        "-" => 3,
+        "*" => 7,
+        _ => panic!("Operator not supported: {}", operator),
+    }
+}
 //
-// #[derive(Clone, Copy, Debug, Deref, DerefMut)]
-// pub struct WithPrecedence<T> {
-//     #[deref]
-//     #[deref_mut]
-//     elem:       T,
-//     precedence: usize,
-// }
-//
-// impl<T> WithPrecedence<T> {
-//     pub fn new(precedence: usize, elem: T) -> Self {
-//         Self { elem, precedence }
-//     }
-// }
-//
-//
-// fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::Item> {
-//     items
-//         .into_iter()
-//         .map(|item| match item {
-//             syntax::Item::Token(_) => item,
-//             syntax::Item::Tree(ast) => match &ast.elem {
-//                 syntax::tree::Type::MultiSegmentApp(data) => {
-//                     if data.segments.first().header.elem.variant() != token::TypeVariant::Symbol
-// {                         syntax::Item::Tree(
-//                             ast.with_error(
-//                                 "This expression cannot be used in a non-spaced equation.",
-//                             ),
-//                         )
-//                     } else {
-//                         syntax::Item::Tree(ast)
-//                     }
-//                 }
-//                 _ => syntax::Item::Tree(ast),
-//             },
-//         })
-//         .collect()
-// }
-//
-// pub fn resolve_operator_precedence(lexer: &Lexer, items: Vec<syntax::Item>) -> syntax::Tree {
-//     type Tokens = Vec<syntax::Item>;
-//     let mut flattened: Tokens = default();
-//     let mut no_space_group: Tokens = default();
-//     let processs_no_space_group = |flattened: &mut Tokens, no_space_group: &mut Tokens| {
-//         let tokens = mem::take(no_space_group);
-//         if tokens.len() == 1 {
-//             flattened.extend(tokens);
-//         } else {
-//             let tokens = annotate_tokens_that_need_spacing(tokens);
-//             let ast = resolve_operator_precedence_internal(lexer, tokens);
-//             flattened.push(ast.into());
-//         }
-//     };
-//     for item in items {
-//         if item.span().left_visible_offset.number == 0 || no_space_group.is_empty() {
-//             no_space_group.push(item)
-//         } else if !no_space_group.is_empty() {
-//             processs_no_space_group(&mut flattened, &mut no_space_group);
-//             no_space_group.push(item);
-//         } else {
-//             flattened.push(item);
-//         }
-//     }
-//     if !no_space_group.is_empty() {
-//         processs_no_space_group(&mut flattened, &mut no_space_group);
-//     }
-//     resolve_operator_precedence_internal(lexer, flattened)
-// }
-//
-// fn resolve_operator_precedence_internal(lexer: &Lexer, items: Vec<syntax::Item>) -> syntax::Tree
-// {     // Reverse-polish notation encoding.
-//     let mut output: Vec<syntax::Item> = default();
-//     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
-//     let mut last_token_was_ast = false;
-//     let mut last_token_was_opr = false;
-//     for item in items {
-//         if let syntax::Item::Token(token) = item && let token::Type::Operator(opr) = token.elem {
-//             // Item is an operator.
-//             let last_token_was_opr_copy = last_token_was_opr;
-//             last_token_was_ast = false;
-//             last_token_was_opr = true;
-//
-//             let prec = precedence_of(lexer.repr(&item));
-//             let opr = item.span().with(opr);
-//
-//             if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
-//                 // Error. Multiple operators next to each other.
-//                 match &mut prev_opr.elem {
-//                     Err(err) => err.operators.push(opr),
-//                     Ok(prev) => {
-//                         let operators = NonEmptyVec::new(*prev,vec![opr]);
-//                         prev_opr.elem = Err(syntax::tree::MultipleOperatorError::new(operators));
-//                     }
-//                 }
-//             } else {
-//                 while let Some(prev_opr) = operator_stack.last()
-//                    && prev_opr.precedence >= prec
-//                    && let Some(prev_opr) = operator_stack.pop()
-//                    && let Some(rhs) = output.pop()
-//                 {
-//                     // Prev operator in the [`operator_stack`] has a higher precedence.
-//                     let lhs = output.pop().map(token_to_ast);
-//                     let ast = syntax::Tree::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
-//                     output.push(ast.into());
-//                 }
-//                 operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
-//             }
-//         } else if last_token_was_ast && let Some(lhs) = output.pop() {
-//             // Multiple non-operators next to each other.
-//             let lhs = token_to_ast(lhs);
-//             let rhs = token_to_ast(item);
-//             let ast = syntax::Tree::app(lhs, rhs);
-//             output.push(ast.into());
-//         } else {
-//             // Non-operator that follows previously consumed operator.
-//             last_token_was_ast = true;
-//             last_token_was_opr = false;
-//             output.push(item);
-//         }
-//     }
-//     let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
-//     while let Some(opr) = operator_stack.pop() {
-//         let opt_lhs = output.pop().map(|t| token_to_ast(t));
-//         opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
-//     }
-//     if !output.is_empty() {
-//         panic!("Internal error. Not all tokens were consumed while constructing the
-// expression.");     }
-//     syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
-// }
-//
+#[derive(Clone, Copy, Debug, Deref, DerefMut)]
+pub struct WithPrecedence<T> {
+    #[deref]
+    #[deref_mut]
+    elem:       T,
+    precedence: usize,
+}
+
+impl<T> WithPrecedence<T> {
+    pub fn new(precedence: usize, elem: T) -> Self {
+        Self { elem, precedence }
+    }
+}
+
+
+fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::Item> {
+    items
+        .into_iter()
+        .map(|item| match item {
+            syntax::Item::Token(_) => item,
+            syntax::Item::Tree(ast) =>
+                match &*ast.variant {
+                    syntax::tree::Type::MultiSegmentApp(data) => {
+                        if data.segments.first().header.data.variant()
+                            != token::variant::VariantVariant::Symbol
+                        {
+                            syntax::Item::Tree(ast.with_error(
+                                "This expression cannot be used in a non-spaced equation.",
+                            ))
+                        } else {
+                            syntax::Item::Tree(ast)
+                        }
+                    }
+                    _ => syntax::Item::Tree(ast),
+                },
+        })
+        .collect()
+}
+
+pub fn resolve_operator_precedence<'s>(
+    lexer: &Lexer<'s>,
+    items: Vec<syntax::Item<'s>>,
+) -> syntax::Tree<'s> {
+    type Tokens<'s> = Vec<syntax::Item<'s>>;
+    let mut flattened: Tokens<'s> = default();
+    let mut no_space_group: Tokens<'s> = default();
+    let processs_no_space_group = |flattened: &mut Tokens<'s>, no_space_group: &mut Tokens<'s>| {
+        let tokens = mem::take(no_space_group);
+        if tokens.len() == 1 {
+            flattened.extend(tokens);
+        } else {
+            let tokens = annotate_tokens_that_need_spacing(tokens);
+            let ast = resolve_operator_precedence_internal(lexer, tokens);
+            flattened.push(ast.into());
+        }
+    };
+    for item in items {
+        if item.span().left_offset.visible.number == 0 || no_space_group.is_empty() {
+            no_space_group.push(item)
+        } else if !no_space_group.is_empty() {
+            processs_no_space_group(&mut flattened, &mut no_space_group);
+            no_space_group.push(item);
+        } else {
+            flattened.push(item);
+        }
+    }
+    if !no_space_group.is_empty() {
+        processs_no_space_group(&mut flattened, &mut no_space_group);
+    }
+    resolve_operator_precedence_internal(lexer, flattened)
+}
+
+fn resolve_operator_precedence_internal<'s>(
+    lexer: &Lexer<'s>,
+    items: Vec<syntax::Item<'s>>,
+) -> syntax::Tree<'s> {
+    // Reverse-polish notation encoding.
+    let mut output: Vec<syntax::Item> = default();
+    let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
+    let mut last_token_was_ast = false;
+    let mut last_token_was_opr = false;
+    for item in items {
+        let i2 = item.clone(); // FIXME
+        if let syntax::Item::Token(token) = i2 && let token::Variant::Operator(opr) = token.data {
+            // Item is an operator.
+            let last_token_was_opr_copy = last_token_was_opr;
+            last_token_was_ast = false;
+            last_token_was_opr = true;
+
+            let prec = precedence_of(&token.code);
+            let opr = Token(token.left_offset, token.code, opr);
+            // let opr = item.span().with(opr);
+
+            if last_token_was_opr_copy && let Some(prev_opr) = operator_stack.last_mut() {
+                // Error. Multiple operators next to each other.
+                match &mut prev_opr.elem {
+                    Err(err) => err.operators.push(opr),
+                    Ok(prev) => {
+                        let operators = NonEmptyVec::new(prev.clone(),vec![opr]); // FIXME: clone?
+                        prev_opr.elem = Err(syntax::tree::MultipleOperatorError::new(operators));
+                    }
+                }
+            } else {
+                while let Some(prev_opr) = operator_stack.last()
+                   && prev_opr.precedence >= prec
+                   && let Some(prev_opr) = operator_stack.pop()
+                   && let Some(rhs) = output.pop()
+                {
+                    // Prev operator in the [`operator_stack`] has a higher precedence.
+                    let lhs = output.pop().map(token_to_ast);
+                    let ast = syntax::Tree::opr_app(lhs, prev_opr.elem, Some(token_to_ast(rhs)));
+                    output.push(ast.into());
+                }
+                operator_stack.push(WithPrecedence::new(prec, Ok(opr)));
+            }
+        } else if last_token_was_ast && let Some(lhs) = output.pop() {
+            // Multiple non-operators next to each other.
+            let lhs = token_to_ast(lhs);
+            let rhs = token_to_ast(item);
+            let ast = syntax::Tree::app(lhs, rhs);
+            output.push(ast.into());
+        } else {
+            // Non-operator that follows previously consumed operator.
+            last_token_was_ast = true;
+            last_token_was_opr = false;
+            output.push(item);
+        }
+    }
+    let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
+    while let Some(opr) = operator_stack.pop() {
+        let opt_lhs = output.pop().map(|t| token_to_ast(t));
+        opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
+    }
+    if !output.is_empty() {
+        panic!(
+            "Internal error. Not all tokens were consumed while constructing the
+expression."
+        );
+    }
+    syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
+}
+
 //
 //
 // impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
@@ -650,89 +671,89 @@ pub struct MatchedSegment<'s> {
 // }
 //
 //
-// fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
-//     match elem {
-//         syntax::Item::Token(token) => match token.elem {
-//             token::Type::Ident(ident) =>
-//                 elem.span().with(syntax::tree::Type::from(syntax::tree::Ident(ident))),
-//             _ => panic!(),
-//         },
-//         syntax::Item::Tree(ast) => ast,
-//     }
-// }
-//
-// fn matched_segments_into_multi_segment_app<'s>(
-//     lexer: &Lexer<'s>,
-//     prefix_tokens: Option<Vec<syntax::Item>>,
-//     matched_segments: NonEmptyVec<(Token, Vec<syntax::Item>)>,
-// ) -> syntax::Tree {
-//     // FIXME: remove into_vec
-//     let segments = matched_segments
-//         .into_vec()
-//         .into_iter()
-//         .map(|segment| {
-//             let header = segment.0;
-//             let body = (segment.1.len() > 0)
-//                 .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
-//             syntax::tree::MultiSegmentAppSegment { header, body }
-//         })
-//         .collect_vec();
-//     if let Ok(segments) = NonEmptyVec::try_from(segments) {
-//         let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
-//         syntax::Tree::multi_segment_app(prefix, segments)
-//     } else {
-//         panic!()
-//     }
-// }
-//
-//
-//
-// // =========================
-// // === Macro Definitions ===
-// // =========================
-//
-// fn macro_if_then_else<'a>() -> macros::Definition<'a> {
-//     macro_definition! {
-//         ("if", Pattern::Everything, "then", Pattern::Everything, "else", Pattern::Everything)
-//         matched_segments_into_multi_segment_app
-//     }
-// }
-//
-// fn macro_if_then<'a>() -> macros::Definition<'a> {
-//     macro_definition! {
-//         ("if", Pattern::Everything, "then", Pattern::Everything)
-//         matched_segments_into_multi_segment_app
-//     }
-// }
-//
-// fn macro_group<'a>() -> macros::Definition<'a> {
-//     macro_definition! {
-//         ("(", Pattern::Everything, ")", Pattern::Nothing)
-//         matched_segments_into_multi_segment_app
-//     }
-// }
-//
-// fn macro_lambda<'a>() -> macros::Definition<'a> {
-//     let prefix = Pattern::Or(
-//         Box::new(Pattern::Item(macros::pattern::Item { has_rhs_spacing: Some(false) })),
-//         Box::new(Pattern::Everything),
-//     );
-//     macro_definition! {
-//         (prefix, "->", Pattern::Everything)
-//         matched_segments_into_multi_segment_app
-//     }
-// }
-//
-// fn builtin_macros() -> MacroMatchTree<'static> {
-//     let mut macro_map = MacroMatchTree::default();
-//     macro_map.register(macro_if_then());
-//     macro_map.register(macro_if_then_else());
-//     macro_map.register(macro_group());
-//     macro_map.register(macro_lambda());
-//     macro_map
-// }
-//
-//
+fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
+    match elem {
+        syntax::Item::Token(token) => match token.data {
+            // token::Variant::Ident(ident) =>
+            //     elem.span().with(syntax::tree::Type::from(syntax::tree::Ident(ident))),
+            _ => panic!(),
+        },
+        syntax::Item::Tree(ast) => ast,
+    }
+}
+
+fn matched_segments_into_multi_segment_app<'s>(
+    lexer: &Lexer<'s>,
+    prefix_tokens: Option<Vec<syntax::Item<'s>>>,
+    matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
+) -> syntax::Tree<'s> {
+    // FIXME: remove into_vec
+    let segments = matched_segments
+        .into_vec()
+        .into_iter()
+        .map(|segment| {
+            let header = segment.0;
+            let body = (segment.1.len() > 0)
+                .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
+            syntax::tree::MultiSegmentAppSegment { header, body }
+        })
+        .collect_vec();
+    if let Ok(segments) = NonEmptyVec::try_from(segments) {
+        let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
+        syntax::Tree::multi_segment_app(prefix, segments)
+    } else {
+        panic!()
+    }
+}
+
+
+
+// =========================
+// === Macro Definitions ===
+// =========================
+
+fn macro_if_then_else<'a>() -> macros::Definition<'a> {
+    macro_definition! {
+        ("if", Pattern::Everything, "then", Pattern::Everything, "else", Pattern::Everything)
+        matched_segments_into_multi_segment_app
+    }
+}
+
+fn macro_if_then<'a>() -> macros::Definition<'a> {
+    macro_definition! {
+        ("if", Pattern::Everything, "then", Pattern::Everything)
+        matched_segments_into_multi_segment_app
+    }
+}
+
+fn macro_group<'a>() -> macros::Definition<'a> {
+    macro_definition! {
+        ("(", Pattern::Everything, ")", Pattern::Nothing)
+        matched_segments_into_multi_segment_app
+    }
+}
+
+fn macro_lambda<'a>() -> macros::Definition<'a> {
+    let prefix = Pattern::Or(
+        Box::new(Pattern::Item(macros::pattern::Item { has_rhs_spacing: Some(false) })),
+        Box::new(Pattern::Everything),
+    );
+    macro_definition! {
+        (prefix, "->", Pattern::Everything)
+        matched_segments_into_multi_segment_app
+    }
+}
+
+fn builtin_macros() -> MacroMatchTree<'static> {
+    let mut macro_map = MacroMatchTree::default();
+    macro_map.register(macro_if_then());
+    macro_map.register(macro_if_then_else());
+    macro_map.register(macro_group());
+    macro_map.register(macro_lambda());
+    macro_map
+}
+
+
 //
 // // ============
 // // === Main ===
@@ -780,8 +801,8 @@ pub struct MatchedSegment<'s> {
 //     use super::*;
 //
 //     pub fn ident(repr: &str) -> syntax::Tree {
-//         match token::Type::to_ident_unchecked(repr) {
-//             token::Type::Ident(ident) => span::With::new_no_left_offset_no_start(
+//         match token::Variant::to_ident_unchecked(repr) {
+//             token::Variant::Ident(ident) => span::With::new_no_left_offset_no_start(
 //                 Bytes::from(repr.len()),
 //                 syntax::tree::Type::from(syntax::tree::Ident(ident)),
 //             ),

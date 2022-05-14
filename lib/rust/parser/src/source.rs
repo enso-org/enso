@@ -9,6 +9,7 @@ pub mod span;
 
 pub use span::Offset;
 pub use span::Span;
+pub use span::SpanRef;
 pub use span::VisibleOffset;
 
 
@@ -88,10 +89,16 @@ impl<'s, T> Token<'s, T> {
         Span { left_offset, length }
     }
 
+    // TODO: remove
     pub fn span(&self) -> Span<'s> {
         let left_offset = self.left_offset.clone();
         let length = self.len();
         Span { left_offset, length }
+    }
+
+    pub fn span2(&self) -> SpanRef<'_, 's> {
+        let length = self.len();
+        SpanRef { left_offset: &self.left_offset, length }
     }
 
     pub fn len(&self) -> Bytes {
