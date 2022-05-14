@@ -16,7 +16,7 @@ use std::vec::Splice;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut)]
 pub struct NonEmptyVec<T> {
-    elems: Vec<T>,
+    pub elems: Vec<T>,
 }
 
 impl<T> NonEmptyVec<T> {
@@ -225,6 +225,14 @@ impl<T> NonEmptyVec<T> {
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
         self.elems.first_mut().expect("The NonEmptyVec always has an item in it.")
+    }
+
+    pub fn tail(&mut self) -> &[T] {
+        &self.elems[1..]
+    }
+
+    pub fn tail_mut(&mut self) -> &mut [T] {
+        &mut self.elems[1..]
     }
 
     /// Obtain an immutable reference to the last element in the `NonEmptyVec`.

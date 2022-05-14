@@ -5,77 +5,11 @@
 
 use crate::prelude::*;
 
-// FIXME:
-use crate::syntax::tree::Span;
+pub mod span;
 
-
-// =====================
-// === VisibleOffset ===
-// =====================
-
-/// A strongly typed visible offset size. For example, a space character has value of 1, while the
-/// tab character has value of 4. For other space-like character sizes, refer to the lexer
-/// implementation.
-#[derive(
-    Clone, Copy, Debug, Default, From, Into, Add, AddAssign, Sub, PartialEq, Eq, Hash, PartialOrd,
-    Ord
-)]
-#[allow(missing_docs)]
-pub struct VisibleOffset {
-    pub number: usize,
-}
-
-/// Constructor.
-#[allow(non_snake_case)]
-pub fn VisibleOffset(number: usize) -> VisibleOffset {
-    VisibleOffset { number }
-}
-
-impl Display for VisibleOffset {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.number, f)
-    }
-}
-
-
-
-// ==============
-// === Offset ===
-// ==============
-
-/// Location information. In most cases, it is associated with [`Token`] or [`Ast`].
-///
-/// Please note that the left offset information is stored in two fields, [`visible`]
-/// and [`left_offset`]. The first one stores the offset visible on the screen in a "spaces" metric.
-/// For example, for the tab char, the visible offset will be counted as 4 spaces. The latter can
-/// differ depending on which space character is used. See the following link to learn more:
-/// https://en.wikipedia.org/wiki/Whitespace_character.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-#[allow(missing_docs)]
-pub struct Offset<'s> {
-    pub visible: VisibleOffset,
-    pub code:    Cow<'s, str>,
-}
-
-/// Constructor.
-#[allow(non_snake_case)]
-pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Cow<'s, str>>) -> Offset<'s> {
-    let code = code.into();
-    Offset { visible, code }
-}
-
-impl<'s> Offset<'s> {
-    pub fn len(&self) -> Bytes {
-        Bytes(self.code.len())
-    }
-}
-
-impl<'s> AsRef<Offset<'s>> for Offset<'s> {
-    fn as_ref(&self) -> &Offset<'s> {
-        self
-    }
-}
-
+pub use span::Offset;
+pub use span::Span;
+pub use span::VisibleOffset;
 
 
 // ==============

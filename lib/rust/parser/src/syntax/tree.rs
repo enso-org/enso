@@ -1,117 +1,15 @@
 //! Implementation of Syntax Tree, known as well as Abstract Syntax Tree, or AST.
 use crate::prelude::*;
 
-// use crate::source;
+use crate::source::span;
+use crate::source::span::Span;
 use crate::source::Offset;
 use crate::syntax::token;
 // use crate::syntax::token::Token;
 
+use crate::span_builder;
 use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
-// use span::Span;
-
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Span<'s> {
-    pub left_offset: Offset<'s>,
-    pub length:      Bytes,
-}
-
-impl<'s> Span<'s> {
-    pub fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        let length = self.length;
-        Span { left_offset, length }
-    }
-
-    pub fn extend_raw(&mut self, other: &Span<'s>) {
-        self.length += other.left_offset.len() + other.length;
-    }
-
-    pub fn extend<T: SpanExtend<'s>>(&mut self, elem: &T) {
-        elem.extend_span(self);
-    }
-
-    pub fn extended<T: SpanExtend<'s>>(mut self, elem: &T) -> Self {
-        elem.extend_span(&mut self);
-        self
-    }
-}
-
-impl<'s> AsRef<Span<'s>> for Span<'s> {
-    fn as_ref(&self) -> &Span<'s> {
-        self
-    }
-}
-
-
-pub trait SpanExtend<'s> {
-    fn extend_span(&self, span: &mut Span<'s>);
-}
-
-impl<'s, T> SpanExtend<'s> for token::Token<'s, T> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        span.extend(&self.span())
-    }
-}
-
-impl<'s> SpanExtend<'s> for Span<'s> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        span.extend_raw(&self)
-    }
-}
-
-impl<'s> SpanExtend<'s> for Tree<'s> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        span.extend_raw(self.as_ref())
-    }
-}
-
-impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for Vec<T> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        for elem in self {
-            elem.extend_span(span);
-        }
-    }
-}
-
-impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for NonEmptyVec<T> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        for elem in self {
-            elem.extend_span(span);
-        }
-    }
-}
-
-impl<'s, T: SpanExtend<'s>> SpanExtend<'s> for Option<T> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        if let Some(elem) = self {
-            elem.extend_span(span);
-        }
-    }
-}
-
-impl<'s, T: SpanExtend<'s>, E: SpanExtend<'s>> SpanExtend<'s> for Result<T, E> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        match self {
-            Ok(t) => t.extend_span(span),
-            Err(t) => t.extend_span(span),
-        }
-    }
-}
-
-
-//
-// impl<'s, 't, T> SpanExtend<&'t Vec<T>> for Span<'s>
-// where Span<'s>: SpanExtend<&'t T>
-// {
-//     fn extend(&mut self, other: &'t Vec<T>) {
-//         for item in other {
-//             // <Span<'s> as SpanExtend<&'t T>>::extend(&mut self, item);
-//             // self.extend(item);
-//         }
-//     }
-// }
-
 
 
 // ============
@@ -193,12 +91,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// `Vector x y z -> x + y + z`, the `->` token is the beginning of the section, the
         /// `x + y + z` is the section body, and `Vector x y z` is the prefix of this function
         /// application.
-        // MultiSegmentApp {
-        //     pub prefix: Option<Tree>,
-        //     pub segments: NonEmptyVec<MultiSegmentAppSegment>,
-        // }
-        Test {
-            pub token: token::Ident<'s>,
+        MultiSegmentApp {
+            pub prefix: Option<Tree<'s>>,
+            pub segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
         }
     }
 }};}
@@ -244,13 +139,13 @@ impl<'s> Tree<'s> {
 }
 
 
+
 // === App ===
 
 impl<'s> Tree<'s> {
     /// Constructor.
     pub fn app(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
-        let mut span = func.span.trim_as_first_child();
-        span.extend(&arg);
+        let span = span_builder![func, arg];
         Tree(span, Type::from(App(func, arg)))
     }
 }
@@ -275,9 +170,12 @@ impl<'s> MultipleOperatorError<'s> {
     }
 }
 
-impl<'s> SpanExtend<'s> for MultipleOperatorError<'s> {
-    fn extend_span(&self, span: &mut Span<'s>) {
-        span.extend(&self.operators)
+impl<'s, S> span::BuilderElement<S> for MultipleOperatorError<'s>
+where NonEmptyVec<token::Operator<'s>>: span::BuilderElement<S>
+{
+    type Output = <NonEmptyVec<token::Operator<'s>> as span::BuilderElement<S>>::Output;
+    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
+        self.operators.build(builder)
     }
 }
 
@@ -286,22 +184,9 @@ impl<'s> Tree<'s> {
     pub fn opr_app(
         mut lhs: Option<Tree<'s>>,
         mut opr: OperatorOrError<'s>,
-        rhs: Option<Tree<'s>>,
+        mut rhs: Option<Tree<'s>>,
     ) -> Tree<'s> {
-        let mut span = match &mut lhs {
-            Some(lhs) => lhs.span.trim_as_first_child().extended(&opr),
-            None => match &mut opr {
-                Ok(opr) => opr.trim_as_first_child(),
-                Err(err) => {
-                    let mut span = err.operators.first_mut().trim_as_first_child();
-                    for elem in err.operators.iter().skip(1) {
-                        span.extend(elem)
-                    }
-                    span
-                }
-            },
-        };
-        span.extend(&rhs);
+        let span = span_builder![lhs, opr, rhs];
         Tree(span, Type::from(OprApp(lhs, opr, rhs)))
     }
 }
@@ -313,7 +198,7 @@ impl<'s> Tree<'s> {
 impl<'s> Tree<'s> {
     /// Constructor.
     pub fn opr_section_boundary(mut section: Tree<'s>) -> Tree<'s> {
-        let span = section.span.trim_as_first_child();
+        let span = span_builder![section];
         Tree(span, Type::from(OprSectionBoundary(section)))
     }
 }
@@ -328,6 +213,15 @@ pub struct MultiSegmentAppSegment<'s> {
     pub header: token::Token<'s>,
     pub body:   Option<Tree<'s>>,
 }
+
+// impl<'s, S> span::BuilderElement<S> for MultiSegmentAppSegment<'s>
+// where token::Token<'s>: span::BuilderElement<S>
+// {
+//     type Output = Span<'s>;
+//     fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
+//         builder.add(&mut self.header).add(&mut self.body).span
+//     }
+// }
 
 // impl Tree {
 //     /// Constructor.
@@ -354,6 +248,22 @@ pub struct MultiSegmentAppSegment<'s> {
 //     }
 // }
 
+
+// pub trait PartialBuilder {
+//     fn build(self);
+// }
+//
+// impl<S, T> PartialBuilder for (Builder<Option<S>>, T) {
+//     default fn build(self) {
+//         todo!()
+//     }
+// }
+//
+// impl<S, T> PartialBuilder for (Builder<Option<S>>, Option<T>) {
+//     fn build(self) {
+//         todo!()
+//     }
+// }
 
 
 // =====================
