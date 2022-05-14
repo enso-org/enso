@@ -141,6 +141,17 @@ impl<'s> Tree<'s> {
 
 
 
+// === Ident ===
+
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn ident(mut token: token::Ident<'s>) -> Tree<'s> {
+        let span = span_builder![token];
+        Tree(span, Type::from(Ident(token)))
+    }
+}
+
+
 // === App ===
 
 impl<'s> Tree<'s> {
