@@ -36,6 +36,7 @@ public class IntegerParser extends TypeParser<NumericProblemAggregator> {
 
       if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
         problemAggregator.reportLeadingZeroes(text);
+        return null;
       }
 
       return value;

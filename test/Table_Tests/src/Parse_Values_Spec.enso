@@ -8,36 +8,65 @@ import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
 
+from Standard.Table.Data.Serialization_Options as Serialization_Options_Module import Serialization_Options
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection
 
-from Standard.Table.Error as Table_Errors import Invalid_Format
+from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
         t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Integer]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0 Integer]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, Nothing, Nothing, 12345, Nothing]
 
     Test.specify "should correctly parse decimals" <|
-        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "000", "0010", "12345", Nothing]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Decimal]
-        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
-        t2.at "ints" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "0.0", "10.0", "12345.0", "Nothing"]
+        t1 = Table.new [["ints", ["0", "+0", "-0", "+1", "-1", "1", "12345", Nothing]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0 Decimal]
+        t2.at "ints" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 12345, Nothing]
+        t2.at "ints" . to_vector . map .to_text . should_equal ["0.0", "0.0", "-0.0", "1.0", "-1.0", "1.0", "12345.0", "Nothing"]
 
-        t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "000.0000", "0010.", "12345."]]]
-        t4 = t3.parse_values column_types=[Column_Type_Selection 0  Decimal]
+        t3 = Table.new [["floats", ["0.0", "+0.0", "-0.0", "+1.0", "-1.0", "1.0", "0.0000", "10.", "12345."]]]
+        t4 = t3.parse_values column_types=[Column_Type_Selection 0 Decimal]
         t4.at "floats" . to_vector . should_equal [0, 0, 0, 1, -1, 1, 0, 10, 12345]
 
         t5 = Table.new [["floats", [".0", "0.", "1.", ".1", ".123", "-.1", "+.1", "+0.0", "0.1234", Nothing, "11111111.111"]]]
-        t6 = t5.parse_values column_types=[Column_Type_Selection 0  Decimal]
+        t6 = t5.parse_values column_types=[Column_Type_Selection 0 Decimal]
         t6.at "floats" . to_vector . should_equal [0.0, 0.0, 1.0, 0.1, 0.123, -0.1, 0.1, 0.0, 0.1234, Nothing, 11111111.111]
 
-    Test.specify "should warn on leading zeros in numbers, if asked" pending="TODO" <|
-        Error.throw "TODO"
+    Test.specify "should warn on leading zeros in numbers, if asked" <|
+        t1 = Table.new [["ints", ["0", "+00", "-00", "+01", "-01", "01", "000", "0010", "12345", Nothing]]]
+        t2 = Table.new [["floats", ["0.0000", ".0", "00.", "01.0", "-0010.0000", "1.0000"]]]
+
+        t1_parsed = [0, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 12345, Nothing]
+        t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
+        t3 = t1.parse_values column_types=[Column_Type_Selection 0 Integer]
+        t3.at "ints" . to_vector . should_equal t1_parsed
+        Warning.get_all t3 . map .value . should_equal [Leading_Zeros "ints" Integer t1_zeros]
+        
+        t4 = t1.parse_values column_types=[Column_Type_Selection 0 Decimal]
+        t4.at "ints" . to_vector . should_equal t1_parsed
+        Warning.get_all t4 . map .value . should_equal [Leading_Zeros "ints" Decimal t1_zeros]
+
+        t5 = t2.parse_values column_types=[Column_Type_Selection 0 Decimal]
+        t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
+        Warning.get_all t5 . map .value . should_equal [Leading_Zeros "floats" Decimal ["00.", "01.0", '-0010.0000']]
+
+        opts = Serialization_Options allow_leading_zeros=True
+        t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
+        t6 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Integer]
+        t6.at "ints" . to_vector . should_equal t1_parsed_zeros
+        Warning.get_all t6 . should_equal []
+
+        t7 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t7.at "ints" . to_vector . should_equal t1_parsed_zeros
+        Warning.get_all t7 . should_equal []
+        t8 = t2.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
+        Warning.get_all t8 . should_equal []
 
     Test.specify "should correctly parse booleans" <|
         t1 = Table.new [["bools", ["true", "false", "True", "TRUE", "FALSE", Nothing, "False"]]]
-        t2 = t1.parse_values column_types=[Column_Type_Selection 0  Boolean]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0 Boolean]
         t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
 
     Test.specify "should warn when cells do not fit the expected format" <|
@@ -48,7 +77,7 @@ spec = Test.group "Table.parse_values" <|
         t = Table.new [ints, floats, bools]
 
         action pb =
-            t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=pb
+            t.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=pb
         tester t =
             t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
             t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
@@ -79,7 +108,7 @@ spec = Test.group "Table.parse_values" <|
         # TODO: ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
         Error.throw "TODO"
 
-    Test.specify "should allow to specify a thousands separator and custom decimal point" pending="TODO" <|
+    Test.specify "should allow to specify a thousands separator and a custom decimal point" pending="TODO" <|
         Error.throw "TODO"
 
     Test.specify "should allow to specify custom values for booleans" pending="TODO" <|

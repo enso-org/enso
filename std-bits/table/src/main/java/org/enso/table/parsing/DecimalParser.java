@@ -70,6 +70,7 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
 
     if (!leadingZerosAllowed && hasLeadingZeros(replaced)) {
       problemAggregator.reportLeadingZeroes(text);
+      return null;
     }
 
     return result.doubleValue();
