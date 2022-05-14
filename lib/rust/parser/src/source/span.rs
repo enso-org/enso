@@ -327,10 +327,34 @@ pub trait Build<T> {
     fn build(&mut self, builder: Builder<T>) -> Self::Output;
 }
 
-impl<'s> Build<()> for Tree<'s> {
+impl<'s> Build<()> for Span<'s> {
     type Output = Span<'s>;
     fn build(&mut self, _builder: Builder<()>) -> Self::Output {
-        self.span.trim_as_first_child()
+        self.trim_as_first_child()
+    }
+}
+
+impl<'s> Build<Span<'s>> for Span<'s> {
+    type Output = Span<'s>;
+    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
+        builder.span.extended(&*self)
+    }
+}
+
+impl<'s> Build<Option<Span<'s>>> for Span<'s> {
+    type Output = Span<'s>;
+    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
+        match builder.span {
+            Some(span) => span.extended(&*self),
+            None => self.trim_as_first_child(),
+        }
+    }
+}
+
+impl<'s> Build<()> for Tree<'s> {
+    type Output = Span<'s>;
+    fn build(&mut self, builder: Builder<()>) -> Self::Output {
+        Build::build(&mut self.span, builder)
     }
 }
 
@@ -344,7 +368,7 @@ impl<'s> Build<Span<'s>> for Tree<'s> {
 impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        self.span.build(builder)
+        Build::build(&mut self.span, builder)
     }
 }
 
@@ -372,22 +396,6 @@ impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
     }
 }
 
-impl<'s> Build<Span<'s>> for Span<'s> {
-    type Output = Span<'s>;
-    fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        builder.span.extended(&*self)
-    }
-}
-
-impl<'s> Build<Option<Span<'s>>> for Span<'s> {
-    type Output = Span<'s>;
-    fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        match builder.span {
-            Some(span) => span.extended(&*self),
-            None => self.trim_as_first_child(),
-        }
-    }
-}
 
 
 impl<T> Build<()> for Option<T>
@@ -395,7 +403,7 @@ where T: Build<()>
 {
     type Output = Option<<T as Build<()>>::Output>;
     fn build(&mut self, builder: Builder<()>) -> Self::Output {
-        self.as_mut().map(|t| t.build(builder))
+        self.as_mut().map(|t| Build::build(t, builder))
     }
 }
 
@@ -404,7 +412,7 @@ where T: Build<Option<Span<'s>>>
 {
     type Output = Option<<T as Build<Option<Span<'s>>>>::Output>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
-        self.as_mut().map(|t| t.build(builder))
+        self.as_mut().map(|t| Build::build(t, builder))
     }
 }
 
@@ -415,7 +423,7 @@ where T: Build<Span<'s>, Output = Span<'s>>
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         match self.as_mut() {
             None => builder.span,
-            Some(t) => t.build(builder),
+            Some(t) => Build::build(t, builder),
         }
     }
 }
@@ -429,11 +437,12 @@ where
     type Output = <T as Build<S>>::Output;
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
         match self {
-            Ok(t) => t.build(builder),
-            Err(t) => t.build(builder),
+            Ok(t) => Build::build(t, builder),
+            Err(t) => Build::build(t, builder),
         }
     }
 }
+
 
 
 
@@ -444,8 +453,8 @@ where
 {
     type Output = <[T] as Build<T::Output>>::Output;
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
-        let b = self.first_mut().build(builder);
-        self.tail_mut().build(Builder(b))
+        let b = Build::build(self.first_mut(), builder);
+        Build::build(self.tail_mut(), Builder(b))
     }
 }
 
@@ -456,7 +465,7 @@ where T: Build<Span<'s>, Output = Span<'s>>
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out));
+            out = Build::build(elem, Builder(out))
         }
         out
     }
@@ -471,7 +480,7 @@ where
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out)).into();
+            out = Build::build(elem, Builder(out)).into();
         }
         out
     }
@@ -484,7 +493,7 @@ where T: Build<Span<'s>, Output = Span<'s>>
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out));
+            out = Build::build(elem, Builder(out));
         }
         out
     }
@@ -499,7 +508,7 @@ where
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out)).into();
+            out = Build::build(elem, Builder(out)).into();
         }
         out
     }

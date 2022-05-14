@@ -81,13 +81,13 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
 
-        // impl<'a> SpanVisitable<'a> for #ident #ty_generics {
-        //     fn visit_span<T: SpanVisitor<'a>>(&'a self, visitor:&mut T) {
-        //         visitor.before_visiting_children();
-        //         #body_span
-        //         visitor.after_visiting_children();
-        //     }
-        // }
+        impl #impl_generics SpanVisitable #impl_generics for #ident #ty_generics {
+            fn visit_span<T: SpanVisitor #impl_generics>(&'a self, visitor:&mut T) {
+                visitor.before_visiting_children();
+                #body_span
+                visitor.after_visiting_children();
+            }
+        }
         //
         // impl<'a> SpanVisitableMut<'a> for #ident #ty_generics {
         //     fn visit_span_mut<T: SpanVisitorMut>(&'a mut self, visitor:&mut T) {

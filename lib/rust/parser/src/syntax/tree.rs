@@ -463,7 +463,7 @@ macro_rules! define_visitor_for_tokens {
 }
 
 define_visitor!(Tree, visit, visit_mut);
-// define_visitor!(Span, visit_span, visit_span_mut);
+define_visitor!(Span, visit_span, visit_span_mut);
 crate::with_token_definition!(define_visitor_for_tokens());
 
 impl<'a, 's, T> TreeVisitable<'a, 's> for token::Token<'s, T> {}
@@ -485,6 +485,21 @@ impl<'a, 's> TreeVisitableMut<'a, 's> for Tree<'s> {
         if visitor.visit_mut(self) {
             self.variant.visit_mut(visitor)
         }
+    }
+}
+
+impl<'a, 's> SpanVisitable<'a, 's> for Tree<'s> {
+    fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
+        if visitor.visit(&self.span) {
+            self.variant.visit_span(visitor)
+        }
+    }
+}
+
+impl<'a, 's, T> SpanVisitable<'a, 's> for token::Token<'s, T> {
+    fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
+        // visitor.visit(&self.span());
+        // FIXME
     }
 }
 
