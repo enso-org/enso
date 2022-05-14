@@ -119,9 +119,12 @@ Invalid_Location.to_display_text : Text
 Invalid_Location.to_display_text =
     "The location '"+this.location+"' is not valid."
 
-## Indicates that a given value did not fit to the
+## Indicates that some values did not match the expected datatype format.
 type Invalid_Format column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
 Invalid_Format.to_display_text : Text
 Invalid_Format.to_display_text =
     this.cells.length+" cells in column "+this.column+" had invalid format for datatype "+this.datatype.to_text+"."
+
+## Indicates that some values contained leading zeros even though these were not allowed.
+type Leading_Zeros column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])

@@ -11,6 +11,7 @@ import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Parse_Values_Helper
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -564,6 +565,8 @@ type Table
                 ## TODO check duplicate names and OOB indices and attach problems here
                 columns.map_with_index find_datatype
 
+        ## We need to use the builder, because the warnings do not seem to propagate correctly.
+        problem_builder = Vector.new_builder
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
             Nothing -> column
             Auto -> Error.unimplemented "Automatic datatype inference is not implemented yet."
@@ -580,10 +583,15 @@ type Table
                 ## TODO stripping whitespace
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn storage
-                ## TODO problems
                 new_storage = new_storage_and_problems.value
+                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem column.name expected_type)
+                problems.each problem_builder.append
                 Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
-        here.new new_columns
+
+        ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
+           https://github.com/enso-org/enso/pull/3400
+        result = here.new new_columns
+        on_problems.attach_problems_after result problem_builder.to_vector
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns

@@ -47,7 +47,8 @@ spec = Test.group "Table.parse_values" <|
         bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true", "truefalse"]]
         t = Table.new [ints, floats, bools]
 
-        action = t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=_
+        action pb =
+            t.parse_values column_types=[Column_Type_Selection 0  Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean] on_problems=pb
         tester t =
             t.at "ints" . to_vector . should_equal [0, 1, Nothing, Nothing, Nothing, Nothing, Nothing, 10, Nothing]
             t.at "floats" . to_vector . should_equal [0, 2, Nothing, Nothing, Nothing, Nothing, Nothing, 100, Nothing]
@@ -55,7 +56,7 @@ spec = Test.group "Table.parse_values" <|
         problems =
             ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
             floats = Invalid_Format "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
-            bools = Invalid_Format "bools" Integer ["fAlSE", "foobar", "", "0", "1", "truefalse"]
+            bools = Invalid_Format "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
             [ints, floats, bools]
         Problems.test_problem_handling action problems tester
 

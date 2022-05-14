@@ -15,7 +15,7 @@ public class NumericProblemAggregator extends InvalidFormatProblemAggregator {
     List<ParsingProblem> problems = new ArrayList<>(super.getAggregatedProblems());
 
     if (!leadingZerosCells.isEmpty()) {
-      problems.add(new LeadingZeroes(leadingZerosCells));
+      problems.add(new LeadingZeros(leadingZerosCells));
     }
 
     return problems;
