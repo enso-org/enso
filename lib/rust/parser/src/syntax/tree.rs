@@ -3,6 +3,7 @@ use crate::prelude::*;
 
 use crate::source::span;
 use crate::source::span::Span;
+use crate::source::span::SpanRefMut;
 use crate::source::Offset;
 use crate::syntax::token;
 // use crate::syntax::token::Token;
@@ -224,47 +225,17 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
     }
 }
 
-// impl Tree {
-//     /// Constructor.
-//     pub fn multi_segment_app(
-//         mut prefix: Option<Tree>,
-//         mut segments: NonEmptyVec<MultiSegmentAppSegment>,
-//     ) -> Self {
-//         let left_span = if let Some(prefix) = prefix.as_mut() {
-//             prefix.trim_left()
-//         } else {
-//             let first = segments.first_mut();
-//             let (left_span, left_trimmed_token) = first.header.split_at_start();
-//             first.header = left_trimmed_token;
-//             left_span
-//         };
-//         let last_segment = segments.last();
-//         let total = if let Some(last_segment_body) = &last_segment.body {
-//             left_span.extended_to(last_segment_body)
-//         } else {
-//             left_span.extended_to(&last_segment.header)
-//         };
-//         let data = Type::from(MultiSegmentApp { prefix, segments });
-//         total.with(data)
-//     }
-// }
+impl<'s> Tree<'s> {
+    /// Constructor.
+    pub fn multi_segment_app(
+        mut prefix: Option<Tree<'s>>,
+        mut segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
+    ) -> Self {
+        let span = span_builder![prefix, segments];
+        Tree(span, Type::from(MultiSegmentApp(prefix, segments)))
+    }
+}
 
-
-// pub trait PartialBuilder {
-//     fn build(self);
-// }
-//
-// impl<S, T> PartialBuilder for (Builder<Option<S>>, T) {
-//     default fn build(self) {
-//         todo!()
-//     }
-// }
-//
-// impl<S, T> PartialBuilder for (Builder<Option<S>>, Option<T>) {
-//     fn build(self) {
-//         todo!()
-//     }
-// }
 
 
 // =====================
@@ -463,7 +434,7 @@ macro_rules! define_visitor_for_tokens {
 }
 
 define_visitor!(Tree, visit, visit_mut);
-define_visitor!(Span, visit_span, visit_span_mut);
+// define_visitor!(Span, visit_span, visit_span_mut);
 crate::with_token_definition!(define_visitor_for_tokens());
 
 impl<'a, 's, T> TreeVisitable<'a, 's> for token::Token<'s, T> {}
@@ -488,20 +459,89 @@ impl<'a, 's> TreeVisitableMut<'a, 's> for Tree<'s> {
     }
 }
 
-impl<'a, 's> SpanVisitable<'a, 's> for Tree<'s> {
-    fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
-        if visitor.visit(&self.span) {
-            self.variant.visit_span(visitor)
+// impl<'a, 's> SpanVisitable<'a, 's> for Tree<'s> {
+//     fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
+//         if visitor.visit(&self.span) {
+//             self.variant.visit_span(visitor)
+//         }
+//     }
+// }
+//
+// impl<'a, 's, T> SpanVisitable<'a, 's> for token::Token<'s, T> {
+//     fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
+//         // visitor.visit(&self.span());
+//         // FIXME
+//     }
+// }
+
+impl<'a, 's> SpanVisitableMut<'a, 's> for Tree<'s> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        if visitor.visit_mut(SpanRefMut {
+            left_offset: &mut self.span.left_offset,
+            length:      self.span.length,
+        }) {
+            self.variant.visit_span_mut(visitor)
         }
     }
 }
 
-impl<'a, 's, T> SpanVisitable<'a, 's> for token::Token<'s, T> {
-    fn visit_span<V: SpanVisitor<'a, 's>>(&'a self, visitor: &mut V) {
-        // visitor.visit(&self.span());
-        // FIXME
+impl<'a, 't, 's, T> SpanVisitableMut<'a, 's> for token::Token<'s, T> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        let length = self.len();
+        visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, length });
     }
 }
+
+
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait SpanVisitorMut<'a, 's> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit_mut(&mut self, ast: SpanRefMut<'a, 's>) -> bool;
+}
+
+/// The visitable trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait SpanVisitableMut<'a, 's> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, _visitor: &mut V) {}
+}
+impl<'a, 't, 's, T: SpanVisitableMut<'a, 's>> SpanVisitableMut<'a, 's> for Box<T> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        SpanVisitableMut::visit_span_mut(&mut **self, visitor)
+    }
+}
+impl<'a, 't, 's, T: SpanVisitableMut<'a, 's>> SpanVisitableMut<'a, 's> for Option<T> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        if let Some(elem) = self {
+            SpanVisitableMut::visit_span_mut(elem, visitor)
+        }
+    }
+}
+impl<'a, 't, 's, T: SpanVisitableMut<'a, 's>, E: SpanVisitableMut<'a, 's>> SpanVisitableMut<'a, 's>
+    for Result<T, E>
+{
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        match self {
+            Ok(elem) => SpanVisitableMut::visit_span_mut(elem, visitor),
+            Err(elem) => SpanVisitableMut::visit_span_mut(elem, visitor),
+        }
+    }
+}
+impl<'a, 't, 's, T: SpanVisitableMut<'a, 's>> SpanVisitableMut<'a, 's> for Vec<T> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        self.iter_mut().map(|t| SpanVisitableMut::visit_span_mut(t, visitor)).for_each(drop);
+    }
+}
+impl<'a, 't, 's, T: SpanVisitableMut<'a, 's>> SpanVisitableMut<'a, 's> for NonEmptyVec<T> {
+    fn visit_span_mut<V: SpanVisitorMut<'a, 's>>(&'a mut self, visitor: &mut V) {
+        self.iter_mut().map(|t| SpanVisitableMut::visit_span_mut(t, visitor)).for_each(drop);
+    }
+}
+impl<'a, 's> SpanVisitableMut<'a, 's> for &str {}
+impl<'a, 's> SpanVisitableMut<'a, 's> for str {}
 
 // impl<'a, T: TreeVisitable<'a>> TreeVisitable<'a> for span::With<T> {
 //     default fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {

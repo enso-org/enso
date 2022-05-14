@@ -90,7 +90,11 @@ impl<'s, T> Lexeme<'s, T> {
 
     pub fn span(&self) -> Span<'s> {
         let left_offset = self.left_offset.clone();
-        let length = Bytes(self.code.len());
+        let length = self.len();
         Span { left_offset, length }
+    }
+
+    pub fn len(&self) -> Bytes {
+        Bytes(self.code.len())
     }
 }

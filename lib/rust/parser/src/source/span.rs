@@ -74,6 +74,12 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
 // === Span ===
 // ============
 
+#[derive(Debug, Eq, PartialEq)]
+pub struct SpanRefMut<'t, 's> {
+    pub left_offset: &'t mut Offset<'s>,
+    pub length:      Bytes,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Span<'s> {
     pub left_offset: Offset<'s>,
@@ -442,7 +448,6 @@ where
         }
     }
 }
-
 
 
 
