@@ -99,13 +99,13 @@
 #![warn(unused_qualifications)]
 
 
-// use crate::prelude::*;
+use crate::prelude::*;
 
-// use enso_data_structures::im_list;
-// use enso_data_structures::im_list::List;
+use enso_data_structures::im_list;
+use enso_data_structures::im_list::List;
 // use macros::pattern::Pattern;
 // use source::span;
-// use syntax::token::Token;
+use syntax::token::Token;
 
 
 // ==============
@@ -117,7 +117,7 @@ pub mod macros;
 pub mod source;
 pub mod syntax;
 
-// use lexer::Lexer;
+use lexer::Lexer;
 // use syntax::token;
 
 
@@ -130,41 +130,41 @@ pub mod prelude {
 
 
 
-// // =================================
-// // === SyntaxItemOrMacroResolver ===
-// // =================================
-//
-// /// One of [`syntax::Item`] or [`MacroResolver`].
-// #[derive(Debug)]
-// #[allow(missing_docs)]
-// pub enum SyntaxItemOrMacroResolver<'a> {
-//     SyntaxItem(syntax::Item),
-//     MacroResolver(MacroResolver<'a>),
-// }
-//
-// impl<'a> From<syntax::Item> for SyntaxItemOrMacroResolver<'a> {
-//     fn from(t: syntax::Item) -> Self {
-//         Self::SyntaxItem(t)
-//     }
-// }
-//
-// impl<'a> From<MacroResolver<'a>> for SyntaxItemOrMacroResolver<'a> {
-//     fn from(t: MacroResolver<'a>) -> Self {
-//         Self::MacroResolver(t)
-//     }
-// }
-//
-// impl<'a> TryAsRef<syntax::Item> for SyntaxItemOrMacroResolver<'a> {
-//     fn try_as_ref(&self) -> Option<&syntax::Item> {
-//         match self {
-//             Self::SyntaxItem(t) => Some(t),
-//             _ => None,
-//         }
-//     }
-// }
-//
-// impl<'a> source::HasRepr<'a> for source::With<'a, &syntax::Item> {
-//     fn repr(&self) -> &'a str {
+// =================================
+// === SyntaxItemOrMacroResolver ===
+// =================================
+
+/// One of [`syntax::Item`] or [`MacroResolver`].
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub enum SyntaxItemOrMacroResolver<'s> {
+    SyntaxItem(syntax::Item<'s>),
+    MacroResolver(MacroResolver<'s>),
+}
+
+impl<'s> From<syntax::Item<'s>> for SyntaxItemOrMacroResolver<'s> {
+    fn from(t: syntax::Item<'s>) -> Self {
+        Self::SyntaxItem(t)
+    }
+}
+
+impl<'s> From<MacroResolver<'s>> for SyntaxItemOrMacroResolver<'s> {
+    fn from(t: MacroResolver<'s>) -> Self {
+        Self::MacroResolver(t)
+    }
+}
+
+impl<'s> TryAsRef<syntax::Item<'s>> for SyntaxItemOrMacroResolver<'s> {
+    fn try_as_ref(&self) -> Option<&syntax::Item<'s>> {
+        match self {
+            Self::SyntaxItem(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+// impl<'s> source::HasRepr<'s> for source::With<'s, &syntax::Item<'s>> {
+//     fn repr(&self) -> &'s str {
 //         match self.data {
 //             syntax::Item::Token(t) => self.with_data(t).repr(),
 //             syntax::Item::Tree(t) => self.with_data(t).repr(),
@@ -173,28 +173,28 @@ pub mod prelude {
 // }
 //
 //
-// // ======================
-// // === MacroMatchTree ===
-// // ======================
-//
-// /// A tree-like structure encoding potential macro matches. The keys are representations of
-// tokens /// that can be matched. For example, the key could be "if" or "->". Each key is
-// associated with one /// or more [`PartiallyMatchedMacro`], which stories a list of required
-// segments and a macro /// definition in case all the segments were matched. For example, for the
-// "if" key, there can be /// two required segment lists, one for "then" and "else" segments, and
-// one for the "then" segment /// only.
-// #[derive(Default, Debug, Deref, DerefMut)]
-// pub struct MacroMatchTree<'a> {
-//     map: HashMap<&'a str, NonEmptyVec<PartiallyMatchedMacro<'a>>>,
-// }
-//
-// /// Partially matched macro info. See docs of [`MacroMatchTree`] to learn more.
-// #[derive(Clone, Debug)]
-// #[allow(missing_docs)]
-// pub struct PartiallyMatchedMacro<'a> {
-//     pub required_segments: List<macros::SegmentDefinition<'a>>,
-//     pub definition:        Rc<macros::Definition<'a>>,
-// }
+// ======================
+// === MacroMatchTree ===
+// ======================
+
+/// A tree-like structure encoding potential macro matches. The keys are representations of tokens
+/// that can be matched. For example, the key could be "if" or "->". Each key is associated with one
+/// or more [`PartiallyMatchedMacro`], which stories a list of required segments and a macro
+/// definition in case all the segments were matched. For example, for the "if" key, there can be
+/// two required segment lists, one for "then" and "else" segments, and one for the "then" segment
+/// only.
+#[derive(Default, Debug, Deref, DerefMut)]
+pub struct MacroMatchTree<'s> {
+    map: HashMap<&'s str, NonEmptyVec<PartiallyMatchedMacro<'s>>>,
+}
+
+/// Partially matched macro info. See docs of [`MacroMatchTree`] to learn more.
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct PartiallyMatchedMacro<'s> {
+    pub required_segments: List<macros::SegmentDefinition<'s>>,
+    pub definition:        Rc<macros::Definition<'s>>,
+}
 //
 // impl<'a> MacroMatchTree<'a> {
 //     /// Register a new macro definition in this macro tree.
@@ -214,20 +214,20 @@ pub mod prelude {
 //
 //
 //
-// // =====================
-// // === MacroResolver ===
-// // =====================
-//
-// /// Enso macro resolver. See the docs of the main module to learn more about the macro resolution
-// /// steps.
-// #[derive(Debug)]
-// #[allow(missing_docs)]
-// pub struct MacroResolver<'a> {
-//     pub current_segment:        MatchedSegment<'a>,
-//     pub resolved_segments:      Vec<MatchedSegment<'a>>,
-//     pub possible_next_segments: MacroMatchTree<'a>,
-//     pub matched_macro_def:      Option<Rc<macros::Definition<'a>>>,
-// }
+// =====================
+// === MacroResolver ===
+// =====================
+
+/// Enso macro resolver. See the docs of the main module to learn more about the macro resolution
+/// steps.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct MacroResolver<'s> {
+    pub current_segment:        MatchedSegment<'s>,
+    pub resolved_segments:      Vec<MatchedSegment<'s>>,
+    pub possible_next_segments: MacroMatchTree<'s>,
+    pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
+}
 //
 // impl<'a> MacroResolver<'a> {
 //     /// A new macro resolver with a special "root" segment definition. The "root" segment does
@@ -258,11 +258,11 @@ pub mod prelude {
 //     }
 // }
 //
-// #[derive(Debug)]
-// pub struct MatchedSegment<'a> {
-//     header: Token,
-//     body:   Vec<SyntaxItemOrMacroResolver<'a>>,
-// }
+#[derive(Debug)]
+pub struct MatchedSegment<'s> {
+    header: Token<'s>,
+    body:   Vec<SyntaxItemOrMacroResolver<'s>>,
+}
 //
 // impl<'a> MatchedSegment<'a> {
 //     pub fn new(header: Token) -> Self {
