@@ -3,11 +3,10 @@
 
 use crate::prelude::*;
 
-use crate::source::Lexeme;
 use crate::source::Offset;
+use crate::source::Token;
 use crate::source::VisibleOffset;
 use crate::syntax::token;
-use crate::syntax::token::Token;
 
 use bumpalo::Bump;
 use ouroboros::self_referencing;
@@ -213,17 +212,17 @@ impl<'s> Lexer<'s> {
         self.run_and_get_offset(f).1.is_positive()
     }
 
-    /// Consume spaces after parsing a [`Lexeme`] and update the internal spacing info.
+    /// Consume spaces after parsing a [`Token`] and update the internal spacing info.
     #[inline(always)]
     fn spaces_after_lexeme(&mut self) {
         (self.last_spaces_visible_offset, self.last_spaces_offset) =
             self.run_and_get_offset(|this| this.spaces());
     }
 
-    /// Run the provided function. If it consumed any chars, return the [`Lexeme`] containing the
+    /// Run the provided function. If it consumed any chars, return the [`Token`] containing the
     /// provided function output. Returns [`None`] otherwise.
     #[inline(always)]
-    pub fn lexeme<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Lexeme<'s, T>> {
+    pub fn lexeme<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<'s, T>> {
         let start = self.current_offset;
         let (elem, len) = self.run_and_get_offset(f);
         let end = start + len;
@@ -232,23 +231,23 @@ impl<'s> Lexer<'s> {
 
     /// Token constructor with explicit start and len values.
     #[inline(always)]
-    fn new_lexeme<T>(&mut self, code: &'s str, elem: T) -> Lexeme<'s, T> {
+    fn new_lexeme<T>(&mut self, code: &'s str, elem: T) -> Token<'s, T> {
         let offset_start = self.current_offset - self.last_spaces_offset;
         let offset_code = self.input.slice(offset_start..self.current_offset);
         let visible_offset = self.last_spaces_visible_offset;
         let offset = Offset(visible_offset, offset_code);
         self.spaces_after_lexeme();
-        Lexeme(offset, code, elem)
+        Token(offset, code, elem)
     }
 
     /// A zero-length token which is placed before currently consumed spaces.
     #[inline(always)]
-    pub fn marker_lexeme<T>(&mut self, elem: T) -> Lexeme<'s, T> {
+    pub fn marker_lexeme<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
         let start = self.current_offset - self.last_spaces_offset;
         let code = self.input.slice(start..start);
         let offset = Offset(visible_offset, code);
-        Lexeme(offset, code, elem)
+        Token(offset, code, elem)
     }
 
     /// Push the [`token`] to the result stream.
@@ -723,7 +722,7 @@ impl<'s> Lexer<'s> {
 // =============
 
 impl<'s> Lexer<'s> {
-    fn line_break(&mut self) -> Option<Lexeme<'s, ()>> {
+    fn line_break(&mut self) -> Option<Token<'s, ()>> {
         self.lexeme(|this| {
             if !this.take_1('\n') {
                 if this.take_1('\r') {
@@ -830,7 +829,7 @@ impl<'s> Token<'s> {
             left_offset:         Bytes(0),
             len:                 Bytes(repr.len()),
         };
-        Token { span, elem: Lexeme::new(repr, token::Variant::ident(is_free, lift_level)) }
+        Token { span, elem: Token::new(repr, token::Variant::ident(is_free, lift_level)) }
     }
 }
 
@@ -900,7 +899,7 @@ mod tests {
             left_offset:         Bytes(left_offset),
             len:                 Bytes(repr.len()),
         };
-        let elem = Lexeme::new(repr, token::Variant::ident(is_free, lift_level));
+        let elem = Token::new(repr, token::Variant::ident(is_free, lift_level));
         Token { span, elem }
     }
 
@@ -911,7 +910,7 @@ mod tests {
             left_offset:         Bytes(left_offset),
             len:                 Bytes(repr.len()),
         };
-        let elem = Lexeme::new(repr, token::Variant::wildcard(lift_level));
+        let elem = Token::new(repr, token::Variant::wildcard(lift_level));
         Token { span, elem }
     }
 
@@ -921,7 +920,7 @@ mod tests {
             left_offset:         Bytes(left_offset),
             len:                 Bytes(repr.len()),
         };
-        let elem = Lexeme::new(repr, token::Variant::operator());
+        let elem = Token::new(repr, token::Variant::operator());
         Token { span, elem }
     }
 
@@ -931,7 +930,7 @@ mod tests {
             left_offset:         Bytes(left_offset),
             len:                 Bytes(repr.len()),
         };
-        let elem = Lexeme::new(repr, token::Variant::newline());
+        let elem = Token::new(repr, token::Variant::newline());
         Token { span, elem }
     }
 
@@ -942,7 +941,7 @@ mod tests {
     //         start:               Bytes(0),
     //         len:                 Bytes(0),
     //     };
-    //     let elem = Lexeme::new(repr, token::Variant::block_start());
+    //     let elem = Token::new(repr, token::Variant::block_start());
     //     Token { span, elem }
     // }
 

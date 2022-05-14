@@ -195,25 +195,25 @@ pub struct PartiallyMatchedMacro<'s> {
     pub required_segments: List<macros::SegmentDefinition<'s>>,
     pub definition:        Rc<macros::Definition<'s>>,
 }
-//
-// impl<'a> MacroMatchTree<'a> {
-//     /// Register a new macro definition in this macro tree.
-//     pub fn register(&mut self, definition: macros::Definition<'a>) {
-//         let header = definition.segments.head.header;
-//         let entry = PartiallyMatchedMacro {
-//             required_segments: definition.segments.tail.clone(),
-//             definition:        Rc::new(definition),
-//         };
-//         if let Some(node) = self.get_mut(header) {
-//             node.push(entry);
-//         } else {
-//             self.insert(header, NonEmptyVec::singleton(entry));
-//         }
-//     }
-// }
-//
-//
-//
+
+impl<'a> MacroMatchTree<'a> {
+    /// Register a new macro definition in this macro tree.
+    pub fn register(&mut self, definition: macros::Definition<'a>) {
+        let header = definition.segments.head.header;
+        let entry = PartiallyMatchedMacro {
+            required_segments: definition.segments.tail.clone(),
+            definition:        Rc::new(definition),
+        };
+        if let Some(node) = self.get_mut(header) {
+            node.push(entry);
+        } else {
+            self.insert(header, NonEmptyVec::singleton(entry));
+        }
+    }
+}
+
+
+
 // =====================
 // === MacroResolver ===
 // =====================
@@ -228,11 +228,11 @@ pub struct MacroResolver<'s> {
     pub possible_next_segments: MacroMatchTree<'s>,
     pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
 }
-//
+
 // impl<'a> MacroResolver<'a> {
 //     /// A new macro resolver with a special "root" segment definition. The "root" segment does
 // not     /// exist in the source code, it is simply the whole expression being parsed. It is
-// treated as     /// a macro in order to unify the algorithms.
+// treated     /// as a macro in order to unify the algorithms.
 //     pub fn new_root() -> Self {
 //         let current_segment = MatchedSegment {
 //             header: span::With::new_no_left_offset_no_len(Bytes::from(0),

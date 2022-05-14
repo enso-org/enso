@@ -6,7 +6,7 @@ use crate::source;
 
 use enso_shapely_macros::tagged_enum;
 
-use source::Lexeme;
+pub use source::Token;
 
 
 // =============
@@ -14,9 +14,9 @@ use source::Lexeme;
 // =============
 
 
-/// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
-/// parsing pipeline.
-pub type Token<'s, T = Variant> = Lexeme<'s, T>;
+// /// Parsing token, output of lexing. Read the docs in the main lib file to learn more about the
+// /// parsing pipeline.
+// pub type Token<'s, T = Variant> = Lexeme<'s, T>;
 
 
 
