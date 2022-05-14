@@ -314,110 +314,55 @@ impl Builder<()> {
 }
 
 impl<T> Builder<T> {
-    pub fn add<S>(
-        self,
-        elem: &mut S,
-    ) -> Builder<<<S as BuilderElement<T>>::Output as BuilderFlattener>::Flattened>
-    where
-        S: BuilderElement<T>,
-        S::Output: BuilderFlattener,
-    {
-        Builder(elem.build(self).flatten_builder())
+    pub fn add<S>(self, elem: &mut S) -> Builder<S::Output>
+    where S: Build<T> {
+        Builder(elem.build(self))
     }
 }
 
 
 
-pub trait BuilderFlattener {
-    type Flattened;
-    fn flatten_builder(self) -> Self::Flattened;
-}
-
-impl BuilderFlattener for () {
-    type Flattened = ();
-    fn flatten_builder(self) -> Self::Flattened {
-        self
-    }
-}
-
-impl<'s> BuilderFlattener for Span<'s> {
-    type Flattened = Span<'s>;
-    fn flatten_builder(self) -> Self::Flattened {
-        self
-    }
-}
-
-impl<'s> BuilderFlattener for Option<Span<'s>> {
-    type Flattened = Option<Span<'s>>;
-    fn flatten_builder(self) -> Self::Flattened {
-        self
-    }
-}
-
-// impl<'s> BuilderFlattener for Option<Option<Span<'s>>> {
-//     type Flattened = Option<Span<'s>>;
-//     fn flatten_builder(self) -> Self::Flattened {
-//         self.and_then(|t| t)
-//     }
-// }
-//
-// impl<'s> BuilderFlattener for Option<Option<Option<Span<'s>>>> {
-//     type Flattened = Option<Span<'s>>;
-//     fn flatten_builder(self) -> Self::Flattened {
-//         self.and_then(|t| t.flatten_builder())
-//     }
-// }
-//
-// impl<'s> BuilderFlattener for Option<Option<Option<Option<Span<'s>>>>> {
-//     type Flattened = Option<Span<'s>>;
-//     fn flatten_builder(self) -> Self::Flattened {
-//         self.and_then(|t| t.flatten_builder())
-//     }
-// }
-
-
-
-pub trait BuilderElement<T> {
+pub trait Build<T> {
     type Output;
     fn build(&mut self, builder: Builder<T>) -> Self::Output;
 }
 
-impl<'s> BuilderElement<()> for Tree<'s> {
+impl<'s> Build<()> for Tree<'s> {
     type Output = Span<'s>;
     fn build(&mut self, _builder: Builder<()>) -> Self::Output {
         self.span.trim_as_first_child()
     }
 }
 
-impl<'s> BuilderElement<Span<'s>> for Tree<'s> {
+impl<'s> Build<Span<'s>> for Tree<'s> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(&self.span)
     }
 }
 
-impl<'s> BuilderElement<Option<Span<'s>>> for Tree<'s> {
+impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         self.span.build(builder)
     }
 }
 
-impl<'s, T> BuilderElement<()> for token::Token<'s, T> {
+impl<'s, T> Build<()> for token::Token<'s, T> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<()>) -> Self::Output {
         self.trim_as_first_child()
     }
 }
 
-impl<'s, T> BuilderElement<Span<'s>> for token::Token<'s, T> {
+impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(&self.span())
     }
 }
 
-impl<'s, T> BuilderElement<Option<Span<'s>>> for token::Token<'s, T> {
+impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         match builder.span {
@@ -427,14 +372,14 @@ impl<'s, T> BuilderElement<Option<Span<'s>>> for token::Token<'s, T> {
     }
 }
 
-impl<'s> BuilderElement<Span<'s>> for Span<'s> {
+impl<'s> Build<Span<'s>> for Span<'s> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(&*self)
     }
 }
 
-impl<'s> BuilderElement<Option<Span<'s>>> for Span<'s> {
+impl<'s> Build<Option<Span<'s>>> for Span<'s> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         match builder.span {
@@ -445,26 +390,26 @@ impl<'s> BuilderElement<Option<Span<'s>>> for Span<'s> {
 }
 
 
-impl<T> BuilderElement<()> for Option<T>
-where T: BuilderElement<()>
+impl<T> Build<()> for Option<T>
+where T: Build<()>
 {
-    type Output = Option<<T as BuilderElement<()>>::Output>;
+    type Output = Option<<T as Build<()>>::Output>;
     fn build(&mut self, builder: Builder<()>) -> Self::Output {
         self.as_mut().map(|t| t.build(builder))
     }
 }
 
-impl<'s, T> BuilderElement<Option<Span<'s>>> for Option<T>
-where T: BuilderElement<Option<Span<'s>>>
+impl<'s, T> Build<Option<Span<'s>>> for Option<T>
+where T: Build<Option<Span<'s>>>
 {
-    type Output = Option<<T as BuilderElement<Option<Span<'s>>>>::Output>;
+    type Output = Option<<T as Build<Option<Span<'s>>>>::Output>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         self.as_mut().map(|t| t.build(builder))
     }
 }
 
-impl<'s, T> BuilderElement<Span<'s>> for Option<T>
-where T: BuilderElement<Span<'s>, Output = Span<'s>>
+impl<'s, T> Build<Span<'s>> for Option<T>
+where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
@@ -476,12 +421,12 @@ where T: BuilderElement<Span<'s>, Output = Span<'s>>
 }
 
 
-impl<S, T, E> BuilderElement<S> for Result<T, E>
+impl<S, T, E> Build<S> for Result<T, E>
 where
-    T: BuilderElement<S>,
-    E: BuilderElement<S, Output = <T as BuilderElement<S>>::Output>,
+    T: Build<S>,
+    E: Build<S, Output = <T as Build<S>>::Output>,
 {
-    type Output = <T as BuilderElement<S>>::Output;
+    type Output = <T as Build<S>>::Output;
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
         match self {
             Ok(t) => t.build(builder),
@@ -491,55 +436,21 @@ where
 }
 
 
-// impl<T, S> BuilderElement<S> for Vec<T>
-// where
-//     T: BuilderElement<S>,
-//     // T: BuilderElement<<Option<<T as BuilderElement<S>>::Output> as
-// BuilderFlattener>::Flattened>,     S: Into<<Option<<T as
-// BuilderElement<S>>::Output> as BuilderFlattener>::Flattened>,     Option<<T
-// as BuilderElement<S>>::Output>: BuilderFlattener, {
-//     type Output = Option<<T as BuilderElement<S>>::Output>;
-//     fn build(&mut self, builder: Builder<S>) -> Self::Output {
-//         let mut iterator = self.iter_mut();
-//         let mut out = match iterator.next() {
-//             Some(elem) => Some(elem.build(builder)).flatten_builder(),
-//             None => builder.span.into(),
-//         };
-//         // for elem in iterator {
-//         //     elem.build(Builder(out));
-//         //     // out = elem.build(Builder(out)).flatten_builder()
-//         // }
-//         // out
-//         panic!()
-//     }
-// }
 
-// impl<S, T> BuilderElement<S> for NonEmptyVec<T>
-// where Vec<T>: BuilderElement<S>
-// {
-//     type Output = <Vec<T> as BuilderElement<S>>::Output;
-//     fn build(&mut self, builder: Builder<S>) -> Self::Output {
-//         self.elems.build(builder)
-//     }
-// }
-
-impl<S, T> BuilderElement<S> for NonEmptyVec<T>
+impl<S, T> Build<S> for NonEmptyVec<T>
 where
-    T: BuilderElement<S>,
-    <T as BuilderElement<S>>::Output: BuilderFlattener,
-    [T]: BuilderElement<<<T as BuilderElement<S>>::Output as BuilderFlattener>::Flattened>,
+    T: Build<S>,
+    [T]: Build<<T as Build<S>>::Output>,
 {
-    type Output = <[T] as BuilderElement<
-        <<T as BuilderElement<S>>::Output as BuilderFlattener>::Flattened,
-    >>::Output;
+    type Output = <[T] as Build<T::Output>>::Output;
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
-        let b = self.first_mut().build(builder).flatten_builder();
+        let b = self.first_mut().build(builder);
         self.tail_mut().build(Builder(b))
     }
 }
 
-impl<'s, T> BuilderElement<Span<'s>> for Vec<T>
-where T: BuilderElement<Span<'s>, Output = Span<'s>>
+impl<'s, T> Build<Span<'s>> for Vec<T>
+where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
@@ -551,25 +462,23 @@ where T: BuilderElement<Span<'s>, Output = Span<'s>>
     }
 }
 
-impl<'s, T> BuilderElement<Option<Span<'s>>> for Vec<T>
+impl<'s, T> Build<Option<Span<'s>>> for Vec<T>
 where
-    T: BuilderElement<Option<Span<'s>>>,
-    <T as BuilderElement<Option<Span<'s>>>>::Output: BuilderFlattener,
-    <<T as BuilderElement<Option<Span<'s>>>>::Output as BuilderFlattener>::Flattened:
-        Into<Option<Span<'s>>>,
+    T: Build<Option<Span<'s>>>,
+    T::Output: Into<Option<Span<'s>>>,
 {
     type Output = Option<Span<'s>>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out)).flatten_builder().into();
+            out = elem.build(Builder(out)).into();
         }
         out
     }
 }
 
-impl<'s, T> BuilderElement<Span<'s>> for [T]
-where T: BuilderElement<Span<'s>, Output = Span<'s>>
+impl<'s, T> Build<Span<'s>> for [T]
+where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
@@ -581,18 +490,16 @@ where T: BuilderElement<Span<'s>, Output = Span<'s>>
     }
 }
 
-impl<'s, T> BuilderElement<Option<Span<'s>>> for [T]
+impl<'s, T> Build<Option<Span<'s>>> for [T]
 where
-    T: BuilderElement<Option<Span<'s>>>,
-    <T as BuilderElement<Option<Span<'s>>>>::Output: BuilderFlattener,
-    <<T as BuilderElement<Option<Span<'s>>>>::Output as BuilderFlattener>::Flattened:
-        Into<Option<Span<'s>>>,
+    T: Build<Option<Span<'s>>>,
+    T::Output: Into<Option<Span<'s>>>,
 {
     type Output = Option<Span<'s>>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
-            out = elem.build(Builder(out)).flatten_builder().into();
+            out = elem.build(Builder(out)).into();
         }
         out
     }

@@ -170,10 +170,11 @@ impl<'s> MultipleOperatorError<'s> {
     }
 }
 
-impl<'s, S> span::BuilderElement<S> for MultipleOperatorError<'s>
-where NonEmptyVec<token::Operator<'s>>: span::BuilderElement<S>
+
+impl<'s, S> span::Build<S> for MultipleOperatorError<'s>
+where NonEmptyVec<token::Operator<'s>>: span::Build<S>
 {
-    type Output = <NonEmptyVec<token::Operator<'s>> as span::BuilderElement<S>>::Output;
+    type Output = <NonEmptyVec<token::Operator<'s>> as span::Build<S>>::Output;
     fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
         self.operators.build(builder)
     }
@@ -214,14 +215,14 @@ pub struct MultiSegmentAppSegment<'s> {
     pub body:   Option<Tree<'s>>,
 }
 
-// impl<'s, S> span::BuilderElement<S> for MultiSegmentAppSegment<'s>
-// where token::Token<'s>: span::BuilderElement<S>
-// {
-//     type Output = Span<'s>;
-//     fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
-//         builder.add(&mut self.header).add(&mut self.body).span
-//     }
-// }
+impl<'s, S> span::Build<S> for MultiSegmentAppSegment<'s>
+where token::Token<'s>: span::Build<S, Output = Span<'s>>
+{
+    type Output = Span<'s>;
+    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
+        builder.add(&mut self.header).add(&mut self.body).span
+    }
+}
 
 // impl Tree {
 //     /// Constructor.
