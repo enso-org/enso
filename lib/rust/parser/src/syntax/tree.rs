@@ -28,7 +28,7 @@ use enso_shapely_macros::tagged_enum;
 /// ```
 // pub type Tree = span::With<Type>;
 
-#[derive(Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
@@ -39,6 +39,13 @@ pub struct Tree<'s> {
 pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Box<Type<'s>>>) -> Tree<'s> {
     let variant = variant.into();
     Tree { variant, span }
+}
+
+impl<'s> Debug for Tree<'s> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[off: {}] ", self.span.left_offset.visible)?;
+        Debug::fmt(&self.variant, f)
+    }
 }
 
 impl<'s> AsRef<Span<'s>> for Tree<'s> {
