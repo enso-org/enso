@@ -75,14 +75,14 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
 // ============
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SpanRef<'t, 's> {
-    pub left_offset: &'t Offset<'s>,
+pub struct SpanRef<'s, 'a> {
+    pub left_offset: &'a Offset<'s>,
     pub length:      Bytes,
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SpanRefMut<'t, 's> {
-    pub left_offset: &'t mut Offset<'s>,
+pub struct SpanRefMut<'s, 'a> {
+    pub left_offset: &'a mut Offset<'s>,
     pub length:      Bytes,
 }
 

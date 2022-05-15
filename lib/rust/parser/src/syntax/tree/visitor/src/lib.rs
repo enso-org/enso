@@ -59,10 +59,13 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     if impl_generics_len > 0 {
         let v: Vec<_> = impl_generics_vec.into_iter().take(impl_generics_len - 1).skip(1).collect();
         impl_generics = quote!(#(#v)*);
+        if v.len() > 0 {
+            impl_generics = quote!(#impl_generics,);
+        }
     } else {
-        impl_generics = quote!('s);
+        impl_generics = quote!('s,);
     }
-    let impl_generics = quote!(<'a, #impl_generics>);
+    let impl_generics = quote!(<#impl_generics 'a>);
 
     let output = quote! {
         impl #impl_generics TreeVisitable #impl_generics for #ident #ty_generics {
@@ -89,8 +92,8 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         //     }
         // }
         //
-        impl<'a, 's> SpanVisitableMut<'a, 's> for #ident #ty_generics {
-            fn visit_span_mut<T: SpanVisitorMut<'a, 's>>(&'a mut self, visitor:&mut T) {
+        impl<'s, 'a> SpanVisitableMut<'s, 'a> for #ident #ty_generics {
+            fn visit_span_mut<T: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor:&mut T) {
                 visitor.before_visiting_children();
                 #body_span_mut
                 visitor.after_visiting_children();
