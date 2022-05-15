@@ -5,6 +5,7 @@ use crate::source::span;
 use crate::source::span::Span;
 use crate::source::span::SpanRefMut;
 use crate::source::Offset;
+use crate::source::TokenRef;
 use crate::syntax::token;
 use crate::syntax::ItemRef;
 // use crate::syntax::token::Token;
@@ -577,15 +578,15 @@ pub trait ItemVisitor<'s, 'a> {
 /// The visitable trait. See documentation of [`define_visitor`] to learn more.
 #[allow(missing_docs)]
 pub trait ItemVisitable<'s, 'a> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, _visitor: &mut V) {}
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
 }
 impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Box<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        ItemVisitable::visit_item(&mut **self, visitor)
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        ItemVisitable::visit_item(&**self, visitor)
     }
 }
 impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Option<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, visitor: &mut V) {
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         if let Some(elem) = self {
             ItemVisitable::visit_item(elem, visitor)
         }
@@ -594,7 +595,7 @@ impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Option<T> {
 impl<'a, 't, 's, T: ItemVisitable<'s, 'a>, E: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a>
     for Result<T, E>
 {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, visitor: &mut V) {
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         match self {
             Ok(elem) => ItemVisitable::visit_item(elem, visitor),
             Err(elem) => ItemVisitable::visit_item(elem, visitor),
@@ -602,17 +603,36 @@ impl<'a, 't, 's, T: ItemVisitable<'s, 'a>, E: ItemVisitable<'s, 'a>> ItemVisitab
     }
 }
 impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Vec<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        self.iter().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
     }
 }
 impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for NonEmptyVec<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        self.iter().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
     }
 }
 impl<'s, 'a> ItemVisitable<'s, 'a> for &str {}
 impl<'s, 'a> ItemVisitable<'s, 'a> for str {}
+
+
+impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        if visitor.visit_item(ItemRef::Tree(self)) {
+            self.variant.visit_item(visitor)
+        }
+    }
+}
+
+impl<'s: 'a, 'a, T: 'a> ItemVisitable<'s, 'a> for token::Token<'s, T>
+where &'a token::Token<'s, T>: Into<TokenRef<'s, 'a>>
+{
+    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        visitor.visit_item(ItemRef::Token(self.into()));
+    }
+}
+
+
 
 // impl<'a, T: TreeVisitable<'a>> TreeVisitable<'a> for span::With<T> {
 //     default fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
@@ -642,6 +662,37 @@ impl<'s, 'a> ItemVisitable<'s, 'a> for str {}
 //     }
 // }
 
+
+// ==========================
+// === CodePrinterVisitor ===
+// ==========================
+
+#[derive(Debug, Default)]
+#[allow(missing_docs)]
+pub struct CodePrinterVisitor {
+    pub code: String,
+}
+
+impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
+    fn visit_item(&mut self, item: ItemRef<'s, 'a>) -> bool {
+        match item {
+            ItemRef::Tree(tree) => self.code.push_str(&tree.span.left_offset.code),
+            ItemRef::Token(token) => {
+                self.code.push_str(&token.left_offset.code);
+                self.code.push_str(&token.code);
+            }
+        }
+        true
+    }
+}
+
+impl<'s> Tree<'s> {
+    pub fn code(&self) -> String {
+        let mut visitor = CodePrinterVisitor::default();
+        self.visit_item(&mut visitor);
+        visitor.code
+    }
+}
 
 // // ===========================
 // // === RefCollectorVisitor ===

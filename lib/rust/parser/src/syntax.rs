@@ -4,6 +4,7 @@
 // use crate::prelude::*;
 //
 use crate::source::span;
+use crate::source::TokenRef;
 
 pub mod token;
 pub mod tree;
@@ -14,9 +15,9 @@ pub use tree::Tree;
 
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
-pub enum ItemRef<'t, 's> {
-    Token(&'t Token<'s>),
-    Tree(&'t Tree<'s>),
+pub enum ItemRef<'s, 'a> {
+    Token(TokenRef<'s, 'a>),
+    Tree(&'a Tree<'s>),
 }
 
 // ============

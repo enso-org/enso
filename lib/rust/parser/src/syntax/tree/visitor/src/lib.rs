@@ -52,6 +52,7 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let body_mut = gen_body(quote!(TreeVisitableMut::visit_mut), &decl.data, true);
     let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
     let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
+    let body_item = gen_body(quote!(ItemVisitable::visit_item), &decl.data, false);
 
     let mut impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
     let impl_generics_len = impl_generics_vec.len();
@@ -99,7 +100,20 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 visitor.after_visiting_children();
             }
         }
+
+        impl #impl_generics ItemVisitable #impl_generics for #ident #ty_generics {
+            fn visit_item<T: ItemVisitor #impl_generics>(&'a self, visitor:&mut T) {
+                visitor.before_visiting_children();
+                #body_item
+                visitor.after_visiting_children();
+            }
+        }
     };
+
+    // #[allow(missing_docs)]
+    // pub trait ItemVisitable<'s, 'a> {
+    //     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
+    // }
 
     output.into()
 }

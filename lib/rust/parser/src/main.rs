@@ -794,8 +794,11 @@ fn main() {
         lexer.output.borrow_vec().iter().map(|t| t.clone().into()).collect_vec(),
     );
     println!("{:#?}", ast);
+    println!("\n\n{}", ast.code());
 
     println!("\n\n==================\n\n");
+
+    lexer::lexer_main();
 }
 //
 //

@@ -17,6 +17,37 @@ pub use span::VisibleOffset;
 // === Token ===
 // ==============
 
+#[derive(Clone, Copy, Deref, DerefMut, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct TokenRef<'s, 'a, T = crate::syntax::token::Variant> {
+    #[deref]
+    #[deref_mut]
+    pub data:        T,
+    pub left_offset: &'a Offset<'s>,
+    pub code:        &'a Cow<'s, str>,
+}
+
+impl<'s, 'a, T, S> From<&'a Token<'s, T>> for TokenRef<'s, 'a, S>
+where T: Copy + Into<S>
+{
+    fn from(token: &'a Token<'s, T>) -> Self {
+        TokenRef {
+            data:        token.data.into(),
+            left_offset: &token.left_offset,
+            code:        &token.code,
+        }
+    }
+}
+
+impl<'s, 'a, T: Debug> Debug for TokenRef<'s, 'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
+        Debug::fmt(&self.data, f)
+    }
+}
+
+
+
 /// Structure used to keep an element [`T`] associated with source code.
 ///
 /// # Pretty printing
