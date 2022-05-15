@@ -225,19 +225,16 @@ impl<'s> Lexer<'s> {
     pub fn lexeme<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<'s, T>> {
         let start = self.current_offset;
         let (elem, len) = self.run_and_get_offset(f);
-        let end = start + len;
-        len.is_positive().as_some_from(|| self.new_lexeme(self.input.slice(start..end), elem))
-    }
-
-    /// Token constructor with explicit start and len values.
-    #[inline(always)]
-    fn new_lexeme<T>(&mut self, code: &'s str, elem: T) -> Token<'s, T> {
-        let offset_start = self.current_offset - self.last_spaces_offset;
-        let offset_code = self.input.slice(offset_start..self.current_offset);
-        let visible_offset = self.last_spaces_visible_offset;
-        let offset = Offset(visible_offset, offset_code);
-        self.spaces_after_lexeme();
-        Token(offset, code, elem)
+        len.is_positive().as_some_from(|| {
+            let end = start + len;
+            let code = self.input.slice(start..end);
+            let left_offset_start = start - self.last_spaces_offset;
+            let offset_code = self.input.slice(left_offset_start..start);
+            let visible_offset = self.last_spaces_visible_offset;
+            let offset = Offset(visible_offset, offset_code);
+            self.spaces_after_lexeme();
+            Token(offset, code, elem)
+        })
     }
 
     /// A zero-length token which is placed before currently consumed spaces.
@@ -836,7 +833,7 @@ impl<'s> Token<'s> {
 
 /// ttt
 pub fn lexer_main() {
-    let mut lexer = Lexer::new("+- foo");
+    let mut lexer = Lexer::new(" foo");
     println!("{:?}", lexer.run());
     println!("{:#?}", lexer.output.iter().collect_vec());
 }

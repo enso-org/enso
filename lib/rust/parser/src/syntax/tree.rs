@@ -45,7 +45,13 @@ pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Box<Type<'s>>>) -> Tree<'s> {
 
 impl<'s> Debug for Tree<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off: {}] ", self.span.left_offset.visible)?;
+        let max_code_len = 30;
+        let ellipsis = "...";
+        let mut code = self.code();
+        if code.len() > max_code_len {
+            code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
+        }
+        write!(f, "[off: {}, code:\"{}\"] ", self.span.left_offset.visible, code)?;
         Debug::fmt(&self.variant, f)
     }
 }
