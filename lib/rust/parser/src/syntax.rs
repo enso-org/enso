@@ -12,6 +12,13 @@ pub use token::Token;
 pub use tree::Tree;
 
 
+#[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub enum ItemRef<'t, 's> {
+    Token(&'t Token<'s>),
+    Tree(&'t Tree<'s>),
+}
+
 // ============
 // === Item ===
 // ============
