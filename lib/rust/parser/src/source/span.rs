@@ -1,7 +1,9 @@
 //! Source code location. Every token and AST node are using [`Offset`] to remember their location
 //! in the source code.
 
+use crate::lexer;
 use crate::prelude::*;
+
 
 // =====================
 // === VisibleOffset ===
@@ -30,6 +32,16 @@ impl Display for VisibleOffset {
         Display::fmt(&self.number, f)
     }
 }
+
+impl From<&str> for VisibleOffset {
+    fn from(code: &str) -> Self {
+        code.chars()
+            .map(|char| lexer::space_char_visible_size(char).unwrap_or(VisibleOffset(1)))
+            .fold(default(), Add::add)
+    }
+}
+
+
 
 // ==============
 // === Offset ===
@@ -65,6 +77,12 @@ impl<'s> Offset<'s> {
 impl<'s> AsRef<Offset<'s>> for Offset<'s> {
     fn as_ref(&self) -> &Offset<'s> {
         self
+    }
+}
+
+impl<'s> From<&'s str> for Offset<'s> {
+    fn from(code: &'s str) -> Self {
+        Offset(code.into(), code)
     }
 }
 

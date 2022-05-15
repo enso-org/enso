@@ -244,10 +244,8 @@ impl<'a> MacroResolver<'a> {
     /// exist in the source code, it is simply the whole expression being parsed. It is treated
     /// as a macro in order to unify the algorithms.
     pub fn new_root() -> Self {
-        let current_segment = MatchedSegment {
-            header: Token(default(), "", token::Variant::newline()),
-            body:   default(),
-        };
+        let current_segment =
+            MatchedSegment { header: Token("", "", token::Variant::newline()), body: default() };
         let resolved_segments = default();
         let possible_next_segments = default();
         let matched_macro_def = Some(Rc::new(macros::Definition {
@@ -522,8 +520,8 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
             syntax::Item::Tree(ast) =>
                 match &*ast.variant {
                     syntax::tree::Type::MultiSegmentApp(data) => {
-                        if data.segments.first().header.data.variant()
-                            != token::variant::VariantVariant::Symbol
+                        if data.segments.first().header.data.marker()
+                            != token::variant::VariantMarker::Symbol
                         {
                             syntax::Item::Tree(ast.with_error(
                                 "This expression cannot be used in a non-spaced equation.",

@@ -97,43 +97,43 @@ pub fn run(
 
 
 
-    // ===========================
-    // === Variant Enum Struct ===
-    // ===========================
+    // ==========================
+    // === Marker Enum Struct ===
+    // ==========================
 
     // #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    // pub AstVariant {
+    // pub AstMarker {
     //     Ident,
     //     App
     // }
     //
-    // impl<'s> From<&Ast<'s>> for AstVariant {
+    // impl<'s> From<&Ast<'s>> for AstMarker {
     //     fn from(t:&Ast<'s>) -> Self {
     //         match t {
-    //             Ast::Ident(_) => AstVariant::Ident,
-    //             Ast::App(_) => AstVariant::App,
+    //             Ast::Ident(_) => AstMarker::Ident,
+    //             Ast::App(_) => AstMarker::App,
     //         }
     //     }
     // }
     //
     // impl<'s> Ast<'s> {
-    //     pub fn variant(&self) -> AstVariant {
+    //     pub fn marker(&self) -> AstMarker {
     //         self.into()
     //     }
     //
-    //     pub fn is(&self, variant: AstVariant) -> bool {
-    //         self.variant() == variant
+    //     pub fn is(&self, marker: AstMarker) -> bool {
+    //         self.marker() == marker
     //     }
     // }
-    let enum_variant_name = quote::format_ident!("{}Variant", enum_name);
+    let enum_marker_name = quote::format_ident!("{}Marker", enum_name);
     output.push(quote! {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
         #[allow(missing_docs)]
-        #vis enum #enum_variant_name {
+        #vis enum #enum_marker_name {
             #(#variant_names),*
         }
 
-        impl #impl_generics From<&#enum_name #ty_generics> for #enum_variant_name #where_clause {
+        impl #impl_generics From<&#enum_name #ty_generics> for #enum_marker_name #where_clause {
             fn from(t:&#enum_name #ty_generics) -> Self {
                 match t {
                     #(#enum_name::#variant_names(_) => Self::#variant_names),*
@@ -144,14 +144,14 @@ pub fn run(
         impl #impl_generics #enum_name #ty_generics #where_clause {
             /// Abstract variant representation of this struct.
             #[inline(always)]
-            pub fn variant(&self) -> #enum_variant_name {
+            pub fn marker(&self) -> #enum_marker_name {
                 self.into()
             }
 
             /// Check whether this struct is the given variant.
             #[inline(always)]
-            pub fn is(&self, variant: #enum_variant_name) -> bool {
-                self.variant() == variant
+            pub fn is(&self, marker: #enum_marker_name) -> bool {
+                self.marker() == marker
             }
         }
     });
@@ -250,11 +250,11 @@ pub fn run(
 
         // impl<'s> Ast<'s> {
         //     pub fn is_ident(&self) -> bool {
-        //         self.is(AstVariant::Ident)
+        //         self.is(AstMarker::Ident)
         //     }
         //
         //     pub fn is_app(&self) -> bool {
-        //         self.is(AstVariant::App)
+        //         self.is(AstMarker::App)
         //     }
         // }
         let variant_check_ident = quote::format_ident!("is_{}", variant_snake_name);
@@ -263,7 +263,7 @@ pub fn run(
                 /// Check if this struct is the given variant.
                 #[inline(always)]
                 pub fn #variant_check_ident(&self) -> bool {
-                    self.is(#enum_variant_name::#variant_name)
+                    self.is(#enum_marker_name::#variant_name)
                 }
             }
         });

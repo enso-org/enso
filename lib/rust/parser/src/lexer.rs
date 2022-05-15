@@ -222,7 +222,7 @@ impl<'s> Lexer<'s> {
     /// Run the provided function. If it consumed any chars, return the [`Token`] containing the
     /// provided function output. Returns [`None`] otherwise.
     #[inline(always)]
-    pub fn lexeme<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<'s, T>> {
+    pub fn token<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Option<Token<'s, T>> {
         let start = self.current_offset;
         let (elem, len) = self.run_and_get_offset(f);
         len.is_positive().as_some_from(|| {
@@ -239,7 +239,7 @@ impl<'s> Lexer<'s> {
 
     /// A zero-length token which is placed before currently consumed spaces.
     #[inline(always)]
-    pub fn marker_lexeme<T>(&mut self, elem: T) -> Token<'s, T> {
+    pub fn marker_token<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
         let start = self.current_offset - self.last_spaces_offset;
         let code = self.input.slice(start..start);
@@ -344,7 +344,7 @@ const UNICODE_ZERO_SPACES: &str = "\u{180E}\u{200B}\u{200C}\u{200D}\u{2060}\u{FE
 /// character always returns `4`. It is not made configurable, as described in the Language Spec
 /// docs.
 #[inline(always)]
-fn space_char_visible_size(t: char) -> Option<VisibleOffset> {
+pub fn space_char_visible_size(t: char) -> Option<VisibleOffset> {
     let off = match t {
         ' ' => Some(1),
         '\t' => Some(4),
@@ -550,9 +550,9 @@ impl token::Variant {
 impl<'s> Lexer<'s> {
     /// Parse an identifier.
     fn ident(&mut self) {
-        if let Some(lexeme) = self.lexeme(|this| this.take_while_1(is_ident_char)) {
-            let tp = token::Variant::new_ident_or_wildcard_unchecked(&lexeme.code);
-            let token = lexeme.with(tp);
+        if let Some(token) = self.token(|this| this.take_while_1(is_ident_char)) {
+            let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
+            let token = token.with(tp);
             self.submit_token(token);
         }
     }
@@ -567,7 +567,7 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse an operator.
     fn operator(&mut self) {
-        let lexeme = self.lexeme(|this| {
+        let token = self.token(|this| {
             if let Some(current) = this.current_char {
                 match current {
                     '.' => this.take_while_1_('.'),
@@ -578,22 +578,23 @@ impl<'s> Lexer<'s> {
                 };
             }
         });
-        if let Some(lexeme) = lexeme {
-            if lexeme.code == "+-" {
-                let (left, right) = lexeme.split_at_(Bytes(1));
+        if let Some(token) = token {
+            if token.code == "+-" {
+                let (left, right) = token.split_at_(Bytes(1));
                 self.submit_token(left.with(token::Variant::operator()));
                 self.submit_token(right.with(token::Variant::operator()));
             } else {
-                let only_eq = lexeme.code.chars().all(|t| t == '=');
-                let is_mod = lexeme.code.ends_with('=') && !only_eq;
+                let only_eq = token.code.chars().all(|t| t == '=');
+                let is_mod = token.code.ends_with('=') && !only_eq;
                 let tp =
                     if is_mod { token::Variant::modifier() } else { token::Variant::operator() };
-                let token = lexeme.with(tp);
+                let token = token.with(tp);
                 self.submit_token(token);
             }
         }
     }
 }
+
 
 
 // ==============
@@ -603,8 +604,8 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse a symbol.
     fn symbol(&mut self) {
-        if let Some(lexeme) = self.lexeme(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(lexeme.with(token::Variant::symbol()));
+        if let Some(token) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
+            self.submit_token(token.with(token::Variant::symbol()));
         }
     }
 }
@@ -618,13 +619,13 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     /// Parse a number.
     fn number(&mut self) {
-        let lexeme = self.lexeme(|this| {
+        let token = self.token(|this| {
             if this.take_1(is_digit) {
                 this.take_while(|t| !is_ident_split_char(t));
             }
         });
-        if let Some(lexeme) = lexeme {
-            self.submit_token(lexeme.with(token::Variant::number()));
+        if let Some(token) = token {
+            self.submit_token(token.with(token::Variant::number()));
         }
     }
 }
@@ -642,9 +643,9 @@ fn is_inline_text_body(t: char) -> bool {
 impl<'s> Lexer<'s> {
     /// Parse a text literal.
     fn text(&mut self) {
-        let lexeme = self.lexeme(|this| this.take_1('"'));
-        if let Some(lexeme) = lexeme {
-            self.submit_token(lexeme.with(token::Variant::text_start()));
+        let token = self.token(|this| this.take_1('"'));
+        if let Some(token) = token {
+            self.submit_token(token.with(token::Variant::text_start()));
             let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if line_empty {
                 todo!()
@@ -653,25 +654,25 @@ impl<'s> Lexer<'s> {
                 loop {
                     parsed_element = false;
 
-                    let section = self.lexeme(|this| this.take_while_1(is_inline_text_body));
+                    let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
                         self.submit_token(tok.with(token::Variant::text_section()));
                     }
 
-                    let escape = self.lexeme(|this| {
+                    let escape = self.token(|this| {
                         if this.take_1('\\') {
                             this.take_1('"');
                         }
                     });
-                    if let Some(lexeme) = escape {
+                    if let Some(token) = escape {
                         parsed_element = true;
-                        self.submit_token(lexeme.with(token::Variant::text_escape()));
+                        self.submit_token(token.with(token::Variant::text_escape()));
                     }
 
-                    let end = self.lexeme(|this| this.take_1('"'));
-                    if let Some(lexeme) = end {
-                        self.submit_token(lexeme.with(token::Variant::text_end()));
+                    let end = self.token(|this| this.take_1('"'));
+                    if let Some(token) = end {
+                        self.submit_token(token.with(token::Variant::text_end()));
                         break;
                     }
 
@@ -692,9 +693,9 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     #[inline(always)]
     fn submit_line_as(&mut self, kind: token::Variant) {
-        let lexeme = self.lexeme(|this| this.take_all_newline_chars());
-        if let Some(lexeme) = lexeme {
-            self.submit_token(lexeme.with(kind));
+        let token = self.token(|this| this.take_all_newline_chars());
+        if let Some(token) = token {
+            self.submit_token(token.with(kind));
         }
     }
 
@@ -720,7 +721,7 @@ impl<'s> Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
-        self.lexeme(|this| {
+        self.token(|this| {
             if !this.take_1('\n') {
                 if this.take_1('\r') {
                     this.take_1('\n');
@@ -730,15 +731,15 @@ impl<'s> Lexer<'s> {
     }
 
     fn newline(&mut self) {
-        if let Some(lexeme) = self.line_break() {
-            let mut newlines = vec![lexeme.with(token::Variant::newline())];
-            while let Some(lexeme) = self.line_break() {
-                newlines.push(lexeme.with(token::Variant::newline()));
+        if let Some(token) = self.line_break() {
+            let mut newlines = vec![token.with(token::Variant::newline())];
+            while let Some(token) = self.line_break() {
+                newlines.push(token.with(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
 
             if block_indent > self.current_block_indent {
-                let block_start = self.marker_lexeme(token::Variant::block_start());
+                let block_start = self.marker_token(token::Variant::block_start());
                 self.submit_token(block_start);
                 self.start_block(block_indent);
             } else {
@@ -752,7 +753,7 @@ impl<'s> Lexer<'s> {
                         self.start_block(parent_block_indent);
                         break;
                     } else {
-                        let block_end = self.marker_lexeme(token::Variant::block_end());
+                        let block_end = self.marker_token(token::Variant::block_end());
                         self.submit_token(block_end);
                     }
                 }
@@ -814,47 +815,64 @@ impl<'s> Lexer<'s> {
 //     span::With::new_no_left_offset_no_start(Bytes(repr.len()), elem)
 // }
 
-#[cfg(test)]
-impl<'s> Token<'s> {
-    // TODO: Tests only - should be refactored
-    // FIXME: shares some code with `new_ident_or_wildcard_unchecked` - to be refactored.
-    pub fn ident(repr: &'s str) -> Token<'s> {
-        let is_free = repr.starts_with('_');
-        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = Offset {
-            left_visible_offset: VisibleOffset(0),
-            left_offset:         Bytes(0),
-            len:                 Bytes(repr.len()),
-        };
-        Token { span, elem: Token::new(repr, token::Variant::ident(is_free, lift_level)) }
-    }
-}
+// #[cfg(test)]
+// impl<'s> Token<'s> {
+//     // TODO: Tests only - should be refactored
+//     // FIXME: shares some code with `new_ident_or_wildcard_unchecked` - to be refactored.
+//     pub fn ident(repr: &'s str) -> Token<'s> {
+//         let is_free = repr.starts_with('_');
+//         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
+//         let span = Offset {
+//             left_visible_offset: VisibleOffset(0),
+//             left_offset:         Bytes(0),
+//             len:                 Bytes(repr.len()),
+//         };
+//         Token { span, elem: Token::new(repr, token::Variant::ident(is_free, lift_level)) }
+//     }
+// }
 
 
 /// ttt
 pub fn lexer_main() {
-    let mut lexer = Lexer::new(" foo");
+    let mut lexer = Lexer::new("\n  foo\n  bar");
     println!("{:?}", lexer.run());
     println!("{:#?}", lexer.output.iter().collect_vec());
 }
 
+pub mod test {
+    use super::*;
+    pub use token::*;
+
+    pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+        let is_free = code.starts_with('_');
+        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
+        token::ident_(left_offset, code, is_free, lift_level)
+    }
+
+    pub fn wildcard_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+        let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
+        token::wildcard_(left_offset, code, lift_level)
+    }
+
+    pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+        Token(left_offset, code, token::Variant::operator())
+    }
+
+    // pub fn newline<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
+    //     Token(left_offset, code, token::Variant::newline())
+    // }
+
+    // pub fn block_start<'s>(left_offset: &'s str) -> Token<'s> {
+    //     let code = "";
+    //     Token(left_offset, code, token::Variant::block_start())
+    // }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::test::*;
     use super::*;
 
-    // #[test]
-    // fn test_case_block() {
-    //     test_lexer_many(vec![
-    //         ("\n", vec![newline(0, "\n")]),
-    //         ("\n  foo\n  bar", vec![
-    //             newline(0, "\n"),
-    //             block_start(0),
-    //             ident(2, "foo"),
-    //             newline(0, "\n"),
-    //             ident(2, "bar"),
-    //         ]),
-    //     ]);
-    // }
 
 
     fn test_lexer_many<'s>(inputs: Vec<(&'s str, Vec<Token<'s>>)>) {
@@ -863,129 +881,77 @@ mod tests {
         }
     }
 
-    macro_rules! lexer_test_ident_stream {
-        ($($input:literal)*) => {
-            test_lexer_many(vec![ $( ($input, vec![ident(0, $input)]) ),* ])
-        };
-    }
+
 
     fn test_lexer<'s>(input: &'s str, mut expected: Vec<Token<'s>>) {
         let mut lexer = Lexer::new(input);
-        // let mut start = Bytes(0);
-        // for token in &mut expected {
-        //     token.span.start = token.span.left_offset + start;
-        //     start += token.span.left_offset + token.span.len;
-        // }
-        // let expected2 = expected.iter().collect_vec();
-        let x: &Token<'s> = lexer.output.iter().collect_vec()[0];
-        let y: &Token<'s> = &expected[0];
-
-        let x2: &'s str = &x.source;
-        let y2: &'s str = &y.source;
-
-
         assert_eq!(lexer.run(), true);
         assert_eq!(lexer.output.iter().collect_vec(), expected);
     }
 
-    fn ident<'s>(left_offset: usize, repr: &'s str) -> Token<'s> {
-        let is_free = repr.starts_with('_');
-        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = Offset {
-            left_visible_offset: VisibleOffset(left_offset),
-            left_offset:         Bytes(left_offset),
-            len:                 Bytes(repr.len()),
-        };
-        let elem = Token::new(repr, token::Variant::ident(is_free, lift_level));
-        Token { span, elem }
+    fn lexer_case_idents<'s>(idents: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
+        idents.iter().map(|t| lexer_case_ident(t)).collect()
     }
 
-    fn wildcard<'s>(left_offset: usize, repr: &'s str) -> Token<'s> {
-        let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-        let span = Offset {
-            left_visible_offset: VisibleOffset(left_offset),
-            left_offset:         Bytes(left_offset),
-            len:                 Bytes(repr.len()),
-        };
-        let elem = Token::new(repr, token::Variant::wildcard(lift_level));
-        Token { span, elem }
+    fn lexer_case_ident<'s>(code: &'s str) -> (&'s str, Vec<Token<'s>>) {
+        (code, vec![ident_("", code)])
     }
 
-    fn operator<'s>(left_offset: usize, repr: &'s str) -> Token<'s> {
-        let span = Offset {
-            left_visible_offset: VisibleOffset(left_offset),
-            left_offset:         Bytes(left_offset),
-            len:                 Bytes(repr.len()),
-        };
-        let elem = Token::new(repr, token::Variant::operator());
-        Token { span, elem }
+    fn lexer_case_operators<'s>(operators: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
+        operators.iter().map(|t| lexer_case_operator(t)).collect()
     }
 
-    fn newline<'s>(left_offset: usize, repr: &'s str) -> Token<'s> {
-        let span = Offset {
-            left_visible_offset: VisibleOffset(left_offset),
-            left_offset:         Bytes(left_offset),
-            len:                 Bytes(repr.len()),
-        };
-        let elem = Token::new(repr, token::Variant::newline());
-        Token { span, elem }
-    }
-
-    // fn block_start<'s>(left_offset: usize) -> Token<'s> {
-    //     let span = Offset {
-    //         left_visible_offset: VisibleOffset(left_offset),
-    //         left_offset:         Bytes(left_offset),
-    //         start:               Bytes(0),
-    //         len:                 Bytes(0),
-    //     };
-    //     let elem = Token::new(repr, token::Variant::block_start());
-    //     Token { span, elem }
-    // }
-
-    #[test]
-    fn test_utf_8_idents() {
-        test_lexer_many(vec![
-            ("", vec![]),
-            ("test", vec![ident(0, "test")]),
-            ("你好", vec![ident(0, "你好")]),
-            ("cześć", vec![ident(0, "cześć")]),
-            ("GrüßGott", vec![ident(0, "GrüßGott")]),
-            ("Nǐhǎo", vec![ident(0, "Nǐhǎo")]),
-            ("hyvääpäivää", vec![ident(0, "hyvääpäivää")]),
-            ("Góðandag", vec![ident(0, "Góðandag")]),
-            ("Moïen", vec![ident(0, "Moïen")]),
-            ("Namastē", vec![ident(0, "Namastē")]),
-            ("やあ", vec![ident(0, "やあ")]),
-            ("đượchậuđải", vec![ident(0, "đượchậuđải")]),
-            ("❤️foo", vec![ident(0, "❤️foo")]),
-        ])
-    }
-
-    fn iso_idents<'s>(ss: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
-        ss.iter().map(|t| iso_ident(t)).collect()
-    }
-
-    fn iso_operators<'s>(ss: &[&'s str]) -> Vec<(&'s str, Vec<Token<'s>>)> {
-        ss.iter().map(|t| iso_operator(t)).collect()
-    }
-
-    fn iso_ident<'s>(s: &'s str) -> (&'s str, Vec<Token<'s>>) {
-        (s, vec![ident(0, s)])
-    }
-
-    fn iso_operator<'s>(s: &'s str) -> (&'s str, Vec<Token<'s>>) {
-        (s, vec![operator(0, s)])
+    fn lexer_case_operator<'s>(code: &'s str) -> (&'s str, Vec<Token<'s>>) {
+        (code, vec![operator_("", code)])
     }
 
     #[test]
-    fn test_case_identifier() {
+    fn test_case_block() {
         test_lexer_many(vec![
-            ("", vec![]),
-            ("_", vec![wildcard(0, "_")]),
-            ("_'", vec![wildcard(0, "_'")]),
-            ("_''", vec![wildcard(0, "_''")]),
+            ("\n", vec![token::newline_("", "\n")]),
+            ("\n  foo\n  bar", vec![
+                block_start_("", ""),
+                newline_("", "\n"),
+                ident_("  ", "foo"),
+                newline_("", "\n"),
+                ident_("  ", "bar"),
+                // FIXME: here should be block end
+            ]),
         ]);
-        test_lexer_many(iso_idents(&[
+    }
+
+    #[test]
+    fn test_case_empty() {
+        test_lexer("", vec![]);
+    }
+
+    #[test]
+    fn test_case_utf_8_idents() {
+        test_lexer_many(lexer_case_idents(&[
+            "test",
+            "你好",
+            "cześć",
+            "GrüßGott",
+            "Nǐhǎo",
+            "hyvääpäivää",
+            "Góðandag",
+            "Moïen",
+            "Namastē",
+            "やあ",
+            "đượchậuđải",
+            "❤️foo",
+        ]))
+    }
+
+    #[test]
+    fn test_case_idents() {
+        test_lexer_many(vec![
+            ("", vec![]),
+            ("_", vec![wildcard_("", "_")]),
+            ("_'", vec![wildcard_("", "_'")]),
+            ("_''", vec![wildcard_("", "_''")]),
+        ]);
+        test_lexer_many(lexer_case_idents(&[
             "a",
             "a'",
             "a''",
@@ -1007,14 +973,14 @@ mod tests {
         ]));
         for zero_space in UNICODE_ZERO_SPACES.chars() {
             let var = format!("pre{}post", zero_space);
-            test_lexer(&var, vec![ident(0, &var)])
+            test_lexer(&var, vec![ident_("", &var)])
         }
     }
 
     #[test]
-    fn test_case_operator() {
-        test_lexer_many(iso_operators(&["+", "-", "=", "==", "==="]));
-        test_lexer_many(vec![("+-", vec![operator(0, "+"), operator(0, "-")])]);
+    fn test_case_operators() {
+        test_lexer_many(lexer_case_operators(&["+", "-", "=", "==", "==="]));
+        test_lexer_many(vec![("+-", vec![operator_("", "+"), operator_("", "-")])]);
     }
 
     /// Based on https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt.
@@ -1031,7 +997,12 @@ mod tests {
     /// not all cases are covered and some comments in the original document are outdated, these
     /// are still nice test sets.
     #[test]
-    fn test_utf8() {
+    fn test_case_utf8() {
+        macro_rules! lexer_test_ident_stream {
+            ($($input:literal)*) => {
+                test_lexer_many(vec![ $( ($input, vec![ident_("", $input)]) ),* ])
+            };
+        }
         lexer_test_ident_stream! {
             // === 1. Example correct UTF-8 text. ===
 

@@ -70,25 +70,13 @@ pub struct Token<'s, T = crate::syntax::token::Variant> {
 /// Constructor.
 #[allow(non_snake_case)]
 pub fn Token<'s, T>(
-    left_offset: Offset<'s>,
+    left_offset: impl Into<Offset<'s>>,
     code: impl Into<Cow<'s, str>>,
     data: T,
 ) -> Token<'s, T> {
+    let left_offset = left_offset.into();
     let code = code.into();
     Token { data, left_offset, code }
-}
-
-impl<'s, T: Debug> Debug for Token<'s, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
-        Debug::fmt(&self.data, f)
-    }
-}
-
-impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
-    fn eq(&self, other: &Token<'s, T>) -> bool {
-        <Token<'s, T> as PartialEq<Token<'s, T>>>::eq(*self, other)
-    }
 }
 
 impl<'s, T> Token<'s, T> {
@@ -110,8 +98,12 @@ impl<'s, T> Token<'s, T> {
     }
 
     /// Replace the associated data in this lexeme.
-    pub fn with<S>(self, elem: S) -> Token<'s, S> {
-        Token(self.left_offset, self.code, elem)
+    pub fn with<S>(self, data: S) -> Token<'s, S> {
+        self.with_mod_data(|_| data)
+    }
+
+    pub fn with_mod_data<S>(self, f: impl FnOnce(T) -> S) -> Token<'s, S> {
+        Token(self.left_offset, self.code, f(self.data))
     }
 
     pub fn trim_as_first_child(&mut self) -> Span<'s> {
@@ -134,5 +126,18 @@ impl<'s, T> Token<'s, T> {
 
     pub fn len(&self) -> Bytes {
         Bytes(self.code.len())
+    }
+}
+
+impl<'s, T: Debug> Debug for Token<'s, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
+        Debug::fmt(&self.data, f)
+    }
+}
+
+impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
+    fn eq(&self, other: &Token<'s, T>) -> bool {
+        <Token<'s, T> as PartialEq<Token<'s, T>>>::eq(*self, other)
     }
 }

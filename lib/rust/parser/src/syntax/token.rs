@@ -6,8 +6,8 @@ use crate::source;
 
 use enso_shapely_macros::tagged_enum;
 
+use crate::source::Offset;
 pub use source::Token;
-
 
 // =============
 // === Token ===
@@ -62,14 +62,36 @@ macro_rules! generate_token_aliases {
         pub enum $enum:ident {
             $(
                 $(#$variant_meta:tt)*
-                $variant:ident $({$($fields:tt)*})?
+                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
             ),* $(,)?
         }
-    ) => {
+    ) => { paste!{
         $(
             pub type $variant<'s> = Token<'s, variant::$variant>;
+
+            pub fn [<$variant:snake:lower>]<'s> (
+                left_offset: impl Into<Offset<'s>>,
+                code: impl Into<Cow<'s, str>>,
+                $($($field : $field_ty),*)?
+            ) -> $variant<'s> {
+                Token(left_offset, code, variant::$variant($($($field),*)?))
+            }
+
+            pub fn [<$variant:snake:lower _>]<'s> (
+                left_offset: impl Into<Offset<'s>>,
+                code: impl Into<Cow<'s, str>>,
+                $($($field : $field_ty),*)?
+            ) -> Token<'s> {
+                Token(left_offset, code, variant::$variant($($($field),*)?)).into()
+            }
+
+            impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {
+                fn from(token: Token<'s, variant::$variant>) -> Self {
+                    token.with_mod_data(|t| t.into())
+                }
+            }
         )*
-    };
+    }};
 }
 
 macro_rules! define_token_type {

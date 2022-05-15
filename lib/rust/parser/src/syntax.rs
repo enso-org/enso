@@ -37,7 +37,7 @@ pub enum Item<'s> {
 impl<'s> Item<'s> {
     /// Check whether the element is the provided token variant. Returns [`false`] if it was an
     /// [`Tree`] node.
-    pub fn is_variant(&self, variant: token::variant::VariantVariant) -> bool {
+    pub fn is_variant(&self, variant: token::variant::VariantMarker) -> bool {
         match self {
             Item::Token(token) => token.is(variant),
             _ => false,
