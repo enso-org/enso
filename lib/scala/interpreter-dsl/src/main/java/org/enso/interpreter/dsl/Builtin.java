@@ -26,9 +26,10 @@ public @interface Builtin {
   int expandVarargs() default 0;
 
   /**
-   * @return even-length array representing pairs of classes. The first element of the tuple always represents
-   * a possible runtime exception that can be thrown during the execution of the method, while the second element
-   * represents Enso builtin type wrapper for it that will be reported to the user.
+   * @return even-length array representing pairs of classes. The first element of the tuple always
+   *     represents a possible runtime exception that can be thrown during the execution of the
+   *     method, while the second element represents Enso builtin type wrapper for it that will be
+   *     reported to the user.
    */
   Class[] wrapException() default {};
 }
