@@ -8,6 +8,5 @@ trait ContentBasedVersioning {
     * @param content a textual content
     * @return a content version
     */
-  def evalVersion(content: String): ContentVersion
-
+  def evalVersion(content: CharSequence): ContentVersion
 }
