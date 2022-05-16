@@ -874,8 +874,8 @@ mod test {
         let local_lookup = db.lookup_by_fully_qualified_path("local.Unnamed_6.Main.operator1");
         assert!(local_lookup.is_some());
         assert_eq!(local_lookup.unwrap().name, "operator1".to_string());
-        let removed_lookup = db.lookup_by_fully_qualified_path(method_path);
-        assert!(removed_lookup.is_none());
+        let removed_method_lookup = db.lookup_by_fully_qualified_path(method_path);
+        assert!(removed_method_lookup.is_none());
         let old_atom_lookup = db.lookup_by_fully_qualified_path(atom_path);
         assert_eq!(old_atom_lookup, None);
         let new_atom_path = "NewProject.NewModule.TextAtom";
@@ -901,8 +901,8 @@ mod test {
             current_version: 3,
         };
         db.apply_update_event(update);
-        let removed_lookup = db.lookup_by_fully_qualified_path(method_path);
-        assert_eq!(removed_lookup, None);
+        let removed_method_lookup = db.lookup_by_fully_qualified_path(method_path);
+        assert_eq!(removed_method_lookup, None);
         let function_path = "NewProject.NewModule.testFunction1";
         let function_lookup = db.lookup_by_fully_qualified_path(function_path);
         assert!(function_lookup.is_some());
