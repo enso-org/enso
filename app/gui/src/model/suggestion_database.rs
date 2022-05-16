@@ -138,37 +138,36 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_clear_value_and_prune_empty_branch(&self, path: &FreeformPath) -> bool {
-        let mut existed = false;
-        fn clear_value_or_prune(subtree: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>, subpath: &[PathSegment]) -> bool {
+        fn clear_value_or_prune(subtree: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>, subpath: &[PathSegment]) -> (bool, bool) {
             if subtree.is_leaf() {
                 if subpath.len() == 0 {
-                    existed = subtree.value.is_some();
-                    return true;
+                    let existed = subtree.value.is_some();
+                    return (true, existed);
                 } else {
-                    return subtree.value.is_none();
+                    return (subtree.value.is_none(), false);
                 }
             } else {
                 if subpath.len() == 0 {
-                    existed = subtree.value.is_some();
+                    let existed = subtree.value.is_some();
                     subtree.value = None;
-                    return false;
+                    return (false, existed);
                 } else {
                     let key = &subpath[0];
-                    let prune_branch = clear_value_or_prune(subtree.branches.get_mut(key), &subpath[1..]);
+                    let (prune_branch, existed) = clear_value_or_prune(subtree.branches.get_mut(key), &subpath[1..]);
                     if prune_branch {
                         if subtree.branches.len() == 1 {
-                            return true;
+                            return (true, existed);
                         } else {
                             subtree.branches.remove(key);
-                            return false;
+                            return (false, existed);
                         }
                     } else {
-                        return false;
+                        return (false, existed);
                     }
                 }
             }
         }
-        clear_value_or_prune(self.tree.borrow_mut(), &path);
+        let (_, existed) = clear_value_or_prune(&mut self.tree.borrow_mut(), &path);
         return existed;
     }
 
