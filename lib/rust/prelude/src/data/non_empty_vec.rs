@@ -22,8 +22,6 @@ pub struct NonEmptyVec<T> {
 impl<T> NonEmptyVec<T> {
     /// Construct a new non-empty vector.
     ///
-    /// The vector will not allocate more than the space required to contain [`first`] and [`rest`].
-    ///
     /// # Examples
     ///
     /// ```
@@ -38,8 +36,6 @@ impl<T> NonEmptyVec<T> {
     }
 
     /// Construct a new non-empty vector.
-    ///
-    /// The vector will not allocate more than the space required to contain [`elems`] and [`last`].
     ///
     /// # Examples
     ///
@@ -227,10 +223,12 @@ impl<T> NonEmptyVec<T> {
         self.elems.first_mut().expect("The NonEmptyVec always has an item in it.")
     }
 
+    /// Get the tail reference.
     pub fn tail(&mut self) -> &[T] {
         &self.elems[1..]
     }
 
+    /// Get the mutable tail reference.
     pub fn tail_mut(&mut self) -> &mut [T] {
         &mut self.elems[1..]
     }
@@ -336,7 +334,7 @@ impl<T> NonEmptyVec<T> {
     }
 
     /// Consume this non-empty vector, map each element with a function, and produce a new one.
-    pub fn mapped<S>(self, f: impl Fn(T) -> S) -> NonEmptyVec<S> {
+    pub fn mapped<S>(self, f: impl FnMut(T) -> S) -> NonEmptyVec<S> {
         let elems = self.elems.into_iter().map(f).collect();
         NonEmptyVec { elems }
     }

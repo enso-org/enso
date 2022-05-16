@@ -68,7 +68,6 @@ fn expr(tokens: proc_macro::TokenStream) -> TokenStream {
         }
     };
     for token in tokens {
-        // println!("!!! {:#?}", token);
         match token {
             // a b c ...
             Ident(ident) => {

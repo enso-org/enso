@@ -46,12 +46,6 @@ pub trait TryAsRef<T> {
     fn try_as_ref(&self) -> Option<&T>;
 }
 
-impl<T> TryAsRef<T> for T {
-    fn try_as_ref(&self) -> Option<&T> {
-        Some(self)
-    }
-}
-
 
 
 // =============

@@ -56,8 +56,8 @@ impl<T> NonEmpty<T> {
     }
 
     /// Replace the head element of this list.
-    pub fn with_head(self, head: T) -> Self {
-        self.into_list().with_head(head)
+    pub fn prepend(self, head: T) -> Self {
+        self.into_list().prepend(head)
     }
 
     /// Get the head element of this list.
@@ -101,8 +101,8 @@ impl<T> NonEmpty<T> {
 }
 
 impl<T> List<T> {
-    /// Replace head of this list.
-    pub fn with_head(self, head: T) -> NonEmpty<T> {
+    /// Prepend the element to the list.
+    pub fn prepend(self, head: T) -> NonEmpty<T> {
         let tail = self;
         let node = Rc::new(Node { head, tail });
         NonEmpty { node }
@@ -134,7 +134,7 @@ impl<T> List<T> {
     }
 
     /// Convert this list to a non-empty list. Return [`None`] if the list is empty.
-    pub fn try_to_non_empty(&self) -> &Option<NonEmpty<T>> {
+    pub fn try_as_non_empty(&self) -> &Option<NonEmpty<T>> {
         &self.data
     }
 
@@ -175,19 +175,19 @@ impl<'a, T> IntoIterator for &'a NonEmpty<T> {
 }
 
 impl<T> From<Vec<T>> for List<T> {
-    fn from(mut v: Vec<T>) -> Self {
+    fn from(v: Vec<T>) -> Self {
         let mut out = List::default();
-        v.reverse();
-        for item in v {
-            out = out.with_head(item).into_list();
+        for item in v.into_iter().rev() {
+            out = out.prepend(item).into_list();
         }
         out
     }
 }
 
 impl<T> TryFrom<Vec<T>> for NonEmpty<T> {
-    type Error = ();
+    type Error = failure::Error;
     fn try_from(v: Vec<T>) -> Result<Self, Self::Error> {
-        List::<T>::from(v).try_into_non_empty().ok_or(())
+        let err = "Cannot convert empty Vec to NonEmpty one.";
+        List::<T>::from(v).try_into_non_empty().ok_or_else(|| failure::err_msg(err))
     }
 }

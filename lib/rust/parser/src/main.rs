@@ -36,17 +36,17 @@
 //! however, as soon as the resolver sees the second `then` token, it will consider the nested macro
 //! to be finished, and will come back to parent macro resolution.
 //!
-//! # Resolving righ-hand-side patterns of macro segments.
+//! # Resolving right-hand-side patterns of macro segments.
 //! In the next steps, each macro is being analyzed, started from the most nested ones. For each
 //! macro, the [`Pattern`] of last segment is being run to check which tokens belong to that macro,
 //! and which tokens should be transferred to parent macro definition. For example, consider the
 //! following code `process (read file) content-> print content`. The `(...)` is a macro with two
 //! sections `(` and `)`. Let's mark the token splitting with `[` and `]` characters. The previous
 //! macro resolution steps would output such split of the token stream:
-//! `process [(read file][) content[-> print content]`. In this step, the most inner macro will be
+//! `process [(read file][) content[-> print content]]`. In this step, the most inner macro will be
 //! analyzed first. The pattern of the last segment of the inner macro (`->`) defines that it
 //! consumes all tokens, so all the tokens `print content` are left as they are. Now, the resolution
-//! moves to the parent macro. It's last segment starts with the `)` token, which pattern defines
+//! moves to the parent macro. Its last segment starts with the `)` token, which pattern defines
 //! that it does not consume any tokens, so all of its current tokens (`content[-> print content]]`)
 //! are popped to a parent definition, forming `process [(read file][)] content[-> print content]`.
 //!
@@ -72,7 +72,7 @@
 //! multiple identifiers placed next to each other, and also takes spacing into consideration in
 //! order to implement spacing-aware precedence rules. After all segments are resolved, the macro
 //! is being treated as a single token in one of the segments of the parent macro, and is being
-//! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree] is
+//! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree`] is
 //! produced, containing the parsed expression.
 
 #![recursion_limit = "256"]
@@ -541,6 +541,7 @@ fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree
             processs_no_space_group(&mut flattened, &mut no_space_group);
             no_space_group.push(item);
         } else {
+            // FIXME: this is unreachable.
             flattened.push(item);
         }
     }
@@ -634,7 +635,7 @@ fn matched_segments_into_multi_segment_app<'s>(
     prefix_tokens: Option<Vec<syntax::Item<'s>>>,
     matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
 ) -> syntax::Tree<'s> {
-    // FIXME: remove into_vec
+    // FIXME: remove into_vec and use NonEmptyVec::mapped
     let segments = matched_segments
         .into_vec()
         .into_iter()

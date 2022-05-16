@@ -1,8 +1,8 @@
 //! Syntactic structures, including [`Token`] and [`Tree`], known as well as Abstract Syntax
 //! Tree, or AST.
 
-// use crate::prelude::*;
-//
+use crate::prelude::*;
+
 use crate::source::span;
 use crate::token::TokenRef;
 
@@ -70,5 +70,11 @@ impl<'s> From<Token<'s>> for Item<'s> {
 impl<'s> From<Tree<'s>> for Item<'s> {
     fn from(t: Tree<'s>) -> Self {
         Item::Tree(t)
+    }
+}
+
+impl<'s> TryAsRef<Item<'s>> for Item<'s> {
+    fn try_as_ref(&self) -> Option<&Item<'s>> {
+        Some(self)
     }
 }

@@ -21,16 +21,23 @@ use crate::syntax;
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum Pattern {
+    /// Consume all items, till the end of the token stream.
     Everything,
+    /// Consume nothing.
     Nothing,
+    /// Consume items matching the first pattern. If the match was unsuccessful, the second match
+    /// will be tried.
     Or(Box<Pattern>, Box<Pattern>),
+    /// Consume a single item if it matches the configuration.
     Item(Item),
 }
 
-/// Any item. Can specify whether it requires the rhs spacing.
+/// Item pattern configuration.
 #[derive(Clone, Copy, Debug)]
 #[allow(missing_docs)]
 pub struct Item {
+    /// Check whether the token has spaces on right-hand-side. The [`None`] value means that the
+    /// condition would not be checked.
     pub has_rhs_spacing: Option<bool>,
 }
 

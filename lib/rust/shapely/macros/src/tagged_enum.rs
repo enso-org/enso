@@ -30,11 +30,21 @@ use syn::Fields;
 ///     }
 /// }
 /// ```
+///
+/// # Attributes
+/// All attributes defined before the `#[tagged_enum]` one will be applied to the enum only, while
+/// all other attributes will be applied to both the enum and all the variant structs.
 pub fn run(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let is_boxed = attr.into_iter().any(|t| t.to_string() == "boxed");
+    let mut is_boxed = false;
+    let attrs: Vec<_> = attr.into_iter().collect();
+    if attrs.len() == 1 && &attrs[0].to_string() == "boxed" {
+        is_boxed = true;
+    } else if attrs.len() > 0 {
+        panic!("Unsupported attributes: {:?}", attrs);
+    }
     let decl = syn::parse_macro_input!(input as DeriveInput);
     let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let mut where_clause = enso_macro_utils::new_where_clause(vec![]);
@@ -102,7 +112,7 @@ pub fn run(
     // ==========================
 
     // #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    // pub AstMarker {
+    // pub enum AstMarker {
     //     Ident,
     //     App
     // }

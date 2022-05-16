@@ -43,7 +43,7 @@ impl<T> BumpVec<T> {
     /// Constructor.
     #[inline(always)]
     fn new_with_capacity(capacity: usize) -> Self {
-        let allocator = Bump::with_capacity(capacity);
+        let allocator = Bump::with_capacity(capacity * mem::size_of::<T>());
         BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
     }
 
@@ -155,13 +155,12 @@ pub struct Lexer<'s> {
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 pub struct LexerState {
-    pub current_char:                 Option<char>,
-    pub current_offset:               Bytes,
-    pub last_spaces_offset:           Bytes,
-    pub last_spaces_visible_offset:   VisibleOffset,
-    pub current_block_indent:         VisibleOffset,
-    pub block_indent_stack:           Vec<VisibleOffset>,
-    pub current_line_contains_tokens: bool,
+    pub current_char:               Option<char>,
+    pub current_offset:             Bytes,
+    pub last_spaces_offset:         Bytes,
+    pub last_spaces_visible_offset: VisibleOffset,
+    pub current_block_indent:       VisibleOffset,
+    pub block_indent_stack:         Vec<VisibleOffset>,
 }
 
 impl<'s> Lexer<'s> {
@@ -237,7 +236,8 @@ impl<'s> Lexer<'s> {
         })
     }
 
-    /// A zero-length token which is placed before currently consumed spaces.
+    /// A zero-length token which is placed before the last consumed spaces if they were not
+    /// followed by any token.
     #[inline(always)]
     pub fn marker_token<T>(&mut self, elem: T) -> Token<'s, T> {
         let visible_offset = VisibleOffset(0);
@@ -251,7 +251,6 @@ impl<'s> Lexer<'s> {
     #[inline(always)]
     pub fn submit_token(&mut self, token: Token<'s>) {
         self.output.push(token);
-        self.current_line_contains_tokens = true;
     }
 
     /// Start a new block.
@@ -411,7 +410,7 @@ fn is_digit(t: char) -> bool {
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    fn take_all_newline_chars(&mut self) {
+    fn take_rest_of_line(&mut self) {
         self.take_while(|t| !is_newline_char(t))
     }
 }
@@ -642,6 +641,7 @@ fn is_inline_text_body(t: char) -> bool {
 
 impl<'s> Lexer<'s> {
     /// Parse a text literal.
+    // FIXME: This impl is not yet finished and not all cases are covered (also, tests missing).
     fn text(&mut self) {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
@@ -693,7 +693,7 @@ impl<'s> Lexer<'s> {
 impl<'s> Lexer<'s> {
     #[inline(always)]
     fn submit_line_as(&mut self, kind: token::Variant) {
-        let token = self.token(|this| this.take_all_newline_chars());
+        let token = self.token(|this| this.take_rest_of_line());
         if let Some(token) = token {
             self.submit_token(token.with_variant(kind));
         }
@@ -704,8 +704,8 @@ impl<'s> Lexer<'s> {
             if current == '#' {
                 self.submit_line_as(token::Variant::comment());
                 let initial_ident = self.current_block_indent;
-                let check_ident = |this: &mut Self| this.current_block_indent > initial_ident;
-                while self.run_and_check_if_progressed(|this| this.newline()) && check_ident(self) {
+                let check_indent = |this: &mut Self| this.current_block_indent > initial_ident;
+                while self.run_and_check_if_progressed(|t| t.newline()) && check_indent(self) {
                     self.submit_line_as(token::Variant::comment());
                 }
             }
@@ -761,7 +761,6 @@ impl<'s> Lexer<'s> {
             for newline in newlines {
                 self.submit_token(newline);
             }
-            self.current_line_contains_tokens = false;
         }
     }
 }

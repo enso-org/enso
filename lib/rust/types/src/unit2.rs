@@ -822,6 +822,11 @@ impl BytesOps for Bytes {
 /// Methods of the [`Bytes`] unit as extensions for the [`str`] type.
 #[allow(missing_docs)]
 pub trait BytesStrOps<Range> {
+    /// Slice the provided string.
+    ///
+    /// # Panics
+    /// Panics if the range start or end is not on a UTF-8 code point boundary, or if it is past the
+    /// end of the last code point of the string slice.
     fn slice(&self, range: Range) -> &str;
 }
 

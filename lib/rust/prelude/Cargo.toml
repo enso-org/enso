@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "An augmented standard library in the vein of Haskell's prelude."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/-prelude"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["prelude", "standard-library"]
