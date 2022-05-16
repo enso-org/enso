@@ -130,7 +130,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
                 String[] elements = entry.split(":");
                 if (elements.length == 4 && !elements[3].isEmpty()) {
                   out.println(
-                      "    public static void final String "
+                      "    public static final String "
                           + elements[0].toUpperCase()
                           + " = \""
                           + elements[3]
