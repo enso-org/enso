@@ -60,7 +60,7 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     if impl_generics_len > 0 {
         let v: Vec<_> = impl_generics_vec.into_iter().take(impl_generics_len - 1).skip(1).collect();
         impl_generics = quote!(#(#v)*);
-        if v.len() > 0 {
+        if !v.is_empty() {
             impl_generics = quote!(#impl_generics,);
         }
     } else {

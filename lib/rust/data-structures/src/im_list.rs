@@ -72,7 +72,7 @@ impl<T> NonEmpty<T> {
 
     /// Get the last element of this list.
     pub fn last(&self) -> &T {
-        self.tail.last().unwrap_or(self.head())
+        self.tail.last().unwrap_or_else(|| self.head())
     }
 
     /// Check whether this list is empty.

@@ -125,7 +125,7 @@ use syntax::token;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_types::traits::*;
-    pub use enso_types::Bytes;
+    pub use enso_types::unit2::Bytes;
 }
 
 
@@ -551,7 +551,7 @@ fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree
     resolve_operator_precedence_internal(flattened)
 }
 
-fn resolve_operator_precedence_internal<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
+fn resolve_operator_precedence_internal(items: Vec<syntax::Item<'_>>) -> syntax::Tree<'_> {
     // Reverse-polish notation encoding.
     let mut output: Vec<syntax::Item> = default();
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
@@ -606,7 +606,7 @@ fn resolve_operator_precedence_internal<'s>(items: Vec<syntax::Item<'s>>) -> syn
     }
     let mut opt_rhs = last_token_was_ast.and_option_from(|| output.pop().map(token_to_ast));
     while let Some(opr) = operator_stack.pop() {
-        let opt_lhs = output.pop().map(|t| token_to_ast(t));
+        let opt_lhs = output.pop().map(token_to_ast);
         opt_rhs = Some(syntax::Tree::opr_app(opt_lhs, opr.elem, opt_rhs));
     }
     if !output.is_empty() {
@@ -642,12 +642,12 @@ fn matched_segments_into_multi_segment_app<'s>(
         .map(|segment| {
             let header = segment.0;
             let body =
-                (segment.1.len() > 0).as_some_from(|| resolve_operator_precedence(segment.1));
+                (!segment.1.is_empty()).as_some_from(|| resolve_operator_precedence(segment.1));
             syntax::tree::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
     if let Ok(segments) = NonEmptyVec::try_from(segments) {
-        let prefix = prefix_tokens.map(|t| resolve_operator_precedence(t));
+        let prefix = prefix_tokens.map(resolve_operator_precedence);
         syntax::Tree::multi_segment_app(prefix, segments)
     } else {
         panic!()

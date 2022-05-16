@@ -65,10 +65,16 @@ impl<T> BumpVec<T> {
         self.borrow_vec().len()
     }
 
+    /// Check whether the vec is empty.
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.borrow_vec().is_empty()
+    }
+
     /// Iterate over elements of this vec.
     #[inline(always)]
     pub fn iter(&self) -> slice::Iter<'_, T> {
-        self.borrow_vec().into_iter()
+        self.borrow_vec().iter()
     }
 }
 
@@ -404,6 +410,7 @@ pub fn is_newline_char(t: char) -> bool {
 
 /// Check whether the provided character is a digit.
 #[inline(always)]
+#[allow(clippy::manual_range_contains)]
 fn is_digit(t: char) -> bool {
     t >= '0' && t <= '9'
 }
@@ -444,6 +451,7 @@ impl<'s> Lexer<'s> {
 /// Check whether the provided character is an operator which should split the currently parsed
 /// identifier.
 #[inline(always)]
+#[allow(clippy::manual_range_contains)]
 fn is_ident_body_split_operator(t: char) -> bool {
     if t <= '\u{7E}' && t >= '\u{21}' {
         (t >= '\u{21}' && t <= '\u{26}') // ! " # $ % &
@@ -464,6 +472,7 @@ fn is_ident_body_split_operator(t: char) -> bool {
 
 /// Check if the provided character should be considered body of an operator name.
 #[inline(always)]
+#[allow(clippy::manual_range_contains)]
 fn is_operator_body_char(t: char) -> bool {
     if t <= '\u{7E}' && t >= '\u{21}' {
         (t == '\u{21}') // !
@@ -528,14 +537,14 @@ fn is_ident_char(t: char) -> bool {
 impl token::Variant {
     /// Convert the provided string to ident. The provided repr should contain valid identifier
     /// characters. This condition will not be checked.
-    pub fn new_ident_unchecked<'s>(repr: &str) -> token::variant::Ident {
+    pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
         token::variant::Ident(info.starts_with_underscore, info.lift_level)
     }
 
     /// Convert the provided string to ident or wildcard. The provided repr should contain valid
     /// identifier characters. This condition will not be checked.
-    pub fn new_ident_or_wildcard_unchecked<'s>(repr: &str) -> token::Variant {
+    pub fn new_ident_or_wildcard_unchecked(repr: &str) -> token::Variant {
         let info = IdentInfo::new(repr);
         if info.starts_with_underscore && repr.len() == 1 + info.lift_level {
             token::Variant::wildcard(info.lift_level)
@@ -646,7 +655,7 @@ impl<'s> Lexer<'s> {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
             self.submit_token(token.with_variant(token::Variant::text_start()));
-            let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
+            let line_empty = self.current_char.map(is_newline_char).unwrap_or(true);
             if line_empty {
                 todo!()
             } else {
@@ -720,6 +729,7 @@ impl<'s> Lexer<'s> {
 // =============
 
 impl<'s> Lexer<'s> {
+    #[allow(clippy::collapsible_if)]
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
         self.token(|this| {
             if !this.take_1('\n') {
@@ -886,9 +896,9 @@ mod tests {
 
 
 
-    fn test_lexer<'s>(input: &'s str, mut expected: Vec<Token<'s>>) {
+    fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
         let mut lexer = Lexer::new(input);
-        assert_eq!(lexer.run(), true);
+        assert!(lexer.run());
         assert_eq!(lexer.output.iter().collect_vec(), expected);
     }
 
@@ -896,7 +906,7 @@ mod tests {
         idents.iter().map(|t| lexer_case_ident(t)).collect()
     }
 
-    fn lexer_case_ident<'s>(code: &'s str) -> (&'s str, Vec<Token<'s>>) {
+    fn lexer_case_ident(code: &str) -> (&str, Vec<Token<'_>>) {
         (code, vec![ident_("", code)])
     }
 
@@ -904,14 +914,14 @@ mod tests {
         operators.iter().map(|t| lexer_case_operator(t)).collect()
     }
 
-    fn lexer_case_operator<'s>(code: &'s str) -> (&'s str, Vec<Token<'s>>) {
+    fn lexer_case_operator(code: &str) -> (&str, Vec<Token<'_>>) {
         (code, vec![operator_("", code)])
     }
 
     #[test]
     fn test_case_block() {
         test_lexer_many(vec![
-            ("\n", vec![token::newline_("", "\n")]),
+            ("\n", vec![newline_("", "\n")]),
             ("\n  foo\n  bar", vec![
                 block_start_("", ""),
                 newline_("", "\n"),
@@ -1143,7 +1153,7 @@ mod benches {
 
     #[bench]
     fn bench_str_iter(b: &mut Bencher) {
-        let reps = 1000_000;
+        let reps = 1_000_000;
         let str = "test ".repeat(reps);
 
         b.iter(move || str.chars().for_each(drop));
@@ -1151,7 +1161,7 @@ mod benches {
 
     #[bench]
     fn bench_str_iter_and_compare(b: &mut Bencher) {
-        let reps = 1000_000;
+        let reps = 1_000_000;
         let str = "test ".repeat(reps);
 
         b.iter(move || {
@@ -1167,13 +1177,13 @@ mod benches {
     /// 12-13x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
     #[bench]
     fn bench_idents(b: &mut Bencher) {
-        let reps = 1000_000;
+        let reps = 1_000_000;
         let str = "test ".repeat(reps);
 
         b.iter(move || {
             let mut lexer = Lexer::new(&str);
             let ok = lexer.run();
-            assert_eq!(ok, true);
+            assert!(ok);
             assert_eq!(lexer.output.len(), reps);
         });
     }

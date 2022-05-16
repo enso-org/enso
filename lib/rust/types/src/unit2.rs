@@ -21,7 +21,6 @@ pub mod traits {
     pub use super::DurationOps;
     pub use super::IntoUncheckedRawRange;
     pub use super::UncheckedFrom;
-    pub use super::UncheckedInto;
 }
 
 mod ops {

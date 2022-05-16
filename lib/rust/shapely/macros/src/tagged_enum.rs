@@ -42,7 +42,7 @@ pub fn run(
     let attrs: Vec<_> = attr.into_iter().collect();
     if attrs.len() == 1 && &attrs[0].to_string() == "boxed" {
         is_boxed = true;
-    } else if attrs.len() > 0 {
+    } else if !attrs.is_empty() {
         panic!("Unsupported attributes: {:?}", attrs);
     }
     let decl = syn::parse_macro_input!(input as DeriveInput);

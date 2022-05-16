@@ -27,7 +27,7 @@ pub struct VisibleOffset {
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn VisibleOffset(number: usize) -> VisibleOffset {
+pub const fn VisibleOffset(number: usize) -> VisibleOffset {
     VisibleOffset { number }
 }
 
@@ -230,6 +230,7 @@ impl Builder<()> {
 impl<T> Builder<T> {
     /// Add a new span to the builder.
     #[inline(always)]
+    #[allow(clippy::should_implement_trait)]
     pub fn add<S>(self, elem: &mut S) -> Builder<S::Output>
     where S: Build<T> {
         Builder(elem.build(self))

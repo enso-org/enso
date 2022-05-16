@@ -607,7 +607,7 @@ impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
             ItemRef::Tree(tree) => self.code.push_str(&tree.span.left_offset.code),
             ItemRef::Token(token) => {
                 self.code.push_str(&token.left_offset.code);
-                self.code.push_str(&token.code);
+                self.code.push_str(token.code);
             }
         }
         true
