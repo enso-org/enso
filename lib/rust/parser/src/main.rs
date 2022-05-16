@@ -350,7 +350,7 @@ impl<'s> Resolver<'s> {
             // FIXME: the first [`false`] below is invalid.
             let match_result = pattern.resolve(child_tokens, false, false).unwrap();
             let mut new_child_tokens = match_result.matched;
-            let new_parent_tokens = match_result.not_matched;
+            let new_parent_tokens = match_result.rest;
             mem::swap(&mut child_macro.current_segment.body, &mut new_child_tokens);
             self.current_macro.current_segment.body.push(child_macro.into());
             self.current_macro.current_segment.body.extend(new_parent_tokens);
@@ -376,7 +376,7 @@ impl<'s> Resolver<'s> {
                                 let spacing = m2.current_segment.header.left_offset.visible > VisibleOffset(0);
                                 let mut match_result = pfx_pattern.resolve(ss,spacing,true).unwrap();
                                 match_result.matched.reverse();
-                                ss = match_result.not_matched;
+                                ss = match_result.rest;
                                 ss.reverse();
                                 Self::resolve(lexer, m2, Some(match_result.matched)).into()
                             } else {
@@ -535,7 +535,7 @@ fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree
         }
     };
     for item in items {
-        if item.span().left_offset.visible.number == 0 || no_space_group.is_empty() {
+        if item.span().left_offset.visible.width_in_spaces == 0 || no_space_group.is_empty() {
             no_space_group.push(item)
         } else if !no_space_group.is_empty() {
             processs_no_space_group(&mut flattened, &mut no_space_group);

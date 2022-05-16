@@ -4,6 +4,8 @@
 use crate::prelude::*;
 
 use crate::source::span;
+use crate::source::span::traits::*;
+use crate::source::span::Span;
 use crate::token::TokenRef;
 
 
@@ -50,9 +52,11 @@ impl<'s> Item<'s> {
             Self::Tree(t) => t.span.as_ref(),
         }
     }
+}
 
-    /// Remove left offset spacing information.
-    pub fn trim_as_first_child(&mut self) -> span::Span {
+impl<'s> FirstChildTrim<'s> for Item<'s> {
+    #[inline(always)]
+    fn trim_as_first_child(&mut self) -> Span<'s> {
         match self {
             Self::Token(t) => t.trim_as_first_child(),
             Self::Tree(t) => t.span.trim_as_first_child(),

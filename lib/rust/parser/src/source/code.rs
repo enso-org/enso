@@ -9,51 +9,53 @@ use crate::prelude::*;
 // ============
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Deref, Default, DerefMut, Eq, PartialEq, From, Into)]
+#[derive(Clone, Default, Eq, PartialEq, From, Into, Shrinkwrap)]
+#[shrinkwrap(mutable)]
+#[allow(missing_docs)]
 pub struct Code<'s> {
-    cow: Cow<'s, str>,
+    pub repr: Cow<'s, str>,
 }
 
 impl<'s> Code<'s> {
     /// Length of the code in bytes.
     pub fn len(&self) -> Bytes {
-        Bytes(self.cow.len())
+        Bytes(self.repr.len())
     }
 }
 
 impl<'a> From<&'a str> for Code<'a> {
     fn from(str: &'a str) -> Self {
-        let cow = str.into();
-        Self { cow }
+        let repr = str.into();
+        Self { repr }
     }
 }
 
 impl<'s> Display for Code<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.cow, f)
+        Display::fmt(&self.repr, f)
     }
 }
 
 impl<'s> Debug for Code<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.cow, f)
+        Debug::fmt(&self.repr, f)
     }
 }
 
 impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
     fn eq(&self, other: &&'b str) -> bool {
-        self.cow.eq(other)
+        self.repr.eq(other)
     }
 }
 
 impl AsRef<str> for Code<'_> {
     fn as_ref(&self) -> &str {
-        &self.cow
+        &self.repr
     }
 }
 
 impl std::borrow::Borrow<str> for Code<'_> {
     fn borrow(&self) -> &str {
-        &self.cow
+        &self.repr
     }
 }

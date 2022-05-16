@@ -3,6 +3,7 @@
 
 use crate::prelude::*;
 
+use crate::source::span;
 use crate::source::span::Span;
 use crate::source::span::SpanRef;
 use crate::source::Code;
@@ -156,20 +157,10 @@ impl<'s, T> Token<'s, T> {
         self.modify_variant(|_| data)
     }
 
-    /// Trim the left offset and return the [`Span`] containing the trimmed offset and the length
-    /// of the token code. It is used to prepare the token for insertion into parent ast where
-    /// offsets are kept relatively to parent tree nodes.
-    #[inline(always)]
-    pub fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        let length = self.code.len();
-        Span { left_offset, length }
-    }
-
     /// Span of this token.
     pub fn span<'a>(&'a self) -> SpanRef<'s, 'a> {
-        let length = self.code.len();
-        SpanRef { left_offset: &self.left_offset, length }
+        let code_length = self.code.len();
+        SpanRef { left_offset: &self.left_offset, code_length }
     }
 }
 
@@ -183,6 +174,15 @@ impl<'s, T: Debug> Debug for Token<'s, T> {
 impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
     fn eq(&self, other: &Token<'s, T>) -> bool {
         <Token<'s, T> as PartialEq<Token<'s, T>>>::eq(*self, other)
+    }
+}
+
+impl<'s, T> span::FirstChildTrim<'s> for Token<'s, T> {
+    #[inline(always)]
+    fn trim_as_first_child(&mut self) -> Span<'s> {
+        let left_offset = mem::take(&mut self.left_offset);
+        let code_length = self.code.len();
+        Span { left_offset, code_length }
     }
 }
 

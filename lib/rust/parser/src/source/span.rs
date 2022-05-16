@@ -9,6 +9,12 @@ use crate::syntax::token;
 use crate::syntax::tree::Tree;
 
 
+/// Common traits.
+pub mod traits {
+    pub use super::FirstChildTrim;
+}
+
+
 
 // =====================
 // === VisibleOffset ===
@@ -23,18 +29,18 @@ use crate::syntax::tree::Tree;
 )]
 #[allow(missing_docs)]
 pub struct VisibleOffset {
-    pub number: usize,
+    pub width_in_spaces: usize,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub const fn VisibleOffset(number: usize) -> VisibleOffset {
-    VisibleOffset { number }
+pub const fn VisibleOffset(width_in_spaces: usize) -> VisibleOffset {
+    VisibleOffset { width_in_spaces }
 }
 
 impl Display for VisibleOffset {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.number, f)
+        Display::fmt(&self.width_in_spaces, f)
     }
 }
 
@@ -102,20 +108,11 @@ impl<'s> From<&'s str> for Offset<'s> {
 #[allow(missing_docs)]
 pub struct Span<'s> {
     pub left_offset: Offset<'s>,
-    pub length:      Bytes,
+    /// The length of the code, excluding [`left_offset`].
+    pub code_length: Bytes,
 }
 
 impl<'s> Span<'s> {
-    /// Trim the left offset and return the [`Span`] containing the trimmed offset and the length
-    /// of the token code. It is used to prepare the token for insertion into parent ast where
-    /// offsets are kept relatively to parent tree nodes.
-    #[inline(always)]
-    pub fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        let length = self.length;
-        Span { left_offset, length }
-    }
-
     /// Extend the span with another one. The other span has to be the immediate neighbor of the
     /// current span.
     #[inline(always)]
@@ -124,7 +121,7 @@ impl<'s> Span<'s> {
         T: Into<SpanRef<'s, 'a>>,
         's: 'a, {
         let other = other.into();
-        self.length += other.left_offset.len() + other.length;
+        self.code_length += other.left_offset.len() + other.code_length;
     }
 
     /// Self consuming version of [`extend`].
@@ -138,7 +135,7 @@ impl<'s> Span<'s> {
 
     /// Get the [`SpanRef`] of the current span.
     pub fn as_ref(&self) -> SpanRef<'_, 's> {
-        SpanRef { left_offset: &self.left_offset, length: self.length }
+        SpanRef { left_offset: &self.left_offset, code_length: self.code_length }
     }
 }
 
@@ -155,19 +152,24 @@ impl<'s> AsRef<Span<'s>> for Span<'s> {
 // ===============
 
 /// A borrowed version of [`Span`]. Used mostly by AST visitors.
+///
+/// One may wonder why this struct is needed, because it looks like we could use [`&Span<'s>`]
+/// instead. The problem is that some structs, such as [`Token`] do not contain [`Span<'s>`], but
+/// they contain information the [`SpanRef`] can be constructed from.
 #[derive(Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct SpanRef<'s, 'a> {
     pub left_offset: &'a Offset<'s>,
-    pub length:      Bytes,
+    /// The length of the code, excluding [`left_offset`].
+    pub code_length: Bytes,
 }
 
 impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
     #[inline(always)]
     fn from(span: &'a Span<'s>) -> Self {
         let left_offset = &span.left_offset;
-        let length = span.length;
-        Self { left_offset, length }
+        let code_length = span.code_length;
+        Self { left_offset, code_length }
     }
 }
 
@@ -177,15 +179,46 @@ impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
 // === SpanRefMut ===
 // ==================
 
-/// A mutably borrowed version of [`Span`]. Used mostly by AST visitors. Please note that the
-/// [`length`] field does not provide the mutable access because it should not be modified without
-/// modifying the code. If you want to modify the length of a span, modify the underlying AST
-/// instead.
+/// A mutably borrowed version of [`Span`]. Used mostly by AST visitors.
+///
+/// Please note that the [`code_length`] field does not provide the mutable access. Each AST node
+/// can contain other AST nodes and tokens. The span of an AST node is computed based on the span of
+/// the tokens it contains. Thus, you should never modify the [`code_length`] property, you should
+/// modify the AST structure instead and this field should be automatically recomputed.
 #[derive(Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct SpanRefMut<'s, 'a> {
     pub left_offset: &'a mut Offset<'s>,
-    pub length:      Bytes,
+    /// The length of the code, excluding [`left_offset`].
+    pub code_length: Bytes,
+}
+
+
+
+// ======================
+// === FirstChildTrim ===
+// ======================
+
+/// Trim the left offset and return a new [`Span`] containing the trimmed offset and the length of
+/// the code.
+///
+/// It is used to prepare this element for insertion into parent AST node. Left offsets are kept in
+/// a hierarchical way in AST. For example, the expression ` a b` will be represented as two tokens
+/// `a` and `b`, each having left offset of 1. However, after constructing the [`App`] AST node, the
+/// left span of the `a` token will be removed and will be moved to the AST node instead. This
+/// function is responsible exactly for this operation.
+#[allow(missing_docs)]
+pub trait FirstChildTrim<'s> {
+    fn trim_as_first_child(&mut self) -> Span<'s>;
+}
+
+impl<'s> FirstChildTrim<'s> for Span<'s> {
+    #[inline(always)]
+    fn trim_as_first_child(&mut self) -> Span<'s> {
+        let left_offset = mem::take(&mut self.left_offset);
+        let code_length = self.code_length;
+        Span { left_offset, code_length }
+    }
 }
 
 

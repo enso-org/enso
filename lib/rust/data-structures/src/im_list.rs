@@ -13,16 +13,16 @@ use crate::prelude::*;
 #[derive(Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Default(bound = ""))]
-#[allow(missing_docs)]
 pub struct List<T> {
+    #[allow(missing_docs)]
     pub data: Option<NonEmpty<T>>,
 }
 
 /// Non-empty list. It is guaranteed to have at least one element. See [`List`] to learn more.
 #[derive(Derivative, Deref, Debug)]
 #[derivative(Clone(bound = ""))]
-#[allow(missing_docs)]
 pub struct NonEmpty<T> {
+    #[allow(missing_docs)]
     pub node: Rc<Node<T>>,
 }
 
@@ -171,6 +171,20 @@ impl<'a, T> IntoIterator for &'a NonEmpty<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.to_vec().into_iter()
+    }
+}
+
+impl<T> FromIterator<T> for List<T> {
+    // Clippy reports false warning here as we cannot add a bound to `I` that it needs to be a
+    // double-ended iterator.
+    #[allow(clippy::needless_collect)]
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let vec: Vec<T> = iter.into_iter().collect();
+        let mut list = List::default();
+        for item in vec.into_iter().rev() {
+            list = list.prepend(item).into()
+        }
+        list
     }
 }
 

@@ -44,7 +44,7 @@ impl<'s> Debug for Tree<'s> {
         if code.len() > max_code_len {
             code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
         }
-        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.length, code)?;
+        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.code_length, code)?;
         Debug::fmt(&self.variant, f)
     }
 }
@@ -456,7 +456,7 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
         if visitor.visit_mut(SpanRefMut {
             left_offset: &mut self.span.left_offset,
-            length:      self.span.length,
+            code_length: self.span.code_length,
         }) {
             self.variant.visit_span_mut(visitor)
         }
@@ -465,8 +465,8 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
 
 impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for token::Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        let length = self.code.len();
-        visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, length });
+        let code_length = self.code.len();
+        visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, code_length });
     }
 }
 

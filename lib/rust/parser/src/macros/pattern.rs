@@ -75,14 +75,16 @@ impl<T> ResolutionError<T> {
 #[derive(Debug, Clone)]
 #[allow(missing_docs)]
 pub struct Match<T> {
-    pub matched:     Vec<T>,
-    pub not_matched: Vec<T>,
+    /// All the matched tokens.
+    pub matched: Vec<T>,
+    /// The rest of the token stream that was not needed for the successful pattern match.
+    pub rest:    Vec<T>,
 }
 
 impl<T> Match<T> {
     /// Constructor.
-    pub fn new(matched: Vec<T>, not_matched: Vec<T>) -> Self {
-        Self { matched, not_matched }
+    pub fn new(matched: Vec<T>, rest: Vec<T>) -> Self {
+        Self { matched, rest }
     }
 }
 
