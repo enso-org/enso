@@ -438,6 +438,7 @@ pub struct NodeModel {
 
 impl NodeModel {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
@@ -528,17 +529,20 @@ impl NodeModel {
         .init()
     }
 
+    #[profile(Debug)]
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
         input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self
     }
 
+    #[profile(Debug)]
     fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
         layer.add_exclusive(&self.display_object);
         action_bar_layer.add_exclusive(&self.action_bar);
@@ -555,6 +559,7 @@ impl NodeModel {
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
     /// separate `above_nodes` layer, unlike every other node component.
+    #[profile(Debug)]
     pub fn move_to_edited_node_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
@@ -570,6 +575,7 @@ impl NodeModel {
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
     /// node component.
+    #[profile(Debug)]
     pub fn move_to_main_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.main;
@@ -588,12 +594,14 @@ impl NodeModel {
         HEIGHT
     }
 
+    #[profile(Debug)]
     fn set_expression(&self, expr: impl Into<Expression>) {
         let expr = expr.into();
         self.output.set_expression(&expr);
         self.input.set_expression(&expr);
     }
 
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         match crumbs.endpoint {
             Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
@@ -601,6 +609,7 @@ impl NodeModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
         let size = Vector2(width, height);
@@ -630,11 +639,13 @@ impl NodeModel {
         size
     }
 
+    #[profile(Debug)]
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn visualization(&self) -> &visualization::Container {
         &self.visualization
     }
 
+    #[profile(Debug)]
     fn set_error(&self, error: Option<&Error>) {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
@@ -647,6 +658,7 @@ impl NodeModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
         self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
         if color.alpha < EPSILON {
@@ -659,6 +671,7 @@ impl NodeModel {
 
 impl Node {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = &frp.private.network;
@@ -954,6 +967,7 @@ impl Node {
         Node { widget }
     }
 
+    #[profile(Debug)]
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
         use ensogl_hardcoded_theme::graph_editor::node::error as error_theme;
 
@@ -988,6 +1002,7 @@ fn visualization_offset(node_width: f32) -> Vector2 {
     Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
 }
 
+#[profile(Debug)]
 fn bounding_box(
     node_position: Vector2,
     node_size: Vector2,

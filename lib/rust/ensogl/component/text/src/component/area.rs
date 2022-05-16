@@ -642,6 +642,7 @@ impl AreaModel {
     fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
 
     #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -753,6 +754,7 @@ impl AreaModel {
         Location(line, column)
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         self.redraw(true);
         self
@@ -1011,6 +1013,8 @@ impl AreaModel {
     }
 
     #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
+    #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
@@ -1141,5 +1145,24 @@ impl Drop for Area {
         // TODO[ao]: This is workaround for memory leak causing text to stay even when component
         //           is deleted. See "FIXME: memory leak." comment above.
         self.remove_all_cursors();
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Assert that there is no inherent memory leak in the [text::Area].
+    #[test]
+    fn assert_no_leak() {
+        let app = Application::new("root");
+        let text = app.new_view::<Area>();
+        let text_frp = Rc::downgrade(&text.frp);
+        let text_data = Rc::downgrade(&text.data);
+        drop(text);
+        assert_eq!(text_frp.strong_count(), 0, "There are FRP references left.");
+        assert_eq!(text_data.strong_count(), 0, "There are  data references left.");
     }
 }
