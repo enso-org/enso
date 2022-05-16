@@ -67,7 +67,7 @@ pub fn save_profile(profile: &str) {
 }
 
 /// Get profile data loaded from files, if the Electron API is available.
-pub fn load_profiles() -> Option<impl Future<Output=Vec<String>>> {
+pub fn load_profiles() -> Option<impl Future<Output = Vec<String>>> {
     let api = profiling_data_api()?;
     let (sender, receiver) = futures::channel::oneshot::channel();
     let handler = wasm_bindgen::prelude::Closure::once(|profiles: Vec<wasm_bindgen::JsValue>| {

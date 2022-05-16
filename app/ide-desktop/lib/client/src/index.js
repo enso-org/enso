@@ -160,7 +160,8 @@ optParser.options('devtron', {
 
 optParser.options('load-profile', {
     group: debugOptionsGroup,
-    describe: 'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    describe:
+        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
     requiresArg: true,
     type: `array`,
 })
@@ -560,11 +561,11 @@ function createWindow() {
     }
     let profilePromises = []
     if (args.loadProfile) {
-        profilePromises = args.loadProfile.map(path => fsp.readFile(path, "utf8"))
+        profilePromises = args.loadProfile.map(path => fsp.readFile(path, 'utf8'))
     }
     const profiles = Promise.all(profilePromises)
-    Electron.ipcMain.on('load-profiles', (event) => {
-        profiles.then((profiles) => {
+    Electron.ipcMain.on('load-profiles', event => {
+        profiles.then(profiles => {
             const n = profiles.length
             event.reply('profiles-loaded', profiles)
         })

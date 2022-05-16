@@ -23,14 +23,14 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
 })
 
 // Save and load profile data.
-let onProfiles = [];
-let profilesLoaded;
+let onProfiles = []
+let profilesLoaded
 ipcRenderer.on('profiles-loaded', (event, profiles) => {
     for (const callback of onProfiles) {
         callback(profiles)
     }
-    onProfiles = [];
-    profilesLoaded = profiles;
+    onProfiles = []
+    profilesLoaded = profiles
 })
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
