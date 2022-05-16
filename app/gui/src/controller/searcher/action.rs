@@ -240,7 +240,6 @@ impl ListEntry {
     /// The ordering on the action list: first, are the matched entries are gathered on the top of
     /// the list, then sorted by categories, and those of same category are ordered by match score
     /// (the best matches are first).
-    #[profile(Debug)]
     pub fn ordering_on_list(&self, rhs: &Self) -> std::cmp::Ordering {
         self.matches()
             .cmp(&rhs.matches())
@@ -298,7 +297,6 @@ impl List {
     ///
     /// The "matching score" of each entry is recalculated against the given pattern and the entries
     /// are re-ordered, so the best matches will go first.
-    #[profile(Debug)]
     pub fn update_filtering(&self, pattern: impl Str) {
         {
             let mut entries_mut = self.entries.borrow_mut();
@@ -372,7 +370,6 @@ impl List {
         self.entries.borrow().iter().map(|entry| entry.action.clone_ref()).collect()
     }
 
-    #[profile(Debug)]
     fn update_sorting(&self) {
         let mut entries_mut = self.entries.borrow_mut();
         entries_mut.sort_by(|l, r| l.ordering_on_list(r));

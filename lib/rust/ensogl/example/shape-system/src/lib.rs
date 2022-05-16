@@ -61,7 +61,7 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let sprite_system = ShapeSystem::new(&world, &shape());
+    let sprite_system = ShapeSystem::new(&world, &shape(), true);
     let sprite = sprite_system.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));

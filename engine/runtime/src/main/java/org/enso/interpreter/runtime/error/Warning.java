@@ -2,13 +2,13 @@ package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.EnsoSourceSection;
 
 public class Warning implements TruffleObject {
   private final Object value;
@@ -54,7 +54,10 @@ public class Warning implements TruffleObject {
     }
 
     @ExportMessage
-    SourceSection getSourceLocation() {
+    SourceSection getSourceLocation() throws UnsupportedMessageException {
+      if (location == null) {
+        throw UnsupportedMessageException.create();
+      }
       return location;
     }
   }

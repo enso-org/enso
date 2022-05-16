@@ -60,8 +60,12 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
     /// be displayed.
     type Model: Debug + Default;
 
+    /// A type parametrizing the visual aspects of how the entry will be rendered in an instance of
+    /// [`crate::ListView`].
+    type Params: CloneRef + Debug + Default;
+
     /// An Object constructor.
-    fn new(app: &Application, style_prefix: &Path) -> Self;
+    fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self;
 
     /// Update content with new model.
     fn update(&self, model: &Self::Model);
@@ -83,27 +87,24 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 // === Label ===
 
 /// The [`Entry`] being a single text field displaying String.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Label {
     display_object: display::object::Instance,
-    label:          text::Area,
+    pub label:      text::Area,
     text:           Rc<RefCell<String>>,
     max_width_px:   Rc<Cell<f32>>,
-    network:        enso_frp::Network,
+    /// The `network` is public to allow extending it in components based on a [`Label`]. This
+    /// should only be done for components that are small extensions of a Label, where creating a
+    /// separate network for them would be an unnecessary overhead.
+    /// Note: Networks extending this field will not outlive [`Label`].
+    pub network:    enso_frp::Network,
     style_watch:    StyleWatchFrp,
 }
 
 impl Label {
-    fn update_label_content(&self) {
-        let text = self.text.borrow().clone();
-        self.label.set_content_truncated(text, self.max_width_px.get());
-    }
-}
-
-impl Entry for Label {
-    type Model = String;
-
-    fn new(app: &Application, style_prefix: &Path) -> Self {
+    /// Constructor.
+    pub fn new(app: &Application, style_prefix: &Path) -> Self {
         let logger = Logger::new("list_view::entry::Label");
         let display_object = display::object::Instance::new(logger);
         let label = app.new_view::<ensogl_text::Area>();
@@ -130,6 +131,20 @@ impl Entry for Label {
         }
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
+    }
+
+    fn update_label_content(&self) {
+        let text = self.text.borrow().clone();
+        self.label.set_content_truncated(text, self.max_width_px.get());
+    }
+}
+
+impl Entry for Label {
+    type Model = String;
+    type Params = ();
+
+    fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
+        Self::new(app, style_prefix)
     }
 
     fn update(&self, model: &Self::Model) {
@@ -177,8 +192,9 @@ pub struct GlyphHighlightedLabel {
 
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
+    type Params = ();
 
-    fn new(app: &Application, style_prefix: &Path) -> Self {
+    fn new(app: &Application, style_prefix: &Path, _params: &Self::Params) -> Self {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");

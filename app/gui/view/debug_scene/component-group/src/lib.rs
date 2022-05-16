@@ -23,6 +23,7 @@ use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
+use ensogl_selector as selector;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
@@ -72,29 +73,29 @@ const PREPARED_ITEMS: &[&str; 8] = &[
 
 #[derive(Debug)]
 struct MockEntries {
-    entries: Vec<String>,
+    entries: Vec<component_group::entry::Model>,
     count:   Cell<usize>,
 }
 
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
         Rc::new(Self {
-            entries: PREPARED_ITEMS.iter().cycle().take(count).map(ToString::to_string).collect(),
+            entries: PREPARED_ITEMS.iter().cycle().take(count).map(|&label| label.into()).collect(),
             count:   Cell::new(count),
         })
     }
 
-    fn get_entry(&self, id: list_view::entry::Id) -> Option<String> {
+    fn get_entry(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
         self.entries.get(id).cloned()
     }
 }
 
-impl list_view::entry::ModelProvider<list_view::entry::Label> for MockEntries {
+impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
     fn entry_count(&self) -> usize {
         self.count.get()
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<String> {
+    fn get(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
         self.get_entry(id)
     }
 }
@@ -152,10 +153,9 @@ impl ComponentGroupController {
 
 // === Helpers ====
 
-fn component_group(
+fn create_component_group(
     app: &Application,
     header: &str,
-    background_color: color::Rgba,
     layers: &component_group::Layers,
 ) -> component_group::View {
     let component_group = app.new_view::<component_group::View>();
@@ -163,9 +163,19 @@ fn component_group(
     component_group.set_header(header.to_string());
     component_group.set_width(150.0);
     component_group.set_position_x(75.0);
-    component_group.set_background_color(background_color);
     component_group
 }
+
+fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
+    let slider = app.new_view::<selector::NumberPicker>();
+    app.display.add_child(&slider);
+    slider.frp.allow_click_selection(true);
+    slider.frp.resize(Vector2(400.0, 30.0));
+    slider.frp.set_bounds.emit(selector::Bounds::new(0.0, 1.0));
+    slider.frp.set_caption(Some(caption.to_string()));
+    slider
+}
+
 
 // === init ===
 
@@ -188,11 +198,10 @@ fn init(app: &Application) {
     let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
     let group_name = "Long group name with text overflowing the width";
-    let color = color::Rgba(0.927, 0.937, 0.913, 1.0);
-    let first_component_group = component_group(app, group_name, color, &layers);
+    let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
-    let color = color::Rgba(0.527, 0.837, 0.713, 1.0);
-    let second_component_group = component_group(app, group_name, color, &layers);
+    let second_component_group = create_component_group(app, group_name, &layers);
+    second_component_group.set_dimmed(true);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
@@ -224,8 +233,47 @@ fn init(app: &Application) {
     first_component_group.set_entries(model_provider.clone_ref());
     second_component_group.set_entries(model_provider);
 
-    std::mem::forget(network);
+    // === Color sliders ===
+
+    let red_slider = color_component_slider(app, "Red");
+    red_slider.set_position_y(350.0);
+    red_slider.set_track_color(color::Rgba::new(1.0, 0.60, 0.60, 1.0));
+    let red_slider_frp = &red_slider.frp;
+
+    let green_slider = color_component_slider(app, "Green");
+    green_slider.set_position_y(300.0);
+    green_slider.set_track_color(color::Rgba::new(0.6, 1.0, 0.6, 1.0));
+    let green_slider_frp = &green_slider.frp;
+
+    let blue_slider = color_component_slider(app, "Blue");
+    blue_slider.set_position_y(250.0);
+    blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
+    let blue_slider_frp = &blue_slider.frp;
+
+    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    frp::extend! { network
+        init <- source_();
+        red_slider_frp.set_value <+ init.constant(default_color.red);
+        green_slider_frp.set_value <+ init.constant(default_color.green);
+        blue_slider_frp.set_value <+ init.constant(default_color.blue);
+        let red_slider_value = &red_slider_frp.value;
+        let green_slider_value = &green_slider_frp.value;
+        let blue_slider_value = &blue_slider_frp.value;
+        color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
+            |r,g,b| color::Rgba(*r, *g, *b, 1.0));
+        first_component_group.set_color <+ color;
+        second_component_group.set_color <+ color;
+    }
+    init.emit(());
+
+
+    // === Forget ===
+
+    std::mem::forget(red_slider);
+    std::mem::forget(green_slider);
+    std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
+    std::mem::forget(network);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
     std::mem::forget(layers);
