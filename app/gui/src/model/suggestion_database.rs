@@ -371,7 +371,7 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    /// Search the database for an entry at given fully qualified `freeform_path`.
+    /// Search the database for an entry at fully qualified `freeform_path`.
     pub fn lookup_by_fully_qualified_path(
         &self,
         freeform_path: impl Into<FreeformPath>,
