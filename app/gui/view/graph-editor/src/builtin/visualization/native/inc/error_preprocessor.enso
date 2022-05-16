@@ -2,6 +2,5 @@ x ->
     result = Ref.new '{ message: ""}'
     x.catch err->
         message = err.to_display_text
-        Ref.put result ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-    Ref.get result
-
+        result.put ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
+    result.get

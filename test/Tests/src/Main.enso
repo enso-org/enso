@@ -87,6 +87,7 @@ main = Test.Suite.run_main <|
     Python_Interop_Spec.spec
     R_Interop_Spec.spec
     Range_Spec.spec
+    Ref.spec
     Default_Regex_Engine_Spec.spec
     Regex_Spec.spec
     Matching_Spec.spec
