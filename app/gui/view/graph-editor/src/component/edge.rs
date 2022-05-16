@@ -287,6 +287,7 @@ pub mod joint {
     use super::*;
 
     ensogl::define_shape_system! {
+        pointer_events = false;
         (color_rgba:Vector4<f32>) {
             let radius        = Var::<Pixels>::from("input_size.y");
             let joint         = Circle((radius-PADDING.px())/2.0);
@@ -1075,6 +1076,7 @@ pub struct Frp {
 
 impl Frp {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
             def source_width    = source();
@@ -1166,6 +1168,7 @@ impl display::Object for EdgeModelData {
 
 impl Edge {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(app: &Application) -> Self {
         let network = frp::Network::new("node_edge");
         let data = Rc::new(EdgeModelData::new(&app.display.default_scene, &network));
@@ -1277,19 +1280,13 @@ pub struct EdgeModelData {
 
 impl EdgeModelData {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(scene: &Scene, network: &frp::Network) -> Self {
         let logger = Logger::new("edge");
         let display_object = display::object::Instance::new(&logger);
         let front = Front::new(Logger::new_sub(&logger, "front"));
         let back = Back::new(Logger::new_sub(&logger, "back"));
         let joint = joint::View::new(Logger::new_sub(&logger, "joint"));
-
-        let shape_system = scene
-            .layers
-            .main
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<joint::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
 
         display_object.add_child(&front);
         display_object.add_child(&back);
