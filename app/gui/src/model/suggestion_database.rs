@@ -142,7 +142,7 @@ impl FreeformPathToIdMap {
             path: &[PathSegment],
         ) -> (bool, bool) {
             match (node.is_leaf(), path) {
-                (is_leaf @ _, []) => (node.value.take().is_some(), is_leaf),
+                (is_leaf, []) => (node.value.take().is_some(), is_leaf),
                 (true, [..]) => (false, node.value.is_none()),
                 (false, [key, path_after_key @ ..]) => {
                     let branches = &mut node.branches;
@@ -907,13 +907,13 @@ mod test {
         let map: FreeformPathToIdMap = default();
         let package_path = "Foo".into();
         let path = "Foo.Bar.baz".into();
-        assert_eq!(map.check_if_exists_and_remove(&path), false);
-        assert_eq!(map.check_if_exists_and_set(&path, 2), false);
+        assert!(!map.check_if_exists_and_remove(&path));
+        assert!(!map.check_if_exists_and_set(&path, 2));
         assert_eq!(map.get(path.clone()), Some(2));
-        assert_eq!(map.check_if_exists_and_remove(&package_path), false);
-        assert_eq!(map.check_if_exists_and_set(&path, 3), true);
+        assert!(!map.check_if_exists_and_remove(&package_path));
+        assert!(map.check_if_exists_and_set(&path, 3));
         assert_eq!(map.get(path.clone()), Some(3));
-        assert_eq!(map.check_if_exists_and_remove(&path), true);
-        assert_eq!(map.check_if_exists_and_remove(&path), false);
+        assert!(map.check_if_exists_and_remove(&path));
+        assert!(!map.check_if_exists_and_remove(&path));
     }
 }
