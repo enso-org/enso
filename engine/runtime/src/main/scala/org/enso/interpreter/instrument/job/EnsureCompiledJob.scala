@@ -96,7 +96,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         val cacheInvalidationCommands =
           buildCacheInvalidationCommands(
             changeset,
-            module.getLiteralSource
+            module.getSource.getCharacters
           )
         runInvalidationCommands(cacheInvalidationCommands)
         // There are two runtime flags that can disable suggestions for project
@@ -160,14 +160,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext
   ): Unit = {
-    if (!module.isIndexed && module.getLiteralSource != null) {
+    if (!module.isIndexed && module.getSource != null) {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName
-      val newSuggestions = SuggestionBuilder(module.getLiteralSource)
+      val newSuggestions = SuggestionBuilder(module.getSource.getCharacters)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
-      val version     = ctx.versioning.evalVersion(module.getLiteralSource.toString)
+      val version     = ctx.versioning.evalVersion(module.getSource.getCharacters)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(module.getName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -188,14 +188,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     changeset: Changeset[Rope]
   )(implicit ctx: RuntimeContext): Unit = {
     val moduleName = module.getName
-    val version    = ctx.versioning.evalVersion(module.getLiteralSource.toString)
+    val version    = ctx.versioning.evalVersion(module.getSource.getCharacters)
     if (module.isIndexed) {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing indexed module $moduleName")
       val prevSuggestions = SuggestionBuilder(changeset.source)
         .build(moduleName, changeset.ir)
       val newSuggestions =
-        SuggestionBuilder(module.getLiteralSource)
+        SuggestionBuilder(module.getSource.getCharacters)
           .build(moduleName, module.getIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
@@ -214,7 +214,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing not-indexed module ${module.getName}")
       val newSuggestions =
-        SuggestionBuilder(module.getLiteralSource)
+        SuggestionBuilder(module.getSource.getCharacters)
           .build(moduleName, module.getIr)
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(moduleName, module.getIr)
@@ -283,7 +283,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       diagnostic.location
         .map(loc =>
           LocationResolver
-            .locationToRange(loc.location, module.getLiteralSource)
+            .locationToRange(loc.location, module.getSource.getCharacters)
         ),
       diagnostic.location
         .flatMap(LocationResolver.getExpressionId(module.getIr, _))
@@ -345,13 +345,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
-    changeset: Changeset[Rope],
-    source: Rope
+    changeset: Changeset[_],
+    source: CharSequence
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
     val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source.toString)
+      .parseMeta(source)
       .map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
