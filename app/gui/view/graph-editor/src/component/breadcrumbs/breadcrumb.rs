@@ -73,6 +73,7 @@ mod icon {
     use super::*;
 
     ensogl::define_shape_system! {
+        pointer_events = false;
         (red:f32,green:f32,blue:f32,alpha:f32) {
             let outer_circle  = Circle((ICON_RADIUS).px());
             let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
@@ -98,6 +99,7 @@ mod separator {
     use super::*;
 
     ensogl::define_shape_system! {
+        pointer_events = false;
         (red:f32,green:f32,blue:f32,alpha:f32) {
             let size     = SEPARATOR_SIZE;
             let angle    = PI/2.0;
@@ -273,6 +275,7 @@ pub struct BreadcrumbModel {
 
 impl BreadcrumbModel {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(
         app: &Application,
         frp: &Frp,
@@ -302,28 +305,16 @@ impl BreadcrumbModel {
         }
 
         scene.layers.panel.add_exclusive(&view);
-        let shape_system = scene
+        let background = &scene
             .layers
             .panel
             .shape_system_registry
-            .shape_system(scene, PhantomData::<background::DynamicShape>);
-        scene.layers.panel.add_exclusive(&shape_system.shape_system.symbol);
-
+            .shape_system(scene, PhantomData::<background::DynamicShape>)
+            .shape_system
+            .symbol;
+        scene.layers.panel.add_exclusive(&background);
         scene.layers.panel.add_exclusive(&icon);
-        let shape_system = scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<icon::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
-
         scene.layers.panel.add_exclusive(&separator);
-        let shape_system = scene
-            .layers
-            .panel
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<separator::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
 
         label.remove_from_scene_layer(&scene.layers.main);
         label.add_to_scene_layer(&scene.layers.panel_text);

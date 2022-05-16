@@ -4,6 +4,7 @@ use enso_web::prelude::*;
 
 use crate as frp;
 
+use enso_profiler as profiler;
 use enso_web as web;
 
 
@@ -140,6 +141,7 @@ impl CurrentJsEvent {
     {
         let event_source = self.event_source.clone_ref();
         move |event| {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "event_handler");
             let js_event = event.as_ref().clone();
             event_source.emit(Some(js_event));
             processing_fn(event);

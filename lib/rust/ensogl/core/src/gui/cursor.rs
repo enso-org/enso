@@ -4,6 +4,7 @@ use crate::display::shape::*;
 use crate::gui::style::*;
 use crate::prelude::*;
 
+use crate::application::command::FrpNetworkProvider;
 use crate::data::color;
 use crate::define_style;
 use crate::display;
@@ -136,6 +137,7 @@ impl Style {
 pub mod shape {
     use super::*;
     crate::define_shape_system! {
+        pointer_events = false;
         ( press  : f32
         , radius : f32
         , color  : Vector4
@@ -161,7 +163,7 @@ pub mod shape {
 // === Frp ===
 // ===========
 
-crate::define_endpoints! {
+crate::define_endpoints_2! {
     Input {
         set_style (Style),
     }
@@ -210,12 +212,6 @@ impl CursorModel {
         tgt_layer.add_exclusive(&view);
         port_selection_layer.add_exclusive(&port_selection);
 
-        for layer in &[tgt_layer, port_selection_layer] {
-            let registry = &layer.shape_system_registry;
-            let shape_sys = registry.shape_system(&scene, PhantomData::<shape::DynamicShape>);
-            shape_sys.shape_system.set_pointer_events(false);
-        }
-
         Self { logger, scene, display_object, view, port_selection, style }
     }
 
@@ -244,7 +240,7 @@ impl Cursor {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         let frp = Frp::new();
-        let network = &frp.network;
+        let network = frp.network();
         let model = CursorModel::new(scene);
         let mouse = &scene.mouse.frp;
 
@@ -461,10 +457,10 @@ impl Cursor {
 
             // === Outputs ===
 
-            frp.source.position             <+ position;
-            frp.source.screen_position      <+ screen_position;
-            frp.source.scene_position       <+ scene_position;
-            frp.source.scene_position_delta <+ scene_position_delta;
+            frp.private.output.position             <+ position;
+            frp.private.output.screen_position      <+ screen_position;
+            frp.private.output.scene_position       <+ scene_position;
+            frp.private.output.scene_position_delta <+ scene_position_delta;
         }
 
         // Hide on init.
