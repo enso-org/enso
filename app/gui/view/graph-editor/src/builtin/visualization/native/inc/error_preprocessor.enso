@@ -1,6 +1,6 @@
 x ->
-    result = Ref.new '{ message: ""}'
-    x.catch err->
+    ok = '{ message: ""}'
+    result = x.map_error err->
         message = err.to_display_text
-        result.put ('{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}')
-    result.get
+        '{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}'
+    if result.is_error then result.catch else ok
