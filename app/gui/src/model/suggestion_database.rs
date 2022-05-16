@@ -935,6 +935,6 @@ mod test {
         assert_eq!(map.get(path.clone()), Some(3));
         assert!(map.check_if_exists_and_remove(&path));
         assert!(!map.check_if_exists_and_remove(&path));
-        assert_eq!(map.get(path.clone()), None);
+        assert_eq!(map.get(path), None);
     }
 }
