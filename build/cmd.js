@@ -47,9 +47,18 @@ function run_shell(cmd, args, cwd) {
 }
 
 function run(cmd, args, cwd) {
+    // Don't use the shell, to avoid problems with arguments that contain special characters.
+    let shell = false
+    // FIXME: Windows cannot find commands by their basenames without using the shell. To remove this exception
+    //  so that we can avoid problems with the shell interpreting special characters on Windows, we can either:
+    //  - Use filenames with extensions when running on Windows, e.g. `npm.exe`, so the shell isn't necessary.
+    //  - Or, use a package that handles correct shell escaping, like `cross-spawn`.
+    if (process.platform == "win32") {
+        shell = true
+    }
     return new Promise((resolve, reject) => {
         console.log(`Calling '${cmd} ${args.join(' ')}'`)
-        let proc = spawn(cmd, args, { stdio: 'inherit', cwd: cwd })
+        let proc = spawn(cmd, args, { stdio: 'inherit', cwd: cwd, shell: shell })
         proc.on('exit', code => {
             if (code) process.exit(code)
             resolve()
