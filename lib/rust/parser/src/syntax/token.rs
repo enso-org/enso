@@ -31,8 +31,8 @@
 //! pub type Ident<'s> = Token<'s, variant::Ident>;
 //! ```
 //!
-//! There is a conversion defined between any [`Token<'s, T>`] and [`Token<'s>`] for [`T`] being
-//! one of variant structs. Moreover, every such type is accompanied by two constructor utils,
+//! There is a [`From`] conversion defined between any [`Token<'s, T>`] and [`Token<'s>`] for [`T`]
+//! being one of variant structs. Moreover, every such type is accompanied by two constructor utils,
 //! one creating a token variant and one creating a generic token instance. For example, the
 //! [`Ident`] token variant constructors are defined as:
 //!
@@ -57,9 +57,9 @@
 //! }
 //! ```
 //!
-//! There is a conversion defined between each variant and the [`Variant`] struct. Moreover, the
-//! [`Variant`] struct defines a constructor function for each of its variants. For example, the
-//! identifier variant constructor is defined as:
+//! There is a [`From`] conversion defined between each variant and the [`Variant`] struct.
+//! Moreover, the [`Variant`] struct defines a constructor function for each of its variants. For
+//! example, the identifier variant constructor is defined as:
 //!
 //! ```text
 //! impl Variant {
@@ -152,14 +152,14 @@ impl<'s, T> Token<'s, T> {
 
     /// Modify the associated variant of this token with the provided function.
     #[inline(always)]
-    pub fn modify_variant<S>(self, f: impl FnOnce(T) -> S) -> Token<'s, S> {
+    pub fn map_variant<S>(self, f: impl FnOnce(T) -> S) -> Token<'s, S> {
         Token(self.left_offset, self.code, f(self.variant))
     }
 
     /// Replace the associated variant in this token.
     #[inline(always)]
     pub fn with_variant<S>(self, data: S) -> Token<'s, S> {
-        self.modify_variant(|_| data)
+        self.map_variant(|_| data)
     }
 
     /// Span of this token.
@@ -299,7 +299,7 @@ macro_rules! generate_token_aliases {
 
             impl<'s> From<Token<'s, variant::$variant>> for Token<'s, Variant> {
                 fn from(token: Token<'s, variant::$variant>) -> Self {
-                    token.modify_variant(|t| t.into())
+                    token.map_variant(|t| t.into())
                 }
             }
         )*
