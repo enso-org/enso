@@ -11,7 +11,7 @@ import Standard.Visualization
 from Standard.Table.Data.Serialization_Options as Serialization_Options_Module import Serialization_Options
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection
 
-from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros
+from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
 spec = Test.group "Table.parse_values" <|
     Test.specify "should correctly parse integers" <|
@@ -95,11 +95,28 @@ spec = Test.group "Table.parse_values" <|
         t2.at "A" . to_vector . should_equal ["1", "2"]
         t2.at "B" . to_vector . should_equal [3, 4]
 
-    Test.specify "should report missing columns in Column_Type_Selection" pending="TODO" <|
-        Error.throw "TODO"
+    Test.specify "should report missing columns in Column_Type_Selection" <|
+        t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]]]
+        action pb =
+            t.parse_values column_types=[Column_Type_Selection -1 Boolean, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bars" Boolean, Column_Type_Selection "foos" Boolean, Column_Type_Selection 100 Boolean, Column_Type_Selection -100 Boolean] on_problems=pb
+        tester t =
+            t.at "floats" . to_vector . should_equal [1.0]
+            t.at "ints" . to_vector . should_equal ["1"]
+            t.at "bools" . to_vector . should_equal [True]
+        problems = [Missing_Input_Columns ["bars", "foos"], Column_Indexes_Out_Of_Range [100, -100]]
+        Problems.test_problem_handling action problems tester
 
-    Test.specify "should report duplicate columns in Column_Type_Selection" pending="TODO" <|
-        Error.throw "TODO"
+    Test.specify "should report duplicate columns in Column_Type_Selection" <|
+        t = Table.new [["floats", ["1.0"]], ["ints", ["1"]], ["bools", ["True"]], ["foo", ["42"]]]
+        action pb =
+            t.parse_values column_types=[Column_Type_Selection -2 Boolean, Column_Type_Selection "bools" Boolean, Column_Type_Selection "floats" Decimal, Column_Type_Selection "floats" Integer, Column_Type_Selection "ints" Integer] on_problems=pb
+        tester t =
+            t.at "floats" . to_vector . should_equal ["1.0"]
+            t.at "ints" . to_vector . should_equal [1]
+            t.at "bools" . to_vector . should_equal [True]
+            t.at "foo" . to_vector . should_equal ["42"]
+        problems = [(Duplicate_Type_Selector "floats" ambiguous=True), (Duplicate_Type_Selector "bools" ambiguous=False)]
+        Problems.test_problem_handling action problems tester
 
     Test.specify "should correctly parse date and time" pending="TODO" <|
         Error.throw "TODO"
@@ -158,6 +175,7 @@ spec = Test.group "Table.parse_values" <|
         warnings.should_contain_the_same_elements_as [Invalid_Format "ints" Integer ["1 ", "0 1", " 2"], Invalid_Format "floats" Decimal ["0 ", " 2.0", "- 1"], Invalid_Format "bools" Boolean ["True ", " false", "t rue"]]
 
     Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
+        ## TODO next PR
         Error.throw "TODO"
 
 main = Test.Suite.run_main here.spec
