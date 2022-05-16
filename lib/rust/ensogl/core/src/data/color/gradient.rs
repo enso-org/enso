@@ -154,11 +154,11 @@ impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
         let size   = iformat!("{g.size.glsl()}");
         let offset = iformat!("-shape.sdf.distance + {g.spread.glsl()}");
         let norm   = iformat!("clamp(({offset}) / ({size}))");
-        let t      = match g.slope {
+        let t      = match &g.slope {
             Slope::Linear        => norm,
             Slope::Smooth        => iformat!("smoothstep(0.0,1.0,{norm})"),
-            Slope::Exponent(ref exp) => iformat!("pow({norm},{exp.glsl()})"),
-            Slope::InvExponent(ref exp) => iformat!("1.0-pow(1.0-{norm},{exp.glsl()})"),
+            Slope::Exponent(exp) => iformat!("pow({norm},{exp.glsl()})"),
+            Slope::InvExponent(exp) => iformat!("1.0-pow(1.0-{norm},{exp.glsl()})"),
         };
         let expr   = iformat!("sample({g.gradient.glsl()},{t})");
         expr.into()

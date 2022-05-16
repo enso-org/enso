@@ -30,16 +30,6 @@ use list_view::entry::AnyModelProvider;
 
 
 
-mod transparent_circle {
-    use super::*;
-    ensogl_core::define_shape_system! {
-        (style:Style) {
-            Circle(5.px()).fill(color::Rgba::transparent()).into()
-        }
-    }
-}
-
-
 // ===================
 // === Entry Point ===
 // ===================
@@ -106,7 +96,13 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 // === Component Group Controller ===
 // ==================================
 
-/// An example abstraction to arrange component groups inside the scroll area.
+/// An example abstraction to arrange component groups vertically inside the scroll area.
+///
+/// It arranges `component_groups` on top of each other, with the first one being the top most.
+/// It also calculates the header positions for every component group to simulate the scrolling.
+/// While the [`ScrollArea`] moves every component group up we move headers of the partially
+/// visible component groups down. That makes the headers of the partially scrolled component
+/// groups visible at all times.
 #[derive(Debug, Clone, CloneRef)]
 struct ComponentGroupController {
     component_groups: Rc<Vec<component_group::View>>,
@@ -138,7 +134,7 @@ impl ComponentGroupController {
         }
     }
 
-    /// Return a sum of heights of first `n` component groups.
+    /// Return a sum of heights of the first `n` component groups, counting from the top.
     fn heights_sum(&self, n: usize) -> f32 {
         self.component_groups.iter().take(n).map(|g| g.size.value().y).sum()
     }
@@ -178,6 +174,21 @@ fn color_component_slider(app: &Application, caption: &str) -> selector::NumberP
 
 
 // === init ===
+
+/// This is a workaround for the bug [#182193824](https://www.pivotaltracker.com/story/show/182193824).
+///
+/// We add a tranparent shape to the [`ScrollArea`] content to make component groups visible.
+mod transparent_circle {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            // As you can see even a zero-radius circle works as a workaround.
+            let radius = 0.px();
+            Circle(radius).fill(color::Rgba::transparent()).into()
+        }
+    }
+}
+
 
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);

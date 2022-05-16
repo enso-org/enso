@@ -5,6 +5,16 @@
 //!
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//!
+//! # Header and its Shadow
+//!
+//! To simulate scrolling of the component group entries we move the header of the component group
+//! down while moving the whole component group up (see [`Frp::set_header_pos`]). When the header
+//! is moved down the shadow appears below it. The shadow changes its intensity smoothly before
+//! the header reaches the [`HEADER_SHADOW_PEAK`] distance from the top of the component group.
+//! After that the shadow is unchanged. Near the bottom of the component group we gradually reduce
+//! the size of the shadow so that it will never be rendered outside the component group
+//! boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===
@@ -49,8 +59,15 @@ pub mod wide;
 // === Constants ===
 // =================
 
-/// The distance (in pixels) from either top or bottom border of the component group at which
+/// The distance (in pixels) from the top border of the component group at which
 /// the header shadow reaches its maximum intensity.
+///
+/// When the header is on top of the component group (default position) the shadow is invisible.
+/// Once the header moves down (see [`Frp::set_header_pos`]) we start to linearly increase the
+/// intensity of the shadow until it reaches its maximum at [`HEADER_SHADOW_PEAK`] distance from
+/// the top. The intensity does not change all the way down from there, but the shadow is clipped at
+/// the bottom of the component group so that it will never escape the borders of the group and
+/// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
 const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
 
@@ -87,21 +104,28 @@ pub mod background {
 
 // === Header Background ===
 
-/// The background of the header.
+/// The background of the header. It consists of a rectangle that matches the [`background`] in
+/// color and a shadow underneath it.
 pub mod header_background {
     use super::*;
 
     ensogl_core::define_shape_system! {
         above = [background, list_view::background];
-        (style:Style, color:Vector4, height: f32, shadow_intensity: f32) {
+        (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
             let bg = Rect((width.clone(), height.clone())).fill(color);
-            // We use wider and shorter rect for the shadow to avoid antialiasing artifacts.
+            // We use wider and shorter rect for the shadow because of the visual artifacts that
+            // will appear otherwise:
+            // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
+            //    it we keep the shadow sharp and flat for the whole width of the header.
+            // 2. Visual glitching similar to z-fighting occurs on the border of the elements
+            //    when the shadow rect has the exact same size as the background. We shrink the
+            //    height by 1 pixel to avoid it.
             let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
             let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
-            shadow_parameters.size = shadow_parameters.size * shadow_intensity;
+            shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
             let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
             (shadow + bg).into()
         }
@@ -182,6 +206,9 @@ ensogl_core::define_endpoints_2! {
         /// Sets the y-position of the header from the top of the component group.
         ///
         /// It can't move past the top and bottom borders of the component group.
+        ///
+        /// We use it to simulate entries scrolling with a fixed-position header. Though in fact we
+        /// move the header down while moving the whole component group up.
         set_header_pos(f32),
     }
     Output {
@@ -223,7 +250,7 @@ impl component::Frp<Model> for Frp {
             // === Show/hide shadow ===
 
             shadow <- input.set_header_pos.map(|p| (*p / HEADER_SHADOW_PEAK).min(1.0));
-            eval shadow((v) model.header_background.shadow_intensity.set(*v));
+            eval shadow((v) model.header_background.shadow_height_multiplier.set(*v));
         }
 
 
@@ -342,7 +369,11 @@ impl component::Frp<Model> for Frp {
 // === Layers ===
 // ==============
 
-/// A set of scene layers shared by every Component Group.
+/// A set of scene layers shared by every component group.
+///
+/// A component group consists of a several shapes with a strict rendering order. The order of the
+/// fields of this struct represents the rendering order of layers, with `background` being the
+/// bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
     background:  layer::Layer,
@@ -472,7 +503,12 @@ impl Model {
         self.header_background.height.set(header_height);
         let shadow_size = header_geometry.shadow_size;
         let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
-        // We clip the shadow near the bottom of the component group.
+        // We need to render both the header background and the shadow below it, so we add
+        // `shadow_size` and `header_height` to calculate the final `size` of the
+        // `header_background` shape. We use `shadow_size * 2.0`, because the shadow extends by
+        // `shadow_size` in each direction around the base shape, not only down. We cap the
+        // `shadow_size` by the distance to the bottom of the component group so that the shadow is
+        // not visible outside the component group background.
         let shadow_size = shadow_size.min(distance_to_bottom);
         let header_background_height = header_height + shadow_size * 2.0;
         self.header_background.size.set(Vector2(size.x, header_background_height));
