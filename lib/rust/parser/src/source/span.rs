@@ -3,6 +3,10 @@
 
 use crate::lexer;
 use crate::prelude::*;
+use crate::source::Code;
+use crate::syntax::token;
+use crate::syntax::tree::Tree;
+
 
 
 // =====================
@@ -58,19 +62,20 @@ impl From<&str> for VisibleOffset {
 #[allow(missing_docs)]
 pub struct Offset<'s> {
     pub visible: VisibleOffset,
-    pub code:    Cow<'s, str>,
+    pub code:    Code<'s>,
 }
 
 /// Constructor.
 #[allow(non_snake_case)]
-pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Cow<'s, str>>) -> Offset<'s> {
+pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Code<'s>>) -> Offset<'s> {
     let code = code.into();
     Offset { visible, code }
 }
 
 impl<'s> Offset<'s> {
+    /// Length of the code.
     pub fn len(&self) -> Bytes {
-        Bytes(self.code.len())
+        self.code.len()
     }
 }
 
@@ -92,27 +97,31 @@ impl<'s> From<&'s str> for Offset<'s> {
 // === Span ===
 // ============
 
-
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct SpanRefMut<'s, 'a> {
-    pub left_offset: &'a mut Offset<'s>,
-    pub length:      Bytes,
-}
-
+/// A span of a given syntactic element (token or AST). It contains the left offset code and the
+/// information about the length of the element. It does not contain the code of the element. This
+/// is done in order to not duplicate the data. For example, some AST nodes contain a lot of tokens.
+/// They need to remember their span, but they do not need to remember their code, because it is
+/// already stored in the tokens.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub struct Span<'s> {
     pub left_offset: Offset<'s>,
     pub length:      Bytes,
 }
 
 impl<'s> Span<'s> {
+    /// Trim the left offset and return the [`Span`] containing the trimmed offset and the length
+    /// of the token code. It is used to prepare the token for insertion into parent ast where
+    /// offsets are kept relatively to parent tree nodes.
+    #[inline(always)]
     pub fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
         let length = self.length;
         Span { left_offset, length }
     }
 
+    /// Extend the span with another one. The other span has to be the immediate neighbor of the
+    /// current span.
     #[inline(always)]
     pub fn extend<'a, T>(&mut self, other: T)
     where
@@ -122,6 +131,7 @@ impl<'s> Span<'s> {
         self.length += other.left_offset.len() + other.length;
     }
 
+    /// Self consuming version of [`extend`].
     pub fn extended<'a, T>(mut self, other: T) -> Self
     where
         T: Into<SpanRef<'s, 'a>>,
@@ -130,6 +140,7 @@ impl<'s> Span<'s> {
         self
     }
 
+    /// Get the [`SpanRef`] of the current span.
     pub fn as_ref(&self) -> SpanRef<'_, 's> {
         SpanRef { left_offset: &self.left_offset, length: self.length }
     }
@@ -142,7 +153,14 @@ impl<'s> AsRef<Span<'s>> for Span<'s> {
 }
 
 
+
+// ===============
+// === SpanRef ===
+// ===============
+
+/// A borrowed version of [`Span`]. Used mostly by AST visitors.
 #[derive(Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub struct SpanRef<'s, 'a> {
     pub left_offset: &'a Offset<'s>,
     pub length:      Bytes,
@@ -157,183 +175,21 @@ impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
     }
 }
 
-// impl<'s> Offset<'s> {
-// /// Constructor.
-// pub fn new_no_left_offset() -> Self {
-//     let left_visible_offset = VisibleOffset::from(0);
-//     let left_offset = Bytes::from(0);
-//     Self { left_visible_offset, left_offset }
-// }
 
-// /// Constructor.
-// pub fn new_no_left_offset_no_len() -> Self {
-//     let len = Bytes::from(0);
-//     Self::new_no_left_offset(len)
-// }
+// ==================
+// === SpanRefMut ===
+// ==================
 
-// /// Constructor.
-// pub fn new_no_left_offset_no_start(len: Bytes) -> Self {
-//     let start = Bytes::from(0);
-//     Self::new_no_left_offset(start, len)
-// }
-//
-// /// Constructor of associated span value.
-// #[inline(always)]
-// pub fn with<S>(self, elem: S) -> With<S> {
-//     With { span: self, elem }
-// }
-
-// /// Extend the span to cover the other span. Please note that the [`other`] span position has
-// to /// be bigger than self's one. This condition is not checked.
-// pub fn extend_to(&mut self, other: impl Into<Offset>) {
-//     panic!()
-//     // let other = other.into();
-//     // self.len = other.start + other.len - self.start;
-// }
-//
-// /// Consuming version of [`extend_to`].
-// pub fn extended_to(mut self, other: impl Into<Offset>) -> Self {
-//     self.extend_to(other);
-//     self
-// }
-
-// /// Split the span at the provided byte offset. The offset is counted from the span [`start`]
-// /// position, which does not include the [`left_offset`]. It means that evaluating
-// /// `split_at(Bytes::from(0))` will remove the left offset information.
-// #[inline(always)]
-// pub fn split_at(self, offset: Bytes) -> (Offset, Offset) {
-//     let left_span = {
-//         let left_visible_offset = self.left_visible_offset;
-//         let left_offset = self.left_offset;
-//         let len = self.len - offset;
-//         Offset { left_visible_offset, left_offset, len }
-//     };
-//     let right_span = {
-//         let left_visible_offset = VisibleOffset::from(0);
-//         let left_offset = Bytes::from(0);
-//         let len = self.len - offset;
-//         Offset { left_visible_offset, left_offset, len }
-//     };
-//     (left_span, right_span)
-// }
-//
-// /// Split the span at the start position. Returns two spans, one containing left spacing
-// only, /// and the second containing everything else, left-trimmed.
-// pub fn split_at_start(self) -> (Offset, Offset) {
-//     self.split_at(Bytes::from(0))
-// }
-
-// /// Slices the provided slice. The left spacing offset is not used.
-// pub fn source_slice<'a>(&self, source: &'a str) -> &'a str {
-//     source.slice(self.start..self.start + self.len)
-// }
-// }
-
-
-
-// // ============
-// // === With ===
-// // ============
-//
-// /// A location information with an element [`T`]. The struct derefers to the element.
-// #[derive(Clone, Copy, Deref, DerefMut, PartialEq, Eq)]
-// #[allow(missing_docs)]
-// pub struct With<T> {
-//     #[deref]
-//     #[deref_mut]
-//     pub elem: T,
-//     pub span: Offset,
-// }
-//
-// pub fn With<T>(span: Offset, elem: T) -> With<T> {
-//     With { elem, span }
-// }
-//
-// impl<T> With<T> {
-//     /// Constructor.
-//     #[inline(always)]
-//     pub fn new_no_left_offset(len: Bytes, elem: T) -> Self {
-//         let span = Offset::new_no_left_offset(len);
-//         Self { span, elem }
-//     }
-//
-//     /// Constructor.
-//     #[inline(always)]
-//     pub fn new_no_left_offset_no_len(elem: T) -> Self {
-//         let span = Offset::new_no_left_offset_no_len();
-//         Self { span, elem }
-//     }
-//
-//     /// Apply this span to the input element.
-//     #[inline(always)]
-//     pub fn with_elem<S>(&self, elem: S) -> With<S> {
-//         let span = self.span;
-//         With { span, elem }
-//     }
-//
-//     /// Split the span at the start position. Returns span and associated element. The span
-// contains     /// left spacing information only, and the element contains everything else,
-// left-trimmed.     pub fn split_at_start(self) -> (Offset, With<T>) {
-//         let (left_span, right_span) = self.span.split_at_start();
-//         let token_right = right_span.with(self.elem);
-//         (left_span, token_right)
-//     }
-//
-//     /// Remove left offset spacing information.
-//     pub fn trim_left(&mut self) -> Offset {
-//         let (left_span, right_span) = self.span.split_at_start();
-//         self.span = right_span;
-//         left_span
-//     }
-//
-//     // /// Extend the span to cover the other span. Please note that the [`other`] span position
-// has     // to /// be bigger than self's one. This condition is not checked.
-//     // pub fn extend_to<S>(&mut self, other: &With<S>) {
-//     //     self.span.extended_to(other.span);
-//     // }
-//     //
-//     // /// Consuming version of [`extend_to`].
-//     // pub fn extended_to<S>(mut self, other: &With<S>) -> Self {
-//     //     self.extend_to(other);
-//     //     self
-//     // }
-//
-//     pub fn split_at(&self, offset: Bytes) -> (With<()>, With<()>) {
-//         let (left, right) = self.span.split_at(offset);
-//         (With(left, ()), With(right, ()))
-//     }
-// }
-//
-// impl<T> From<With<T>> for Offset {
-//     fn from(t: With<T>) -> Offset {
-//         t.span
-//     }
-// }
-//
-// impl<T> From<&With<T>> for Offset {
-//     fn from(t: &With<T>) -> Offset {
-//         t.span
-//     }
-// }
-//
-// impl<T> AsRef<With<T>> for With<T> {
-//     fn as_ref(&self) -> &With<T> {
-//         self
-//     }
-// }
-//
-// impl<T: Debug> Debug for With<T> {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "[off:{}, len:{}] ", self.span.left_visible_offset, self.span.len)?;
-//         Debug::fmt(&self.elem, f)
-//     }
-// }
-//
-// impl<T: PartialEq> PartialEq<With<T>> for &With<T> {
-//     fn eq(&self, other: &With<T>) -> bool {
-//         <With<T> as PartialEq<With<T>>>::eq(*self, other)
-//     }
-// }
+/// A mutably borrowed version of [`Span`]. Used mostly by AST visitors. Please note that the
+/// [`length`] field does not provide the mutable access because it should not be modified without
+/// modifying the code. If you want to modify the length of a span, modify the underlying AST
+/// instead.
+#[derive(Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct SpanRefMut<'s, 'a> {
+    pub left_offset: &'a mut Offset<'s>,
+    pub length:      Bytes,
+}
 
 
 
@@ -341,9 +197,9 @@ impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
 // === Builder ===
 // ===============
 
-use crate::syntax::token;
-use crate::syntax::tree::Tree;
 
+/// A span builder. You can provide it with any elements that contain spans, and it will compute
+/// the total span of the provided elements.
 #[macro_export]
 macro_rules! span_builder {
     ($($arg:ident),* $(,)?) => {
@@ -351,38 +207,56 @@ macro_rules! span_builder {
     };
 }
 
-
-#[derive(Default)]
+/// A marker struct for span building. The [`T`] parameter can be one of:
+/// - [`()`], which means that the structure was not used yet.
+/// - [`Option<Span<'s>>`], which means that the struct was used to build the span, however, we are
+///   unsure whether the span is known in all the cases.
+/// - [`Span<'s>`], which means that the total span can be always computed for the provided
+///   parameters.
+#[derive(Default, Debug)]
+#[allow(missing_docs)]
 pub struct Builder<T = ()> {
     pub span: T,
 }
 
+/// Constructor.
 pub fn Builder<T>(span: T) -> Builder<T> {
     Builder { span }
 }
 
 impl Builder<()> {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
 }
 
 impl<T> Builder<T> {
+    /// Add a new span to the builder.
+    #[inline(always)]
     pub fn add<S>(self, elem: &mut S) -> Builder<S::Output>
     where S: Build<T> {
         Builder(elem.build(self))
     }
 }
 
-
-
+/// A trait defining the behavior of [`Builder`] for different types containing spans.
+///
+/// The trait definition is a little bit strange, consuming the builder as a parameter instead of
+/// consuming it as self. This is done because otherwise Rust type checker goes into infinite
+/// loops.
+#[allow(missing_docs)]
 pub trait Build<T> {
     type Output;
     fn build(&mut self, builder: Builder<T>) -> Self::Output;
 }
 
+
+// === Instances ===
+
 impl<'s> Build<()> for Span<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, _builder: Builder<()>) -> Self::Output {
         self.trim_as_first_child()
     }
@@ -390,6 +264,7 @@ impl<'s> Build<()> for Span<'s> {
 
 impl<'s> Build<Span<'s>> for Span<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(&*self)
     }
@@ -397,6 +272,7 @@ impl<'s> Build<Span<'s>> for Span<'s> {
 
 impl<'s> Build<Option<Span<'s>>> for Span<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         match builder.span {
             Some(span) => span.extended(&*self),
@@ -407,6 +283,7 @@ impl<'s> Build<Option<Span<'s>>> for Span<'s> {
 
 impl<'s> Build<()> for Tree<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<()>) -> Self::Output {
         Build::build(&mut self.span, builder)
     }
@@ -414,6 +291,7 @@ impl<'s> Build<()> for Tree<'s> {
 
 impl<'s> Build<Span<'s>> for Tree<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(&self.span)
     }
@@ -421,6 +299,7 @@ impl<'s> Build<Span<'s>> for Tree<'s> {
 
 impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         Build::build(&mut self.span, builder)
     }
@@ -428,13 +307,15 @@ impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
 
 impl<'s, T> Build<()> for token::Token<'s, T> {
     type Output = Span<'s>;
-    fn build(&mut self, builder: Builder<()>) -> Self::Output {
+    #[inline(always)]
+    fn build(&mut self, _builder: Builder<()>) -> Self::Output {
         self.trim_as_first_child()
     }
 }
 
 impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         builder.span.extended(self.span())
     }
@@ -442,6 +323,7 @@ impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
 
 impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         match builder.span {
             Some(span) => span.extended(self.span()),
@@ -450,12 +332,11 @@ impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
     }
 }
 
-
-
 impl<T> Build<()> for Option<T>
 where T: Build<()>
 {
     type Output = Option<<T as Build<()>>::Output>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<()>) -> Self::Output {
         self.as_mut().map(|t| Build::build(t, builder))
     }
@@ -465,6 +346,7 @@ impl<'s, T> Build<Option<Span<'s>>> for Option<T>
 where T: Build<Option<Span<'s>>>
 {
     type Output = Option<<T as Build<Option<Span<'s>>>>::Output>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         self.as_mut().map(|t| Build::build(t, builder))
     }
@@ -474,6 +356,7 @@ impl<'s, T> Build<Span<'s>> for Option<T>
 where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         match self.as_mut() {
             None => builder.span,
@@ -482,13 +365,13 @@ where T: Build<Span<'s>, Output = Span<'s>>
     }
 }
 
-
 impl<S, T, E> Build<S> for Result<T, E>
 where
     T: Build<S>,
     E: Build<S, Output = <T as Build<S>>::Output>,
 {
     type Output = <T as Build<S>>::Output;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
         match self {
             Ok(t) => Build::build(t, builder),
@@ -497,14 +380,13 @@ where
     }
 }
 
-
-
 impl<S, T> Build<S> for NonEmptyVec<T>
 where
     T: Build<S>,
     [T]: Build<<T as Build<S>>::Output>,
 {
     type Output = <[T] as Build<T::Output>>::Output;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<S>) -> Self::Output {
         let b = Build::build(self.first_mut(), builder);
         Build::build(self.tail_mut(), Builder(b))
@@ -515,6 +397,7 @@ impl<'s, T> Build<Span<'s>> for Vec<T>
 where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
@@ -530,6 +413,7 @@ where
     T::Output: Into<Option<Span<'s>>>,
 {
     type Output = Option<Span<'s>>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
@@ -543,6 +427,7 @@ impl<'s, T> Build<Span<'s>> for [T]
 where T: Build<Span<'s>, Output = Span<'s>>
 {
     type Output = Span<'s>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
@@ -558,6 +443,7 @@ where
     T::Output: Into<Option<Span<'s>>>,
 {
     type Output = Option<Span<'s>>;
+    #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         let mut out = builder.span;
         for elem in self {
@@ -566,15 +452,3 @@ where
         out
     }
 }
-
-// fn tst<'s>(
-//     mut builder: Builder<Option<Span<'s>>>,
-//     mut elem: NonEmptyVec<token::Operator<'s>>,
-// ) {
-//     let x = builder.extend(&mut elem);
-// }
-
-// pub trait PartialParentSpanBuilder2<T> {
-//     type Output;
-//     fn extend_parent_span2(&mut self, builder: Builder<T>) -> Self::Output;
-// }

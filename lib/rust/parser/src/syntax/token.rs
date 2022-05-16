@@ -271,6 +271,7 @@ macro_rules! generate_token_aliases {
         }
     ) => { paste!{
         $(
+            /// Token variant alias.
             pub type $variant<'s> = Token<'s, variant::$variant>;
 
             /// Constructor.
@@ -302,6 +303,7 @@ macro_rules! generate_token_aliases {
 
 macro_rules! define_token_type {
     ($($ts:tt)*) => {
+        /// All token variants.
         pub mod variant {
             use super::*;
             $($ts)*

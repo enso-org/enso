@@ -50,13 +50,13 @@ pub fn derive_visitor(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let (impl_generics, ty_generics, _inherent_where_clause_opt) = &decl.generics.split_for_impl();
     let body = gen_body(quote!(TreeVisitable::visit), &decl.data, false);
     let body_mut = gen_body(quote!(TreeVisitableMut::visit_mut), &decl.data, true);
-    let body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
+    let _body_span = gen_body(quote!(SpanVisitable::visit_span), &decl.data, false);
     let body_span_mut = gen_body(quote!(SpanVisitableMut::visit_span_mut), &decl.data, true);
     let body_item = gen_body(quote!(ItemVisitable::visit_item), &decl.data, false);
 
-    let mut impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
+    let impl_generics_vec: Vec<_> = impl_generics.to_token_stream().into_iter().collect();
     let impl_generics_len = impl_generics_vec.len();
-    let mut impl_generics = quote!();
+    let mut impl_generics;
     if impl_generics_len > 0 {
         let v: Vec<_> = impl_generics_vec.into_iter().take(impl_generics_len - 1).skip(1).collect();
         impl_generics = quote!(#(#v)*);

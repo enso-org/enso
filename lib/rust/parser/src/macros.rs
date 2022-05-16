@@ -8,7 +8,6 @@ use crate::prelude::*;
 
 use crate::syntax;
 use crate::syntax::token::Token;
-use crate::Lexer;
 
 use enso_data_structures::im_list;
 use pattern::Pattern;
@@ -52,8 +51,7 @@ pub type PrefixTokens<'s> = Option<Vec<syntax::Item<'s>>>;
 pub type MatchedSections<'s> = NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>;
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
-pub type Body =
-    dyn for<'s> Fn(&Lexer<'s>, PrefixTokens<'s>, MatchedSections<'s>) -> syntax::Tree<'s>;
+pub type Body = dyn for<'s> Fn(PrefixTokens<'s>, MatchedSections<'s>) -> syntax::Tree<'s>;
 
 
 

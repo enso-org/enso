@@ -839,21 +839,25 @@ pub fn lexer_main() {
     println!("{:#?}", lexer.output.iter().collect_vec());
 }
 
+/// Test utils for fast mock tokens creation.
 pub mod test {
     use super::*;
     pub use token::*;
 
+    /// Constructor.
     pub fn ident_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let is_free = code.starts_with('_');
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         token::ident_(left_offset, code, is_free, lift_level)
     }
 
+    /// Constructor.
     pub fn wildcard_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         let lift_level = code.chars().rev().take_while(|t| *t == '\'').count();
         token::wildcard_(left_offset, code, lift_level)
     }
 
+    /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
         Token(left_offset, code, token::Variant::operator())
     }

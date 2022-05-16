@@ -254,12 +254,12 @@ impl<'a> MacroResolver<'a> {
                 header:  "__ROOT__",
                 pattern: Pattern::Everything,
             }),
-            body:               Rc::new(|lexer, _, v| {
+            body:               Rc::new(|_, v| {
                 if v.len() != 1 {
                     panic!()
                 }
                 let t = v.into_vec().pop().unwrap().1;
-                resolve_operator_precedence(lexer, t)
+                resolve_operator_precedence(t)
             }),
         }));
         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
@@ -326,8 +326,7 @@ impl<'s> Resolver<'s> {
         while let Some(token) = opt_token {
             let step_result = match &token {
                 // FIXME: clone?
-                syntax::Item::Token(token) =>
-                    self.process_token(lexer, root_macro_map, token.clone()),
+                syntax::Item::Token(token) => self.process_token(root_macro_map, token.clone()),
                 _ => ResolverStep::NormalToken,
             };
             match step_result {
@@ -406,7 +405,7 @@ impl<'s> Resolver<'s> {
         });
 
         if let Some(macro_def) = m.matched_macro_def {
-            (macro_def.body)(lexer, prefix_tokens, sss)
+            (macro_def.body)(prefix_tokens, sss)
         } else {
             todo!("Handling non-fully-resolved macros")
         }
@@ -423,7 +422,6 @@ impl<'s> Resolver<'s> {
 
     pub fn process_token(
         &mut self,
-        lexer: &Lexer<'s>,
         root_macro_map: &MacroMatchTree<'s>,
         token: Token<'s>,
     ) -> ResolverStep {
@@ -536,10 +534,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
         .collect()
 }
 
-pub fn resolve_operator_precedence<'s>(
-    lexer: &Lexer<'s>,
-    items: Vec<syntax::Item<'s>>,
-) -> syntax::Tree<'s> {
+pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
     type Tokens<'s> = Vec<syntax::Item<'s>>;
     let mut flattened: Tokens<'s> = default();
     let mut no_space_group: Tokens<'s> = default();
@@ -549,7 +544,7 @@ pub fn resolve_operator_precedence<'s>(
             flattened.extend(tokens);
         } else {
             let tokens = annotate_tokens_that_need_spacing(tokens);
-            let ast = resolve_operator_precedence_internal(lexer, tokens);
+            let ast = resolve_operator_precedence_internal(tokens);
             flattened.push(ast.into());
         }
     };
@@ -566,13 +561,10 @@ pub fn resolve_operator_precedence<'s>(
     if !no_space_group.is_empty() {
         processs_no_space_group(&mut flattened, &mut no_space_group);
     }
-    resolve_operator_precedence_internal(lexer, flattened)
+    resolve_operator_precedence_internal(flattened)
 }
 
-fn resolve_operator_precedence_internal<'s>(
-    lexer: &Lexer<'s>,
-    items: Vec<syntax::Item<'s>>,
-) -> syntax::Tree<'s> {
+fn resolve_operator_precedence_internal<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
     // Reverse-polish notation encoding.
     let mut output: Vec<syntax::Item> = default();
     let mut operator_stack: Vec<WithPrecedence<syntax::tree::OperatorOrError>> = default();
@@ -685,7 +677,6 @@ fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
 }
 
 fn matched_segments_into_multi_segment_app<'s>(
-    lexer: &Lexer<'s>,
     prefix_tokens: Option<Vec<syntax::Item<'s>>>,
     matched_segments: NonEmptyVec<(Token<'s>, Vec<syntax::Item<'s>>)>,
 ) -> syntax::Tree<'s> {
@@ -695,13 +686,13 @@ fn matched_segments_into_multi_segment_app<'s>(
         .into_iter()
         .map(|segment| {
             let header = segment.0;
-            let body = (segment.1.len() > 0)
-                .as_some_from(|| resolve_operator_precedence(lexer, segment.1));
+            let body =
+                (segment.1.len() > 0).as_some_from(|| resolve_operator_precedence(segment.1));
             syntax::tree::MultiSegmentAppSegment { header, body }
         })
         .collect_vec();
     if let Ok(segments) = NonEmptyVec::try_from(segments) {
-        let prefix = prefix_tokens.map(|t| resolve_operator_precedence(lexer, t));
+        let prefix = prefix_tokens.map(|t| resolve_operator_precedence(t));
         syntax::Tree::multi_segment_app(prefix, segments)
     } else {
         panic!()

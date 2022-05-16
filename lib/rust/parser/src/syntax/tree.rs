@@ -4,7 +4,6 @@ use crate::prelude::*;
 use crate::source::span;
 use crate::source::span::Span;
 use crate::source::span::SpanRefMut;
-use crate::source::Offset;
 use crate::syntax::token;
 use crate::syntax::token::TokenRef;
 use crate::syntax::ItemRef;
@@ -20,17 +19,8 @@ use enso_shapely_macros::tagged_enum;
 // ============
 
 /// The Abstract Syntax Tree of the language.
-///
-/// # Connection to the source file
-/// Please note, that the AST does NOT contain sources, it keeps track of the char offsets only. If
-/// you want to pretty print it, you should attach sources to it. The easiest way to do it is by
-/// using the [`sources::With`] data, for example as:
-/// ```text
-/// println!("{:#?}", source::With::new(str, &ast));
-/// ```
-// pub type Tree = span::With<Type>;
-
 #[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
@@ -38,6 +28,7 @@ pub struct Tree<'s> {
     pub span:    Span<'s>,
 }
 
+/// Constructor.
 pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Box<Type<'s>>>) -> Tree<'s> {
     let variant = variant.into();
     Tree { variant, span }
@@ -675,7 +666,7 @@ where &'a token::Token<'s, T>: Into<TokenRef<'s, 'a>>
 
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
-pub struct CodePrinterVisitor {
+struct CodePrinterVisitor {
     pub code: String,
 }
 
@@ -693,6 +684,7 @@ impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
 }
 
 impl<'s> Tree<'s> {
+    /// Code generator of this AST.
     pub fn code(&self) -> String {
         let mut visitor = CodePrinterVisitor::default();
         self.visit_item(&mut visitor);
