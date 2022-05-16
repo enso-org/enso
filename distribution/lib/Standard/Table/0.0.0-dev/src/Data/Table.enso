@@ -33,6 +33,7 @@ polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -573,14 +574,16 @@ type Table
             _ ->
                 parse_options = parser
                 thousand_separator = if parse_options.thousand_separator.is_empty then Nothing else parse_options.thousand_separator
-                parser = case expected_type of
+                base_parser = case expected_type of
                     Integer -> IntegerParser.new thousand_separator parse_options.allow_leading_zeros
                     Decimal -> DecimalParser.new parse_options.decimal_point thousand_separator parse_options.allow_leading_zeros
                     Boolean -> BooleanParser.new parse_options.true_values.to_array parse_options.false_values.to_array
                     Date _ -> Error.unimplemented "Parsing dates is not implemented yet."
                     Time _ -> Error.unimplemented "Parsing dates is not implemented yet."
                     Time_Of_Day _ -> Error.unimplemented "Parsing dates is not implemented yet."
-                ## TODO stripping whitespace
+                parser = case parse_options.trim_values of
+                    False -> base_parser
+                    True -> WhitespaceStrippingParser.new base_parser
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn storage
                 new_storage = new_storage_and_problems.value

@@ -105,18 +105,57 @@ spec = Test.group "Table.parse_values" <|
         Error.throw "TODO"
 
     Test.specify "should guess the datatype for columns" pending="TODO" <|
-        # TODO: ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
+        # TODO (next PR): ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
         Error.throw "TODO"
 
-    Test.specify "should allow to specify a thousands separator and a custom decimal point" pending="TODO" <|
-        Error.throw "TODO"
+    Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
+        opts = Serialization_Options decimal_point=',' thousand_separator='_'
+        t1 = Table.new [["floats", ["0,0", "+0,0", "-0,0", "+1,5", "-1,2", "1,0", "0,0000", "10_000,", ",0"]]]
+        t2 = t1.parse_values opts column_types=[Column_Type_Selection 0 Decimal]
+        t2.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.5, -1.2, 1.0, 0.0, 10000.0, 0.0]
 
-    Test.specify "should allow to specify custom values for booleans" pending="TODO" <|
-        Error.throw "TODO"
+        t3 = Table.new [["xs", ["1,2", "1.2", "_0", "0_", "1_0_0"]]]
+        t4 = t3.parse_values opts column_types=[Column_Type_Selection 0 Decimal]
+        t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
+        Warning.get_all t4 . map .value . should_equal [Invalid_Format "xs" Decimal ["1.2", "_0", "0_"]]
+        t5 = t3.parse_values opts column_types=[Column_Type_Selection 0 Integer]
+        t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100.0]
+        Warning.get_all t5 . map .value . should_equal [Invalid_Format "xs" Integer ["1,2", "1.2", "_0", "0_"]]
 
-    Test.specify "should trim input values by default" pending="TODO" <|
-        ## TODO columns for each type, with some whitespace
-        Error.throw "TODO"
+    Test.specify "should allow to specify custom values for booleans" <|
+        opts_1 = Serialization_Options true_values=["1", "YES"] false_values=["0"]
+        t1 = Table.new [["bools", ["1", "0", "YES", "1", "0"]]]
+        t2 = t1.parse_values opts_1 column_types=[Column_Type_Selection 0 Boolean]
+        t2.at "bools" . to_vector . should_equal [True, False, True, True, False]
+
+        t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
+        t4 = t3.parse_values opts_1 column_types=[Column_Type_Selection 0 Boolean]
+        t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
+        Warning.get_all t4 . map .value . should_equal [Invalid_Format "bools" Boolean ["NO", "False", "True", "no", "oui"]]
+
+    whitespace_table =
+        ints = ["ints", ["0", "1 ", "0 1", " 2"]]
+        floats = ["floats", ["0 ", " 2.0", "- 1", "10.0"]]
+        bools = ["bools", ["True ", " false", "t rue", "False"]]
+        Table.new [ints, floats, bools]
+
+    Test.specify "should trim input values by default" <|
+        # TODO add other types too
+        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean]
+        t1.at "ints" . to_vector . should_equal [0, 1, Nothing, 2]
+        t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
+        t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
+        warnings = Warning.get_all t1 . map .value
+        warnings.should_contain_the_same_elements_as [Invalid_Format "ints" Integer ["0 1"], Invalid_Format "floats" Decimal ["- 1"], Invalid_Format "bools" Boolean ["t rue"]]
+
+    Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
+        opts = Serialization_Options trim_values=False
+        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean]
+        t1.at "ints" . to_vector . should_equal [0, Nothing, Nothing, Nothing]
+        t1.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, 10.0]
+        t1.at "bools" . to_vector . should_equal [Nothing, Nothing, Nothing, False]
+        warnings = Warning.get_all t1 . map .value
+        warnings.should_contain_the_same_elements_as [Invalid_Format "ints" Integer ["1 ", "0 1", " 2"], Invalid_Format "floats" Decimal ["0 ", " 2.0", "- 1"], Invalid_Format "bools" Boolean ["True ", " false", "t rue"]]
 
     Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
         Error.throw "TODO"
