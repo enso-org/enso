@@ -1,8 +1,9 @@
 //! Source code location. Every token and AST node are using [`Offset`] to remember their location
 //! in the source code.
 
-use crate::lexer;
 use crate::prelude::*;
+
+use crate::lexer;
 use crate::source::Code;
 use crate::syntax::token;
 use crate::syntax::tree::Tree;

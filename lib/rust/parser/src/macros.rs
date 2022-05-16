@@ -1,8 +1,9 @@
 //! Enso macro utilities. The parser contains a powerful macro resolution engine and a lot of the
 //! language constructs are defined as macros. This module contains macro definition structs and
 //! utilities allowing macros management.
-//
 //! Read the docs of the main module of this crate to learn more about the parsing process.
+
+//
 
 use crate::prelude::*;
 

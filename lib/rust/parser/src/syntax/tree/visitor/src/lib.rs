@@ -17,6 +17,7 @@
 #![warn(unused_qualifications)]
 
 
+
 extern crate proc_macro;
 
 use enso_macro_utils::field_names;

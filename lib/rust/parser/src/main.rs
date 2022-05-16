@@ -98,12 +98,15 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
 use crate::prelude::*;
+
+use crate::source::VisibleOffset;
 
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
+use lexer::Lexer;
 use macros::pattern::Pattern;
+use syntax::token;
 use syntax::token::Token;
 
 
@@ -116,9 +119,6 @@ pub mod macros;
 pub mod source;
 pub mod syntax;
 
-use crate::source::VisibleOffset;
-use lexer::Lexer;
-use syntax::token;
 
 
 /// Popular utilities, imported by most modules of this crate.

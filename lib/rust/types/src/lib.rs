@@ -36,6 +36,7 @@ pub use algebra::*;
 pub use topology::*;
 
 
+
 /// Common traits.
 pub mod traits {
     pub use super::topology::traits::*;

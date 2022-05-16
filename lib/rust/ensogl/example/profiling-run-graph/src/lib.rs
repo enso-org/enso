@@ -46,7 +46,6 @@ use ensogl_sequence_diagram::SequenceDiagram;
 
 
 
-
 // =================
 // === Constants ===
 // =================
