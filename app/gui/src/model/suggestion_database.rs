@@ -154,7 +154,7 @@ impl FreeformPathToIdMap {
                         ),
                         None => (false, false),
                     };
-                    let subtree_is_empty = match (branch_found_and_empty, branches.len()) {
+                    let node_subtree_empty = match (branch_found_and_empty, branches.len()) {
                         (true, 2..) => {
                             branches.remove(key);
                             false
@@ -163,7 +163,7 @@ impl FreeformPathToIdMap {
                         (false, 0) => node.value.is_none(),
                         (false, _) => false,
                     };
-                    (value_was_some, subtree_is_empty)
+                    (value_was_some, node_subtree_empty)
                 }
             }
         }
