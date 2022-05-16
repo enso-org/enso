@@ -1,5 +1,95 @@
-//! Token implementation. Tokens are output from the lexer. Read the docs of the main module to
-//! learn more about the parsing process steps.
+//! A lexical token is a string with an assigned and thus identified meaning. Each token remembers
+//! its source code and can be printed back. It also contains information about the offset to the
+//! previous token if any.
+//!
+//! The [`Token`] structure has a signature of [`Token<'s, T>`], where [`T`] is the variant type.
+//!
+//!
+//! # Variants
+//! Each token contains a variant, a structure defining the meaning of the token. All variants are
+//! defined in the [`variant`] module. Every variant is associated with a constructor of the same
+//! name (tuple-struct like). For example, the [`variant::Ident`] is defined as:
+//!
+//! ```text
+//! pub mod variant {
+//!     pub struct Ident {
+//!         pub is_free: bool,
+//!         pub lift_level: usize
+//!     }
+//!     pub fn Ident(is_free: bool, lift_level: usize) -> Ident { ... }
+//!     // ... many more variants
+//! }
+//! ```
+//!
+//!
+//! # Variants as tokens
+//! The [`Token`] structure can be parametrized with a variant type to form a token variant. This
+//! module defines type aliases for every such a combination. For example, the [`Ident`] token
+//! variant is defined as:
+//!
+//! ```text
+//! pub type Ident<'s> = Token<'s, variant::Ident>;
+//! ```
+//!
+//! There is a conversion defined between any [`Token<'s, T>`] and [`Token<'s>`] for [`T`] being
+//! one of variant structs. Moreover, every such type is accompanied by two constructor utils,
+//! one creating a token variant and one creating a generic token instance. For example, the
+//! [`Ident`] token variant constructors are defined as:
+//!
+//! ```text
+//! pub fn ident  <'s> (is_free: bool, lift_level: usize) -> Ident<'s> { ... }
+//! pub fn ident_ <'s> (is_free: bool, lift_level: usize) -> Token<'s> { ... }
+//! ```
+//!
+//!
+//! # The [`Variant`] type.
+//! There are many variants of tokens, however, some places in the code need to distinguish them,
+//! while some need to store several variants in the same collection. The [`Variant`] enum
+//! generalizes the variant types:
+//!
+//! ```text
+//! pub enum Variant {
+//!     Newline (variant::Newline),
+//!     Symbol (variant::Symbol),
+//!     Wildcard (variant::Wildcard),
+//!     Ident (variant::Ident),
+//!     // ... many more
+//! }
+//! ```
+//!
+//! There is a conversion defined between each variant and the [`Variant`] struct. Moreover, the
+//! [`Variant`] struct defines a constructor function for each of its variants. For example, the
+//! identifier variant constructor is defined as:
+//!
+//! ```text
+//! impl Variant {
+//!     pub fn ident(is_free: bool, lift_level: usize) -> Self {
+//!         Self::Ident(variant::Ident(is_free, lift_level))
+//!     }
+//! }
+//! ```
+//!
+//! # Generic token type
+//! The [`Token`] structure has a default parametrization of [`Token<'s, Variant>`] which basically
+//! is a token containing any of the defined variants.
+//!
+//!
+//!
+//! # Variant markers
+//! There is also a special enum [`VariantMarker`] defined which can be used to mark which token
+//! variant is used without keeping any of the variant data. It is defined as:
+//!
+//! ```text
+//! pub enum VariantMarker {
+//!     Newline,
+//!     Symbol,
+//!     Wildcard,
+//!     Ident,
+//!     // ... many more
+//! }
+//! ```
+//!
+//! See the definitions and macros below to learn more.
 
 use crate::prelude::*;
 
@@ -17,92 +107,7 @@ use enso_shapely_macros::tagged_enum;
 // === Token ===
 // =============
 
-/// A lexical token is a string with an assigned and thus identified meaning. Token remembers its
-/// source code and can be printed back. It also contains information about the offset to the
-/// previous token if any.
-///
-/// There are many variants of tokens, however, some places in the code need to distinguish them,
-/// while some need to store several variants in the same collection. Because of that this module
-/// defines a lot of utilities for managing tokens and their variants.
-///
-/// # Variant structs
-/// The most primitive structure is the [`Variant`] one, which is an enum with many variants:
-///
-/// ```text
-/// pub enum Variant {
-///     Newline (variant::Newline),
-///     Symbol (variant::Symbol),
-///     Wildcard (variant::Wildcard),
-///     Ident (variant::Ident),
-///     // ... many more
-/// }
-/// ```
-///
-/// Every variant is a separate struct defined in the [`variant`] module. Every variant is
-/// associated with a constructor of the same name (tuple-struct like). For example, the
-/// [`variant::Ident`] is defined as:
-///
-/// ```text
-/// pub mod variant {
-///     pub struct Ident {
-///         pub is_free: bool,
-///         pub lift_level: usize
-///     }
-///     pub fn Ident(is_free: bool, lift_level: usize) -> Ident { ... }
-///     // ... many more variants
-/// }
-/// ```
-///
-/// There is a conversion defined between every of the variants and the [`Variant`] struct.
-/// Moreover, the [`Variant`] struct defines a constructor function for each of its variants. For
-/// example, the identifier variant constructor is defined as:
-///
-/// ```text
-/// impl Variant {
-///     pub fn ident(is_free: bool, lift_level: usize) -> Self {
-///         Self::Ident(variant::Ident(is_free, lift_level))
-///     }
-/// }
-/// ```
-///
-/// # Generic token type
-/// The [`Token`] structure has a default parametrization of [`Token<'s, Variant>`] which basically
-/// is a token containing any of the defined variants.
-///
-/// # Token variants
-/// The [`Token`] structure can be parametrized with a variant struct to form a token variant. This
-/// module defines type aliases for every such a combination. For example, the [`Ident`] token
-/// variant is defined as:
-///
-/// ```text
-/// pub type Ident<'s> = Token<'s, variant::Ident>;
-/// ```
-///
-/// There is a conversion defined between any [`Token<'s, T>`] and [`Token<'s>`] for [`T`] being
-/// one of variant structs. Moreover, every such type is accompanied by two constructor utils,
-/// one creating a token variant and one creating a generic token instance. For example, the
-/// [`Ident`] token variant constructors are defined as:
-///
-/// ```text
-/// pub fn ident  <'s> (is_free: bool, lift_level: usize) -> Ident<'s> { ... }
-/// pub fn ident_ <'s> (is_free: bool, lift_level: usize) -> Token<'s> { ... }
-/// ```
-///
-/// # Variant markers
-/// There is also a special enum [`VariantMarker`] defined which can be used to mark which token
-/// variant is used without keeping any of the variant data. It is defined as:
-///
-/// ```text
-/// pub enum VariantMarker {
-///     Newline,
-///     Symbol,
-///     Wildcard,
-///     Ident,
-///     // ... many more
-/// }
-/// ```
-///
-/// See the definitions and macros below to learn more.
+/// The lexical token definition. See the module docs to learn more about its usage scenarios.
 #[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Token<'s, T = Variant> {
