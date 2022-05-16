@@ -143,17 +143,18 @@ impl FreeformPathToIdMap {
                 (is_leaf @ _, []) => (node.value.take().is_some(), is_leaf),
                 (true, [..]) => (false, node.value.is_none()),
                 (false, [key, path_after_key @ ..]) => {
-                    let (value_was_some, branch_empty) = match node.branches.get_mut(key) {
+                    let branches = &mut node.branches;
+                    let (value_was_some, branch_found_and_empty) = match branches.get_mut(key) {
                         Some(branch) => check_if_exists_and_clear_value_and_prune_empty_subtree(
                             branch,
                             path_after_key,
                         ),
                         None => (false, false),
                     };
-                    match (branch_empty, node.branches.len()) {
+                    match (branch_found_and_empty, branches.len()) {
                         (true, 0..=1) => (value_was_some, true),
                         (true, _) => {
-                            node.branches.remove(key);
+                            branches.remove(key);
                             (value_was_some, false)
                         }
                         (false, 0) => (false, node.value.is_none()),
