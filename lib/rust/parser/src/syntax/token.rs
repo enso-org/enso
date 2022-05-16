@@ -198,6 +198,12 @@ impl<'s, T> span::FirstChildTrim<'s> for Token<'s, T> {
 // ================
 
 /// A reference of a [`Token`]. It is used mostly by AST visitors.
+///
+/// There is an important question involved – why we don't just use [`&Token<'s, T>`] instead. The
+/// reason for that is that sometimes AST nodes contain [`Token<'s, T>`] for a specific [`T`] and
+/// we want to traverse them for any possible variant, thus converting [`T`] to [`token::Variant`]
+/// first. However, we do not want to clone the code during such an operation. This struct allows
+/// viewing any [`Token<'s, T>`] as [`TokenRef<'s, token::Variant>`].
 #[derive(Clone, Copy, Deref, DerefMut, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct TokenRef<'s, 'a, T = Variant> {

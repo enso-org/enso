@@ -2,9 +2,9 @@
 //! Tree, or AST.
 
 use crate::prelude::*;
+use crate::source::span::traits::*;
 
 use crate::source::span;
-use crate::source::span::traits::*;
 use crate::source::span::Span;
 use crate::token::TokenRef;
 
