@@ -175,6 +175,7 @@ impl Model {
     /// as some are skipped. For example, given the expression `(((foo)))`, the inner parentheses
     /// will be skipped, as there is no point in making them ports. The skip algorithm is
     /// implemented as part of the port are initialization.
+    #[profile(Debug)]
     pub fn init_shape(
         &mut self,
         logger: impl AnyLogger,
