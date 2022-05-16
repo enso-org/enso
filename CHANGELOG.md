@@ -118,7 +118,8 @@
 - [Implemented a reader for the `Excel` file format.][3425]
 - [Added custom encoding support to the `Delimited` file format reader.][3430]
 - [Implemented `compute` method on `Vector` for statistics calculations.][3442]
-- [Promote get and put to be methods of Ref type rather than of Ref module][3457]
+- [Promote get and put to be methods of Ref type rather than of Ref
+  module][3457]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
