@@ -33,9 +33,7 @@ async function init () {
     if (!initialized) {
         cmd.section('Initialization')
         console.log('Installing build script dependencies.')
-        await cmd.with_cwd(paths.script.root, async () => {
-            await cmd.run('npm',['install'])
-        })
+        await cmd.run('npm',['install'],paths.script.root)
         await fs.mkdir(paths.dist.root, {recursive:true})
         await fs.open(paths.dist.buildInit,'w')
     }
@@ -54,7 +52,7 @@ function throwIfInvalidRootLocation() {
 async function main() {
     throwIfInvalidRootLocation()
     await init()
-    cmd.run('node',[paths.script.run].concat(args))
+    cmd.run('node',[paths.script.run].concat(args),process.cwd())
 }
 
 main()
