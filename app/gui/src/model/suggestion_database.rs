@@ -313,8 +313,8 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path_to_id = &self.freeform_path_to_id_map;
-                        path_to_id.warn_if_exists_and_set(&entry, id, &self.logger);
+                        let path_to_id_map = &self.freeform_path_to_id_map;
+                        path_to_id_map.warn_if_exists_and_set(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -325,8 +325,8 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path_to_id = &self.freeform_path_to_id_map;
-                            path_to_id.warn_if_absent_and_remove(&*entry, &self.logger);
+                            let path_to_id_map = &self.freeform_path_to_id_map;
+                            path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -336,10 +336,10 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let path_to_id = &self.freeform_path_to_id_map;
-                        path_to_id.warn_if_absent_and_remove(&*entry, &self.logger);
+                        let path_to_id_map = &self.freeform_path_to_id_map;
+                        path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
-                        path_to_id.warn_if_exists_and_set(&*entry, id, &self.logger);
+                        path_to_id_map.warn_if_exists_and_set(&*entry, id, &self.logger);
                         for error in errors {
                             error!(
                                 self.logger,
