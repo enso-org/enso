@@ -103,7 +103,7 @@ impl FreeformPathToIdMap {
         let existed = self.check_if_exists_and_set(&path, id);
         if existed {
             let path = path.segments;
-            warning!(logger, "An entry at {path:?} was overwritten with new value {id}.");
+            warning!(logger, "An existing id at {path:?} was overwritten with {id}.");
         }
     }
 
@@ -112,9 +112,8 @@ impl FreeformPathToIdMap {
         let existed = self.check_if_exists_and_remove(&path);
         if !existed {
             let path = path.segments;
-            let msg = format!(
-                "When removing an entry at {path:?} some id was expected but none was found."
-            );
+            let msg =
+                format!("When removing an id at {path:?} some id was expected but none was found.");
             warning!(logger, "{msg}");
         }
     }
@@ -133,8 +132,8 @@ impl FreeformPathToIdMap {
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
         /// Removes the value at `path` in `node` and returns `true` as the first boolean if the
         /// value was `Some(_)` before the removal. Returns `true` as the second boolean if the
-        /// subtree at `node` only contains `None` values, or returns `false` and removes the first
-        /// node on `path` that only contains `None` values in its subtree.
+        /// subtree at `node` only contains `None` values after the removal, or returns `false` and
+        /// removes the first node on `path` that only contains `None` values in its subtree.
         ///
         /// The word "empty" is used in the function as a shorthand for "contains only `None`
         /// values".
@@ -154,7 +153,7 @@ impl FreeformPathToIdMap {
                         ),
                         None => (false, false),
                     };
-                    let node_subtree_empty = match (branch_found_and_empty, branches.len()) {
+                    let node_subtree_is_empty = match (branch_found_and_empty, branches.len()) {
                         (true, 2..) => {
                             branches.remove(key);
                             false
@@ -163,14 +162,14 @@ impl FreeformPathToIdMap {
                         (false, 0) => node.value.is_none(),
                         (false, _) => false,
                     };
-                    (value_was_some, node_subtree_empty)
+                    (value_was_some, node_subtree_is_empty)
                 }
             }
         }
         let node = &mut self.tree.borrow_mut();
-        let (value_was_some, node_subtree_empty) =
+        let (value_was_some, node_subtree_is_empty) =
             check_if_exists_and_clear_value_and_prune_empty_subtree(node, &path.segments);
-        if node_subtree_empty {
+        if node_subtree_is_empty {
             node.branches.clear();
         }
         value_was_some
