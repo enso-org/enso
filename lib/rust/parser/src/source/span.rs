@@ -220,6 +220,7 @@ pub struct Builder<T = ()> {
 }
 
 /// Constructor.
+#[allow(non_snake_case)]
 pub fn Builder<T>(span: T) -> Builder<T> {
     Builder { span }
 }

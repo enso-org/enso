@@ -7,7 +7,6 @@ use crate::source::span::SpanRefMut;
 use crate::syntax::token;
 use crate::syntax::token::TokenRef;
 use crate::syntax::ItemRef;
-// use crate::syntax::token::Token;
 
 use crate::span_builder;
 use enso_parser_syntax_tree_visitor::Visitor;
@@ -24,13 +23,14 @@ use enso_shapely_macros::tagged_enum;
 pub struct Tree<'s> {
     #[deref]
     #[deref_mut]
-    pub variant: Box<Type<'s>>,
+    pub variant: Box<Variant<'s>>,
     pub span:    Span<'s>,
 }
 
 /// Constructor.
-pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Box<Type<'s>>>) -> Tree<'s> {
-    let variant = variant.into();
+#[allow(non_snake_case)]
+pub fn Tree<'s>(span: Span<'s>, variant: impl Into<Variant<'s>>) -> Tree<'s> {
+    let variant = Box::new(variant.into());
     Tree { variant, span }
 }
 
@@ -42,7 +42,7 @@ impl<'s> Debug for Tree<'s> {
         if code.len() > max_code_len {
             code = format!("{}{}", &code[..max_code_len - ellipsis.len()], ellipsis);
         }
-        write!(f, "[off: {}, code:\"{}\"] ", self.span.left_offset.visible, code)?;
+        write!(f, "[{}:{}:\"{}\"] ", self.span.left_offset.visible, self.span.length, code)?;
         Debug::fmt(&self.variant, f)
     }
 }
@@ -53,14 +53,14 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
     }
 }
 
-/// Macro providing [`Tree`] type definition. It is used to both define the ast [`Type`], and to
+/// Macro providing [`Tree`] type definition. It is used to both define the ast [`Variant`], and to
 /// define impls for every token type in other modules.
 #[macro_export]
 macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)*
     /// [`Tree`] variants definition. See its docs to learn more.
     #[tagged_enum]
     #[derive(Clone, Eq, PartialEq, Visitor)]
-    pub enum Type<'s> {
+    pub enum Variant<'s> {
         /// Invalid [`Tree`] fragment with an attached [`Error`].
         Invalid {
             pub error: Error,
@@ -105,14 +105,36 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
     }
 }};}
 
-macro_rules! identity {
+macro_rules! generate_variant_constructors {
+    (
+        $(#$enum_meta:tt)*
+        pub enum $enum:ident<'s> {
+            $(
+                $(#$variant_meta:tt)*
+                $variant:ident $({ $(pub $field:ident : $field_ty:ty),* $(,)? })?
+            ),* $(,)?
+        }
+    ) => { paste! {
+        impl<'s> Tree<'s> {
+            $(
+                /// Constructor.
+                pub fn [<$variant:snake:lower>]($($(mut $field : $field_ty),*)?) -> Self {
+                    let span = span_builder![$($($field),*)?];
+                    Tree(span, $variant($($($field),*)?))
+                }
+            )*
+        }
+    }};
+}
+
+macro_rules! generate_ast_definition {
     ($($ts:tt)*) => {
         $($ts)*
+        generate_variant_constructors!{$($ts)*}
     };
 }
 
-with_ast_definition!(identity());
-
+with_ast_definition!(generate_ast_definition());
 
 
 // === Invalid ===
@@ -131,40 +153,17 @@ impl Error {
     }
 }
 
-
 impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn invalid(error: Error, mut ast: Tree<'s>) -> Self {
-        let span = ast.span.trim_as_first_child();
-        Tree(span, Type::from(Invalid(error, ast)))
-    }
-
     /// Constructor.
     pub fn with_error(self, message: &'static str) -> Self {
         Tree::invalid(Error::new(message), self)
     }
 }
 
-
-
-// === Ident ===
-
-impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn ident(mut token: token::Ident<'s>) -> Tree<'s> {
-        let span = span_builder![token];
-        Tree(span, Type::from(Ident(token)))
-    }
-}
-
-
-// === App ===
-
-impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn app(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
-        let span = span_builder![func, arg];
-        Tree(span, Type::from(App(func, arg)))
+impl<S> span::Build<S> for Error {
+    type Output = S;
+    fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
+        builder.span
     }
 }
 
@@ -181,44 +180,12 @@ pub struct MultipleOperatorError<'s> {
     pub operators: NonEmptyVec<token::Operator<'s>>,
 }
 
-impl<'s> MultipleOperatorError<'s> {
-    /// Constructor.
-    pub fn new(operators: NonEmptyVec<token::Operator<'s>>) -> Self {
-        Self { operators }
-    }
-}
-
-
 impl<'s, S> span::Build<S> for MultipleOperatorError<'s>
 where NonEmptyVec<token::Operator<'s>>: span::Build<S>
 {
     type Output = <NonEmptyVec<token::Operator<'s>> as span::Build<S>>::Output;
     fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
         self.operators.build(builder)
-    }
-}
-
-impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn opr_app(
-        mut lhs: Option<Tree<'s>>,
-        mut opr: OperatorOrError<'s>,
-        mut rhs: Option<Tree<'s>>,
-    ) -> Tree<'s> {
-        let span = span_builder![lhs, opr, rhs];
-        Tree(span, Type::from(OprApp(lhs, opr, rhs)))
-    }
-}
-
-
-
-// === OprSectionBoundary ===
-
-impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn opr_section_boundary(mut section: Tree<'s>) -> Tree<'s> {
-        let span = span_builder![section];
-        Tree(span, Type::from(OprSectionBoundary(section)))
     }
 }
 
@@ -242,22 +209,11 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
     }
 }
 
-impl<'s> Tree<'s> {
-    /// Constructor.
-    pub fn multi_segment_app(
-        mut prefix: Option<Tree<'s>>,
-        mut segments: NonEmptyVec<MultiSegmentAppSegment<'s>>,
-    ) -> Self {
-        let span = span_builder![prefix, segments];
-        Tree(span, Type::from(MultiSegmentApp(prefix, segments)))
-    }
-}
 
 
-
-// =====================
-// === Tree Visitors ===
-// =====================
+// ================
+// === Visitors ===
+// ================
 
 /// The visitor pattern for [`AST`].
 ///
@@ -631,39 +587,11 @@ where &'a token::Token<'s, T>: Into<TokenRef<'s, 'a>>
 
 
 
-// impl<'a, T: TreeVisitable<'a>> TreeVisitable<'a> for span::With<T> {
-//     default fn visit<V: TreeVisitor<'a>>(&'a self, visitor: &mut V) {
-//         self.elem.visit(visitor)
-//     }
-// }
-//
-// impl<'a, T: TreeVisitableMut<'a>> TreeVisitableMut<'a> for span::With<T> {
-//     default fn visit_mut<V: TreeVisitorMut>(&'a mut self, visitor: &mut V) {
-//         self.elem.visit_mut(visitor)
-//     }
-// }
-//
-// impl<'a, T: SpanVisitable<'a>> SpanVisitable<'a> for span::With<T> {
-//     fn visit_span<V: SpanVisitor<'a>>(&'a self, visitor: &mut V) {
-//         if visitor.visit(&self.span) {
-//             self.elem.visit_span(visitor)
-//         }
-//     }
-// }
-//
-// impl<'a, T: SpanVisitableMut<'a>> SpanVisitableMut<'a> for span::With<T> {
-//     fn visit_span_mut<V: SpanVisitorMut>(&'a mut self, visitor: &mut V) {
-//         if visitor.visit_mut(&mut self.span) {
-//             self.elem.visit_span_mut(visitor)
-//         }
-//     }
-// }
-
-
 // ==========================
 // === CodePrinterVisitor ===
 // ==========================
 
+/// A visitor collecting code representation of AST nodes.
 #[derive(Debug, Default)]
 #[allow(missing_docs)]
 struct CodePrinterVisitor {
@@ -692,108 +620,70 @@ impl<'s> Tree<'s> {
     }
 }
 
-// // ===========================
-// // === RefCollectorVisitor ===
-// // ===========================
-//
-// /// A visitor collecting references to all [`Tree`] nodes.
-// #[derive(Debug, Default)]
-// #[allow(missing_docs)]
-// pub struct RefCollectorVisitor<'a> {
-//     pub vec: Vec<&'a Tree>,
-// }
-//
-// impl<'a> TreeVisitor<'a> for RefCollectorVisitor<'a> {
-//     fn visit(&mut self, ast: &'a Tree) -> bool {
-//         self.vec.push(ast);
-//         true
-//     }
-// }
-//
-// impl Tree {
-//     /// Collect references to all [`Tree`] nodes and return them in a vector.
-//     pub fn collect_vec_ref(&self) -> Vec<&Tree> {
-//         let mut visitor = RefCollectorVisitor::default();
-//         self.visit(&mut visitor);
-//         visitor.vec
-//     }
-// }
-//
-//
-//
-// // =================
-// // === FnVisitor ===
-// // =================
-//
-// /// A visitor allowing running a function on every [`Tree`] node.
-// #[derive(Debug, Default)]
-// #[allow(missing_docs)]
-// pub struct FnVisitor<F>(pub F);
-//
-// impl<'a, T, F: Fn(&'a Tree) -> T> TreeVisitor<'a> for FnVisitor<F> {
-//     fn visit(&mut self, ast: &'a Tree) -> bool {
-//         (self.0)(ast);
-//         true
-//     }
-// }
-//
-// impl<T, F: Fn(&mut Tree) -> T> TreeVisitorMut for FnVisitor<F> {
-//     fn visit_mut(&mut self, ast: &mut Tree) -> bool {
-//         (self.0)(ast);
-//         true
-//     }
-// }
-//
-// impl<'a, T, F: Fn(&'a Span) -> T> SpanVisitor<'a> for FnVisitor<F> {
-//     fn visit(&mut self, ast: &'a Span) -> bool {
-//         (self.0)(ast);
-//         true
-//     }
-// }
-//
-// impl<T, F: Fn(&mut Span) -> T> SpanVisitorMut for FnVisitor<F> {
-//     fn visit_mut(&mut self, ast: &mut Span) -> bool {
-//         (self.0)(ast);
-//         true
-//     }
-// }
-//
-//
-// impl Tree {
-//     /// Map the provided function over each [`Tree`] node. The function results will be
-// discarded.     pub fn map<T>(&self, f: impl Fn(&Tree) -> T) {
-//         let mut visitor = FnVisitor(f);
-//         self.visit(&mut visitor);
-//     }
-//
-//     /// Map the provided function over each [`Tree`] node. The function results will be
-// discarded.     pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree) -> T) {
-//         let mut visitor = FnVisitor(f);
-//         self.visit_mut(&mut visitor);
-//     }
-//
-//     /// Map the provided function over each [`Span`] element. The function results will be
-//     /// discarded.
-//     pub fn map_span<T>(&self, f: impl Fn(&Span) -> T) {
-//         let mut visitor = FnVisitor(f);
-//         self.visit_span(&mut visitor);
-//     }
-//
-//     /// Map the provided function over each [`Span`] element. The function results will be
-//     /// discarded.
-//     pub fn map_span_mut<T>(&mut self, f: impl Fn(&mut Span) -> T) {
-//         let mut visitor = FnVisitor(f);
-//         self.visit_span_mut(&mut visitor);
-//     }
-//
-//     /// Remove all span information. This is mainly used for tests to compare AST structure.
-//     pub fn remove_span_info(&mut self) {
-//         self.map_span_mut(mem::take)
-//     }
-//
-//     /// Remove all span information. This is mainly used for tests to compare AST structure.
-//     pub fn with_removed_span_info(mut self) -> Self {
-//         self.remove_span_info();
-//         self
-//     }
-// }
+
+
+// ===========================
+// === RefCollectorVisitor ===
+// ===========================
+
+/// A visitor collecting references to all [`Tree`] nodes.
+#[derive(Debug, Default)]
+#[allow(missing_docs)]
+struct RefCollectorVisitor<'s, 'a> {
+    pub vec: Vec<&'a Tree<'s>>,
+}
+
+impl<'s, 'a> TreeVisitor<'s, 'a> for RefCollectorVisitor<'s, 'a> {
+    fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
+        self.vec.push(ast);
+        true
+    }
+}
+
+impl<'s> Tree<'s> {
+    /// Collect references to all [`Tree`] nodes and return them in a vector.
+    pub fn collect_vec_ref(&self) -> Vec<&Tree<'s>> {
+        let mut visitor = RefCollectorVisitor::default();
+        self.visit(&mut visitor);
+        visitor.vec
+    }
+}
+
+
+
+// =================
+// === FnVisitor ===
+// =================
+
+/// A visitor allowing running a function on every [`Tree`] node.
+#[derive(Debug, Default)]
+#[allow(missing_docs)]
+pub struct FnVisitor<F>(pub F);
+
+impl<'s: 'a, 'a, T, F: Fn(&'a Tree<'s>) -> T> TreeVisitor<'s, 'a> for FnVisitor<F> {
+    fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<'s, T, F: Fn(&mut Tree<'s>) -> T> TreeVisitorMut<'s> for FnVisitor<F> {
+    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool {
+        (self.0)(ast);
+        true
+    }
+}
+
+impl<'s> Tree<'s> {
+    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
+    pub fn map<T>(&self, f: impl Fn(&Tree<'s>) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit(&mut visitor);
+    }
+
+    /// Map the provided function over each [`Tree`] node. The function results will be discarded.
+    pub fn map_mut<T>(&mut self, f: impl Fn(&mut Tree<'s>) -> T) {
+        let mut visitor = FnVisitor(f);
+        self.visit_mut(&mut visitor);
+    }
+}

@@ -175,7 +175,7 @@ impl<'s, T> Token<'s, T> {
 
 impl<'s, T: Debug> Debug for Token<'s, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
+        write!(f, "[{}:\"{}\"] ", self.left_offset.visible, self.code)?;
         Debug::fmt(&self.variant, f)
     }
 }

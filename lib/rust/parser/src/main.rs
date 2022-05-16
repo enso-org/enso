@@ -104,7 +104,6 @@ use crate::prelude::*;
 use enso_data_structures::im_list;
 use enso_data_structures::im_list::List;
 use macros::pattern::Pattern;
-// use source::span;
 use syntax::token::Token;
 
 
@@ -164,16 +163,7 @@ impl<'s> TryAsRef<syntax::Item<'s>> for SyntaxItemOrMacroResolver<'s> {
     }
 }
 
-// impl<'s> source::HasRepr<'s> for source::With<'s, &syntax::Item<'s>> {
-//     fn repr(&self) -> &'s str {
-//         match self.data {
-//             syntax::Item::Token(t) => self.with_data(t).repr(),
-//             syntax::Item::Tree(t) => self.with_data(t).repr(),
-//         }
-//     }
-// }
-//
-//
+
 // ======================
 // === MacroMatchTree ===
 // ======================
@@ -230,15 +220,6 @@ pub struct MacroResolver<'s> {
     pub matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
 }
 
-// pub fn Token<'s, T>(
-//     left_offset: Offset<'s>,
-//     code: impl Into<Cow<'s, str>>,
-//     data: T,
-// ) -> Token<'s, T> {
-//     let code = code.into();
-//     Token { data, left_offset, code }
-// }
-
 impl<'a> MacroResolver<'a> {
     /// A new macro resolver with a special "root" segment definition. The "root" segment does not
     /// exist in the source code, it is simply the whole expression being parsed. It is treated
@@ -265,7 +246,8 @@ impl<'a> MacroResolver<'a> {
         Self { current_segment, resolved_segments, possible_next_segments, matched_macro_def }
     }
 }
-//
+
+/// A matched macro segment. Partial macro resolution product.
 #[derive(Debug)]
 pub struct MatchedSegment<'s> {
     header: Token<'s>,
@@ -273,6 +255,7 @@ pub struct MatchedSegment<'s> {
 }
 
 impl<'s> MatchedSegment<'s> {
+    /// Constructor.
     pub fn new(header: Token<'s>) -> Self {
         let body = default();
         Self { header, body }
@@ -280,27 +263,30 @@ impl<'s> MatchedSegment<'s> {
 }
 
 
+/// Main macro resolver capable of resolving nested macro usages. See the docs of the main module to
+/// learn more about the macro resolution steps.
 #[derive(Debug)]
 pub struct Resolver<'s> {
     current_macro: MacroResolver<'s>,
     macro_stack:   Vec<MacroResolver<'s>>,
 }
 
+/// Result of the macro resolution step.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ResolverStep {
+enum ResolverStep {
     NormalToken,
     NewSegmentStarted,
     MacroStackPop,
 }
 
 impl<'s> Resolver<'s> {
-    pub fn new_root() -> Self {
+    fn new_root() -> Self {
         let current_macro = MacroResolver::new_root();
         let macro_stack = default();
         Self { current_macro, macro_stack }
     }
 
-    pub fn run(
+    fn run(
         mut self,
         lexer: &Lexer<'s>,
         root_macro_map: &MacroMatchTree<'s>,
@@ -385,12 +371,12 @@ impl<'s> Resolver<'s> {
                 let resolved_token = match item {
                         SyntaxItemOrMacroResolver::MacroResolver(m2) => {
                             if let Some(macro_def) = &m2.matched_macro_def
-                                && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
+                            && let Some(pfx_pattern) = &macro_def.rev_prefix_pattern {
                                 ss.reverse();
-                                let spacing = m2.current_segment.header.left_offset.visible >
-    VisibleOffset(0);                             let mut match_result =
-    pfx_pattern.resolve(ss,spacing,true).unwrap();
-    match_result.matched.reverse();                             ss = match_result.not_matched;
+                                let spacing = m2.current_segment.header.left_offset.visible > VisibleOffset(0);
+                                let mut match_result = pfx_pattern.resolve(ss,spacing,true).unwrap();
+                                match_result.matched.reverse();
+                                ss = match_result.not_matched;
                                 ss.reverse();
                                 Self::resolve(lexer, m2, Some(match_result.matched)).into()
                             } else {
@@ -411,7 +397,7 @@ impl<'s> Resolver<'s> {
         }
     }
 
-    pub fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'s>> {
+    fn pop_macro_stack_if_reserved(&mut self, repr: &str) -> Option<MacroResolver<'s>> {
         let reserved = self.macro_stack.iter().any(|p| p.possible_next_segments.contains_key(repr));
         if reserved {
             self.macro_stack.pop()
@@ -420,7 +406,7 @@ impl<'s> Resolver<'s> {
         }
     }
 
-    pub fn process_token(
+    fn process_token(
         &mut self,
         root_macro_map: &MacroMatchTree<'s>,
         token: Token<'s>,
@@ -486,7 +472,7 @@ impl<'s> Resolver<'s> {
 
 
 // FIXME: hardcoded values + not finished implementation.
-pub fn precedence_of(operator: &str) -> usize {
+fn precedence_of(operator: &str) -> usize {
     match operator {
         "+" => 3,
         "-" => 3,
@@ -496,7 +482,7 @@ pub fn precedence_of(operator: &str) -> usize {
 }
 //
 #[derive(Clone, Copy, Debug, Deref, DerefMut)]
-pub struct WithPrecedence<T> {
+struct WithPrecedence<T> {
     #[deref]
     #[deref_mut]
     elem:       T,
@@ -517,7 +503,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
             syntax::Item::Token(_) => item,
             syntax::Item::Tree(ast) =>
                 match &*ast.variant {
-                    syntax::tree::Type::MultiSegmentApp(data) => {
+                    syntax::tree::Variant::MultiSegmentApp(data) => {
                         if data.segments.first().header.variant.marker()
                             != token::variant::VariantMarker::Symbol
                         {
@@ -534,7 +520,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
         .collect()
 }
 
-pub fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
+fn resolve_operator_precedence<'s>(items: Vec<syntax::Item<'s>>) -> syntax::Tree<'s> {
     type Tokens<'s> = Vec<syntax::Item<'s>>;
     let mut flattened: Tokens<'s> = default();
     let mut no_space_group: Tokens<'s> = default();
@@ -588,7 +574,7 @@ fn resolve_operator_precedence_internal<'s>(items: Vec<syntax::Item<'s>>) -> syn
                     Err(err) => err.operators.push(opr),
                     Ok(prev) => {
                         let operators = NonEmptyVec::new(prev.clone(),vec![opr]); // FIXME: clone?
-                        prev_opr.elem = Err(syntax::tree::MultipleOperatorError::new(operators));
+                        prev_opr.elem = Err(syntax::tree::MultipleOperatorError{operators});
                     }
                 }
             } else {
@@ -631,38 +617,6 @@ expression."
     syntax::Tree::opr_section_boundary(opt_rhs.unwrap()) // fixme
 }
 
-//
-//
-// impl<'s, 't, T> Debug for source::With<'s, &'t Box<T>>
-// where source::With<'s, &'t T>: Debug
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let t: &T = &**self.data;
-//         Debug::fmt(&self.with_data(t), f)
-//     }
-// }
-//
-//
-//
-// impl<'s, 't, T> Debug for source::With<'s, &'t Option<T>>
-// where source::With<'s, &'t T>: Debug
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)), f)
-//     }
-// }
-//
-// impl<'s, 't, T, E> Debug for source::With<'s, &'t Result<T, E>>
-// where
-//     source::With<'s, &'t T>: Debug,
-//     source::With<'s, &'t E>: Debug,
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         Debug::fmt(&self.data.as_ref().map(|t| self.with_data(t)).map_err(|t| self.with_data(t)),
-// f)     }
-// }
-//
-//
 fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
     match elem {
         syntax::Item::Token(token) => match token.variant {
