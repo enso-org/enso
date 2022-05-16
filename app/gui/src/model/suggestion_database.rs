@@ -135,6 +135,9 @@ impl FreeformPathToIdMap {
         /// value was `Some(_)` before the removal. Returns `true` as the second boolean if the
         /// subtree at `node` only contains `None` values, or returns `false` and removes the first
         /// node on `path` that only contains `None` values in its subtree.
+        ///
+        /// The word "empty" is used in the function as a shorthand for "contains only `None`
+        /// values".
         fn check_if_exists_and_clear_value_and_prune_empty_subtree(
             node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
             path: &[PathSegment],
@@ -151,15 +154,16 @@ impl FreeformPathToIdMap {
                         ),
                         None => (false, false),
                     };
-                    match (branch_found_and_empty, branches.len()) {
-                        (true, 0..=1) => (value_was_some, true),
-                        (true, _) => {
+                    let subtree_is_empty = match (branch_found_and_empty, branches.len()) {
+                        (true, 2..) => {
                             branches.remove(key);
-                            (value_was_some, false)
+                            false
                         }
-                        (false, 0) => (false, node.value.is_none()),
-                        (false, _) => (false, false),
-                    }
+                        (true, _) => true,
+                        (false, 0) => node.value.is_none(),
+                        (false, _) => false,
+                    };
+                    (value_was_some, subtree_is_empty)
                 }
             }
         }
