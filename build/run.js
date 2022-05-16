@@ -207,7 +207,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const releaseLimitMb = 4.36
+        const releaseLimitMb = 4.37
         let limitMb = releaseLimitMb + allowExtraMb
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
