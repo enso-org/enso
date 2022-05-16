@@ -137,6 +137,41 @@ impl FreeformPathToIdMap {
         old_value.flatten().is_some()
     }
 
+    fn check_if_exists_and_clear_value_and_prune_empty_branch(&self, path: &FreeformPath) -> bool {
+        let mut existed = false;
+        fn clear_value_or_prune(subtree: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>, subpath: &[PathSegment]) -> bool {
+            if subtree.is_leaf() {
+                if subpath.len() == 0 {
+                    existed = subtree.value.is_some();
+                    return true;
+                } else {
+                    return subtree.value.is_none();
+                }
+            } else {
+                if subpath.len() == 0 {
+                    existed = subtree.value.is_some();
+                    subtree.value = None;
+                    return false;
+                } else {
+                    let key = &subpath[0];
+                    let prune_branch = clear_value_or_prune(subtree.branches.get_mut(key), &subpath[1..]);
+                    if prune_branch {
+                        if subtree.branches.len() == 1 {
+                            return true;
+                        } else {
+                            subtree.branches.remove(key);
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        clear_value_or_prune(self.tree.borrow_mut(), &path);
+        return existed;
+    }
+
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
         let path = path.into();
         match self.tree.borrow().get(path.segments.iter()) {
