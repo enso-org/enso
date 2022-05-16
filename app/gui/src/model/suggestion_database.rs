@@ -787,7 +787,7 @@ mod test {
 
     #[test]
     fn lookup_by_fully_qualified_path() {
-        // Test a DB with sample data.
+        // Fill a DB with sample data and test lookups.
         let atom_entry = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
             module:             "TestProject.TestModule".to_string(),
@@ -835,7 +835,7 @@ mod test {
         let nonexistent_lookup = db.lookup_by_fully_qualified_path(nonexistent_path);
         assert_eq!(nonexistent_lookup, None);
 
-        // Test after the DB got an update.
+        // Modify the DB contents and test lookups.
         let module_entry = SuggestionEntry::Module {
             module:             "local.Unnamed_6.Main".to_string(),
             documentation:      None,
@@ -883,7 +883,8 @@ mod test {
         assert!(new_atom_lookup.is_some());
         assert_eq!(new_atom_lookup.unwrap().name, "TextAtom".to_string());
 
-        // Test after an update adds a new entry at a previously removed ID.
+        // Modify the DB contents by adding a new entry reusing a previously removed ID and test
+        // lookups.
         let function_entry = SuggestionEntry::Function {
             module:      "NewProject.NewModule".to_string(),
             name:        "testFunction1".to_string(),
