@@ -139,29 +139,29 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_clear_value_and_prune_empty_branch(&self, path: &FreeformPath) -> bool {
-        fn clear_value_or_prune(subtree: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>, subpath: &[PathSegment]) -> (bool, bool) {
-            if subtree.is_leaf() {
-                if subpath.len() == 0 {
-                    let existed = subtree.value.is_some();
+        fn clear_value_or_prune(node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>, path: &[PathSegment]) -> (bool, bool) {
+            if node.is_leaf() {
+                if path.len() == 0 {
+                    let existed = node.value.is_some();
                     return (true, existed);
                 } else {
-                    return (subtree.value.is_none(), false);
+                    return (node.value.is_none(), false);
                 }
             } else {
-                if subpath.len() == 0 {
-                    let existed = subtree.value.is_some();
-                    subtree.value = None;
+                if path.len() == 0 {
+                    let existed = node.value.is_some();
+                    node.value = None;
                     return (false, existed);
                 } else {
-                    let key = &subpath[0];
-                    match subtree.branches.get_mut(key) {
-                        Some(subtree) => {
-                            let (prune_branch, existed) = clear_value_or_prune(subtree, &subpath[1..]);
+                    let key = &path[0];
+                    match node.branches.get_mut(key) {
+                        Some(node) => {
+                            let (prune_branch, existed) = clear_value_or_prune(node, &path[1..]);
                             if prune_branch {
-                                if subtree.branches.len() == 1 {
+                                if node.branches.len() == 1 {
                                     return (true, existed);
                                 } else {
-                                    subtree.branches.remove(key);
+                                    node.branches.remove(key);
                                     return (false, existed);
                                 }
                             } else {
@@ -169,7 +169,7 @@ impl FreeformPathToIdMap {
                             }
                         },
                         None => {
-                            let can_prune = subtree.is_leaf() && subtree.value.is_none();
+                            let can_prune = node.is_leaf() && node.value.is_none();
                             return (can_prune, false);
                         },
                     }
