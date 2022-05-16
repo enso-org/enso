@@ -1723,7 +1723,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#cec0731db19717be2f1a40a30233d81de47e8e07"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#52bd218a8febc1907f91bfe68f94cdd0e72d26cc"
 dependencies = [
  "anyhow",
  "argh",
@@ -1780,7 +1780,6 @@ dependencies = [
  "shrinkwraprs 0.3.0",
  "snafu 0.6.10",
  "strum 0.23.0",
- "symlink",
  "sysinfo",
  "tar",
  "tempfile",
@@ -3635,7 +3634,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#cec0731db19717be2f1a40a30233d81de47e8e07"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#52bd218a8febc1907f91bfe68f94cdd0e72d26cc"
 dependencies = [
  "anyhow",
  "argh",
@@ -3696,6 +3695,7 @@ dependencies = [
  "shrinkwraprs 0.3.0",
  "snafu 0.7.1",
  "strum 0.23.0",
+ "symlink",
  "syn",
  "sysinfo",
  "tar",
