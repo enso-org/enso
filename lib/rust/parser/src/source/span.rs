@@ -92,11 +92,7 @@ impl<'s> From<&'s str> for Offset<'s> {
 // === Span ===
 // ============
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct SpanRef<'s, 'a> {
-    pub left_offset: &'a Offset<'s>,
-    pub length:      Bytes,
-}
+
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SpanRefMut<'s, 'a> {
@@ -117,11 +113,19 @@ impl<'s> Span<'s> {
         Span { left_offset, length }
     }
 
-    pub fn extend(&mut self, other: &Span<'s>) {
+    #[inline(always)]
+    pub fn extend<'a, T>(&mut self, other: T)
+    where
+        T: Into<SpanRef<'s, 'a>>,
+        's: 'a, {
+        let other = other.into();
         self.length += other.left_offset.len() + other.length;
     }
 
-    pub fn extended(mut self, other: &Span<'s>) -> Self {
+    pub fn extended<'a, T>(mut self, other: T) -> Self
+    where
+        T: Into<SpanRef<'s, 'a>>,
+        's: 'a, {
         self.extend(other);
         self
     }
@@ -134,6 +138,22 @@ impl<'s> Span<'s> {
 impl<'s> AsRef<Span<'s>> for Span<'s> {
     fn as_ref(&self) -> &Span<'s> {
         self
+    }
+}
+
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SpanRef<'s, 'a> {
+    pub left_offset: &'a Offset<'s>,
+    pub length:      Bytes,
+}
+
+impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
+    #[inline(always)]
+    fn from(span: &'a Span<'s>) -> Self {
+        let left_offset = &span.left_offset;
+        let length = span.length;
+        Self { left_offset, length }
     }
 }
 
@@ -416,7 +436,7 @@ impl<'s, T> Build<()> for token::Token<'s, T> {
 impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
-        builder.span.extended(&self.span())
+        builder.span.extended(self.span())
     }
 }
 
@@ -424,7 +444,7 @@ impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
     type Output = Span<'s>;
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {
         match builder.span {
-            Some(span) => span.extended(&self.span()),
+            Some(span) => span.extended(self.span()),
             None => self.trim_as_first_child(),
         }
     }

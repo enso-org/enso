@@ -4,9 +4,9 @@
 use crate::prelude::*;
 
 use crate::source::Offset;
-use crate::source::Token;
 use crate::source::VisibleOffset;
 use crate::syntax::token;
+use crate::token::Token;
 
 use bumpalo::Bump;
 use ouroboros::self_referencing;
@@ -552,7 +552,7 @@ impl<'s> Lexer<'s> {
     fn ident(&mut self) {
         if let Some(token) = self.token(|this| this.take_while_1(is_ident_char)) {
             let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
-            let token = token.with(tp);
+            let token = token.with_variant(tp);
             self.submit_token(token);
         }
     }
@@ -581,14 +581,14 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
-                self.submit_token(left.with(token::Variant::operator()));
-                self.submit_token(right.with(token::Variant::operator()));
+                self.submit_token(left.with_variant(token::Variant::operator()));
+                self.submit_token(right.with_variant(token::Variant::operator()));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
                 let tp =
                     if is_mod { token::Variant::modifier() } else { token::Variant::operator() };
-                let token = token.with(tp);
+                let token = token.with_variant(tp);
                 self.submit_token(token);
             }
         }
@@ -605,7 +605,7 @@ impl<'s> Lexer<'s> {
     /// Parse a symbol.
     fn symbol(&mut self) {
         if let Some(token) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(token.with(token::Variant::symbol()));
+            self.submit_token(token.with_variant(token::Variant::symbol()));
         }
     }
 }
@@ -625,7 +625,7 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
-            self.submit_token(token.with(token::Variant::number()));
+            self.submit_token(token.with_variant(token::Variant::number()));
         }
     }
 }
@@ -645,7 +645,7 @@ impl<'s> Lexer<'s> {
     fn text(&mut self) {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
-            self.submit_token(token.with(token::Variant::text_start()));
+            self.submit_token(token.with_variant(token::Variant::text_start()));
             let line_empty = self.current_char.map(|t| is_newline_char(t)).unwrap_or(true);
             if line_empty {
                 todo!()
@@ -657,7 +657,7 @@ impl<'s> Lexer<'s> {
                     let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
-                        self.submit_token(tok.with(token::Variant::text_section()));
+                        self.submit_token(tok.with_variant(token::Variant::text_section()));
                     }
 
                     let escape = self.token(|this| {
@@ -667,12 +667,12 @@ impl<'s> Lexer<'s> {
                     });
                     if let Some(token) = escape {
                         parsed_element = true;
-                        self.submit_token(token.with(token::Variant::text_escape()));
+                        self.submit_token(token.with_variant(token::Variant::text_escape()));
                     }
 
                     let end = self.token(|this| this.take_1('"'));
                     if let Some(token) = end {
-                        self.submit_token(token.with(token::Variant::text_end()));
+                        self.submit_token(token.with_variant(token::Variant::text_end()));
                         break;
                     }
 
@@ -695,7 +695,7 @@ impl<'s> Lexer<'s> {
     fn submit_line_as(&mut self, kind: token::Variant) {
         let token = self.token(|this| this.take_all_newline_chars());
         if let Some(token) = token {
-            self.submit_token(token.with(kind));
+            self.submit_token(token.with_variant(kind));
         }
     }
 
@@ -732,9 +732,9 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut newlines = vec![token.with(token::Variant::newline())];
+            let mut newlines = vec![token.with_variant(token::Variant::newline())];
             while let Some(token) = self.line_break() {
-                newlines.push(token.with(token::Variant::newline()));
+                newlines.push(token.with_variant(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
 

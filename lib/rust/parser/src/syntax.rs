@@ -4,7 +4,7 @@
 // use crate::prelude::*;
 //
 use crate::source::span;
-use crate::source::TokenRef;
+use crate::token::TokenRef;
 
 pub mod token;
 pub mod tree;
@@ -47,7 +47,7 @@ impl<'s> Item<'s> {
     /// [`location::Span`] of the element.
     pub fn span(&self) -> span::SpanRef<'_, 's> {
         match self {
-            Self::Token(t) => t.span2(),
+            Self::Token(t) => t.span(),
             Self::Tree(t) => t.span.as_ref(),
         }
     }

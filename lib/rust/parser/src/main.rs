@@ -427,7 +427,7 @@ impl<'s> Resolver<'s> {
         root_macro_map: &MacroMatchTree<'s>,
         token: Token<'s>,
     ) -> ResolverStep {
-        let repr = &*token.code;
+        let repr = &**token.code;
         if let Some(subsegments) = self.current_macro.possible_next_segments.get(repr) {
             event!(TRACE, "Entering next segment of the current macro.");
             let mut new_match_tree =
@@ -520,7 +520,7 @@ fn annotate_tokens_that_need_spacing(items: Vec<syntax::Item>) -> Vec<syntax::It
             syntax::Item::Tree(ast) =>
                 match &*ast.variant {
                     syntax::tree::Type::MultiSegmentApp(data) => {
-                        if data.segments.first().header.data.marker()
+                        if data.segments.first().header.variant.marker()
                             != token::variant::VariantMarker::Symbol
                         {
                             syntax::Item::Tree(ast.with_error(
@@ -580,7 +580,7 @@ fn resolve_operator_precedence_internal<'s>(
     let mut last_token_was_opr = false;
     for item in items {
         let i2 = item.clone(); // FIXME
-        if let syntax::Item::Token(token) = i2 && let token::Variant::Operator(opr) = token.data {
+        if let syntax::Item::Token(token) = i2 && let token::Variant::Operator(opr) = token.variant {
             // Item is an operator.
             let last_token_was_opr_copy = last_token_was_opr;
             last_token_was_ast = false;
@@ -673,9 +673,9 @@ expression."
 //
 fn token_to_ast(elem: syntax::Item) -> syntax::Tree {
     match elem {
-        syntax::Item::Token(token) => match token.data {
+        syntax::Item::Token(token) => match token.variant {
             token::Variant::Ident(ident) => {
-                let ii2 = token.with(ident);
+                let ii2 = token.with_variant(ident);
                 syntax::tree::Tree::ident(ii2)
             }
             _ => panic!(),

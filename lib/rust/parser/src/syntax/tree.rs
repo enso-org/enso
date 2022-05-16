@@ -5,8 +5,8 @@ use crate::source::span;
 use crate::source::span::Span;
 use crate::source::span::SpanRefMut;
 use crate::source::Offset;
-use crate::source::TokenRef;
 use crate::syntax::token;
+use crate::syntax::token::TokenRef;
 use crate::syntax::ItemRef;
 // use crate::syntax::token::Token;
 
@@ -513,7 +513,7 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
 
 impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for token::Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        let length = self.len();
+        let length = self.code.len();
         visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, length });
     }
 }

@@ -13,131 +13,49 @@ pub use span::SpanRef;
 pub use span::VisibleOffset;
 
 
-// ==============
-// === Token ===
-// ==============
-
-#[derive(Clone, Copy, Deref, DerefMut, Eq, PartialEq)]
-#[allow(missing_docs)]
-pub struct TokenRef<'s, 'a, T = crate::syntax::token::Variant> {
-    #[deref]
-    #[deref_mut]
-    pub data:        T,
-    pub left_offset: &'a Offset<'s>,
-    pub code:        &'a Cow<'s, str>,
+#[derive(Clone, Deref, DerefMut, Eq, PartialEq, From, Into)]
+pub struct Code<'s> {
+    cow: Cow<'s, str>,
 }
 
-impl<'s, 'a, T, S> From<&'a Token<'s, T>> for TokenRef<'s, 'a, S>
-where T: Copy + Into<S>
-{
-    fn from(token: &'a Token<'s, T>) -> Self {
-        TokenRef {
-            data:        token.data.into(),
-            left_offset: &token.left_offset,
-            code:        &token.code,
-        }
-    }
-}
-
-impl<'s, 'a, T: Debug> Debug for TokenRef<'s, 'a, T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
-        Debug::fmt(&self.data, f)
-    }
-}
-
-
-
-/// Structure used to keep an element [`T`] associated with source code.
-///
-/// # Pretty printing
-/// Please note, that neither [`Token`] nor [`Ast`] contain sources, it keeps track of the char
-/// offsets only. If you want to pretty print it, you should attach sources to it. The easiest way
-/// to do it is by using the [`Token`] data, for example as:
-/// ```text
-/// println!("{:#?}", source::Token::new(str, &ast));
-/// ```
-#[derive(Clone, Deref, DerefMut, Eq, PartialEq)]
-#[allow(missing_docs)]
-pub struct Token<'s, T = crate::syntax::token::Variant> {
-    #[deref]
-    #[deref_mut]
-    pub data:        T,
-    pub left_offset: Offset<'s>,
-    pub code:        Cow<'s, str>,
-}
-
-/// Constructor.
-#[allow(non_snake_case)]
-pub fn Token<'s, T>(
-    left_offset: impl Into<Offset<'s>>,
-    code: impl Into<Cow<'s, str>>,
-    data: T,
-) -> Token<'s, T> {
-    let left_offset = left_offset.into();
-    let code = code.into();
-    Token { data, left_offset, code }
-}
-
-impl<'s, T> Token<'s, T> {
-    /// Split the lexeme at the provided byte offset. The offset is counted from the [`code`] start
-    /// position, which does not include the [`left_offset`]. It means that evaluating
-    /// `split_at(Bytes::from(0))` will split the lexeme into left offset and a left-trimmed lexeme.
-    pub fn split_at(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>, T) {
-        let left_lexeme_offset = self.left_offset;
-        let right_lexeme_offset = Offset::default();
-        let left = Token(left_lexeme_offset, self.code.slice(Bytes::from(0)..offset), ());
-        let right = Token(right_lexeme_offset, self.code.slice(offset..), ());
-        (left, right, self.data)
-    }
-
-    /// A version of [`split_at`] that discards the associated data.
-    pub fn split_at_(self, offset: Bytes) -> (Token<'s, ()>, Token<'s, ()>) {
-        let (left, right, _) = self.split_at(offset);
-        (left, right)
-    }
-
-    /// Replace the associated data in this lexeme.
-    pub fn with<S>(self, data: S) -> Token<'s, S> {
-        self.with_mod_data(|_| data)
-    }
-
-    pub fn with_mod_data<S>(self, f: impl FnOnce(T) -> S) -> Token<'s, S> {
-        Token(self.left_offset, self.code, f(self.data))
-    }
-
-    pub fn trim_as_first_child(&mut self) -> Span<'s> {
-        let left_offset = mem::take(&mut self.left_offset);
-        let length = Bytes(self.code.len());
-        Span { left_offset, length }
-    }
-
-    // TODO: remove
-    pub fn span(&self) -> Span<'s> {
-        let left_offset = self.left_offset.clone();
-        let length = self.len();
-        Span { left_offset, length }
-    }
-
-    pub fn span2(&self) -> SpanRef<'_, 's> {
-        let length = self.len();
-        SpanRef { left_offset: &self.left_offset, length }
-    }
-
+impl<'s> Code<'s> {
     pub fn len(&self) -> Bytes {
-        Bytes(self.code.len())
+        Bytes(self.cow.len())
     }
 }
 
-impl<'s, T: Debug> Debug for Token<'s, T> {
+impl std::borrow::Borrow<str> for Code<'_> {
+    fn borrow(&self) -> &str {
+        &self.cow
+    }
+}
+impl AsRef<str> for Code<'_> {
+    fn as_ref(&self) -> &str {
+        &self.cow
+    }
+}
+
+impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
+    fn eq(&self, other: &&'b str) -> bool {
+        self.cow.eq(other)
+    }
+}
+
+impl<'a> From<&'a str> for Code<'a> {
+    fn from(str: &'a str) -> Self {
+        let cow = str.into();
+        Self { cow }
+    }
+}
+
+impl<'s> Display for Code<'s> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
-        Debug::fmt(&self.data, f)
+        Display::fmt(&self.cow, f)
     }
 }
 
-impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
-    fn eq(&self, other: &Token<'s, T>) -> bool {
-        <Token<'s, T> as PartialEq<Token<'s, T>>>::eq(*self, other)
+impl<'s> Debug for Code<'s> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.cow, f)
     }
 }
