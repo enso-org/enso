@@ -53,7 +53,7 @@ function run(cmd, args, cwd) {
     //  so that we can avoid problems with the shell interpreting special characters on Windows, we can either:
     //  - Use filenames with extensions when running on Windows, e.g. `npm.exe`, so the shell isn't necessary.
     //  - Or, use a package that handles correct shell escaping, like `cross-spawn`.
-    if (process.platform == "win32") {
+    if (process.platform == 'win32') {
         shell = true
     }
     return new Promise((resolve, reject) => {
