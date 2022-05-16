@@ -40,6 +40,12 @@ impl<'s> Debug for Code<'s> {
     }
 }
 
+impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
+    fn eq(&self, other: &&'b str) -> bool {
+        self.cow.eq(other)
+    }
+}
+
 impl AsRef<str> for Code<'_> {
     fn as_ref(&self) -> &str {
         &self.cow
@@ -49,11 +55,5 @@ impl AsRef<str> for Code<'_> {
 impl std::borrow::Borrow<str> for Code<'_> {
     fn borrow(&self) -> &str {
         &self.cow
-    }
-}
-
-impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
-    fn eq(&self, other: &&'b str) -> bool {
-        self.cow.eq(other)
     }
 }

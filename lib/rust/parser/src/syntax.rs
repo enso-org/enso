@@ -13,12 +13,6 @@ pub use token::Token;
 pub use tree::Tree;
 
 
-#[derive(Clone, Copy, Debug)]
-#[allow(missing_docs)]
-pub enum ItemRef<'s, 'a> {
-    Token(TokenRef<'s, 'a>),
-    Tree(&'a Tree<'s>),
-}
 
 // ============
 // === Item ===
@@ -77,4 +71,18 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
     fn try_as_ref(&self) -> Option<&Item<'s>> {
         Some(self)
     }
+}
+
+
+
+// ===============
+// === ItemRef ===
+// ===============
+
+/// A borrowed version of [`Item`]. Used mostly by AST visitors.
+#[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub enum ItemRef<'s, 'a> {
+    Token(TokenRef<'s, 'a>),
+    Tree(&'a Tree<'s>),
 }

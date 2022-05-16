@@ -210,6 +210,9 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
 }
 
 
+// FIXME: Some of the visitors code is commented out. This is because the implementation is not
+//        yet generalized. It will be fixed in the next PR.
+// FIXME: UGLY CODE STARTS HERE
 
 // ================
 // === Visitors ===
@@ -619,6 +622,8 @@ impl<'s> Tree<'s> {
         visitor.code
     }
 }
+
+// FIXME: UGLY CODE ENDS HERE
 
 
 

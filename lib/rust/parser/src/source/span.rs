@@ -51,13 +51,8 @@ impl From<&str> for VisibleOffset {
 // === Offset ===
 // ==============
 
-/// Location information. In most cases, it is associated with [`Token`] or [`Ast`].
-///
-/// Please note that the left offset information is stored in two fields, [`visible`]
-/// and [`left_offset`]. The first one stores the offset visible on the screen in a "spaces" metric.
-/// For example, for the tab char, the visible offset will be counted as 4 spaces. The latter can
-/// differ depending on which space character is used. See the following link to learn more:
-/// https://en.wikipedia.org/wiki/Whitespace_character.
+/// Offset information. In most cases it is used to express the left-hand-side whitespace offset
+/// for tokens and AST nodes.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct Offset<'s> {
@@ -73,7 +68,7 @@ pub fn Offset<'s>(visible: VisibleOffset, code: impl Into<Code<'s>>) -> Offset<'
 }
 
 impl<'s> Offset<'s> {
-    /// Length of the code.
+    /// Length of the offset.
     pub fn len(&self) -> Bytes {
         self.code.len()
     }
@@ -197,7 +192,6 @@ pub struct SpanRefMut<'s, 'a> {
 // ===============
 // === Builder ===
 // ===============
-
 
 /// A span builder. You can provide it with any elements that contain spans, and it will compute
 /// the total span of the provided elements.
