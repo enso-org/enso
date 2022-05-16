@@ -127,6 +127,8 @@ pub mod backdrop {
     use super::*;
 
     ensogl::define_shape_system! {
+        // Disable to allow interaction with the output port.
+        pointer_events = false;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");
@@ -330,7 +332,6 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        tooltip                  (tooltip::Style),
         bounding_box             (BoundingBox)
     }
 }
@@ -482,14 +483,6 @@ impl NodeModel {
         display_object.add_child(&backdrop);
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
-
-        // Disable shadows to allow interaction with the output port.
-        let shape_system = scene
-            .layers
-            .main
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<backdrop::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
 
         let input = input::Area::new(&logger, app);
         let visualization = visualization::Container::new(&logger, app, registry);
@@ -922,10 +915,10 @@ impl Node {
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
-            out.tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
+            app.frp.set_tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
-            out.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+            app.frp.set_tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
             // === Type Labels ===

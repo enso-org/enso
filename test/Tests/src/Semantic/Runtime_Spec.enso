@@ -1,5 +1,4 @@
-from Standard.Base import all
-
+import Standard.Base.Runtime
 import Standard.Test
 
 spec = Test.group "Inlining Helpers" <|

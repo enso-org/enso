@@ -921,7 +921,7 @@ class ContextRegistryTest extends BaseServerTest {
               "componentGroups": [
                 {
                   "library" : "Standard.Base",
-                  "module" : "Input",
+                  "group" : "Input",
                   "exports" : [
                     {
                       "name" : "Standard.Base.File.new"

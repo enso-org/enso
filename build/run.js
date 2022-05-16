@@ -207,7 +207,7 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const releaseLimitMb = 4.06
+        const releaseLimitMb = 4.25
         let limitMb = releaseLimitMb + allowExtraMb
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
@@ -254,12 +254,17 @@ commands.start.rust = async function (argv) {
 commands.start.js = async function (argv) {
     await installJsDeps()
     console.log(`Building JS target.` + argv)
-    // The backend path is being prepended here, as appending would be incorrect.
-    // That is because `targetArgs` might include `-- …` and appended args could
-    // end up being passed to the spawned backend process.
-    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
-        targetArgs
-    )
+    const args = []
+    if (argv.backend) {
+        // The backend path is being prepended here, as appending would be incorrect.
+        // That is because `targetArgs` might include `-- …` and appended args could
+        // end up being passed to the spawned backend process.
+        args.push('--backend-path')
+        args.push(paths.get_project_manager_path(paths.dist.bin))
+    } else {
+        args.push('--no-backend')
+    }
+    args.concat(targetArgs)
     if (argv.dev) {
         args.push('--dev')
     }
@@ -298,7 +303,7 @@ commands.test.rust = async function (argv) {
 commands['integration-test'] = command('Run integration test suite')
 commands['integration-test'].rust = async function (argv) {
     let pm_process = null
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
         pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
     }
@@ -319,6 +324,44 @@ commands['integration-test'].rust = async function (argv) {
             pm_process.kill()
         }
     }
+}
+
+// === Profile ===
+
+commands.profile = command('Profile the application')
+commands.profile.rust = async function (argv) {
+    console.log(`Building with full optimization. This may take a few minutes...`)
+    let defaults = { 'profiling-level': 'debug' }
+    let argv2 = Object.assign({}, defaults, argv)
+    await commands.build.rust(argv2)
+}
+commands.profile.js = async function (argv) {
+    await installJsDeps()
+    console.log(`Profiling the application.` + argv)
+    let workflow = argv['workflow']
+    let save_profile = argv[`save-profile`]
+    if (workflow === undefined) {
+        console.error(
+            `'Profile' command requires a workflow argument. ` +
+                `For a list of available workflows, pass --workflow=help`
+        )
+        return
+    }
+    if (save_profile === undefined) {
+        console.error(
+            `'Profile' command requires a --save-profile argument ` +
+                `indicating path to output file.`
+        )
+        return
+    }
+    let out_path = path.resolve(save_profile)
+    const tail = ['--entry-point=profile', '--workflow=' + workflow, '--save-profile=' + out_path]
+    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
+        targetArgs
+    )
+    await cmd.with_cwd(paths.ide_desktop.root, async () => {
+        await run('npm', ['run', 'start', '--'].concat(args).concat(tail))
+    })
 }
 
 // === Lint ===
@@ -364,7 +407,7 @@ commands.watch.common = async function (argv) {
     // Init JS build and project manager.
 
     await installJsDeps()
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         await build_project_manager().then(run_project_manager)
     }
 
@@ -468,13 +511,13 @@ let optParser = yargs
     .demandCommand()
 
 optParser.options('rust', {
-    describe: 'Run the Rust target',
+    describe: 'Run the Rust target (use --no-rust to disable)',
     type: 'bool',
     default: true,
 })
 
 optParser.options('js', {
-    describe: 'Run the JavaScript target',
+    describe: 'Run the JavaScript target (use --no-js to disable)',
     type: 'bool',
     default: true,
 })
@@ -497,7 +540,7 @@ optParser.options('target', {
 })
 
 optParser.options('backend', {
-    describe: 'Start the backend process automatically [true]',
+    describe: 'Start own backend process (use --no-backend to disable)',
     type: 'bool',
     default: true,
 })

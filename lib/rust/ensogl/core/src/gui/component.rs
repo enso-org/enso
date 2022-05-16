@@ -1,6 +1,5 @@
 //! Root module for GUI related components.
 
-use crate::display::object::traits::*;
 use crate::prelude::*;
 
 use crate::application::Application;
@@ -100,6 +99,7 @@ impl<S> Drop for ShapeViewModel<S> {
 }
 
 impl<S: DynamicShapeInternals> ShapeViewModel<S> {
+    #[profile(Debug)]
     fn on_scene_layers_changed(
         &self,
         scene: &Scene,

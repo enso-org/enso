@@ -7,11 +7,12 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION    = "json"
-  val HELP_OPTION    = "help"
-  val NO_LOG_MASKING = "no-log-masking"
-  val VERBOSE_OPTION = "verbose"
-  val VERSION_OPTION = "version"
+  val JSON_OPTION      = "json"
+  val HELP_OPTION      = "help"
+  val NO_LOG_MASKING   = "no-log-masking"
+  val VERBOSE_OPTION   = "verbose"
+  val VERSION_OPTION   = "version"
+  val ENABLE_PROFILING = "profiling"
 
   object option {
 
@@ -45,6 +46,11 @@ object Cli {
         "variable."
       )
       .build()
+
+    val enableProfiling: cli.Option = cli.Option.builder
+      .longOpt(ENABLE_PROFILING)
+      .desc("Enables the application profiling.")
+      .build()
   }
 
   val options: cli.Options =
@@ -54,6 +60,7 @@ object Cli {
       .addOption(option.version)
       .addOption(option.json)
       .addOption(option.noLogMasking)
+      .addOption(option.enableProfiling)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

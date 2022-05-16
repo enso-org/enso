@@ -171,7 +171,7 @@ class ExportsResolution {
           List(ResolvedMethod(ModuleReference.Concrete(module), method))
         (name, syms)
       }
-      val ownConstructors = bindings.types.map { tp =>
+      val ownConstructors = bindings.constructors.map { tp =>
         val name = tp.name.toLowerCase
         val types =
           List(ResolvedConstructor(ModuleReference.Concrete(module), tp))

@@ -98,6 +98,8 @@ macro_rules! make_rpc_methods {
                 let now = Some(profiler::internal::Timestamp::now());
                 let profiler = profiler::Task::start(parent, label, now, StartState::Active);
 
+                json_rpc::log::rpc_request(stringify!($method));
+
                 let phantom    = std::marker::PhantomData;
                 let input      = $method_input { phantom, $($param_name:&$param_name),* };
                 let input_json = serde_json::to_value(input).unwrap();

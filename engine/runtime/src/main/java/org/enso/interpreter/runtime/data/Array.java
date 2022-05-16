@@ -8,6 +8,8 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -37,6 +39,7 @@ public class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
+  @Builtin(pkg = "mutable", description = "Creates an uninitialized array of a given size.")
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -72,8 +75,23 @@ public class Array implements TruffleObject {
   }
 
   /** @return the size of this array */
-  public int length() {
-    return this.items.length;
+  @Builtin(pkg = "mutable", description = "Returns the size of this array.")
+  public long length() {
+    return this.getItems().length;
+  }
+
+  /** @return an empty array */
+  @Builtin(pkg = "mutable", description = "Creates an empty Array")
+  public static Object empty() {
+    return new Array();
+  }
+
+  /** @return an identity array */
+  @Builtin(
+      pkg = "mutable",
+      description = "Identity on arrays, implemented for protocol completeness.")
+  public Object toArray() {
+    return this;
   }
 
   /**
@@ -130,8 +148,7 @@ public class Array implements TruffleObject {
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(UnresolvedSymbol symbol) {
       Context context = getContext();
-      return symbol.resolveFor(
-          context.getBuiltins().mutable().array(), context.getBuiltins().any());
+      return symbol.resolveFor(context.getBuiltins().array(), context.getBuiltins().any());
     }
 
     static Context getContext() {
@@ -177,7 +194,7 @@ public class Array implements TruffleObject {
     static Function doResolve(AtomConstructor target, UnresolvedConversion conversion) {
       Context context = getContext();
       return conversion.resolveFor(
-          target, context.getBuiltins().mutable().array(), context.getBuiltins().any());
+          target, context.getBuiltins().array(), context.getBuiltins().any());
     }
 
     static Context getContext() {

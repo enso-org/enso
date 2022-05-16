@@ -15,7 +15,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -98,7 +98,7 @@ public abstract class EvalNode extends BaseNode {
               "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expressionStr)")
           RootCallTarget cachedCallTarget,
       @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    Thunk thunk = new Thunk(cachedCallTarget, callerInfo.getFrame());
+    Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
     return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
   }
 
@@ -114,7 +114,7 @@ public abstract class EvalNode extends BaseNode {
             callerInfo.getLocalScope(),
             callerInfo.getModuleScope(),
             toJavaStringNode.execute(expression));
-    Thunk thunk = new Thunk(callTarget, callerInfo.getFrame());
+    Function thunk = Function.thunk(callTarget, callerInfo.getFrame());
     return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
   }
 }

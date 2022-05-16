@@ -1,0 +1,114 @@
+## Booleans.
+type Boolean
+
+    ## A type with only two possible values.
+
+       The boolean type represents the two truth values of boolean logic. It is
+       primarily used for control-flow.
+    @Builtin_Type
+    type Boolean
+
+    ## Compares two booleans for equality.
+
+       Arguments:
+       - that: The boolean to compare this with.
+
+       > Example
+         Comparing True to False to get False.
+
+             True == False
+    == : Boolean -> Boolean
+    == that = @Builtin_Method "Boolean.=="
+
+    ## Computes the logical and (conjunction) of two booleans.
+
+       Arguments:
+       - that: The boolean to compute the conjunction of this with.
+
+       ! Short Circuiting
+         This method is not implemented in a short-circuiting manner. This means
+         that even if this is False, it will also evaluate that. This is
+         for performance.
+
+       > Example
+         Computing the conjunction of False and True (to get False).
+
+             False && True
+    && : Boolean -> Boolean
+    && that = @Builtin_Method "Boolean.&&"
+
+    ## Computes the logical or (disjunction) of two booleans.
+
+       Arguments:
+       - that: The boolean to compute the disjunction of this with.
+
+       ! Short Circuiting
+         This methid is not implemented in a short-circuiting manner. This means
+         that even if this is True, it will also evaluate that. This is
+         for performance.
+
+       > Example
+         Computing the disjunction of True and False (to get True).
+
+             True || False
+    || : Boolean -> Boolean
+    || that = @Builtin_Method "Boolean.||"
+
+    ## Computes the logical negation of this.
+
+       > Example
+         Negating True to get False.
+
+             True.not
+    not : Boolean
+    not = @Builtin_Method "Boolean.not"
+
+    ## Generates a human-readable text representation of the boolean.
+
+       > Example
+         Converting the value True to text.
+
+             True.to_text
+    to_text : Text
+    to_text = @Builtin_Method "Boolean.to_text"
+
+    ## The if-then-else control flow operator that executes one of two branches
+       based on a conditional.
+
+       Arguments:
+       - on_true: The computation to evaluate if this evaluates to True.
+       - on_false: The computation to evaluate if this evaluates to False.
+
+       Both of the arguments to this method are _lazy_, meaning that they will
+       only be evaluated if they are needed (based on the condition).
+
+       > Example
+         Telling the user if a number 27 is divisible by three.
+
+             if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
+    if_then_else : Any -> Any -> Any
+    if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+
+    ## The if-then control flow operator that executes a branch if the condition
+       is true, and otherwise returns Nothing.
+
+       Arguments:
+       - on_true: The computation to evaluate if this evaluates to True.
+
+       The argument to this method is _lazy_, meaning that it will only be
+       evaluated if the this evaluates to True.
+
+       > Example
+         Printing a message to the user only if a number is divisible by three.
+
+             if (27 % 3) == 0 then IO.println "Fizz"
+    if_then : Any -> Any | Nothing
+    if_then ~on_true = @Builtin_Method "Boolean.if_then"
+
+## The constructor for the value True.
+@Builtin_Type
+type True
+
+## The constructor for the value False.
+@Builtin_Type
+type False

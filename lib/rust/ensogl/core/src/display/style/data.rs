@@ -17,10 +17,45 @@ pub enum Data {
     Invalid(String),
     Number(f32),
     Color(color::Rgba),
+    Text(String),
 }
 
 
 // === Constructors ===
+
+impl Data {
+    /// Parse a [`Data`] value encoded in a string.
+    ///
+    /// The contents of the string are parsed by the following rules:
+    ///  - strings successfully parsed by [`f32::from_str`] result in a [`Number`] value;
+    ///  - strings successfully parsed by [`color::AnyFormat::from_str`] result in a [`Color`]
+    ///    value;
+    ///  - strings starting and ending with a double-quote character (`"`) result in a [`Text`]
+    ///    value (with the surrounding double-quotes stripped);
+    ///  - other strings result in `None`.
+    /// See below for some examples:
+    /// ```
+    /// # use ensogl_core::data::color;
+    /// # use ensogl_core::display::style::data::*;
+    /// assert_eq!(Data::parse("123.4"), Some(Data::Number(123.4)));
+    /// let red = color::Rgba(1.0, 0.0, 0.0, 1.0);
+    /// assert_eq!(Data::parse("rgba(1.0,0.0,0.0,1.0)"), Some(Data::Color(red)));
+    /// assert_eq!(Data::parse("\"some string\""), Some(Data::Text("some string".to_string())));
+    /// assert_eq!(Data::parse("bad-format"), None);
+    /// ```
+    pub fn parse(s: &str) -> Option<Data> {
+        if let Ok(t) = s.parse::<f32>() {
+            return Some(Data::Number(t));
+        }
+        if let Ok(t) = s.parse::<color::AnyFormat>() {
+            return Some(Data::Color(t.into()));
+        }
+        if s.starts_with('"') && s.ends_with('"') {
+            return Some(Data::Text(s[1..s.len() - 1].to_string()));
+        }
+        None
+    }
+}
 
 /// Smart constructor for `Data`.
 pub fn data<T: Into<Data>>(t: T) -> Data {
@@ -47,16 +82,11 @@ where color::Color<C>: Into<color::Rgba>
     }
 }
 
-impl TryFrom<String> for Data {
-    type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.parse::<f32>() {
-            Ok(t) => Ok(Data::Number(t)),
-            _ => match s.parse::<color::AnyFormat>() {
-                Ok(t) => Ok(Data::Color(t.into())),
-                _ => Err(()),
-            },
-        }
+/// A conversion from a string slice to [`Data`]. Needed to allow entering text literals as values
+/// in the hard-coded themes (see the `define_themes` macro in the `ensogl_hardcoded_theme` crate).
+impl From<&str> for Data {
+    fn from(t: &str) -> Data {
+        Data::Text(t.to_owned())
     }
 }
 
@@ -69,6 +99,7 @@ impl Display for Data {
             Self::Invalid(s) => write!(f, "{}", s),
             Self::Number(t) => write!(f, "Number({})", t),
             Self::Color(t) => write!(f, "Color({:?})", t),
+            Self::Text(t) => write!(f, "Text({:?})", t),
         }
     }
 }
@@ -166,6 +197,7 @@ pub trait DataMatch {
     fn invalid(&self) -> Option<&String>;
     fn number(&self) -> Option<f32>;
     fn color(&self) -> Option<color::Rgba>;
+    fn text(&self) -> Option<String>;
 
     fn number_or_else(&self, f: impl FnOnce() -> f32) -> f32 {
         self.number().unwrap_or_else(f)
@@ -173,6 +205,10 @@ pub trait DataMatch {
 
     fn color_or_else(&self, f: impl FnOnce() -> color::Rgba) -> color::Rgba {
         self.color().unwrap_or_else(f)
+    }
+
+    fn text_or_else(&self, f: impl FnOnce() -> String) -> String {
+        self.text().unwrap_or_else(f)
     }
 }
 
@@ -195,6 +231,12 @@ impl DataMatch for Data {
             _ => None,
         }
     }
+    fn text(&self) -> Option<String> {
+        match self {
+            Self::Text(t) => Some(t.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl DataMatch for Option<Data> {
@@ -206,5 +248,8 @@ impl DataMatch for Option<Data> {
     }
     fn color(&self) -> Option<color::Rgba> {
         self.as_ref().and_then(|t| t.color())
+    }
+    fn text(&self) -> Option<String> {
+        self.as_ref().and_then(|t| t.text())
     }
 }

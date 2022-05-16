@@ -59,16 +59,7 @@ impl Uniforms {
 // === Metadata Profiler ===
 // =========================
 
-
-thread_local! {
-    /// Profiling metadata logger for `StatsData`.
-    static RENDER_STATS_LOGGER: enso_profiler::MetadataLogger<StatsData> = enso_profiler::MetadataLogger::new("RenderStats");
-}
-
-/// Log rendering stats to the profiling framework.
-pub fn log_render_stats(stats: StatsData) {
-    RENDER_STATS_LOGGER.with(|logger| logger.log(stats));
-}
+profiler::metadata_logger!("RenderStats", log_render_stats(StatsData));
 
 
 
@@ -268,8 +259,10 @@ impl WorldData {
                 } else if key == "Digit2" {
                     display_mode.set(2)
                 } else if key == "KeyP" {
-                    let log = profiler::internal::take_log();
-                    web_sys::console::log_1(&log.into());
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                } else if key == "KeyQ" {
+                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 }
             }
         });

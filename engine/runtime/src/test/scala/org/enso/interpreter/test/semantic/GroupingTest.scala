@@ -52,7 +52,7 @@ class GroupingTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |main =
           |    fn = x -> case x of

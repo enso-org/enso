@@ -169,49 +169,29 @@ case object DemandAnalysis extends IRPass {
     name: IR.Name,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
-    val usesLazyTerm = isUsageOfSuspendedTerm(name)
-
     if (isInsideCallArgument) {
       name
     } else {
-      if (usesLazyTerm) {
-        val forceLocation   = name.location
-        val newNameLocation = name.location.map(l => l.copy(id = None))
-
-        val newName = name match {
-          case lit: IR.Name.Literal => lit.copy(location = newNameLocation)
-          case ths: IR.Name.This    => ths.copy(location = newNameLocation)
-          case here: IR.Name.Here   => here.copy(location = newNameLocation)
-          case special: IR.Name.Special =>
-            special.copy(location = newNameLocation)
-          case _: IR.Name.Annotation =>
-            throw new CompilerError(
-              "Annotations should not be present by the time demand analysis" +
-              " runs."
-            )
-          case _: IR.Name.MethodReference =>
-            throw new CompilerError(
-              "Method references should not be present by the time demand " +
-              "analysis runs."
-            )
-          case _: IR.Name.Qualified =>
-            throw new CompilerError(
-              "Qualified names should not be present by the time demand " +
-              "analysis runs."
-            )
-          case err: IR.Error.Resolution => err
-          case err: IR.Error.Conversion => err
-          case _: IR.Name.Blank =>
-            throw new CompilerError(
-              "Blanks should not be present by the time demand analysis runs."
-            )
-        }
-
-        IR.Application.Force(newName, forceLocation)
-      } else {
-        name
+      name match {
+        case lit: IR.Name.Literal if isDefined(lit) =>
+          val forceLocation   = name.location
+          val newNameLocation = name.location.map(l => l.copy(id = None))
+          val newName         = lit.copy(location = newNameLocation)
+          IR.Application.Force(newName, forceLocation)
+        case _ => name
       }
     }
+  }
+
+  private def isDefined(name: IR.Name): Boolean = {
+    val aliasInfo = name
+      .unsafeGetMetadata(
+        AliasAnalysis,
+        "Missing alias occurrence information for a name usage"
+      )
+      .unsafeAs[AliasAnalysis.Info.Occurrence]
+
+    aliasInfo.graph.defLinkFor(aliasInfo.id).isDefined
   }
 
   /** Performs demand analysis on an application.
@@ -227,11 +207,12 @@ case object DemandAnalysis extends IRPass {
   ): IR.Application =
     application match {
       case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
+        val newFun = fn match {
+          case n: IR.Name => n
+          case e          => analyseExpression(e, isInsideCallArgument = false)
+        }
         pref.copy(
-          function = analyseExpression(
-            fn,
-            isInsideCallArgument = false
-          ),
+          function  = newFun,
           arguments = args.map(analyseCallArgument)
         )
       case force @ IR.Application.Force(target, _, _, _) =>
@@ -261,43 +242,6 @@ case object DemandAnalysis extends IRPass {
         )
     }
 
-  /** Determines whether a particular piece of IR represents the usage of a
-    * suspended term (and hence requires forcing).
-    *
-    * @param expr the expression to check
-    * @return `true` if `expr` represents the usage of a suspended term, `false`
-    *         otherwise
-    */
-  def isUsageOfSuspendedTerm(expr: IR.Expression): Boolean = {
-    expr match {
-      case name: IR.Name =>
-        val aliasInfo = name
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "Missing alias occurrence information for a name usage"
-          )
-          .unsafeAs[AliasAnalysis.Info.Occurrence]
-
-        aliasInfo.graph
-          .defLinkFor(aliasInfo.id)
-          .flatMap(link => {
-            aliasInfo.graph
-              .getOccurrence(link.target)
-              .getOrElse(
-                throw new CompilerError(
-                  s"Malformed aliasing link with target ${link.target}"
-                )
-              ) match {
-              case AliasAnalysis.Graph.Occurrence.Def(_, _, _, _, isLazy) =>
-                if (isLazy) Some(true) else None
-              case _ => None
-            }
-          })
-          .isDefined
-      case _ => false
-    }
-  }
-
   /** Performs demand analysis on a function call argument.
     *
     * In keeping with the requirement by the runtime to pass all function
@@ -309,13 +253,12 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseCallArgument(arg: IR.CallArgument): IR.CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+      case spec @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         spec.copy(
           value = analyseExpression(
             expr,
             isInsideCallArgument = true
-          ),
-          shouldBeSuspended = Some(!isUsageOfSuspendedTerm(expr))
+          )
         )
     }
   }

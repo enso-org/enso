@@ -16,6 +16,7 @@ no_unboxed_callbacks = []
 code-builder = { path = "../../code-builder" }
 enso-callback = { path = "../../callback" }
 enso-data-structures = { path = "../../data-structures" }
+enso-debug-api = { path = "../../debug-api" }
 enso-frp = { path = "../../frp" }
 enso-generics = { path = "../../generics"}
 enso-logger = { path = "../../logger"}

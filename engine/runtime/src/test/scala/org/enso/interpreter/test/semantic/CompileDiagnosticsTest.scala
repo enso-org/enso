@@ -10,7 +10,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
           |    x = Panic.catch_primitive () .convert_to_dataflow_error
@@ -25,7 +25,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface parsing errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
           |    x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
@@ -36,20 +36,20 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface redefinition errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |foo =
           |    x = 1
           |    x = 2
           |
-          |main = Panic.catch_primitive here.foo caught_panic-> caught_panic.payload.to_text
+          |main = Panic.catch_primitive here.foo caught_panic->caught_panic.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
     }
 
     "surface non-existent variable errors in the language" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |foo =
           |    my_var = 10

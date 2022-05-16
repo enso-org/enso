@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec = Test.group "Refs" <|
+    Test.specify "should be able to store and retrieve value in references" <|
+        r = Ref.new 'foo'
+        Ref.put r 'bar'
+        v = Ref.get r
+        v.should_equal 'bar'
+
+main = Test.Suite.run_main here.spec

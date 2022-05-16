@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.data.Tree
@@ -18,7 +18,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeSuggestionUpdatesTest
@@ -28,9 +27,7 @@ class RuntimeSuggestionUpdatesTest
 
   var context: TestContext = _
 
-  class TestContext(packageName: String) {
-    val messageQueue: LinkedBlockingQueue[Api.Response] =
-      new LinkedBlockingQueue()
+  class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
     sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
@@ -50,7 +47,10 @@ class RuntimeSuggestionUpdatesTest
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+        .option(
+          RuntimeOptions.DISABLE_IR_CACHES,
+          InstrumentTestContext.DISABLE_IR_CACHE
+        )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
@@ -76,18 +76,6 @@ class RuntimeSuggestionUpdatesTest
 
     def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
-    def receiveNone: Option[Api.Response] = {
-      Option(messageQueue.poll())
-    }
-
-    def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
-    }
-
-    def receive(n: Int): List[Api.Response] = {
-      Iterator.continually(receive).take(n).flatten.toList
-    }
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -112,7 +100,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val code =
-      """from Standard.Builtins import all
+      """from Standard.Base import all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -145,7 +133,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -184,7 +172,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -215,12 +203,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -248,7 +236,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -262,7 +250,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -300,12 +288,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -334,7 +322,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -348,7 +336,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
@@ -371,7 +359,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -405,12 +393,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |main =
               |    x = 42
@@ -440,7 +428,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -454,7 +442,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
@@ -477,14 +465,14 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
                         )
                       ),
                       Api.SuggestionAction.Modify(
-                        returnType = Some(Constants.NUMBER),
+                        returnType = Some(ConstantsGen.NUMBER),
                         scope = Some(
                           Suggestion.Scope(
                             Suggestion.Position(2, 6),
@@ -519,12 +507,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |foo x = x * 10
               |
@@ -556,7 +544,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -570,7 +558,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -593,7 +581,7 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "y",
-                        Constants.NUMBER,
+                        ConstantsGen.NUMBER,
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
@@ -628,10 +616,10 @@ class RuntimeSuggestionUpdatesTest
                           None
                         ),
                       Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                        .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -662,12 +650,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """from Standard.Base import all
               |
               |foo a b = a * b
               |
@@ -698,10 +686,10 @@ class RuntimeSuggestionUpdatesTest
                           None
                         ),
                       Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
+                        .Argument("x", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -715,7 +703,7 @@ class RuntimeSuggestionUpdatesTest
                         Api.SuggestionArgumentAction.Add(
                           2,
                           Suggestion
-                            .Argument("b", Constants.ANY, false, false, None)
+                            .Argument("b", ConstantsGen.ANY, false, false, None)
                         )
                       )
                     ),
@@ -740,8 +728,13 @@ class RuntimeSuggestionUpdatesTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
+    // Note that Text.Text.overloaded is only to ensure that tests match expectations.
+    // In general Text.overloaded would also work because method resolution would assign it
+    // to the module rather than a type
     val contents =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Numbers import Number
+        |import Standard.Base.Data.Text
+        |import Standard.Base.Nothing
         |
         |main =
         |    x = 15.overloaded 1
@@ -749,7 +742,7 @@ class RuntimeSuggestionUpdatesTest
         |    10.overloaded x
         |    Nothing
         |
-        |Text.overloaded arg = arg + 1
+        |Text.Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val version  = contentsVersion(contents)
@@ -781,7 +774,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -820,7 +813,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -834,10 +827,10 @@ class RuntimeSuggestionUpdatesTest
                         None,
                         moduleName,
                         "x",
-                        Constants.ANY,
+                        ConstantsGen.ANY,
                         Suggestion.Scope(
-                          Suggestion.Position(2, 6),
-                          Suggestion.Position(7, 0)
+                          Suggestion.Position(4, 6),
+                          Suggestion.Position(9, 0)
                         )
                       ),
                       Api.SuggestionAction.Add()
@@ -855,16 +848,16 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion.Argument(
                         "this",
-                        Constants.TEXT,
+                        ConstantsGen.TEXT,
                         false,
                         false,
                         None
                       ),
                       Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                        .Argument("arg", ConstantsGen.ANY, false, false, None)
                     ),
-                    Constants.TEXT,
-                    Constants.ANY,
+                    ConstantsGen.TEXT,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -882,16 +875,16 @@ class RuntimeSuggestionUpdatesTest
                     Seq(
                       Suggestion.Argument(
                         "this",
-                        Constants.NUMBER,
+                        ConstantsGen.NUMBER,
                         false,
                         false,
                         None
                       ),
                       Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
+                        .Argument("arg", ConstantsGen.ANY, false, false, None)
                     ),
-                    Constants.NUMBER,
-                    Constants.ANY,
+                    ConstantsGen.NUMBER,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -914,7 +907,7 @@ class RuntimeSuggestionUpdatesTest
     val moduleName = "Enso_Test.Test.Main"
 
     val mainCode =
-      """from Standard.Builtins import all
+      """import Standard.Base.IO
         |
         |import Enso_Test.Test.A
         |from Enso_Test.Test.A export all
@@ -922,7 +915,7 @@ class RuntimeSuggestionUpdatesTest
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
     val aCode =
-      """from Standard.Builtins import all
+      """from Standard.Base.Data.Numbers import Integer
         |
         |type MyType
         |    type MkA a
@@ -967,7 +960,7 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
@@ -993,7 +986,7 @@ class RuntimeSuggestionUpdatesTest
                     "MkA",
                     List(
                       Suggestion
-                        .Argument("a", Constants.ANY, false, false, None)
+                        .Argument("a", ConstantsGen.ANY, false, false, None)
                     ),
                     "Enso_Test.Test.A.MkA",
                     None,
@@ -1021,7 +1014,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.A.MkA",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1039,14 +1032,14 @@ class RuntimeSuggestionUpdatesTest
                     List(
                       Suggestion.Argument(
                         "this",
-                        Constants.INTEGER,
+                        ConstantsGen.INTEGER,
                         false,
                         false,
                         None
                       )
                     ),
-                    Constants.INTEGER,
-                    Constants.ANY,
+                    ConstantsGen.INTEGER,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1071,7 +1064,7 @@ class RuntimeSuggestionUpdatesTest
                       )
                     ),
                     "Enso_Test.Test.A",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1132,7 +1125,7 @@ class RuntimeSuggestionUpdatesTest
                         )
                     ),
                     "Enso_Test.Test.Main",
-                    Constants.ANY,
+                    ConstantsGen.ANY,
                     None,
                     None,
                     None
@@ -1163,12 +1156,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """import Standard.Base.IO
               |
               |import Enso_Test.Test.A
               |from Enso_Test.Test.A export all hiding hello
@@ -1207,12 +1200,12 @@ class RuntimeSuggestionUpdatesTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receiveN(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           module = moduleName,
           version = contentsVersion(
-            """from Standard.Builtins import all
+            """import Standard.Base.IO
               |
               |main = IO.println "Hello World!"
               |""".stripMargin.linesIterator.mkString("\n")

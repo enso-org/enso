@@ -66,6 +66,6 @@ public abstract class CopyNode extends Node {
       Object _this, Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = Context.get(this).getBuiltins();
     throw new PanicException(
-        builtins.error().makeTypeError(builtins.mutable().array().newInstance(), src, "src"), this);
+        builtins.error().makeTypeError(builtins.array().newInstance(), src, "src"), this);
   }
 }

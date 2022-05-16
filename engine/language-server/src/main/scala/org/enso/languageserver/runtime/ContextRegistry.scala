@@ -1,7 +1,5 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
@@ -15,9 +13,13 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.profiling.MethodsSampler
 import org.enso.searcher.SuggestionsRepo
 
+import java.util.UUID
+
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /** Registry handles execution context requests and communicates with runtime
   * connector.
@@ -57,13 +59,15 @@ import scala.concurrent.Future
   * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
+  * @param sampler the methods sampler
   */
 final class ContextRegistry(
   repo: SuggestionsRepo[Future],
   config: Config,
   runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
-  sessionRouter: ActorRef
+  sessionRouter: ActorRef,
+  sampler: MethodsSampler
 ) extends Actor
     with LazyLogging
     with ActorMessageLogging
@@ -71,7 +75,7 @@ final class ContextRegistry(
 
   import ContextRegistryProtocol._
 
-  private val timeout = config.executionContext.requestTimeout
+  private val timeout: FiniteDuration = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -106,9 +110,11 @@ final class ContextRegistry(
           .foreach(_ ! update)
 
       case update: Api.ExecutionFailed =>
+        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionComplete =>
+        sampler.stop(6.seconds)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionUpdate =>
@@ -160,6 +166,7 @@ final class ContextRegistry(
         }
 
       case PushContextRequest(client, contextId, stackItem) =>
+        sampler.start()
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
           val handler =
@@ -393,13 +400,15 @@ object ContextRegistry {
     * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
+    * @param sampler the methods sampler
     */
   def props(
     repo: SuggestionsRepo[Future],
     config: Config,
     runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
-    sessionRouter: ActorRef
+    sessionRouter: ActorRef,
+    sampler: MethodsSampler
   ): Props =
     Props(
       new ContextRegistry(
@@ -407,7 +416,8 @@ object ContextRegistry {
         config,
         runtimeFailureMapper,
         runtime,
-        sessionRouter
+        sessionRouter,
+        sampler
       )
     )
 }

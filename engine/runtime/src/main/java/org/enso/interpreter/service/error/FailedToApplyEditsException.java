@@ -18,7 +18,7 @@ public class FailedToApplyEditsException extends RuntimeException implements Ser
    */
   public FailedToApplyEditsException(File path, Object edits, Object failure, Object source) {
     super(
-        "Filed to apply edits for file "
+        "Failed to apply edits for file "
             + new MaskedPath(path.toPath()).applyMasking()
             + ", edits="
             + new MaskedString(edits.toString()).applyMasking()

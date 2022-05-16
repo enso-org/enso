@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
@@ -77,6 +76,10 @@ public final class Function implements TruffleObject {
    */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
     this(callTarget, scope, schema, null, null);
+  }
+
+  public static Function thunk(RootCallTarget callTarget, MaterializedFrame scope) {
+    return new Function(callTarget, scope, FunctionSchema.THUNK);
   }
 
   /**
@@ -308,7 +311,7 @@ public final class Function implements TruffleObject {
      * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Thunk thunk, Object state) {
+    public static Object[] buildArguments(Function thunk, Object state) {
       return new Object[] {thunk.getScope(), null, state, new Object[0]};
     }
 
@@ -455,5 +458,13 @@ public final class Function implements TruffleObject {
       }
       return function;
     }
+  }
+
+  public boolean isThunk() {
+    return schema == FunctionSchema.THUNK;
+  }
+
+  public boolean isFullyApplied() {
+    return schema.isFullyApplied();
   }
 }

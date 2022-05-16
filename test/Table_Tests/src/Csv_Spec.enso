@@ -77,7 +77,7 @@ spec =
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
-            expected = expected_wrong_newline.split Split_Kind.Lines . join '\r\n'
+            expected = expected_wrong_newline.lines . join '\r\n'
             res = t.to_csv separator=';' line_ending=Line_Ending_Style.Windows
             res.should_equal expected+'\r\n'
 
@@ -172,3 +172,5 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
             out_3.delete_if_exists
+
+main = Test.Suite.run_main here.spec

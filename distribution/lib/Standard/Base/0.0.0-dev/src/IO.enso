@@ -1,0 +1,36 @@
+## Builtin IO operations.
+
+## Prints the provided message to standard error.
+
+   Arguments:
+   - message: The message to print. It will have to_text called on it to
+     generate a textual representation that is then printed.
+
+   > Example
+     Print the message "Oh no!" to standard error.
+
+         IO.print_err "Oh no!"
+print_err : Any -> Nothing
+print_err message = @Builtin_Method "IO.print_err"
+
+## Prints the provided message to standard output.
+
+   Arguments:
+   - message: The message to print. It will have to_text called on it to
+     generate a textual representation that is then printed.
+
+   > Example
+     Print the message "Oh yes!" to standard output.
+
+         IO.println "Oh yes!"
+println : Any -> Nothing
+println message = @Builtin_Method "IO.println"
+
+## Reads a line from standard input.
+
+   > Example
+     Read a line from standard input.
+
+         IO.readln
+readln : Text
+readln = @Builtin_Method "IO.readln"

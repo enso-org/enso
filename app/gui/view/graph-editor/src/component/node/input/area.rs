@@ -19,7 +19,6 @@ use enso_text::text::Text;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Scene;
 use ensogl::gui::cursor;
 use ensogl::Animation;
 use ensogl_component::text;
@@ -297,10 +296,6 @@ impl Model {
 
     fn set_label_layer(&self, layer: &display::scene::Layer) {
         self.label.add_to_scene_layer(layer);
-    }
-
-    fn scene(&self) -> &Scene {
-        &self.app.display.default_scene
     }
 
     /// Run the provided function on the target port if exists.
@@ -613,8 +608,7 @@ impl Area {
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
                 let logger = &self.model.logger;
-                let scene = self.model.scene();
-                let port_shape = port.payload_mut().init_shape(logger, scene, size, node::HEIGHT);
+                let port_shape = port.payload_mut().init_shape(logger, size, node::HEIGHT);
 
                 port_shape.mod_position(|t| t.x = unit * i32::from(index) as f32);
                 if DEBUG {

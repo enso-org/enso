@@ -29,7 +29,7 @@ public class EnsoProjectNode extends RootNode {
     } else {
       result =
           DataflowError.withoutTrace(
-              context.getBuiltins().error().moduleNotInPackageError().newInstance(), this);
+              context.getBuiltins().error().makeModuleNotInPackageError(), this);
     }
   }
 

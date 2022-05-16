@@ -54,7 +54,7 @@ public abstract class PutStateNode extends Node {
       return new Stateful(
           state,
           DataflowError.withoutTrace(
-              Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this));
+              Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this));
     } else {
       return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
     }
@@ -65,6 +65,6 @@ public abstract class PutStateNode extends Node {
     return new Stateful(
         state,
         DataflowError.withoutTrace(
-            Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this));
+            Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this));
   }
 }

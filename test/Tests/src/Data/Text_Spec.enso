@@ -3,7 +3,6 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
-import Standard.Base.Data.Text.Split_Kind
 from Standard.Base.Data.Text.Span as Span_Module import Span
 from Standard.Base.Data.Text.Text_Sub_Range import all
 import Standard.Base.Data.Text.Regex.Mode
@@ -60,8 +59,6 @@ spec =
         accent_2 = '\u0065\u{301}'
         utf_8_whitespace = 'foo\n bar     baz \u202F quux'
         utf_8_whitespace_split = ["foo", "bar", "baz", "quux"]
-        utf_8_vertical = 'foo\n   bar \v baz \r quux'
-        utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
         sentences = '''
             I have a very long block of text, here. It goes on and on, containing
             things like decimal points (1.0314e3) and other language scripts as well
@@ -155,17 +152,76 @@ spec =
             str.at 4 . should_fail_with Index_Out_Of_Bounds_Error
 
         Test.specify "should be able to split the text into words" <|
+            "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
+            "แมวมีสี่ขา".words . should_equal ['แมว', 'มี', 'สี่', 'ขา']
             sentences.words . should_equal sentence_words
+            "I ❤️ Unicode! 🙂🙂".words . should_equal ['I', '❤️', 'Unicode', '!', '🙂', '🙂']
+            '"แมวมีสี่ขา" means that a cat has four legs.'.words . should_equal ['"', 'แมว', 'มี', 'สี่', 'ขา', '"', 'means', 'that', 'a', 'cat', 'has', 'four', 'legs', '.']
 
-        Test.specify "should be able to split the text on UTF-8 whitespace" <|
-            utf_8_whitespace.split . should_equal utf_8_whitespace_split
+        Test.specify "should be able to split the text into lines" <|
+            utf_8_vertical = 'foo\n   bar \r\n baz \r quux'
+            utf_8_vertical_split = ["foo", "   bar ", " baz ", " quux"]
+            utf_8_vertical.lines . should_equal utf_8_vertical_split
 
-        Test.specify "should be able to split the text on UTF-8 newlines" <|
-            utf_8_vertical.split Split_Kind.Lines . should_equal utf_8_vertical_split
+            'a\nb\nc'.lines . should_equal ['a', 'b', 'c']
+            '\na\n\nb\n\n\n'.lines . should_equal ['', 'a', '', 'b', '', '']
+            '\na\nb\n'.lines keep_endings=True . should_equal ['\n', 'a\n', 'b\n']
+
+            '\n\n\n'.lines . should_equal ['', '', '']
+            '\r\r\r'.lines . should_equal ['', '', '']
+            '\r\n\r\n\r\n'.lines . should_equal ['', '', '']
+            '\n\n\n'.lines keep_endings=True . should_equal ['\n', '\n', '\n']
+            'a\r\nb\n\rc'.lines keep_endings=True . should_equal ['a\r\n', 'b\n', '\r', 'c']
+            'a\r\nb\n\rc'.lines . should_equal ['a', 'b', '', 'c']
+            'abc'.lines . should_equal ['abc']
+            'abc\n'.lines . should_equal ['abc']
+            'abc\n'.lines keep_endings=True . should_equal ['abc\n']
+            '\na'.lines . should_equal ['', 'a']
+
+            multiline = """
+               Hello
+               world
+            multiline.lines . should_equal ['Hello', 'world']
+            '🚀🚧\n\u{301}a\u{301}\r건반'.lines . should_equal ['🚀🚧', '\u{301}a\u{301}', '건반']
 
         Test.specify "should be able to split the text on arbitrary text sequence" <|
             "foo, bar, baz" . split ", " . should_equal ["foo", "bar", "baz"]
+            text = "Namespace::package::package::Type"
+            text.split "::" . should_equal ["Namespace", "package", "package", "Type"]
+            "..a.b.c.d" . split "." . should_equal ["", "", "a", "b", "c", "d"]
+            "abc".split "." . should_equal ["abc"]
+            "aaa".split "a" . should_equal ["", "", "", ""]
+            ".a.".split "." . should_equal ["", "a", ""]
+            "".split "." . should_equal [""]
+            "abc[a-z]def".split "[a-z]" . should_equal ["abc", "def"]
+            'aśbs\u{301}c'.split 'ś' . should_equal ['a', 'b', 'c']
+            'abc'.split '' . should_fail_with Illegal_Argument_Error
 
+        Test.specify "should be able to split the text on arbitrary text sequence, case-insensitively" <|
+            matcher = Text_Matcher Case_Insensitive
+            "AbCdABCDabDCba" . split "ab" matcher . should_equal ["", "Cd", "CD", "DCba"]
+            "abc".split "d" matcher . should_equal ["abc"]
+            "AAA".split "a" matcher . should_equal ["", "", "", ""]
+            "baB".split "b" matcher . should_equal ["", "a", ""]
+            "".split "a" matcher . should_equal [""]
+            'aŚbS\u{301}c'.split 'ś' matcher . should_equal ['a', 'b', 'c']
+            'abc'.split '' matcher . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should be able to split the text on Regex patterns" <|
+            "cababdabe" . split "ab" Regex_Matcher . should_equal ["c", "", "d", "e"]
+            "cababdabe" . split "(ab)+" Regex_Matcher . should_equal ["c", "d", "e"]
+            "abc" . split "[a-z]" Regex_Matcher . should_equal ["", "", "", ""]
+            "abc--def==>ghi".split "[-=>]+" Regex_Matcher == ["abc", "def", "ghi"]
+            "abc".split "." Regex_Matcher . should_equal ["", "", "", ""]
+            "abc".split "d" Regex_Matcher . should_equal ["abc"]
+            ".a.".split "\." Regex_Matcher . should_equal ["", "a", ""]
+            "".split "a" Regex_Matcher . should_equal [""]
+            'aśbs\u{301}c'.split 'ś' Regex_Matcher . should_equal ['a', 'b', 'c']
+            'abc'.split '' Regex_Matcher . should_fail_with Illegal_Argument_Error
+
+        Test.specify "should be able to split the text on UTF-8 whitespace" <|
+            utf_8_whitespace.split "\s+" Regex_Matcher . should_equal utf_8_whitespace_split
+            'abc  def\tghi'.split '\\s+' Regex_Matcher . should_equal ["abc", "def", "ghi"]
 
         Test.specify "should convert any type to text automatically and using provided methods" <|
             t = Auto (Manual 123) . to_text
@@ -1130,34 +1186,34 @@ spec =
 
     Test.group "Regex splitting" <|
         Test.specify "should be possible on text" <|
-            splits = "abcde".split "[bd]"
+            splits = "abcde".split "[bd]" Regex_Matcher
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"
             splits.at 2 . should_equal "e"
 
         Test.specify "should be possible on unicode text" <|
-            match = "Korean: 건반 (hangul)".split " "
+            match = "Korean: 건반 (hangul)".split " " Regex_Matcher
             match.length . should_equal 3
             match.at 0 . should_equal "Korean:"
             match.at 1 . should_equal "건반"
             match.at 2 . should_equal "(hangul)"
 
         Test.specify "should be possible in ascii mode" <|
-            splits = "İiİ".split "\w" match_ascii=True
+            splits = "İiİ".split "\w" (Regex_Matcher match_ascii=True)
             splits.length . should_equal 2
             splits.at 0 . should_equal "İ"
             splits.at 1 . should_equal "İ"
 
         Test.specify "should be possible in case-insensitive mode" <|
-            splits = "abaBa".split "b" case_insensitive=True
+            splits = "abaBa".split "b" (Regex_Matcher case_sensitive=Case_Insensitive)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
             splits.at 2 . should_equal "a"
 
         Test.specify "should be possible in dot_matches_newline mode" <|
-            splits = 'ab\nabcd'.split "b." dot_matches_newline=True
+            splits = 'ab\nabcd'.split "b." (Regex_Matcher dot_matches_newline=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "a"
@@ -1167,11 +1223,11 @@ spec =
             text = """
                 Foo
                 bar
-            match = text.split "$" multiline=True
-            match.length . should_equal 2
+            match = text.split "$" (Regex_Matcher multiline=True)
+            match.length . should_equal 3
 
         Test.specify "should be possible in comments mode" <|
-            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" comments=True
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" (Regex_Matcher comments=True)
             splits.length . should_equal 3
             splits.at 0 . should_equal "a"
             splits.at 1 . should_equal "c"

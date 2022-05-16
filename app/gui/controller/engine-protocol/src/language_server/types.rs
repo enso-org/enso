@@ -1097,7 +1097,6 @@ pub mod test {
 
     #[test]
     fn deserialize_execution_complete() {
-        use std::str::FromStr;
         let text = r#"{
             "jsonrpc" : "2.0",
             "method"  : "executionContext/executionComplete",

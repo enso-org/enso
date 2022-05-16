@@ -251,7 +251,8 @@ case object AliasAnalysis extends IRPass {
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
-      case err: IR.Error => err
+      case err: IR.Error                            => err
+      case ut: IR.Module.Scope.Definition.UnionType => ut
     }
   }
 
@@ -493,7 +494,7 @@ case object AliasAnalysis extends IRPass {
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
-    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+    args.map { case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
       val currentScope = expr match {
         case _: IR.Literal => parentScope
         case _             => parentScope.addChild()

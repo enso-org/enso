@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Runtime import Stack_Trace_Element
 
 ## A representation of a dataflow warning attached to a value.
 type Warning
@@ -188,3 +189,37 @@ merge_matched_warnings value matcher merger =
         new_warnings = merger (result.second.map .value)
         new_warnings.fold result.first acc-> warning->
             Warning.attach warning acc
+
+## PRIVATE
+type Prim_Warning
+
+    ## PRIVATE
+    type Prim_Warning
+
+    ## PRIVATE
+    attach : Any -> Any -> Any -> Any
+    attach value warning origin = @Builtin_Method "Prim_Warning.attach"
+
+    ## PRIVATE
+    create : Any -> Any -> Prim_Warning
+    create payload origin = @Builtin_Method "Prim_Warning.create"
+
+    ## PRIVATE
+    get_all : Any -> Array Prim_Warning
+    get_all value = @Builtin_Method "Prim_Warning.get_all"
+
+    ## PRIVATE
+    set : Any -> Array Prim_Warning -> Any
+    set value warnings = @Builtin_Method "Prim_Warning.set"
+
+    ## PRIVATE
+    get_origin : Prim_Warning -> Any
+    get_origin warn = @Builtin_Method "Prim_Warning.get_origin"
+
+    ## PRIVATE
+    get_value : Prim_Warning -> Any
+    get_value warn = @Builtin_Method "Prim_Warning.get_value"
+
+    ## PRIVATE
+    get_reassignments : Prim_Warning -> Any
+    get_reassignments warn = @Builtin_Method "Prim_Warning.get_reassignments"

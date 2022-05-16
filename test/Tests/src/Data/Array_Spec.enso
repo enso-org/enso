@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Test
 
+Array.method = 0
+
 spec = Test.group "Arrays" <|
     Test.specify "should be able to be converted to a visualization rep" <|
         arr = Vector.fill 1000 0 . to_array
@@ -26,3 +28,9 @@ spec = Test.group "Arrays" <|
         Test.expect_panic_with (arr.at -1) Invalid_Array_Index_Error
         Test.expect_panic_with (arr.at 3) Invalid_Array_Index_Error
         Test.expect_panic_with (arr.set_at 3 100) Invalid_Array_Index_Error
+
+    Test.specify "should allow for functional dispatch on a method defined in this module"
+        arr = [1, 2, 3] . to_array
+        arr.method . should_equal 0
+
+main = Test.Suite.run_main here.spec

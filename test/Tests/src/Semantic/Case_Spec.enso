@@ -1,5 +1,4 @@
 from Standard.Base import all
-
 import Standard.Test
 
 polyglot java import java.util.Random
@@ -88,3 +87,5 @@ spec = Test.group "Pattern Matches" <|
         case Any of
             Any -> Nothing
             _ -> Test.fail "Expected the Any constructor to match."
+
+main = Test.Suite.run_main here.spec

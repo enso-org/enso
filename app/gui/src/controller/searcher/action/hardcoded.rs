@@ -197,11 +197,11 @@ thread_local! {
                     suggestions : vec![
                         Rc::new(
                             Suggestion::new("Text Input","\"\"",&icons.text_input)
-                            .with_return_type("Standard.Builtins.Main.Text")
+                            .with_return_type("Standard.Base.Data.Text.Text")
                         ),
                         Rc::new(
                             Suggestion::new("Number Input","0",&icons.number_input)
-                            .with_return_type("Standard.Builtins.Main.Number")
+                            .with_return_type("Standard.Base.Data.Numbers.Number")
                         ),
                     ]
                 },
@@ -211,8 +211,8 @@ thread_local! {
                     suggestions : vec![
                         Rc::new(
                             Suggestion::new("Text Length","length",&icons.default)
-                            .with_this_arg("Standard.Builtins.Main.Text")
-                            .with_return_type("Standard.Base.Main.Integer")
+                            .with_this_arg("Standard.Base.Data.Text.Text")
+                            .with_return_type("Standard.Base.Data.Numbers.Integer")
                             .marked_as_method_call("length","Standard.Base.Data.Text.Extensions")
                         )
                     ]
@@ -231,7 +231,7 @@ thread_local! {
                             Suggestion::new("Fetch Data", "Http.fetch",&icons.default)
                             .with_return_type("Standard.Base.Network.Http.Body.Body")
                             .with_argument_types(vec![
-                                "Standard.Builtins.Main.Text",
+                                "Standard.Base.Data.Text.Text",
                                 "Vector.Vector",
                             ])
                             .with_import_added("Standard.Base.Network.Http")

@@ -91,6 +91,14 @@ where
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget, logger }
     }
+
+    /// Get the underlying model
+    ///
+    /// Although Model is an internal structure, having an access is very plausible in some
+    /// situations, for example tests.
+    pub fn model(&self) -> &M {
+        self.widget.model()
+    }
 }
 
 impl<M: 'static, F: 'static> display::Object for ComponentView<M, F> {

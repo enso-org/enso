@@ -8,7 +8,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.compiler.pass.resolve.{ExpressionAnnotations, IgnoredBindings}
 
 import scala.annotation.unused
 
@@ -135,9 +135,26 @@ case object UnusedBindings extends IRPass {
       case IR.Function.Lambda(_, _: IR.Foreign.Definition, _, _, _, _) =>
         function
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+        val isBuiltin = isBuiltinMethod(body)
+        val lintedArgs =
+          if (isBuiltin) args
+          else args.map(lintFunctionArgument(_, context))
+        val body1 = runExpression(body, context)
+        val lintedBody =
+          if (isBuiltin)
+            body match {
+              case _: IR.Literal.Text =>
+                body1
+              case _ =>
+                body1.addDiagnostic(
+                  IR.Warning.WrongBuiltinMethod(body.location)
+                )
+            }
+          else body1
+
         lam.copy(
-          arguments = args.map(lintFunctionArgument(_, context)),
-          body      = runExpression(body, context)
+          arguments = lintedArgs,
+          body      = lintedBody
         )
       case _: IR.Function.Binding =>
         throw new CompilerError(
@@ -259,4 +276,18 @@ case object UnusedBindings extends IRPass {
         )
     }
   }
+
+  /** Checks if the expression has a @Builtin_Method annotation
+    *
+    * @param expression the expression to check
+    * @return 'true' if 'expression' has @Builtin_Method annotation, otherwise 'false'
+    */
+  private def isBuiltinMethod(expression: IR.Expression): Boolean = {
+    expression
+      .getMetadata(ExpressionAnnotations)
+      .exists(
+        _.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName)
+      )
+  }
+
 }

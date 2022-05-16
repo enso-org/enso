@@ -1,6 +1,4 @@
-from Standard.Base import all
-
-from Standard.Builtins import System
+import Standard.Base.System
 
 ## A representation of the various operating systems on which Enso can run.
 type Os

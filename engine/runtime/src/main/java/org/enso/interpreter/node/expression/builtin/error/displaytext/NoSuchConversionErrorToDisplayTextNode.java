@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "No_Such_Method_Error", name = "to_display_text")
+@BuiltinMethod(type = "No_Such_Conversion_Error", name = "to_display_text")
 public abstract class NoSuchConversionErrorToDisplayTextNode extends Node {
   static NoSuchConversionErrorToDisplayTextNode build() {
     return NoSuchConversionErrorToDisplayTextNodeGen.create();

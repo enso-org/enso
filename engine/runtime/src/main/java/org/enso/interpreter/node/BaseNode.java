@@ -18,7 +18,13 @@ public abstract class BaseNode extends Node {
     /** Node is in a tail position and marked as a tail call. */
     TAIL_LOOP,
     /** Node is not in a tail position. */
-    NOT_TAIL
+    NOT_TAIL;
+
+    private static final int NUMBER_OF_VALUES = values().length;
+
+    public static int numberOfValues() {
+      return NUMBER_OF_VALUES;
+    }
   }
 
   private @CompilationFinal TailStatus tailStatus = TailStatus.NOT_TAIL;

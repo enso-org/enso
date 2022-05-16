@@ -16,6 +16,8 @@ enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
 enso-web = { path = "../../../web" }
 ensogl-core = { path = "../../core" }
 ensogl-flame-graph = { path = "../../component/flame-graph" }
+ensogl-sequence-diagram = { path = "../../component/sequence-diagram" }
+ensogl-tooltip = { path = "../../component/tooltip" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }

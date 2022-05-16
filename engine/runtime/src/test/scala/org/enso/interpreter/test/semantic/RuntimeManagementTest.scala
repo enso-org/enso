@@ -21,7 +21,9 @@ class RuntimeManagementTest extends InterpreterTest {
         .asHostObject[Context]()
 
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.Thread
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |foo x =
           |    if x == 0 then IO.println "Start." else Nothing
@@ -75,7 +77,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
           |
           |type Mock_File i
           |
@@ -113,7 +116,9 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |
@@ -152,7 +157,9 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |

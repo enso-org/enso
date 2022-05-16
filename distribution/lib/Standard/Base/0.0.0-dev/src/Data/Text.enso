@@ -1,0 +1,49 @@
+import Standard.Base.Meta
+polyglot java import org.enso.base.Text_Utils
+
+## Enso's text type.
+type Text
+
+    ## Enso's text type.
+
+       Enso's text type is natively unicode aware, and will handle arbitrary
+       textual data.
+
+       ? Concatenation
+         Enso's text type uses a rope-based structure under the hood to provide
+         users with efficient concatenation operations.
+    @Builtin_Type
+    type Text
+
+    ## Concatenates the text that to the right side of this.
+
+       Arguments:
+       - that: The text to concatenate to this.
+
+       > Example
+         Concatenating two texts.
+
+             "Hello" + ", world!"
+    + : Text -> Text
+    + that = @Builtin_Method "Text.+"
+
+    ## Checks whether `this` is equal to `that`.
+
+       Arguments:
+       - that: The text to compare `this` for equality with.
+
+       ! Unicode Equality
+         The definition of equality includes Unicode canonicalization. I.e. two
+         texts are equal if they are identical after canonical decomposition. This
+         ensures that different ways of expressing the same character in the
+         underlying binary representation are considered equal.
+
+       > Example
+         The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
+         is canonically the same as the string 'e\u0301' (i.e. the letter `e`
+         followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
+
+             ('é' == 'e\u0301') == True
+    == : Any -> Boolean
+    == that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
+        Text_Utils.equals this that

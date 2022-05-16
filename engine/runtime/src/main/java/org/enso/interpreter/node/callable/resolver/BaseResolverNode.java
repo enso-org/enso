@@ -25,7 +25,7 @@ public class BaseResolverNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   Function resolveMethodOnError(UnresolvedSymbol symbol) {
-    return symbol.resolveFor(getContext().getBuiltins().dataflowError().constructor());
+    return symbol.resolveFor(getContext().getBuiltins().dataflowError());
   }
 
   @CompilerDirectives.TruffleBoundary

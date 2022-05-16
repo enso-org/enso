@@ -50,7 +50,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "id" : 1,
                 "suggestion" : {
                   "type" : "atom",
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "MyType",
                   "arguments" : [
                     {
@@ -58,12 +58,12 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "MyAtom",
                   "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">MyType</div><div class=\"tags\"><p class=\"tag\"><span class=\"private\">PRIVATE</span></p></div></div><div class=\"synopsis\"><p> </p></div><div class=\"body\"><p>A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. </p><p>Arguments: <ul><li>one: The first.</li><li>two<div class=\"Unclosed\"><i>three: The <b>second</b>.</i></div></li></ul> </p><div class=\"info\"><div class=\"summary\">Info</div> Here is a thing.</div></div></div></div></body></html>",
                   "documentationSections" : [
                     {
                       "type" : "tag",
@@ -133,7 +133,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "suggestion" : {
                   "type" : "method",
                   "externalId" : "ea9d7734-26a7-4f65-9dd9-c648eaf57d63",
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "foo",
                   "arguments" : [
                     {
@@ -141,20 +141,21 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "MyType",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "foo",
                       "reprType" : "Number",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "42"
+                      "defaultValue" : "42",
+                      "tagValues" : null
                     }
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
                   "documentation" : "Lovely",
-                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">foo</div></div><div class=\"synopsis\"><p>Lovely</p></div></div></div></body></html>",
                   "documentationSections" : [
                     {
                       "type" : "paragraph",
@@ -216,7 +217,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "suggestion" : {
                   "type" : "function",
                   "externalId" : "78d452ce-ed48-48f1-b4f2-b7f45f8dff89",
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "print",
                   "arguments" : [
                     {
@@ -224,21 +225,24 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "b",
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "c",
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "C"
+                      "defaultValue" : "C",
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "IO",
@@ -315,7 +319,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "suggestion" : {
                   "type" : "local",
                   "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "x",
                   "returnType" : "Number",
                   "scope" : {
@@ -348,7 +352,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 "suggestion" : {
                   "type" : "function",
                   "externalId" : ${Suggestions.function.externalId.get},
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "print",
                   "arguments" : [
                     {
@@ -356,21 +360,24 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "b",
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     },
                     {
                       "name" : "c",
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : true,
-                      "defaultValue" : "C"
+                      "defaultValue" : "C",
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "IO",
@@ -387,65 +394,10 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               },
               {
-                "id" : 4,
-                "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
-                    }
-                  }
-                }
-              },
-              {
-                "id" : 2,
-                "suggestion" : {
-                  "type" : "method",
-                  "externalId" : ${Suggestions.method.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "foo",
-                  "arguments" : [
-                    {
-                      "name" : "this",
-                      "reprType" : "MyType",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    },
-                    {
-                      "name" : "foo",
-                      "reprType" : "Number",
-                      "isSuspended" : false,
-                      "hasDefault" : true,
-                      "defaultValue" : "42"
-                    }
-                  ],
-                  "selfType" : "MyType",
-                  "returnType" : "Number",
-                  "documentation" : "Lovely",
-                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">foo</div></div><div class=\"synopsis\"><p>Lovely</p></div></div></div></body></html>",
-                  "documentationSections" : [
-                    {
-                      "type" : "paragraph",
-                      "body" : "Lovely"
-                    }
-                  ]
-                }
-              },
-              {
                 "id" : 1,
                 "suggestion" : {
                   "type" : "atom",
-                  "module" : "Test.Main",
+                  "module" : "local.Test.Main",
                   "name" : "MyType",
                   "arguments" : [
                     {
@@ -453,12 +405,12 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : false,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   ],
                   "returnType" : "MyAtom",
                   "documentation" : " PRIVATE\n\n A key-value store. This type assumes all keys are pairwise comparable,\n using the `<`, `>` and `==` operators.\n\n Arguments:\n - one: The first.\n - two_three: The *second*.\n\n ? Info\n   Here is a thing.",
-                  "documentationHtml" : "<html><body><div class=\"enso docs\"><div><div class=\"doc-title-container\"><div class=\"doc-title-name\">MyType</div><div class=\"tags\"><p class=\"tag\"><span class=\"private\">PRIVATE</span></p></div></div><div class=\"synopsis\"><p> </p></div><div class=\"body\"><p>A key-value store. This type assumes all keys are pairwise comparable, using the <code>&lt;</code>, <code>&gt;</code> and <code>==</code> operators. </p><p>Arguments: <ul><li>one: The first.</li><li>two<div class=\"Unclosed\"><i>three: The <b>second</b>.</i></div></li></ul> </p><div class=\"info\"><div class=\"summary\">Info</div> Here is a thing.</div></div></div></div></body></html>",
                   "documentationSections" : [
                     {
                       "type" : "tag",
@@ -479,6 +431,62 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "mark" : "Info",
                       "header" : "Info",
                       "body" : " Here is a thing."
+                    }
+                  ]
+                }
+              },
+              {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : ${Suggestions.local.externalId.get},
+                  "module" : "local.Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
+                }
+              },
+              {
+                "id" : 2,
+                "suggestion" : {
+                  "type" : "method",
+                  "externalId" : ${Suggestions.method.externalId.get},
+                  "module" : "local.Test.Main",
+                  "name" : "foo",
+                  "arguments" : [
+                    {
+                      "name" : "this",
+                      "reprType" : "MyType",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null,
+                      "tagValues" : null
+                    },
+                    {
+                      "name" : "foo",
+                      "reprType" : "Number",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "42",
+                      "tagValues" : null
+                    }
+                  ],
+                  "selfType" : "MyType",
+                  "returnType" : "Number",
+                  "documentation" : "Lovely",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "Lovely"
                     }
                   ]
                 }
@@ -572,7 +580,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "reprType" : "Any",
                       "isSuspended" : true,
                       "hasDefault" : false,
-                      "defaultValue" : null
+                      "defaultValue" : null,
+                      "tagValues" : null
                     }
                   }
                 ]

@@ -88,3 +88,5 @@ spec = Test.group "Process" <|
                 result.stderr . should_equal ""
             Platform.Unknown ->
                 Test.fail "Unsupported platform."
+
+main = Test.Suite.run_main here.spec

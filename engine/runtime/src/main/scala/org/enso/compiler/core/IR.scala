@@ -937,6 +937,105 @@ object IR {
       }
       object Definition {
 
+        /** The definition of a union type and its members.
+          *
+          * NB: this should probably be removed once we propagate the union
+          * types logic through the runtime and implement statics – the whole
+          * notion of desugaring complex type definitions becomes obsolete then.
+          *
+          * @param name the name of the union
+          * @param members the members of this union
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class UnionType(
+          name: IR.Name,
+          members: List[IR.Name],
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Definition
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          def copy(
+            name: IR.Name                        = name,
+            members: List[IR.Name]               = members,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): UnionType = {
+            val res = UnionType(name, members, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          /** @inheritdoc */
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true,
+            keepIdentifiers: Boolean = false
+          ): UnionType =
+            copy(
+              name = name.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              ),
+              members = members.map(
+                _.duplicate(
+                  keepLocations,
+                  keepMetadata,
+                  keepDiagnostics,
+                  keepIdentifiers
+                )
+              ),
+              location = if (keepLocations) location else None,
+              passData =
+                if (keepMetadata) passData.duplicate else MetadataStorage(),
+              diagnostics =
+                if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+              id = if (keepIdentifiers) id else randomId
+            )
+
+          /** @inheritdoc */
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): UnionType =
+            copy(location = location)
+
+          /** @inheritdoc */
+          override def mapExpressions(fn: Expression => Expression): UnionType =
+            this
+
+          /** @inheritdoc */
+          override def toString: String =
+            s"""
+               |IR.Module.Scope.Definition.UnionType(
+               |name = $name,
+               |members = $members,
+               |location = $location,
+               |passData = ${this.showPassData},
+               |diagnostics = $diagnostics,
+               |id = $id
+               |)
+               |""".toSingleLine
+
+          /** @inheritdoc */
+          override def children: List[IR] = name :: members
+
+          /** @inheritdoc */
+          override def showCode(indent: Int): String = {
+            val fields = members.map(_.showCode(indent)).mkString(" | ")
+
+            s"type ${name.showCode(indent)} = $fields"
+          }
+        }
+
         /** The definition of an atom constructor and its associated arguments.
           *
           * @param name the name of the atom
@@ -5310,15 +5409,6 @@ object IR {
     /** The expression of the argument, if present. */
     val value: Expression
 
-    /** Whether or not the argument should be suspended at code generation time.
-      *
-      * A value of `Some(true)` implies that code generation should suspend the
-      * argument. A value of `Some(false)` implies that code generation should
-      * _not_ suspend the argument. A value of [[None]] implies that the
-      * information is missing.
-      */
-    val shouldBeSuspended: Option[Boolean]
-
     /** @inheritdoc */
     override def mapExpressions(fn: Expression => Expression): CallArgument
 
@@ -5340,21 +5430,18 @@ object IR {
       * A [[CallArgument]] where the `value` is an [[IR.Name.Blank]] is a
       * representation of a lambda shorthand argument.
       *
-      * @param name the name of the argument being called, if present
-      * @param value the expression being passed as the argument's value
-      * @param location the source location that the node corresponds to
-      * @param shouldBeSuspended whether or not the argument should be passed
-      *        suspended
-      * @param passData the pass metadata associated with this node
+      * @param name        the name of the argument being called, if present
+      * @param value       the expression being passed as the argument's value
+      * @param location    the source location that the node corresponds to
+      * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
       override val name: Option[IR.Name],
       override val value: Expression,
       override val location: Option[IdentifiedLocation],
-      override val shouldBeSuspended: Option[Boolean] = None,
-      override val passData: MetadataStorage          = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage     = DiagnosticStorage()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends CallArgument
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -5375,7 +5462,6 @@ object IR {
         name: Option[IR.Name]                = name,
         value: Expression                    = value,
         location: Option[IdentifiedLocation] = location,
-        shouldBeSuspended: Option[Boolean]   = shouldBeSuspended,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
@@ -5384,7 +5470,6 @@ object IR {
           name,
           value,
           location,
-          shouldBeSuspended,
           passData,
           diagnostics
         )
@@ -5439,7 +5524,6 @@ object IR {
         |name = $name,
         |value = $value,
         |location = $location,
-        |shouldBeSuspended = $shouldBeSuspended,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
         |id = $id
@@ -6367,6 +6451,17 @@ object IR {
         extends Warning {
       override def message: String =
         "A @Tail_Call annotation was placed in a non-tail-call position."
+    }
+
+    /** A warning about a `@Builtin_Method` annotation placed in a method
+      * with unexpected body.
+      * @param location the location of the annotated application
+      */
+    case class WrongBuiltinMethod(
+      override val location: Option[IdentifiedLocation]
+    ) extends Warning {
+      override def message: String =
+        "A @Builtin_Method annotation allows only the name of the builtin node in the body."
     }
 
     /** Warnings about shadowing names. */

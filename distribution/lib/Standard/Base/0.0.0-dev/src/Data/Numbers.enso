@@ -1,0 +1,1035 @@
+polyglot java import java.lang.Double
+polyglot java import java.lang.Math
+polyglot java import java.lang.String
+polyglot java import java.lang.Long
+polyglot java import java.lang.NumberFormatException
+
+import Standard.Base.Data.Json
+from Standard.Base.Data.Boolean import all
+from Standard.Base.Data.Range import all
+from Standard.Base.Error.Common import Panic,Error,Illegal_Argument_Error
+
+## The root type of the Enso numeric hierarchy.
+
+   If a Number is expected, then the program can provide either a Decimal or
+   an Integer in its place.
+type Number
+
+    ## The root type of the Enso numeric hierarchy.
+
+       If a Number is expected, then the program can provide either a Decimal or
+       an Integer in its place.
+    @Builtin_Type
+    type Number
+
+    ## ALIAS Add
+
+       Adds two arbitrary numbers.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10 and 15.
+
+             10 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Integer.+"
+
+    ## ALIAS Subtract
+
+       Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.
+
+             2 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Integer.-"
+
+    ## ALIAS Multiply
+
+       Multiply two arbitrary numbers.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.
+
+             3 * 5
+    * : Number -> Number
+    * that = @Builtin_Method "Integer.*"
+
+    ## ALIAS Divide
+
+       Divides an this by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4 to get 2.5.
+
+             10 / 4
+    / : Number -> Number
+    / that = @Builtin_Method "Integer./"
+
+    ## ALIAS Power
+
+       Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2 cubed.
+
+             2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Integer.^"
+
+    ## ALIAS Inverse Sine
+
+       Computes the inverse of the sine function
+
+       Selects a value in the -pi/2 through pi/2 range.
+
+       > Example
+         Calculate the inverse sine of 1.
+
+             1.asin
+    asin : Decimal
+    asin = Math.asin this.to_decimal
+
+    ## ALIAS Inverse Cosine
+
+       Computes the inverse of the cosine function.
+
+       Selects a value in the -pi/2 through pi/2 range.
+
+       > Example
+         Calculate the inverse cosine of 1.
+
+             1.acos
+    acos : Decimal
+    acos = Math.acos this.to_decimal
+
+    ## ALIAS Inverse Tangent
+
+       Computes the inverse of the tangent function.
+
+       Selects a value in the -pi/2 through pi/2 range.
+
+       > Example
+         Calculate the inverse tangent of 1.
+
+             1.atan
+    atan : Decimal
+    atan = Math.atan this.to_decimal
+
+    ## Computes the argument (angle) in the conversion from cartesian
+       to polar coordinates, taking `this` as the x coordinate.
+
+       Arguments:
+       - y: The y coordinate.
+
+       The returned angle is in the -pi through pi range.
+
+       > Example
+         Convert the coordinates 1 and 2 to polar form.
+
+             1.atan_2 2
+    atan_2 : Number -> Decimal
+    atan_2 y = Math.atan2 this.to_decimal y.to_decimal
+
+    ## ALIAS Sine
+
+       Computes the sine function.
+
+       > Example
+         Calculate the sine of 2.
+
+             2.sin
+    sin : Decimal
+    sin = Math.sin this.to_decimal
+
+    ## ALIAS Cosine
+
+       Computes the cosine function.
+
+       > Example
+         Calculate the cosine of 2.
+
+             2.cos
+    cos : Decimal
+    cos = Math.cos this.to_decimal
+
+    ## ALIAS Tangent
+
+       Computes the tangent function.
+
+       > Example
+         Calculate the tangent of 2.
+
+             2.tan
+    tan : Decimal
+    tan = Math.tan this.to_decimal
+
+    ## Computes the hyperbolic sine function.
+
+       > Example
+         Calculate the hyperbolic sine of 1.
+
+             1.sinh
+    sinh : Decimal
+    sinh = Math.sinh this.to_decimal
+
+    ## Computes the hyperbolic cosine function.
+
+       > Example
+         Calcualte the hyperbolic cosine of 1.
+
+             1.cosh
+    cosh : Decimal
+    cosh = Math.cosh this.to_decimal
+
+    ## Computes the hyperbolic tangent function.
+
+       > Example
+         Calculate the hyperbolic tangent of 1.
+
+             1.tanh
+    tanh : Decimal
+    tanh = Math.tanh this.to_decimal
+
+    ## ALIAS Exponential
+
+       Computes the exponential function, raising Euler's number `r` to the power of
+       `this`.
+
+       > Example
+         Calculate e to the 4th power.
+
+             4.exp
+    exp : Decimal
+    exp = Math.exp this.to_decimal
+
+    ## ALIAS Natural Logarithm
+
+       Computes the natural logarithm function.
+
+       > Example
+         Calculate the natural logarithm of 2.
+
+             2.ln
+    ln : Decimal
+    ln = Math.log this.to_decimal
+
+    ## ALIAS Square Root
+
+       Computes the square root of `this`.
+
+       > Example
+         Calculate the square root of 8.
+
+             8.sqrt
+    sqrt : Decimal
+    sqrt = Math.sqrt this.to_decimal
+
+    ## ALIAS Logarithm
+
+       Computes the `base`-log of `this`.
+
+       Arguments:
+       - base: The base for the logarithm.
+
+       > Example
+         Calculate log 2 of 4.
+
+             4.log 2
+    log : Number -> Decimal
+    log base = this.ln / base.ln
+
+    ## UNSTABLE This API is not user-friendly and will be improved in the future.
+
+       Converts a numeric value to a string, using the Java string formatting
+       syntax.
+
+       Arguments:
+       - fmt: The java-style formatting specifier.
+
+       > Example
+         Convert the value 5 to a string.
+
+             5.format "%x"
+    format : Text -> Text
+    format fmt = String.format fmt this
+
+    ## Checks equality of numbers, using an `epsilon` value.
+
+       Arguments:
+       - that: The number to check equality against.
+       - epsilon: The value by which `this` and `that` can be separated by before
+         counting as not equal.
+
+       > Example
+         Check if 1 is equal to 1.0000001 within 0.001.
+
+             1.equals 1.0000001 epsilon=0.001
+    equals : Number -> Number -> Boolean
+    equals that epsilon=0.0 =
+        (this == that) || ((this - that).abs <= epsilon)
+
+    ## Returns the smaller value of `this` and `that`.
+
+       Arguments:
+       - that: The number to compare `this` against.
+
+       ? Math.min or Number.min
+         While we provide the min method on `Number`, we find it more intuitive to
+         write `Math.min a b` rather than `a.min b`. To that end, we recommend using
+         the first style.
+
+       > Example
+         Find the minimum of 2 and 5.
+
+             2.min 5
+    min : Number -> Number
+    min that = if this < that then this else that
+
+    ## Returns the larger value of `this` and `that`.
+
+       Arguments:
+       - that: The number to compare `this` against.
+
+       ? Math.max or Number.max
+         While we provide the max method on `Number`, we find it more intuitive to
+         write `Math.max a b` rather than `a.max b`. To that end, we recommend using
+         the first style.
+
+       > Example
+         Find the maximum of 2 and 5.
+
+             2.max 5
+    max : Number -> Number
+    max that = if this > that then this else that
+
+    ## Number to JSON conversion.
+
+       > Example
+         Convert the number 8 to JSON.
+
+             8.to_json
+    to_json : Json.Number
+    to_json = Json.Number this
+
+    ## A constant holding the floating-point positive infinity.
+    positive_infinity : Decimal
+    positive_infinity = Double.POSITIVE_INFINITY
+
+    ## A constant holding the floating-point negative infinity.
+    negative_infinity : Decimal
+    negative_infinity = Double.NEGATIVE_INFINITY
+
+    ## A constant holding the floating-point Not-a-Number value.
+    nan : Decimal
+    nan = Double.NaN
+
+    ## Checks if the given number is the floating-point Not-a-Number value.
+
+       This is needed, because the NaN value will return `False` even when being
+       compared with itself, so `x == Number.nan` would not work.
+    is_nan : Boolean
+    is_nan = case this of
+        Decimal -> Double.isNaN this
+        _ -> False
+
+    ## Returns the sign of the number.
+    signum : Integer
+    signum =
+        if this > 0 then 1 else
+            if this < 0 then -1 else 0
+
+
+## Decimal numbers.
+type Decimal
+
+    ## Decimal is the type of decimal numbers in Enso.
+
+       ? Representation
+         Enso's decimal numbers are represented as IEEE754 double-precision
+         floating point numbers.
+    @Builtin_Type
+    type Decimal
+
+    ## Adds a deceimal and an arbitrary number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10.1 and 15.
+
+             10.1 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Decimal.+"
+
+    ## Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.78.
+
+             2.78 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Decimal.-"
+
+    ## Multiply a decimal by an arbitrary number.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.27.
+
+             5.27 * 3
+    * : Number -> Number
+    * that = @Builtin_Method "Decimal.*"
+
+    ## Divides a decimal by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4.5.
+
+             10 / 4.5
+    / : Number -> Number
+    / that = @Builtin_Method "Decimal./"
+
+    ## Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Computing the remainder when dividing 3.5 by 2.
+
+             3.5 % 2 == 1.5
+
+       > Example
+         Computing the fractional part of a number.
+
+             10.5 % 1.0 == 0.5
+    % : Number -> Number ! Arithmetic_Error
+    % that = @Builtin_Method "Decimal.%"
+
+    ## Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2.2 cubed.
+
+             2.2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Decimal.^"
+
+    ## Compares this and that for equality.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Comparing 7 and 2.1 for equality.
+
+             7 == 2.1
+    == : Number -> Boolean
+    == that = @Builtin_Method "Decimal.=="
+
+    ## Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.3.
+
+             10 > 7.3
+    > : Number -> Boolean
+    > that = @Builtin_Method "Decimal.>"
+
+    ## Checks if this is greater than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.3.
+
+             10 >= 7.3
+    >= : Number -> Boolean
+    >= that = @Builtin_Method "Decimal.>="
+
+    ## Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.3.
+
+             10 < 7.3
+    < : Number -> Boolean
+    < that = @Builtin_Method "Decimal.<"
+
+    ## Checks if this is less than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10.4 is less than or equal to 7.
+
+             10.4 <= 7
+    <= : Number -> Boolean
+    <= that = @Builtin_Method "Decimal.<="
+
+    ## Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Computing the absolute value of -10.63.
+
+            -10.63.abs
+    abs : Decimal
+    abs = @Builtin_Method "Decimal.abs"
+
+    ## Computes the nearest integer above this number.
+
+       This method provides a means of converting a Decimal to an Integer.
+
+       > Example
+         Computing the ceiling of 4.736 (which is 5).
+
+             4.736.ceil
+    ceil : Integer
+    ceil = @Builtin_Method "Integer.ceil"
+
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of 1.732 and 4 (Less).
+
+             1.732.compare_to 4
+    compare_to : Number -> Ordering
+    compare_to that = @Builtin_Method "Decimal.compare_to"
+
+    ## Computes the nearest integer below this decimal.
+
+       This method provides a means of converting a Decimal to an Integer.
+
+       > Example
+         Computing the floor of 4.323 (which is 4).
+
+             4.323.floor
+    floor : Integer
+    floor = @Builtin_Method "Decimal.floor"
+
+    ## Compute the negation of this.
+
+       > Example
+         Negate 5.1 to get -5.1.
+
+             5.1.negate
+    negate : Decimal
+    negate = @Builtin_Method "Decimal.negate"
+
+    ## Convert this to a decimal.
+
+       This is a no-op on decimals, but is provided for completeness of the Enso
+       Number API.
+
+       > Example
+         Convert 5.0 to a decimal to get 5.0.
+
+             5.0.to_decimal
+    to_decimal : Decimal
+    to_decimal = @Builtin_Method "Decimal.to_decimal"
+
+    ## ALIAS From Text
+
+       Parses a textual representation of a decimal into a decimal number, returning
+       a `Parse_Error` if the text does not represent a valid decimal.
+
+       Arguments:
+       - text: The text to parse into a decimal.
+
+       > Example
+         Parse the text "7.6" into a decimal number.
+
+             Decimal.parse "7.6"
+    parse : Text -> Decimal ! Parse_Error
+    parse text =
+        Panic.catch NumberFormatException (Double.parseDouble text) _->
+            Error.throw (Parse_Error text)
+
+## Integral numbers.
+type Integer
+
+    ## Integer is the type of integral numbers in Enso. They are of unbounded
+       size and can grow as large as necessary.
+
+       ? Representation
+         For certain operations (such as bitwise logic), the underlying
+         representation of the number matters. Enso Integers are represented as
+         signed 2's complement numbers.
+
+       ? Performance
+         Integers that fit into 64 bits are represented in memory as 64 bits.
+         This means that operations on them achieve excellent performance. Once
+         the integer grows beyond being able to fit in 64 bits, performance will
+         degrade.
+    @Builtin_Type
+    type Integer
+
+    ## Adds an integer and an arbitrary number.
+
+       Arguments:
+       - that: The number to add to this.
+
+       Addition in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Adding 10 and 15.
+
+             10 + 15
+    + : Number -> Number
+    + that = @Builtin_Method "Integer.+"
+
+    ## Subtract an arbitrary number from this.
+
+       Arguments:
+       - that: The number to subtract from this.
+
+       > Example
+         Subtract 5 from 2.
+
+             2 - 5
+    - : Number -> Number
+    - that = @Builtin_Method "Integer.-"
+
+    ## Multiply an integer by an arbitrary number.
+
+       Arguments:
+       - that: The number to multiply this by.
+
+       Multiplication in Enso will undergo automatic conversions such that you
+       need not convert between Integer and Decimal manually.
+
+       > Example
+         Multiplying 3 by 5.
+
+             3 * 5
+    * : Number -> Number
+    * that = @Builtin_Method "Integer.*"
+
+    ## Divides an integer by an arbitrary number.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Division in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       > Example
+         Dividing 10 by 4 to get 2.5.
+
+             10 / 4
+    / : Number -> Number
+    / that = @Builtin_Method "Integer./"
+
+    ## Computes the remainder when dividing this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Modulus in Enso will undergo automatic conversions such that you need
+       not convert between Integer and Decimal manually.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Computing the remainder when dividing 10 by 3 (which is 1).
+
+             10 % 3
+    % : Number -> Number ! Arithmetic_Error
+    % that = @Builtin_Method "Integer.%"
+
+    ## Compute the result of raising this to the power that.
+
+       Arguments:
+       - that: The exponent.
+
+       > Example
+         Computing 2 cubed.
+
+             2^3
+    ^ : Number -> Number
+    ^ that = @Builtin_Method "Integer.^"
+
+    ## Compares this and that for equality.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Comparing 7 and 2 for equality.
+
+             7 == 2
+    == : Number -> Boolean
+    == that = @Builtin_Method "Integer.=="
+
+    ## Checks if this is greater than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than 7.
+
+             10 > 7
+    > : Number -> Boolean
+    > that = @Builtin_Method "Integer.>"
+
+    ## Checks if this is greater than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is greater than or equal to 7.
+
+             10 >= 7
+    >= : Number -> Boolean
+    >= that = @Builtin_Method "Integer.>="
+
+    ## Checks if this is less than that.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than 7.
+
+             10 < 7
+    < : Number -> Boolean
+    < that = @Builtin_Method "Integer.<"
+
+    ## Checks if this is less than or equal to thatthat.
+
+       Arguments:
+       - that: The number to compare this against.
+
+       > Example
+         Checking if 10 is less than or equal to 7.
+
+             10 <= 7
+    <= : Number -> Boolean
+    <= that = @Builtin_Method "Integer.<="
+
+    ## Computes the absolute value of this.
+
+       The absolute value of a positive number is itself, while the absolute
+       value of a negative number is that number multiplied by -1.
+
+       > Example
+         Computing the absolute value of -10.
+
+            -10.abs
+    abs : Integer
+    abs = @Builtin_Method "Integer.abs"
+
+    ## Computes the nearest integer above this integer.
+
+       This is a no-op on integers but is provided for completeness of the Enso
+       number API.
+
+       > Example
+         Computing the ceiling of 4.
+
+             4.ceil
+    ceil : Integer
+    ceil = @Builtin_Method "Integer.ceil"
+
+    ## Compares the two operands to determine the ordering of this with
+       respect to that.
+
+       Arguments:
+       - that: The operand to order this with respect to.
+
+       > Example
+         Computing the ordering of 1 and 4 (Less).
+
+             1.compare_to 4
+    compare_to : Number -> Ordering
+    compare_to that = @Builtin_Method "Integer.compare_to"
+
+    ## Computes the integer division of this by that.
+
+       Arguments:
+       - that: The number to divide this by.
+
+       Integer division rounds down to the nearest integer.
+
+       Returns an error if `that` is zero.
+
+       > Example
+         Dividing 10 by 3 to get 3.
+
+             10.div 3
+    div : Integer -> Number ! Arithmetic_Error
+    div that = @Builtin_Method "Integer.div"
+
+    ## Computes the nearest integer below this integer.
+
+       This is a no-op on integers but is provided for completeness of the Enso
+       number API.
+
+       > Example
+         Computing the floor of 4.
+
+             4.floor
+    floor : Integer
+    floor = @Builtin_Method "Integer.floor"
+
+    ## Compute the negation of this.
+
+       > Example
+         Negate 5 to get -5.
+
+             5.negate
+    negate : Integer
+    negate = @Builtin_Method "Integer.negate"
+
+    ## Convert this to a decimal.
+
+       > Example
+         Convert 5 to a decimal to get 5.0.
+
+             5.to_decimal
+    to_decimal : Decimal
+    to_decimal = @Builtin_Method "Integer.to_decimal"
+
+    ## Computes the bitwise and (conjunction) operation between this and
+       that.
+
+       Arguments:
+       - that: The number to compute the bitwise conjunction with.
+
+       Bitwise and computes the logical conjunction of the corresponding pairs
+       of bits in the operands.
+
+       ? Example
+         Computing the bitwise conjunction of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_and 2_11110000
+    bit_and : Integer -> Integer
+    bit_and that = @Builtin_Method "Integer.bit_and"
+
+    ## Computes the bitewise compliment of this.
+
+       The bitwise compliment negates the value of each bit in the operand.
+
+       ? Example
+         Bitwise negation of 2_0110.
+
+             2_0110.bit_not
+    bit_not : Integer
+    bit_not = @Builtin_Method "Integer.bit_not"
+
+    ## Computes the bitwise or (disjunction) operation between this and
+       that.
+
+       Arguments:
+       - that: The number to compute the bitwise disjunction with.
+
+       Bitwise or computes the logical disjunction of the pairs of corresponding
+       bits in the operands.
+
+       > Example
+         Computing the bitwise disjunction of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_or 2_11110000
+    bit_or : Integer -> Integer
+    bit_or that = @Builtin_Method "Integer.bit_or"
+
+    ## Computes the bitwise exclusive or between this and that.
+
+       Arguments:
+       - that: The number to compute the bitwise exclusive or with.
+
+       Bitwise exclusive or computes the exclusive or of the pairs of
+       corresponding bits in the operands.
+
+       > Example
+         Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
+
+             2_01101101.bit_xor 2_11110000
+    bit_xor : Integer -> Integer
+    bit_xor that = @Builtin_Method "Integer.bit_xor"
+
+    ## Shifts the bits of this by the amount that.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a left shift, while negative numbers perform a
+         right shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 left by four bits.
+
+             1.bit_shift 4
+    bit_shift : Integer -> Integer ! Arithmetic_Error
+    bit_shift that = @Builtin_Method "Integer.bit_shift"
+
+    ## Performs a left-wise bit shift on the bits of this.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a left shift, while negative numbers perform a
+         right shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 left by four bits.
+
+             1.bit_shift_l 4
+    bit_shift_l : Integer -> Integer ! Arithmetic_Error
+    bit_shift_l that = @Builtin_Method "Integer.bit_shift_l"
+
+    ## Performs a right-wise bit shift on the bits of this.
+
+       Arguments:
+       - that: The number of bits by which the shift should be performed.
+         Positive numbers perform a right shift, while negative numbers perform
+         a left shift.
+
+       Leftwise bit shifts fill the new bits with zeroes, while rightwise bit
+       shifts perform sign extension.
+
+       Returns an error if the shift amount exceeds 2^32.
+
+       > Example
+         Shift the bits of the number 1 right by four bits.
+
+             1.bit_shift_r 4
+    bit_shift_r : Integer -> Integer ! Arithmetic_Error
+    bit_shift_r that = @Builtin_Method "Integer.bpit_shift_r"
+
+    ## ALIAS Range
+
+       Creates an increasing right-exclusive range of integers from `this` to `n`.
+
+       Arguments:
+       - n: The end of the range.
+
+       > Example
+         Create a range containing the numbers 0, 1, 2, 3, 4.
+
+             0.up_to 5
+    up_to : Integer -> Range
+    up_to n = case n of
+        Integer -> Range.Range this n
+        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+
+    ## ALIAS Range
+
+       Creates a decreasing right-exclusive range of integers from `this` to `n`.
+
+       Arguments:
+       - n: The end of the range.
+
+       > Example
+         Create a range containing the numbers 5, 4, 3, 2, 1.
+
+             5.down_to 0
+    down_to : Integer -> Range
+    down_to n = case n of
+        Integer -> Range.Range this n -1
+        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+
+    ## ALIAS From Text
+
+       Parses a textual representation of an integer into an integer number, returning
+       a `Parse_Error` if the text does not represent a valid integer.
+
+       Arguments:
+       - text: The text to parse into a integer.
+       - radix: The number base to use for parsing (defaults to 10).
+
+       > Example
+         Parse the text "20220216" into an integer number.
+
+            Integer.parse "20220216"
+    parse : Text -> Text -> Integer ! Parse_Error
+    parse text (radix=10) =
+        Panic.catch NumberFormatException (Long.parseLong text radix) _->
+             Error.throw (Parse_Error text)
+
+## UNSTABLE
+
+   A syntax error when parsing a double.
+type Parse_Error text
+
+## UNSTABLE
+
+   Pretty print the syntax error.
+Parse_Error.to_display_text : Text
+Parse_Error.to_display_text =
+    "Could not parse " + this.text.to_text + " as a double."

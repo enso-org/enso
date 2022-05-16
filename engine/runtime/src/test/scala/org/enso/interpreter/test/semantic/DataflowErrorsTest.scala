@@ -11,7 +11,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyError
           |
@@ -29,7 +31,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through specialized pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyError
           |
@@ -48,7 +52,7 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "be catchable by a user-provided special handling function" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
           |
           |main =
           |    intError = Error.throw 1
@@ -59,7 +63,9 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "accept a constructor handler in catch function" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Nothing
+          |from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyCons err
           |
@@ -73,7 +79,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "accept a method handle in catch function" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type MyRecovered x
           |type MyError x
@@ -96,7 +103,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through atom construction" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Error.Common import all
+          |import Standard.Base.IO
           |
           |type My_Atom a
           |type My_Error
@@ -113,7 +121,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through method resolution" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Atom
           |type My_Error
@@ -132,7 +141,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through function calls" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -148,7 +158,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "propagate through builtin methods" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -163,7 +174,8 @@ class DataflowErrorsTest extends InterpreterTest {
 
     "not propagate when explicitly accepted by type and by annotation" in {
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.IO
+          |from Standard.Base.Error.Common import all
           |
           |type My_Error
           |
@@ -174,6 +186,23 @@ class DataflowErrorsTest extends InterpreterTest {
 
       eval(code)
       consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    // TODO: Make sure this is expected
+    "catch and pretty-print semantic errors" in {
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+          |    IO.println x
+          |    IO.println (x.catch .to_text)
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List(
+        "(Error: (Syntax_Error 'Unrecognized token.'))",
+        "(Syntax_Error 'Unrecognized token.')"
+      )
     }
   }
 }

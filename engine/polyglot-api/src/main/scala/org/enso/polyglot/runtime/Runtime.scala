@@ -1359,7 +1359,7 @@ object Runtime {
       module: String,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
-      exports: Seq[ExportsUpdate],
+      exports: Vector[ExportsUpdate],
       updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
         with ToLogString {

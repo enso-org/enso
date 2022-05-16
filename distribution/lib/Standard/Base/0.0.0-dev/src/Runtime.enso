@@ -1,0 +1,92 @@
+import Standard.Base.Data.Vector
+import Standard.Base.Polyglot
+import Standard.Base.Nothing
+from Standard.Base.Runtime.Extensions import Source_Location
+
+## Utilities for interacting with the runtime.
+
+## PRIVATE
+
+   Returns a raw representation of the current execution stack trace.
+   You probably want `Runtime.get_stack_trace` instead.
+primitive_get_stack_trace : Array
+primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
+
+## ADVANCED
+   UNSTABLE
+
+   Returns the execution stack trace of its call site. The ordering of the
+   resulting vector is such that the top stack frame is the first element.
+get_stack_trace : Vector.Vector Stack_Trace_Element
+get_stack_trace =
+    prim_stack = this.primitive_get_stack_trace
+    stack_with_prims = Vector.Vector prim_stack
+    stack = stack_with_prims.map here.wrap_primitive_stack_trace_element
+    # drop this frame and the one from `Runtime.primitive_get_stack_trace`
+    stack.drop_start 2
+
+## ADVANCED
+
+   Suggests that the runtime perform garbage collection.
+
+   It is not _guaranteed_ to perform garbage collection, but in practice
+   will _usually_ begin a garbage collection cycle.
+
+   > Example
+     Ask for the runtime to collect garbage.
+
+         Runtime.gc
+gc : Nothing
+gc = @Builtin_Method "Runtime.gc"
+
+## ADVANCED
+
+   Executes the provided action without allowing it to inline.
+
+   Arguments:
+   - action: The computation to be executed.
+
+   This is particularly useful when writing benchmarks and
+   performance-critical code where you need to prevent inlining from
+   occurring.
+
+   > Example
+     Print something to the console without it being inlined.
+
+         Runtime.no_inline <| IO.println "Hi!"
+no_inline : Any -> Any
+no_inline ~action = @Builtin_Method "Runtime.no_inline"
+
+## ADVANCED
+   UNSTABLE
+
+   Applies the following function to the given argument, without allowing
+   them to inline.
+
+   Arguments:
+   - function: The one-argument function to call.
+   - arg: The single argument for the function.
+
+   This is particularly useful to avoid constant folding in benchmarks.
+
+   > Example
+     Print something to the console without it being inlined.
+
+         Runtime.no_inline_with_arg IO.println "Hi!"
+no_inline_with_arg : Any -> Any
+no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
+
+## PRIVATE
+   Converts a primitive stack trace element into the regular one.
+wrap_primitive_stack_trace_element el =
+    loc = if Polyglot.has_source_location el then (Source_Location (Polyglot.get_source_location el)) else Nothing
+    name = Polyglot.get_executable_name el
+    Stack_Trace_Element name loc
+
+## ADVANCED
+   UNSTABLE
+
+   Represents a single stack frame in an Enso stack trace.
+type Stack_Trace_Element
+    ## PRIVATE
+    type Stack_Trace_Element name source_location

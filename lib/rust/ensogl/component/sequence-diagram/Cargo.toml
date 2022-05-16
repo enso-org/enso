@@ -1,0 +1,19 @@
+[package]
+name = "ensogl-sequence-diagram"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+enso-profiler = { path = "../../../profiler" }
+enso-profiler-data = { path = "../../../profiler/data" }
+enso-profiler-enso-data = { version = "0.1.0", path = "../../../../../app/gui/enso-profiler-enso-data" }
+enso-profiler-flame-graph = { path = "../../../profiler/flame-graph" }
+ensogl = { version = "0.1.0", path = "../../../ensogl" }
+ensogl-core = { path = "../../core" }
+ensogl-gui-component = { version = "0.1.0", path = "../../component/gui" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../text" }
+ensogl-tooltip = { version = "0.1.0", path = "../../component/tooltip" }

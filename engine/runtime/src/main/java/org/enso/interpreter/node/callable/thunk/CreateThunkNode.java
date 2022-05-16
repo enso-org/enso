@@ -4,7 +4,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.callable.function.Function;
 
 /** This node is responsible for wrapping a call target in a {@link Thunk} at execution time. */
 @NodeInfo(shortName = "CreateThunk", description = "Wraps a call target in a thunk at runtime")
@@ -34,6 +34,6 @@ public class CreateThunkNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return new Thunk(this.callTarget, frame.materialize());
+    return Function.thunk(this.callTarget, frame.materialize());
   }
 }

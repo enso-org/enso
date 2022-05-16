@@ -1,0 +1,52 @@
+## The runtime's integrated monadic state management.
+## A container type for functionality for working with the runtime's
+   integrated state functionality.
+
+## Executes a stateful computation in a local state environment.
+
+   Arguments:
+   - key: The key to associate your local_state with in the environment.
+     It is recommended that types be used as keys.
+   - local_state: The value to associate with key.
+   - computation: The computation to execute in the local state
+     environment.
+
+   > Example
+     Print a value from the state.
+
+         State.run Integer 0 <| IO.println (State.get Integer)
+run : Any -> Any -> Any -> Any
+run key local_state ~computation = @Builtin_Method "State.run"
+
+## Returns the current value for the provided key contained in the monadic
+   state.
+
+   Arguments:
+   - key: The key into the state to get the associated value for.
+
+   Returns an uninitialized state error if the user tries to read from an
+   uninitialized slot.
+
+   > Example
+     Get the value of state for a key.
+
+         State.get Decimal
+get : Any -> Any ! Uninitialized_State
+get key = @Builtin_Method "State.get"
+
+## Associates a new_state with the provided key in the runtime's monadic
+   state, returning the provided state.
+
+   Arguments:
+   - key: The key with which to associate the new state.
+   - new_state: The new state to store.
+
+   Returns an uninitialized state error if the user tries to read from an
+   uninitialized slot.
+
+   > Example
+     Store a new value in the state for a given key.
+
+         State.put Text 2821
+put : Any -> Any -> Any ! Uninitialized_State
+put key new_state = @Builtin_Method "State.put"

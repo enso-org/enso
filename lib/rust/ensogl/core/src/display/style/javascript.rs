@@ -143,8 +143,8 @@ pub fn expose_to_window(manager: &Manager) {
     let get: js::Get = Closure::new(move |name: String| {
         let theme = owned_manager.get(&name).unwrap();
         let owned_theme = theme.clone_ref();
-        let set: js::Set = Closure::new(move |name, value| {
-            owned_theme.set(name, value);
+        let set: js::Set = Closure::new(move |name: String, value: String| {
+            owned_theme.parse_and_set(name, &value);
         });
         let name2 = name.clone();
         let interactive_mode: js::InteractiveMode = Closure::new(move || {

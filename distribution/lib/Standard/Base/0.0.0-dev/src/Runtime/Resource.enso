@@ -1,0 +1,77 @@
+## An API for manual resource management.
+
+## Resource provides an API for manual management of computation resources.
+
+   These include things like file handles, network sockets, and so on. This
+   API is intended for use by library developers to provide higher-level and
+   easier to use abstractions.
+
+## ADVANCED
+
+   Acquires a resource, performs an action on it, and destroys it safely,
+   even in the presence of panics.
+
+   Arguments:
+   - constructor: The computation responsible for acquiring the resource.
+   - destructor: The computation responsible for destroying the resource
+     once it is done being used.
+   - action: The computation to perform on the acquired resource.
+bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
+bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
+
+## An API for automatic resource management.
+type Managed_Resource
+
+    ## A managed resource is a special type of resource that is subject to
+       automated cleanup when it is no longer in use.
+
+       This API is intended for use by developers to provide easy-to-use
+       abstractions, and is not expected to be used by end-users.
+    @Builtin_Type
+    type Managed_Resource
+
+    ## ADVANCED
+
+       Registers a resource with the resource manager to be cleaned up using
+       function once it is no longer in use.
+
+       Arguments:
+       - resource: The resource to be managed automatically.
+       - function: The action to be executed on resource to clean it up when
+         it is no longer in use.
+    register : Any -> (Any -> Nothing) -> Managed_Resource
+    register resource function = @Builtin_Method "Managed_Resource.register"
+
+    ## ADVANCED
+
+       Forces finalization of a managed resource using the registered finalizer,
+       even if the resource is still reachable.
+
+       Arguments:
+       - resource: The resource that should be finalized.
+    finalize : Managed_Resource -> Nothing
+    finalize resource = @Builtin_Method "Managed_Resource.finalize"
+
+    ## ADVANCED
+
+       Executes the provided action on the resource managed by the managed
+       resource object.
+
+       Arguments:
+       - resource: The managed resource on which to run the action.
+       - action: The action that will be applied to the resource managed by
+         resource.
+    with : Managed_Resource -> (Any -> Any) -> Any
+    with resource ~action = @Builtin_Method "Managed_Resource.with"
+
+    ## ADVANCED
+
+       Takes the value held by the managed resource and unregisters the
+       finalization step for this resource, effectively removing it from the
+       managed resources system.
+
+       Arguments:
+       - resource: The managed resource from which to acquire the underlying
+         resource.
+    take : Managed_Resource -> Any
+    take resource = @Builtin_Method "Managed_Resource.take"

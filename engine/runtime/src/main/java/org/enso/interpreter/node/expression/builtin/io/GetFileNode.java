@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.EnsoFile;
 
 @BuiltinMethod(
-    type = "Prim_Io",
+    type = "File",
     name = "get_file",
     description =
         "Takes the text representation of a path and returns a TruffleFile corresponding to it.")

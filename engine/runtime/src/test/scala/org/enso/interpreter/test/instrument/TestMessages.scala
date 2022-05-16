@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import java.util.UUID
 
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.polyglot.runtime.Runtime.Api
 
 /** Helper methods for creating test messages. */
@@ -201,7 +201,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(Constants.ERROR),
+            Some(ConstantsGen.ERROR),
             methodPointerOpt,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
@@ -261,7 +261,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            Some(Constants.PANIC),
+            Some(ConstantsGen.PANIC),
             methodPointer,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,

@@ -69,7 +69,7 @@ fn main() {
     let must_be_csv = "Parse error (Is this a CSV logged by the language server?)";
     let backend_messages = api_events::parse(std::io::stdin()).expect(must_be_csv);
     let mut backend_profile = format::Builder::new();
-    backend_profile.time_offset_ms(0.0);
+    backend_profile.time_offset(format::Timestamp::from_ms(0.0));
     backend_profile.process("LanguageServer");
     for message in backend_messages {
         let api_events::Message { timestamp, direction, request_id, endpoint } = message;

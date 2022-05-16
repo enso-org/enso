@@ -30,6 +30,16 @@ sealed trait Tree[+A] {
   final def map[B](f: A => B): Tree[B] =
     Tree.map(this)(f)
 
+  /** Finds the first element of the tree for which the given partial function
+    * is defined, and applies the partial function to it.
+    *
+    * @param f the partial function to apply
+    * @return the result of running `f` on the first element it's defined for.
+    */
+  @JsonIgnore
+  final def collectFirst[B](f: PartialFunction[A, B]): Option[B] =
+    Tree.collectFirst(this)(f)
+
   /** Selects all elements which satisfy a predicate.
     *
     * @param p the predicate used to test elements
@@ -207,6 +217,22 @@ object Tree {
       case Node(a, cx) =>
         Node(f(a), cx.map(mapNode(_)(f)))
     }
+
+  private def collectFirst[A, B](
+    tree: Tree[A]
+  )(f: PartialFunction[A, B]): Option[B] = {
+    def collectFirstNode(node: Tree.Node[A]): Option[B] = {
+      if (f.isDefinedAt(node.element)) {
+        Some(f(node.element))
+      } else {
+        node.children.collectFirst((collectFirstNode _).unlift)
+      }
+    }
+    tree match {
+      case Root(c)    => c.collectFirst((collectFirstNode _).unlift)
+      case n: Node[A] => collectFirstNode(n)
+    }
+  }
 
   private def filter[A](tree: Tree[A])(p: A => Boolean): Tree[A] = {
     def filterNode(node: Tree.Node[A]): Option[Tree.Node[A]] = {

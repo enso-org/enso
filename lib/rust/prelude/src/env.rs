@@ -2,8 +2,6 @@
 
 use crate::*;
 
-use std::str::FromStr;
-
 
 
 /// Gets the string with conents of given environment variable.

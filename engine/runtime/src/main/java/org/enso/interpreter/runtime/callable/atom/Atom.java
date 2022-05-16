@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public class Atom implements TruffleObject {
+public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
 

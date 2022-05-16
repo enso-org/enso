@@ -41,7 +41,6 @@ pub use mark::Mark;
 
 const ROW_HEIGHT: f64 = 20.0;
 const ROW_PADDING: f64 = 5.0;
-pub(crate) const BASE_TEXT_SIZE: f32 = 18.0;
 
 
 
@@ -178,6 +177,17 @@ fn align_mark(mut mark: profiler_flame_graph::Mark, origin_x: f64) -> profiler_f
 }
 
 impl FlameGraph {
+    /// Create an empty graph,
+    pub fn empty(app: &Application) -> Self {
+        let logger = Logger::new("FlameGraph");
+        let display_object = display::object::Instance::new(&logger);
+        let blocks = default();
+        let marks = default();
+        let origin_x = default();
+        let app = app.clone_ref();
+
+        Self { display_object, blocks, marks, origin_x, app }
+    }
     /// Create a `FlameGraph` EnsoGL component from the given graph data from the profiler.
     pub fn from_data(data: profiler_flame_graph::Graph, app: &Application) -> Self {
         let logger = Logger::new("FlameGraph");
@@ -202,7 +212,10 @@ impl FlameGraph {
         let blocks = activity_block_shapes.chain(performance_block_shapes).collect_vec();
         blocks.iter().for_each(|item| display_object.add_child(item));
 
-        let marks: Vec<_> = marks.into_iter().map(|mark| shape_from_mark(mark, app)).collect();
+        let marks: Vec<_> = marks
+            .into_iter()
+            .map(|mark| shape_from_mark(align_mark(mark, origin_x), app))
+            .collect();
         marks.iter().for_each(|item| display_object.add_child(item));
 
         let app = app.clone_ref();
@@ -236,6 +249,28 @@ impl FlameGraph {
         let shape = shape_from_mark(mark, &self.app);
         self.display_object.add_child(&shape);
         self.marks.push(shape);
+    }
+
+    /// Height of the graph as measured between the position of the highest and lowest block.
+    pub fn height(&self) -> f32 {
+        let min_max = self.blocks.iter().map(|block| block.position().y).minmax();
+        min_max.into_option().map(|(min, max)| max - min).unwrap_or_default()
+    }
+
+    /// Origin of the time axis. This is the timestamp placed at the zero x-coordinate of the root
+    /// display object.
+    pub fn origin(&self) -> f64 {
+        self.origin_x
+    }
+
+    /// Set the timestamp placed at the x-coordinate origin. For example, a value of 10.0, will mean
+    /// that a block that starts at time 10ms, will be placed at the zero x-coordinate (the same
+    /// position as the root display object).
+    pub fn set_origin(&mut self, new_origin: f64) {
+        let delta = (self.origin_x - new_origin) as f32;
+        self.marks.iter().for_each(|mark| mark.mod_position_x(|pos| pos - delta));
+        self.blocks.iter().for_each(|block| block.mod_position_x(|pos| pos - delta));
+        self.origin_x = new_origin
     }
 }
 

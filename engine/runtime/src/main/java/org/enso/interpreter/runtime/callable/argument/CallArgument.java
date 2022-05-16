@@ -3,7 +3,7 @@ package org.enso.interpreter.runtime.callable.argument;
 import org.enso.interpreter.node.ExpressionNode;
 
 /** Tracks the specifics about how arguments are specified at a call site. */
-public class CallArgument {
+public final class CallArgument {
   private final String name;
   private final ExpressionNode expression;
 

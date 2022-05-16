@@ -66,6 +66,7 @@ impl<T> StyleValue<T> {
 #[macro_export]
 /// Create struct called `Style` that can hold updatable style information.
 macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $(,)? ) => {
+
     /// Set of cursor style parameters. You can construct this object in FRP network, merge it using
     /// its `Semigroup` instance, and finally pass to the cursor to apply the style. Please note
     /// that cursor does not implement any complex style management (like pushing or popping a style
@@ -91,14 +92,14 @@ macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $
         }
     }
 
-    impl PartialSemigroup<&Style> for Style {
+    impl $crate::prelude::PartialSemigroup<&Style> for Style {
         #[allow(clippy::clone_on_copy)]
         fn concat_mut(&mut self, other:&Self) {
             $(if self.$field . is_none() { self.$field = other.$field . clone() })*
         }
     }
 
-    impl PartialSemigroup<Style> for Style {
+    impl $crate::prelude::PartialSemigroup<Style> for Style {
         fn concat_mut(&mut self, other:Self) {
             self.concat_mut(&other)
         }

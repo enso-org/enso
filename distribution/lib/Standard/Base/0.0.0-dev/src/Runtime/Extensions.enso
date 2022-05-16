@@ -65,33 +65,3 @@ type Source_Location
        Return the source file corresponding to this location.
     file : File.File
     file = File.new this.prim_location.getSource.getPath
-
-## ADVANCED
-   UNSTABLE
-
-   Represents a single stack frame in an Enso stack trace.
-type Stack_Trace_Element
-    ## PRIVATE
-    type Stack_Trace_Element name source_location
-
-## ADVANCED
-   UNSTABLE
-
-   Returns the execution stack trace of its call site. The ordering of the
-   resulting vector is such that the top stack frame is the first element.
-Runtime.get_stack_trace : Vector.Vector Stack_Trace_Element
-Runtime.get_stack_trace =
-    prim_stack = this.primitive_get_stack_trace
-    stack_with_prims = Vector.Vector prim_stack
-    stack = stack_with_prims.map here.wrap_primitive_stack_trace_element
-    # drop this frame and the one from `Runtime.primitive_get_stack_trace`
-    stack.drop_start 2
-
-## PRIVATE
-   Converts a primitive stack trace element into the regular one.
-wrap_primitive_stack_trace_element el =
-    loc = case Polyglot.has_source_location el of
-        True -> Source_Location (Polyglot.get_source_location el)
-        False -> Nothing
-    name = Polyglot.get_executable_name el
-    Stack_Trace_Element name loc

@@ -5,10 +5,3 @@ import Standard.Visualization.Id
 
 from Standard.Visualization.File_Upload export file_uploading
 export Standard.Visualization.Id
-
-## TODO [DB] Needed for symbols of component groups to resolve. Right
-   now there's no auto-resolving mechanism for components, and this
-   set of imports needs to be maintained instead. Once the mechanism
-   implemented, these imports can be removed:
-   https://www.pivotaltracker.com/story/show/181865645
-import Standard.Database

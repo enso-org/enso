@@ -1,4 +1,4 @@
-from Standard.Builtins import all
+import Standard.Base.Nothing
 
 type X a
 

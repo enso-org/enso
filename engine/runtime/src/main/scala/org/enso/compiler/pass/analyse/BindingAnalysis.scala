@@ -11,7 +11,11 @@ import org.enso.compiler.pass.desugar.{
   FunctionBinding,
   GenerateMethodBodies
 }
-import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
+import org.enso.compiler.pass.resolve.{
+  MethodDefinitions,
+  ModuleAnnotations,
+  Patterns
+}
 
 import scala.annotation.unused
 
@@ -46,12 +50,22 @@ case object BindingAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
+    val definedSumTypes = ir.bindings.collect {
+      case sumType: IR.Module.Scope.Definition.UnionType =>
+        BindingsMap.Type(sumType.name.name, sumType.members.map(_.name))
+    }
+
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
+        // FIXME: move to a different pass
+        val isBuiltinType = cons
+          .getMetadata(ModuleAnnotations)
+          .exists(_.annotations.exists(_.name == "@Builtin_Type"))
         BindingsMap.Cons(
           cons.name.name,
           cons.arguments.length,
-          cons.arguments.forall(_.defaultValue.isDefined)
+          cons.arguments.forall(_.defaultValue.isDefined),
+          isBuiltinType
         )
     }
     val importedPolyglot = ir.imports.collect {
@@ -85,6 +99,7 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
+        definedSumTypes,
         definedConstructors,
         importedPolyglot,
         methodsWithAutogen,

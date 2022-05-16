@@ -30,6 +30,7 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 
+use enso_profiler::format::AnyMetadata;
 use enso_profiler_data as data;
 
 
@@ -78,7 +79,7 @@ fn main() {
     use std::io::Read;
     let mut log = String::new();
     std::io::stdin().read_to_string(&mut log).unwrap();
-    let profile: data::Profile<()> = log.parse().unwrap();
+    let profile: data::Profile<AnyMetadata> = log.parse().unwrap();
     let events = IntervalTranslator::run(&profile);
     serde_json::to_writer(std::io::stdout(), &events).unwrap();
 }

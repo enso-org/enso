@@ -3,10 +3,10 @@
 use crate::prelude::*;
 use enso_text::unit::*;
 
+use crate::application::tooltip;
+use crate::application::tooltip::Placement;
 use crate::component::node;
 use crate::component::type_coloring;
-use crate::tooltip;
-use crate::tooltip::Placement;
 use crate::view;
 use crate::Type;
 
@@ -80,6 +80,7 @@ struct AllPortsShape {
 }
 
 impl AllPortsShape {
+    #[profile(Debug)]
     fn new(
         canvas_width: &Var<Pixels>,
         canvas_height: &Var<Pixels>,
@@ -381,6 +382,7 @@ macro_rules! fn_multi_only {
 }
 
 impl PortShapeView {
+    #[profile(Debug)]
     fn new(number_of_ports: usize, logger: &Logger) -> Self {
         if number_of_ports <= 1 {
             Self::Single(SinglePortView::new(&logger))
