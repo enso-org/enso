@@ -131,23 +131,40 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
+        /// Removes the value at `path` in `node` and returns `true` as the first boolean if the
+        /// value was `Some(_)` before the removal. Returns `true` as the second value if the
+        /// subtree at `node` only contains `None` values, or returns `false` and removes the first
+        /// node on `path` that only contains `None` values.
+        ///
+        /// Ensures that the value at `path` in `node` does not exist, and returns `true` as the
+        /// first boolean if the value was `Some(_)` before the operation.
+        /// Returns `true` as the first boolean if some value exists at path in node and
+        /// clears the value to `None`.
+        /// The function checks and returns whether some value exists at path in node and clears the
+        /// value to `None`. It returns `true` as the second value in the returned tuple if the node
+        /// and its branches contain only `None` values, or 
+        /// It also prunes the longest empty branch traversed, or returns `true` 
+        /// The second returned value is `true` if 
+        /// returns whether 
+        /// and if yes, sets it to
+        /// `None`. 
+        /// The function recurses into node's branch
         fn check_if_exists_and_clear_value_and_prune_empty_branch(
             node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
             path: &[PathSegment],
         ) -> (bool, bool) {
             match (node.is_leaf(), path) {
-                (true, []) => (node.value.is_some(), true),
+                (leaf @ _, []) => (node.value.take().is_some(), leaf),
                 (true, [..]) => (false, node.value.is_none()),
-                (false, []) => (node.value.take().is_some(), false),
                 (false, [key, path_after_key @ ..]) => {
-                    let (value_existed, prune_branch) = match node.branches.get_mut(key) {
+                    let (value_existed, branch_empty) = match node.branches.get_mut(key) {
                         Some(node) => check_if_exists_and_clear_value_and_prune_empty_branch(
                             node,
                             path_after_key,
                         ),
                         None => (false, false),
                     };
-                    match (prune_branch, node.branches.len()) {
+                    match (branch_empty, node.branches.len()) {
                         (true, 0..=1) => (value_existed, true),
                         (true, _) => {
                             node.branches.remove(key);
@@ -160,10 +177,10 @@ impl FreeformPathToIdMap {
             }
         }
         let node = &mut self.tree.borrow_mut();
-        let (value_existed, prune_branch) =
+        let (value_existed, node_empty) =
             check_if_exists_and_clear_value_and_prune_empty_branch(node, &path.segments);
-        if prune_branch && path.segments.len() > 0 {
-            node.branches.remove(&path.segments[0]);
+        if node_empty {
+            node.branches.clear();
         }
         value_existed
     }
