@@ -131,10 +131,11 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
-        let mut tree = self.tree.borrow_mut();
-        // FIXME: only remove a node if node.value.is_some(), then prune if node.is_leaf()
-        let old_value = tree.remove(path.segments.iter());
-        old_value.flatten().is_some()
+        self.check_if_exists_and_clear_value_and_prune_empty_branch(path)
+        // let mut tree = self.tree.borrow_mut();
+        // // FIXME: only remove a node if node.value.is_some(), then prune if node.is_leaf()
+        // let old_value = tree.remove(path.segments.iter());
+        // old_value.flatten().is_some()
     }
 
     fn check_if_exists_and_clear_value_and_prune_empty_branch(&self, path: &FreeformPath) -> bool {
@@ -153,21 +154,29 @@ impl FreeformPathToIdMap {
                     return (false, existed);
                 } else {
                     let key = &subpath[0];
-                    let (prune_branch, existed) = clear_value_or_prune(subtree.branches.get_mut(key), &subpath[1..]);
-                    if prune_branch {
-                        if subtree.branches.len() == 1 {
-                            return (true, existed);
-                        } else {
-                            subtree.branches.remove(key);
-                            return (false, existed);
-                        }
-                    } else {
-                        return (false, existed);
+                    match subtree.branches.get_mut(key) {
+                        Some(subtree) => {
+                            let (prune_branch, existed) = clear_value_or_prune(subtree, &subpath[1..]);
+                            if prune_branch {
+                                if subtree.branches.len() == 1 {
+                                    return (true, existed);
+                                } else {
+                                    subtree.branches.remove(key);
+                                    return (false, existed);
+                                }
+                            } else {
+                                return (false, existed);
+                            }
+                        },
+                        None => {
+                            let can_prune = subtree.is_leaf() && subtree.value.is_none();
+                            return (can_prune, false);
+                        },
                     }
                 }
             }
         }
-        let (_, existed) = clear_value_or_prune(&mut self.tree.borrow_mut(), &path);
+        let (_, existed) = clear_value_or_prune(&mut self.tree.borrow_mut(), &path.segments);
         return existed;
     }
 
