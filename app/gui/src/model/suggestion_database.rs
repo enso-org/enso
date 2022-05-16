@@ -131,45 +131,41 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
-        self.check_if_exists_and_clear_value_and_prune_empty_branch(path)
-        // let mut tree = self.tree.borrow_mut();
-        // // FIXME: only remove a node if node.value.is_some(), then prune if node.is_leaf()
-        // let old_value = tree.remove(path.segments.iter());
-        // old_value.flatten().is_some()
-    }
-
-    fn check_if_exists_and_clear_value_and_prune_empty_branch(&self, path: &FreeformPath) -> bool {
-        fn clear_value_or_prune(
+        fn check_if_exists_and_clear_value_and_prune_empty_branch(
             node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
             path: &[PathSegment],
         ) -> (bool, bool) {
             match (node.is_leaf(), path) {
-                (true, []) => (true, node.value.is_some()),
-                (true, [..]) => (node.value.is_none(), false),
-                (false, []) => (false, node.value.take().is_some()),
+                (true, []) => (node.value.is_some(), true),
+                (true, [..]) => (false, node.value.is_none()),
+                (false, []) => (node.value.take().is_some(), false),
                 (false, [key, path_after_key @ ..]) => {
-                    let (prune_branch, value_existed) = match node.branches.get_mut(key) {
-                        Some(node) => clear_value_or_prune(node, path_after_key),
+                    let (value_existed, prune_branch) = match node.branches.get_mut(key) {
+                        Some(node) => check_if_exists_and_clear_value_and_prune_empty_branch(
+                            node,
+                            path_after_key,
+                        ),
                         None => (false, false),
                     };
                     match (prune_branch, node.branches.len()) {
-                        (true, 0..=1) => (true, value_existed),
+                        (true, 0..=1) => (value_existed, true),
                         (true, _) => {
                             node.branches.remove(key);
-                            (false, value_existed)
-                        },
-                        (false, 0) => (node.value.is_none(), false),
+                            (value_existed, false)
+                        }
+                        (false, 0) => (false, node.value.is_none()),
                         (false, _) => (false, false),
                     }
-                },
+                }
             }
         }
         let node = &mut self.tree.borrow_mut();
-        let (prune_branch, existed) = clear_value_or_prune(node, &path.segments);
+        let (value_existed, prune_branch) =
+            check_if_exists_and_clear_value_and_prune_empty_branch(node, &path.segments);
         if prune_branch && path.segments.len() > 0 {
             node.branches.remove(&path.segments[0]);
         }
-        return existed;
+        value_existed
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
