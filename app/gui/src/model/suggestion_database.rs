@@ -60,6 +60,12 @@ impl From<&str> for FreeformPath {
     }
 }
 
+impl From<String> for FreeformPath {
+    fn from(path: String) -> FreeformPath {
+        path.as_str().into()
+    }
+}
+
 impl From<&Entry> for FreeformPath {
     fn from(entry: &Entry) -> FreeformPath {
         match entry.kind {
@@ -905,15 +911,30 @@ mod test {
     #[test]
     fn freeform_path_to_id_map() {
         let map: FreeformPathToIdMap = default();
-        let package_path = "Foo".into();
-        let path = "Foo.Bar.baz".into();
+        let package_path = "Foo";
+        // Set and remove a path consisting of one segment.
+        let one_segment_path: FreeformPath = package_path.into();
+        assert_eq!(map.get(one_segment_path.clone()), None);
+        assert!(!map.check_if_exists_and_remove(&one_segment_path));
+        assert!(!map.check_if_exists_and_set(&one_segment_path, 10));
+        assert!(map.check_if_exists_and_set(&one_segment_path, 11));
+        assert_eq!(map.get(one_segment_path.clone()), Some(11));
+        assert!(map.check_if_exists_and_remove(&one_segment_path));
+        assert!(!map.check_if_exists_and_remove(&one_segment_path));
+        assert_eq!(map.get(one_segment_path.clone()), None);
+        // Set and remove a path consisting of multiple segments, starting with the same segment as
+        // `one_segment_path`. Also, verify that removing `one_segment_path` when `path` is set
+        // does not remove `path`.
+        let path: FreeformPath = (package_path.to_string() + ".Bar.baz").into();
+        assert_eq!(map.get(path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&path));
         assert!(!map.check_if_exists_and_set(&path, 2));
         assert_eq!(map.get(path.clone()), Some(2));
-        assert!(!map.check_if_exists_and_remove(&package_path));
+        assert!(!map.check_if_exists_and_remove(&one_segment_path));
         assert!(map.check_if_exists_and_set(&path, 3));
         assert_eq!(map.get(path.clone()), Some(3));
         assert!(map.check_if_exists_and_remove(&path));
         assert!(!map.check_if_exists_and_remove(&path));
+        assert_eq!(map.get(path.clone()), None);
     }
 }
