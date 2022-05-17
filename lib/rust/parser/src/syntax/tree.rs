@@ -218,66 +218,16 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
 // === Visitors ===
 // ================
 
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait TreeVisitor<'s, 'a> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit(&mut self, ast: &'a Tree<'s>) -> bool;
-}
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait TreeVisitorMut<'s> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool;
-}
-
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait SpanVisitor<'s, 'a> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit(&mut self, ast: SpanRef<'s, 'a>) -> bool;
-}
-
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait SpanVisitorMut<'s> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit_mut(&mut self, ast: SpanRefMut<'s, '_>) -> bool;
-}
-
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait ItemVisitor<'s, 'a> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit_item(&mut self, ast: ItemRef<'s, 'a>) -> bool;
-}
-
-
 /// The visitor pattern for [`AST`].
 ///
 /// # Visitor traits
-/// This macro defines visitor traits, such as [`TreeVisitor`] or [`SpanVisitor`], which provide
-/// abstraction for building a visitor for [`Tree`] and [`Span`] elements respectively. A visitor is
-/// a struct that is modified when traversing all elements of [`Tree`]. Visitors are also capable of
-/// tracking when they entered or exited a nested [`Tree`] structure, and they can control how deep
-/// the traversal should be performed. To learn more, see the [`RefCollectorVisitor`]
-/// implementation, which traverses [`Tree`] and collects references to all [`Tree`] nodes in a
-/// vector.
+/// There are several visitor traits defined allowing for traversal of specific AST elements, such
+/// as AST nodes ([`TreeVisitor`]), span information ([`SpanVisitor`]), and AST nodes or tokens
+/// altogether ([`ItemVisitor`]). A visitor is a struct that is modified when traversing the target
+/// elements. Visitors are also capable of tracking when they entered or exited a nested
+/// [`Tree`] structure, and they can control how deep the traversal should be performed. To learn
+/// more, see the [`RefCollectorVisitor`] implementation, which traverses [`Tree`] and collects
+/// references to all [`Tree`] nodes in a vector.
 ///
 /// # Visitable traits
 /// This macro also defines visitable traits, such as [`TreeVisitable`] or [`SpanVisitable`], which
@@ -298,6 +248,42 @@ pub trait ItemVisitor<'s, 'a> {
 /// Unfortunately, due to Rust compiler errors, Rust is not able to compile such a definition. We
 /// could move to it as soon as this error gets resolved:
 /// https://github.com/rust-lang/rust/issues/96634.
+#[allow(missing_docs)]
+pub trait Visitor {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+}
+
+/// The visitor trait allowing for [`Tree`] nodes traversal.
+#[allow(missing_docs)]
+pub trait TreeVisitor<'s, 'a>: Visitor {
+    fn visit(&mut self, ast: &'a Tree<'s>) -> bool;
+}
+
+/// The visitor trait allowing for [`Tree`] nodes mutable traversal.
+#[allow(missing_docs)]
+pub trait TreeVisitorMut<'s>: Visitor {
+    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool;
+}
+
+/// The visitor trait allowing for [`Span`] traversal.
+#[allow(missing_docs)]
+pub trait SpanVisitor<'s, 'a>: Visitor {
+    fn visit(&mut self, ast: SpanRef<'s, 'a>) -> bool;
+}
+
+/// The visitor trait allowing for [`Span`] mutable traversal.
+#[allow(missing_docs)]
+pub trait SpanVisitorMut<'s>: Visitor {
+    fn visit_mut(&mut self, ast: SpanRefMut<'s, '_>) -> bool;
+}
+
+/// The visitor trait allowing for [`Item`] traversal.
+#[allow(missing_docs)]
+pub trait ItemVisitor<'s, 'a>: Visitor {
+    fn visit_item(&mut self, ast: ItemRef<'s, 'a>) -> bool;
+}
+
 macro_rules! define_visitor {
     ($name:ident, $visit:ident) => {
         define_visitor_no_mut! {$name, $visit}
@@ -332,10 +318,9 @@ macro_rules! define_visitor_mut {
     };
 }
 
-/// Internal helper for [`define_visitor`].
 macro_rules! define_visitor_internal {
     (
-        $([$pmod:ident $mod:ident])?
+        $([$pfx_mod:ident $mod:ident])?
         $name:ident,
         $visit:ident,
         [$($visitor:tt)*],
@@ -374,13 +359,13 @@ macro_rules! define_visitor_internal {
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Vec<T> {
             fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pmod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for NonEmptyVec<T> {
             fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
-                self.[<iter $($pmod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
+                self.[<iter $($pfx_mod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
@@ -408,11 +393,6 @@ define_visitor_no_mut!(Item, visit_item);
 crate::with_token_definition!(define_visitor_for_tokens());
 
 
-
-impl<'s, 'a, T> TreeVisitable<'s, 'a> for token::Token<'s, T> {}
-impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for token::Token<'s, T> {}
-
-
 // === TreeVisitable special cases ===
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for Tree<'s> {
@@ -430,6 +410,9 @@ impl<'s, 'a> TreeVisitableMut<'s, 'a> for Tree<'s> {
         }
     }
 }
+
+impl<'s, 'a, T> TreeVisitable<'s, 'a> for token::Token<'s, T> {}
+impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for token::Token<'s, T> {}
 
 
 // === SpanVisitable special cases ===
@@ -502,6 +485,7 @@ struct CodePrinterVisitor {
     pub code: String,
 }
 
+impl Visitor for CodePrinterVisitor {}
 impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
     fn visit_item(&mut self, item: ItemRef<'s, 'a>) -> bool {
         match item {
@@ -524,8 +508,6 @@ impl<'s> Tree<'s> {
     }
 }
 
-// FIXME: UGLY CODE ENDS HERE
-
 
 
 // ===========================
@@ -539,6 +521,7 @@ struct RefCollectorVisitor<'s, 'a> {
     pub vec: Vec<&'a Tree<'s>>,
 }
 
+impl<'s, 'a> Visitor for RefCollectorVisitor<'s, 'a> {}
 impl<'s, 'a> TreeVisitor<'s, 'a> for RefCollectorVisitor<'s, 'a> {
     fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
         self.vec.push(ast);
@@ -566,6 +549,7 @@ impl<'s> Tree<'s> {
 #[allow(missing_docs)]
 pub struct FnVisitor<F>(pub F);
 
+impl<F> Visitor for FnVisitor<F> {}
 impl<'s: 'a, 'a, T, F: Fn(&'a Tree<'s>) -> T> TreeVisitor<'s, 'a> for FnVisitor<F> {
     fn visit(&mut self, ast: &'a Tree<'s>) -> bool {
         (self.0)(ast);
