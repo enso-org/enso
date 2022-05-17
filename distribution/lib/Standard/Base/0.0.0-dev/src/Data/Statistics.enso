@@ -5,12 +5,14 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.CountMinMax
+polyglot java import org.enso.base.statistics.CorrelationStats
+polyglot java import java.lang.IllegalArgumentException
 
 type Statistic
     ## PRIVATE
        Convert the Enso Statistic into Java equivalent.
-    to_java : SingleValue
-    to_java = case this of
+    to_moment_statistic : SingleValue
+    to_moment_statistic = case this of
         Sum -> Moments.SUM
         Mean -> Moments.MEAN
         Variance p -> if p then Moments.VARIANCE_POPULATION else Moments.VARIANCE
@@ -52,6 +54,26 @@ type Statistic
     ## The sample kurtosis of the values.
     type Kurtosis
 
+    ## Calculate the Covariance between data and series.
+
+       Arguments:
+       - series: the series to compute the covariance with.
+    type Covariance (series:Vector)
+
+    ## Calculate the Pearson Correlation between data and series.
+
+       Arguments:
+       - series: the series to compute the correlation with.
+    type Pearson (series:Vector)
+
+    ## Calculate the coefficient of determination between data and predicted
+       series.
+
+       Arguments:
+       - predicted: the series to compute the r_squared with.
+    type R_Squared (predicted:Vector)
+
+
 ## Compute a single statistic on a vector like object.
 
    Arguments:
@@ -69,11 +91,11 @@ compute data statistic=Count =
    - statistics: Set of statistics to calculate.
 compute_bulk : Vector -> [Statistic] -> [Any]
 compute_bulk data statistics=[Count, Sum] =
-
     count_min_max = statistics.any s->((s.is_a Count) || (s.is_a Minimum) || (s.is_a Maximum))
 
-    java_stats = statistics.map .to_java
+    java_stats = statistics.map .to_moment_statistic
     skip_java_stats = java_stats.all s->s.is_nothing
+
     report_invalid _ =
         statistics.map_with_index i->v->
             if java_stats.at i . is_nothing then Nothing else
@@ -98,6 +120,44 @@ compute_bulk data statistics=[Count, Sum] =
                 if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
                     count_min_max_values.maximum
             _ -> stats_array.at i
+
+
+## Calculate a variance-covariance matrix between the input series.
+
+   Arguments:
+   - data: The input data sets
+covariance_matrix : [Vector] -> [Vector]
+covariance_matrix data =
+    stats_vectors = here.correlation_stats data
+    stats_vectors.map v->(v.map .covariance)
+
+
+## Calculate a Pearson correlation matrix between the input series.
+
+   Arguments:
+   - data: The input data sets
+pearson_correlation : [Vector] -> [Vector]
+pearson_correlation data =
+    stats_vectors = here.correlation_stats data
+    stats_vectors.map v->(v.map .pearsonCorrelation)
+
+
+## PRIVATE
+   Given a set of series get CorrelationStats objects
+correlation_stats : [Vector] -> [CorrelationStats]
+correlation_stats data =
+    data_array = Array.new data.length
+    0.up_to data.length . each i->(data_array.set_at i (data.at i).to_array)
+
+    report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
+    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
+
+    report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
+
+    stats_array = handle_unsupported <| handle_illegal <| CorrelationStats.computeMatrix data_array
+    Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
+
 
 ## Compute a single statistic on the vector.
 
