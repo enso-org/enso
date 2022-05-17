@@ -909,7 +909,7 @@ mod test {
     fn freeform_path_to_id_map() {
         let map: FreeformPathToIdMap = default();
         let package_path = "Foo";
-        // Set and remove a path consisting of one segment.
+        // Set and remove a value at a one-segment path.
         let one_segment_path: FreeformPath = package_path.into();
         assert_eq!(map.get(one_segment_path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
@@ -920,9 +920,9 @@ mod test {
         assert!(map.check_if_exists_and_remove(&one_segment_path));
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
         assert_eq!(map.get(one_segment_path.clone()), None);
-        // Set and remove a path consisting of multiple segments, starting with the same segment as
-        // `one_segment_path`. Also, verify that removing `one_segment_path` when `path` is set
-        // does not remove `path`.
+        // Set and remove a value at a multi-segment path, starting with the same segment as
+        // `one_segment_path`. Also, verify that removing the value at `one_segment_path` when
+        // `path` is set does not remove the value at `path`.
         let path: FreeformPath = (package_path.to_string() + ".Bar.baz").into();
         assert_eq!(map.get(path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&path));
