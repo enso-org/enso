@@ -16,4 +16,10 @@ pub use span::Offset;
 pub use span::Span;
 pub use span::VisibleOffset;
 
-pub use span::traits::*;
+
+
+/// Popular traits.
+pub mod traits {
+    pub use super::span::traits::*;
+}
+pub use traits::*;

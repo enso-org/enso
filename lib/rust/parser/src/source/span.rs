@@ -2,10 +2,10 @@
 //! in the source code.
 
 use crate::prelude::*;
-
-use crate::lexer;
 use crate::source::*;
 use crate::syntax::*;
+
+use crate::lexer;
 
 
 

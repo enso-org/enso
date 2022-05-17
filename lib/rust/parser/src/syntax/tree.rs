@@ -1,10 +1,10 @@
 //! Implementation of Syntax Tree, known as well as Abstract Syntax Tree, or AST.
 
 use crate::prelude::*;
-
 use crate::source::*;
-use crate::span_builder;
 use crate::syntax::*;
+
+use crate::span_builder;
 
 use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;

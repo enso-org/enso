@@ -92,7 +92,6 @@
 //! See the definitions and macros below to learn more.
 
 use crate::prelude::*;
-
 use crate::source::*;
 
 use enso_shapely_macros::tagged_enum;
