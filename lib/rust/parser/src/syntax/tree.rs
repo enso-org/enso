@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::source::span;
 use crate::source::span::Span;
+use crate::source::span::SpanRef;
 use crate::source::span::SpanRefMut;
 use crate::span_builder;
 use crate::syntax::token;
@@ -212,13 +213,60 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
 }
 
 
-// FIXME: Some of the visitors code is commented out. This is because the implementation is not
-//        yet generalized. It will be fixed in the next PR.
-// FIXME: UGLY CODE STARTS HERE
 
 // ================
 // === Visitors ===
 // ================
+
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait TreeVisitor<'s, 'a> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit(&mut self, ast: &'a Tree<'s>) -> bool;
+}
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait TreeVisitorMut<'s> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit_mut(&mut self, ast: &mut Tree<'s>) -> bool;
+}
+
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait SpanVisitor<'s, 'a> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit(&mut self, ast: SpanRef<'s, 'a>) -> bool;
+}
+
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait SpanVisitorMut<'s> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit_mut(&mut self, ast: SpanRefMut<'s, '_>) -> bool;
+}
+
+/// The visitor trait. See documentation of [`define_visitor`] to learn more.
+#[allow(missing_docs)]
+pub trait ItemVisitor<'s, 'a> {
+    fn before_visiting_children(&mut self) {}
+    fn after_visiting_children(&mut self) {}
+    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
+    /// traversed as well.
+    fn visit_item(&mut self, ast: ItemRef<'s, 'a>) -> bool;
+}
+
 
 /// The visitor pattern for [`AST`].
 ///
@@ -251,16 +299,34 @@ where token::Token<'s>: span::Build<S, Output = Span<'s>>
 /// could move to it as soon as this error gets resolved:
 /// https://github.com/rust-lang/rust/issues/96634.
 macro_rules! define_visitor {
-    ($name:ident, $visit:ident, $visit_mut:ident) => {
+    ($name:ident, $visit:ident) => {
+        define_visitor_no_mut! {$name, $visit}
+        define_visitor_mut! {$name, $visit}
+    };
+}
+
+macro_rules! define_visitor_no_mut {
+    ($name:ident, $visit:ident) => {
         paste! {
             define_visitor_internal! {
                 $name,
                 $visit,
-                $visit_mut,
-                [<$name Visitor>],
-                [<$name VisitorMut>],
+                [[<$name Visitor>]<'s, 'a>],
                 [<$name Visitable>],
-                [<$name VisitableMut>]
+            }
+        }
+    };
+}
+
+macro_rules! define_visitor_mut {
+    ($name:ident, $visit:ident) => {
+        paste! {
+            define_visitor_internal! {
+                [_mut mut]
+                $name,
+                [<$visit _mut>],
+                [[<$name VisitorMut>]<'s>],
+                [<$name VisitableMut>],
             }
         }
     };
@@ -269,70 +335,28 @@ macro_rules! define_visitor {
 /// Internal helper for [`define_visitor`].
 macro_rules! define_visitor_internal {
     (
+        $([$pmod:ident $mod:ident])?
         $name:ident,
         $visit:ident,
-        $visit_mut:ident,
-        $visitor:ident,
-        $visitor_mut:ident,
+        [$($visitor:tt)*],
         $visitable:ident,
-        $visitable_mut:ident
-    ) => {
-        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
-        #[allow(missing_docs)]
-        pub trait $visitor<'s, 'a> {
-            fn before_visiting_children(&mut self) {}
-            fn after_visiting_children(&mut self) {}
-            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-            /// traversed as well.
-            fn visit(&mut self, ast: &'a $name<'s>) -> bool;
-        }
-
-        /// The visitor trait. See documentation of [`define_visitor`] to learn more.
-        #[allow(missing_docs)]
-        pub trait $visitor_mut<'s> {
-            fn before_visiting_children(&mut self) {}
-            fn after_visiting_children(&mut self) {}
-            /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-            /// traversed as well.
-            fn visit_mut(&mut self, ast: &mut $name<'s>) -> bool;
-        }
-
+    ) => { paste! {
         /// The visitable trait. See documentation of [`define_visitor`] to learn more.
         #[allow(missing_docs)]
         pub trait $visitable<'s, 'a> {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
-        }
-
-        /// The visitable trait. See documentation of [`define_visitor`] to learn more.
-        #[allow(missing_docs)]
-        pub trait $visitable_mut<'s, 'a> {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, _visitor: &mut V) {}
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, _visitor: &mut V) {}
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Box<T> {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
-                $visitable::$visit(&**self, visitor)
-            }
-        }
-
-        impl<'s, 'a, T: $visitable_mut<'s, 'a>> $visitable_mut<'s, 'a> for Box<T> {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
-                $visitable_mut::$visit_mut(&mut **self, visitor)
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+                $visitable::$visit(& $($mod)? **self, visitor)
             }
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Option<T> {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
                 if let Some(elem) = self {
                     $visitable::$visit(elem, visitor)
-                }
-            }
-        }
-
-        impl<'s, 'a, T: $visitable_mut<'s, 'a>> $visitable_mut<'s, 'a> for Option<T> {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
-                if let Some(elem) = self {
-                    $visitable_mut::$visit_mut(elem, visitor)
                 }
             }
         }
@@ -340,7 +364,7 @@ macro_rules! define_visitor_internal {
         impl<'s, 'a, T: $visitable<'s, 'a>, E: $visitable<'s, 'a>> $visitable<'s, 'a>
             for Result<T, E>
         {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
                 match self {
                     Ok(elem) => $visitable::$visit(elem, visitor),
                     Err(elem) => $visitable::$visit(elem, visitor),
@@ -348,47 +372,21 @@ macro_rules! define_visitor_internal {
             }
         }
 
-        impl<'s, 'a, T: $visitable_mut<'s, 'a>, E: $visitable_mut<'s, 'a>> $visitable_mut<'s, 'a>
-            for Result<T, E>
-        {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
-                match self {
-                    Ok(elem) => $visitable_mut::$visit_mut(elem, visitor),
-                    Err(elem) => $visitable_mut::$visit_mut(elem, visitor),
-                }
-            }
-        }
-
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for Vec<T> {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'s, 'a, T: $visitable_mut<'s, 'a>> $visitable_mut<'s, 'a> for Vec<T> {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+                self.[<iter $($pmod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'s, 'a, T: $visitable<'s, 'a>> $visitable<'s, 'a> for NonEmptyVec<T> {
-            fn $visit<V: $visitor<'s, 'a>>(&'a self, visitor: &mut V) {
-                self.iter().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
-            }
-        }
-
-        impl<'s, 'a, T: $visitable_mut<'s, 'a>> $visitable_mut<'s, 'a> for NonEmptyVec<T> {
-            fn $visit_mut<V: $visitor_mut<'s>>(&'a mut self, visitor: &mut V) {
-                self.iter_mut().map(|t| $visitable_mut::$visit_mut(t, visitor)).for_each(drop);
+            fn $visit<V: $($visitor)*>(&'a $($mod)? self, visitor: &mut V) {
+                self.[<iter $($pmod)?>]().map(|t| $visitable::$visit(t, visitor)).for_each(drop);
             }
         }
 
         impl<'s, 'a> $visitable<'s, 'a> for &str {}
         impl<'s, 'a> $visitable<'s, 'a> for str {}
-
-        impl<'s, 'a> $visitable_mut<'s, 'a> for &str {}
-        impl<'s, 'a> $visitable_mut<'s, 'a> for str {}
-    };
+    }};
 }
 
 macro_rules! define_visitor_for_tokens {
@@ -400,26 +398,22 @@ macro_rules! define_visitor_for_tokens {
     ) => {
         impl<'s, 'a> TreeVisitable<'s, 'a> for token::$kind {}
         impl<'s, 'a> TreeVisitableMut<'s, 'a> for token::$kind {}
-        // impl<'s, 'a> SpanVisitable<'a> for token::$kind {}
-        // impl<'s, 'a> SpanVisitableMut<'a> for token::$kind {}
-        // $(
-        //     impl<'s, 'a> TreeVisitable<'s, 'a> for token::$variant<'s> {}
-        //     impl<'s, 'a> TreeVisitableMut<'s, 'a> for token::$variant<'s> {}
-        //     // impl<'s, 'a> SpanVisitable<'a> for token::$variant {}
-        //     // impl<'s, 'a> SpanVisitableMut<'a> for token::$variant {}
-        // )*
     };
 }
 
-define_visitor!(Tree, visit, visit_mut);
-// define_visitor!(Span, visit_span, visit_span_mut);
+define_visitor!(Tree, visit);
+define_visitor!(Span, visit_span);
+define_visitor_no_mut!(Item, visit_item);
+
 crate::with_token_definition!(define_visitor_for_tokens());
+
+
 
 impl<'s, 'a, T> TreeVisitable<'s, 'a> for token::Token<'s, T> {}
 impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for token::Token<'s, T> {}
 
 
-// === Special cases ===
+// === TreeVisitable special cases ===
 
 impl<'s, 'a> TreeVisitable<'s, 'a> for Tree<'s> {
     fn visit<V: TreeVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
@@ -437,23 +431,22 @@ impl<'s, 'a> TreeVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
-// impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
-//     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-//         if visitor.visit(&self.span) {
-//             self.variant.visit_span(visitor)
-//         }
-//     }
-// }
-//
-// impl<'s, 'a, T> SpanVisitable<'s, 'a> for token::Token<'s, T> {
-//     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-//         // visitor.visit(&self.span());
-//         // FIXME
-//     }
-// }
+
+// === SpanVisitable special cases ===
+
+impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
+    fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        if visitor.visit(SpanRef {
+            left_offset: &self.span.left_offset,
+            code_length: self.span.code_length,
+        }) {
+            self.variant.visit_span(visitor)
+        }
+    }
+}
 
 impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
+    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
         if visitor.visit_mut(SpanRefMut {
             left_offset: &mut self.span.left_offset,
             code_length: self.span.code_length,
@@ -463,116 +456,22 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
+impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for token::Token<'s, T> {
+    fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
+        let code_length = self.code.len();
+        visitor.visit(SpanRef { left_offset: &self.left_offset, code_length });
+    }
+}
+
 impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for token::Token<'s, T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
+    fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
         let code_length = self.code.len();
         visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, code_length });
     }
 }
 
 
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait SpanVisitorMut<'s, 'a> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit_mut(&mut self, ast: SpanRefMut<'s, 'a>) -> bool;
-}
-
-/// The visitable trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait SpanVisitableMut<'s, 'a> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, _visitor: &mut V) {}
-}
-impl<'a, 't, 's, T: SpanVisitableMut<'s, 'a>> SpanVisitableMut<'s, 'a> for Box<T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        SpanVisitableMut::visit_span_mut(&mut **self, visitor)
-    }
-}
-impl<'a, 't, 's, T: SpanVisitableMut<'s, 'a>> SpanVisitableMut<'s, 'a> for Option<T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        if let Some(elem) = self {
-            SpanVisitableMut::visit_span_mut(elem, visitor)
-        }
-    }
-}
-impl<'a, 't, 's, T: SpanVisitableMut<'s, 'a>, E: SpanVisitableMut<'s, 'a>> SpanVisitableMut<'s, 'a>
-    for Result<T, E>
-{
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        match self {
-            Ok(elem) => SpanVisitableMut::visit_span_mut(elem, visitor),
-            Err(elem) => SpanVisitableMut::visit_span_mut(elem, visitor),
-        }
-    }
-}
-impl<'a, 't, 's, T: SpanVisitableMut<'s, 'a>> SpanVisitableMut<'s, 'a> for Vec<T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| SpanVisitableMut::visit_span_mut(t, visitor)).for_each(drop);
-    }
-}
-impl<'a, 't, 's, T: SpanVisitableMut<'s, 'a>> SpanVisitableMut<'s, 'a> for NonEmptyVec<T> {
-    fn visit_span_mut<V: SpanVisitorMut<'s, 'a>>(&'a mut self, visitor: &mut V) {
-        self.iter_mut().map(|t| SpanVisitableMut::visit_span_mut(t, visitor)).for_each(drop);
-    }
-}
-impl<'s, 'a> SpanVisitableMut<'s, 'a> for &str {}
-impl<'s, 'a> SpanVisitableMut<'s, 'a> for str {}
-
-
-
-/// The visitor trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait ItemVisitor<'s, 'a> {
-    fn before_visiting_children(&mut self) {}
-    fn after_visiting_children(&mut self) {}
-    /// Visit the given [`ast`] node. If it returns [`true`], children of the node will be
-    /// traversed as well.
-    fn visit_item(&mut self, ast: ItemRef<'s, 'a>) -> bool;
-}
-
-/// The visitable trait. See documentation of [`define_visitor`] to learn more.
-#[allow(missing_docs)]
-pub trait ItemVisitable<'s, 'a> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, _visitor: &mut V) {}
-}
-impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Box<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        ItemVisitable::visit_item(&**self, visitor)
-    }
-}
-impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Option<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        if let Some(elem) = self {
-            ItemVisitable::visit_item(elem, visitor)
-        }
-    }
-}
-impl<'a, 't, 's, T: ItemVisitable<'s, 'a>, E: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a>
-    for Result<T, E>
-{
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        match self {
-            Ok(elem) => ItemVisitable::visit_item(elem, visitor),
-            Err(elem) => ItemVisitable::visit_item(elem, visitor),
-        }
-    }
-}
-impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Vec<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        self.iter().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
-    }
-}
-impl<'a, 't, 's, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for NonEmptyVec<T> {
-    fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        self.iter().map(|t| ItemVisitable::visit_item(t, visitor)).for_each(drop);
-    }
-}
-impl<'s, 'a> ItemVisitable<'s, 'a> for &str {}
-impl<'s, 'a> ItemVisitable<'s, 'a> for str {}
-
+// === ItemVisitable special cases ===
 
 impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
