@@ -126,7 +126,7 @@ impl FreeformPathToIdMap {
 
     fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
         let mut tree = self.tree.borrow_mut();
-        let node = &mut tree.get_or_create_node(path.segments.iter());
+        let node = &mut tree.get_or_create_node(&path.segments);
         let old_value = std::mem::replace(&mut node.value, Some(id));
         old_value.is_some()
     }
@@ -179,7 +179,7 @@ impl FreeformPathToIdMap {
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
         let path = path.into();
-        match self.tree.borrow().get(path.segments.iter()) {
+        match self.tree.borrow().get(&path.segments) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
