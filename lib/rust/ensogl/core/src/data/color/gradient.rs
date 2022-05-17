@@ -3,6 +3,7 @@
 use crate::prelude::*;
 use crate::system::gpu::shader::glsl::traits::*;
 
+use crate::display::shape::Var;
 use crate::system::gpu::shader::glsl::Glsl;
 
 
@@ -96,9 +97,9 @@ pub const DEFAULT_DISTANCE_GRADIENT_SIZE: f32 = 10.0;
 #[derive(Clone, Debug)]
 pub struct SdfSampler<Gradient> {
     /// The distance from the shape border at which the gradient should start.
-    pub spread:   f32,
+    pub spread:   Var<f32>,
     /// The size of the gradient in the SDF space.
-    pub size:     f32,
+    pub size:     Var<f32>,
     /// The gradient slope modifier. Defines how fast the gradient values change.
     pub slope:    Slope,
     /// The underlying gradient.
@@ -109,21 +110,21 @@ impl<Gradient> SdfSampler<Gradient> {
     /// Constructs a new gradient with `spread` and `size` set to
     /// `DEFAULT_DISTANCE_GRADIENT_SPREAD` and `DEFAULT_DISTANCE_GRADIENT_SIZE` respectively.
     pub fn new(gradient: Gradient) -> Self {
-        let spread = DEFAULT_DISTANCE_GRADIENT_SPREAD;
-        let size = DEFAULT_DISTANCE_GRADIENT_SIZE;
+        let spread = DEFAULT_DISTANCE_GRADIENT_SPREAD.into();
+        let size = DEFAULT_DISTANCE_GRADIENT_SIZE.into();
         let slope = Slope::Smooth;
         Self { spread, size, slope, gradient }
     }
 
     /// Constructor setter for the `spread` field.
-    pub fn spread(mut self, t: f32) -> Self {
-        self.spread = t;
+    pub fn spread(mut self, t: impl Into<Var<f32>>) -> Self {
+        self.spread = t.into();
         self
     }
 
     /// Constructor setter for the `size` field.
-    pub fn size(mut self, t: f32) -> Self {
-        self.size = t;
+    pub fn size(mut self, t: impl Into<Var<f32>>) -> Self {
+        self.size = t.into();
         self
     }
 
@@ -153,7 +154,7 @@ impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
         let size   = iformat!("{g.size.glsl()}");
         let offset = iformat!("-shape.sdf.distance + {g.spread.glsl()}");
         let norm   = iformat!("clamp(({offset}) / ({size}))");
-        let t      = match g.slope {
+        let t      = match &g.slope {
             Slope::Linear        => norm,
             Slope::Smooth        => iformat!("smoothstep(0.0,1.0,{norm})"),
             Slope::Exponent(exp) => iformat!("pow({norm},{exp.glsl()})"),
@@ -167,7 +168,7 @@ impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
 macro_rules! define_slope {
     ($($(#$docs:tt)* $name:ident $(($($arg:ident : $arg_type:ty),*))? $fn_name:ident),* $(,)?) => {
         /// Defines how fast gradient values change.
-        #[derive(Copy,Clone,Debug)]
+        #[derive(Clone,Debug)]
         pub enum Slope {
             $($(#$docs)* $name $(($($arg_type),*))? ),*
         }
@@ -191,8 +192,8 @@ define_slope! {
     Smooth smooth,
     /// Raises the normalized gradient offset to the given power and uses it as the interpolation
     /// step.
-    Exponent(exp:f32) exponent,
+    Exponent(exp:Var<f32>) exponent,
     /// Raises the normalized gradient offset to the given power and uses it as the interpolation
     /// step.
-    InvExponent(exp:f32) inv_exponent,
+    InvExponent(exp:Var<f32>) inv_exponent,
 }
