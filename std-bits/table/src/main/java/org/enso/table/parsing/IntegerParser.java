@@ -10,16 +10,11 @@ public class IntegerParser extends TypeParser<NumericProblemAggregator> {
 
   public IntegerParser(final String thousandsSeparator, final boolean leadingZerosAllowed) {
     this.leadingZerosAllowed = leadingZerosAllowed;
-    if (thousandsSeparator != null) {
-      if (thousandsSeparator.length() != 1) {
-        throw new IllegalArgumentException(
-            "The `thousandsSeparator` should consist of exactly one code point.");
-      }
-
-      this.thousandsSeparator = thousandsSeparator;
-    } else {
-      this.thousandsSeparator = null;
+    if (thousandsSeparator != null && thousandsSeparator.length() != 1) {
+      throw new IllegalArgumentException(
+          "The `thousandsSeparator` should consist of exactly one code point.");
     }
+    this.thousandsSeparator = thousandsSeparator;
   }
 
   @Override

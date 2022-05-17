@@ -16,7 +16,7 @@ import Standard.Table.Internal.Parse_Values_Helper
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
-from Standard.Table.Data.Serialization_Options as Serialization_Options_Module import Serialization_Options
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
@@ -547,10 +547,10 @@ type Table
 
        The default parser options only parse values where the process is
        reversible (e.g., 0123 would not be converted to an integer as there is
-       a leading 0). However, settings in the `Serialization_Options` can
+       a leading 0). However, settings in the `Data_Formatter` can
        control this.
-    parse_values : Serialization_Options -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values parser=Serialization_Options column_types=Nothing on_problems=Report_Warning =
+    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         columns = this.columns
         problem_builder = Vector.new_builder
 

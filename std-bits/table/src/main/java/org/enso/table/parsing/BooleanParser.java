@@ -1,30 +1,35 @@
 package org.enso.table.parsing;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
+import org.graalvm.collections.EconomicSet;
 
 public class BooleanParser extends TypeParser<InvalidFormatProblemAggregator> {
 
-  private final String[] trueValues;
-  private final String[] falseValues;
+  private final EconomicSet<String> trueValues;
+  private final EconomicSet<String> falseValues;
 
   public BooleanParser(String[] trueValues, String[] falseValues) {
-    this.trueValues = trueValues;
-    this.falseValues = falseValues;
+    this.trueValues = EconomicSet.create(trueValues.length);
+    this.falseValues = EconomicSet.create(falseValues.length);
+    for (String v : trueValues) {
+      this.trueValues.add(v);
+    }
+    for (String v : falseValues) {
+      this.falseValues.add(v);
+    }
   }
 
   @Override
   public Object parseSingleValue(String text, InvalidFormatProblemAggregator problemAggregator) {
     // TODO we may want to use equality checks taking Unicode Normalization into account, to be
     // revised in: https://www.pivotaltracker.com/story/show/182166382
-    for (var v : trueValues) {
-      if (text.equals(v)) return true;
-    }
-
-    for (var v : falseValues) {
-      if (text.equals(v)) return false;
-    }
+    if (trueValues.contains(text)) return true;
+    if (falseValues.contains(text)) return false;
 
     problemAggregator.reportInvalidFormat(text);
     return null;

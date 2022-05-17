@@ -7,7 +7,6 @@ import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.parsing.problems.NumericProblemAggregator;
 
 public class DecimalParser extends TypeParser<NumericProblemAggregator> {
-  private final char thousandsSeparatorChar;
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;
@@ -26,18 +25,11 @@ public class DecimalParser extends TypeParser<NumericProblemAggregator> {
       this.decimalPoint = decimalPoint.charAt(0);
     }
 
-    if (thousandsSeparator != null) {
-      if (thousandsSeparator.length() != 1) {
-        throw new IllegalArgumentException(
-            "The `thousandsSeparator` should consist of exactly one code point.");
-      }
-
-      this.thousandsSeparator = thousandsSeparator;
-      thousandsSeparatorChar = thousandsSeparator.charAt(0);
-    } else {
-      this.thousandsSeparator = null;
-      thousandsSeparatorChar = '\0';
+    if (thousandsSeparator != null && thousandsSeparator.length() != 1) {
+      throw new IllegalArgumentException(
+          "The `thousandsSeparator` should consist of exactly one code point.");
     }
+    this.thousandsSeparator = thousandsSeparator;
 
     decimalFormat = new DecimalFormat();
     var symbols = decimalFormat.getDecimalFormatSymbols();
