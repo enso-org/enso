@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.System.Environment
+import Standard.Base.Runtime.Ref
 
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
@@ -35,8 +36,8 @@ run_tests connection pending=Nothing =
     name_counter = Ref.new 0
     tables = Vector.new_builder
     table_builder columns =
-        ix = Ref.get name_counter
-        Ref.put name_counter ix+1
+        ix = name_counter.get
+        name_counter . put ix+1
         name = Name_Generator.random_name "table_"+ix.to_text
 
         in_mem_table = Materialized_Table.new columns

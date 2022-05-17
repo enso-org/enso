@@ -7,9 +7,9 @@ import org.enso.interpreter.runtime.data.Ref;
 @BuiltinMethod(type = "Ref", name = "put", description = "Stores a new value in the reference.")
 public class PutRefNode extends Node {
 
-  Object execute(Object _this, Ref ref, Object new_value) {
-    Object old = ref.getValue();
-    ref.setValue(new_value);
+  Object execute(Ref _this, Object new_value) {
+    Object old = _this.getValue();
+    _this.setValue(new_value);
     return old;
   }
 }

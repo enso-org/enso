@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Vector_Builder
 
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
@@ -28,7 +29,7 @@ type Problem_Builder
     build_problemset =
         problems = Vector.new_builder
         build_vector_and_append ref problem_creator =
-            vec = Ref.get ref . build
+            vec = ref.get . build
             if vec.not_empty then
                 problems.append (problem_creator vec)
 
@@ -64,5 +65,5 @@ new =
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
 append_to_ref : Ref Vector_Builder -> Vector -> Nothing
 append_to_ref ref vector =
-    appended = Ref.get ref ++ vector
-    Ref.put ref appended
+    appended = (ref.get) ++ vector
+    ref . put appended

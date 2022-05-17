@@ -1,7 +1,7 @@
 from Standard.Base import all hiding Number, Boolean, Array
 
 import Standard.Base.Data.Numbers as Base_Number
-
+import Standard.Base.Runtime.Ref
 from Standard.Base.Data.Json import all
 
 polyglot java import org.enso.base.json.Parser
@@ -32,8 +32,8 @@ type Consumer
        Arguments:
        - v: The value to act upon.
     on_value : Any -> Nothing
-    on_value v = case Ref.get this.child_consumer of
-        Nil -> Ref.put this.value v
+    on_value v = case this.child_consumer . get of
+        Nil -> this.value . put v
         cons -> cons.on_value v
 
     ## PRIVATE
@@ -42,13 +42,13 @@ type Consumer
        parent, or takes its returned value as the final result of parsing.
     seal_child : Nothing
     seal_child =
-        child = Ref.get this.child_consumer
+        child = this.child_consumer.get
         val = child.seal
         case child.parent of
             Nil ->
-                Ref.put this.value val
+                this.value . put val
             p ->
-                Ref.put this.child_consumer p
+                this.child_consumer . put p
                 p.on_value val
 
     ## PRIVATE
@@ -56,8 +56,8 @@ type Consumer
        Consumes the `start_object` event.
     on_start_object : Nothing
     on_start_object =
-        parent = Ref.get this.child_consumer
-        Ref.put this.child_consumer (here.mk_object_consumer parent)
+        parent = this.child_consumer . get
+        this.child_consumer . put (here.mk_object_consumer parent)
 
     ## PRIVATE
 
@@ -66,7 +66,7 @@ type Consumer
        Arguments:
        - k: The key to act upon.
     on_key : Text -> Nothing
-    on_key k = Ref.get this.child_consumer . on_key k
+    on_key k = this.child_consumer . get . on_key k
 
     ## PRIVATE
 
@@ -79,8 +79,8 @@ type Consumer
        Consumes the `start_array` event.
     on_start_array : Nothing
     on_start_array =
-        parent = Ref.get this.child_consumer
-        Ref.put this.child_consumer (here.mk_array_consumer parent)
+        parent = this.child_consumer . get
+        this.child_consumer . put (here.mk_array_consumer parent)
 
     ## PRIVATE
 
@@ -184,7 +184,7 @@ type Object_Consumer
        Arguments:
        - k: The key to process.
     on_key : Text -> Nothing
-    on_key k = Ref.put this.last_key k
+    on_key k = this.last_key . put k
 
     ## PRIVATE
 
@@ -194,17 +194,17 @@ type Object_Consumer
        - v: The value to process.
     on_value : Any -> Nothing
     on_value v =
-        k = Ref.get this.last_key
-        m = Ref.get this.map
+        k = this.last_key . get
+        m = this.map . get
         new_m = m.insert k v
-        Ref.put this.map new_m
+        this.map . put new_m
 
     ## PRIVATE
 
        Returns the final value built by this consumer.
     seal : Object
     seal =
-        m = Ref.get this.map
+        m = this.map . get
         Object m
 
 ## PRIVATE
@@ -251,8 +251,8 @@ render_helper builder json = case json of
     Object fields ->
         r = Ref.new ""
         render_key_value acc key value =
-            separator = Ref.get r
-            Ref.put r ","
+            separator = r . get
+            r.put ","
             val = here.render_helper "" value
             acc + separator + (Printer.json_escape key) + ":" + val
         arr = fields.fold_with_key "" render_key_value
@@ -260,8 +260,8 @@ render_helper builder json = case json of
     Array items ->
         r = Ref.new ""
         render_array_element acc element =
-            separator = Ref.get r
-            Ref.put r ","
+            separator = r.get
+            r.put ","
             val = here.render_helper "" element
             acc + separator + val
         arr = items.fold "" render_array_element
@@ -325,4 +325,4 @@ parse_helper : Text -> Json
 parse_helper json_text =
     consumer = here.mk_consumer
     Parser.parse json_text consumer
-    Ref.get consumer.value
+    consumer.value . get
