@@ -279,7 +279,8 @@ impl component::Frp<Model> for Frp {
             entry_color_sampler <- entry_color_with_intensity.sampler();
         }
         let params = entry::Params { color: entry_color_sampler };
-        model.entries.set_entry_params_and_recreate_entries(params);
+        model.entries.set_entry_params_and_recreate_entries(params.clone());
+        model.selected_entries.set_entry_params_and_recreate_entries(params);
 
 
         // === Header ===
@@ -324,6 +325,7 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
+            model.selected_entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
         }
 
@@ -413,10 +415,14 @@ impl Layers {
 pub struct Model {
     display_object:    display::object::Instance,
     header:            text::Area,
+    selected_header:            text::Area,
     header_background: header_background::View,
+    selected_header_background: header_background::View,
     header_text:       Rc<RefCell<String>>,
     header_overlay:    header_overlay::View,
     background:        background::View,
+    selected_background:        background::View,
+    selected_entries: list_view::ListView<Entry>,
     entries:           list_view::ListView<Entry>,
 }
 
@@ -436,28 +442,51 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
+        let selected_background = background::View::new(&logger);
+        selected_background.color.set(color::Rgba(0.8, 0.7, 0.6, 1.0).into());
+        app.display.default_scene.layers.selection.add_exclusive(&selected_background);
         let header_background = header_background::View::new(&logger);
+        let selected_header_background = header_background::View::new(&logger);
+        app.display.default_scene.layers.selection.add_exclusive(&selected_header_background);
         let header = text::Area::new(app);
+        let selected_header = text::Area::new(app);
+        selected_header.add_to_scene_layer(&app.display.default_scene.layers.selection_text);
         let entries = app.new_view::<list_view::ListView<Entry>>();
+        let selected_entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
+        selected_entries.set_style_prefix(entry::STYLE_PATH);
+        selected_entries.set_background_color(HOVER_COLOR);
+        selected_entries.show_background_shadow(false);
+        selected_entries.set_background_corners_radius(0.0);
+        selected_entries.hide_selection();
+        app.display.default_scene.layers.selection.add_exclusive(&selected_entries);
+        selected_entries.set_label_layer(&app.display.default_scene.layers.selection_text);
         display_object.add_child(&background);
+        display_object.add_child(&selected_background);
         display_object.add_child(&header_background);
+        display_object.add_child(&selected_header_background);
         display_object.add_child(&header);
+        display_object.add_child(&selected_header);
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
+        display_object.add_child(&selected_entries);
 
         Model {
             display_object,
             header_overlay,
             header,
+            selected_header,
             header_text,
             background,
+            selected_background,
             header_background,
+            selected_header_background,
             entries,
+            selected_entries,
         }
     }
 }
@@ -478,6 +507,7 @@ impl Model {
         // === Background ===
 
         self.background.size.set(size);
+        self.selected_background.size.set(size);
 
 
         // === Header Text ===
@@ -495,6 +525,7 @@ impl Model {
         let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
+        self.selected_header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
 
 
@@ -513,6 +544,8 @@ impl Model {
         let header_background_height = header_height + shadow_size * 2.0;
         self.header_background.size.set(Vector2(size.x, header_background_height));
         self.header_background.set_position_y(header_center_y);
+        self.selected_header_background.size.set(Vector2(size.x, header_background_height));
+        self.selected_header_background.set_position_y(header_center_y);
 
 
         // === Header Overlay ===
@@ -525,6 +558,8 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height));
         self.entries.set_position_y(-header_height / 2.0);
+        self.selected_entries.resize(size - Vector2(0.0, header_height));
+        self.selected_entries.set_position_y(-header_height / 2.0);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
@@ -532,6 +567,7 @@ impl Model {
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
         self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+        self.selected_header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
     }
 
     fn selection_position(

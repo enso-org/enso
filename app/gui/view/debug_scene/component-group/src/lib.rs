@@ -20,6 +20,7 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
@@ -189,6 +190,15 @@ mod transparent_circle {
     }
 }
 
+mod selection_box {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Rect((150.0.px(), list_view::entry::HEIGHT.px())).corners_radius(5.0.px()).fill(color::Rgba::red()).into()
+        }
+    }
+}
+
 
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);
@@ -227,11 +237,23 @@ fn init(app: &Application) {
 
     // === Regular Component Group ===
 
+    let selection = selection_box::View::new(&app.logger);
+    selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
+    app.display.default_scene.layers.selection_mask.add_exclusive(&selection);
+    first_component_group.add_child(&selection);
+
+    let selection_animation = Animation::<Vector2>::new(&network);
+
     frp::extend! { network
+        selection_animation.target <+ first_component_group.selection_position_target;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+
         eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
         eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
         eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
     }
+    selection_animation.target.emit(first_component_group.selection_position_target.value());
+    selection_animation.skip.emit(());
 
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
@@ -284,6 +306,7 @@ fn init(app: &Application) {
     std::mem::forget(green_slider);
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
+    std::mem::forget(selection);
     std::mem::forget(network);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
