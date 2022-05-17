@@ -4,9 +4,8 @@
 use crate::prelude::*;
 
 use crate::lexer;
-use crate::source::Code;
-use crate::syntax::token;
-use crate::syntax::tree::Tree;
+use crate::source::*;
+use crate::syntax::*;
 
 
 
@@ -120,7 +119,7 @@ impl<'s> Span<'s> {
     #[inline(always)]
     pub fn extend<'a, T>(&mut self, other: T)
     where
-        T: Into<SpanRef<'s, 'a>>,
+        T: Into<Ref<'s, 'a>>,
         's: 'a, {
         let other = other.into();
         self.code_length += other.left_offset.len() + other.code_length;
@@ -129,15 +128,15 @@ impl<'s> Span<'s> {
     /// Self consuming version of [`extend`].
     pub fn extended<'a, T>(mut self, other: T) -> Self
     where
-        T: Into<SpanRef<'s, 'a>>,
+        T: Into<Ref<'s, 'a>>,
         's: 'a, {
         self.extend(other);
         self
     }
 
-    /// Get the [`SpanRef`] of the current span.
-    pub fn as_ref(&self) -> SpanRef<'_, 's> {
-        SpanRef { left_offset: &self.left_offset, code_length: self.code_length }
+    /// Get the [`Ref`] of the current span.
+    pub fn as_ref(&self) -> Ref<'_, 's> {
+        Ref { left_offset: &self.left_offset, code_length: self.code_length }
     }
 }
 
@@ -149,24 +148,24 @@ impl<'s> AsRef<Span<'s>> for Span<'s> {
 
 
 
-// ===============
-// === SpanRef ===
-// ===============
+// ===========
+// === Ref ===
+// ===========
 
 /// A borrowed version of [`Span`]. Used mostly by AST visitors.
 ///
 /// One may wonder why this struct is needed, because it looks like we could use [`&Span<'s>`]
 /// instead. The problem is that some structs, such as [`Token`] do not contain [`Span<'s>`], but
-/// they contain information the [`SpanRef`] can be constructed from.
+/// they contain information the [`Ref`] can be constructed from.
 #[derive(Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct SpanRef<'s, 'a> {
+pub struct Ref<'s, 'a> {
     pub left_offset: &'a Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
     pub code_length: Bytes,
 }
 
-impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
+impl<'s, 'a> From<&'a Span<'s>> for Ref<'s, 'a> {
     #[inline(always)]
     fn from(span: &'a Span<'s>) -> Self {
         let left_offset = &span.left_offset;
@@ -177,9 +176,9 @@ impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
 
 
 
-// ==================
-// === SpanRefMut ===
-// ==================
+// ==============
+// === RefMut ===
+// ==============
 
 /// A mutably borrowed version of [`Span`]. Used mostly by AST visitors.
 ///
@@ -189,7 +188,7 @@ impl<'s, 'a> From<&'a Span<'s>> for SpanRef<'s, 'a> {
 /// modify the AST structure instead and this field should be automatically recomputed.
 #[derive(Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct SpanRefMut<'s, 'a> {
+pub struct RefMut<'s, 'a> {
     pub left_offset: &'a mut Offset<'s>,
     /// The length of the code, excluding [`left_offset`].
     pub code_length: Bytes,
@@ -338,7 +337,7 @@ impl<'s> Build<Option<Span<'s>>> for Tree<'s> {
     }
 }
 
-impl<'s, T> Build<()> for token::Token<'s, T> {
+impl<'s, T> Build<()> for Token<'s, T> {
     type Output = Span<'s>;
     #[inline(always)]
     fn build(&mut self, _builder: Builder<()>) -> Self::Output {
@@ -346,7 +345,7 @@ impl<'s, T> Build<()> for token::Token<'s, T> {
     }
 }
 
-impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
+impl<'s, T> Build<Span<'s>> for Token<'s, T> {
     type Output = Span<'s>;
     #[inline(always)]
     fn build(&mut self, builder: Builder<Span<'s>>) -> Self::Output {
@@ -354,7 +353,7 @@ impl<'s, T> Build<Span<'s>> for token::Token<'s, T> {
     }
 }
 
-impl<'s, T> Build<Option<Span<'s>>> for token::Token<'s, T> {
+impl<'s, T> Build<Option<Span<'s>>> for Token<'s, T> {
     type Output = Span<'s>;
     #[inline(always)]
     fn build(&mut self, builder: Builder<Option<Span<'s>>>) -> Self::Output {

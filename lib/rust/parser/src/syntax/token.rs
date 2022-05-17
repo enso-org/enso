@@ -93,11 +93,7 @@
 
 use crate::prelude::*;
 
-use crate::source::span;
-use crate::source::span::Span;
-use crate::source::span::SpanRef;
-use crate::source::Code;
-use crate::source::Offset;
+use crate::source::*;
 
 use enso_shapely_macros::tagged_enum;
 
@@ -164,9 +160,9 @@ impl<'s, T> Token<'s, T> {
     }
 
     /// Span of this token.
-    pub fn span<'a>(&'a self) -> SpanRef<'s, 'a> {
+    pub fn span<'a>(&'a self) -> span::Ref<'s, 'a> {
         let code_length = self.code.len();
-        SpanRef { left_offset: &self.left_offset, code_length }
+        span::Ref { left_offset: &self.left_offset, code_length }
     }
 }
 
@@ -183,7 +179,7 @@ impl<'s, T: PartialEq> PartialEq<Token<'s, T>> for &Token<'s, T> {
     }
 }
 
-impl<'s, T> span::FirstChildTrim<'s> for Token<'s, T> {
+impl<'s, T> FirstChildTrim<'s> for Token<'s, T> {
     #[inline(always)]
     fn trim_as_first_child(&mut self) -> Span<'s> {
         let left_offset = mem::take(&mut self.left_offset);
@@ -194,9 +190,9 @@ impl<'s, T> span::FirstChildTrim<'s> for Token<'s, T> {
 
 
 
-// ================
-// === TokenRef ===
-// ================
+// ===========
+// === Ref ===
+// ===========
 
 /// A reference of a [`Token`]. It is used mostly by AST visitors.
 ///
@@ -204,10 +200,10 @@ impl<'s, T> span::FirstChildTrim<'s> for Token<'s, T> {
 /// reason for that is that sometimes AST nodes contain [`Token<'s, T>`] for a specific [`T`] and
 /// we want to traverse them for any possible variant, thus converting [`T`] to [`token::Variant`]
 /// first. However, we do not want to clone the code during such an operation. This struct allows
-/// viewing any [`Token<'s, T>`] as [`TokenRef<'s, token::Variant>`].
+/// viewing any [`Token<'s, T>`] as [`Ref<'s, token::Variant>`].
 #[derive(Clone, Copy, Deref, DerefMut, Eq, PartialEq)]
 #[allow(missing_docs)]
-pub struct TokenRef<'s, 'a, T = Variant> {
+pub struct Ref<'s, 'a, T = Variant> {
     #[deref]
     #[deref_mut]
     pub data:        T,
@@ -215,11 +211,11 @@ pub struct TokenRef<'s, 'a, T = Variant> {
     pub code:        &'a Code<'s>,
 }
 
-impl<'s, 'a, T, S> From<&'a Token<'s, T>> for TokenRef<'s, 'a, S>
+impl<'s, 'a, T, S> From<&'a Token<'s, T>> for Ref<'s, 'a, S>
 where T: Copy + Into<S>
 {
     fn from(token: &'a Token<'s, T>) -> Self {
-        TokenRef {
+        Ref {
             data:        token.variant.into(),
             left_offset: &token.left_offset,
             code:        &token.code,
@@ -227,7 +223,7 @@ where T: Copy + Into<S>
     }
 }
 
-impl<'s, 'a, T: Debug> Debug for TokenRef<'s, 'a, T> {
+impl<'s, 'a, T: Debug> Debug for Ref<'s, 'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[off: {}, repr: \"{}\"] ", self.left_offset.visible, self.code)?;
         Debug::fmt(&self.data, f)

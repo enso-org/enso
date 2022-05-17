@@ -114,7 +114,7 @@ pub mod tracing {
     pub use tracing_subscriber::*;
 }
 pub use ::tracing::event;
-pub use ::tracing::span;
+pub use ::tracing::span as log_span;
 
 pub const ERROR: tracing::Level = tracing::Level::ERROR;
 pub const WARN: tracing::Level = tracing::Level::WARN;

@@ -2,14 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::source::span;
-use crate::source::span::Span;
-use crate::source::span::SpanRef;
-use crate::source::span::SpanRefMut;
+use crate::source::*;
 use crate::span_builder;
-use crate::syntax::token;
-use crate::syntax::token::TokenRef;
-use crate::syntax::ItemRef;
+use crate::syntax::*;
 
 use enso_parser_syntax_tree_visitor::Visitor;
 use enso_shapely_macros::tagged_enum;
@@ -199,12 +194,12 @@ where NonEmptyVec<token::Operator<'s>>: span::Build<S>
 #[derive(Clone, Debug, Eq, PartialEq, Visitor)]
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
-    pub header: token::Token<'s>,
+    pub header: Token<'s>,
     pub body:   Option<Tree<'s>>,
 }
 
 impl<'s, S> span::Build<S> for MultiSegmentAppSegment<'s>
-where token::Token<'s>: span::Build<S, Output = Span<'s>>
+where Token<'s>: span::Build<S, Output = Span<'s>>
 {
     type Output = Span<'s>;
     fn build(&mut self, builder: span::Builder<S>) -> Self::Output {
@@ -269,19 +264,19 @@ pub trait TreeVisitorMut<'s>: Visitor {
 /// The visitor trait allowing for [`Span`] traversal.
 #[allow(missing_docs)]
 pub trait SpanVisitor<'s, 'a>: Visitor {
-    fn visit(&mut self, ast: SpanRef<'s, 'a>) -> bool;
+    fn visit(&mut self, ast: span::Ref<'s, 'a>) -> bool;
 }
 
 /// The visitor trait allowing for [`Span`] mutable traversal.
 #[allow(missing_docs)]
 pub trait SpanVisitorMut<'s>: Visitor {
-    fn visit_mut(&mut self, ast: SpanRefMut<'s, '_>) -> bool;
+    fn visit_mut(&mut self, ast: span::RefMut<'s, '_>) -> bool;
 }
 
 /// The visitor trait allowing for [`Item`] traversal.
 #[allow(missing_docs)]
 pub trait ItemVisitor<'s, 'a>: Visitor {
-    fn visit_item(&mut self, ast: ItemRef<'s, 'a>) -> bool;
+    fn visit_item(&mut self, ast: item::Ref<'s, 'a>) -> bool;
 }
 
 macro_rules! define_visitor {
@@ -411,15 +406,15 @@ impl<'s, 'a> TreeVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'s, 'a, T> TreeVisitable<'s, 'a> for token::Token<'s, T> {}
-impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for token::Token<'s, T> {}
+impl<'s, 'a, T> TreeVisitable<'s, 'a> for Token<'s, T> {}
+impl<'s, 'a, T> TreeVisitableMut<'s, 'a> for Token<'s, T> {}
 
 
 // === SpanVisitable special cases ===
 
 impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit(SpanRef {
+        if visitor.visit(span::Ref {
             left_offset: &self.span.left_offset,
             code_length: self.span.code_length,
         }) {
@@ -430,7 +425,7 @@ impl<'s, 'a> SpanVisitable<'s, 'a> for Tree<'s> {
 
 impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
-        if visitor.visit_mut(SpanRefMut {
+        if visitor.visit_mut(span::RefMut {
             left_offset: &mut self.span.left_offset,
             code_length: self.span.code_length,
         }) {
@@ -439,17 +434,17 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for token::Token<'s, T> {
+impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         let code_length = self.code.len();
-        visitor.visit(SpanRef { left_offset: &self.left_offset, code_length });
+        visitor.visit(span::Ref { left_offset: &self.left_offset, code_length });
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for token::Token<'s, T> {
+impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
         let code_length = self.code.len();
-        visitor.visit_mut(SpanRefMut { left_offset: &mut self.left_offset, code_length });
+        visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });
     }
 }
 
@@ -458,17 +453,17 @@ impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for token::Token<'s, T> {
 
 impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        if visitor.visit_item(ItemRef::Tree(self)) {
+        if visitor.visit_item(item::Ref::Tree(self)) {
             self.variant.visit_item(visitor)
         }
     }
 }
 
-impl<'s: 'a, 'a, T: 'a> ItemVisitable<'s, 'a> for token::Token<'s, T>
-where &'a token::Token<'s, T>: Into<TokenRef<'s, 'a>>
+impl<'s: 'a, 'a, T: 'a> ItemVisitable<'s, 'a> for Token<'s, T>
+where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
 {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
-        visitor.visit_item(ItemRef::Token(self.into()));
+        visitor.visit_item(item::Ref::Token(self.into()));
     }
 }
 
@@ -487,10 +482,10 @@ struct CodePrinterVisitor {
 
 impl Visitor for CodePrinterVisitor {}
 impl<'s, 'a> ItemVisitor<'s, 'a> for CodePrinterVisitor {
-    fn visit_item(&mut self, item: ItemRef<'s, 'a>) -> bool {
+    fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
         match item {
-            ItemRef::Tree(tree) => self.code.push_str(&tree.span.left_offset.code),
-            ItemRef::Token(token) => {
+            item::Ref::Tree(tree) => self.code.push_str(&tree.span.left_offset.code),
+            item::Ref::Token(token) => {
                 self.code.push_str(&token.left_offset.code);
                 self.code.push_str(token.code);
             }

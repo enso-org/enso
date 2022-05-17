@@ -6,11 +6,8 @@
 
 use crate::prelude::*;
 
-use crate::source::Offset;
-use crate::source::VisibleOffset;
-use crate::syntax::token;
-use crate::token::Token;
-use crate::token::Variant;
+use crate::source::*;
+use crate::syntax::*;
 
 use std::str;
 
@@ -469,7 +466,7 @@ fn is_ident_char(t: char) -> bool {
     !is_ident_split_char(t)
 }
 
-impl Variant {
+impl token::Variant {
     /// Convert the provided string to ident. The provided repr should contain valid identifier
     /// characters. This condition will not be checked.
     #[inline(always)]
@@ -481,13 +478,13 @@ impl Variant {
     /// Convert the provided string to ident or wildcard. The provided repr should contain valid
     /// identifier characters. This condition will not be checked.
     #[inline(always)]
-    pub fn new_ident_or_wildcard_unchecked(repr: &str) -> Variant {
+    pub fn new_ident_or_wildcard_unchecked(repr: &str) -> token::Variant {
         let info = IdentInfo::new(repr);
         if info.starts_with_underscore && repr.len() == 1 + info.lift_level {
-            Variant::wildcard(info.lift_level)
+            token::Variant::wildcard(info.lift_level)
         } else {
             let is_free = info.starts_with_underscore;
-            Variant::ident(is_free, info.lift_level)
+            token::Variant::ident(is_free, info.lift_level)
         }
     }
 }
@@ -496,7 +493,7 @@ impl<'s> Lexer<'s> {
     /// Parse an identifier.
     fn ident(&mut self) {
         if let Some(token) = self.token(|this| this.take_while_1(is_ident_char)) {
-            let tp = Variant::new_ident_or_wildcard_unchecked(&token.code);
+            let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
             let token = token.with_variant(tp);
             self.submit_token(token);
         }
@@ -526,12 +523,13 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
-                self.submit_token(left.with_variant(Variant::operator()));
-                self.submit_token(right.with_variant(Variant::operator()));
+                self.submit_token(left.with_variant(token::Variant::operator()));
+                self.submit_token(right.with_variant(token::Variant::operator()));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
-                let tp = if is_mod { Variant::modifier() } else { Variant::operator() };
+                let tp =
+                    if is_mod { token::Variant::modifier() } else { token::Variant::operator() };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
             }
@@ -549,7 +547,7 @@ impl<'s> Lexer<'s> {
     /// Parse a symbol.
     fn symbol(&mut self) {
         if let Some(token) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(token.with_variant(Variant::symbol()));
+            self.submit_token(token.with_variant(token::Variant::symbol()));
         }
     }
 }
@@ -569,7 +567,7 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
-            self.submit_token(token.with_variant(Variant::number()));
+            self.submit_token(token.with_variant(token::Variant::number()));
         }
     }
 }
@@ -591,7 +589,7 @@ impl<'s> Lexer<'s> {
     fn text(&mut self) {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
-            self.submit_token(token.with_variant(Variant::text_start()));
+            self.submit_token(token.with_variant(token::Variant::text_start()));
             let line_empty = self.current_char.map(is_newline_char).unwrap_or(true);
             if line_empty {
                 todo!()
@@ -603,7 +601,7 @@ impl<'s> Lexer<'s> {
                     let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
-                        self.submit_token(tok.with_variant(Variant::text_section()));
+                        self.submit_token(tok.with_variant(token::Variant::text_section()));
                     }
 
                     let escape = self.token(|this| {
@@ -613,12 +611,12 @@ impl<'s> Lexer<'s> {
                     });
                     if let Some(token) = escape {
                         parsed_element = true;
-                        self.submit_token(token.with_variant(Variant::text_escape()));
+                        self.submit_token(token.with_variant(token::Variant::text_escape()));
                     }
 
                     let end = self.token(|this| this.take_1('"'));
                     if let Some(token) = end {
-                        self.submit_token(token.with_variant(Variant::text_end()));
+                        self.submit_token(token.with_variant(token::Variant::text_end()));
                         break;
                     }
 
@@ -639,7 +637,7 @@ impl<'s> Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    fn submit_line_as(&mut self, kind: Variant) {
+    fn submit_line_as(&mut self, kind: token::Variant) {
         let token = self.token(|this| this.take_rest_of_line());
         if let Some(token) = token {
             self.submit_token(token.with_variant(kind));
@@ -649,11 +647,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(Variant::comment());
+                self.submit_line_as(token::Variant::comment());
                 let initial_ident = self.current_block_indent;
                 let check_indent = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.run_and_check_if_progressed(|t| t.newline()) && check_indent(self) {
-                    self.submit_line_as(Variant::comment());
+                    self.submit_line_as(token::Variant::comment());
                 }
             }
         }
@@ -680,14 +678,14 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut newlines = vec![token.with_variant(Variant::newline())];
+            let mut newlines = vec![token.with_variant(token::Variant::newline())];
             while let Some(token) = self.line_break() {
-                newlines.push(token.with_variant(Variant::newline()));
+                newlines.push(token.with_variant(token::Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
 
             if block_indent > self.current_block_indent {
-                let block_start = self.marker_token(Variant::block_start());
+                let block_start = self.marker_token(token::Variant::block_start());
                 self.submit_token(block_start);
                 self.start_block(block_indent);
             } else {
@@ -701,7 +699,7 @@ impl<'s> Lexer<'s> {
                         self.start_block(parent_block_indent);
                         break;
                     } else {
-                        let block_end = self.marker_token(Variant::block_end());
+                        let block_end = self.marker_token(token::Variant::block_end());
                         self.submit_token(block_end);
                     }
                 }
@@ -784,7 +782,7 @@ pub mod test {
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        Token(left_offset, code, Variant::operator())
+        Token(left_offset, code, token::Variant::operator())
     }
 }
 

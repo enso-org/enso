@@ -14,6 +14,6 @@ pub mod span;
 pub use code::Code;
 pub use span::Offset;
 pub use span::Span;
-pub use span::SpanRef;
-pub use span::SpanRefMut;
 pub use span::VisibleOffset;
+
+pub use span::traits::*;
