@@ -175,6 +175,7 @@ pub struct GlyphHighlightedLabelModel {
 }
 
 /// The [`Entry`] similar to the [`Label`], but allows highlighting some parts of text.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct GlyphHighlightedLabel {
     pub inner: Label,

@@ -184,7 +184,7 @@ impl<E: Entry> ListData<E, E::Params> {
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
-                    entries.resize_with(range.len(), || self.create_new_entry(&style_prefix));
+                    entries.resize_with(range.len(), || self.create_new_entry(style_prefix));
                     entries.iter().filter_map(|entry| entry.id.get()).collect()
                 });
             let missing = range.clone().filter(|id| !current_entries.contains(id));

@@ -61,7 +61,7 @@ const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
     ("text input", icon::Id::TextInput),
     ("number input", icon::Id::NumberInput),
     ("table output", icon::Id::TableEdit),
-    ("data output", icon::Id::DataOutput),
+    ("dataframe clean", icon::Id::DataframeClean),
     ("data input", icon::Id::DataInput),
 ];
 

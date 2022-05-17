@@ -1,4 +1,7 @@
 //! All icon that are used in the searcher.
+
+
+
 mod common_part;
 mod define_macro;
 
@@ -36,23 +39,36 @@ pub const ICON_SIZE: f32 = 16.0;
 /// during work on the icon, it can temporarily be set to 0.35.
 pub const SHRINK_AMOUNT: f32 = 0.0;
 
+
+
 // ==============
 // === Errors ===
 // ==============
 
+/// Error occuring when we try parse string being an invalid icon name to icon Id.
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Unknown icon {}.", name)]
 pub struct UnknownIcon {
+    /// The copied icon name from parsed string.
     pub name: String,
 }
 
 
+
+// ===============
+// === AnyIcon ===
+// ===============
+
+/// One of the icon generated from the [`define_icons`] macro. Returned from `create_shape` method.
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct AnyIcon {
+    /// The underlying icon shape.
     #[derivative(Debug = "ignore")]
     pub view:         Box<dyn display::Object>,
+    /// Strong (darker, or more contrasting) color parameter.
     pub strong_color: DynamicParam<Attribute<Vector4>>,
+    /// Weak (lighter, or less contrasting) color parameter.
     pub weak_color:   DynamicParam<Attribute<Vector4>>,
 }
 

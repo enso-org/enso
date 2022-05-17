@@ -10,6 +10,7 @@
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 //!
 //! [Component Group]: crate::component_group::View
+
 use crate::prelude::*;
 
 use crate::entry;
@@ -152,7 +153,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         let network = &api.network;
         let input = &api.input;
         let out = &api.output;
-        let colors = Colors::from_main_color(&network, &style, &input.set_color, &input.set_dimmed);
+        let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
         frp::extend! { network
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());

@@ -7,6 +7,8 @@
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 
 #![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -18,8 +20,20 @@
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
-// === Features ===
-#![feature(option_result_contains)]
+
+use crate::prelude::*;
+use ensogl::application::traits::*;
+
+use enso_frp as frp;
+use ensogl::application::shortcut::Shortcut;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::data::text;
+use ensogl::display;
+use ensogl_gui_component::component;
+use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
+use ensogl_list_view as list_view;
+
 
 // ==============
 // === Export ===
@@ -31,18 +45,7 @@ pub mod wide;
 
 pub use entry::View as Entry;
 
-use crate::prelude::*;
 
-use enso_frp as frp;
-use ensogl::application::shortcut::Shortcut;
-use ensogl::application::traits::*;
-use ensogl::application::Application;
-use ensogl::data::color;
-use ensogl::data::text;
-use ensogl::display;
-use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
-use ensogl_list_view as list_view;
 
 /// A module containing common imports.
 pub mod prelude {
@@ -131,6 +134,12 @@ impl HeaderGeometry {
 // === Colors ===
 // ==============
 
+/// Colors used in the Component Group View.
+///
+/// This structure, used in both [`ide_component_group::View`] and
+/// [`ide_component_group::wide::View`] can be created from single "main color" input. Each of
+/// these colors will be computed by mixing "main color" with application background - for details,
+/// see [`Colors::from_main_color`].
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
@@ -142,6 +151,8 @@ pub struct Colors {
 }
 
 impl Colors {
+    /// Constructs [`Colors`] structure, where each variant is based on the "main" `color`
+    /// parameter.
     pub fn from_main_color(
         network: &frp::Network,
         style: &StyleWatchFrp,
@@ -234,7 +245,7 @@ impl component::Frp<Model> for Frp {
 
 
         // === Colors ===
-        let colors = Colors::from_main_color(&network, &style, &input.set_color, &input.set_dimmed);
+        let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
         let params = entry::Params { colors: colors.clone_ref() };
         model.entries.set_entry_params_and_recreate_entries(params);
 

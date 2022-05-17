@@ -46,6 +46,7 @@ pub const STYLE_PATH: &str = theme::HERE.str;
 // =============
 
 /// Data underlying an entry in a component group view.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Model {
     pub icon:             icon::Id,
