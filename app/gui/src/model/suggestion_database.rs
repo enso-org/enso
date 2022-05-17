@@ -128,10 +128,7 @@ impl FreeformPathToIdMap {
         let mut tree = self.tree.borrow_mut();
         let node = &mut tree.get_or_create_node(path.segments.iter());
         let old_value = std::mem::replace(&mut node.value, Some(id));
-        match old_value {
-            Some(old_id) => old_id != id,
-            None => false,
-        }
+        return old_value.is_some()
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
@@ -917,7 +914,7 @@ mod test {
         assert_eq!(map.get(one_segment_path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
         assert!(!map.check_if_exists_and_set(&one_segment_path, 10));
-        assert!(!map.check_if_exists_and_set(&one_segment_path, 10));
+        assert!(map.check_if_exists_and_set(&one_segment_path, 10));
         assert!(map.check_if_exists_and_set(&one_segment_path, 11));
         assert_eq!(map.get(one_segment_path.clone()), Some(11));
         assert!(map.check_if_exists_and_remove(&one_segment_path));
