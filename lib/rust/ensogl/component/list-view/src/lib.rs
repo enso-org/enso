@@ -69,7 +69,6 @@ const DEFAULT_STYLE_PATH: &str = theme::widget::list_view::HERE.str;
 /// The size of shadow under element. It is not counted in the component width and height.
 pub const SHADOW_PX: f32 = 10.0;
 /// The additional padding inside list view background and selection, added for better antialiasing
-//FIXME[ao]: how the aliasing is better? Is it still valid?
 pub const SHAPE_MARGIN: f32 = 5.0;
 
 
@@ -333,6 +332,13 @@ ensogl_core::define_endpoints! {
     }
 }
 
+/// A structure containing FRP nodes connected to appropriate style values.
+///
+/// [`ListView`] is a general-use component, and it different places it could be styled differently.
+/// Therefore the [`ListView`] users (developers) may set the style prefix from where the
+/// style values will be read. This structure keeps a network connecting a style values from a
+/// particular prefix with its fields. It allows also reconnecting to another prefix without losing
+/// the fields (so the connections from them will remain intact).
 #[derive(Clone, CloneRef, Debug)]
 struct StyleFrp {
     style_connection_network: Rc<CloneRefCell<Option<frp::Network>>>,
@@ -363,6 +369,8 @@ impl StyleFrp {
         }
     }
 
+    /// Connect the structure's fields with new style prefix. The bindings with the previous
+    /// prefix will be removed.
     fn connect_with_prefix(&self, style: &StyleWatchFrp, prefix: &style::Path) {
         let style_connection_network = frp::Network::new("list_view::StyleFrp");
         let background_color = style.get_color(prefix.sub("background"));
@@ -379,6 +387,7 @@ impl StyleFrp {
             self.padding <+ all(&padding, &init)._0();
             self.entry_padding <+ all(&entry_padding, &init)._0();
         }
+        // At this point the old network is dropped, and old connections are removed.
         self.style_connection_network.set(Some(style_connection_network));
         init.emit(());
     }

@@ -1,13 +1,13 @@
-// ====================
-// === Define Macro ===
-// ====================
+// ==========================
+// === Define Icons Macro ===
+// ==========================
 
-/// Macro for defining icon.
+/// Macro for defining icon set.
 ///
 /// The macro takes many modules with attached "variant name". Inside the modules, there should
-/// be icon defined with `ensogl::define_shape_system!` macro. The macro will generate also an
+/// be icon defined with `ensogl::define_shape_system!` macro. The macro will also generate an
 /// enum called `Id` gathering all icon' "variant names". The enum will allow for dynamically
-/// creating given icon shape view (returned as `Box<dyn ensogl::display::Object>`.
+/// creating given icon shape view (returned as [`crate::icon::AnyIcon`]).
 ///
 /// # Example
 ///

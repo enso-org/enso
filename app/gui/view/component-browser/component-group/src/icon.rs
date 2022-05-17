@@ -1,4 +1,4 @@
-//! All icon that are used in the searcher.
+//! All icons that are used in the Component Browser.
 
 
 
@@ -15,6 +15,7 @@ use ensogl::display::shape::compound::path::path;
 use ensogl::display::Attribute;
 use ensogl_hardcoded_theme::application::searcher::icons as theme;
 use std::f32::consts::PI;
+
 
 
 // =================

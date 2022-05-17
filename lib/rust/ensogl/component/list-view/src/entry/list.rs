@@ -73,7 +73,6 @@ pub struct ListData<E, P> {
     entry_params:   Rc<RefCell<P>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
     label_layer:    Rc<Cell<LayerId>>,
-    selected_entry: Rc<Cell<Option<entry::Id>>>,
 }
 
 impl<E, P: Default> ListData<E, P> {
@@ -87,7 +86,6 @@ impl<E, P: Default> ListData<E, P> {
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
         let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
-        let selected_entry = default();
         Self {
             logger,
             app,
@@ -97,7 +95,6 @@ impl<E, P: Default> ListData<E, P> {
             entry_params,
             provider,
             label_layer,
-            selected_entry,
         }
     }
 }

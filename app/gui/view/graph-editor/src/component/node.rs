@@ -313,7 +313,7 @@ ensogl::define_endpoints_2! {
         set_profiling_min_global_duration (f32),
         set_profiling_max_global_duration (f32),
         set_profiling_status              (profiling::Status),
-        /// Indicate whether on hover the quick action icon should appear.
+        /// Indicate whether on hover the quick action icons should appear.
         show_quick_action_bar_on_hover    (bool)
     }
     Output {

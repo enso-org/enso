@@ -11,9 +11,9 @@
 //! triggering during the time it takes to move past the icon. Thus, when the cursor moves past the
 //! icon nothing is visible to the user, but if the mosque cursor stays on the icon longer than
 //! `start_delay_duration`, the animation starts, and the pop-up becomes visible. In reverse, when
-//! moving the cursor between multiple icon, the pop-up should not permanently start and disappear
+//! moving the cursor between multiple icons, the pop-up should not permanently start and disappear
 //! and re-appear. Thus setting a `end_delay_duration` will avoid the pop-up from disappearing, if
-//! the time the cursor is between icon is less than the `end_delay_duration`. Instead, the hiding
+//! the time the cursor is between icons is less than the `end_delay_duration`. Instead, the hiding
 //! will only start iof the cursos has left any icon triggering the pop-up for longer than the
 //! `end_delay_duration`.
 

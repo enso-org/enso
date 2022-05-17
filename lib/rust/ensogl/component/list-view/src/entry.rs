@@ -184,7 +184,7 @@ pub struct GlyphHighlightedLabel {
 
 impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
-    type Params = <Label as Entry>::Params;
+    type Params = ();
 
     fn new(app: &Application, style_prefix: &Path, (): &Self::Params) -> Self {
         let inner = Label::new(app, style_prefix);
@@ -196,10 +196,10 @@ impl Entry for GlyphHighlightedLabel {
         frp::extend! { network
             highlight <- source::<Vec<text::Range<text::Bytes>>>();
             content_changed <- label.content.constant(());
-            set_highlight <- all(highlight,highlight_bold,content_changed);
-            eval set_highlight ([label]((highlight,bold,())) {
+            set_highlight <- all(highlight, highlight_bold, content_changed);
+            eval set_highlight ([label]((highlight, bold, ())) {
                 for range in highlight {
-                   label.set_sdf_bold(range,text::style::SdfBold::new(*bold));
+                   label.set_sdf_bold(range, text::style::SdfBold::new(*bold));
                 }
             });
         }

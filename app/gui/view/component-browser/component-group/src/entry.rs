@@ -113,16 +113,12 @@ impl Default for Params {
 
 // === CurrentIcon ===
 
-#[derive(Default)]
+/// The structure keeping a currently displayed incon in Component Group Entry [`View`]. Remembering
+/// id allows us to skip icon generation when not changed.
+#[derive(Debug, Default)]
 struct CurrentIcon {
     shape: Option<AnyIcon>,
     id:    Option<icon::Id>,
-}
-
-impl Debug for CurrentIcon {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.id.fmt(f)
-    }
 }
 
 
@@ -134,7 +130,7 @@ pub struct View {
     logger:            Logger,
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
-    max_width_px:      frp::Source<f32>, // Refactoring Idea: make Entry API more frp-like.
+    max_width_px:      frp::Source<f32>,
     icon_strong_color: frp::Sampler<color::Rgba>,
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
@@ -165,7 +161,6 @@ impl list_view::Entry for View {
             label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
-            label.inner.label.set_color_all <+ colors.entry_text;
             label.inner.label.set_default_color <+ colors.entry_text;
             eval colors.icon_strong ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
