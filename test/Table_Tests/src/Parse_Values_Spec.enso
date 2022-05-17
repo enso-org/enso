@@ -107,7 +107,7 @@ spec = Test.group "Table.parse_values" <|
         # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
         floats = ["floats", ["0", "2.0", "1e6", "foobar", "", "--1", "+-1", "100.", "-+1"]]
         bools = ["bools", ["True", "false", "fAlSE", "foobar", "", "0", "1", "true", "truefalse"]]
-        time_content = ["2001-01-01", "2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", Nothing, Nothing, Nothing]
+        time_content = ["2001-01-01", "2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
         t = Table.new [ints, floats, bools, ["dates", time_content], ["datetimes", time_content], ["times", time_content]]
 
         action pb =
@@ -123,9 +123,9 @@ spec = Test.group "Table.parse_values" <|
             ints = Invalid_Format "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
             floats = Invalid_Format "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
             bools = Invalid_Format "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
-            dates = Invalid_Format "dates" Date.Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", ""]
-            datetimes = Invalid_Format "datetimes" Time.Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", ""]
-            times = Invalid_Format "times" Time_Of_Day.Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", ""]
+            dates = Invalid_Format "dates" Date.Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            datetimes = Invalid_Format "datetimes" Time.Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            times = Invalid_Format "times" Time_Of_Day.Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
             [ints, floats, bools, dates, datetimes, times]
         Problems.test_problem_handling action problems tester
 
@@ -188,28 +188,51 @@ spec = Test.group "Table.parse_values" <|
         Warning.get_all t4 . map .value . should_equal [Invalid_Format "bools" Boolean ["NO", "False", "True", "no", "oui"]]
 
     whitespace_table =
-        ints = ["ints", ["0", "1 ", "0 1", " 2"]]
-        floats = ["floats", ["0 ", " 2.0", "- 1", "10.0"]]
+        ints = ["ints", ["0", "1 ", "0 1", "     2"]]
+        floats = ["floats", ["0    ", " 2.0", "- 1", "10.0"]]
         bools = ["bools", ["True ", " false", "t rue", "False"]]
-        Table.new [ints, floats, bools]
+        dates = ["dates", [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""]]
+        datetimes = ["datetimes", [" 2022-01-01 11:59:00   ", Nothing, "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"]]
+        times = ["times", ["11:00:00 ", "  00:00:00", "00 : 00 : 00", Nothing]]
+        Table.new [ints, floats, bools, dates, datetimes, times]
 
     Test.specify "should trim input values by default" <|
-        # TODO add other types too
-        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean]
+        t1 = whitespace_table.parse_values column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date.Date, Column_Type_Selection "datetimes" Time.Time, Column_Type_Selection "times" Time_Of_Day.Time_Of_Day]
         t1.at "ints" . to_vector . should_equal [0, 1, Nothing, 2]
         t1.at "floats" . to_vector . should_equal [0.0, 2.0, Nothing, 10.0]
         t1.at "bools" . to_vector . should_equal [True, False, Nothing, False]
+        t1.at "dates" . to_vector . map date_as_vector . should_equal [[2022, 1, 1], [2022, 7, 17], Nothing, Nothing]
+        t1.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 1, 1, 11, 59, 0, 0], Nothing, Nothing, Nothing]
+        t1.at "times" . to_vector . map time_as_vector . should_equal [[11, 0, 0, 0], [0, 0, 0, 0], Nothing, Nothing]
         warnings = Warning.get_all t1 . map .value
-        warnings.should_contain_the_same_elements_as [Invalid_Format "ints" Integer ["0 1"], Invalid_Format "floats" Decimal ["- 1"], Invalid_Format "bools" Boolean ["t rue"]]
+        expected_warnings = Vector.new_builder
+        expected_warnings.append (Invalid_Format "ints" Integer ["0 1"])
+        expected_warnings.append (Invalid_Format "floats" Decimal ["- 1"])
+        expected_warnings.append (Invalid_Format "bools" Boolean ["t rue"])
+        expected_warnings.append (Invalid_Format "dates" Date.Date ["2022 - 07 - 17", ""])
+        expected_warnings.append (Invalid_Format "datetimes" Time.Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["00 : 00 : 00"])
+        warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
         opts = Data_Formatter trim_values=False
-        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean]
+        t1 = whitespace_table.parse_values opts column_types=[Column_Type_Selection 0 Integer, Column_Type_Selection "floats" Decimal, Column_Type_Selection "bools"  Boolean, Column_Type_Selection "dates" Date.Date, Column_Type_Selection "datetimes" Time.Time, Column_Type_Selection "times" Time_Of_Day.Time_Of_Day]
         t1.at "ints" . to_vector . should_equal [0, Nothing, Nothing, Nothing]
         t1.at "floats" . to_vector . should_equal [Nothing, Nothing, Nothing, 10.0]
         t1.at "bools" . to_vector . should_equal [Nothing, Nothing, Nothing, False]
+        nulls = Vector.new 4 _->Nothing
+        t1.at "dates" . to_vector . should_equal nulls
+        t1.at "datetimes" . to_vector . should_equal nulls
+        t1.at "times" . to_vector . should_equal nulls
         warnings = Warning.get_all t1 . map .value
-        warnings.should_contain_the_same_elements_as [Invalid_Format "ints" Integer ["1 ", "0 1", " 2"], Invalid_Format "floats" Decimal ["0 ", " 2.0", "- 1"], Invalid_Format "bools" Boolean ["True ", " false", "t rue"]]
+        expected_warnings = Vector.new_builder
+        expected_warnings.append (Invalid_Format "ints" Integer ["1 ", "0 1", "     2"])
+        expected_warnings.append (Invalid_Format "floats" Decimal ["0    ", " 2.0", "- 1"])
+        expected_warnings.append (Invalid_Format "bools" Boolean ["True ", " false", "t rue"])
+        expected_warnings.append (Invalid_Format "dates" Date.Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
+        expected_warnings.append (Invalid_Format "datetimes" Time.Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
+        warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
         ## TODO next PR
