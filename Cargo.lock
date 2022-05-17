@@ -637,7 +637,7 @@ version = "0.34.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d9ea9658f2576b4e91c6b00c4963a68614daf74b5160a66daa02c9f897da3ae"
 dependencies = [
- "itoa 1.0.2",
+ "itoa 1.0.1",
  "num-integer",
  "ryu",
  "time 0.3.9",
@@ -680,7 +680,7 @@ dependencies = [
  "http",
  "http-body 0.4.4",
  "hyper 0.14.18",
- "itoa 1.0.2",
+ "itoa 1.0.1",
  "matchit",
  "memchr",
  "mime 0.3.16",
@@ -720,7 +720,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object 0.28.4",
+ "object 0.28.3",
  "rustc-demangle",
 ]
 
@@ -1837,6 +1837,7 @@ version = "0.2.0"
 dependencies = [
  "criterion",
  "enso-prelude",
+ "failure",
  "itertools 0.9.0",
  "rustversion",
  "serde",
@@ -1860,25 +1861,6 @@ dependencies = [
  "debug-scene-component-group",
  "debug-scene-interface",
  "debug-scene-visualization",
-]
-
-[[package]]
-name = "enso-flexer"
-version = "0.2.1"
-dependencies = [
- "enso-automata",
- "enso-lazy-reader",
- "enso-logger",
- "enso-macro-utils",
- "enso-prelude",
- "itertools 0.8.2",
- "nonempty",
- "proc-macro2",
- "quote",
- "syn",
- "unicode-segmentation",
- "wasm-bindgen",
- "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -1986,14 +1968,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-lazy-reader"
-version = "0.2.0"
-dependencies = [
- "enso-prelude",
- "itertools 0.8.2",
-]
-
-[[package]]
 name = "enso-logger"
 version = "0.3.1"
 dependencies = [
@@ -2022,13 +1996,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-parser"
+version = "0.1.0"
+dependencies = [
+ "enso-data-structures",
+ "enso-parser-syntax-tree-builder",
+ "enso-parser-syntax-tree-visitor",
+ "enso-prelude",
+ "enso-shapely-macros",
+ "enso-types",
+]
+
+[[package]]
+name = "enso-parser-syntax-tree-builder"
+version = "0.1.0"
+dependencies = [
+ "enso-macro-utils",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "enso-parser-syntax-tree-visitor"
+version = "0.1.0"
+dependencies = [
+ "enso-macro-utils",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enso-prelude"
 version = "0.2.6"
 dependencies = [
  "anyhow",
  "backtrace",
  "boolinator",
- "bumpalo",
  "cfg-if 1.0.0",
  "colored",
  "derivative",
@@ -2048,6 +2053,9 @@ dependencies = [
  "serde_json",
  "shrinkwraprs 0.3.0",
  "smallvec 1.8.0",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "weak-table",
@@ -3403,7 +3411,7 @@ checksum = "ff8670570af52249509a86f5e3e18a08c60b177071826898fde8997cf5f6bfbb"
 dependencies = [
  "bytes 1.1.0",
  "fnv",
- "itoa 1.0.2",
+ "itoa 1.0.1",
 ]
 
 [[package]]
@@ -3555,7 +3563,7 @@ dependencies = [
  "http-body 0.4.4",
  "httparse",
  "httpdate 1.0.2",
- "itoa 1.0.2",
+ "itoa 1.0.1",
  "pin-project-lite 0.2.9",
  "socket2 0.4.4",
  "tokio 1.18.2",
@@ -3628,7 +3636,7 @@ dependencies = [
  "base64 0.13.0",
  "bytes 1.1.0",
  "http",
- "httpdate 1.0.2",
+ "httpdate 0.3.2",
  "language-tags 0.3.2",
  "mime 0.3.16",
  "percent-encoding 2.1.0",
@@ -3977,9 +3985,9 @@ checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "itoa"
-version = "1.0.2"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "112c678d4050afce233f4f2852bb2eb519230b3cf12f33585275537d7e41578d"
+checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
 
 [[package]]
 name = "jobserver"
@@ -4106,25 +4114,6 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
-
-[[package]]
-name = "lexer"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "enso-flexer",
- "enso-prelude",
- "lexer-definition",
-]
-
-[[package]]
-name = "lexer-definition"
-version = "0.1.0"
-dependencies = [
- "enso-flexer",
- "enso-prelude",
- "uuid",
-]
 
 [[package]]
 name = "libc"
@@ -4563,12 +4552,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nonempty"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f962080273ac958f790079cfc886b5b9d722969dbd7b03f473902bdfe5c69b1"
-
-[[package]]
 name = "normalize-line-endings"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4789,9 +4772,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.28.4"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e42c982f2d955fac81dd7e1d0e1426a7d702acd9c98d19ab01083a6a0328c424"
+checksum = "40bec70ba014595f99f7aa110b84331ffe1ee9aece7fe6f387cc7e3ecda4d456"
 dependencies = [
  "memchr",
 ]
@@ -5008,18 +4991,6 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "websocket",
-]
-
-[[package]]
-name = "parser-new"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "enso-data-structures",
- "enso-logger",
- "enso-prelude",
- "itertools 0.10.3",
- "lexer",
 ]
 
 [[package]]
@@ -5374,9 +5345,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.38"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9027b48e9d4c9175fa2218adf3557f91c1137021739951d4932f5f8268ac48aa"
+checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
 ]
@@ -5670,9 +5641,9 @@ checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
 name = "rayon"
-version = "1.5.3"
+version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd99e5772ead8baa5215278c9b15bf92087709e9c1b2d1f97cdb5a183c933a7d"
+checksum = "fd249e82c21598a9a426a4e00dd7adc1d640b22445ec8545feef801d1a74c221"
 dependencies = [
  "autocfg 1.1.0",
  "crossbeam-deque",
@@ -5682,9 +5653,9 @@ dependencies = [
 
 [[package]]
 name = "rayon-core"
-version = "1.9.3"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "258bcdb5ac6dad48491bb2992db6b7cf74878b0384908af124823d118c99683f"
+checksum = "9f51245e1e62e1f1629cbfec37b5793bbabcaeb90f30e94d2ba03564687353e4"
 dependencies = [
  "crossbeam-channel",
  "crossbeam-deque",
@@ -5941,9 +5912,9 @@ checksum = "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
 
 [[package]]
 name = "ryu"
-version = "1.0.10"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3f6f92acf49d1b98f7a81226834412ada05458b7364277387724a237f062695"
+checksum = "73b4b750c782965c211b42f022f59af1fbceabdd026623714f104152f1ec149f"
 
 [[package]]
 name = "safemem"
@@ -6085,7 +6056,7 @@ version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7ce2b32a1aed03c558dc61a5cd328f15aff2dbc17daad8fb8af04d2100e15c"
 dependencies = [
- "itoa 1.0.2",
+ "itoa 1.0.1",
  "ryu",
  "serde",
 ]
@@ -6117,7 +6088,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
 dependencies = [
  "form_urlencoded",
- "itoa 1.0.2",
+ "itoa 1.0.1",
  "ryu",
  "serde",
 ]
@@ -6473,9 +6444,9 @@ checksum = "a7973cce6668464ea31f176d85b13c7ab3bba2cb3b77a2ed26abd7801688010a"
 
 [[package]]
 name = "syn"
-version = "1.0.94"
+version = "1.0.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a07e33e919ebcd69113d5be0e4d70c5707004ff45188910106854f38b960df4a"
+checksum = "7ff7c592601f11445996a06f8ad0c27f094a58857c2f89e97974ab9235b92c52"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7076,6 +7047,17 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tracing-wasm"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
+dependencies = [
+ "tracing",
+ "tracing-subscriber",
+ "wasm-bindgen",
 ]
 
 [[package]]
