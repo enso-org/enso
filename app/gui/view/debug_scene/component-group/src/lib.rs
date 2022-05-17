@@ -239,7 +239,7 @@ fn init(app: &Application) {
         &scroll_area,
     );
 
-    let mock_entries = MockEntries::new(10);
+    let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
     second_component_group.set_entries(model_provider);
