@@ -55,7 +55,7 @@ impl<T> NonEmpty<T> {
         List { data }
     }
 
-    /// Replace the head element of this list.
+    /// Prepend the element to this list.
     pub fn prepend(self, head: T) -> Self {
         self.into_list().prepend(head)
     }
