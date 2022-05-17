@@ -7,6 +7,7 @@ use crate::prelude::*;
 use crate::icon;
 use crate::icon::AnyIcon;
 use crate::icon::ICON_SIZE;
+use crate::Colors;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -15,18 +16,10 @@ use ensogl::display;
 use ensogl::display::scene::Layer;
 use ensogl::display::style;
 use ensogl::display::Scene;
-use ensogl_core::application::Application;
-use ensogl_core::data::color::Rgba;
-use ensogl_core::display;
-use ensogl_core::display::scene::Layer;
-use ensogl_core::display::style;
-use ensogl_core::display::Scene;
-use ensogl_hardcoded_theme::application::component_browser::component_group::entries as theme;
 use ensogl_hardcoded_theme::application::component_browser::component_group::entry as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabel;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
-use ensogl_list_view::entry::Label;
 
 
 
@@ -37,7 +30,6 @@ use ensogl_list_view::entry::Label;
 /// ID of a component group entry in a ListView.
 pub type Id = list_view::entry::Id;
 
-<<<<<<< HEAD
 
 
 // =================
@@ -54,38 +46,7 @@ pub const STYLE_PATH: &str = theme::HERE.str;
 // =============
 
 /// Data underlying an entry in a component group view.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, From)]
-=======
-#[derive(Clone, CloneRef, Debug)]
-pub struct Params {
-    pub icon_strong_color: frp::Stream<color::Rgba>,
-    pub icon_weak_color:   frp::Stream<color::Rgba>,
-    pub text_color:        frp::Stream<color::Rgba>,
-    pub background_color:  frp::Stream<color::Rgba>,
-}
-
-impl Default for Params {
-    fn default() -> Self {
-        let network = frp::Network::new("component_browser::entry::Params::default");
-        frp::extend! { network
-            icon_strong_color <- source::<color::Rgba>();
-            icon_weak_color <- source::<color::Rgba>();
-            text_color <- source::<color::Rgba>();
-            background_color <- source::<color::Rgba>();
-        }
-
-        Self {
-            icon_strong_color: icon_strong_color.into(),
-            icon_weak_color:   icon_weak_color.into(),
-            text_color:        text_color.into(),
-            background_color:  background_color.into(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Default)]
->>>>>>> e427a17f9 (Selection highlight)
 pub struct Model {
     pub icon:             icon::Id,
     pub highlighted_text: GlyphHighlightedLabelModel,
@@ -117,7 +78,29 @@ impl From<&str> for Model {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
-    pub color: frp::Sampler<Rgba>,
+    pub colors: Colors,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        let network = frp::Network::new("component_browser::entry::Params::default");
+        frp::extend! { network
+            icon_strong <- source::<color::Rgba>();
+            icon_weak <- source::<color::Rgba>();
+            header_text <- source::<color::Rgba>();
+            entry_text <- source::<color::Rgba>();
+            background <- source::<color::Rgba>();
+        }
+
+        let colors = Colors {
+            icon_strong: icon_strong.into(),
+            icon_weak:   icon_weak.into(),
+            header_text: header_text.into(),
+            entry_text:  entry_text.into(),
+            background:  background.into(),
+        };
+        Self { colors }
+    }
 }
 
 
@@ -160,7 +143,7 @@ impl list_view::Entry for View {
     type Model = Model;
     type Params = Params;
 
-    fn new(app: &Application, style_prefix: &style::Path, params: &Params) -> Self {
+    fn new(app: &Application, style_prefix: &style::Path, Params { colors }: &Params) -> Self {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let style_prefix = style_prefix.sub("entry");
@@ -181,20 +164,20 @@ impl list_view::Entry for View {
             label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
-            label.inner.label.set_color_all <+ params.text_color;
-            label.inner.label.set_default_color <+ params.text_color;
-            eval params.icon_strong_color ([icon](color)
+            label.inner.label.set_color_all <+ colors.entry_text;
+            label.inner.label.set_default_color <+ colors.entry_text;
+            eval colors.icon_strong ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());
                 }
             );
-            eval params.icon_weak_color ([icon](color)
+            eval colors.icon_weak ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.weak_color.set(color.into());
                 }
             );
-            icon_strong_color <- params.icon_strong_color.sampler();
-            icon_weak_color <- params.icon_weak_color.sampler();
+            icon_strong_color <- colors.icon_strong.sampler();
+            icon_weak_color <- colors.icon_weak.sampler();
         }
         init.emit(());
         Self {

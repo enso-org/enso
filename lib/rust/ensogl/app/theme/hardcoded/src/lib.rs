@@ -189,7 +189,7 @@ define_themes! { [light:0, dark:1]
                     }
                     height = 27.0, 27.0;
                     padding {
-                        left   = 16.5, 16.5;
+                        left   = 11.0, 11.0;
                         right  = 2.5, 2.5;
                         bottom = 3.0, 3.0;
                     }
@@ -207,6 +207,7 @@ define_themes! { [light:0, dark:1]
                         size = 16.0, 16.0;
                         weak_color_intensity = 0.5, 0.5;
                     }
+                    padding = 7.0, 7.0;
                 }
                 padding = 4.0, 4.0;
             }

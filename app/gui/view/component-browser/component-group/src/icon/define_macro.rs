@@ -93,7 +93,7 @@ macro_rules! define_icons {
             }
         }
 
-        impl std::str::FromStr for Id {
+        impl FromStr for Id {
             type Err = $crate::icon::UnknownIcon;
             fn from_str(s: &str) -> Result<Id, Self::Err> {
                 match s {

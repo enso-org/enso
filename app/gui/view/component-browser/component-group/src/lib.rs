@@ -46,11 +46,10 @@ use ensogl_list_view as list_view;
 
 /// A module containing common imports.
 pub mod prelude {
+    pub use ensogl::application::traits::*;
     pub use ensogl::display::shape::*;
     pub use ensogl::prelude::*;
 }
-
-const ENTRIES_STYLE_PATH: &str = theme::HERE.str;
 
 
 
@@ -128,6 +127,57 @@ impl HeaderGeometry {
 
 
 
+// ==============
+// === Colors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct Colors {
+    pub icon_strong: frp::Stream<color::Rgba>,
+    pub icon_weak:   frp::Stream<color::Rgba>,
+    pub header_text: frp::Stream<color::Rgba>,
+    pub entry_text:  frp::Stream<color::Rgba>,
+    pub background:  frp::Stream<color::Rgba>,
+}
+
+impl Colors {
+    pub fn from_main_color(
+        network: &frp::Network,
+        style: &StyleWatchFrp,
+        color: &frp::Stream<color::Rgba>,
+        is_dimmed: &frp::Stream<bool>,
+    ) -> Self {
+        fn mix((c1, c2): &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
+            color::mix(*c1, *c2, *coefficient)
+        }
+        let app_bg = style.get_color(ensogl_hardcoded_theme::application::background);
+        let header_intensity = style.get_number(theme::header::text::color_intensity);
+        let bg_intensity = style.get_number(theme::background_color_intensity);
+        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
+        let icon_weak_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
+        let entry_text = style.get_color(theme::entry::text::color);
+        frp::extend! { TRACE_ALL network
+            init <- source_();
+            one <- init.constant(1.0);
+            let is_dimmed = is_dimmed.clone_ref();
+            intensity <- is_dimmed.switch(&one, &dimmed_intensity);
+            app_bg <- all(&app_bg, &init)._0();
+            app_bg_and_input <- all(&app_bg, color);
+            main <- app_bg_and_input.all_with(&intensity, mix);
+            app_bg_and_main <- all(&app_bg, &main);
+            header_text <- app_bg_and_main.all_with(&header_intensity, mix);
+            bg <- app_bg_and_main.all_with(&bg_intensity, mix);
+            app_bg_and_entry_text <- all(&app_bg, &entry_text);
+            entry_text <- app_bg_and_entry_text.all_with(&intensity, mix);
+            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix);
+        }
+        init.emit(());
+        Self { icon_weak, icon_strong: main, header_text, entry_text, background: bg }
+    }
+}
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -164,7 +214,6 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
-        let header_height = style.get_number(theme::header::height);
         let padding = style.get_number(theme::padding);
 
 
@@ -185,43 +234,15 @@ impl component::Frp<Model> for Frp {
 
 
         // === Colors ===
-
-        fn mix(colors: &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
-            color::mix(colors.0, colors.1, *coefficient)
-        }
-        let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
-        let header_intensity = style.get_number(theme::header::text::color_intensity);
-        let bg_intensity = style.get_number(theme::background_color_intensity);
-        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
-        let icon_weak_color_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
-        let entry_text_color = style.get_color(theme::entry::text::color);
-        frp::extend! { network
-            init <- source_();
-            one <- init.constant(1.0);
-            intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
-            app_bg_color <- all(&app_bg_color, &init)._0();
-            app_bg_and_input_color <- all(&app_bg_color, &input.set_color);
-            main_color <- app_bg_and_input_color.all_with(&intensity, mix);
-            app_bg_and_main_color <- all(&app_bg_color, &main_color);
-            header_color <- app_bg_and_main_color.all_with(&header_intensity, mix);
-            bg_color <- app_bg_and_main_color.all_with(&bg_intensity, mix);
-            app_bg_and_entry_text_color <- all(&app_bg_color, &entry_text_color);
-            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
-            entry_color_sampler <- entry_color_with_intensity.sampler();
-        }
-        let params = entry::Params {
-            text_color,
-            icon_weak_color,
-            icon_strong_color: main_color,
-            background_color,
-        };
-        let params = entry::Params { color: entry_color_sampler };
+        let colors = Colors::from_main_color(&network, &style, &input.set_color, &input.set_dimmed);
+        let params = entry::Params { colors: colors.clone_ref() };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
         // === Header ===
 
         frp::extend! { network
+            init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
@@ -232,14 +253,14 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            model.header.set_default_color <+ header_color;
+            model.header.set_default_color <+ colors.header_text;
             // FIXME[AO,MC]: set_color_all should not be necessary, but set_default_color alone
             // does not work as it misses a call to `redraw`. Fixing set_default_color is postponed
             // (https://www.pivotaltracker.com/story/show/182139606), because text::Area is used in
             // many places of the code and testing them all carefully will take more time than we
             // can afford before a release scheduled for June 2022.
-            model.header.set_color_all <+ header_color;
-            eval bg_color((c) model.background.color.set(c.into()));
+            model.header.set_color_all <+ colors.header_text;
+            eval colors.background ((c) model.background.color.set(c.into()));
         }
 
 

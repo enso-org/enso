@@ -132,11 +132,6 @@ impl Label {
         init.emit(());
         Self { display_object, label, text, max_width_px, network, style_watch }
     }
-
-    fn update_label_content(&self) {
-        let text = self.text.borrow().clone();
-        self.label.set_content_truncated(text, self.max_width_px.get());
-    }
 }
 
 impl Entry for Label {
@@ -190,7 +185,7 @@ impl Entry for GlyphHighlightedLabel {
     type Model = GlyphHighlightedLabelModel;
     type Params = <Label as Entry>::Params;
 
-    fn new(app: &Application, style_prefix: &Path, params: &Self::Params) -> Self {
+    fn new(app: &Application, style_prefix: &Path, (): &Self::Params) -> Self {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");
