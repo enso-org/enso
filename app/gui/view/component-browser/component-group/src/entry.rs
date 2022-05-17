@@ -150,7 +150,6 @@ impl list_view::Entry for View {
         let network = &label.inner.network;
         let style = &label.inner.style_watch;
         let icon_text_gap = style.get_number(theme::icon_text_gap);
-        let label_frp = &label.label.frp;
         frp::extend! { network
             init <- source_();
             max_width_px <- source::<f32>();
@@ -159,7 +158,7 @@ impl list_view::Entry for View {
             label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
-            label_frp.set_default_color <+ color;
+            label.inner.label.set_default_color <+ colors.entry_text;
             eval colors.icon_strong ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());

@@ -34,12 +34,14 @@
 use crate::prelude::*;
 use ensogl::application::traits::*;
 
+use crate::display::scene::layer;
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
+use ensogl::display::camera::Camera2d;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
@@ -111,7 +113,7 @@ pub mod background {
 pub mod header_background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         above = [background, list_view::background];
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
@@ -339,7 +341,7 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            model.header.set_default_color <+ header_color;
+            model.header.set_default_color <+ colors.header_text;
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
         }

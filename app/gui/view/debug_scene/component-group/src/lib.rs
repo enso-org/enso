@@ -95,12 +95,6 @@ impl MockEntries {
         })
     }
 
-    fn set_count(&self, count: usize) {
-        if self.entries.len() >= count {
-            self.count.set(count);
-        }
-    }
-
     fn get_entry(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.entries.get(id).cloned()
     }
