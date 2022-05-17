@@ -36,6 +36,18 @@ pub fn with<T, F: FnOnce(T) -> Out, Out>(t: T, f: F) -> Out {
 
 
 
+// ================
+// === TryAsRef ===
+// ================
+
+/// Just like [`AsRef`], but might return [`None`] for some data.
+#[allow(missing_docs)]
+pub trait TryAsRef<T> {
+    fn try_as_ref(&self) -> Option<&T>;
+}
+
+
+
 // =============
 // === ToRef ===
 // =============

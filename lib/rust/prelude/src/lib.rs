@@ -103,6 +103,33 @@ pub mod serde_reexports {
     pub use serde::Serialize;
 }
 
+
+
+// ===============
+// === Tracing ===
+// ===============
+
+pub mod tracing {
+    pub use tracing::*;
+    pub use tracing_subscriber::*;
+}
+pub use ::tracing::event;
+pub use ::tracing::span as log_span;
+
+pub const ERROR: tracing::Level = tracing::Level::ERROR;
+pub const WARN: tracing::Level = tracing::Level::WARN;
+pub const INFO: tracing::Level = tracing::Level::INFO;
+pub const DEBUG: tracing::Level = tracing::Level::DEBUG;
+pub const TRACE: tracing::Level = tracing::Level::TRACE;
+
+pub fn init_tracing(level: tracing::Level) {
+    let subscriber =
+        tracing::fmt().compact().with_target(false).with_max_level(level).without_time().finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
+}
+
+
+
 // =================
 // === Immutable ===
 // =================
