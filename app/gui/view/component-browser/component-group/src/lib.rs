@@ -5,6 +5,16 @@
 //!
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
+//!
+//! # Header and its shadow
+//!
+//! To simulate scrolling of the component group entries we move the header of the component group
+//! down while moving the whole component group up (see [`Frp::set_header_pos`]). When the header
+//! is moved down the shadow appears below it. The shadow changes its intensity smoothly before
+//! the header reaches the [`HEADER_SHADOW_PEAK`] distance from the top of the component group.
+//! After that the shadow is unchanged. When the header approaches the bottom of the component group
+//! we gradually reduce the size of the shadow so that it will never be rendered outside the
+//! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===
@@ -28,9 +38,12 @@ use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::display::camera::Camera2d;
+use ensogl_core::display::scene::layer;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
+use ensogl_shadow as shadow;
 use ensogl_text as text;
 
 
@@ -42,6 +55,23 @@ pub mod entry;
 pub mod wide;
 
 pub use entry::View as Entry;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// The distance (in pixels) from the top border of the component group at which
+/// the header shadow reaches its maximum intensity.
+///
+/// When the header is on top of the component group (default position) the shadow is invisible.
+/// Once the header moves down (see [`Frp::set_header_pos`]) we start to linearly increase the
+/// intensity of the shadow until it reaches its maximum at [`HEADER_SHADOW_PEAK`] distance from
+/// the top. The intensity does not change all the way down from there, but the shadow is clipped at
+/// the bottom of the component group so that it will never escape the borders of the group and
+/// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
+const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
 
 
@@ -61,6 +91,37 @@ pub mod background {
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
+        }
+    }
+}
+
+
+// === Header Background ===
+
+/// The background of the header. It consists of a rectangle that matches the [`background`] in
+/// color and a shadow underneath it.
+pub mod header_background {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        above = [background, list_view::background];
+        (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
+            let color = Var::<color::Rgba>::from(color);
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = height.into();
+            let bg = Rect((width.clone(), height.clone())).fill(color);
+            // We use wider and shorter rect for the shadow because of the visual artifacts that
+            // will appear otherwise:
+            // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
+            //    it we keep the shadow sharp and flat for the whole width of the header.
+            // 2. Visual glitching similar to z-fighting occurs on the border of the elements
+            //    when the shadow rect has the exact same size as the background. We shrink the
+            //    height by 1 pixel to avoid it.
+            let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
+            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
+            (shadow + bg).into()
         }
     }
 }
@@ -95,6 +156,7 @@ struct HeaderGeometry {
     padding_left:   f32,
     padding_right:  f32,
     padding_bottom: f32,
+    shadow_size:    f32,
 }
 
 impl HeaderGeometry {
@@ -103,12 +165,13 @@ impl HeaderGeometry {
         let padding_left = style.get_number(theme::header::padding::left);
         let padding_right = style.get_number(theme::header::padding::right);
         let padding_bottom = style.get_number(theme::header::padding::bottom);
+        let shadow_size = style.get_number(theme::header::shadow::size);
 
         frp::extend! { network
             init <- source_();
-            theme <- all_with5(&init,&height,&padding_left,&padding_right,&padding_bottom,
-                |_,&height,&padding_left,&padding_right,&padding_bottom|
-                    Self{height,padding_left,padding_right,padding_bottom}
+            theme <- all_with6(&init,&height,&padding_left,&padding_right,&padding_bottom,&shadow_size,
+                |_,&height,&padding_left,&padding_right,&padding_bottom,&shadow_size|
+                    Self{height,padding_left,padding_right,padding_bottom,shadow_size}
             );
             theme_sampler <- theme.sampler();
         }
@@ -134,6 +197,13 @@ ensogl_core::define_endpoints_2! {
         set_color(color::Rgba),
         set_dimmed(bool),
         set_width(f32),
+        /// Sets the y-position of the header from the top of the component group.
+        ///
+        /// It can't move past the top and bottom borders of the component group.
+        ///
+        /// We use it to simulate entries scrolling with a fixed-position header. Though in fact we
+        /// move the header down while moving the whole component group up.
+        set_header_pos(f32),
     }
     Output {
         selected_entry(Option<entry::Id>),
@@ -165,8 +235,16 @@ impl component::Frp<Model> for Frp {
                 entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
             });
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
-            size_and_header_geometry <- all(&out.size, &header_geometry);
-            eval size_and_header_geometry(((size, hdr_geom)) model.resize(*size, *hdr_geom));
+            size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_header_pos);
+            eval size_and_header_geometry(((size, hdr_geom, hdr_pos))
+                model.resize(*size, *hdr_geom, *hdr_pos)
+            );
+
+
+            // === Show/hide shadow ===
+
+            shadow <- input.set_header_pos.map(|p| (*p / HEADER_SHADOW_PEAK).min(1.0));
+            eval shadow((v) model.header_background.shadow_height_multiplier.set(*v));
         }
 
 
@@ -206,13 +284,14 @@ impl component::Frp<Model> for Frp {
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
-                (text, (size, hdr_geom)) {
+                (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
             model.header.set_default_color <+ header_color;
             eval bg_color((c) model.background.color.set(c.into()));
+            eval bg_color((c) model.header_background.color.set(c.into()));
         }
 
 
@@ -274,6 +353,45 @@ impl component::Frp<Model> for Frp {
 
 
 
+// ==============
+// === Layers ===
+// ==============
+
+/// A set of scene layers shared by every component group.
+///
+/// A component group consists of a several shapes with a strict rendering order. The order of the
+/// fields of this struct represents the rendering order of layers, with `background` being the
+/// bottom-most and `header_text` being the top-most.
+#[derive(Debug, Clone, CloneRef)]
+pub struct Layers {
+    background:  layer::Layer,
+    text:        layer::Layer,
+    header:      layer::Layer,
+    header_text: layer::Layer,
+}
+
+impl Layers {
+    /// Constructor.
+    ///
+    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer` as
+    /// sublayers.
+    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: &layer::Layer) -> Self {
+        let background = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let header = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+
+        background.add_sublayer(&text);
+        background.add_sublayer(&header);
+        header.add_sublayer(&header_text);
+
+        parent_layer.add_sublayer(&background);
+
+        Self { background, header, text, header_text }
+    }
+}
+
+
 // =============
 // === Model ===
 // =============
@@ -281,12 +399,13 @@ impl component::Frp<Model> for Frp {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object: display::object::Instance,
-    header:         text::Area,
-    header_text:    Rc<RefCell<String>>,
-    header_overlay: header_overlay::View,
-    background:     background::View,
-    entries:        list_view::ListView<Entry>,
+    display_object:    display::object::Instance,
+    header:            text::Area,
+    header_background: header_background::View,
+    header_text:       Rc<RefCell<String>>,
+    header_overlay:    header_overlay::View,
+    background:        background::View,
+    entries:           list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -303,30 +422,47 @@ impl component::Model for Model {
     fn new(app: &Application, logger: &Logger) -> Self {
         let header_text = default();
         let display_object = display::object::Instance::new(&logger);
-        let background = background::View::new(&logger);
-        let header = text::Area::new(app);
         let header_overlay = header_overlay::View::new(&logger);
+        let background = background::View::new(&logger);
+        let header_background = header_background::View::new(&logger);
+        let header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
+        entries.hide_selection();
         display_object.add_child(&background);
+        display_object.add_child(&header_background);
         display_object.add_child(&header);
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
 
-        let label_layer = &app.display.default_scene.layers.label;
-        header.add_to_scene_layer(label_layer);
-
-        entries.hide_selection();
-
-        Model { display_object, header, header_text, header_overlay, background, entries }
+        Model {
+            display_object,
+            header_overlay,
+            header,
+            header_text,
+            background,
+            header_background,
+            entries,
+        }
     }
 }
 
 impl Model {
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry) {
+    /// Assign a set of layers to render the component group in. Must be called after constructing
+    /// the [`View`].
+    pub fn set_layers(&self, layers: &Layers) {
+        layers.background.add_exclusive(&self.background);
+        layers.header_text.add_exclusive(&self.header_overlay);
+        layers.background.add_exclusive(&self.entries);
+        self.entries.set_label_layer(&layers.text);
+        layers.header.add_exclusive(&self.header_background);
+        self.header.add_to_scene_layer(&layers.header_text);
+    }
+
+    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
         // === Background ===
 
         self.background.size.set(size);
@@ -339,11 +475,32 @@ impl Model {
         let header_text_height = self.header.height.value();
         let header_padding_bottom = header_geometry.padding_bottom;
         let header_height = header_geometry.height;
-        let header_center_y = size.y / 2.0 - header_height / 2.0;
-        let header_bottom_y = header_center_y - header_height / 2.0;
+        let half_header_height = header_height / 2.0;
+        let header_center_y = size.y / 2.0 - half_header_height;
+        let header_center_y = header_center_y - header_pos;
+        let header_center_y = header_center_y.max(-size.y / 2.0 + half_header_height);
+        let header_center_y = header_center_y.min(size.y / 2.0 - half_header_height);
+        let header_bottom_y = header_center_y - half_header_height;
         let header_text_y = header_bottom_y + header_text_height + header_padding_bottom;
         self.header.set_position_xy(Vector2(header_text_x, header_text_y));
         self.update_header_width(size, header_geometry);
+
+
+        // === Header Background ===
+
+        self.header_background.height.set(header_height);
+        let shadow_size = header_geometry.shadow_size;
+        let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
+        // We need to render both the header background and the shadow below it, so we add
+        // `shadow_size` and `header_height` to calculate the final `size` of the
+        // `header_background` shape. We use `shadow_size * 2.0`, because the shadow extends by
+        // `shadow_size` in each direction around the base shape, not only down. We cap the
+        // `shadow_size` by the distance to the bottom of the component group so that the shadow is
+        // not visible outside the component group background.
+        let shadow_size = shadow_size.min(distance_to_bottom);
+        let header_background_height = header_height + shadow_size * 2.0;
+        self.header_background.size.set(Vector2(size.x, header_background_height));
+        self.header_background.set_position_y(header_center_y);
 
 
         // === Header Overlay ===

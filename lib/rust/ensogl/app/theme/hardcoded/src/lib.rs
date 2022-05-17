@@ -193,6 +193,15 @@ define_themes! { [light:0, dark:1]
                         right  = 2.5, 2.5;
                         bottom = 5.0, 5.0;
                     }
+                    shadow = shadow , shadow;
+                    shadow {
+                        size     = 27.0 , 27.0;
+                        spread   = shadow::spread   , shadow::spread;
+                        fading   = shadow::fading   , shadow::fading;
+                        exponent = shadow::exponent , shadow::exponent;
+                        offset_x = shadow::offset_x , shadow::offset_x;
+                        offset_y = shadow::offset_y , shadow::offset_y;
+                    }
                 }
                 entries {
                     text {

@@ -757,6 +757,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
+ "ensogl-scroll-area",
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
@@ -2355,6 +2356,7 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-label",
  "ensogl-list-view",
+ "ensogl-shadow",
  "ensogl-text",
 ]
 
