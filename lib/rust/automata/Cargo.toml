@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "A finite-automata-based lexing engine."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/automata"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/automata"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["lexer", "finite-automata"]

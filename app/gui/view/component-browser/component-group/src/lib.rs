@@ -51,7 +51,10 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
+pub mod entry;
 pub mod wide;
+
+pub use entry::View as Entry;
 
 
 
@@ -69,15 +72,6 @@ pub mod wide;
 /// the bottom of the component group so that it will never escape the borders of the group and
 /// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
 const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
-
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub mod entry;
-pub use entry::View as Entry;
 
 
 
@@ -296,12 +290,6 @@ impl component::Frp<Model> for Frp {
                 })
             );
             model.header.set_default_color <+ header_color;
-            // FIXME[AO,MC]: set_color_all should not be necessary, but set_default_color alone
-            // does not work as it misses a call to `redraw`. Fixing set_default_color is postponed
-            // (https://www.pivotaltracker.com/story/show/182139606), because text::Area is used in
-            // many places of the code and testing them all carefully will take more time than we
-            // can afford before a release scheduled for June 2022.
-            model.header.set_color_all <+ header_color;
             eval bg_color((c) model.background.color.set(c.into()));
             eval bg_color((c) model.header_background.color.set(c.into()));
         }

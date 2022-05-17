@@ -259,8 +259,10 @@ ensogl_core::define_endpoints! {
         paste_string          (String),
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
+        /// Explicitly set the color of all text.
         set_color_all         (color::Rgba),
         set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
+        /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
@@ -286,6 +288,7 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        /// Color that is used for all text that does not explicitly have a color set.
         default_color   (color::Rgba),
     }
 }
@@ -498,7 +501,10 @@ impl Area {
 
             // === Colors ===
 
-            eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            eval input.set_default_color ((t)
+                m.buffer.frp.set_default_color(*t);
+                m.redraw(false) ;
+            );
             self.frp.source.default_color <+ self.frp.set_default_color;
 
             eval input.set_default_text_size ((t) {
@@ -642,6 +648,7 @@ impl AreaModel {
     fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
 
     #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -753,6 +760,7 @@ impl AreaModel {
         Location(line, column)
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         self.redraw(true);
         self
@@ -1011,6 +1019,8 @@ impl AreaModel {
     }
 
     #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
+    #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;
@@ -1141,5 +1151,24 @@ impl Drop for Area {
         // TODO[ao]: This is workaround for memory leak causing text to stay even when component
         //           is deleted. See "FIXME: memory leak." comment above.
         self.remove_all_cursors();
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Assert that there is no inherent memory leak in the [text::Area].
+    #[test]
+    fn assert_no_leak() {
+        let app = Application::new("root");
+        let text = app.new_view::<Area>();
+        let text_frp = Rc::downgrade(&text.frp);
+        let text_data = Rc::downgrade(&text.data);
+        drop(text);
+        assert_eq!(text_frp.strong_count(), 0, "There are FRP references left.");
+        assert_eq!(text_data.strong_count(), 0, "There are  data references left.");
     }
 }
