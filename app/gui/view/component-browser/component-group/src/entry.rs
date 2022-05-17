@@ -108,12 +108,6 @@ impl list_view::Entry for View {
             init <- source_();
             color <- all(&color, &init)._0();
             label_frp.set_default_color <+ color;
-            // FIXME[AO,MC]: set_color_all should not be necessary, but set_default_color alone
-            // does not work as it misses a call to `redraw`. Fixing set_default_color is postponed
-            // (https://www.pivotaltracker.com/story/show/182139606), because text::Area is used in
-            // many places of the code and testing them all carefully will take more time than we
-            // can afford before a release scheduled for June 2022.
-            label_frp.set_color_all <+ color;
         }
         init.emit(());
 
