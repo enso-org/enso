@@ -134,12 +134,12 @@ impl<T> List<T> {
     }
 
     /// Convert this list to a non-empty list. Return [`None`] if the list is empty.
-    pub fn try_as_non_empty(&self) -> &Option<NonEmpty<T>> {
+    pub fn as_non_empty(&self) -> &Option<NonEmpty<T>> {
         &self.data
     }
 
     /// Convert this list to a non-empty list. Return [`None`] if the list is empty.
-    pub fn try_into_non_empty(self) -> Option<NonEmpty<T>> {
+    pub fn into_non_empty(self) -> Option<NonEmpty<T>> {
         self.data
     }
 }
@@ -202,6 +202,6 @@ impl<T> TryFrom<Vec<T>> for NonEmpty<T> {
     type Error = failure::Error;
     fn try_from(v: Vec<T>) -> Result<Self, Self::Error> {
         let err = "Cannot convert empty Vec to NonEmpty one.";
-        List::<T>::from(v).try_into_non_empty().ok_or_else(|| failure::err_msg(err))
+        List::<T>::from(v).into_non_empty().ok_or_else(|| failure::err_msg(err))
     }
 }

@@ -119,6 +119,7 @@ pub struct Token<'s, T = Variant> {
 }
 
 /// Constructor.
+#[inline(always)]
 #[allow(non_snake_case)]
 pub fn Token<'s, T>(
     left_offset: impl Into<Offset<'s>>,

@@ -1,5 +1,8 @@
 //! Implementation of lexer, a utility transforming source code into stream of tokens. Read the docs
 //! of the main module of this crate to learn more about the parsing process.
+//!
+//! TODO: Implement token validators - validating if the consumed token was OK and reporting human
+//!       readable errors.
 
 use crate::prelude::*;
 
@@ -7,9 +10,8 @@ use crate::source::Offset;
 use crate::source::VisibleOffset;
 use crate::syntax::token;
 use crate::token::Token;
+use crate::token::Variant;
 
-use bumpalo::Bump;
-use ouroboros::self_referencing;
 use std::str;
 
 
@@ -21,75 +23,6 @@ use std::str;
 /// An optimization constant. Based on it, the estimated memory is allocated on the beginning of
 /// parsing.
 pub const AVERAGE_TOKEN_LEN: usize = 5;
-
-
-
-// ===============
-// === BumpVec ===
-// ===============
-
-/// A vector with [`Bump`] allocator.
-///
-/// This struct owns the allocator, and thus, it is a self-referencing one. It uses [`ouroboros`] to
-/// guarantee that the self-referencing pattern is safe.
-#[self_referencing]
-pub struct BumpVec<T> {
-    allocator: Bump,
-    #[covariant]
-    #[borrows(allocator)]
-    pub vec:   Vec<T, &'this Bump>,
-}
-
-impl<T> BumpVec<T> {
-    /// Constructor.
-    #[inline(always)]
-    fn new_with_capacity(capacity: usize) -> Self {
-        let allocator = Bump::with_capacity(capacity * mem::size_of::<T>());
-        BumpVecBuilder { allocator, vec_builder: |allocator: &Bump| Vec::new_in(allocator) }.build()
-    }
-
-    /// Push a new element to this vec.
-    #[inline(always)]
-    pub fn push(&mut self, t: T) {
-        self.with_mut(|fields| fields.vec.push(t))
-    }
-
-    /// Get reference to the last element, if any.
-    #[inline(always)]
-    pub fn last(&self) -> Option<&T> {
-        self.borrow_vec().last()
-    }
-
-    /// Get the length of this vec.
-    #[inline(always)]
-    pub fn len(&self) -> usize {
-        self.borrow_vec().len()
-    }
-
-    /// Check whether the vec is empty.
-    #[inline(always)]
-    pub fn is_empty(&self) -> bool {
-        self.borrow_vec().is_empty()
-    }
-
-    /// Iterate over elements of this vec.
-    #[inline(always)]
-    pub fn iter(&self) -> slice::Iter<'_, T> {
-        self.borrow_vec().iter()
-    }
-}
-
-impl<T> Default for BumpVec<T> {
-    fn default() -> Self {
-        Self::new_with_capacity(0)
-    }
-}
-
-impl<T: Debug> Debug for BumpVec<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(self.borrow_vec(), f)
-    }
-}
 
 
 
@@ -144,9 +77,6 @@ pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 /// Please note, that the lexer is able to parse invalid input, such as invalid operators, like
 /// `===`. This is needed for allowing the parser to auto-recover from errors in the code, including
 /// syntax errors.
-///
-/// TODO: Implement token validators - validating if the consumed token was OK and reporting human
-///       readable errors.
 #[derive(Debug, Deref, DerefMut)]
 #[allow(missing_docs)]
 pub struct Lexer<'s> {
@@ -155,7 +85,7 @@ pub struct Lexer<'s> {
     pub state:    LexerState,
     pub input:    &'s str,
     pub iterator: str::CharIndices<'s>,
-    pub output:   BumpVec<Token<'s>>,
+    pub output:   Vec<Token<'s>>,
 }
 
 /// Internal state of the [`Lexer`].
@@ -175,7 +105,7 @@ impl<'s> Lexer<'s> {
     pub fn new(input: &'s str) -> Self {
         let iterator = input.char_indices();
         let capacity = input.len() / AVERAGE_TOKEN_LEN;
-        let output = BumpVec::new_with_capacity(capacity);
+        let output = Vec::with_capacity(capacity * mem::size_of::<Token<'s>>());
         let state = default();
         Self { input, iterator, output, state }.init()
     }
@@ -354,12 +284,16 @@ pub fn space_char_visible_size(t: char) -> Option<VisibleOffset> {
     let off = match t {
         ' ' => Some(1),
         '\t' => Some(4),
-        '\u{00A0}' => Some(1),
-        _ if t >= '\u{1680}' => match t {
-            '\u{1680}' => Some(1),
-            _ if t >= '\u{2000}' => match t {
-                _ if OTHER_UNICODE_SINGLE_SPACES.contains(t) => Some(1),
-                _ if OTHER_UNICODE_SINGLE_SPACES_RANGE.contains(&t) => Some(1),
+        _ if t >= '\u{00A0}' => match t {
+            // For ASCII code, we don't enter this branch.
+            '\u{00A0}' => Some(1),
+            _ if t >= '\u{1680}' => match t {
+                '\u{1680}' => Some(1),
+                _ if t >= '\u{2000}' => match t {
+                    _ if OTHER_UNICODE_SINGLE_SPACES.contains(t) => Some(1),
+                    _ if OTHER_UNICODE_SINGLE_SPACES_RANGE.contains(&t) => Some(1),
+                    _ => None,
+                },
                 _ => None,
             },
             _ => None,
@@ -535,9 +469,10 @@ fn is_ident_char(t: char) -> bool {
     !is_ident_split_char(t)
 }
 
-impl token::Variant {
+impl Variant {
     /// Convert the provided string to ident. The provided repr should contain valid identifier
     /// characters. This condition will not be checked.
+    #[inline(always)]
     pub fn new_ident_unchecked(repr: &str) -> token::variant::Ident {
         let info = IdentInfo::new(repr);
         token::variant::Ident(info.starts_with_underscore, info.lift_level)
@@ -545,13 +480,14 @@ impl token::Variant {
 
     /// Convert the provided string to ident or wildcard. The provided repr should contain valid
     /// identifier characters. This condition will not be checked.
-    pub fn new_ident_or_wildcard_unchecked(repr: &str) -> token::Variant {
+    #[inline(always)]
+    pub fn new_ident_or_wildcard_unchecked(repr: &str) -> Variant {
         let info = IdentInfo::new(repr);
         if info.starts_with_underscore && repr.len() == 1 + info.lift_level {
-            token::Variant::wildcard(info.lift_level)
+            Variant::wildcard(info.lift_level)
         } else {
             let is_free = info.starts_with_underscore;
-            token::Variant::ident(is_free, info.lift_level)
+            Variant::ident(is_free, info.lift_level)
         }
     }
 }
@@ -560,7 +496,7 @@ impl<'s> Lexer<'s> {
     /// Parse an identifier.
     fn ident(&mut self) {
         if let Some(token) = self.token(|this| this.take_while_1(is_ident_char)) {
-            let tp = token::Variant::new_ident_or_wildcard_unchecked(&token.code);
+            let tp = Variant::new_ident_or_wildcard_unchecked(&token.code);
             let token = token.with_variant(tp);
             self.submit_token(token);
         }
@@ -590,13 +526,12 @@ impl<'s> Lexer<'s> {
         if let Some(token) = token {
             if token.code == "+-" {
                 let (left, right) = token.split_at_(Bytes(1));
-                self.submit_token(left.with_variant(token::Variant::operator()));
-                self.submit_token(right.with_variant(token::Variant::operator()));
+                self.submit_token(left.with_variant(Variant::operator()));
+                self.submit_token(right.with_variant(Variant::operator()));
             } else {
                 let only_eq = token.code.chars().all(|t| t == '=');
                 let is_mod = token.code.ends_with('=') && !only_eq;
-                let tp =
-                    if is_mod { token::Variant::modifier() } else { token::Variant::operator() };
+                let tp = if is_mod { Variant::modifier() } else { Variant::operator() };
                 let token = token.with_variant(tp);
                 self.submit_token(token);
             }
@@ -614,7 +549,7 @@ impl<'s> Lexer<'s> {
     /// Parse a symbol.
     fn symbol(&mut self) {
         if let Some(token) = self.token(|this| this.take_1(&['(', ')', '{', '}', '[', ']'])) {
-            self.submit_token(token.with_variant(token::Variant::symbol()));
+            self.submit_token(token.with_variant(Variant::symbol()));
         }
     }
 }
@@ -634,7 +569,7 @@ impl<'s> Lexer<'s> {
             }
         });
         if let Some(token) = token {
-            self.submit_token(token.with_variant(token::Variant::number()));
+            self.submit_token(token.with_variant(Variant::number()));
         }
     }
 }
@@ -645,6 +580,7 @@ impl<'s> Lexer<'s> {
 // === Text ===
 // ============
 
+#[inline(always)]
 fn is_inline_text_body(t: char) -> bool {
     t != '"' && !is_newline_char(t) && t != '\\'
 }
@@ -655,7 +591,7 @@ impl<'s> Lexer<'s> {
     fn text(&mut self) {
         let token = self.token(|this| this.take_1('"'));
         if let Some(token) = token {
-            self.submit_token(token.with_variant(token::Variant::text_start()));
+            self.submit_token(token.with_variant(Variant::text_start()));
             let line_empty = self.current_char.map(is_newline_char).unwrap_or(true);
             if line_empty {
                 todo!()
@@ -667,7 +603,7 @@ impl<'s> Lexer<'s> {
                     let section = self.token(|this| this.take_while_1(is_inline_text_body));
                     if let Some(tok) = section {
                         parsed_element = true;
-                        self.submit_token(tok.with_variant(token::Variant::text_section()));
+                        self.submit_token(tok.with_variant(Variant::text_section()));
                     }
 
                     let escape = self.token(|this| {
@@ -677,12 +613,12 @@ impl<'s> Lexer<'s> {
                     });
                     if let Some(token) = escape {
                         parsed_element = true;
-                        self.submit_token(token.with_variant(token::Variant::text_escape()));
+                        self.submit_token(token.with_variant(Variant::text_escape()));
                     }
 
                     let end = self.token(|this| this.take_1('"'));
                     if let Some(token) = end {
-                        self.submit_token(token.with_variant(token::Variant::text_end()));
+                        self.submit_token(token.with_variant(Variant::text_end()));
                         break;
                     }
 
@@ -696,13 +632,14 @@ impl<'s> Lexer<'s> {
 }
 
 
+
 // ================
 // === Comments ===
 // ================
 
 impl<'s> Lexer<'s> {
     #[inline(always)]
-    fn submit_line_as(&mut self, kind: token::Variant) {
+    fn submit_line_as(&mut self, kind: Variant) {
         let token = self.token(|this| this.take_rest_of_line());
         if let Some(token) = token {
             self.submit_token(token.with_variant(kind));
@@ -712,11 +649,11 @@ impl<'s> Lexer<'s> {
     fn comment(&mut self) {
         if let Some(current) = self.current_char {
             if current == '#' {
-                self.submit_line_as(token::Variant::comment());
+                self.submit_line_as(Variant::comment());
                 let initial_ident = self.current_block_indent;
                 let check_indent = |this: &mut Self| this.current_block_indent > initial_ident;
                 while self.run_and_check_if_progressed(|t| t.newline()) && check_indent(self) {
-                    self.submit_line_as(token::Variant::comment());
+                    self.submit_line_as(Variant::comment());
                 }
             }
         }
@@ -743,14 +680,14 @@ impl<'s> Lexer<'s> {
 
     fn newline(&mut self) {
         if let Some(token) = self.line_break() {
-            let mut newlines = vec![token.with_variant(token::Variant::newline())];
+            let mut newlines = vec![token.with_variant(Variant::newline())];
             while let Some(token) = self.line_break() {
-                newlines.push(token.with_variant(token::Variant::newline()));
+                newlines.push(token.with_variant(Variant::newline()));
             }
             let block_indent = self.last_spaces_visible_offset;
 
             if block_indent > self.current_block_indent {
-                let block_start = self.marker_token(token::Variant::block_start());
+                let block_start = self.marker_token(Variant::block_start());
                 self.submit_token(block_start);
                 self.start_block(block_indent);
             } else {
@@ -764,7 +701,7 @@ impl<'s> Lexer<'s> {
                         self.start_block(parent_block_indent);
                         break;
                     } else {
-                        let block_end = self.marker_token(token::Variant::block_end());
+                        let block_end = self.marker_token(Variant::block_end());
                         self.submit_token(block_end);
                     }
                 }
@@ -820,30 +757,8 @@ impl<'s> Lexer<'s> {
 // === Tests ===
 // =============
 
-// #[cfg(test)]
-// fn test_from_repr<T>(repr: &str, elem: T) -> span::With<T> {
-//     span::With::new_no_left_offset_no_start(Bytes(repr.len()), elem)
-// }
-
-// #[cfg(test)]
-// impl<'s> Token<'s> {
-//     // TODO: Tests only - should be refactored
-//     // FIXME: shares some code with `new_ident_or_wildcard_unchecked` - to be refactored.
-//     pub fn ident(repr: &'s str) -> Token<'s> {
-//         let is_free = repr.starts_with('_');
-//         let lift_level = repr.chars().rev().take_while(|t| *t == '\'').count();
-//         let span = Offset {
-//             left_visible_offset: VisibleOffset(0),
-//             left_offset:         Bytes(0),
-//             len:                 Bytes(repr.len()),
-//         };
-//         Token { span, elem: Token::new(repr, token::Variant::ident(is_free, lift_level)) }
-//     }
-// }
-
-
-/// ttt
-pub fn lexer_main() {
+/// Lexer main function used for ad-hoc testing during development.
+pub fn main() {
     let mut lexer = Lexer::new("\n  foo\n  bar");
     println!("{:?}", lexer.run());
     println!("{:#?}", lexer.output.iter().collect_vec());
@@ -869,17 +784,8 @@ pub mod test {
 
     /// Constructor.
     pub fn operator_<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-        Token(left_offset, code, token::Variant::operator())
+        Token(left_offset, code, Variant::operator())
     }
-
-    // pub fn newline<'s>(left_offset: &'s str, code: &'s str) -> Token<'s> {
-    //     Token(left_offset, code, token::Variant::newline())
-    // }
-
-    // pub fn block_start<'s>(left_offset: &'s str) -> Token<'s> {
-    //     let code = "";
-    //     Token(left_offset, code, token::Variant::block_start())
-    // }
 }
 
 #[cfg(test)]
@@ -887,15 +793,11 @@ mod tests {
     use super::test::*;
     use super::*;
 
-
-
     fn test_lexer_many<'s>(inputs: Vec<(&'s str, Vec<Token<'s>>)>) {
         for (input, output) in inputs {
             test_lexer(input, output)
         }
     }
-
-
 
     fn test_lexer<'s>(input: &'s str, expected: Vec<Token<'s>>) {
         let mut lexer = Lexer::new(input);
@@ -1175,7 +1077,7 @@ mod benches {
         });
     }
 
-    /// 12-13x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
+    /// 7-13x slowdown in comparison to [`bench_str_iter`] and [`bench_str_iter_and_compare`].
     #[bench]
     fn bench_idents(b: &mut Bencher) {
         let reps = 1_000_000;

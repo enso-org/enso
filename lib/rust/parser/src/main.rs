@@ -735,14 +735,14 @@ fn main() {
     let ast = resolver.run(
         &lexer,
         &root_macro_map,
-        lexer.output.borrow_vec().iter().map(|t| t.clone().into()).collect_vec(),
+        lexer.output.iter().map(|t| t.clone().into()).collect_vec(),
     );
     println!("{:#?}", ast);
     println!("\n\n{}", ast.code());
 
     println!("\n\n==================\n\n");
 
-    lexer::lexer_main();
+    lexer::main();
 }
 //
 //

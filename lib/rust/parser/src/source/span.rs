@@ -89,6 +89,7 @@ impl<'s> AsRef<Offset<'s>> for Offset<'s> {
 }
 
 impl<'s> From<&'s str> for Offset<'s> {
+    #[inline(always)]
     fn from(code: &'s str) -> Self {
         Offset(code.into(), code)
     }

@@ -18,12 +18,14 @@ pub struct Code<'s> {
 
 impl<'s> Code<'s> {
     /// Length of the code in bytes.
+    #[inline(always)]
     pub fn len(&self) -> Bytes {
         Bytes(self.repr.len())
     }
 }
 
 impl<'a> From<&'a str> for Code<'a> {
+    #[inline(always)]
     fn from(str: &'a str) -> Self {
         let repr = str.into();
         Self { repr }
@@ -43,18 +45,21 @@ impl<'s> Debug for Code<'s> {
 }
 
 impl<'a, 'b> PartialEq<&'b str> for Code<'a> {
+    #[inline(always)]
     fn eq(&self, other: &&'b str) -> bool {
         self.repr.eq(other)
     }
 }
 
 impl AsRef<str> for Code<'_> {
+    #[inline(always)]
     fn as_ref(&self) -> &str {
         &self.repr
     }
 }
 
 impl std::borrow::Borrow<str> for Code<'_> {
+    #[inline(always)]
     fn borrow(&self) -> &str {
         &self.repr
     }

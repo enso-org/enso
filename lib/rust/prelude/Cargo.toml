@@ -24,7 +24,6 @@ enso-shapely = { version = "^0.2.0", path = "../shapely" }
 anyhow = "1.0.37"
 backtrace = "0.3.53"
 boolinator = "2.4.0"
-bumpalo = "3.4.0"
 cfg-if = "1.0.0"
 colored = "2.0.0"
 derivative = "2.2.0"
