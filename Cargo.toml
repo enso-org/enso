@@ -9,6 +9,8 @@ members = [
     "build/enso-formatter",
     "build/rust-scripts",
     "lib/rust/*",
+    "lib/rust/parser/src/syntax/tree/visitor",
+    "lib/rust/parser/src/syntax/tree/builder",
     "lib/rust/profiler/data",
     "integration-test"
 ]

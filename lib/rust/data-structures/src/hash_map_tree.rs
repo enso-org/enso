@@ -21,10 +21,10 @@ pub type Branches<K, V, S> = HashMap<K, HashMapTree<K, V, S>, S>;
 /// more branches accessible by the given key type.
 #[derive(Derivative)]
 #[derivative(Clone)]
-#[derivative(Debug(bound = "K:Eq+Hash+Debug , V:Debug     , S:BuildHasher"))]
-#[derivative(Default(bound = "K:Eq+Hash       , V:Default   , S:BuildHasher+Default"))]
-#[derivative(PartialEq(bound = "K:Eq+Hash       , V:PartialEq , S:BuildHasher"))]
-#[derivative(Eq(bound = "K:Eq+Hash       , V:Eq        , S:BuildHasher"))]
+#[derivative(Debug(bound = "K:Eq+Hash+Debug, V:Debug, S:BuildHasher"))]
+#[derivative(Default(bound = "K:Eq+Hash, V:Default, S:BuildHasher+Default"))]
+#[derivative(PartialEq(bound = "K:Eq+Hash, V:PartialEq, S:BuildHasher"))]
+#[derivative(Eq(bound = "K:Eq+Hash, V:Eq, S:BuildHasher"))]
 pub struct HashMapTree<K, V, S = RandomState> {
     /// Value of the current tree node.
     pub value:    V,

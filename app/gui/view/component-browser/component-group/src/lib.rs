@@ -38,15 +38,9 @@ use ensogl_text as text;
 // === Export ===
 // ==============
 
+pub mod entry;
 pub mod wide;
 
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub mod entry;
 pub use entry::View as Entry;
 
 

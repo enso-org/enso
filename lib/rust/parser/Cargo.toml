@@ -1,24 +1,20 @@
 [package]
-name    = "parser-new"
+name    = "enso-parser"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
 
-publish = false
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-test       = true
-bench      = true
+description  = "Enso Parser."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
 
 [dependencies]
-enso-data-structures = { version = "0.2.0", path = "../data-structures" }
-enso-logger = { version = "0.3.0", path = "../logger" }
-enso-prelude = { version = "0.2.0", path = "../prelude" }
-lexer = { version = "0.1.0", path = "lexer/generation" }
-itertools = { version = "0.10.0" }
+enso-prelude = { path = "../prelude" }
+enso-data-structures = { path = "../data-structures" }
+enso-types = { path = "../types" }
+enso-shapely-macros = { path = "../shapely/macros" }
+enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
+enso-parser-syntax-tree-builder = { path = "src/syntax/tree/builder" }
 
-[build-dependencies]
-
-[dev-dependencies]
-criterion = "0.3"
