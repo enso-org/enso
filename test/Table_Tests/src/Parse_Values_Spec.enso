@@ -4,6 +4,8 @@ from Standard.Table import all
 from Standard.Table.Data.Table as Table_Internal import Empty_Error
 
 import Standard.Base.Data.Time.Date
+import Standard.Base.Data.Time
+import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Test
 import Standard.Test.Problems
 import Standard.Visualization
@@ -69,6 +71,26 @@ spec = Test.group "Table.parse_values" <|
         t2 = t1.parse_values column_types=[Column_Type_Selection 0 Boolean]
         t2.at "bools" . to_vector . should_equal [True, False, True, True, False, Nothing, False]
 
+    date_as_vector d = if d.is_nothing then Nothing else [d.getYear, d.getMonthValue, d.getDayOfMonth]
+    time_as_vector d = if d.is_nothing then Nothing else [d.getHour, d.getMinute, d.getSecond, d.getNano]
+    datetime_as_vector d = if d.is_nothing then Nothing else [d.getYear, d.getMonthValue, d.getDayOfMonth, d.getHour, d.getMinute, d.getSecond, d.getNano]
+    Test.specify "should correctly parse date and time" <|
+        t1 = Table.new [["dates", ["2022-05-07", "2000-01-01", "2010-12-31"]]]
+        t2 = t1.parse_values column_types=[Column_Type_Selection 0 Date.Date]
+        t2.at "dates" . to_vector . map date_as_vector . should_equal [[2022, 5, 7], [2000, 1, 1], [2010, 12, 31]]
+
+        t3 = Table.new [["datetimes", ["2022-05-07 23:59:59", "2000-01-01 00:00:00", "2010-12-31 12:34:56"]]]
+        t4 = t3.parse_values column_types=[Column_Type_Selection 0 Time.Time]
+        t4.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 5, 7, 23, 59, 59, 0], [2000, 1, 1, 0, 0, 0, 0], [2010, 12, 31, 12, 34, 56, 0]]
+
+        t5 = Table.new [["times", ["23:59:59", "00:00:00", "12:34:56"]]]
+        t6 = t5.parse_values column_types=[Column_Type_Selection 0 Time_Of_Day.Time_Of_Day]
+        t6.at "times" . to_vector . map time_as_vector . should_equal [[23, 59, 59, 0], [0, 0, 0, 0], [12, 34, 56, 0]]
+
+    Test.specify "should parse date and time in various formats" pending="TODO" <|
+        ## TODO Mon, timezone, reversed and dots
+        Nothing
+
     Test.specify "should warn when cells do not fit the expected format" <|
         ints = ["ints", ["0", "1", "1.0", "foobar", "", "--1", "+-1", "10", "-+1"]]
         # Currently scientific notation is not supported and we document that in this test, in the future the situation may change and the test may need to be flipped.
@@ -117,9 +139,6 @@ spec = Test.group "Table.parse_values" <|
             t.at "foo" . to_vector . should_equal ["42"]
         problems = [(Duplicate_Type_Selector "floats" ambiguous=True), (Duplicate_Type_Selector "bools" ambiguous=False)]
         Problems.test_problem_handling action problems tester
-
-    Test.specify "should correctly parse date and time" pending="TODO" <|
-        Error.throw "TODO"
 
     Test.specify "should guess the datatype for columns" pending="TODO" <|
         # TODO (next PR): ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes

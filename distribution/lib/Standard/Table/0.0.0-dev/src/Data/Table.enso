@@ -34,6 +34,9 @@ polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import org.enso.table.parsing.IntegerParser
 polyglot java import org.enso.table.parsing.DecimalParser
 polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.DateParser
+polyglot java import org.enso.table.parsing.TimeParser
+polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 ## Creates a new table from a vector of `[name, items]` pairs.
@@ -600,9 +603,11 @@ type Table
                     Integer -> IntegerParser.new thousand_separator parse_options.allow_leading_zeros
                     Decimal -> DecimalParser.new parse_options.decimal_point thousand_separator parse_options.allow_leading_zeros
                     Boolean -> BooleanParser.new parse_options.true_values.to_array parse_options.false_values.to_array
-                    Date _ -> Error.unimplemented "Parsing dates is not implemented yet."
-                    Time _ -> Error.unimplemented "Parsing dates is not implemented yet."
-                    Time_Of_Day _ -> Error.unimplemented "Parsing dates is not implemented yet."
+                    _ ->
+                        if expected_type == Date then DateParser.new parse_options.date_formats.to_array else
+                            if expected_type == Time then DateTimeParser.new parse_options.datetime_formats.to_array else
+                                if expected_type == Time_Of_Day then TimeParser.new parse_options.time_formats.to_array else
+                                    Error.throw (Illegal_Argument_Error "Unsupported target datatype: "+expected_type.to_text)
                 parser = case parse_options.trim_values of
                     False -> base_parser
                     True -> WhitespaceStrippingParser.new base_parser
