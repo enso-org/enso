@@ -6,15 +6,15 @@
 //! To learn more about component groups, see the [Component Browser Design
 //! Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 //!
-//! # Header and its Shadow
+//! # Header and its shadow
 //!
 //! To simulate scrolling of the component group entries we move the header of the component group
 //! down while moving the whole component group up (see [`Frp::set_header_pos`]). When the header
 //! is moved down the shadow appears below it. The shadow changes its intensity smoothly before
 //! the header reaches the [`HEADER_SHADOW_PEAK`] distance from the top of the component group.
-//! After that the shadow is unchanged. Near the bottom of the component group we gradually reduce
-//! the size of the shadow so that it will never be rendered outside the component group
-//! boundaries. See `Header Backgound` section in the [`Model::resize`] method.
+//! After that the shadow is unchanged. When the header approaches the bottom of the component group
+//! we gradually reduce the size of the shadow so that it will never be rendered outside the
+//! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
 #![recursion_limit = "512"]
 // === Standard Linter Configuration ===

@@ -217,13 +217,14 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
 
-    // This is a workaround for a bug - without this transparent shape the content of the scroll
-    // area is invisible.
-    let transparent_circle = transparent_circle::View::new(&app.logger);
-    transparent_circle.size.set(Vector2(150.0, 150.0));
-    transparent_circle.set_position_xy(Vector2(200.0, -150.0));
-    scroll_area.content().add_child(&transparent_circle);
-    std::mem::forget(transparent_circle);
+    // This is a workaround for a bug. See the docs of the [`transparent_circle`].
+    {
+        let transparent_circle = transparent_circle::View::new(&app.logger);
+        transparent_circle.size.set(Vector2(150.0, 150.0));
+        transparent_circle.set_position_xy(Vector2(200.0, -150.0));
+        scroll_area.content().add_child(&transparent_circle);
+        std::mem::forget(transparent_circle);
+    }
 
     // === Regular Component Group ===
 
