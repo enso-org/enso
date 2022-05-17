@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "An efficient logger for writing applications in Rust."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/logger"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/logger"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["logging"]

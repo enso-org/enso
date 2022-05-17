@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "An augmented standard library in the vein of Haskell's prelude."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/-prelude"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["prelude", "standard-library"]
@@ -24,7 +24,6 @@ enso-shapely = { version = "^0.2.0", path = "../shapely" }
 anyhow = "1.0.37"
 backtrace = "0.3.53"
 boolinator = "2.4.0"
-bumpalo = "3.4.0"
 cfg-if = "1.0.0"
 colored = "2.0.0"
 derivative = "2.2.0"
@@ -42,6 +41,9 @@ shrinkwraprs = "0.3.0"
 serde = { version = "1.0.126", features = ["derive", "rc"], optional = true }
 serde_json = { version = "1.0", optional = true }
 smallvec = "1.0.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-wasm = "0.2"
 wasm-bindgen = { version = "0.2.78" , features = ["nightly"], optional = true }
 weak-table = "0.3.0"
 nalgebra = { version = "0.26.2", optional = true }

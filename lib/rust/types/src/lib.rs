@@ -40,4 +40,5 @@ pub use topology::*;
 /// Common traits.
 pub mod traits {
     pub use super::topology::traits::*;
+    pub use super::unit2::traits::*;
 }
