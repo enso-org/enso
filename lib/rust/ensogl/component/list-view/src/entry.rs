@@ -190,6 +190,7 @@ impl Entry for GlyphHighlightedLabel {
         let inner = Label::new(app, style_prefix);
         let network = &inner.network;
         let text_style = style_prefix.sub("text");
+        DEBUG!("Style {text_style}");
         let highlight_bold = inner.style_watch.get_number(text_style.sub("highlight_bold"));
         let label = &inner.label;
 
@@ -199,6 +200,7 @@ impl Entry for GlyphHighlightedLabel {
             set_highlight <- all(highlight, highlight_bold, content_changed);
             eval set_highlight ([label]((highlight, bold, ())) {
                 for range in highlight {
+                    DEBUG!("Highlighting range {range:?} with {bold:?}");
                    label.set_sdf_bold(range, text::style::SdfBold::new(*bold));
                 }
             });

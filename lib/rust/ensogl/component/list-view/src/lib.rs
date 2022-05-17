@@ -555,7 +555,10 @@ where E::Model: Default
                 let width = size.x - 2.0 * padding;
                 Vector2(width,*height)
             }));
-            eval frp.selection_size ((size) model.selection.size.set(*size));
+            eval frp.selection_size ([model](size) {
+                let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
+                model.selection.size.set(*size + margin)
+            });
             eval_ frp.hide_selection (model.selection.unset_parent());
 
 

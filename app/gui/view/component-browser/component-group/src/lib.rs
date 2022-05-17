@@ -168,7 +168,7 @@ impl Colors {
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
         let entry_text = style.get_color(theme::entry::text::color);
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
             let is_dimmed = is_dimmed.clone_ref();

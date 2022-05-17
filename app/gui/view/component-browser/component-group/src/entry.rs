@@ -143,7 +143,6 @@ impl list_view::Entry for View {
     fn new(app: &Application, style_prefix: &style::Path, Params { colors }: &Params) -> Self {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
-        let style_prefix = style_prefix.sub("entry");
         let icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, &style_prefix, &());
         display_object.add_child(&label);

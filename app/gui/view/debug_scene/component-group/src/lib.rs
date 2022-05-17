@@ -15,6 +15,7 @@
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use enso_text::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
@@ -82,7 +83,11 @@ impl MockEntries {
                     icon,
                     highlighted_text: GlyphHighlightedLabelModel {
                         label:       label.to_owned(),
-                        highlighted: default(),
+                        highlighted: if label == "convert" {
+                            vec![(Bytes(0)..Bytes(3)).into()]
+                        } else {
+                            default()
+                        },
                     },
                 })
                 .collect(),
