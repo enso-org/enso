@@ -132,10 +132,10 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
-        /// Removes the value at `path` in `node` and returns `true` as the first boolean if the
-        /// value was `Some(_)` before the removal. Returns `true` as the second boolean if the
-        /// subtree at `node` only contains `None` values after the removal, or returns `false` and
-        /// removes the first node on `path` that only contains `None` values in its subtree.
+        /// Clears the value at `path` in `node` and returns `true` as the first boolean if the
+        /// value was `Some(_)` before the clearing. Returns `true` as the second boolean if the
+        /// subtree at `node` only contains `None` values after the clearing, or returns `false`
+        /// and removes the first node on `path` that only contains `None` values in its subtree.
         ///
         /// The word "empty" is used in the function as a shorthand for "contains only `None`
         /// values".
