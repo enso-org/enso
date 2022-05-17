@@ -217,7 +217,7 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
 
-    // This is a workaround for a bug. See the docs of the [`transparent_circle`].
+    // FIXME(#182193824): This is a workaround for a bug. See the docs of the [`transparent_circle`].
     {
         let transparent_circle = transparent_circle::View::new(&app.logger);
         transparent_circle.size.set(Vector2(150.0, 150.0));
