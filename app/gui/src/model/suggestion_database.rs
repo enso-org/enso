@@ -168,11 +168,11 @@ impl FreeformPathToIdMap {
                 }
             }
         }
-        let node = &mut self.tree.borrow_mut();
-        let (value_was_some, node_subtree_is_empty) =
-            check_if_exists_and_clear_value_and_prune_empty_subtree(node, &path.segments);
-        if node_subtree_is_empty {
-            node.branches.clear();
+        let tree = &mut self.tree.borrow_mut();
+        let (value_was_some, tree_is_empty) =
+            check_if_exists_and_clear_value_and_prune_empty_subtree(tree, &path.segments);
+        if tree_is_empty {
+            tree.branches.clear();
         }
         value_was_some
     }
