@@ -1,8 +1,6 @@
 package org.enso.table.parsing;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.enso.table.data.column.builder.object.Builder;
@@ -24,13 +22,7 @@ public class DateTimeParser extends TypeParser<InvalidFormatProblemAggregator> {
   public Object parseSingleValue(String text, InvalidFormatProblemAggregator problemAggregator) {
     for (var formatter : formatters) {
       try {
-        return ZonedDateTime.parse(text, formatter);
-      } catch (DateTimeParseException ignored) {
-      }
-
-      try {
-        var local = LocalDateTime.parse(text, formatter);
-        return ZonedDateTime.of(local, ZoneId.systemDefault());
+        return LocalDateTime.parse(text, formatter);
       } catch (DateTimeParseException ignored) {
       }
     }
