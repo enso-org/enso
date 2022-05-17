@@ -23,6 +23,7 @@ from Standard.Base import all
    - datetime_formats: Expected datetime formats.
    - date_formats: Expected date formats.
    - time_formats: Expected time formats.
+   - locale: The locale to use when parsing dates and times.
    - true_values: Values representing True.
    - false_values: Values representing False.
-type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
