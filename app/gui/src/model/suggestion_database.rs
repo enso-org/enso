@@ -126,11 +126,14 @@ impl FreeformPathToIdMap {
     fn swap_value_at(&self, path: &FreeformPath, value: Option<entry::Id>) -> Option<entry::Id> {
         let mut tree = self.tree.borrow_mut();
         let segments = &path.segments;
+        swap_value_at_path_and_walk_back_removing_empty_leaf_node(&mut tree, segments, value)
+        /*
         let mut replacement = value;
         std::mem::swap(&mut tree.get_or_create_node(segments).value, &mut replacement);
         remove_nodes_on_path_in_reverse_order_while(&mut tree, segments, |node|
             node.is_leaf() && node.value.is_none());
         replacement
+        */
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
@@ -914,30 +917,26 @@ fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathS
 // remove_empty_leaf_node_on_path
 // fn swap_value_at_path_and_fold_back_removing_empty_leaf_node
 fn swap_value_at_path_and_walk_back_removing_empty_leaf_node(node: &mut TmpNode, path: &[PathSegment], value: Option<entry::Id>) -> Option<entry::Id> {
-    let mut swap_value = value;
-    let helper = |node: &mut TmpNode, path: &[PathSegment]| {
+    fn helper(node: &mut TmpNode, path: &[PathSegment], value: &mut Option<entry::Id>) {
         if let [key, remaining_path @ ..] = path {
             let remove_branch = match node.branches.get_mut(&key) {
                 Some(branch) => {
-                    helper(node, remaining_path);
+                    helper(branch, remaining_path, value);
                     branch.value.is_none() && branch.is_leaf()
                 },
                 None => {
-                    // new_value_is_some = swap_value.is_some();
-                    swap_value.take().map(|v| node.set(path, Some(v)));
+                    value.take().map(|v| node.set(path, Some(v)));
                     false
-                    // match swap_value {
-                    //     Some(value) => node.set(path, Some(value)),
-                    //     None => 
-                    // };
                 }
             };
             if remove_branch {
                 node.branches.remove(key);
             }
         } else {
-            std::mem::swap(&mut node.value, &mut swap_value);
+            std::mem::swap(&mut node.value, value);
         }
-    };
+    }
+    let mut swap_value = value;
+    helper(node, path, &mut swap_value);
     swap_value
 }
