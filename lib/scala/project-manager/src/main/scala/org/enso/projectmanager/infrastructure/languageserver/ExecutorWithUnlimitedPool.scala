@@ -96,7 +96,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       loggerConnection           = descriptor.deferredLoggingServiceEndpoint
     )
     val additionalArguments =
-      Option.when(descriptor.profilingEnabled)("--server-profiling").toSeq
+      descriptor.profilingPath.toSeq
+        .flatMap(path => Seq("--server-profiling-path", path.toString))
     val runSettings = runner
       .startLanguageServer(
         options             = options,

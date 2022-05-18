@@ -220,6 +220,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "capability-router"
     )
 
+  val methodsSampler =
+    serverConfig.profilingPath match {
+      case Some(path) =>
+        val s = new TempFileSampler(path.toFile)
+        JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
+        s
+      case None =>
+        NoopSampler()
+    }
+
   lazy val contextRegistry =
     system.actorOf(
       ContextRegistry
@@ -229,11 +239,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter,
-          if (serverConfig.isProfilingEnabled) {
-            val s = TempFileSampler("context-registry")
-            JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
-            s
-          } else NoopSampler()
+          methodsSampler
         ),
       "context-registry"
     )

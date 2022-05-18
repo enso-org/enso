@@ -23,6 +23,7 @@ import zio.console._
 import zio.interop.catz.core._
 
 import java.io.IOException
+import java.nio.file.Paths
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
@@ -120,23 +121,41 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
+  /** Parses and validates the command line arguments.
+    *
+    * @param options the command line arguments
+    */
+  def parseOpts(
+    options: CommandLine
+  ): ZIO[ZEnv, Throwable, ProjectManagerOptions] =
+    ZIO
+      .effect {
+        val profilingPathOpt =
+          Option(options.getOptionValue(Cli.PROFILING_PATH))
+            .map(Paths.get(_))
+        ProjectManagerOptions(profilingPathOpt)
+      }
+      .catchAll { err =>
+        putStrLnErr(s"Invalid ${Cli.PROFILING_PATH} argument.") *> ZIO.fail(err)
+      }
+
   /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, IOException, ExitCode] = {
+  def runOpts(options: CommandLine): ZIO[ZEnv, Throwable, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
       ZIO.effectTotal(Cli.printHelp()) *>
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else {
-      val verbosity        = options.getOptions.count(_ == Cli.option.verbose)
-      val logMasking       = !options.hasOption(Cli.NO_LOG_MASKING)
-      val profilingEnabled = options.hasOption(Cli.ENABLE_PROFILING)
+      val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
+      val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
       logger.info("Starting Project Manager...")
       for {
+        opts     <- parseOpts(options)
         logLevel <- setupLogging(verbosity, logMasking)
-        procConf = MainProcessConfig(logLevel, profilingEnabled)
+        procConf = MainProcessConfig(logLevel, opts.profilingPath)
         exitCode <- mainProcess(procConf).fold(
           th => {
             logger.error("Main process execution failed.", th)

@@ -16,7 +16,7 @@ import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 import scala.Console.err
@@ -40,7 +40,7 @@ object Main {
   private val DOCS_OPTION                    = "docs"
   private val PREINSTALL_OPTION              = "preinstall-dependencies"
   private val LANGUAGE_SERVER_OPTION         = "server"
-  private val LANGUAGE_SERVER_PROFILING      = "server-profiling"
+  private val LANGUAGE_SERVER_PROFILING_PATH = "server-profiling-path"
   private val DAEMONIZE_OPTION               = "daemon"
   private val INTERFACE_OPTION               = "interface"
   private val RPC_PORT_OPTION                = "rpc-port"
@@ -154,9 +154,12 @@ object Main {
       .desc("Runs Language Server")
       .build()
     val lsProfilingOption = CliOption.builder
-      .longOpt(LANGUAGE_SERVER_PROFILING)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(LANGUAGE_SERVER_PROFILING_PATH)
       .desc(
-        "Enables the Language Server profiling. The output is written to system temp directory."
+        "Specifies the output path for the Language Server profiling file."
       )
       .build()
     val deamonizeOption = CliOption.builder
@@ -823,14 +826,18 @@ object Main {
       dataPort <- Either
         .catchNonFatal(dataPortStr.toInt)
         .leftMap(_ => "Port must be integer")
-      profilingEnabled = line.hasOption(LANGUAGE_SERVER_PROFILING)
+      profilingPathStr =
+        Option(line.getOptionValue(LANGUAGE_SERVER_PROFILING_PATH))
+      profilingPath <- Either
+        .catchNonFatal(profilingPathStr.map(Paths.get(_)))
+        .leftMap(_ => "Profiling path is not valid")
     } yield boot.LanguageServerConfig(
       interface,
       rpcPort,
       dataPort,
       rootId,
       rootPath,
-      profilingEnabled
+      profilingPath
     )
 
   /** Prints the version of the Enso executable.

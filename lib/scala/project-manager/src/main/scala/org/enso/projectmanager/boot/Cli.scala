@@ -7,12 +7,12 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION      = "json"
-  val HELP_OPTION      = "help"
-  val NO_LOG_MASKING   = "no-log-masking"
-  val VERBOSE_OPTION   = "verbose"
-  val VERSION_OPTION   = "version"
-  val ENABLE_PROFILING = "profiling"
+  val JSON_OPTION    = "json"
+  val HELP_OPTION    = "help"
+  val NO_LOG_MASKING = "no-log-masking"
+  val VERBOSE_OPTION = "verbose"
+  val VERSION_OPTION = "version"
+  val PROFILING_PATH = "profiling-path"
 
   object option {
 
@@ -48,8 +48,11 @@ object Cli {
       .build()
 
     val enableProfiling: cli.Option = cli.Option.builder
-      .longOpt(ENABLE_PROFILING)
-      .desc("Enables the application profiling.")
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(PROFILING_PATH)
+      .desc("The path to the profiling file. Enables application profiling.")
       .build()
   }
 
