@@ -120,6 +120,8 @@
 - [Implemented `compute` method on `Vector` for statistics calculations.][3442]
 - [Promote get and put to be methods of Ref type rather than of Ref
   module][3457]
+- [Implemented `Table.parse_values`, parsing text columns according to a
+  specified type.][3455]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -186,6 +188,7 @@
 [3430]: https://github.com/enso-org/enso/pull/3430
 [3442]: https://github.com/enso-org/enso/pull/3442
 [3457]: https://github.com/enso-org/enso/pull/3457
+[3455]: https://github.com/enso-org/enso/pull/3455
 
 #### Enso Compiler
 
