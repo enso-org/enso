@@ -6,7 +6,7 @@ import java.io.{DataOutputStream, File, FileOutputStream}
 import java.nio.file.Files
 import java.util.concurrent.{CompletableFuture, Executor, Executors}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Using
 
 /** Gathers application performance statistics that can be visualised in Java
@@ -45,7 +45,7 @@ final class TempFileSampler(output: File) extends MethodsSampler {
     }
 
   /** @inheritdoc */
-  def stop(delay: Duration)(implicit ec: Executor): Unit =
+  def stop(delay: FiniteDuration)(implicit ec: Executor): Unit =
     this.synchronized {
       val executor = Executors.newSingleThreadScheduledExecutor()
 

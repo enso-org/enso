@@ -83,7 +83,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    directoriesConfig
+    directoriesConfig,
+    serverConfig.profilingConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
@@ -221,7 +222,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
 
   val methodsSampler =
-    serverConfig.profilingPath match {
+    serverConfig.profilingConfig.profilingPath match {
       case Some(path) =>
         val s = new TempFileSampler(path.toFile)
         JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))

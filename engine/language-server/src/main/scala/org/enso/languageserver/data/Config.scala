@@ -1,10 +1,12 @@
 package org.enso.languageserver.data
 
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import java.io.File
 import java.nio.file.Files
+
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -122,13 +124,15 @@ object ProjectDirectoriesConfig {
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories
+  * @param profiling the profiling configuration
   */
 case class Config(
   projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
-  directories: ProjectDirectoriesConfig
+  directories: ProjectDirectoriesConfig,
+  profiling: ProfilingConfig
 ) extends ToLogString {
 
   /** @inheritdoc */

@@ -75,7 +75,10 @@ final class ContextRegistry(
 
   import ContextRegistryProtocol._
 
-  private val timeout: FiniteDuration = config.executionContext.requestTimeout
+  private val timeout: FiniteDuration =
+    config.executionContext.requestTimeout
+  private val profilingTimeout: FiniteDuration =
+    config.profiling.profilingTime.getOrElse(6.seconds)
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -110,11 +113,11 @@ final class ContextRegistry(
           .foreach(_ ! update)
 
       case update: Api.ExecutionFailed =>
-        sampler.stop(6.seconds)(context.dispatcher)
+        sampler.stop(profilingTimeout)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionComplete =>
-        sampler.stop(6.seconds)(context.dispatcher)
+        sampler.stop(profilingTimeout)(context.dispatcher)
         store.getListener(update.contextId).foreach(_ ! update)
 
       case update: Api.ExecutionUpdate =>
