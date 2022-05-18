@@ -147,7 +147,7 @@ impl FreeformPathToIdMap {
             match path {
                 [] => f(&mut node.value),
                 [key, path_after_key @ ..] => {
-                    let branch_at_key_got_emptied = match node.branches.get_mut(&key) {
+                    let branch_at_key_became_empty = match node.branches.get_mut(&key) {
                         Some(branch) => helper(branch, &path_after_key, f),
                         None => {
                             let mut value = None;
@@ -158,13 +158,14 @@ impl FreeformPathToIdMap {
                             false
                         },
                     };
-                    if branch_at_key_got_emptied {
+                    if branch_at_key_became_empty {
                         node.branches.remove(&key);
                     }
                 },
             }
             node.value.is_none() && node.is_leaf()
         }
+        helper(&mut self.tree.borrow_mut(), &path.segments, f);
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
