@@ -125,17 +125,17 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
-        let mut value_was_some = false;
-        self.modify_value_at(path, |value| {
-            value_was_some = value.replace(id).is_some();
-        });
-        value_was_some
-        /*
-        let mut tree = self.tree.borrow_mut();
-        let node = &mut tree.get_or_create_node(&path.segments);
-        let old_value = std::mem::replace(&mut node.value, Some(id));
-        old_value.is_some()
-        */
+        self.swap_value_at(path, Some(id)).is_some()
+    }
+
+    fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
+        self.swap_value_at(path, None).is_some()
+    }
+
+    fn swap_value_at(&self, path: &FreeformPath, value: Option<entry::Id>) -> Option<entry::Id> {
+        let mut replacement = value;
+        self.modify_value_at(path, |value| std::mem::swap(value, &mut replacement));
+        replacement
     }
 
     // TODO[LATER]: swap_value_at(..., Option<entry::Id>)
@@ -174,59 +174,6 @@ impl FreeformPathToIdMap {
             node.value.is_none() && node.is_leaf()
         }
         helper(&mut self.tree.borrow_mut(), &path.segments, f);
-    }
-
-    fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
-        let mut value_was_some = false;
-        self.modify_value_at(path, |value| {
-            value_was_some = value.take().is_some();
-        });
-        value_was_some
-        /*
-        /// Clears the value at `path` in `node` and returns `true` as the first boolean if the
-        /// value was `Some(_)` before the clearing. Returns `true` as the second boolean if the
-        /// subtree at `node` only contains `None` values after the clearing, or returns `false`
-        /// and removes the first node on `path` that only contains `None` values in its subtree.
-        ///
-        /// The word "empty" is used in the function as a shorthand for "contains only `None`
-        /// values".
-        fn check_if_exists_and_clear_value_and_prune_empty_subtree(
-            node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
-            path: &[PathSegment],
-        ) -> (bool, bool) {
-            match (node.is_leaf(), path) {
-                (is_leaf, []) => (node.value.take().is_some(), is_leaf),
-                (true, [..]) => (false, node.value.is_none()),
-                (false, [key, path_after_key @ ..]) => {
-                    let branches = &mut node.branches;
-                    let (value_was_some, branch_found_and_empty) = match branches.get_mut(key) {
-                        Some(branch) => check_if_exists_and_clear_value_and_prune_empty_subtree(
-                            branch,
-                            path_after_key,
-                        ),
-                        None => (false, false),
-                    };
-                    let node_subtree_is_empty = match (branch_found_and_empty, branches.len()) {
-                        (true, 2..) => {
-                            branches.remove(key);
-                            false
-                        }
-                        (true, _) => true,
-                        (false, 0) => node.value.is_none(),
-                        (false, _) => false,
-                    };
-                    (value_was_some, node_subtree_is_empty)
-                }
-            }
-        }
-        let tree = &mut self.tree.borrow_mut();
-        let (value_was_some, tree_is_empty) =
-            check_if_exists_and_clear_value_and_prune_empty_subtree(tree, &path.segments);
-        if tree_is_empty {
-            tree.branches.clear();
-        }
-        value_was_some
-        */
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
