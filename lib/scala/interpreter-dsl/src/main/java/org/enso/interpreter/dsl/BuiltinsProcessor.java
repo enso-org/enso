@@ -13,11 +13,13 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.lang.annotation.Annotation;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -164,11 +166,40 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
   }
 
+  /**
+   * Returns a map of builtin types and the number of their paramneters.
+   * Takes into account the possibility of separate compilation by reading entries from metadate, if any.
+   * @param roundEnv current round environment
+   * @return a map from a builtin type name to the number of its parameters
+   */
   private Map<String, Integer> builtinTypesParametersCount(RoundEnvironment roundEnv) {
-    return roundEnv
+    // For separate compilation we need  to read that information from BuiltinTypes metadata file
+    Map<String, Integer> pastEntries;
+    try {
+      FileObject existingFile =
+              processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", TypeProcessor.META_PATH);
+
+      try (InputStream resource = existingFile.openInputStream()) {
+        pastEntries =
+                new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
+                        .lines()
+                        .map(l -> TypeProcessor.fromStringToMetadataEntry(l))
+                        .collect(Collectors.toMap(e -> e.key().replaceAll("_", ""), e -> e.paramNames().length));
+      }
+    } catch (IOException e) {
+      // Ignore, this is a clean run
+      pastEntries = new HashMap<>();
+    }
+
+    Map<String, Integer> currentRoundEntries =
+            roundEnv
             .getElementsAnnotatedWith(BuiltinType.class)
             .stream()
             .collect(Collectors.toMap(e -> e.getSimpleName().toString(), e -> e.getAnnotation(BuiltinType.class).params().length));
+
+    pastEntries.forEach((k, v) -> currentRoundEntries.merge(k, v, (v1, v2) -> v1));
+
+    return currentRoundEntries;
   }
 
   /**
@@ -409,11 +440,17 @@ public class BuiltinsProcessor extends AbstractProcessor {
       String from = fromAttributeToClassName(from());
       String to = fromAttributeToClassName(to());
       int toParamCount = errorParametersCount(to(), builtinTypesParameterCounts);
-      String errorParamsApplied = StringUtils.join(methodParameters.stream().limit(toParamCount - 1).flatMap(x -> x.names(Optional.empty())).toArray(), ", ");
+      List<String> errorParameters =
+              methodParameters
+                      .stream()
+                      .limit(toParamCount - 1)
+                      .flatMap(x -> x.names(Optional.empty()))
+                      .collect(Collectors.toList());
+      String errorParameterCode = errorParameters.isEmpty() ? "" : ", " + StringUtils.join(errorParameters, ", ");
       return List.of(
               "  } catch (" + from + " exception) {",
               "    Builtins builtins = Context.get(this).getBuiltins();",
-              "    throw new PanicException(builtins.error().make" + to + "(_this, " + errorParamsApplied + "), this);"
+              "    throw new PanicException(builtins.error().make" + to + "(_this" + errorParameterCode + "), this);"
       );
     }
 

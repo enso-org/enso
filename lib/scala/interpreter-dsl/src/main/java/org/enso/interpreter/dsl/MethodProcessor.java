@@ -1,5 +1,6 @@
 package org.enso.interpreter.dsl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 
 import javax.annotation.processing.*;
@@ -20,7 +21,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @ServiceProvider(service = Processor.class)
-public class MethodProcessor extends BuiltinsMetadataProcessor {
+public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.MethodMetadataEntry> {
 
   private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
 
@@ -436,7 +437,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
    *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
-  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+  protected void storeMetadata(Writer writer, Map<String, MethodMetadataEntry> pastEntries) throws IOException {
     for (Filer f : builtinMethods.keySet()) {
       for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
         writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
@@ -484,5 +485,25 @@ public class MethodProcessor extends BuiltinsMetadataProcessor {
   @Override
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
+  }
+
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName) implements MetadataEntry {
+
+    @Override
+    public String toString() {
+      return fullEnsoName + ":" + clazzName;
+    }
+
+    @Override
+    public String key() {
+      return fullEnsoName;
+    }
+  }
+
+  @Override
+  protected MethodMetadataEntry toMetadataEntry(String line) {
+    String[] elements = line.split(":");
+    if (elements.length != 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1]);
   }
 }
