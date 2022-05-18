@@ -980,22 +980,6 @@ type Vector
         json = this.take_start 100 . to_json
         json.to_text
 
-    ## PRIVATE
-       This is a workaround for a bug, should be removed once the bug is fixed.
-       https://www.pivotaltracker.com/story/show/181057718
-
-       It also ensures correct warning propagation which is another bug.
-    surface_errors : Vector
-    surface_errors =
-        handle_panic caught_panic =
-            Error.throw caught_panic.payload.error
-        Panic.catch Wrapped_Error handler=handle_panic <|
-            this.each x->
-                x.catch err->
-                    Panic.throw (Wrapped_Error err)
-            all_warnings = this.flat_map Warning.get_all
-            Warning.set all_warnings this
-
 ## PRIVATE
 type Wrapped_Error error
 

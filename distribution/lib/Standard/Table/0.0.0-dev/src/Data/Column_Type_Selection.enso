@@ -9,7 +9,8 @@ import Standard.Base.Data.Time
    - if all values are decimals or integers, `Decimal` is chosen,
    - if all values are booleans, `Boolean` is chosen,
    - if the values are all the same time type (a date, a time or a date-time),
-     that type is chosen,
+     the corresponding type is chosen, `Date`, `Time_Of_Day` or `Time`,
+     respectively,
    - otherwise, `Text` is chosen as a fallback and the column is kept as-is
      without parsing.
 type Auto

@@ -671,6 +671,8 @@ type Table
        materialized first with `to_dataframe`.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
     parse_values parser=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
+           because we need to keep the API consistent with the in-memory table.
         _ = [parser, column_types, on_problems]
         msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
         Error.throw (Unsupported_Database_Operation_Error msg)
