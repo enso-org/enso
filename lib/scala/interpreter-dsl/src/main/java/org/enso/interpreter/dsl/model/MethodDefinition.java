@@ -347,7 +347,7 @@ public class MethodDefinition {
     }
 
     public boolean shouldCheckWarnings() {
-      return isPositional() && !isThis()  && !acceptsWarning();
+      return isPositional() && !isThis() && !acceptsWarning();
     }
   }
 }
