@@ -6,7 +6,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.parsing.problems.NumericProblemAggregator;
 
-public class DecimalParser extends TypeParser<NumericProblemAggregator> {
+public class DecimalParser extends DatatypeParser<NumericProblemAggregator> {
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;

@@ -1,14 +1,11 @@
 package org.enso.table.parsing;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
 import org.graalvm.collections.EconomicSet;
 
-public class BooleanParser extends TypeParser<InvalidFormatProblemAggregator> {
+public class BooleanParser extends DatatypeParser<InvalidFormatProblemAggregator> {
 
   private final EconomicSet<String> trueValues;
   private final EconomicSet<String> falseValues;

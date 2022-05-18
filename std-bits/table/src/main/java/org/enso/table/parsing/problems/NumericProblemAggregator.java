@@ -3,6 +3,10 @@ package org.enso.table.parsing.problems;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A problem aggregator capable of reporting {@code InvalidFormat} and {@code LeadingZeros}
+ * problems.
+ */
 public class NumericProblemAggregator extends InvalidFormatProblemAggregator {
   private final List<String> leadingZerosCells = new ArrayList<>();
 
