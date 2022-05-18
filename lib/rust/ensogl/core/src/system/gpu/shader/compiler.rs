@@ -27,10 +27,13 @@ use crate::system::gpu::shader;
 use crate::system::gpu::shader::Fragment;
 use crate::system::gpu::shader::Shader;
 use crate::system::gpu::shader::Vertex;
+use crate::system::gpu::Context;
 use crate::system::web;
 use crate::types::unit2::Duration;
 
 use web_sys::WebGl2RenderingContext;
+
+use profiler::internal::Profiler;
 
 
 
@@ -71,14 +74,16 @@ pub struct Job<T> {
     #[deref]
     input:    T,
     handler:  WeakJobHandler,
+    profiler: profiler::Debug,
 }
 
 impl<T> Job<T> {
-    fn with_mod_input<S>(self, f: impl FnOnce(T) -> S) -> Job<S> {
+    fn map_input<S>(self, f: impl FnOnce(T) -> S) -> Job<S> {
         let on_ready = self.on_ready;
         let handler = self.handler;
         let input = f(self.input);
-        Job { on_ready, input, handler }
+        let profiler = self.profiler;
+        Job { on_ready, input, handler, profiler }
     }
 }
 
@@ -164,7 +169,7 @@ pub struct Jobs {
 ///
 /// 2. The following pseudo-algorithm is performed:
 /// ```text
-/// on_ever_frame if job queues are not empty {
+/// on_every_frame if job queues are not empty {
 ///     Promote ready jobs from [`Jobs::khr_completion_check`] to [`Jobs::link_check`].
 ///     Loop while the current frame time is < FRAME_TIME_THRESHOLD, at least one loop this frame {
 ///         if [`Jobs::compile`] is not empty {
@@ -180,9 +185,9 @@ pub struct Jobs {
 ///     }
 /// }
 /// ```
-#[derive(Clone, CloneRef, Debug)]
+#[derive(Debug)]
 pub struct Compiler {
-    rc: Rc<RefCell<CompilerData>>,
+    cell: RefCell<CompilerData>,
 }
 
 #[derive(Debug)]
@@ -197,22 +202,27 @@ struct CompilerData {
 impl Compiler {
     /// Constructor.
     pub fn new(context: &native::ContextWithExtensions) -> Self {
-        Self { rc: Rc::new(RefCell::new(CompilerData::new(context))) }
+        Self { cell: RefCell::new(CompilerData::new(context)) }
     }
 
     /// Submit shader for compilation.
     pub fn submit<F: 'static + Fn(shader::Program)>(
         &self,
         input: shader::Code,
+        profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandler {
-        self.rc.borrow_mut().submit(input, on_ready)
+        self.cell.borrow_mut().submit(input, profiler, on_ready)
     }
 
-    /// Run the compiler. This should be run on every frame. Returns [`true`] if any new shaders
-    /// finished the compilation process during this call.
-    pub fn run(&self, time: animation::TimeInfo) -> bool {
-        self.rc.borrow_mut().run(time)
+    /// Returns `true` if the compiler has no jobs in progress or queued.
+    fn idle(&self) -> bool {
+        !self.cell.borrow().dirty
+    }
+
+    /// Do a time-limited amount of work.
+    fn run(&self, time: animation::TimeInfo) -> bool {
+        self.cell.borrow_mut().run(time)
     }
 }
 
@@ -229,21 +239,22 @@ impl CompilerData {
     fn submit<F: 'static + FnOnce(shader::Program)>(
         &mut self,
         input: shader::Code,
+        profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandler {
         self.dirty = true;
         let strong_handler = JobHandler::new();
         let handler = strong_handler.downgrade();
         let on_ready = Box::new(on_ready);
-        let job = Job { input, handler, on_ready };
+        let job = Job { input, handler, on_ready, profiler };
         self.jobs.compile.push(job);
         strong_handler
     }
 
-    #[profile(Debug)]
     fn run(&mut self, time: animation::TimeInfo) -> bool {
         let mut any_new_shaders_ready = false;
         if self.dirty {
+            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "shader::Compiler::run");
             self.run_khr_completion_check_jobs();
             while self.dirty {
                 match self.run_step() {
@@ -254,9 +265,8 @@ impl CompilerData {
                             Some(Progress::StepProgress) => {}
                         }
                         let now = (self.performance.now() as f32).ms();
-                        let current_frame_time =
-                            now - time.animation_loop_start - time.since_animation_loop_started;
-                        if current_frame_time > FRAME_TIME_THRESHOLD {
+                        let deadline = time.frame_start() + FRAME_TIME_THRESHOLD;
+                        if now > deadline {
                             let msg1 =
                                 "Shaders compilation takes more than the available frame time.";
                             let msg2 = "To be continued in the next frame.";
@@ -280,7 +290,6 @@ impl CompilerData {
     /// Runs the next compiler job if there is any left and if it will not cause too many jobs being
     /// run in parallel. The result [`bool`] indicates if the call to this function did any
     /// progress.
-    #[profile(Detail)]
     fn run_step(&mut self) -> Result<Option<Progress>, Error> {
         let ok_progress = |_| Ok(Some(Progress::StepProgress));
         let no_progress = Ok(None);
@@ -317,7 +326,7 @@ impl CompilerData {
         self.jobs.link.len() + self.jobs.khr_completion_check.len() + self.jobs.link_check.len()
     }
 
-    #[profile(Detail)]
+    #[profile(Debug)]
     fn run_khr_completion_check_jobs(&mut self) {
         debug!(self.logger, "Running KHR parallel shader compilation check job.");
         let jobs = &mut self.jobs.khr_completion_check;
@@ -335,18 +344,21 @@ impl CompilerData {
                     true
                 }
             });
-        self.jobs.link_check.extend(ready_jobs.map(|job| job.with_mod_input(|t| t.program)));
+        self.jobs.link_check.extend(ready_jobs.map(|job| job.map_input(|t| t.program)));
     }
 
     #[allow(unused_parens)]
     fn run_next_compile_job(&mut self) -> Result<(), Error> {
         self.with_next_job("shader compilation", (|t| &mut t.jobs.compile), |this, job| {
+            let profiler = job.profiler;
+            profiler.resume();
             let vertex = this.compile_shader(Vertex, job.input.vertex)?;
             let fragment = this.compile_shader(Fragment, job.input.fragment)?;
+            profiler.pause();
             let input = shader::Sources { vertex, fragment };
             let handler = job.handler;
             let on_ready = job.on_ready;
-            let link_job = Job { input, handler, on_ready };
+            let link_job = Job { input, handler, on_ready, profiler };
             this.jobs.link.push(link_job);
             Ok(())
         })
@@ -357,18 +369,21 @@ impl CompilerData {
         self.with_next_job("shader linking", (|t| &mut t.jobs.link), |this, job| {
             let shader = job.input;
             let program = this.context.create_program().ok_or(Error::ProgramCreationError)?;
+            let profiler = job.profiler;
+            profiler.resume();
             this.context.attach_shader(&program, &*shader.vertex);
             this.context.attach_shader(&program, &*shader.fragment);
             this.context.link_program(&program);
+            profiler.pause();
             let input = shader::Program::new(shader, program);
             let handler = job.handler;
             let on_ready = job.on_ready;
             match this.context.extensions.khr_parallel_shader_compile {
                 Some(khr) => {
                     let input = KhrProgram { khr, program: input };
-                    this.jobs.khr_completion_check.push(Job { input, handler, on_ready })
+                    this.jobs.khr_completion_check.push(Job { input, handler, on_ready, profiler })
                 }
-                None => this.jobs.link_check.push(Job { input, handler, on_ready }),
+                None => this.jobs.link_check.push(Job { input, handler, on_ready, profiler }),
             }
             Ok(())
         })
@@ -379,7 +394,9 @@ impl CompilerData {
         self.with_next_job("shader validation", (|t| &mut t.jobs.link_check), |this, job| {
             let program = job.input;
             let param = WebGl2RenderingContext::LINK_STATUS;
+            job.profiler.resume();
             let status = this.context.get_program_parameter(&*program, param);
+            job.profiler.finish();
             if !status.as_bool().unwrap_or(false) {
                 return Err(Error::ProgramLinkingError(program.shader));
             } else {
@@ -392,21 +409,18 @@ impl CompilerData {
     fn with_next_job<T>(
         &mut self,
         label: &str,
-        jobs: impl FnOnce(&mut Self) -> &mut Vec<Job<T>>,
+        mut jobs: impl FnMut(&mut Self) -> &mut Vec<Job<T>>,
         f: impl FnOnce(&mut Self, Job<T>) -> Result<(), Error>,
     ) -> Result<(), Error> {
-        match jobs(self).pop() {
-            None => Ok(()),
-            Some(job) => {
-                debug!(self.logger, "Running {label} job.");
-                if job.handler.exists() {
-                    f(self, job)
-                } else {
-                    debug!(self.logger, "Job handler dropped, skipping.");
-                    Ok(())
-                }
+        while let Some(job) = jobs(self).pop() {
+            debug!(self.logger, "Running {label} job.");
+            if job.handler.exists() {
+                return f(self, job);
+            } else {
+                debug!(self.logger, "Job handler dropped, skipping.");
             }
         }
+        Ok(())
     }
 
     fn compile_shader<T: Into<shader::Type>>(
@@ -483,5 +497,77 @@ impl Error {
                 )
             }
         }
+    }
+}
+
+
+
+// ==================
+// === Controller ===
+// ==================
+
+/// Controls the shader compiler. While the shader compiler will be thrown away if context is lost,
+/// the controller's state is persistent.
+#[derive(Debug, Clone, CloneRef, Default)]
+pub struct Controller {
+    rc: Rc<RefCell<ControllerData>>,
+}
+
+#[derive(Default, Derivative)]
+#[derivative(Debug)]
+struct ControllerData {
+    #[derivative(Debug = "ignore")]
+    on_idle: Vec<Weak<Callback>>,
+}
+
+impl Controller {
+    /// Run the compiler. This should be run on every frame. Returns [`true`] if any new shaders
+    /// finished the compilation process during this call.
+    pub fn run(&self, context: &Context, time: animation::TimeInfo) -> bool {
+        self.rc.borrow_mut().run(context, time)
+    }
+
+    /// Add a callback to be run when the compiler goes from busy to idle. The callback will remain
+    /// installed until the handle returned here is dropped.
+    pub fn on_idle(&self, f: impl FnMut() + 'static) -> CallbackHandle {
+        self.rc.borrow_mut().on_idle(f)
+    }
+}
+
+impl ControllerData {
+    fn run(&mut self, context: &Context, time: animation::TimeInfo) -> bool {
+        let was_busy = !context.shader_compiler.idle();
+        let result = context.shader_compiler.run(time);
+        let now_idle = context.shader_compiler.idle();
+        if was_busy && now_idle {
+            self.on_idle.retain_mut(|f| match f.upgrade() {
+                Some(f) => {
+                    (f.borrow_mut())();
+                    true
+                }
+                None => false,
+            });
+        }
+        result
+    }
+
+    fn on_idle(&mut self, f: impl FnMut() + 'static) -> CallbackHandle {
+        let f = Rc::new(RefCell::new(f));
+        self.on_idle.push(f.downgrade());
+        CallbackHandle(f)
+    }
+}
+
+
+// === Callback ===
+
+type Callback = RefCell<dyn FnMut()>;
+
+/// Controls the lifetime of a callback: When this object is dropped, the callback will be dropped.
+pub struct CallbackHandle(Rc<Callback>);
+
+impl Debug for CallbackHandle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CallbackHandle")
     }
 }

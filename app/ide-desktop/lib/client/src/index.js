@@ -14,6 +14,7 @@ import { project_manager_bundle } from '../paths.mjs'
 
 const child_process = require('child_process')
 const fss = require('fs')
+const fsp = require('fs/promises')
 
 // =============
 // === Paths ===
@@ -149,6 +150,14 @@ optParser.options('dev', {
 optParser.options('devtron', {
     group: debugOptionsGroup,
     describe: 'Install the Devtron Developer Tools extension',
+})
+
+optParser.options('load-profile', {
+    group: debugOptionsGroup,
+    describe:
+        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    requiresArg: true,
+    type: `array`,
 })
 
 optParser.options('save-profile', {
@@ -544,6 +553,17 @@ function createWindow() {
     if (args.entryPoint) {
         urlCfg.entry = args.entryPoint
     }
+    let profilePromises = []
+    if (args.loadProfile) {
+        profilePromises = args.loadProfile.map(path => fsp.readFile(path, 'utf8'))
+    }
+    const profiles = Promise.all(profilePromises)
+    Electron.ipcMain.on('load-profiles', event => {
+        profiles.then(profiles => {
+            const n = profiles.length
+            event.reply('profiles-loaded', profiles)
+        })
+    })
     if (args.saveProfile) {
         Electron.ipcMain.on('save-profile', (event, data) => {
             fss.writeFileSync(args.saveProfile, data)

@@ -369,29 +369,6 @@ mod log_tests {
         }
     }
 
-    // FIXME[kw]. The with_same_start APIs need to return profilers in a paused state.
-    #[test]
-    #[ignore]
-    fn with_same_start() {
-        {
-            let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
-            let _profiler1 = objective_with_same_start!(_profiler0, "test1");
-        }
-        let log = get_log();
-        use profiler::Event::*;
-        match &log[..] {
-            [Start(m0), Start(m1), End { id: id1, .. }, End { id: id0, .. }] => {
-                // _profiler0 has a start time
-                assert!(m0.start.is_some());
-                // _profiler1 is with_same_start, indicated by None in the log
-                assert_eq!(m1.start, None);
-                assert_eq!(id1.0, 1);
-                assert_eq!(id0.0, 0);
-            }
-            _ => panic!("log: {:?}", log),
-        }
-    }
-
     #[test]
     fn profile() {
         #[profile(Objective)]

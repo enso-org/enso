@@ -290,7 +290,8 @@ pub enum NotificationKind {
 }
 
 /// Notification about change in module content.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Derivative)]
+#[derivative(PartialEq, Eq)]
 pub struct Notification {
     /// The expected state of the source file at the point when this notification is emit.
     ///
@@ -301,6 +302,30 @@ pub struct Notification {
     pub new_file: SourceFile,
     /// Describes the notified event.
     pub kind:     NotificationKind,
+    // A profiler from the notification's creation site; by using this object as the parent of the
+    // notification handlers' profilers, we carry cause-and-effect debug information between
+    // operations that are otherwise difficult to relate, because they are not coupled by explicit
+    // control flow.
+    #[derivative(PartialEq = "ignore")]
+    profiler:     profiler::Debug,
+}
+
+impl Notification {
+    /// Create a new notification.
+    pub fn new(new_file: SourceFile, kind: NotificationKind) -> Self {
+        let profiler = Self::profiler();
+        Self { new_file, kind, profiler }
+    }
+
+    /// Return a profiler to be attached to a new [`Notification`].
+    fn profiler() -> profiler::Debug {
+        use profiler::internal::Profiler;
+        let label = profiler::internal::Label("Notification");
+        let parent = profiler::internal::EventId::implicit();
+        let now = Some(profiler::internal::Timestamp::now());
+        let paused = profiler::internal::StartState::Paused;
+        profiler::Debug::start(parent, label, now, paused)
+    }
 }
 
 

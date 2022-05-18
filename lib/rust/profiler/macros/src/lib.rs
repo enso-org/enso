@@ -42,14 +42,9 @@ fn define_profiler(
     enabled: bool,
 ) -> proc_macro::TokenStream {
     let start = quote::format_ident!("start_{}", level);
-    let with_same_start = quote::format_ident!("{}_with_same_start", level);
     let level_link = format!("[{}-level](index.html#{})", level, level);
     let doc_obj = format!("Identifies a {} profiler.", level_link);
     let doc_start = format!("Start a new {} profiler.", level_link);
-    let doc_with_same_start = format!(
-        "Create a new {} profiler, with the same start as an existing profiler.",
-        level_link,
-    );
     let ts = if enabled {
         quote::quote! {
             // =================================
@@ -98,19 +93,6 @@ fn define_profiler(
                     profiler
                 }}
             }
-
-            #[doc = #doc_with_same_start]
-            #[macro_export]
-            macro_rules! #with_same_start {
-                ($parent: expr, $label: expr) => {{
-                    use profiler::Parent;
-                    let label = profiler::internal::Label(
-                        concat!($label, " (", file!(), ":", line!(), ")"));
-                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
-                        $parent.new_child_same_start(label);
-                    profiler
-                }}
-            }
         }
     } else {
         quote::quote! {
@@ -145,16 +127,10 @@ fn define_profiler(
             #[doc = #doc_start]
             #[macro_export]
             macro_rules! #start {
-                ($parent: expr, $label: expr) => {
+                ($parent: expr, $label: expr) => {{
+                    let _unused_at_this_profiling_level = $parent;
                     profiler::internal::Started(profiler::#obj_ident(()))
-                }
-            }
-            #[macro_export]
-            #[doc = #doc_with_same_start]
-            macro_rules! #with_same_start {
-                ($parent: expr, $label: expr) => {
-                    profiler::internal::Started(profiler::#obj_ident(()))
-                }
+                }}
             }
         }
     };
