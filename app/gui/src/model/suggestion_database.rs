@@ -169,6 +169,12 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
+        let mut value_was_some = false;
+        self.modify_value_at(path, |value| {
+            value_was_some = value.take().is_some();
+        });
+        value_was_some
+        /*
         /// Clears the value at `path` in `node` and returns `true` as the first boolean if the
         /// value was `Some(_)` before the clearing. Returns `true` as the second boolean if the
         /// subtree at `node` only contains `None` values after the clearing, or returns `false`
@@ -212,6 +218,7 @@ impl FreeformPathToIdMap {
             tree.branches.clear();
         }
         value_was_some
+        */
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
