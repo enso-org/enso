@@ -182,7 +182,7 @@ type Connection
         db_types = pairs.map p-> p.second.sql_type
         insert_query = this.dialect.generate_sql <| IR.Insert name pairs
         insert_template = insert_query.prepare.first
-        Managed_Resource.with this.connection_resource java_connection->
+        this.connection_resource . with java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
             Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
