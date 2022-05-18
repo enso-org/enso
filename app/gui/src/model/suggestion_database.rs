@@ -131,71 +131,7 @@ impl FreeformPathToIdMap {
         remove_nodes_on_path_in_reverse_order_while(&mut tree, segments, |node|
             node.is_leaf() && node.value.is_none());
         replacement
-        // let mut replacement = value;
-        // self.modify_value_at(path, |value| std::mem::swap(value, &mut replacement));
-        // replacement
     }
-
-    // // TODO[LATER]: swap_value_at(..., Option<entry::Id>)
-    // fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut Option<entry::Id>)) {
-    //     let tree = self.tree.borrow_mut();
-    //     let segments = &path.segments;
-    //     tree.set(segments, 
-    //     // mod_last_node_on_path(
-    //     //     self.tree.borrow_mut(),
-    //     //     &path.segments,
-    //     //     |node, sub_path| {
-    //     //         // TODO: optimize
-    //     //         node.set
-    //     // mod_nodes_on_path_in_reverse_order(
-    //     //     self.tree.borrow_mut(),
-    //     //     &path.segments,
-    //     //     |node, sub_path| {
-
-    //     //     });
-    // }
-
-    /*
-    // TODO[LATER]: swap_value_at(..., Option<entry::Id>)
-    fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut Option<entry::Id>)) {
-        // TODO: recurse down until (a) path is reached, or (b) leaf node is reached while path is
-        // still not exhausted.
-        // TODO: (a) run `f(node.value)`. If `node.value` is now `None` and node is leaf, prune the
-        // branch upwards.
-        // TODO: (b) create "fake" `None` value, run `f(value)`. If `value.is_some()`, insert it at
-        // the remaining path (try using just `node.set()`). Otherwise do nothing.
-        /// Returns `true` if the subtree at `node` is empty.
-        fn helper(
-            node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
-            path: &[PathSegment],
-            mut f: impl FnMut(&mut Option<entry::Id>),
-        ) {
-            match path {
-                [] => f(&mut node.value),
-                [key, path_after_key @ ..] => {
-                    let branch_at_key_became_empty = match node.branches.get_mut(&key) {
-                        Some(branch) => {
-                            helper(branch, &path_after_key, f);
-                            branch.value.is_none() && branch.is_leaf()
-                        }
-                        None => {
-                            let mut value = None;
-                            f(&mut value);
-                            if value.is_some() {
-                                node.set(path, value);
-                            }
-                            false
-                        },
-                    };
-                    if branch_at_key_became_empty {
-                        node.branches.remove(&key);
-                    }
-                },
-            }
-        }
-        helper(&mut self.tree.borrow_mut(), &path.segments, f);
-    }
-    */
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
         let path = path.into();
@@ -959,27 +895,10 @@ mod test {
 
 type TmpNode = ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>;
 
-// fn mod_last_node_on_path(node: &mut TmpNode, path: &[PathSegment], f: impl FnOnce(&mut TmpNode, remaining_path: &[PathSegment])) {
-//     let mut node = node;
-//     let mut iter = path;
-//     loop {
-//         if let [key, remaining_path @ ..] = path {
-//             if let Some(branch) = node.branches.get_mut(&key) {
-//                 node = branch;
-//                 iter = remaining_path;
-//             } else {
-//                 return f(node);
-//             }
-//         } else {
-//             return f(node);
-//         }
-//     }
-// }
-
 fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathSegment], f: fn(&TmpNode) -> bool) {
     if let [key, remaining_path @ ..] = path {
-        let remove_branch = node.branches.get_mut(&key).map_or(false, |branch| {
-        // let remove_branch = if let Some(branch) = node.branches.get_mut(&key) {
+        let branch = node.branches.get_mut(&key);
+        let remove_branch = branch.map_or(false, |branch| {
             remove_nodes_on_path_in_reverse_order_while(branch, remaining_path, f);
             f(branch)
         });
@@ -988,26 +907,4 @@ fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathS
         }
     }
 }
-
-// fn mod_nodes_on_path_in_reverse_order<F>(node: &mut TmpNode, path: &[PathSegment], mut f: F) -> F
-// where F: FnMut(&mut TmpNode, &[PathSegment]) {
-//     if let [key, path_after_key @ ..] = path {
-//         if let Some(branch) = node.branches.get_mut(&key) {
-//             f = mod_nodes_on_path_in_reverse_order(branch, path_after_key, f);
-//         }
-//     }
-//     f(node, path);
-//     f
-//     // match path {
-//     //     [] => {f(node); f},
-//     //     [key, path_after_key @ ..] => {
-//     //         let mut f2 = match node.branches.get_mut(&key) {
-//     //             Some(branch) => mod_nodes_on_path_in_reverse_order(branch, path_after_key, f),
-//     //             None => f,
-//     //         };
-//     //         f2(node);
-//     //         f2
-//     //     }
-//     // }
-// }
 
