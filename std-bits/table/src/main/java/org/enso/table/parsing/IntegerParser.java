@@ -4,7 +4,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.parsing.problems.NumericProblemAggregator;
 
-public class IntegerParser extends DatatypeParser<NumericProblemAggregator> {
+public class IntegerParser extends IncrementalDatatypeParser<NumericProblemAggregator> {
   private final String thousandsSeparator;
   private final boolean leadingZerosAllowed;
 

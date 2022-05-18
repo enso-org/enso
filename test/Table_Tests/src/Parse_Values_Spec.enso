@@ -158,9 +158,35 @@ spec = Test.group "Table.parse_values" <|
         problems = [(Duplicate_Type_Selector "floats" ambiguous=True), (Duplicate_Type_Selector "bools" ambiguous=False)]
         Problems.test_problem_handling action problems tester
 
-    Test.specify "should guess the datatype for columns" pending="TODO" <|
-        # TODO (next PR): ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
-        Error.throw "TODO"
+    Test.specify "should guess the datatype for columns" <|
+        c1 = ["ints", ["1", "+2", "-123", Nothing]]
+        c2 = ["ints0", ["01", "02", Nothing, "-1"]]
+        c3 = ["floats", ["1.0", "2.2", Nothing, "-1.0"]]
+        c4 = ["bools", ["true", "False", Nothing, "True"]]
+        c5 = ["floats+ints", ["1", "2.2", "-1.0", Nothing]]
+        c6 = ["text", ["foobar", "foo", "", Nothing]]
+        c7 = ["dates", ["2022-10-01", "2000-01-01", "1999-01-02", Nothing]]
+        c8 = ["datetimes", ["2022-10-01 01:02:03", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
+        c9 = ["times", ["01:02:03", "00:00:00", "01:02:03", Nothing]]
+        c10 = ["mixeddates", ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]]
+        c11 = ["text+ints", ["1", "2", "foobar", Nothing]]
+        # TODO bools as 0 and 1 test?
+        # TODO leading 0s with allowing setting
+        t = Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
+        t2 = t.parse_values
+
+        Warning.get_all t2 . should_equal []
+        t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
+        t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
+        t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+        t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
+        t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
+        t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
+        t2.at "dates" . to_vector . map date_as_vector . should_equal [[2022, 10, 1], [2000, 1, 1], [1999, 1, 2], Nothing]
+        t2.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 10, 1, 1, 2, 3, 0], [2000, 1, 1, 1, 2, 3, 0], [1999, 1, 2, 1, 2, 3, 0], Nothing]
+        t2.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 0], [0, 0, 0, 0], [1, 2, 3, 0], Nothing]
+        t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
+        t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
 
     Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
         opts = Data_Formatter decimal_point=',' thousand_separator='_'

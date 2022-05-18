@@ -5,7 +5,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
 import org.graalvm.collections.EconomicSet;
 
-public class BooleanParser extends DatatypeParser<InvalidFormatProblemAggregator> {
+public class BooleanParser extends IncrementalDatatypeParser<InvalidFormatProblemAggregator> {
 
   private final EconomicSet<String> trueValues;
   private final EconomicSet<String> falseValues;

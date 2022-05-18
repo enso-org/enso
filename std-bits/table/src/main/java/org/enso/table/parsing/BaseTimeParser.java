@@ -7,7 +7,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
 import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
 
-public abstract class BaseTimeParser extends DatatypeParser<InvalidFormatProblemAggregator> {
+public abstract class BaseTimeParser extends IncrementalDatatypeParser<InvalidFormatProblemAggregator> {
   protected interface ParseStrategy {
     Object parse(String text, DateTimeFormatter formatter) throws DateTimeParseException;
   }

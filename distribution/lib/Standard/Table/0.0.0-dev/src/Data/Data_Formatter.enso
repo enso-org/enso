@@ -11,6 +11,8 @@ polyglot java import org.enso.table.parsing.DateParser
 polyglot java import org.enso.table.parsing.TimeParser
 polyglot java import org.enso.table.parsing.DateTimeParser
 polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
 
 ## Specifies options for reading text data in a table to more specific types and
    serializing them back.
@@ -65,6 +67,9 @@ Data_Formatter.make_date_parser = this.wrap_base_parser <|
     DateParser.new this.date_formats.to_array this.locale.java_locale
 
 ## PRIVATE
+Data_Formatter.make_identity_parser = this.wrap_base_parser IdentityParser.new
+
+## PRIVATE
 Data_Formatter.make_datetime_parser = this.wrap_base_parser <|
     DateTimeParser.new this.datetime_formats.to_array this.locale.java_locale
 
@@ -84,4 +89,6 @@ Data_Formatter.make_datatype_parser datatype = case datatype of
                     Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
 
 ## PRIVATE
-Data_Formatter.make_auto_parser = Error.throw "TODO"
+Data_Formatter.make_auto_parser =
+    parsers = [this.make_integer_parser, this.make_decimal_parser, this.make_datetime_parser, this.make_date_parser, this.make_time_parser, this.make_boolean_parser, this.make_identity_parser]
+    TypeInferringParser.new parsers.to_array

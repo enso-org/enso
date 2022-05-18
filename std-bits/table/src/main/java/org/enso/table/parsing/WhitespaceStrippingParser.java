@@ -3,10 +3,10 @@ package org.enso.table.parsing;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.parsing.problems.ProblemAggregator;
 
-public class WhitespaceStrippingParser<PA extends ProblemAggregator> extends DatatypeParser<PA> {
-  private final DatatypeParser<PA> innerParser;
+public class WhitespaceStrippingParser<PA extends ProblemAggregator> extends IncrementalDatatypeParser<PA> {
+  private final IncrementalDatatypeParser<PA> innerParser;
 
-  public WhitespaceStrippingParser(DatatypeParser<PA> innerParser) {
+  public WhitespaceStrippingParser(IncrementalDatatypeParser<PA> innerParser) {
     this.innerParser = innerParser;
   }
 
