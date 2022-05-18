@@ -131,6 +131,7 @@ impl FreeformPathToIdMap {
         old_value.is_some()
     }
 
+    // TODO[LATER]: swap_value_at(..., Option<entry::Id>)
     fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut Option<entry::Id>)) {
         // TODO: recurse down until (a) path is reached, or (b) leaf node is reached while path is
         // still not exhausted.
