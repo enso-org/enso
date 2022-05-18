@@ -127,7 +127,8 @@ impl FreeformPathToIdMap {
         let mut tree = self.tree.borrow_mut();
         let segments = &path.segments;
         let mut swapped_value = value;
-        swap_value_at_path_and_walk_back_removing_empty_leaf_node(&mut tree, segments, &mut swapped_value);
+        foobar(&mut tree, segments.iter(), &mut swapped_value);
+        // swap_value_at_path_and_walk_back_removing_empty_leaf_node(&mut tree, segments, &mut swapped_value);
         swapped_value
         /*
         let mut replacement = value;
@@ -913,6 +914,47 @@ fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathS
     }
 }
 
+fn foobar<P, I>(node: &mut TmpNode, mut segments: P, value: &mut Option<entry::Id>) 
+    where
+        P: Iterator<Item = I>,
+        I: Into<PathSegment>, {
+    use std::collections::hash_map::Entry;
+    if let Some(key) = segments.next() {
+        let key = key.into();
+        match node.branches.entry(key) {
+            Entry::Occupied(mut entry) => {
+                let branch = entry.get_mut();
+                foobar(branch, segments, value);
+                if branch.value.is_none() && branch.is_leaf() {
+                    entry.remove_entry();
+                }
+            },
+            Entry::Vacant(entry) => {
+                value.take().map(|v| entry.insert(default()).set(segments, Some(v)));
+                // false
+            },
+        };
+        // if empty_branch_exists_at_key {
+        //     node.branches.remove(&key);
+        // }
+
+        /*
+        let empty_branch_exists_at_key = match node.branches.get_mut(&key) {
+            Some(branch) => {
+                swap_value_at_path_and_walk_back_removing_empty_leaf_node(branch, segments, value);
+                branch.value.is_none() && branch.is_leaf()
+            },
+            None => {
+                value.take().map(|v| node.set(path, Some(v)));
+                false
+            }
+        };
+        */
+    } else {
+        std::mem::swap(&mut node.value, value);
+    }
+}
+
 // fn swap_value_and_remove_leaf_node_from_parent_while_empty
 // fn swap_value_and_while_last_node_on_path_is_leaf_and_empty
 // fn swap_value_and_remove_leaf_node_on_path_while_its_value_is_none
@@ -920,7 +962,7 @@ fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathS
 // fn swap_value_at_path_and_fold_back_removing_empty_leaf_node
 fn swap_value_at_path_and_walk_back_removing_empty_leaf_node(node: &mut TmpNode, path: &[PathSegment], value: &mut Option<entry::Id>) {
     if let [key, remaining_path @ ..] = path {
-        let remove_branch = match node.branches.get_mut(&key) {
+        let empty_branch_exists_at_key = match node.branches.get_mut(&key) {
             Some(branch) => {
                 swap_value_at_path_and_walk_back_removing_empty_leaf_node(branch, remaining_path, value);
                 branch.value.is_none() && branch.is_leaf()
@@ -930,7 +972,7 @@ fn swap_value_at_path_and_walk_back_removing_empty_leaf_node(node: &mut TmpNode,
                 false
             }
         };
-        if remove_branch {
+        if empty_branch_exists_at_key {
             node.branches.remove(key);
         }
     } else {
