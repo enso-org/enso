@@ -14,10 +14,12 @@ object configuration {
     *
     *  @param logLevel the logging level
     *  @param profilingPath the path to the profiling out file
+    *  @param profilingTime the time limiting the profiling duration
     */
   case class MainProcessConfig(
     logLevel: LogLevel,
-    profilingPath: Option[Path]
+    profilingPath: Option[Path],
+    profilingTime: Option[FiniteDuration]
   )
 
   /** A configuration object for properties of the Project Manager.

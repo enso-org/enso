@@ -168,7 +168,7 @@ object Main {
       .numberOfArgs(1)
       .argName("seconds")
       .longOpt(LANGUAGE_SERVER_PROFILING_TIME)
-      .desc("The duration limiting the profiling time in seconds.")
+      .desc("The duration in seconds limiting the profiling time.")
       .build()
     val deamonizeOption = CliOption.builder
       .longOpt(DAEMONIZE_OPTION)

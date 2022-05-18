@@ -10,6 +10,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 /** A descriptor specifying options related to starting a Language Server.
   *
@@ -25,6 +26,7 @@ import scala.concurrent.Future
   * @param discardOutput specifies if the process output should be discarded or
   *                      printed to parent's streams
   * @param profilingPath the language server profiling file path
+  * @param profilingTime the time limiting the profiling duration
   * @param deferredLoggingServiceEndpoint a future that is completed once the
   *                                       logging service has been fully set-up;
   *                                       if the child component should connect
@@ -41,5 +43,6 @@ case class LanguageServerDescriptor(
   jvmSettings: JVMSettings,
   discardOutput: Boolean,
   profilingPath: Option[Path],
+  profilingTime: Option[FiniteDuration],
   deferredLoggingServiceEndpoint: Future[Option[Uri]]
 )

@@ -127,17 +127,29 @@ object ProjectManager extends App with LazyLogging {
     */
   def parseOpts(
     options: CommandLine
-  ): ZIO[ZEnv, Throwable, ProjectManagerOptions] =
-    ZIO
+  ): ZIO[ZEnv, Throwable, ProjectManagerOptions] = {
+    val parseProfilingPath = ZIO
       .effect {
-        val profilingPathOpt =
-          Option(options.getOptionValue(Cli.PROFILING_PATH))
-            .map(Paths.get(_))
-        ProjectManagerOptions(profilingPathOpt)
+        Option(options.getOptionValue(Cli.PROFILING_PATH))
+          .map(Paths.get(_))
       }
       .catchAll { err =>
         putStrLnErr(s"Invalid ${Cli.PROFILING_PATH} argument.") *> ZIO.fail(err)
       }
+    val parseProfilingTime = ZIO
+      .effect {
+        Option(options.getOptionValue(Cli.PROFILING_TIME))
+          .map(_.toInt.seconds)
+      }
+      .catchAll { err =>
+        putStrLnErr(s"Invalid ${Cli.PROFILING_TIME} argument.") *> ZIO.fail(err)
+      }
+
+    for {
+      profilingPath <- parseProfilingPath
+      profilingTime <- parseProfilingTime
+    } yield ProjectManagerOptions(profilingPath, profilingTime)
+  }
 
   /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
@@ -155,7 +167,11 @@ object ProjectManager extends App with LazyLogging {
       for {
         opts     <- parseOpts(options)
         logLevel <- setupLogging(verbosity, logMasking)
-        procConf = MainProcessConfig(logLevel, opts.profilingPath)
+        procConf = MainProcessConfig(
+          logLevel,
+          opts.profilingPath,
+          opts.profilingTime
+        )
         exitCode <- mainProcess(procConf).fold(
           th => {
             logger.error("Main process execution failed.", th)

@@ -13,6 +13,7 @@ object Cli {
   val VERBOSE_OPTION = "verbose"
   val VERSION_OPTION = "version"
   val PROFILING_PATH = "profiling-path"
+  val PROFILING_TIME = "profiling-time"
 
   object option {
 
@@ -47,12 +48,20 @@ object Cli {
       )
       .build()
 
-    val enableProfiling: cli.Option = cli.Option.builder
+    val profilingPath: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
       .argName("path")
       .longOpt(PROFILING_PATH)
-      .desc("The path to the profiling file. Enables application profiling.")
+      .desc("The path to profiling file. Enables the application profiling.")
+      .build()
+
+    val profilingTime: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("seconds")
+      .longOpt(PROFILING_TIME)
+      .desc("The duration in seconds limiting the application profiling time.")
       .build()
   }
 
@@ -63,7 +72,8 @@ object Cli {
       .addOption(option.version)
       .addOption(option.json)
       .addOption(option.noLogMasking)
-      .addOption(option.enableProfiling)
+      .addOption(option.profilingPath)
+      .addOption(option.profilingTime)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {
