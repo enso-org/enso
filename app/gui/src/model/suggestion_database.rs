@@ -922,15 +922,15 @@ fn foobar<P, I>(node: &mut TmpNode, mut segments: P, value: &mut Option<entry::I
     match segments.next() {
         None => std::mem::swap(&mut node.value, value),
         Some(key) => match node.branches.entry(key.into()) {
-            Entry::Occupied(mut entry) => {
-                let branch = entry.get_mut();
+            Entry::Occupied(mut branch_entry) => {
+                let branch = branch_entry.get_mut();
                 foobar(branch, segments, value);
                 if branch.value.is_none() && branch.is_leaf() {
-                    entry.remove_entry();
+                    branch_entry.remove_entry();
                 }
             },
-            Entry::Vacant(entry) => {
-                value.take().map(|v| entry.insert(default()).set(segments, Some(v)));
+            Entry::Vacant(branch_entry) => {
+                value.take().map(|v| branch_entry.insert(default()).set(segments, Some(v)));
             },
         },
     }
