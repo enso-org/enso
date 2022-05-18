@@ -920,8 +920,7 @@ fn foobar<P, I>(node: &mut TmpNode, mut segments: P, value: &mut Option<entry::I
         I: Into<PathSegment>, {
     use std::collections::hash_map::Entry;
     if let Some(key) = segments.next() {
-        let key = key.into();
-        match node.branches.entry(key) {
+        match node.branches.entry(key.into()) {
             Entry::Occupied(mut entry) => {
                 let branch = entry.get_mut();
                 foobar(branch, segments, value);
@@ -931,25 +930,8 @@ fn foobar<P, I>(node: &mut TmpNode, mut segments: P, value: &mut Option<entry::I
             },
             Entry::Vacant(entry) => {
                 value.take().map(|v| entry.insert(default()).set(segments, Some(v)));
-                // false
             },
         };
-        // if empty_branch_exists_at_key {
-        //     node.branches.remove(&key);
-        // }
-
-        /*
-        let empty_branch_exists_at_key = match node.branches.get_mut(&key) {
-            Some(branch) => {
-                swap_value_at_path_and_walk_back_removing_empty_leaf_node(branch, segments, value);
-                branch.value.is_none() && branch.is_leaf()
-            },
-            None => {
-                value.take().map(|v| node.set(path, Some(v)));
-                false
-            }
-        };
-        */
     } else {
         std::mem::swap(&mut node.value, value);
     }
