@@ -39,7 +39,7 @@ public class Ref implements TruffleObject {
    *
    * @param value the value to store.
    */
-  @Builtin.Method(name="put", description = "Stores a new value in the reference")
+  @Builtin.Method(name = "put", description = "Stores a new value in the reference")
   public Object setValue(Object value) {
     Object old = this.value;
     this.value = value;
