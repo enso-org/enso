@@ -74,6 +74,8 @@ struct MockEntries {
 
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
+        const HIGHLIGHTED_ENTRY_NAME: &str = "convert";
+        const HIGHLIGHTED_RANGE: Range<Bytes> = Bytes(0)..Bytes(3);
         Rc::new(Self {
             entries: PREPARED_ITEMS
                 .iter()
@@ -83,8 +85,8 @@ impl MockEntries {
                     icon,
                     highlighted_text: GlyphHighlightedLabelModel {
                         label:       label.to_owned(),
-                        highlighted: if label == "convert" {
-                            vec![(Bytes(0)..Bytes(3)).into()]
+                        highlighted: if label == HIGHLIGHTED_ENTRY_NAME {
+                            vec![HIGHLIGHTED_RANGE.into()]
                         } else {
                             default()
                         },

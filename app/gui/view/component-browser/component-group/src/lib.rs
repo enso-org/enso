@@ -35,6 +35,7 @@ use crate::prelude::*;
 use ensogl::application::traits::*;
 
 use crate::display::scene::layer;
+
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
@@ -46,7 +47,6 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_shadow as shadow;
-
 
 
 // ==============
@@ -205,8 +205,10 @@ impl HeaderGeometry {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
-    // Note[ao]: The nodes are initialized during construction. The must be samplers, otherwise the
-    //  value will be forgotten and restored to default when connected afterwards.
+    // Note: The FRP nodes below must be samplers, otherwise their values set during initialization
+    // (by emitting `init` event in `Colors::from_main_color) will be lost - the FRP system does
+    // not keep value of nodes if they are not connected to anything, and those nodes won't be
+    // before returning from `from_main_color`.
     pub icon_strong: frp::Sampler<color::Rgba>,
     pub icon_weak:   frp::Sampler<color::Rgba>,
     pub header_text: frp::Sampler<color::Rgba>,

@@ -12,7 +12,6 @@ use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ide_view_component_group::icon;
-use ide_view_component_group::icon::ICON_SIZE;
 use ide_view_component_group::icon::SHRINK_AMOUNT;
 
 
@@ -21,13 +20,14 @@ use ide_view_component_group::icon::SHRINK_AMOUNT;
 // === Frame ===
 // =============
 
-/// A rectangular frame to mark the edges of icon.
+/// A rectangular frame to mark the edges of icon. It can be displayed under them to see if they
+/// are centered properly.
 mod frame {
     use super::*;
 
     ensogl::define_shape_system! {
         (style:Style) {
-            let inner = Rect((ICON_SIZE.px(),ICON_SIZE.px()));
+            let inner = Rect((icon::SIZE.px(), icon::SIZE.px()));
             let outer = inner.grow(0.2.px());
             let shape = (outer - inner).fill(color::Rgba::black());
             shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -65,13 +65,13 @@ pub fn entry_point_searcher_icons() {
     grid_div.set_style_or_warn(
         "background-image",
         "linear-gradient(to right,  grey 0.05px, transparent 0.05px),
-                                 linear-gradient(to bottom, grey 0.05px, transparent 0.05px)",
+         linear-gradient(to bottom, grey 0.05px, transparent 0.05px)",
     );
 
     let grid = DomSymbol::new(&grid_div);
     scene.dom.layers.back.manage(&grid);
     world.add_child(&grid);
-    grid.set_size(Vector2(1000.0, ICON_SIZE));
+    grid.set_size(Vector2(1000.0, icon::SIZE));
     mem::forget(grid);
 
 
@@ -79,7 +79,7 @@ pub fn entry_point_searcher_icons() {
 
     let mut x = 0.0;
     icon::Id::for_each(|id| {
-        let shape = id.create_shape(&logger, Vector2(ICON_SIZE, ICON_SIZE));
+        let shape = id.create_shape(&logger, Vector2(icon::SIZE, icon::SIZE));
         shape.weak_color.set(color::Rgba(0.475, 0.494, 0.145, 1.0).into());
         shape.strong_color.set(color::Rgba(0.612, 0.627, 0.388, 1.0).into());
         shape.set_position_x(x);

@@ -5,8 +5,6 @@
 use crate::prelude::*;
 
 use crate::icon;
-use crate::icon::AnyIcon;
-use crate::icon::ICON_SIZE;
 use crate::Colors;
 
 use enso_frp as frp;
@@ -111,7 +109,7 @@ impl Default for Params {
 /// id allows us to skip icon generation when not changed.
 #[derive(Debug, Default)]
 struct CurrentIcon {
-    shape: Option<AnyIcon>,
+    shape: Option<icon::Any>,
     id:    Option<icon::Id>,
 }
 
@@ -138,7 +136,7 @@ impl list_view::Entry for View {
         let logger = Logger::new("component-group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
-        let label = GlyphHighlightedLabel::new(app, &style_prefix, &());
+        let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         display_object.add_child(&label);
 
         let network = &label.inner.network;
@@ -148,8 +146,9 @@ impl list_view::Entry for View {
             init <- source_();
             max_width_px <- source::<f32>();
             icon_text_gap <- all(&icon_text_gap, &init)._0();
-            label_x_position <- icon_text_gap.map(|gap| ICON_SIZE + gap);
-            label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
+            label_x_position <- icon_text_gap.map(|gap| icon::SIZE + gap);
+            label_max_width <-
+                all_with(&max_width_px, &icon_text_gap, |width,gap| width - icon::SIZE- gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
             label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
@@ -183,10 +182,10 @@ impl list_view::Entry for View {
         let mut icon = self.icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
-            let shape = model.icon.create_shape(&self.logger, Vector2(ICON_SIZE, ICON_SIZE));
+            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
             shape.strong_color.set(self.icon_strong_color.value().into());
             shape.weak_color.set(self.icon_weak_color.value().into());
-            shape.set_position_x(ICON_SIZE / 2.0);
+            shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
             icon.shape = Some(shape);
         }
