@@ -6,6 +6,7 @@ import Standard.Base.Data.Ordering.Comparator
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.CorrelationStats
+polyglot java import org.enso.base.statistics.Rank
 polyglot java import java.lang.IllegalArgumentException
 
 type Statistic
@@ -175,3 +176,7 @@ Vector.Vector.compute statistic=Count =
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
     here.compute_bulk this statistics
+
+test : Any
+test =
+    Vector.from_array (Rank.rank)
