@@ -1,3 +1,4 @@
+const { contextBridge, ipcRenderer } = require('electron')
 const remote = require('electron').remote
 
 let win
@@ -46,3 +47,30 @@ if (win !== undefined) {
 
 // TODO[WD] Enable after making preload configurable (we do not want to load it always)
 // require('devtron').install()
+
+// ==================
+// === Debug APIs ===
+// ==================
+
+// These APIs expose functionality for use from Rust; see the bindings in the `debug_api` module for
+// the primary documentation.
+
+// Shutdown-related commands and events.
+contextBridge.exposeInMainWorld('enso_lifecycle', {
+    // Allows application-exit to be initiated from WASM code.
+    //
+    // This is used, for example, in a key binding (Ctrl+Alt+Q) that saves a performance profile and exits.
+    quit: data => ipcRenderer.send('quit-ide'),
+})
+
+// Used for capturing profiling data.
+contextBridge.exposeInMainWorld('enso_profiling_data', {
+    // Delivers profiling log.
+    saveProfile: data => ipcRenderer.send('save-profile', data),
+})
+
+// Access to the system console that Electron was run from.
+contextBridge.exposeInMainWorld('enso_console', {
+    // Print an error message with `console.error`.
+    error: data => ipcRenderer.send('error', data),
+})

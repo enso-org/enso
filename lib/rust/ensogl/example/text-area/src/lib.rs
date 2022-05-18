@@ -25,7 +25,9 @@ use ensogl_text::traits::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_text::buffer;
 use ensogl_text::style;
 use ensogl_text::Area;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -70,7 +72,25 @@ fn init(app: Application) {
     let navigator = Navigator::new(scene, &scene.camera());
 
     app.display.default_scene.add_child(&area);
+
+
+    let text = "red green blue";
+    let colored_area = app.new_view::<Area>();
+    app.display.default_scene.add_child(&colored_area);
+    colored_area.set_font("DejaVuSans");
+    colored_area.set_position_xy(Vector2::new(200.0, 200.0));
+
+    colored_area.set_default_color(color::Rgba::black());
+    colored_area.set_content(text);
+    let range_green = buffer::Range::from(Bytes(4)..Bytes(9));
+    colored_area.set_color_bytes(range_green, color::Rgba::green());
+    let range_blue = buffer::Range::from(Bytes(10)..Bytes(14));
+    colored_area.set_color_bytes(range_blue, color::Rgba::blue());
+    colored_area.set_default_color(color::Rgba::red());
+
+
     mem::forget(navigator);
     mem::forget(app);
     mem::forget(area);
+    mem::forget(colored_area);
 }

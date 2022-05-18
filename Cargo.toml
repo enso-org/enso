@@ -9,12 +9,20 @@ members = [
     "build/enso-formatter",
     "build/rust-scripts",
     "lib/rust/*",
+    "lib/rust/parser/src/syntax/tree/visitor",
+    "lib/rust/parser/src/syntax/tree/builder",
     "lib/rust/profiler/data",
     "integration-test"
 ]
 
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
+
+# We are using a version with extended functionality. The changes have been PR'd upstream:
+# https://github.com/rustwasm/console_error_panic_hook/pull/24
+# Remove this patch when the issue is resolved.
+[patch.crates-io]
+console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0

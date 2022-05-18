@@ -98,4 +98,3 @@ spec =
             duration_1!=duration_2 . should_be_true
             duration_1>duration_2 . should_be_true
             duration_1<duration_2 . should_be_false
-

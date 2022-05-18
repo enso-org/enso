@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.data.Ref;
 @BuiltinMethod(type = "Ref", name = "get", description = "Gets the value stored in the reference.")
 public class GetRefNode extends Node {
 
-  Object execute(Object _this, Ref ref) {
-    return ref.getValue();
+  Object execute(Ref _this) {
+    return _this.getValue();
   }
 }

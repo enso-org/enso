@@ -31,22 +31,20 @@ object Suggestions {
     DocSectionsBuilder()
 
   val module: Suggestion.Module = Suggestion.Module(
-    module        = "local.Test.Main",
-    documentation = Some("Module doc"),
-    documentationHtml =
-      Some(htmlDocsGenerator.generate("Module doc", "local.Test.Main")),
+    module                = "local.Test.Main",
+    documentation         = Some("Module doc"),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Module doc"))
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId    = None,
-    module        = "local.Test.Main",
-    name          = "MyType",
-    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType    = "MyAtom",
-    documentation = Some(comment.atom),
-    documentationHtml =
-      Some(htmlDocsGenerator.generate(comment.atom, "MyType")),
+    externalId            = None,
+    module                = "local.Test.Main",
+    name                  = "MyType",
+    arguments             = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType            = "MyAtom",
+    documentation         = Some(comment.atom),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build(comment.atom))
   )
 
@@ -61,7 +59,7 @@ object Suggestions {
     selfType              = "MyType",
     returnType            = "Number",
     documentation         = Some("Lovely"),
-    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "foo")),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
@@ -99,7 +97,7 @@ object Suggestions {
     selfType              = "Any",
     returnType            = "Any",
     documentation         = Some("Lovely"),
-    documentationHtml     = Some(htmlDocsGenerator.generate("Lovely", "<<")),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Lovely"))
   )
 
@@ -127,7 +125,7 @@ object Suggestions {
     selfType              = "Integer",
     returnType            = "Number",
     documentation         = Some("Blah, blah"),
-    documentationHtml     = Some(htmlDocsGenerator.generate("Blah, blah", "+")),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("Blah, blah"))
   )
 

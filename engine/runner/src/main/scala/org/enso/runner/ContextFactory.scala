@@ -26,6 +26,7 @@ class ContextFactory {
     * @param strictErrors whether or not to use strict errors
     * @param useGlobalIrCacheLocation whether or not to use the global IR cache
     *                                 location
+    * @param options additional options for the Context
     * @return configured Context instance
     */
   def create(
@@ -36,9 +37,10 @@ class ContextFactory {
     logLevel: LogLevel,
     logMasking: Boolean,
     enableIrCaches: Boolean,
-    strictErrors: Boolean             = false,
-    useGlobalIrCacheLocation: Boolean = true,
-    enableAutoParallelism: Boolean    = false
+    strictErrors: Boolean                  = false,
+    useGlobalIrCacheLocation: Boolean      = true,
+    enableAutoParallelism: Boolean         = false,
+    options: java.util.Map[String, String] = java.util.Collections.emptyMap
   ): PolyglotContext = {
     val context = Context
       .newBuilder()
@@ -54,6 +56,7 @@ class ContextFactory {
       .option(RuntimeOptions.DISABLE_IR_CACHES, (!enableIrCaches).toString)
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option(RuntimeOptions.LOG_MASKING, logMasking.toString)
+      .options(options)
       .option(
         RuntimeOptions.ENABLE_AUTO_PARALLELISM,
         enableAutoParallelism.toString

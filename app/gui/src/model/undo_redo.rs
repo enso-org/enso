@@ -52,6 +52,7 @@ pub trait Aware {
     fn undo_redo_repository(&self) -> Rc<Repository>;
 
     /// Get current ongoing transaction. If there is no ongoing transaction, create a one.
+    #[profile(Debug)]
     #[must_use]
     fn get_or_open_transaction(&self, name: &str) -> Rc<Transaction> {
         self.undo_redo_repository().transaction(name)

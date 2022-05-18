@@ -148,6 +148,20 @@ optParser.options('devtron', {
     describe: 'Install the Devtron Developer Tools extension',
 })
 
+optParser.options('save-profile', {
+    group: debugOptionsGroup,
+    describe: 'Record a performance profile and write to a file.',
+    requiresArg: true,
+    type: `string`,
+})
+
+optParser.options('workflow', {
+    group: debugOptionsGroup,
+    describe: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
+    requiresArg: true,
+    type: `string`,
+})
+
 // === Style Options ===
 
 let styleOptionsGroup = 'Style Options:'
@@ -519,6 +533,7 @@ function createWindow() {
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }
+    Electron.ipcMain.on('error', (event, data) => console.error(data))
 
     if (args.project) {
         urlCfg.project = args.project
@@ -526,6 +541,18 @@ function createWindow() {
     if (args.entryPoint) {
         urlCfg.entry = args.entryPoint
     }
+    if (args.saveProfile) {
+        Electron.ipcMain.on('save-profile', (event, data) => {
+            fss.writeFileSync(args.saveProfile, data)
+        })
+    }
+    if (args.workflow) {
+        urlCfg.test_workflow = args.workflow
+    }
+
+    Electron.ipcMain.on('quit-ide', () => {
+        Electron.app.quit()
+    })
 
     let params = urlParamsFromObject(urlCfg)
     let address = `${origin}?${params}`

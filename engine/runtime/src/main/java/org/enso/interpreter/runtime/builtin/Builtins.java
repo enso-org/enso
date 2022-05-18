@@ -261,6 +261,7 @@ public class Builtins {
             throw new CompilerError("Invalid builtin metadata in : " + line);
           }
           try {
+            @SuppressWarnings("unchecked")
             Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(builtinMeta[1]);
             String builtinMethodOwner = builtinName[0];
             String builtinMethodName = builtinName[1];

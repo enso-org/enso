@@ -1,6 +1,9 @@
 //! The `Tooltip` shows extra information for UI components. It is pegged to the cursor location
 //! and appears when it receives information to show.
-use ensogl_core as ensogl;
+
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
 
 use ensogl::prelude::*;
 
@@ -9,11 +12,18 @@ use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::shape::StyleWatch;
+use ensogl_core as ensogl;
 use ensogl_core::application::tooltip::Placement;
 use ensogl_core::application::tooltip::Style;
 use ensogl_label::Label;
 
+
+// ==============
+// === Export ===
+// ==============
+
 pub use ensogl::application::tooltip;
+
 
 
 // =================

@@ -41,7 +41,7 @@ use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
@@ -334,6 +334,7 @@ ensogl_core::define_endpoints! {
         selection_size(Vector2<f32>),
         tried_to_move_out_above(),
         tried_to_move_out_below(),
+        style_prefix(String),
     }
 }
 
@@ -550,6 +551,7 @@ where E::Model: Default
             );
             default_style_prefix <- init.constant(DEFAULT_STYLE_PATH.to_string());
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
+            frp.source.style_prefix <+ style_prefix;
             eval style_prefix ((path)
                 model.entries.recreate_entries_with_style_prefix(path.into()));
             view_and_style <- all(&view_info,&style_prefix);
@@ -579,8 +581,14 @@ where E::Model: Default
     }
 
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, layer: LayerId) {
+    pub fn set_label_layer(&self, layer: &Layer) {
         self.model.entries.set_label_layer(layer);
+    }
+
+    /// Set params used in the displayed entries and recreate all displayed entries.
+    pub fn set_entry_params_and_recreate_entries(&self, params: E::Params) {
+        let style_prefix = self.frp.style_prefix.value();
+        self.model.entries.set_entry_params_and_recreate_entries(params, style_prefix.into());
     }
 }
 

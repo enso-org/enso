@@ -185,6 +185,7 @@ define_themes! { [light:0, dark:1]
                     text {
                         font = "DejaVuSans-Bold", "DejaVuSans-Bold";
                         size = 12.0, 12.0;
+                        color_intensity = 1.0, 1.0;
                     }
                     height = 27.0, 27.0;
                     padding {
@@ -192,13 +193,25 @@ define_themes! { [light:0, dark:1]
                         right  = 2.5, 2.5;
                         bottom = 5.0, 5.0;
                     }
+                    shadow = shadow , shadow;
+                    shadow {
+                        size     = 27.0 , 27.0;
+                        spread   = shadow::spread   , shadow::spread;
+                        fading   = shadow::fading   , shadow::fading;
+                        exponent = shadow::exponent , shadow::exponent;
+                        offset_x = shadow::offset_x , shadow::offset_x;
+                        offset_y = shadow::offset_y , shadow::offset_y;
+                    }
                 }
                 entries {
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
+                        color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
                     }
                 }
+                background_color_intensity = 0.2, 0.2;
+                dimmed_color_intensity = 0.5, 0.5;
             }
         }
         searcher {

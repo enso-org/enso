@@ -1,7 +1,9 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.function.Supplier;
@@ -108,6 +110,18 @@ public class MethodRootNode extends ClosureRootNode {
     return methodName;
   }
 
+  @Override
+  public Node deepCopy() {
+    LazyBodyNode.replaceLazyNode(getBody());
+    return super.deepCopy();
+  }
+
+  @Override
+  public Node copy() {
+    LazyBodyNode.replaceLazyNode(getBody());
+    return super.copy();
+  }
+
   private static class LazyBodyNode extends ExpressionNode {
     private final Supplier<ExpressionNode> provider;
 
@@ -115,11 +129,22 @@ public class MethodRootNode extends ClosureRootNode {
       this.provider = body;
     }
 
+    static void replaceLazyNode(Node n) {
+      if (n instanceof LazyBodyNode lazy) {
+        lazy.replaceItself();
+      }
+    }
+
     @Override
     public Object executeGeneric(VirtualFrame frame) {
-      ExpressionNode newNode = replace(provider.get());
-      notifyInserted(newNode);
+      ExpressionNode newNode = replaceItself();
       return newNode.executeGeneric(frame);
+    }
+
+    final ExpressionNode replaceItself() {
+        ExpressionNode newNode = replace(provider.get());
+        notifyInserted(newNode);
+        return newNode;
     }
   }
 }

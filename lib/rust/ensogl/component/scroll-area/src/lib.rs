@@ -137,6 +137,7 @@ impl display::Object for ScrollArea {
 
 impl ScrollArea {
     /// Create a new scroll area for use in the given application.
+    #[profile(Detail)]
     pub fn new(app: &Application) -> ScrollArea {
         let scene = &app.display.default_scene;
         let logger = Logger::new("ScrollArea");
@@ -227,5 +228,10 @@ impl ScrollArea {
     /// added as children to `content`.
     pub fn content(&self) -> &display::object::Instance {
         &self.model.content
+    }
+
+    /// A scene layer containing the content of the ScrollArea.
+    pub fn content_layer(&self) -> &layer::Layer {
+        &self.model.display_object.layer.masked_layer
     }
 }

@@ -14,9 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @ServiceProvider(service = Processor.class)
 public class TypeProcessor extends BuiltinsMetadataProcessor {
+
   private final Map<Filer, Map<String, BuiltinTypeConstr>> builtinTypes = new HashMap<>();
 
   private class BuiltinTypeConstr {
@@ -128,7 +128,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
           .forEach(
               entry -> {
                 String[] elements = entry.split(":");
-                if (!elements[3].isEmpty()) {
+                if (elements.length == 4 && !elements[3].isEmpty()) {
                   out.println(
                       "    public static void final String "
                           + elements[0].toUpperCase()
@@ -166,4 +166,9 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
   private static final String ConstantsGenPkg = "org.enso.interpreter.runtime.type";
   private static final String ConstantsGenClass = "ConstantsGen";
   private static final String ConstantsGenFullClassname = ConstantsGenPkg + "." + ConstantsGenClass;
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latest();
+  }
 }

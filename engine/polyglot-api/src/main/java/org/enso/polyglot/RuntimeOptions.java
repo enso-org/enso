@@ -29,9 +29,6 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(ENABLE_AUTO_PARALLELISM_KEY, ENABLE_AUTO_PARALLELISM).build();
 
   public static final String LOG_LEVEL = "log.level";
-  public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
-  private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
-      OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
   public static final String LOG_MASKING = optionName("log.masking");
   public static final OptionKey<Boolean> LOG_MASKING_KEY = new OptionKey<>(true);
@@ -94,7 +91,6 @@ public class RuntimeOptions {
           Arrays.asList(
               PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
-              LOG_LEVEL_DESCRIPTOR,
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,

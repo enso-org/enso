@@ -884,13 +884,22 @@ pub fn simulate_sleep(duration: f64) {
 
 /// Enables forwarding panic messages to `console.error`.
 pub fn forward_panic_hook_to_console() {
-    // When the `console_error_panic_hook` feature is enabled, we can call the
-    // `set_panic_hook` function at least once during initialization, and then
-    // we will get better error messages if our code ever panics.
-    //
-    // For more details see
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    console_error_panic_hook::set_once();
+    std::panic::set_hook(Box::new(report_panic))
+}
+
+#[cfg(target_arch = "wasm32")]
+fn report_panic(info: &std::panic::PanicInfo) {
+    // Formats the info to display properly in the browser console. See crate docs for details.
+    let msg = console_error_panic_hook::format_panic(info);
+    if let Some(api) = enso_debug_api::console() {
+        api.error(&msg);
+    }
+    web_sys::console::error_1(&msg.into());
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn report_panic(info: &std::panic::PanicInfo) {
+    eprintln!("{}", info);
 }
 
 

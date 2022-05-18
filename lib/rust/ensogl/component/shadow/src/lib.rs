@@ -30,15 +30,16 @@ use ensogl_hardcoded_theme as theme;
 
 
 /// Defines the appearance of a shadow
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub struct Parameters {
-    base_color: color::Rgba,
-    fading:     color::Rgba,
-    size:       f32,
-    spread:     f32,
-    exponent:   f32,
-    offset_x:   f32,
-    offset_y:   f32,
+    pub base_color: Var<color::Rgba>,
+    pub fading:     Var<color::Rgba>,
+    pub size:       Var<f32>,
+    pub spread:     Var<f32>,
+    pub exponent:   Var<f32>,
+    pub offset_x:   Var<f32>,
+    pub offset_y:   Var<f32>,
 }
 
 /// Loads shadow parameters from the given style, at the given path. The structure of the style
@@ -46,18 +47,18 @@ pub struct Parameters {
 pub fn parameters_from_style_path(style: &StyleWatch, path: impl Into<style::Path>) -> Parameters {
     let path: style::Path = path.into();
     Parameters {
-        base_color: style.get_color(&path),
-        fading:     style.get_color(&path.sub("fading")),
-        size:       style.get_number(&path.sub("size")),
-        spread:     style.get_number(&path.sub("spread")),
-        exponent:   style.get_number(&path.sub("exponent")),
-        offset_x:   style.get_number(&path.sub("offset_x")),
-        offset_y:   style.get_number(&path.sub("offset_y")),
+        base_color: style.get_color(&path).into(),
+        fading:     style.get_color(&path.sub("fading")).into(),
+        size:       style.get_number(&path.sub("size")).into(),
+        spread:     style.get_number(&path.sub("spread")).into(),
+        exponent:   style.get_number(&path.sub("exponent")).into(),
+        offset_x:   style.get_number(&path.sub("offset_x")).into(),
+        offset_y:   style.get_number(&path.sub("offset_y")).into(),
     }
 }
 
 /// Utility method to retrieve the size of the shadow. can be used to determine shape padding etc.
-pub fn size(style: &StyleWatch) -> f32 {
+pub fn size(style: &StyleWatch) -> Var<f32> {
     let parameters = parameters_from_style_path(style, theme::shadow);
     parameters.size
 }
@@ -93,15 +94,13 @@ pub fn from_shape_with_parameters_and_alpha(
     parameters: Parameters,
     alpha: &Var<f32>,
 ) -> AnyShape {
-    let grow = Var::<f32>::from(parameters.size);
+    let grow = parameters.size.clone();
     let shadow = base_shape.grow(grow);
     let shadow = shadow.translate((parameters.offset_x.px(), parameters.offset_y.px()));
 
-    let base_color = Var::<color::Rgba>::from(parameters.base_color);
-    let base_color = base_color.multiply_alpha(alpha);
+    let base_color = parameters.base_color.multiply_alpha(alpha);
 
-    let fading_color = Var::<color::Rgba>::from(parameters.fading);
-    let fading_color = fading_color.multiply_alpha(alpha);
+    let fading_color = parameters.fading.multiply_alpha(alpha);
 
     let shadow_color = color::gradient::Linear::<Var<color::LinearRgba>>::new(
         fading_color.into_linear(),
