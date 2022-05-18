@@ -63,15 +63,6 @@ type Boolean
     not : Boolean
     not = @Builtin_Method "Boolean.not"
 
-    ## Generates a human-readable text representation of the boolean.
-
-       > Example
-         Converting the value True to text.
-
-             True.to_text
-    to_text : Text
-    to_text = @Builtin_Method "Boolean.to_text"
-
     ## The if-then-else control flow operator that executes one of two branches
        based on a conditional.
 

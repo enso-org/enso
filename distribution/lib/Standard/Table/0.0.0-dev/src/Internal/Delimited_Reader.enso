@@ -9,9 +9,9 @@ from Standard.Table.Io.File_Format import Infer
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
-polyglot java import org.enso.table.read.InvalidRow
-polyglot java import org.enso.table.read.MismatchedQuote
-polyglot java import org.enso.table.read.AdditionalInvalidRows
+polyglot java import org.enso.table.parsing.problems.InvalidRow
+polyglot java import org.enso.table.parsing.problems.MismatchedQuote
+polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException

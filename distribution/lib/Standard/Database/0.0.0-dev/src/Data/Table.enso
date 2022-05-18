@@ -17,6 +17,7 @@ from Standard.Table.Data.Table import No_Such_Column_Error
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Mapping
@@ -665,6 +666,16 @@ type Table
             problems = partitioned.second
             on_problems.attach_problems_before problems <|
                 this.updated_context_and_columns new_ctx new_columns
+
+    ## Parsing values is not supported in database tables, the table has to be
+       materialized first with `to_dataframe`.
+    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+        ## Avoid unused arguments warning. We cannot rename arguments to `_`,
+           because we need to keep the API consistent with the in-memory table.
+        _ = [parser, column_types, on_problems]
+        msg = "Parsing values is not supported in database tables, the table has to be materialized first with `to_dataframe`."
+        Error.throw (Unsupported_Database_Operation_Error msg)
 
     ## UNSTABLE
 

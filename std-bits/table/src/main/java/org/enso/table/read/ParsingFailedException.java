@@ -1,5 +1,7 @@
 package org.enso.table.read;
 
+import org.enso.table.parsing.problems.ParsingProblem;
+
 /**
  * An exception thrown when a problem occured during parsing and the parser is running in a mode
  * that does not try recovering, so the parsing is stopped.

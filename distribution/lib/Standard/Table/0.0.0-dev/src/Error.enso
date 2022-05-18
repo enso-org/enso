@@ -118,3 +118,20 @@ type Invalid_Location (location:Text)
 Invalid_Location.to_display_text : Text
 Invalid_Location.to_display_text =
     "The location '"+this.location+"' is not valid."
+
+## Indicates that some values did not match the expected datatype format.
+type Invalid_Format column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+
+Invalid_Format.to_display_text : Text
+Invalid_Format.to_display_text =
+    this.cells.length+" cells in column "+this.column+" had invalid format for datatype "+this.datatype.to_text+"."
+
+## Indicates that some values contained leading zeros even though these were not allowed.
+type Leading_Zeros column:Text (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+
+## Indicates that multiple `Column_Type_Selector` match the same column.
+
+   If all matching selectors indicate the same type, the warning is reported but
+   a parse is attempted anyway. If mixed types are requested, the column is not
+   parsed due to ambiguity.
+type Duplicate_Type_Selector column:Text ambiguous:Boolean
