@@ -125,10 +125,17 @@ impl FreeformPathToIdMap {
     }
 
     fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
+        let mut value_was_some = false;
+        self.modify_value_at(path, |value| {
+            value_was_some = value.replace(id).is_some();
+        });
+        value_was_some
+        /*
         let mut tree = self.tree.borrow_mut();
         let node = &mut tree.get_or_create_node(&path.segments);
         let old_value = std::mem::replace(&mut node.value, Some(id));
         old_value.is_some()
+        */
     }
 
     // TODO[LATER]: swap_value_at(..., Option<entry::Id>)
@@ -154,7 +161,7 @@ impl FreeformPathToIdMap {
                             let mut value = None;
                             f(&mut value);
                             if value.is_some() {
-                                node.set(path_after_key, value);
+                                node.set(path, value);
                             }
                             false
                         },
