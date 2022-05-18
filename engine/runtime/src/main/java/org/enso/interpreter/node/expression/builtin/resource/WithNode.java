@@ -30,15 +30,10 @@ public abstract class WithNode extends Node {
   }
 
   abstract Stateful execute(
-      @MonadicState Object state,
-      VirtualFrame frame,
-      Object _this,
-      ManagedResource resource,
-      Object action);
+      @MonadicState Object state, VirtualFrame frame, Object _this, Object action);
 
   @Specialization
-  Stateful doWith(
-      Object state, VirtualFrame frame, Object _this, ManagedResource resource, Object action) {
+  Stateful doWith(Object state, VirtualFrame frame, ManagedResource resource, Object action) {
     ResourceManager resourceManager = Context.get(this).getResourceManager();
     resourceManager.park(resource);
     try {
