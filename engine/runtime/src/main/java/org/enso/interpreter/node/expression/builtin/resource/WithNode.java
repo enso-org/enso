@@ -37,8 +37,7 @@ public abstract class WithNode extends Node {
     ResourceManager resourceManager = Context.get(this).getResourceManager();
     resourceManager.park(_this);
     try {
-      return invokeCallableNode.execute(
-          action, frame, state, new Object[] {_this.getResource()});
+      return invokeCallableNode.execute(action, frame, state, new Object[] {_this.getResource()});
     } finally {
       resourceManager.unpark(_this);
     }
