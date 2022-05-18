@@ -36,7 +36,6 @@ type Managed_Resource
        function once it is no longer in use.
 
        Arguments:
-       - resource: The resource to be managed automatically.
        - function: The action to be executed on resource to clean it up when
          it is no longer in use.
     register : Any -> (Any -> Nothing) -> Managed_Resource
@@ -46,11 +45,8 @@ type Managed_Resource
 
        Forces finalization of a managed resource using the registered finalizer,
        even if the resource is still reachable.
-
-       Arguments:
-       - resource: The resource that should be finalized.
-    finalize : Managed_Resource -> Nothing
-    finalize resource = @Builtin_Method "Managed_Resource.finalize"
+    finalize : Nothing
+    finalize = @Builtin_Method "Managed_Resource.finalize"
 
     ## ADVANCED
 
@@ -58,20 +54,15 @@ type Managed_Resource
        resource object.
 
        Arguments:
-       - resource: The managed resource on which to run the action.
        - action: The action that will be applied to the resource managed by
          resource.
-    with : Managed_Resource -> (Any -> Any) -> Any
-    with resource ~action = @Builtin_Method "Managed_Resource.with"
+    with : (Any -> Any) -> Any
+    with ~action = @Builtin_Method "Managed_Resource.with"
 
     ## ADVANCED
 
        Takes the value held by the managed resource and unregisters the
        finalization step for this resource, effectively removing it from the
        managed resources system.
-
-       Arguments:
-       - resource: The managed resource from which to acquire the underlying
-         resource.
     take : Managed_Resource -> Any
-    take resource = @Builtin_Method "Managed_Resource.take"
+    take = @Builtin_Method "Managed_Resource.take"

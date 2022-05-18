@@ -87,7 +87,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
           |
           |main =
           |    here.create_resource 0
@@ -127,8 +127,8 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.finalize r else Nothing
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then r.finalize else Nothing
           |
           |main =
           |    here.create_resource 0
@@ -168,8 +168,8 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.take r else Nothing
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then r.take else Nothing
           |
           |main =
           |    here.create_resource 0
