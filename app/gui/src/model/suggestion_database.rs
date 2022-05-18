@@ -132,6 +132,7 @@ impl FreeformPathToIdMap {
         self.swap_value_at(path, None).is_some()
     }
 
+    // TODO: consider moving to a HashMapTree method
     fn swap_value_at(&self, path: &FreeformPath, value: Option<entry::Id>) -> Option<entry::Id> {
         let mut replacement = value;
         self.modify_value_at(path, |value| std::mem::swap(value, &mut replacement));
@@ -151,12 +152,15 @@ impl FreeformPathToIdMap {
             node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
             path: &[PathSegment],
             mut f: impl FnMut(&mut Option<entry::Id>),
-        ) -> bool {
+        ) {
             match path {
                 [] => f(&mut node.value),
                 [key, path_after_key @ ..] => {
                     let branch_at_key_became_empty = match node.branches.get_mut(&key) {
-                        Some(branch) => helper(branch, &path_after_key, f),
+                        Some(branch) => {
+                            helper(branch, &path_after_key, f);
+                            branch.value.is_none() && branch.is_leaf()
+                        }
                         None => {
                             let mut value = None;
                             f(&mut value);
@@ -171,7 +175,6 @@ impl FreeformPathToIdMap {
                     }
                 },
             }
-            node.value.is_none() && node.is_leaf()
         }
         helper(&mut self.tree.borrow_mut(), &path.segments, f);
     }
