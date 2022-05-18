@@ -49,7 +49,7 @@ class ContentRootManagerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig(None, None)
+      ProfilingConfig()
     )
     rootActor   = system.actorOf(ContentRootManagerActor.props(config))
     rootManager = new ContentRootManagerWrapper(config, rootActor)

@@ -95,7 +95,7 @@ class BaseServerTest
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
-      ProfilingConfig(None, None)
+      ProfilingConfig()
     )
 
   override def protocol: Protocol = JsonRpc.protocol

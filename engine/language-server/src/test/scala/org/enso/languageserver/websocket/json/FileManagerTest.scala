@@ -28,7 +28,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(testContentRoot.file),
-      ProfilingConfig(None, None)
+      ProfilingConfig()
     )
   }
 

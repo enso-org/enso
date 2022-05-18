@@ -1109,7 +1109,7 @@ class SuggestionsHandlerSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig(None, None)
+      ProfilingConfig()
     )
   }
 

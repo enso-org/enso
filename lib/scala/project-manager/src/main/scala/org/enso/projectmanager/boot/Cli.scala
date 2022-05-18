@@ -7,13 +7,14 @@ import scala.util.Try
 
 object Cli {
 
-  val JSON_OPTION    = "json"
-  val HELP_OPTION    = "help"
-  val NO_LOG_MASKING = "no-log-masking"
-  val VERBOSE_OPTION = "verbose"
-  val VERSION_OPTION = "version"
-  val PROFILING_PATH = "profiling-path"
-  val PROFILING_TIME = "profiling-time"
+  val JSON_OPTION               = "json"
+  val HELP_OPTION               = "help"
+  val NO_LOG_MASKING            = "no-log-masking"
+  val VERBOSE_OPTION            = "verbose"
+  val VERSION_OPTION            = "version"
+  val PROFILING_PATH            = "profiling-path"
+  val PROFILING_TIME            = "profiling-time"
+  val PROFILING_EVENTS_LOG_PATH = "profiling-events-log-path"
 
   object option {
 
@@ -51,7 +52,7 @@ object Cli {
     val profilingPath: cli.Option = cli.Option.builder
       .hasArg(true)
       .numberOfArgs(1)
-      .argName("path")
+      .argName("file")
       .longOpt(PROFILING_PATH)
       .desc("The path to profiling file. Enables the application profiling.")
       .build()
@@ -62,6 +63,16 @@ object Cli {
       .argName("seconds")
       .longOpt(PROFILING_TIME)
       .desc("The duration in seconds limiting the application profiling time.")
+      .build()
+
+    val profilingEventsLogPath: cli.Option = cli.Option.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("file")
+      .longOpt(PROFILING_EVENTS_LOG_PATH)
+      .desc(
+        "The path to the runtime events log file. Enables the runtime events logging."
+      )
       .build()
   }
 
@@ -74,6 +85,7 @@ object Cli {
       .addOption(option.noLogMasking)
       .addOption(option.profilingPath)
       .addOption(option.profilingTime)
+      .addOption(option.profilingEventsLogPath)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

@@ -56,6 +56,7 @@ import java.net.URI
 import java.time.Clock
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -149,8 +150,20 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
 
   val runtimeEventsMonitor =
-    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
-    else new NoopEventsMonitor
+    languageServerConfig.profiling.runtimeEventsLogPath match {
+      case Some(path) =>
+        ApiEventsMonitor(path) match {
+          case Success(monitor) =>
+            monitor
+          case Failure(exception) =>
+            log.error(
+              s"Failed to create runtime events monitor for $path ($exception)."
+            )
+            new NoopEventsMonitor
+        }
+      case None =>
+        new NoopEventsMonitor
+    }
   log.trace(
     s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
   )
@@ -230,6 +243,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       case None =>
         NoopSampler()
     }
+  log.trace(s"Started sampler ${methodsSampler.getClass.getName}.")
 
   lazy val contextRegistry =
     system.actorOf(
