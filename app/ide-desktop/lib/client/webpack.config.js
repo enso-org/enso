@@ -1,9 +1,13 @@
 const Copy = require('copy-webpack-plugin')
 const path = require('path')
 const utils = require('../../utils')
+const webpack = require('webpack')
+const BUILD_INFO = require("../../build.json");
 
 const thisPath = path.resolve(__dirname)
+
 const dist = path.resolve(utils.require_env('ENSO_BUILD_IDE'), 'client')
+const bundled_engine_version = process.env['ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION']
 
 module.exports = {
     entry: {
@@ -28,6 +32,9 @@ module.exports = {
                 },
             ],
             options: {},
+        }),
+        new webpack.DefinePlugin({
+            BUNDLED_ENGINE_VERSION: JSON.stringify(bundled_engine_version),
         }),
     ],
     performance: {

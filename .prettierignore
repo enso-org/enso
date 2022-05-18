@@ -8,10 +8,10 @@ distribution/launcher/THIRD-PARTY
 distribution/engine/THIRD-PARTY
 distribution/project-manager/THIRD-PARTY
 tools/legal-review
-distribution/lib/Standard/Base/*/THIRD-PARTY
-distribution/lib/Standard/Table/*/THIRD-PARTY
-distribution/lib/Standard/Image/*/THIRD-PARTY
-distribution/lib/Standard/Database/*/THIRD-PARTY
+distribution/lib/Standard/*/*/manifest.yaml
+distribution/lib/Standard/*/*/polyglot
+distribution/lib/Standard/*/*/THIRD-PARTY
+
 built-distribution/
 THIRD-PARTY
 
@@ -19,3 +19,5 @@ THIRD-PARTY
 **/scala-parser.js
 **/package-lock.json
 **/msdfgen_wasm.js
+
+Cargo.lock

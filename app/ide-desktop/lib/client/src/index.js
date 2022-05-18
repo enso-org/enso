@@ -220,6 +220,12 @@ optParser.options('data-gathering', {
     default: true,
 })
 
+optParser.options('preferred-engine-version', {
+    describe: 'The Engine version that IDE will try to use for newly created projects',
+    type: 'string',
+    default: BUNDLED_ENGINE_VERSION,
+})
+
 // === Parsing ===
 
 function parseCmdArgs() {
@@ -528,6 +534,7 @@ function createWindow() {
         high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
         crash_report_host: args.crashReportHost,
         data_gathering: args.dataGathering,
+        preferred_engine_version: args.preferredEngineVersion,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }

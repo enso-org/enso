@@ -102,11 +102,12 @@ module.exports = {
                 test: /\.html$/i,
                 loader: 'html-loader',
             },
-            // {
-            //     test: [/\.js$/, /\.tsx?$/],
-            //     enforce: 'pre',
-            //     loader: sourceMapLoader(IGNORE_SOURCE_MAPS),
-            // },
+            Object.assign(
+                {
+                    test: [/\.js$/, /\.tsx?$/],
+                    enforce: 'pre',
+                    exclude: /node_modules[\\\/]@firebase/,
+                }, sourceMapLoader(IGNORE_SOURCE_MAPS))
         ],
     },
 }

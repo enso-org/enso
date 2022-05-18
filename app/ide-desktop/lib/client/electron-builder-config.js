@@ -16,7 +16,7 @@ const config = {
     extraMetadata: {
         version: build.version,
     },
-    copyright: 'Copyright © 2021 ${author}.',
+    copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
