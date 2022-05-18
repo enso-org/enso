@@ -908,3 +908,36 @@ fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathS
     }
 }
 
+// fn swap_value_and_remove_leaf_node_from_parent_while_empty
+// fn swap_value_and_while_last_node_on_path_is_leaf_and_empty
+// fn swap_value_and_remove_leaf_node_on_path_while_its_value_is_none
+// remove_empty_leaf_node_on_path
+// fn swap_value_at_path_and_fold_back_removing_empty_leaf_node
+fn swap_value_at_path_and_walk_back_removing_empty_leaf_node(node: &mut TmpNode, path: &[PathSegment], value: Option<entry::Id>) -> Option<entry::Id> {
+    let mut swap_value = value;
+    let helper = |node: &mut TmpNode, path: &[PathSegment]| {
+        if let [key, remaining_path @ ..] = path {
+            let remove_branch = match node.branches.get_mut(&key) {
+                Some(branch) => {
+                    helper(node, remaining_path);
+                    branch.value.is_none() && branch.is_leaf()
+                },
+                None => {
+                    // new_value_is_some = swap_value.is_some();
+                    swap_value.take().map(|v| node.set(path, Some(v)));
+                    false
+                    // match swap_value {
+                    //     Some(value) => node.set(path, Some(value)),
+                    //     None => 
+                    // };
+                }
+            };
+            if remove_branch {
+                node.branches.remove(key);
+            }
+        } else {
+            std::mem::swap(&mut node.value, &mut swap_value);
+        }
+    };
+    swap_value
+}
