@@ -44,7 +44,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
-import org.enso.profiling.{NoopSampler, TempFileSampler}
+import org.enso.profiling.{FileSampler, NoopSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -237,7 +237,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val methodsSampler =
     serverConfig.profilingConfig.profilingPath match {
       case Some(path) =>
-        val s = new TempFileSampler(path.toFile)
+        val s = new FileSampler(path.toFile)
         JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
         s
       case None =>

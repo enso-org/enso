@@ -3,7 +3,6 @@ package org.enso.profiling
 import org.netbeans.modules.sampler.Sampler
 
 import java.io.{DataOutputStream, File, FileOutputStream}
-import java.nio.file.Files
 import java.util.concurrent.{CompletableFuture, Executor, Executors}
 
 import scala.concurrent.duration.FiniteDuration
@@ -14,13 +13,18 @@ import scala.util.Using
   *
   * @param output the output stream to write the collected statistics to
   */
-final class TempFileSampler(output: File) extends MethodsSampler {
+final class FileSampler(output: File) extends MethodsSampler {
 
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
 
   def getSiblingFile(ext: String): File = {
-    val newName = output.getName.replace(".npss", ext)
+    val fileName       = output.getName
+    val extensionIndex = fileName.lastIndexOf(".")
+    val newName =
+      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
+      else fileName + ext
+
     new File(output.getParent, newName)
   }
 
@@ -62,18 +66,4 @@ final class TempFileSampler(output: File) extends MethodsSampler {
   /** @return `true` if the sampling is started. */
   def isSamplingStarted: Boolean =
     this.samplingStarted
-}
-object TempFileSampler {
-
-  /** Create an instance of [[MethodsSampler]] that writes the data to the
-    * temporary `.npss` file with the provided prefix.
-    *
-    * @param prefix the prefix of the temp file.
-    * @return the [[MethodsSampler]] instance
-    */
-  def apply(prefix: String): TempFileSampler = {
-    val path = Files.createTempFile(s"$prefix-", ".npss")
-    Files.deleteIfExists(path)
-    new TempFileSampler(path.toFile)
-  }
 }

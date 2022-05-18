@@ -131,7 +131,7 @@ object ProjectManager extends App with LazyLogging {
     val parseProfilingPath = ZIO
       .effect {
         Option(options.getOptionValue(Cli.PROFILING_PATH))
-          .map(Paths.get(_).toRealPath().toAbsolutePath)
+          .map(Paths.get(_).toAbsolutePath)
       }
       .flatMap {
         case pathOpt @ Some(path) =>
@@ -161,7 +161,7 @@ object ProjectManager extends App with LazyLogging {
     val parseProfilingEventsLogPath = ZIO
       .effect {
         Option(options.getOptionValue(Cli.PROFILING_EVENTS_LOG_PATH))
-          .map(Paths.get(_).toRealPath().toAbsolutePath)
+          .map(Paths.get(_).toAbsolutePath)
       }
       .flatMap {
         case pathOpt @ Some(path) =>
