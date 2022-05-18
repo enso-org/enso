@@ -55,14 +55,14 @@ spec = Test.group "Table.parse_values" <|
 
         opts = Data_Formatter allow_leading_zeros=True
         t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
-        t6 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Integer]
+        t6 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Integer]
         t6.at "ints" . to_vector . should_equal t1_parsed_zeros
         Warning.get_all t6 . should_equal []
 
-        t7 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t7 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Decimal]
         t7.at "ints" . to_vector . should_equal t1_parsed_zeros
         Warning.get_all t7 . should_equal []
-        t8 = t2.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t8 = t2.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Decimal]
         t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
         Warning.get_all t8 . should_equal []
 
