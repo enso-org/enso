@@ -106,8 +106,7 @@ impl FreeformPathToIdMap {
         logger: &Logger,
     ) {
         let path = path.into();
-        let existed = self.check_if_exists_and_set(&path, id);
-        if existed {
+        if self.swap_value_at(&path, Some(id)).is_some() {
             let path = path.segments;
             warning!(logger, "An existing id at {path:?} was overwritten with {id}.");
         }
@@ -122,10 +121,6 @@ impl FreeformPathToIdMap {
                 format!("When removing an id at {path:?} some id was expected but none was found.");
             warning!(logger, "{msg}");
         }
-    }
-
-    fn check_if_exists_and_set(&self, path: &FreeformPath, id: entry::Id) -> bool {
-        self.swap_value_at(path, Some(id)).is_some()
     }
 
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
@@ -915,9 +910,9 @@ mod test {
         let one_segment_path: FreeformPath = package_path.into();
         assert_eq!(map.get(one_segment_path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
-        assert!(!map.check_if_exists_and_set(&one_segment_path, 10));
-        assert!(map.check_if_exists_and_set(&one_segment_path, 10));
-        assert!(map.check_if_exists_and_set(&one_segment_path, 11));
+        assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), None);
+        assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), Some(10));
+        assert_eq!(map.swap_value_at(&one_segment_path, Some(11)), Some(10));
         assert_eq!(map.get(one_segment_path.clone()), Some(11));
         assert!(map.check_if_exists_and_remove(&one_segment_path));
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
@@ -928,10 +923,10 @@ mod test {
         let path: FreeformPath = (package_path.to_string() + ".Bar.baz").into();
         assert_eq!(map.get(path.clone()), None);
         assert!(!map.check_if_exists_and_remove(&path));
-        assert!(!map.check_if_exists_and_set(&path, 2));
+        assert_eq!(map.swap_value_at(&path, Some(2)), None);
         assert_eq!(map.get(path.clone()), Some(2));
         assert!(!map.check_if_exists_and_remove(&one_segment_path));
-        assert!(map.check_if_exists_and_set(&path, 3));
+        assert_eq!(map.swap_value_at(&path, Some(3)), Some(2));
         assert_eq!(map.get(path.clone()), Some(3));
         assert!(map.check_if_exists_and_remove(&path));
         assert!(!map.check_if_exists_and_remove(&path));
