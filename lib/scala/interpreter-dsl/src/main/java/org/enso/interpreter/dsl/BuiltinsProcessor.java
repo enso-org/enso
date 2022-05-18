@@ -1,18 +1,23 @@
 package org.enso.interpreter.dsl;
 
+import com.sun.tools.javac.code.Attribute;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.util.Pair;
+
 import org.apache.commons.lang3.StringUtils;
 import org.openide.util.lookup.ServiceProvider;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
-import com.sun.tools.javac.code.Attribute;
-
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -26,12 +31,13 @@ import java.util.stream.Stream;
  * generate a corresponding @BuiltinMethod class which, in turn, will get processed by another
  * processor and deliver a RootNode for the method.
  */
-@SupportedAnnotationTypes("org.enso.interpreter.dsl.Builtin")
+@SupportedAnnotationTypes({"org.enso.interpreter.dsl.Builtin", "org.enso.interpreter.dsl.Builtin.Method"})
 @ServiceProvider(service = Processor.class)
 public class BuiltinsProcessor extends AbstractProcessor {
 
   private static final String BuiltinsPkg = "org.enso.interpreter.node.expression.builtin";
-  private static final String WrapExceptionElementName = "wrapException";
+  private final WrapExceptionExtractor wrapExceptionsExtractor =
+          new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
 
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -41,8 +47,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
         if (elt.getKind() == ElementKind.METHOD || elt.getKind() == ElementKind.CONSTRUCTOR) {
           try {
             handleMethodElement(elt, roundEnv);
-          } catch (Exception ioe) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, ioe.getMessage());
+          } catch (Exception e) {
+            e.printStackTrace();
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
         } else if (elt.getKind() == ElementKind.CLASS) {
           try {
@@ -71,7 +78,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
     ClassName builtinType =  new ClassName(builtinPkg, clazzName);
     JavaFileObject gen =
             processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
-    Optional<String> stdLibName = annotation.name().isEmpty() ? Optional.empty() : Optional.of(annotation.name());
+    Optional<String> stdLibName = annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
     generateBuiltinType(gen, builtinType, stdLibName);
   }
 
@@ -98,14 +105,16 @@ public class BuiltinsProcessor extends AbstractProcessor {
     Element owner = element.getEnclosingElement();
 
     if (owner.getKind() == ElementKind.CLASS) {
+      Builtin ownerAnnotation = owner.getAnnotation(Builtin.class);
       TypeElement tpeElement = (TypeElement) owner;
       PackageElement pkgElement = (PackageElement) tpeElement.getEnclosingElement();
-      Builtin annotation = element.getAnnotation(Builtin.class);
+      Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
-          annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
+              ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
 
-      Attribute.Class[] exceptionWrappers = getClassElementFromAnnotation(element, Builtin.class, WrapExceptionElementName);
+      SafeWrapException[] wrapExceptions =
+              wrapExceptionsExtractor.extract(element);
       Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
 
       if (annotation.expandVarargs() != 0) {
@@ -125,7 +134,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
           try {
             JavaFileObject gen =
                     processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-            MethodGenerator methodGen = new MethodGenerator(method, i, exceptionWrappers);
+            MethodGenerator methodGen = new MethodGenerator(method, i, wrapExceptions);
             generateBuiltinMethodNode(
                     gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
           } catch (IOException ioe) {
@@ -146,7 +155,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
         JavaFileObject gen =
                 processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-        MethodGenerator methodGen = new MethodGenerator(method, 0, exceptionWrappers);
+        MethodGenerator methodGen = new MethodGenerator(method, 0, wrapExceptions);
         generateBuiltinMethodNode(
                 gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
       }
@@ -160,43 +169,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
             .getElementsAnnotatedWith(BuiltinType.class)
             .stream()
             .collect(Collectors.toMap(e -> e.getSimpleName().toString(), e -> e.getAnnotation(BuiltinType.class).params().length));
-  }
-
-  /**
-   * Return the annotation type's element value, when its type is declared to involve Class (or Class[]).
-   * Sadly this cannot be simply retrieved by invoking the <element>() method and one has to go through mirrors.
-   * Refer to <a href="https://area-51.blog/2009/02/13/getting-class-values-from-annotations-in-an-annotationprocessor/">blog</a>
-   * for details.
-   *
-   * @param element element annotated with the given annotation
-   * @param annotationClass the class representation of the annotation
-   * @param annotationMethodName the name of the element in the annotation type having Class<?> type
-   * @return even-length array of class annotation values, if present
-   */
-  private Attribute.Class[] getClassElementFromAnnotation(Element element, Class<?> annotationClass, String annotationMethodName) {
-    Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getName());
-    TypeMirror builtinType = builtinElement.asType();
-
-    AnnotationValue value = null;
-    for (AnnotationMirror am: element.getAnnotationMirrors()) {
-      if (am.getAnnotationType().equals(builtinType)) {
-        for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet() ) {
-          if (annotationMethodName.equals(entry.getKey().getSimpleName().toString())) {
-            value = entry.getValue();
-            break;
-          }
-        }
-      }
-    }
-
-    if (value != null) {
-      List<Attribute.Class> elems = ((List<Attribute.Class>)value.getValue());
-      if ((elems.size() % 2) != 0) {
-        throw new RuntimeException("Length of `" + annotationMethodName + "`value has to be even");
-      }
-      return elems.toArray(new Attribute.Class[0]);
-    }
-    return new Attribute.Class[0];
   }
 
   /**
@@ -262,6 +234,12 @@ public class BuiltinsProcessor extends AbstractProcessor {
               "org.enso.interpreter.runtime.Context",
               "org.enso.interpreter.runtime.error.PanicException");
 
+  /**
+   * Convert annotated method's variable to MethodParameter
+   * @param i position of the variable representing the parameter
+   * @param v variable element representing the parameter
+   * @return MethodParameter encapsulating the method's parameter info
+   */
   private MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
     return new MethodParameter(i, v.getSimpleName().toString(), v.asType().toString(),
             v.getAnnotationMirrors().stream().map(am -> am.toString()).collect(Collectors.toList()));
@@ -275,13 +253,13 @@ public class BuiltinsProcessor extends AbstractProcessor {
     private final boolean isConstructor;
     private final int varargExpansion;
     private final boolean needsVarargExpansion;
-    private final Attribute.Class[] exceptionWrappers;
+    private final SafeWrapException[] exceptionWrappers;
 
-    public MethodGenerator(ExecutableElement method, int expandedVarargs, Attribute.Class[] exceptionWrappers) {
+    public MethodGenerator(ExecutableElement method, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
       this(method, method.getParameters(), expandedVarargs, exceptionWrappers);
     }
 
-    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs, Attribute.Class[] exceptionWrappers) {
+    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
       this(
           method.getReturnType().toString(),
           IntStream.range(0, method.getParameters().size()).mapToObj(i ->
@@ -300,7 +278,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
             boolean isConstructor,
             int expandedVarargs,
             boolean isVarargs,
-            Attribute.Class[] exceptionWrappers) {
+            SafeWrapException[] exceptionWrappers) {
       this.returnTpe = returnTpe;
       this.params = params;
       this.isStatic = isStatic;
@@ -352,19 +330,10 @@ public class BuiltinsProcessor extends AbstractProcessor {
         wrappedBody.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
         wrappedBody.add("  try {");
         wrappedBody.add("  " + body);
-
-        for (int i=0; i < exceptionWrappers.length; i+=2) {
-          String from = fromAnnotationValueToClassName(exceptionWrappers[i]);
-          String to = fromAnnotationValueToClassName(exceptionWrappers[i+1]);
-          int toParamCount = errorParametersCount(exceptionWrappers[i+1], builtinTypesParameterCounts);
-          String errorParamsApplied = StringUtils.join(params.stream().limit(toParamCount - 1).flatMap(x -> x.names(Optional.empty())).toArray(), ", ");
-          wrappedBody.addAll(List.of(
-            "  } catch (" + from + " exception) {",
-            "    Builtins builtins = Context.get(this).getBuiltins();",
-            "    throw new PanicException(builtins.error().make" + to + "(_this, " + errorParamsApplied + "), this);",
-            "  }"
-          ));
+        for (int i=0; i < exceptionWrappers.length; i++) {
+          wrappedBody.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
         }
+        wrappedBody.add("  }");
         wrappedBody.add("}");
         return wrappedBody;
       } else {
@@ -374,12 +343,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 "}"
         );
       }
-    }
-
-    private int errorParametersCount(Attribute.Class clazz, Map<String, Integer> builtinTypesParameterCounts) {
-      String clazzSimple = fromAnnotationValueToClassName(clazz);
-      // `this` counts as 1
-      return builtinTypesParameterCounts.getOrDefault(clazzSimple, 1);
     }
 
   }
@@ -428,6 +391,155 @@ public class BuiltinsProcessor extends AbstractProcessor {
         IntStream.range(0, e).mapToObj(i-> name + "_" + (i+1))
       ).orElse(Stream.of(name));
     }
+  }
+
+  /**
+   * Wrapper around {@link Builtin.WrapException} annotation with all elements of Class type resolved.
+   * extracted
+   */
+  private record SafeWrapException(Attribute.Class from, Attribute.Class to) {
+
+    /**
+     * Generate a catch-clause that catches `from`, wraps it into `to` Enso type and rethrows the latter
+     * @param methodParameters list of all method's parameters, potentially to be applied to `to` constructor
+     * @param builtinTypesParameterCounts a map from builtin errors to the number of parameters in their constructors
+     * @return Lines representing the (unclosed) catch-clause catching the runtime `from` exception
+     */
+    List<String> toCatchClause(List<MethodParameter> methodParameters, Map<String, Integer> builtinTypesParameterCounts) {
+      String from = fromAttributeToClassName(from());
+      String to = fromAttributeToClassName(to());
+      int toParamCount = errorParametersCount(to(), builtinTypesParameterCounts);
+      String errorParamsApplied = StringUtils.join(methodParameters.stream().limit(toParamCount - 1).flatMap(x -> x.names(Optional.empty())).toArray(), ", ");
+      return List.of(
+              "  } catch (" + from + " exception) {",
+              "    Builtins builtins = Context.get(this).getBuiltins();",
+              "    throw new PanicException(builtins.error().make" + to + "(_this, " + errorParamsApplied + "), this);"
+      );
+    }
+
+    private String fromAttributeToClassName(Attribute.Class clazz) {
+      String[] clazzElements = clazz.classType.baseType().toString().split("\\.");
+      if (clazzElements.length == 0) {
+        return clazz.classType.baseType().toString();
+      } else {
+        return clazzElements[clazzElements.length - 1];
+      }
+    }
+
+    private int errorParametersCount(Attribute.Class clazz, Map<String, Integer> builtinTypesParameterCounts) {
+      String clazzSimple = fromAttributeToClassName(clazz);
+      // `this` counts as 1
+      return builtinTypesParameterCounts.getOrDefault(clazzSimple, 1);
+    }
+  }
+
+  /**
+   * Helper class that encapsulates retrieving the values of elements which type involves Class<?>.
+   * Such elements' values cannot be retrieved by invoking the <element>() method. Instead one has to go through mirrors.
+   * The logic has to deal with the following scenarios:
+   * - method with an individual annotation
+   * - method with multiple annotations of the same type, thus implicitly being annotation with
+   *   container annotation
+   * - method with an explicit container annotation
+   *
+   * Refer to <a href="https://area-51.blog/2009/02/13/getting-class-values-from-annotations-in-an-annotationprocessor/">blog</a>
+   * for details.
+   **/
+  private class WrapExceptionExtractor {
+
+    private static final String FromElementName = "from";
+    private static final String ToElementName = "to";
+    private static final String ValueElementName = "value";
+
+    private Class<? extends Annotation> wrapExceptionAnnotationClass;
+    private Class<? extends Annotation> wrapExceptionsAnnotationClass;
+
+    public WrapExceptionExtractor(
+            Class<? extends Annotation> wrapExceptionAnnotationClass,
+            Class<? extends Annotation> wrapExceptionsAnnotationClass) {
+      this.wrapExceptionAnnotationClass = wrapExceptionAnnotationClass;
+      this.wrapExceptionsAnnotationClass = wrapExceptionsAnnotationClass;
+    }
+
+    /**
+     * Extract {@link org.enso.interpreter.dsl.Builtin.WrapException} from the annotated element
+     * in a mirror-safe manner.
+     *
+     * @param element a method annotated with either {@link org.enso.interpreter.dsl.Builtin.WrapException} or
+     *                {@link org.enso.interpreter.dsl.Builtin.WrapExceptions}
+     * @return An array of safely retrieved (potentially repeated) values of
+     *         {@link org.enso.interpreter.dsl.Builtin.WrapException} annotation(s)
+     */
+    public SafeWrapException[] extract(Element element) {
+      if (element.getAnnotation(wrapExceptionsAnnotationClass) != null) {
+        return extractClassElementFromAnnotationContainer(element, wrapExceptionsAnnotationClass);
+      } else if (element.getAnnotation(wrapExceptionAnnotationClass) != null) {
+        return extractClassElementFromAnnotation(element, wrapExceptionAnnotationClass);
+      } else {
+        return new SafeWrapException[0];
+      }
+    }
+
+    private SafeWrapException[] extractClassElementFromAnnotation(Element element, Class<?> annotationClass) {
+      Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+      TypeMirror builtinType = builtinElement.asType();
+
+      List<SafeWrapException> exceptionWrappers = new ArrayList<>();
+      for (AnnotationMirror am: element.getAnnotationMirrors()) {
+        if (am.getAnnotationType().equals(builtinType)) {
+          Attribute.Class valueFrom = null;
+          Attribute.Class valueTo = null;
+          for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet() ) {
+            if (FromElementName.equals(entry.getKey().getSimpleName().toString())) {
+              valueFrom = (Attribute.Class)(entry.getValue());
+            } else if (ToElementName.equals(entry.getKey().getSimpleName().toString())) {
+              valueTo = (Attribute.Class)(entry.getValue());
+            }
+          }
+          if (valueFrom != null && valueTo != null) {
+            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo));
+          }
+        }
+      }
+      return exceptionWrappers.toArray(new SafeWrapException[0]);
+    }
+
+
+    private SafeWrapException[] extractClassElementFromAnnotationContainer(Element element, Class<?> annotationClass) {
+
+      Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+      Types tpeUtils = processingEnv.getTypeUtils();
+      TypeMirror builtinType = builtinElement.asType();
+
+      List<SafeWrapException> wrappedExceptions = new ArrayList<>();
+      for (AnnotationMirror am: element.getAnnotationMirrors()) {
+        if (tpeUtils.isSameType(am.getAnnotationType(), builtinType)) {
+          for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet()) {
+            if (ValueElementName.equals(entry.getKey().getSimpleName().toString())) {
+              Attribute.Array wrapExceptions = (Attribute.Array)entry.getValue();
+              for (int i = 0; i<wrapExceptions.values.length; i++) {
+                Attribute.Class valueFrom = null;
+                Attribute.Class valueTo = null;
+                Attribute.Compound attr = (Attribute.Compound)wrapExceptions.values[i];
+                for (Pair<Symbol.MethodSymbol, Attribute> p: attr.values) {
+                  if (p.fst.getSimpleName().contentEquals(FromElementName)) {
+                    valueFrom = (Attribute.Class)p.snd;
+                  } else if (p.fst.getSimpleName().contentEquals(ToElementName)) {
+                    valueTo = (Attribute.Class)p.snd;
+                  }
+                }
+                if (valueFrom != null && valueTo != null) {
+                  wrappedExceptions.add(new SafeWrapException(valueFrom, valueTo));
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+      return wrappedExceptions.toArray(new SafeWrapException[0]);
+    }
+
   }
 
   @Override

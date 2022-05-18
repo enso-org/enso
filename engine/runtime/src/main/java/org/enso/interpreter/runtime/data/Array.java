@@ -23,7 +23,7 @@ import java.util.Arrays;
 /** A primitve boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-@Builtin(pkg = "mutable", name = "Standard.Base.Data.Array.Array")
+@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public class Array implements TruffleObject {
   private final Object[] items;
 
@@ -32,10 +32,7 @@ public class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin(
-      pkg = "mutable",
-      expandVarargs = 4,
-      description = "Creates an array with given elements.")
+  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.")
   public Array(Object... items) {
     this.items = items;
   }
@@ -45,7 +42,7 @@ public class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin(pkg = "mutable", description = "Creates an uninitialized array of a given size.")
+  @Builtin.Method(description = "Creates an uninitialized array of a given size.")
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -81,21 +78,19 @@ public class Array implements TruffleObject {
   }
 
   /** @return the size of this array */
-  @Builtin(pkg = "mutable", description = "Returns the size of this array.")
+  @Builtin.Method(description = "Returns the size of this array.")
   public long length() {
     return this.getItems().length;
   }
 
   /** @return an empty array */
-  @Builtin(pkg = "mutable", description = "Creates an empty Array")
+  @Builtin.Method(description = "Creates an empty Array")
   public static Object empty() {
     return new Array();
   }
 
   /** @return an identity array */
-  @Builtin(
-      pkg = "mutable",
-      description = "Identity on arrays, implemented for protocol completeness.")
+  @Builtin.Method(description = "Identity on arrays, implemented for protocol completeness.")
   public Object toArray() {
     return this;
   }
@@ -110,20 +105,14 @@ public class Array implements TruffleObject {
     return items.length;
   }
 
-  @Builtin(
-      pkg = "mutable",
-      name = "at",
-      description = "Gets an array element at the given index.",
-      wrapException = {IndexOutOfBoundsException.class, InvalidArrayIndexError.class})
+  @Builtin.Method(name = "at", description = "Gets an array element at the given index.")
+  @Builtin.WrapException(from = IndexOutOfBoundsException.class, to = InvalidArrayIndexError.class)
   public Object get(long index) {
     return getItems()[(int) index];
   }
 
-  @Builtin(
-      pkg = "mutable",
-      name = "setAt",
-      description = "Gets an array element at the given index.",
-      wrapException = {IndexOutOfBoundsException.class, InvalidArrayIndexError.class})
+  @Builtin.Method(name = "setAt", description = "Gets an array element at the given index.")
+  @Builtin.WrapException(from = IndexOutOfBoundsException.class, to = InvalidArrayIndexError.class)
   public Object set(long index, @AcceptsError Object value) {
     getItems()[(int) index] = value;
     return this;
