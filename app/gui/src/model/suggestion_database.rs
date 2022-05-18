@@ -131,6 +131,44 @@ impl FreeformPathToIdMap {
         old_value.is_some()
     }
 
+    fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut entry::Id)) {
+        // TODO: recurse down until (a) path is reached, or (b) leaf node is reached while path is
+        // still not exhausted.
+        // TODO: (a) run `f(node.value)`. If `node.value` is now `None` and node is leaf, prune the
+        // branch upwards.
+        // TODO: (b) create "fake" `None` value, run `f(value)`. If `value.is_some()`, insert it at
+        // the remaining path (try using just `node.set()`). Otherwise do nothing.
+        /// Returns `true` if the subtree at `node` is empty.
+        fn helper(
+            node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
+            path: &[PathSegment],
+        ) -> bool {
+            match path {
+                [] => {
+                    f(&mut node.value);
+                    node.value.is_none() && node.is_leaf()
+                },
+                [key, path_after_key @ ..] => {
+                    match node.branches.get_mut(&key) {
+                        Some(branch) => {
+                            let branch_is_empty = helper(&mut branch, &path_after_key);
+                            if !branch_is_empty {
+                                false
+                            } else if node.branches.len() <= 1 {
+                                true
+                            } else {
+                                node.branches.remove(&key);
+                                false
+                            }
+                        },
+                        None => {
+                        },
+                    }
+                },
+            }
+        }
+    }
+
     fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
         /// Clears the value at `path` in `node` and returns `true` as the first boolean if the
         /// value was `Some(_)` before the clearing. Returns `true` as the second boolean if the
