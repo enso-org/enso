@@ -86,20 +86,14 @@ impl Default for Params {
     fn default() -> Self {
         let network = frp::Network::new("component_browser::entry::Params::default");
         frp::extend! { network
-            icon_strong <- source::<color::Rgba>();
-            icon_weak <- source::<color::Rgba>();
-            header_text <- source::<color::Rgba>();
-            entry_text <- source::<color::Rgba>();
-            background <- source::<color::Rgba>();
+            icon_strong <- source::<color::Rgba>().sampler();
+            icon_weak <- source::<color::Rgba>().sampler();
+            header_text <- source::<color::Rgba>().sampler();
+            entry_text <- source::<color::Rgba>().sampler();
+            background <- source::<color::Rgba>().sampler();
         }
 
-        let colors = Colors {
-            icon_strong: icon_strong.into(),
-            icon_weak:   icon_weak.into(),
-            header_text: header_text.into(),
-            entry_text:  entry_text.into(),
-            background:  background.into(),
-        };
+        let colors = Colors { icon_strong, icon_weak, header_text, entry_text, background };
         Self { colors }
     }
 }
@@ -158,7 +152,7 @@ impl list_view::Entry for View {
             label_max_width <- all_with(&max_width_px, &icon_text_gap, |width,gap| width - ICON_SIZE - gap);
             eval label_x_position ((x) label.set_position_x(*x));
             eval label_max_width ((width) label.set_max_width(*width));
-            label.inner.label.set_default_color <+ colors.entry_text;
+            label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
             eval colors.icon_strong ([icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());

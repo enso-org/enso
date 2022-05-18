@@ -205,11 +205,13 @@ impl HeaderGeometry {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Colors {
-    pub icon_strong: frp::Stream<color::Rgba>,
-    pub icon_weak:   frp::Stream<color::Rgba>,
-    pub header_text: frp::Stream<color::Rgba>,
-    pub entry_text:  frp::Stream<color::Rgba>,
-    pub background:  frp::Stream<color::Rgba>,
+    // Note[ao]: The nodes are initialized during construction. The must be samplers, otherwise the
+    //  value will be forgotten and restored to default when connected afterwards.
+    pub icon_strong: frp::Sampler<color::Rgba>,
+    pub icon_weak:   frp::Sampler<color::Rgba>,
+    pub header_text: frp::Sampler<color::Rgba>,
+    pub entry_text:  frp::Sampler<color::Rgba>,
+    pub background:  frp::Sampler<color::Rgba>,
 }
 
 impl Colors {
@@ -229,7 +231,7 @@ impl Colors {
         let bg_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
-        let entry_text = style.get_color(theme::entry::text::color);
+        let entry_text_ = style.get_color(theme::entry::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
@@ -239,14 +241,15 @@ impl Colors {
             app_bg_and_input <- all(&app_bg, color);
             main <- app_bg_and_input.all_with(&intensity, mix);
             app_bg_and_main <- all(&app_bg, &main);
-            header_text <- app_bg_and_main.all_with(&header_intensity, mix);
-            bg <- app_bg_and_main.all_with(&bg_intensity, mix);
-            app_bg_and_entry_text <- all(&app_bg, &entry_text);
-            entry_text <- app_bg_and_entry_text.all_with(&intensity, mix);
-            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix);
+            header_text <- app_bg_and_main.all_with(&header_intensity, mix).sampler();
+            bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
+            app_bg_and_entry_text <- all(&app_bg, &entry_text_);
+            entry_text <- app_bg_and_entry_text.all_with(&intensity, mix).sampler();
+            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
+            icon_strong <- main.sampler();
         }
         init.emit(());
-        Self { icon_weak, icon_strong: main, header_text, entry_text, background: bg }
+        Self { icon_weak, icon_strong, header_text, entry_text, background: bg }
     }
 }
 
