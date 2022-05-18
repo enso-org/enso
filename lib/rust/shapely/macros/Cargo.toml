@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "Automated typeclass derivation."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/shapely/macros"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/shapely/macros"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../../LICENSE"
 
 keywords = ["typeclass", "deriving", "macro"]
@@ -22,7 +22,7 @@ proc-macro = true
 default = []
 
 [dependencies]
-enso-macro-utils  = { version = "^0.2.0", path = "../../macro-utils" }
+enso-macro-utils  = { path = "../../macro-utils" }
 proc-macro2  = "1.0"
 quote        = "1.0"
 Inflector    = "0.11.4"

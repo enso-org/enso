@@ -30,6 +30,7 @@ import project.Data.Noise_Spec
 import project.Data.Numbers_Spec
 import project.Data.Ordering_Spec
 import project.Data.Range_Spec
+import project.Data.Ref_Spec
 import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
@@ -87,6 +88,7 @@ main = Test.Suite.run_main <|
     Python_Interop_Spec.spec
     R_Interop_Spec.spec
     Range_Spec.spec
+    Ref_Spec.spec
     Default_Regex_Engine_Spec.spec
     Regex_Spec.spec
     Matching_Spec.spec

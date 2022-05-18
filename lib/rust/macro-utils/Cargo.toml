@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "Utilities for writing macros."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/macro-utils"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/macro-utils"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["macro", "utility"]

@@ -40,6 +40,16 @@ impl PixelDistance for f32 {
     }
 }
 
+impl PixelDistance for Var<f32> {
+    type Output = Var<Pixels>;
+    fn px(&self) -> Self::Output {
+        match self {
+            Var::Static(v) => v.px(),
+            Var::Dynamic(v) => Var::Dynamic(v.clone()),
+        }
+    }
+}
+
 
 
 // ===============

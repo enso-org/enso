@@ -41,7 +41,7 @@ use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::scene::layer::Layer;
 use ensogl_core::display::shape::*;
 use ensogl_core::Animation;
 use ensogl_hardcoded_theme as theme;
@@ -581,7 +581,7 @@ where E::Model: Default
     }
 
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, layer: LayerId) {
+    pub fn set_label_layer(&self, layer: &Layer) {
         self.model.entries.set_label_layer(layer);
     }
 

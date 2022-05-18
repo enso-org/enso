@@ -6,8 +6,8 @@ edition = "2021"
 
 description  = "A collection of useful data structures."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/data"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/data"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = []
@@ -23,7 +23,7 @@ enso-prelude = { version = "^0.2.1", path = "../prelude" }
 serde        = { version = "1.0"  , features = ["derive"] }
 typenum      = { version = "1.11.2" }
 rustversion  = { version = "1.0"                        }
-
+failure = { version = "0.1.6" }
 
 [dev-dependencies]
 itertools = "0.9.0"

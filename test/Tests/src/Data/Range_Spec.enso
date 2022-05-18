@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref
 
 import Standard.Test
 
@@ -69,9 +70,9 @@ spec = Test.group "Range" <|
         cell = Ref.new 0
         n = 100000000
         0.up_to n . each _->
-            x = Ref.get cell
-            Ref.put cell x+1
-        Ref.get cell . should_equal n
+            x = cell.get
+            cell.put x+1
+        cell.get . should_equal n
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
     Test.specify "should check all" <|
