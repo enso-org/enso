@@ -1725,6 +1725,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#3bd9483cbd379a78d313127a242f2c61c940ddf4"
 dependencies = [
  "anyhow",
  "argh",
@@ -3158,9 +3159,9 @@ dependencies = [
 
 [[package]]
 name = "git-hash"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106e7c3a08b97285bf0bca7f109e67d286e7fbf34b222faf742443b021de2bb4"
+checksum = "e05d7e760613f4118cdccaf881fc9d1323c3ea596d156aac25a4eb44b428f11e"
 dependencies = [
  "hex",
  "quick-error 2.0.1",
@@ -3317,16 +3318,16 @@ checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 
 [[package]]
 name = "handlebars"
-version = "4.2.2"
+version = "4.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99d6a30320f094710245150395bc763ad23128d6a1ebbad7594dc4164b62c56b"
+checksum = "d113a9853e5accd30f43003560b5563ffbb007e3f325e8b103fa0d0029c6e6df"
 dependencies = [
  "log 0.4.17",
  "pest",
  "pest_derive",
- "quick-error 2.0.1",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -3597,7 +3598,7 @@ checksum = "d87c48c02e0dc5e3b849a2041db3029fd066650f8f717c07bf8ed78ccb895cac"
 dependencies = [
  "http",
  "hyper 0.14.18",
- "rustls 0.20.5",
+ "rustls 0.20.6",
  "tokio 1.18.2",
  "tokio-rustls 0.23.4",
 ]
@@ -3646,6 +3647,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/new-ide-build#3bd9483cbd379a78d313127a242f2c61c940ddf4"
 dependencies = [
  "anyhow",
  "argh",
@@ -5790,7 +5792,7 @@ dependencies = [
  "mime 0.3.16",
  "percent-encoding 2.1.0",
  "pin-project-lite 0.2.9",
- "rustls 0.20.5",
+ "rustls 0.20.6",
  "rustls-pemfile",
  "serde",
  "serde_json",
@@ -5872,9 +5874,9 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.20.5"
+version = "0.20.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a024a432ae760ab3bff924ad91ce1cfa52cb57ed16e1ef32d0d249cfee1a6c13"
+checksum = "5aab8ee6c7097ed6057f43c187a62418d0c05a4bd5f18b3571db50ee0f9ce033"
 dependencies = [
  "log 0.4.17",
  "ring",
@@ -5932,12 +5934,12 @@ dependencies = [
 
 [[package]]
 name = "schannel"
-version = "0.1.19"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f05ba609c234e60bee0d547fe94a4c7e9da733d1c962cf6e59efa4cd9c8bc75"
+checksum = "88d6731146462ea25d9244b2ed5fd1d716d25c52e4d54aa4fb0f3c4e9854dbe2"
 dependencies = [
  "lazy_static",
- "winapi 0.3.9",
+ "windows-sys",
 ]
 
 [[package]]
@@ -6781,7 +6783,7 @@ version = "0.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
 dependencies = [
- "rustls 0.20.5",
+ "rustls 0.20.6",
  "tokio 1.18.2",
  "webpki 0.22.0",
 ]
