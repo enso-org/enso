@@ -114,17 +114,12 @@ impl FreeformPathToIdMap {
 
     fn warn_if_absent_and_remove(&self, path: impl Into<FreeformPath>, logger: &Logger) {
         let path = path.into();
-        let existed = self.check_if_exists_and_remove(&path);
-        if !existed {
+        if self.swap_value_at(&path, None).is_none() {
             let path = path.segments;
             let msg =
                 format!("When removing an id at {path:?} some id was expected but none was found.");
             warning!(logger, "{msg}");
         }
-    }
-
-    fn check_if_exists_and_remove(&self, path: &FreeformPath) -> bool {
-        self.swap_value_at(path, None).is_some()
     }
 
     // TODO: consider moving to a HashMapTree method
@@ -909,27 +904,27 @@ mod test {
         // Set and remove a value at a one-segment path.
         let one_segment_path: FreeformPath = package_path.into();
         assert_eq!(map.get(one_segment_path.clone()), None);
-        assert!(!map.check_if_exists_and_remove(&one_segment_path));
+        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
         assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), None);
         assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), Some(10));
         assert_eq!(map.swap_value_at(&one_segment_path, Some(11)), Some(10));
         assert_eq!(map.get(one_segment_path.clone()), Some(11));
-        assert!(map.check_if_exists_and_remove(&one_segment_path));
-        assert!(!map.check_if_exists_and_remove(&one_segment_path));
+        assert_eq!(map.swap_value_at(&one_segment_path, None), Some(11));
+        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
         assert_eq!(map.get(one_segment_path.clone()), None);
         // Set and remove a value at a multi-segment path, starting with the same segment as
         // `one_segment_path`. Also, verify that removing the value at `one_segment_path` when
         // `path` is set does not remove the value at `path`.
         let path: FreeformPath = (package_path.to_string() + ".Bar.baz").into();
         assert_eq!(map.get(path.clone()), None);
-        assert!(!map.check_if_exists_and_remove(&path));
+        assert_eq!(map.swap_value_at(&path, None), None);
         assert_eq!(map.swap_value_at(&path, Some(2)), None);
         assert_eq!(map.get(path.clone()), Some(2));
-        assert!(!map.check_if_exists_and_remove(&one_segment_path));
+        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
         assert_eq!(map.swap_value_at(&path, Some(3)), Some(2));
         assert_eq!(map.get(path.clone()), Some(3));
-        assert!(map.check_if_exists_and_remove(&path));
-        assert!(!map.check_if_exists_and_remove(&path));
+        assert_eq!(map.swap_value_at(&path, None), Some(3));
+        assert_eq!(map.swap_value_at(&path, None), None);
         assert_eq!(map.get(path), None);
     }
 }
