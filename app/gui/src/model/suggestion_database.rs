@@ -131,7 +131,7 @@ impl FreeformPathToIdMap {
         old_value.is_some()
     }
 
-    fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut entry::Id)) {
+    fn modify_value_at(&self, path: &FreeformPath, f: impl FnMut(&mut Option<entry::Id>)) {
         // TODO: recurse down until (a) path is reached, or (b) leaf node is reached while path is
         // still not exhausted.
         // TODO: (a) run `f(node.value)`. If `node.value` is now `None` and node is leaf, prune the
@@ -142,30 +142,28 @@ impl FreeformPathToIdMap {
         fn helper(
             node: &mut ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
             path: &[PathSegment],
+            mut f: impl FnMut(&mut Option<entry::Id>),
         ) -> bool {
             match path {
-                [] => {
-                    f(&mut node.value);
-                    node.value.is_none() && node.is_leaf()
-                },
+                [] => f(&mut node.value),
                 [key, path_after_key @ ..] => {
-                    match node.branches.get_mut(&key) {
-                        Some(branch) => {
-                            let branch_is_empty = helper(&mut branch, &path_after_key);
-                            if !branch_is_empty {
-                                false
-                            } else if node.branches.len() <= 1 {
-                                true
-                            } else {
-                                node.branches.remove(&key);
-                                false
-                            }
-                        },
+                    let branch_at_key_got_emptied = match node.branches.get_mut(&key) {
+                        Some(branch) => helper(branch, &path_after_key, f),
                         None => {
+                            let mut value = None;
+                            f(&mut value);
+                            if value.is_some() {
+                                node.set(path_after_key, value);
+                            }
+                            false
                         },
+                    };
+                    if branch_at_key_got_emptied {
+                        node.branches.remove(&key);
                     }
                 },
             }
+            node.value.is_none() && node.is_leaf()
         }
     }
 
