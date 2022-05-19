@@ -355,6 +355,35 @@ where K: Eq + Hash
     }
 }
 
+impl<K, V, S> HashMapTree<K, Option<V>, S>
+where
+    K: Eq + Hash,
+    S: BuildHasher + Default,
+{
+    pub fn swap_value_and_prune_empty_leaf_traversing_back<P, I>(&mut self, mut path: P, value: &mut Option<V>)
+    where
+        P: Iterator<Item = I>,
+        I: Into<K>, {
+        use std::collections::hash_map::Entry;
+        match path.next() {
+            None => std::mem::swap(&mut self.value, value),
+            Some(key) => match self.branches.entry(key.into()) {
+                Entry::Occupied(mut entry) => {
+                    let node = entry.get_mut();
+                    node.swap_value_and_prune_empty_leaf_traversing_back(path, value);
+                    if node.value.is_none() && node.is_leaf() {
+                        entry.remove_entry();
+                    }
+                },
+                Entry::Vacant(entry) => {
+                    value.take().map(|v| entry.insert(default()).set(path, Some(v)));
+                },
+            },
+        }
+    }
+}
+
+
 
 // === Impls ===
 

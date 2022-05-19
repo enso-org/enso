@@ -127,16 +127,8 @@ impl FreeformPathToIdMap {
         let mut tree = self.tree.borrow_mut();
         let segments = &path.segments;
         let mut swapped_value = value;
-        foobar(&mut tree, segments.iter(), &mut swapped_value);
-        // swap_value_at_path_and_walk_back_removing_empty_leaf_node(&mut tree, segments, &mut swapped_value);
+        tree.swap_value_and_prune_empty_leaf_traversing_back(segments.iter(), &mut swapped_value);
         swapped_value
-        /*
-        let mut replacement = value;
-        std::mem::swap(&mut tree.get_or_create_node(segments).value, &mut replacement);
-        remove_nodes_on_path_in_reverse_order_while(&mut tree, segments, |node|
-            node.is_leaf() && node.value.is_none());
-        replacement
-        */
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
@@ -896,67 +888,5 @@ mod test {
         assert_eq!(map.swap_value_at(&path, None), Some(3));
         assert_eq!(map.swap_value_at(&path, None), None);
         assert_eq!(map.get(path), None);
-    }
-}
-
-type TmpNode = ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>;
-
-fn remove_nodes_on_path_in_reverse_order_while(node: &mut TmpNode, path: &[PathSegment], f: fn(&TmpNode) -> bool) {
-    if let [key, remaining_path @ ..] = path {
-        let branch = node.branches.get_mut(&key);
-        let remove_branch = branch.map_or(false, |branch| {
-            remove_nodes_on_path_in_reverse_order_while(branch, remaining_path, f);
-            f(branch)
-        });
-        if remove_branch {
-            node.branches.remove(&key);
-        }
-    }
-}
-
-fn foobar<P, I>(node: &mut TmpNode, mut segments: P, value: &mut Option<entry::Id>) 
-    where
-        P: Iterator<Item = I>,
-        I: Into<PathSegment>, {
-    use std::collections::hash_map::Entry;
-    match segments.next() {
-        None => std::mem::swap(&mut node.value, value),
-        Some(key) => match node.branches.entry(key.into()) {
-            Entry::Occupied(mut branch_entry) => {
-                let branch = branch_entry.get_mut();
-                foobar(branch, segments, value);
-                if branch.value.is_none() && branch.is_leaf() {
-                    branch_entry.remove_entry();
-                }
-            },
-            Entry::Vacant(branch_entry) => {
-                value.take().map(|v| branch_entry.insert(default()).set(segments, Some(v)));
-            },
-        },
-    }
-}
-
-// fn swap_value_and_remove_leaf_node_from_parent_while_empty
-// fn swap_value_and_while_last_node_on_path_is_leaf_and_empty
-// fn swap_value_and_remove_leaf_node_on_path_while_its_value_is_none
-// remove_empty_leaf_node_on_path
-// fn swap_value_at_path_and_fold_back_removing_empty_leaf_node
-fn swap_value_at_path_and_walk_back_removing_empty_leaf_node(node: &mut TmpNode, path: &[PathSegment], value: &mut Option<entry::Id>) {
-    if let [key, remaining_path @ ..] = path {
-        let empty_branch_exists_at_key = match node.branches.get_mut(&key) {
-            Some(branch) => {
-                swap_value_at_path_and_walk_back_removing_empty_leaf_node(branch, remaining_path, value);
-                branch.value.is_none() && branch.is_leaf()
-            },
-            None => {
-                value.take().map(|v| node.set(path, Some(v)));
-                false
-            }
-        };
-        if empty_branch_exists_at_key {
-            node.branches.remove(key);
-        }
-    } else {
-        std::mem::swap(&mut node.value, value);
     }
 }
