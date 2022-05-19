@@ -598,7 +598,6 @@ where E::Model: Default
             view_y.target <+ max_scroll.sample(&frp.set_entries);
             view_y.skip <+ frp.set_entries.constant(());
             view_y.target <+ max_scroll.sample(&init);
-            trace view_y.target;
             view_y.skip <+ init;
 
 
@@ -635,7 +634,6 @@ where E::Model: Default
             );
             eval style.selection_color ((color) model.selection.color.set(color.into()));
             eval style.selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
-            trace max_scroll;
         }
 
         init.emit(());
@@ -709,6 +707,7 @@ mod tests {
 
     use approx::assert_relative_eq;
     use enso_frp::future::EventOutputExt;
+    use ensogl_core::display::style::data::DataMatch;
 
     #[test]
     fn navigating_list_view_with_keyboard() {
@@ -759,11 +758,17 @@ mod tests {
 
     #[test]
     fn selection_position() {
+        use ensogl_hardcoded_theme::widget::list_view as theme;
         let app = Application::new("root");
+        ensogl_hardcoded_theme::builtin::light::register(&app);
+        ensogl_hardcoded_theme::builtin::light::enable(&app);
+        let style_sheet = &app.display.default_scene.style_sheet;
+        style_sheet.set(theme::highlight::height, entry::HEIGHT);
+        let padding = style_sheet.value(theme::padding).unwrap().number().unwrap();
         let list_view = ListView::<entry::Label>::new(&app);
         let provider =
             AnyModelProvider::<entry::Label>::new(vec!["Entry 1", "Entry 2", "Entry 3", "Entry 4"]);
-        list_view.resize(Vector2(100.0, entry::HEIGHT * 3.0));
+        list_view.resize(Vector2(100.0, entry::HEIGHT * 3.0 + padding * 2.0));
         list_view.set_entries(provider);
         list_view.select_entry(Some(0));
         assert_relative_eq!(list_view.selection_position_target.value().x, 0.0);
