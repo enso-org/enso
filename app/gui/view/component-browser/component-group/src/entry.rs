@@ -14,7 +14,7 @@ use ensogl::display;
 use ensogl::display::scene::Layer;
 use ensogl::display::style;
 use ensogl::display::Scene;
-use ensogl_hardcoded_theme::application::component_browser::component_group::entry as theme;
+use ensogl_hardcoded_theme::application::component_browser::component_group::entry_list as theme;
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabel;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;

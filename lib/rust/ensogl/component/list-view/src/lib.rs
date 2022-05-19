@@ -345,6 +345,7 @@ struct StyleFrp {
     background_color:         frp::Any<color::Rgba>,
     selection_color:          frp::Any<color::Rgba>,
     selection_corner_radius:  frp::Any<f32>,
+    selection_height:         frp::Any<f32>,
     padding:                  frp::Any<f32>,
     entry_padding:            frp::Any<f32>,
 }
@@ -356,6 +357,7 @@ impl StyleFrp {
             background_color <- any(...);
             selection_color <- any(...);
             selection_corner_radius <- any(...);
+            selection_height <- any(...);
             padding <- any(...);
             entry_padding <- any(...);
         }
@@ -364,6 +366,7 @@ impl StyleFrp {
             background_color,
             selection_color,
             selection_corner_radius,
+            selection_height,
             padding,
             entry_padding,
         }
@@ -377,6 +380,7 @@ impl StyleFrp {
         let selection_color = style.get_color(prefix.sub("highlight"));
         let selection_corner_radius =
             style.get_number(prefix.sub("highlight").sub("corner_radius"));
+        let selection_height = style.get_number(prefix.sub("highlight").sub("height"));
         let padding = style.get_number(prefix.sub("padding"));
         let entry_padding = style.get_number(prefix.sub("entry").sub("padding"));
         frp::extend! { style_connection_network
@@ -384,6 +388,7 @@ impl StyleFrp {
             self.background_color <+ all(&background_color, &init)._0();
             self.selection_color <+ all(&selection_color, &init)._0();
             self.selection_corner_radius <+ all(&selection_corner_radius, &init)._0();
+            self.selection_height <+ all(&selection_height, &init)._0();
             self.padding <+ all(&padding, &init)._0();
             self.entry_padding <+ all(&entry_padding, &init)._0();
         }
@@ -429,7 +434,6 @@ where E::Model: Default
     }
 
     fn init(self, app: &Application) -> Self {
-        const MAX_SCROLL: f32 = entry::HEIGHT / 2.0;
         const MOUSE_MOVE_THRESHOLD: f32 = std::f32::EPSILON;
 
         let frp = &self.frp;
@@ -542,13 +546,13 @@ where E::Model: Default
             selection_y.target <+ frp.selected_entry.map(|id|
                 id.map_or(0.0,entry::List::<E>::position_y_of_entry)
             );
-            selection_height.target <+ frp.selected_entry.map(f!([](id)
-                if id.is_some() {entry::HEIGHT} else {0.0}
-            ));
+            selection_height.target <+ all_with(&frp.selected_entry, &style.selection_height, |id, h|
+                if id.is_some() {*h} else {-SHAPE_MARGIN}
+            );
             selection_y.skip <+ frp.set_entries.constant(());
             selection_height.skip <+ frp.set_entries.constant(());
-            selection_sprite_y <- all_with(&selection_y.value, &selection_height.value,
-                |y, h| y + (entry::HEIGHT - h) / 2.0
+            selection_sprite_y <- all_with3(&selection_y.value, &selection_height.value, &style.selection_height,
+                |y, h, max_h| y + (max_h - h) / 2.0
             );
             eval selection_sprite_y ((y) model.selection.set_position_y(*y));
             frp.source.selection_size <+ all_with3(&frp.size, &style.padding, &selection_height.value, f!([](size, padding, height) {
@@ -557,27 +561,31 @@ where E::Model: Default
             }));
             eval frp.selection_size ([model](size) {
                 let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
-                model.selection.size.set(*size + margin)
+                model.selection.size.set(*size + 2.0 * margin)
             });
             eval_ frp.hide_selection (model.selection.unset_parent());
 
 
             // === Scrolling ===
 
-            selection_top_after_move_up <- selected_entry_after_move_up.map(|id|
-                id.map(|id| entry::List::<E>::y_range_of_entry(id).end)
+            max_scroll <- style.selection_height.map(|h| *h / 2.0).sampler();
+            selection_top_after_move_up <- selected_entry_after_move_up.map2(&style.selection_height, |id, h|
+                id.map(|id| entry::List::<E>::position_y_of_entry(id) + *h / 2.0)
             );
-            min_scroll_after_move_up <- selection_top_after_move_up.map(|top|
-                top.unwrap_or(MAX_SCROLL)
+            min_scroll_after_move_up <- selection_top_after_move_up.map2(&max_scroll, |top, max_scroll|
+                top.unwrap_or(*max_scroll)
             );
             scroll_after_move_up <- min_scroll_after_move_up.map2(&frp.scroll_position,|min,current|
                 current.max(*min)
             );
-            selection_bottom_after_move_down <- selected_entry_after_move_down.map(|id|
-                id.map(|id| entry::List::<E>::y_range_of_entry(id).start)
+            selection_bottom_after_move_down <- selected_entry_after_move_down.map2(&style.selection_height, |id, h|
+                id.map(|id| entry::List::<E>::position_y_of_entry(id) - *h / 2.0)
             );
-            max_scroll_after_move_down <- selection_bottom_after_move_down.map2(&frp.size,
-                |y,size| y.map_or(MAX_SCROLL, |y| y + size.y)
+            max_scroll_after_move_down <- selection_bottom_after_move_down.map4(
+                &frp.size,
+                &style.padding,
+                &max_scroll,
+                |y, size, padding, max_scroll| y.map_or(*max_scroll, |y| y + size.y - 2.0 * padding)
             );
             scroll_after_move_down <- max_scroll_after_move_down.map2(&frp.scroll_position,
                 |max_scroll,current| current.min(*max_scroll)
@@ -585,11 +593,12 @@ where E::Model: Default
             frp.source.scroll_position <+ scroll_after_move_up;
             frp.source.scroll_position <+ scroll_after_move_down;
             frp.source.scroll_position <+ frp.scroll_jump;
-            frp.source.scroll_position <+ frp.set_entries.constant(MAX_SCROLL);
+            frp.source.scroll_position <+ max_scroll.sample(&frp.set_entries);
             view_y.target <+ frp.scroll_position;
-            view_y.target <+ frp.set_entries.constant(MAX_SCROLL);
+            view_y.target <+ max_scroll.sample(&frp.set_entries);
             view_y.skip <+ frp.set_entries.constant(());
-            view_y.target <+ init.constant(MAX_SCROLL);
+            view_y.target <+ max_scroll.sample(&init);
+            trace view_y.target;
             view_y.skip <+ init;
 
 
@@ -626,10 +635,11 @@ where E::Model: Default
             );
             eval style.selection_color ((color) model.selection.color.set(color.into()));
             eval style.selection_corner_radius ((radius) model.selection.corner_radius.set(*radius));
+            trace max_scroll;
         }
 
         init.emit(());
-        frp.scroll_jump(MAX_SCROLL);
+        frp.scroll_jump(max_scroll.value());
 
         self
     }

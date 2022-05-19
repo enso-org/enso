@@ -232,8 +232,8 @@ impl Colors {
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let bg_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
-        let icon_weak_intensity = style.get_number(theme::entry::icon::weak_color_intensity);
-        let entry_text_ = style.get_color(theme::entry::text::color);
+        let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
+        let entry_text_ = style.get_color(theme::entry_list::text::color);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
@@ -299,23 +299,24 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
-        let padding = style.get_number(theme::padding);
+        let entry_list_padding = style.get_number(theme::entry_list::padding);
 
 
         // === Geometry ===
 
         frp::extend! { network
             let header_geometry = HeaderGeometry::from_style(style, network);
-            height <- all_with3(&input.set_entries, &header_geometry, &padding,
+            height <- all_with3(&input.set_entries, &header_geometry, &entry_list_padding,
                 |entries, header_geom, padding| {
                     let entries_height = entries.entry_count() as f32 * list_view::entry::HEIGHT;
-                    entries_height + header_geom.height + 2.0 * padding
+                    entries_height + header_geom.height + padding
                 }
             );
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_header_pos);
-            eval size_and_header_geometry(((size, hdr_geom, hdr_pos))
-                model.resize(*size, *hdr_geom, *hdr_pos)
+            size_and_header_geom_and_padding <- all(&size_and_header_geometry, &entry_list_padding);
+            eval size_and_header_geom_and_padding((((size, hdr_geom, hdr_pos), padding))
+                model.resize(*size, *hdr_geom, *hdr_pos, *padding)
             );
 
 
@@ -518,7 +519,13 @@ impl Model {
         self.header.add_to_scene_layer(&layers.header_text);
     }
 
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
+    fn resize(
+        &self,
+        size: Vector2,
+        header_geometry: HeaderGeometry,
+        header_pos: f32,
+        entry_list_padding: f32,
+    ) {
         // === Background ===
 
         self.background.size.set(size);
@@ -567,8 +574,8 @@ impl Model {
 
         // === Entries ===
 
-        self.entries.resize(size - Vector2(0.0, header_height));
-        self.entries.set_position_y(-header_height / 2.0);
+        self.entries.resize(size - Vector2(0.0, header_height - entry_list_padding));
+        self.entries.set_position_y(-header_height / 2.0 + entry_list_padding / 2.0);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {

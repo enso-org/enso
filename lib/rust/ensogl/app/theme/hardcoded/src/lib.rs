@@ -205,7 +205,7 @@ define_themes! { [light:0, dark:1]
                 }
                 background_color_intensity = 0.2, 0.2;
                 dimmed_color_intensity = 0.5, 0.5;
-                entry {
+                entry_list {
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
@@ -217,20 +217,19 @@ define_themes! { [light:0, dark:1]
                         size = 16.0, 16.0;
                         weak_color_intensity = 0.5, 0.5;
                     }
-                    padding = 7.0, 7.0;
+                    padding = 4.0, 4.0;
+                    entry {
+                        padding = 7.0, 7.0;
+                    }
+                    highlight {
+                        height = 30.0, 30.0
+                    }
                 }
-                padding = 4.0, 4.0;
             }
         }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
-            selection {
-                padding {
-                    horizontal = 2.0, 2.0;
-                    vertical   = 2.0, 2.0
-                }
-            }
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
                 io {
@@ -574,9 +573,10 @@ define_themes! { [light:0, dark:1]
                 padding = 10.0, 10.0;
             }
             highlight {
+                height = 24.0, 24.0;
                 corner_radius = 12.0, 12.0;
             }
-            padding = 0.0, 0.0;
+            padding = 5.0, 5.0;
         }
     }
     colors {
