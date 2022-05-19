@@ -26,7 +26,8 @@ public class TypeInferringParser implements DatatypeParser {
 
   @Override
   public WithProblems<Storage> parseColumn(StringStorage sourceStorage) {
-    parsers: for (int i = 0; i < baseParsers.length; ++i) {
+    parsers:
+    for (int i = 0; i < baseParsers.length; ++i) {
       boolean isLast = i == baseParsers.length - 1;
 
       IncrementalDatatypeParser parser = baseParsers[i];
