@@ -394,9 +394,10 @@ where
                         entry.remove_entry();
                     }
                 }
-                Entry::Vacant(entry) => {
-                    value.take().map(|v| entry.insert(default()).set(path, Some(v)));
-                }
+                Entry::Vacant(entry) =>
+                    if let Some(v) = value.take() {
+                        entry.insert(default()).set(path, Some(v));
+                    },
             },
         }
     }
@@ -617,15 +618,15 @@ mod tests {
     #[test]
     fn replace_and_traverse_back_pruning_for_overlapping_paths() {
         type TestTree = HashMapTree<i32, Option<i32>>;
-        fn get_and_flatten<'a, P, I>(tree: &'a mut TestTree, path: P) -> Option<&'a i32>
+        fn get_and_flatten<P, I>(tree: &mut TestTree, path: P) -> Option<&i32>
         where
             P: IntoIterator<Item = I>,
             I: Into<i32>, {
-            tree.get(path).map(Option::as_ref).flatten()
+            tree.get(path).and_then(Option::as_ref)
         }
         let mut tree = TestTree::new();
         let paths = &[vec![10, 20], vec![10], vec![10, 30]];
-        let values = &[1, 2, 3].map(|v| Some(v));
+        let values = &[1, 2, 3].map(Some);
         for (path, value) in paths.iter().zip(values) {
             assert_eq!(get_and_flatten(&mut tree, path.clone()), None);
             let result =
