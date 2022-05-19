@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+## Specifies options for reading text data in a table to more specific types and
+   serializing them back.
+
+   Arguments:
+   - trim_values: Trim whitespace before parsing.
+   - allow_leading_zeros: Specifies how to treat numeric values starting with
+     leading zeroes. Defaults to `False`, because converting such
+     values to numbers is a lossy operation - after converting such a number
+     back to text the leading zeroes will get lost. If leading zeroes are not
+     allowed and the column contains any values with leading zeroes, it will not
+     get automatically converted to numbers, remaining as text. However, if the
+     column is specifically requested to be converted to a numeric column, only
+     a warning will be issued indicating that some leading zeroes were present,
+     but the conversion will proceed.
+   - decimal_point: The character used to separate the integer part from the
+     fractional part of a number. Defaults to '.'. Can be changed for example to
+     ',' to allow for European format.
+   - thousand_separator: A separator that can be used to separate groups of
+     digits in numbers. For example, it can be set to ',' to allow for notation
+     like '1,000,000.0'.
+   - datetime_formats: Expected datetime formats.
+   - date_formats: Expected date formats.
+   - time_formats: Expected time formats.
+   - locale: The locale to use when parsing dates and times.
+   - true_values: Values representing True.
+   - false_values: Values representing False.
+type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]

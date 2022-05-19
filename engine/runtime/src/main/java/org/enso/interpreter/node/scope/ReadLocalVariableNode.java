@@ -55,12 +55,20 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    * @throws FrameSlotTypeException when the specified frame slot does not contain a value with the
    *     expected type
    */
-  @Specialization
-  protected Object readGeneric(VirtualFrame frame) {
+  @Specialization(rewriteOn = FrameSlotTypeException.class)
+  protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
     if (getFramePointer().getParentLevel() == 0)
-      return FrameUtil.getObjectSafe(frame, getFramePointer().getFrameSlot());
+      return frame.getObject(getFramePointer().getFrameSlot());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return FrameUtil.getObjectSafe(currentFrame, getFramePointer().getFrameSlot());
+    return currentFrame.getObject(getFramePointer().getFrameSlot());
+  }
+
+  @Specialization
+  protected Object readGenericValue(VirtualFrame frame) {
+    if (getFramePointer().getParentLevel() == 0)
+      return frame.getValue(getFramePointer().getFrameSlot());
+    MaterializedFrame currentFrame = getProperFrame(frame);
+    return currentFrame.getValue(getFramePointer().getFrameSlot());
   }
 
   /**

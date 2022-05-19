@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros
+
+polyglot java import org.enso.table.parsing.problems.InvalidRow
+polyglot java import org.enso.table.parsing.problems.InvalidFormat
+polyglot java import org.enso.table.parsing.problems.LeadingZeros
+polyglot java import org.enso.table.parsing.problems.MismatchedQuote
+polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
+
+translate_parsing_problem column_name expected_datatype problem =
+    invalid_format = [InvalidFormat, (java_problem-> Invalid_Format column_name expected_datatype (Vector.Vector java_problem.cells))]
+    leading_zeros = [LeadingZeros, (java_problem-> Leading_Zeros column_name expected_datatype (Vector.Vector java_problem.cells))]
+    translations = [invalid_format, leading_zeros]
+    found = translations.find t->
+        Java.is_instance problem t.first
+    translation = found.catch _->
+        Error.throw (Illegal_State_Error "Reported an unknown problem type: "+problem.to_text)
+    translation.second problem

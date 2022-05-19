@@ -4,25 +4,40 @@ import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Table.Io.Csv
 import Standard.Visualization
-import Standard.Base.Data.Time.Date
+from Standard.Base.Data.Time.Date as Date_Module import Date
+from Standard.Base.Data.Time as Time_Module import Time
+from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
+import Standard.Table.Internal.Parse_Values_Helper
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
+from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
 
 import Standard.Table.Data.Aggregate_Column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
+
+polyglot java import org.enso.table.parsing.IntegerParser
+polyglot java import org.enso.table.parsing.DecimalParser
+polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.DateParser
+polyglot java import org.enso.table.parsing.TimeParser
+polyglot java import org.enso.table.parsing.DateTimeParser
+polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -526,6 +541,87 @@ type Table
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
                 Aggregate_Column_Helper.parse_aggregated_problems problems
+
+    ## Parses columns within a Table to a specific value type.
+       By default, it looks at all `Text` columns and attempts to deduce the
+       type (columns with other types are not affected). If `column_types` are
+       provided, only selected columns are parsed, according to the specified
+       type.
+
+       The default parser options only parse values where the process is
+       reversible (e.g., 0123 would not be converted to an integer as there is
+       a leading 0). However, settings in the `Data_Formatter` can
+       control this.
+    parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
+    parse_values parser=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+        columns = this.columns
+        problem_builder = Vector.new_builder
+
+        find_datatype index column =
+            matching_input = column_types.filter selection->
+                selector = selection.column
+                case selector of
+                    Text -> column.name == selector
+                    Integer -> if selector >= 0 then index == selector else
+                        index == columns.length + selector
+            if matching_input.length == 0 then Nothing else
+                if matching_input.length == 1 then matching_input.first.datatype else
+                    first_type = matching_input.first.datatype
+                    ambiguous = matching_input.exists s-> s.datatype != first_type
+                    problem_builder.append (Duplicate_Type_Selector column.name ambiguous)
+                    if ambiguous then Nothing else first_type
+
+        expected_types = case column_types of
+            Nothing -> columns.map _->Auto
+            _ ->
+                missing_columns = Vector.new_builder
+                invalid_indices = Vector.new_builder
+                column_types.each selection->
+                    selector = selection.column
+                    case selector of
+                        Integer ->
+                            valid = Table_Helpers.is_index_valid columns.length selector
+                            if valid.not then
+                                invalid_indices.append selector
+                        Text ->
+                            found = columns.exists col-> col.name == selector
+                            if found.not then
+                                missing_columns.append selector
+                if missing_columns.is_empty.not then
+                    problem_builder.append (Missing_Input_Columns missing_columns.to_vector)
+                if invalid_indices.is_empty.not then
+                    problem_builder.append (Column_Indexes_Out_Of_Range invalid_indices.to_vector)
+                columns.map_with_index find_datatype
+
+        new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
+            Nothing -> column
+            Auto -> Error.unimplemented "Automatic datatype inference is not implemented yet."
+            _ ->
+                parse_options = parser
+                thousand_separator = if parse_options.thousand_separator.is_empty then Nothing else parse_options.thousand_separator
+                base_parser = case expected_type of
+                    Integer -> IntegerParser.new thousand_separator parse_options.allow_leading_zeros
+                    Decimal -> DecimalParser.new parse_options.decimal_point thousand_separator parse_options.allow_leading_zeros
+                    Boolean -> BooleanParser.new parse_options.true_values.to_array parse_options.false_values.to_array
+                    _ ->
+                        if expected_type == Date then DateParser.new parse_options.date_formats.to_array parse_options.locale.java_locale else
+                            if expected_type == Time then DateTimeParser.new parse_options.datetime_formats.to_array parse_options.locale.java_locale else
+                                if expected_type == Time_Of_Day then TimeParser.new parse_options.time_formats.to_array parse_options.locale.java_locale else
+                                    Error.throw (Illegal_Argument_Error "Unsupported target datatype: "+expected_type.to_text)
+                parser = case parse_options.trim_values of
+                    False -> base_parser
+                    True -> WhitespaceStrippingParser.new base_parser
+                storage = column.java_column.getStorage
+                new_storage_and_problems = parser.parseColumn storage
+                new_storage = new_storage_and_problems.value
+                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem column.name expected_type)
+                problems.each problem_builder.append
+                Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
+
+        ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
+           https://github.com/enso-org/enso/pull/3400
+        result = here.new new_columns
+        on_problems.attach_problems_after result problem_builder.to_vector
 
     ## ALIAS Filter Rows
        ALIAS Mask Columns
@@ -1264,7 +1360,7 @@ Text.write_to_spreadsheet cell = cell.setCellValue this
    Arguments:
    - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
      which should be set by this method.
-Date.Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
+Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
 
 
 

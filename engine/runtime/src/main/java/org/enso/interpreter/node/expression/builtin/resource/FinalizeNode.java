@@ -16,12 +16,12 @@ public abstract class FinalizeNode extends Node {
     return FinalizeNodeGen.create();
   }
 
-  abstract Object execute(Object _this, ManagedResource resource);
+  abstract Object execute(Object _this);
 
   @Specialization
-  Object doClose(Object _this, ManagedResource resource) {
+  Object doClose(ManagedResource _this) {
     Context context = Context.get(this);
-    context.getResourceManager().close(resource);
+    context.getResourceManager().close(_this);
     return context.getBuiltins().nothing().newInstance();
   }
 }
