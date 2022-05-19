@@ -159,19 +159,17 @@ spec = Test.group "Table.parse_values" <|
         Problems.test_problem_handling action problems tester
 
     Test.specify "should guess the datatype for columns" <|
-        c1 = ["ints", ["1", "+2", "-123", Nothing]]
-        c2 = ["ints0", ["01", "02", Nothing, "-1"]]
-        c3 = ["floats", ["1.0", "2.2", Nothing, "-1.0"]]
-        c4 = ["bools", ["true", "False", Nothing, "True"]]
-        c5 = ["floats+ints", ["1", "2.2", "-1.0", Nothing]]
+        c1 = ["ints", ["1", "  +2", "-123", Nothing]]
+        c2 = ["ints0", ["01", "02 ", Nothing, "-1"]]
+        c3 = ["floats", ["  1.0  ", "2.2", Nothing, "-1.0"]]
+        c4 = ["bools", ["true", " False", Nothing, "True"]]
+        c5 = ["floats+ints", ["1", "2.2  ", "-1.0", Nothing]]
         c6 = ["text", ["foobar", "foo", "", Nothing]]
-        c7 = ["dates", ["2022-10-01", "2000-01-01", "1999-01-02", Nothing]]
-        c8 = ["datetimes", ["2022-10-01 01:02:03", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
-        c9 = ["times", ["01:02:03", "00:00:00", "01:02:03", Nothing]]
+        c7 = ["dates", ["2022-10-01", "  2000-01-01", "1999-01-02", Nothing]]
+        c8 = ["datetimes", ["2022-10-01 01:02:03  ", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
+        c9 = ["times", ["01:02:03", "  00:00:00  ", "01:02:03", Nothing]]
         c10 = ["mixeddates", ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]]
-        c11 = ["text+ints", ["1", "2", "foobar", Nothing]]
-        # TODO bools as 0 and 1 test?
-        # TODO leading 0s with allowing setting
+        c11 = ["text+ints", ["1", "2", "  foobar", Nothing]]
         t = Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
         t2 = t.parse_values
 
@@ -187,6 +185,13 @@ spec = Test.group "Table.parse_values" <|
         t2.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 0], [0, 0, 0, 0], [1, 2, 3, 0], Nothing]
         t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
         t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+
+        t3 = Table.new [["bools", ["1", "0", "True"]],  ["ints", ["1", "0", "0"]]] . parse_values (Data_Formatter true_values=["1", "True"] false_values=["0", "False"])
+        t3.at "bools" . to_vector . should_equal [True, False, True]
+        t3.at "ints" . to_vector . should_equal [1, 0, 0]
+
+        t4 = Table.new [c2] . parse_values (Data_Formatter allow_leading_zeros=True)
+        t4 . at "ints0" . to_vector . should_equal [1, 2, Nothing, -1]
 
     Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
         opts = Data_Formatter decimal_point=',' thousand_separator='_'
@@ -260,8 +265,16 @@ spec = Test.group "Table.parse_values" <|
         expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
-    Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
-        ## TODO next PR
-        Error.throw "TODO"
+    Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
+        c1 = ["1", "  +2", "-123", Nothing]
+        c2 = ["  1.0  ", "2.2", Nothing, "-1.0"]
+        c3 = ["true", " False", Nothing, "True"]
+        t = Table.new [["ints", c1], ["floats", c2], ["bools", c3]]
+        t2 = t.parse_values (Data_Formatter trim_values=False)
+
+        Warning.get_all t2 . should_equal []
+        t2.at "ints" . to_vector . should_equal c1
+        t2.at "floats" . to_vector . should_equal c2
+        t2.at "bools" . to_vector . should_equal c3
 
 main = Test.Suite.run_main here.spec
