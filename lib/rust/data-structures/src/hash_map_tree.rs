@@ -625,8 +625,8 @@ mod tests {
             tree.get(path).and_then(Option::as_ref)
         }
         let mut tree = TestTree::new();
-        let paths = &[vec![10, 20], vec![10], vec![10, 30]];
-        let values = &[1, 2, 3].map(Some);
+        let paths = &[vec![10, 20], vec![10, 20, 25], vec![10], vec![10, 30, 35], vec![10, 30]];
+        let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
             assert_eq!(get_and_flatten(&mut tree, path.clone()), None);
             let result =
