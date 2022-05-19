@@ -1,10 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import org.apache.commons.lang3.StringUtils;
-import org.enso.interpreter.dsl.model.MethodDefinition;
-
-import javax.annotation.processing.*;
-import com.google.auto.service.AutoService;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
