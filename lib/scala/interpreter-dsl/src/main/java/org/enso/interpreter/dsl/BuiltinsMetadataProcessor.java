@@ -126,8 +126,8 @@ public abstract class BuiltinsMetadataProcessor<T extends BuiltinsMetadataProces
   protected abstract void cleanup();
 
   /**
-   * A common interface that all metadata entries have to provide.
-   * In the future can avoid plain text representation.
+   * A common interface that all metadata entries have to provide. In the future can avoid plain
+   * text representation.
    */
   public interface MetadataEntry {
     String toString();
