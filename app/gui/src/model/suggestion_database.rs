@@ -856,35 +856,4 @@ mod test {
         assert!(function_lookup.is_some());
         assert_eq!(function_lookup.unwrap().name, "testFunction1".to_string());
     }
-
-    #[test]
-    fn freeform_path_to_id_map() {
-        let map: FreeformPathToIdMap = default();
-        let package_path = "Foo";
-        // Set and remove a value at a one-segment path.
-        let one_segment_path: FreeformPath = package_path.into();
-        assert_eq!(map.get(one_segment_path.clone()), None);
-        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
-        assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), None);
-        assert_eq!(map.swap_value_at(&one_segment_path, Some(10)), Some(10));
-        assert_eq!(map.swap_value_at(&one_segment_path, Some(11)), Some(10));
-        assert_eq!(map.get(one_segment_path.clone()), Some(11));
-        assert_eq!(map.swap_value_at(&one_segment_path, None), Some(11));
-        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
-        assert_eq!(map.get(one_segment_path.clone()), None);
-        // Set and remove a value at a multi-segment path, starting with the same segment as
-        // `one_segment_path`. Also, verify that removing the value at `one_segment_path` when
-        // `path` is set does not remove the value at `path`.
-        let path: FreeformPath = (package_path.to_string() + ".Bar.baz").into();
-        assert_eq!(map.get(path.clone()), None);
-        assert_eq!(map.swap_value_at(&path, None), None);
-        assert_eq!(map.swap_value_at(&path, Some(2)), None);
-        assert_eq!(map.get(path.clone()), Some(2));
-        assert_eq!(map.swap_value_at(&one_segment_path, None), None);
-        assert_eq!(map.swap_value_at(&path, Some(3)), Some(2));
-        assert_eq!(map.get(path.clone()), Some(3));
-        assert_eq!(map.swap_value_at(&path, None), Some(3));
-        assert_eq!(map.swap_value_at(&path, None), None);
-        assert_eq!(map.get(path), None);
-    }
 }
