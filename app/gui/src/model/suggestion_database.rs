@@ -28,43 +28,11 @@ pub use example::Example;
 
 
 
-// ====================
-// === FreeformPath ===
-// ====================
+// ===============
+// === Aliases ===
+// ===============
 
 type PathSegment = ImString;
-
-/// A path entered by a User, not guaranteed to correspond to any existing entity. The path is
-/// formed of segments with no guaranteed semantic meaning.
-///
-/// A conversion from a string value is performed by splitting the string into segments separated
-/// by the [`ACCESS`] character.
-#[derive(Clone, Debug, Default)]
-pub struct FreeformPath {
-    segments: Vec<PathSegment>,
-}
-
-impl FreeformPath {
-    fn from_segments<I, S>(segments: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<PathSegment>, {
-        let segments = segments.into_iter().map(|s| s.into()).collect();
-        Self { segments }
-    }
-}
-
-impl From<&str> for FreeformPath {
-    fn from(path: &str) -> FreeformPath {
-        FreeformPath::from_segments(path.split(ACCESS))
-    }
-}
-
-impl From<String> for FreeformPath {
-    fn from(path: String) -> FreeformPath {
-        path.as_str().into()
-    }
-}
 
 
 
@@ -101,9 +69,11 @@ impl FreeformPathToIdMap {
         self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value)
     }
 
-    fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
-        let path = path.into();
-        match self.tree.get(&path.segments) {
+    fn get<P, I>(&self, path: P) -> Option<entry::Id>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<PathSegment>, {
+        match self.tree.get(path) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
@@ -294,13 +264,11 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    /// Search the database for an entry at fully qualified `freeform_path`.
-    pub fn lookup_by_fully_qualified_path(
-        &self,
-        freeform_path: impl Into<FreeformPath>,
-    ) -> Option<Rc<Entry>> {
+    /// Search the database for an entry at `fully_qualified_name`.
+    pub fn lookup_by_fully_qualified_path(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
+        let path_segments = fully_qualified_name.split(ACCESS).map(PathSegment::new);
         let path_to_id_map = self.freeform_path_to_id_map.borrow();
-        path_to_id_map.get(freeform_path.into()).and_then(|id| self.lookup(id).ok())
+        path_to_id_map.get(path_segments).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
