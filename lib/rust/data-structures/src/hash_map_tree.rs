@@ -360,7 +360,7 @@ where
     K: Eq + Hash,
     S: BuildHasher + Default,
 {
-    pub fn swap_value_and_prune_empty_leaf_traversing_back<P, I>(&mut self, mut path: P, value: &mut Option<V>)
+    pub fn swap_value_and_traverse_back_pruning_empty_leaf<P, I>(&mut self, mut path: P, value: &mut Option<V>)
     where
         P: Iterator<Item = I>,
         I: Into<K>, {
@@ -370,7 +370,7 @@ where
             Some(key) => match self.branches.entry(key.into()) {
                 Entry::Occupied(mut entry) => {
                     let node = entry.get_mut();
-                    node.swap_value_and_prune_empty_leaf_traversing_back(path, value);
+                    node.swap_value_and_traverse_back_pruning_empty_leaf(path, value);
                     if node.value.is_none() && node.is_leaf() {
                         entry.remove_entry();
                     }

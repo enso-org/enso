@@ -127,7 +127,7 @@ impl FreeformPathToIdMap {
         let mut tree = self.tree.borrow_mut();
         let segments = &path.segments;
         let mut swapped_value = value;
-        tree.swap_value_and_prune_empty_leaf_traversing_back(segments.iter(), &mut swapped_value);
+        tree.swap_value_and_traverse_back_pruning_empty_leaf(segments.iter(), &mut swapped_value);
         swapped_value
     }
 
