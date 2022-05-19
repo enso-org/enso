@@ -588,4 +588,29 @@ mod tests {
             assert_eq!(output, val * 2);
         }
     }
+
+    #[test]
+    fn replace_and_traverse_back_pruning() {
+        let paths = vec![vec![10], vec![10, 20]];
+        for path in paths {
+            let tree = RefCell::new(HashMapTree::<i32, Option<i32>>::new());
+            let expected_result = RefCell::new(None);
+            let replace_and_verify_result = |value| {
+                let path = path.clone();
+                let mut tree = tree.borrow_mut();
+                let result = tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value);
+                assert_eq!(result, *expected_result.borrow());
+                *expected_result.borrow_mut() = value;
+            };
+            assert_eq!(tree.borrow().get(path.clone()), None);
+            replace_and_verify_result(None);
+            replace_and_verify_result(Some(1));
+            replace_and_verify_result(Some(2));
+            assert_eq!(*tree.borrow().get(path.clone()).unwrap(), Some(2));
+            replace_and_verify_result(None);
+            assert_eq!(tree.borrow().get(path.clone()), None);
+            replace_and_verify_result(None);
+            assert_eq!(tree.borrow().get(path.clone()), None);
+        }
+    }
 }
