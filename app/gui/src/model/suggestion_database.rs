@@ -73,10 +73,7 @@ impl FreeformPathToIdMap {
     where
         P: IntoIterator<Item = I>,
         I: Into<PathSegment>, {
-        match self.tree.get(path) {
-            Some(Some(value)) => Some(*value),
-            _ => None,
-        }
+        self.tree.get(path).and_then(|v| *v)
     }
 }
 
