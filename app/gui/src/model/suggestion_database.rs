@@ -78,18 +78,14 @@ struct FreeformPathToIdMap {
 }
 
 impl FreeformPathToIdMap {
-    fn warn_if_exists_and_set(&mut self, path: impl Into<FreeformPath>, id: entry::Id) {
-        let path = path.into();
-        if self.swap_value_at(&path, Some(id)).is_some() {
-            let path = path.segments;
+    fn warn_if_exists_and_set(&mut self, path: &[PathSegment], id: entry::Id) {
+        if self.swap_value_at(path, Some(id)).is_some() {
             event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
         }
     }
 
-    fn warn_if_absent_and_remove(&mut self, path: impl Into<FreeformPath>) {
-        let path = path.into();
-        if self.swap_value_at(&path, None).is_none() {
-            let path = path.segments;
+    fn warn_if_absent_and_remove(&mut self, path: &[PathSegment]) {
+        if self.swap_value_at(path, None).is_none() {
             let msg =
                 format!("When removing an id at {path:?} some id was expected but none was found.");
             event!(WARN, "{msg}");
@@ -99,11 +95,10 @@ impl FreeformPathToIdMap {
     // TODO: consider moving to a HashMapTree method
     fn swap_value_at(
         &mut self,
-        path: &FreeformPath,
+        path: &[PathSegment],
         value: Option<entry::Id>,
     ) -> Option<entry::Id> {
-        let segments = &path.segments;
-        self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value)
+        self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value)
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
@@ -200,7 +195,8 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    freeform_path_to_id_map.warn_if_exists_and_set(&entry.fully_qualified_name(), id);
+                    let path = entry.fully_qualified_name();
+                    freeform_path_to_id_map.warn_if_exists_and_set(&path, id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -239,7 +235,8 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        path_to_id_map.warn_if_exists_and_set(&entry.fully_qualified_name(), id);
+                        let path = Entry::fully_qualified_name(&entry);
+                        path_to_id_map.warn_if_exists_and_set(&path, id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -250,7 +247,8 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            path_to_id_map.warn_if_absent_and_remove(entry.fully_qualified_name());
+                            let path = entry.fully_qualified_name();
+                            path_to_id_map.warn_if_absent_and_remove(&path);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -260,9 +258,11 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        path_to_id_map.warn_if_absent_and_remove(entry.fully_qualified_name());
+                        let old_path = entry.fully_qualified_name();
+                        path_to_id_map.warn_if_absent_and_remove(&old_path);
                         let errors = entry.apply_modifications(*modification);
-                        path_to_id_map.warn_if_exists_and_set(entry.fully_qualified_name(), id);
+                        let new_path = entry.fully_qualified_name();
+                        path_to_id_map.warn_if_exists_and_set(&new_path, id);
                         for error in errors {
                             error!(
                                 self.logger,
