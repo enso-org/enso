@@ -4,9 +4,9 @@ import java.text.DecimalFormat;
 import java.text.ParsePosition;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.parsing.problems.NumericProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
-public class DecimalParser extends IncrementalDatatypeParser<NumericProblemAggregator> {
+public class DecimalParser extends IncrementalDatatypeParser {
   private final String thousandsSeparator;
   private final char decimalPoint;
   private final DecimalFormat decimalFormat;
@@ -38,7 +38,7 @@ public class DecimalParser extends IncrementalDatatypeParser<NumericProblemAggre
   }
 
   @Override
-  public Object parseSingleValue(String text, NumericProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     if (thousandsSeparator != null
         && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
       problemAggregator.reportInvalidFormat(text);
@@ -86,10 +86,5 @@ public class DecimalParser extends IncrementalDatatypeParser<NumericProblemAggre
   @Override
   public Builder makeBuilderWithCapacity(long capacity) {
     return NumericBuilder.createDoubleBuilder((int) capacity);
-  }
-
-  @Override
-  public NumericProblemAggregator makeProblemAggregator() {
-    return new NumericProblemAggregator();
   }
 }

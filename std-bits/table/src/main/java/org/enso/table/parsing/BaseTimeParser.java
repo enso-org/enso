@@ -5,9 +5,9 @@ import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.ObjectBuilder;
-import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
-public abstract class BaseTimeParser extends IncrementalDatatypeParser<InvalidFormatProblemAggregator> {
+public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   protected interface ParseStrategy {
     Object parse(String text, DateTimeFormatter formatter) throws DateTimeParseException;
   }
@@ -25,7 +25,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser<InvalidFo
   }
 
   @Override
-  public Object parseSingleValue(String text, InvalidFormatProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     for (var formatter : formatters) {
       try {
         return parseStrategy.parse(text, formatter);
@@ -42,10 +42,5 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser<InvalidFo
     // Once datetime gets first-class support in our dataframes, a more specific builder type should
     // be used.
     return new ObjectBuilder((int) capacity);
-  }
-
-  @Override
-  public InvalidFormatProblemAggregator makeProblemAggregator() {
-    return new InvalidFormatProblemAggregator();
   }
 }

@@ -1,7 +1,9 @@
 package org.enso.table.parsing;
 
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
+import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.read.WithProblems;
 
 /**
@@ -13,9 +15,9 @@ import org.enso.table.read.WithProblems;
  */
 public class TypeInferringParser implements DatatypeParser {
 
-  private final DatatypeParser[] baseParsers;
+  private final IncrementalDatatypeParser[] baseParsers;
 
-  public TypeInferringParser(DatatypeParser[] baseParsers) {
+  public TypeInferringParser(IncrementalDatatypeParser[] baseParsers) {
     if (baseParsers.length == 0) {
       throw new IllegalArgumentException("At least one parser must be provided.");
     }
@@ -24,11 +26,29 @@ public class TypeInferringParser implements DatatypeParser {
 
   @Override
   public WithProblems<Storage> parseColumn(StringStorage sourceStorage) {
-    for (int i = 0; i < baseParsers.length - 1; ++i) {
-      WithProblems<Storage> res = baseParsers[i].parseColumn(sourceStorage);
-      if (res.problems().isEmpty()) return res;
+    parsers: for (int i = 0; i < baseParsers.length; ++i) {
+      boolean isLast = i == baseParsers.length - 1;
+
+      IncrementalDatatypeParser parser = baseParsers[i];
+      Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
+      var aggregator = new ProblemAggregator();
+
+      for (int j = 0; j < sourceStorage.size(); ++j) {
+        String cell = sourceStorage.getItem(j);
+        if (cell != null) {
+          Object parsed = parser.parseSingleValue(cell, aggregator);
+          if (aggregator.hasProblems() && !isLast) {
+            continue parsers;
+          }
+          builder.appendNoGrow(parsed);
+        } else {
+          builder.appendNoGrow(null);
+        }
+      }
+
+      return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());
     }
 
-    return baseParsers[baseParsers.length - 1].parseColumn(sourceStorage);
+    throw new IllegalStateException("`baseParsers` should not be empty.");
   }
 }
