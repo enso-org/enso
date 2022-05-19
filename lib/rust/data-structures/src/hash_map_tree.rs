@@ -360,20 +360,29 @@ where
     K: Eq + Hash,
     S: BuildHasher + Default,
 {
-    pub fn replace_value_and_traverse_back_pruning_empty_leaf<P, I>(&mut self, path: P, value: Option<V>) -> Option<V>
+    pub fn replace_value_and_traverse_back_pruning_empty_leaf<P, I>(
+        &mut self,
+        path: P,
+        value: Option<V>,
+    ) -> Option<V>
     where
         P: IntoIterator<Item = I>,
-        I: Into<K>, {
+        I: Into<K>,
+    {
         let mut path_iter = path.into_iter();
         let mut swapped_value = value;
         self.swap_value_and_traverse_back_pruning_empty_leaf(&mut path_iter, &mut swapped_value);
         swapped_value
     }
 
-    fn swap_value_and_traverse_back_pruning_empty_leaf<P, I>(&mut self, mut path: P, value: &mut Option<V>)
-    where
+    fn swap_value_and_traverse_back_pruning_empty_leaf<P, I>(
+        &mut self,
+        mut path: P,
+        value: &mut Option<V>,
+    ) where
         P: Iterator<Item = I>,
-        I: Into<K>, {
+        I: Into<K>,
+    {
         use std::collections::hash_map::Entry;
         match path.next() {
             None => std::mem::swap(&mut self.value, value),
@@ -384,10 +393,10 @@ where
                     if node.value.is_none() && node.is_leaf() {
                         entry.remove_entry();
                     }
-                },
+                }
                 Entry::Vacant(entry) => {
                     value.take().map(|v| entry.insert(default()).set(path, Some(v)));
-                },
+                }
             },
         }
     }
