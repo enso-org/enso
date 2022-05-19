@@ -618,11 +618,11 @@ mod tests {
     #[test]
     fn replace_and_traverse_back_pruning_for_overlapping_paths() {
         type TestTree = HashMapTree<i32, Option<i32>>;
-        fn get_and_flatten<P, I>(tree: &mut TestTree, path: P) -> Option<&i32>
+        fn get_and_flatten<P, I>(tree: &mut TestTree, path: P) -> Option<i32>
         where
             P: IntoIterator<Item = I>,
             I: Into<i32>, {
-            tree.get(path).and_then(Option::as_ref)
+            tree.get(path).and_then(|v| *v)
         }
         let mut tree = TestTree::new();
         let paths = &[vec![10, 20], vec![10, 20, 25], vec![10], vec![10, 30, 35], vec![10, 30]];
@@ -632,10 +632,10 @@ mod tests {
             let result =
                 tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), *value);
             assert_eq!(result, None);
-            assert_eq!(get_and_flatten(&mut tree, path.clone()), value.as_ref());
+            assert_eq!(get_and_flatten(&mut tree, path.clone()), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            assert_eq!(get_and_flatten(&mut tree, path.clone()), value.as_ref());
+            assert_eq!(get_and_flatten(&mut tree, path.clone()), *value);
             let result =
                 tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), None);
             assert_eq!(result, *value);
