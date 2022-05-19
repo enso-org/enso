@@ -2,7 +2,7 @@ package org.enso.languageserver.boot
 
 import java.util.UUID
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 /**  The config of the running Language Server instance.
   *
@@ -20,6 +20,6 @@ case class LanguageServerConfig(
   contentRootUuid: UUID,
   contentRootPath: String,
   profilingConfig: ProfilingConfig,
-  name: String                              = "language-server",
-  computeExecutionContext: ExecutionContext = ExecutionContext.global
+  name: String                                      = "language-server",
+  computeExecutionContext: ExecutionContextExecutor = ExecutionContext.global
 )

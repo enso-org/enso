@@ -44,7 +44,6 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
-import org.enso.profiling.{FileSampler, NoopSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -234,17 +233,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "capability-router"
     )
 
-  val methodsSampler =
-    serverConfig.profilingConfig.profilingPath match {
-      case Some(path) =>
-        val s = new FileSampler(path.toFile)
-        JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
-        s
-      case None =>
-        NoopSampler()
-    }
-  log.trace(s"Started sampler ${methodsSampler.getClass.getName}.")
-
   lazy val contextRegistry =
     system.actorOf(
       ContextRegistry
@@ -253,8 +241,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
-          sessionRouter,
-          methodsSampler
+          sessionRouter
         ),
       "context-registry"
     )

@@ -62,8 +62,4 @@ final class FileSampler(output: File) extends MethodsSampler {
         )
         .whenComplete((_, _) => executor.shutdown())
     }
-
-  /** @return `true` if the sampling is started. */
-  def isSamplingStarted: Boolean =
-    this.samplingStarted
 }
