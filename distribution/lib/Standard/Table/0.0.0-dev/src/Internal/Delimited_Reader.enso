@@ -94,7 +94,8 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
         handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
             Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
                 warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
+                value_parser = Nothing
+                reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser format.keep_invalid_rows warnings_as_errors
                 result = Table.Table reader.read
                 decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
                 parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem

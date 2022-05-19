@@ -589,9 +589,9 @@ type Table
                 parser = if expected_type == Auto then value_formatter.make_auto_parser else
                     value_formatter.make_datatype_parser expected_type
                 storage = column.java_column.getStorage
-                new_storage_and_problems = parser.parseColumn storage
+                new_storage_and_problems = parser.parseColumn column.name storage
                 new_storage = new_storage_and_problems.value
-                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem column.name expected_type)
+                problems = Vector.Vector new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
                 Column.Column (Java_Column.new column.name column.java_column.getIndex new_storage)
 

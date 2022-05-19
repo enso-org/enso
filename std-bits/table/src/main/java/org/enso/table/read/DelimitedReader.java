@@ -8,12 +8,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
@@ -48,6 +49,7 @@ public class DelimitedReader {
   private final int maxColumns;
   private final List<ParsingProblem> warnings = new ArrayList<>();
   private final CsvParser parser;
+  private final DatatypeParser valueParser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
 
@@ -70,6 +72,8 @@ public class DelimitedReader {
    * @param skipRows specifies how many rows from the input to skip
    * @param rowLimit specifies how many rows to read (does not include the header row)
    * @param maxColumns specifies how many columns can be expected at most
+   * @param valueParser an optional parser that is applied to each column to convert it to more
+   *     specific datatype
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
@@ -84,6 +88,7 @@ public class DelimitedReader {
       long skipRows,
       long rowLimit,
       int maxColumns,
+      DatatypeParser valueParser,
       boolean keepInvalidRows,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
@@ -136,6 +141,7 @@ public class DelimitedReader {
     this.keepInvalidRows = keepInvalidRows;
     this.warningsAsErrors = warningsAsErrors;
 
+    this.valueParser = valueParser;
     parser = setupCsvParser(input);
   }
 
@@ -283,7 +289,7 @@ public class DelimitedReader {
         throw new IllegalStateException("Impossible branch.");
     }
 
-    StorageBuilder[] builders = initBuilders(headerNames.size());
+    StringStorageBuilder[] builders = initBuilders(headerNames.size());
 
     while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
       if (currentRow.length != builders.length) {
@@ -321,14 +327,20 @@ public class DelimitedReader {
 
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
-      Storage col = builders[i].seal();
-      columns[i] = new Column(headerNames.get(i), new DefaultIndex(col.size()), col);
+      String columnName = headerNames.get(i);
+      StringStorage col = builders[i].seal();
+      Storage storage = col;
+      if (valueParser != null) {
+        WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
+        storage = parseResult.value();
+      }
+      columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }
     return new Table(columns);
   }
 
-  private StorageBuilder[] initBuilders(int count) {
-    StorageBuilder[] res = new StorageBuilder[count];
+  private StringStorageBuilder[] initBuilders(int count) {
+    StringStorageBuilder[] res = new StringStorageBuilder[count];
     for (int i = 0; i < count; i++) {
       res[i] = new StringStorageBuilder();
     }
