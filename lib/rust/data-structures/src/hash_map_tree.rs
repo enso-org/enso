@@ -617,15 +617,15 @@ mod tests {
     #[test]
     fn replace_and_traverse_back_pruning_for_overlapping_paths() {
         type TestTree = HashMapTree<i32, Option<i32>>;
-        let mut tree = TestTree::new();
-        let paths = &[vec![10, 20], vec![10], vec![10, 30]];
-        let values = &[1, 2, 3].map(|v| Some(v));
         fn get_and_flatten<'a, P, I>(tree: &'a mut TestTree, path: P) -> Option<&'a i32>
         where
             P: IntoIterator<Item = I>,
             I: Into<i32>, {
             tree.get(path).map(Option::as_ref).flatten()
         }
+        let mut tree = TestTree::new();
+        let paths = &[vec![10, 20], vec![10], vec![10, 30]];
+        let values = &[1, 2, 3].map(|v| Some(v));
         for (path, value) in paths.iter().zip(values) {
             assert_eq!(get_and_flatten(&mut tree, path.clone()), None);
             let result =
