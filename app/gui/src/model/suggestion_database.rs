@@ -101,7 +101,6 @@ struct FreeformPathToIdMap {
 impl FreeformPathToIdMap {
     fn warn_if_exists_and_set(&mut self, path: impl Into<FreeformPath>, id: entry::Id) {
         let path = path.into();
-        event!(WARN, "MCDBG test {path:?} and {id}");
         if self.swap_value_at(&path, Some(id)).is_some() {
             let path = path.segments;
             event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
