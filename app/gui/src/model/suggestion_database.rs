@@ -47,26 +47,20 @@ struct FreeformPathToIdMap {
 
 impl FreeformPathToIdMap {
     fn warn_if_exists_and_set(&mut self, path: &[PathSegment], id: entry::Id) {
-        if self.swap_value_at(path, Some(id)).is_some() {
+        let value = Some(id);
+        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value);
+        if old_value.is_some() {
             event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
         }
     }
 
     fn warn_if_absent_and_remove(&mut self, path: &[PathSegment]) {
-        if self.swap_value_at(path, None).is_none() {
+        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, None);
+        if old_value.is_none() {
             let msg =
                 format!("When removing an id at {path:?} some id was expected but none was found.");
             event!(WARN, "{msg}");
         }
-    }
-
-    // TODO: consider moving to a HashMapTree method
-    fn swap_value_at(
-        &mut self,
-        path: &[PathSegment],
-        value: Option<entry::Id>,
-    ) -> Option<entry::Id> {
-        self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value)
     }
 
     fn get<P, I>(&self, path: P) -> Option<entry::Id>
