@@ -95,12 +95,12 @@ impl From<&Entry> for FreeformPath {
 
 #[derive(Clone, Debug, Default)]
 struct FreeformPathToIdMap {
-    tree: RefCell<ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>>,
+    tree: ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
 }
 
 impl FreeformPathToIdMap {
     fn warn_if_exists_and_set(
-        &self,
+        &mut self,
         path: impl Into<FreeformPath>,
         id: entry::Id,
         logger: &Logger,
@@ -112,7 +112,7 @@ impl FreeformPathToIdMap {
         }
     }
 
-    fn warn_if_absent_and_remove(&self, path: impl Into<FreeformPath>, logger: &Logger) {
+    fn warn_if_absent_and_remove(&mut self, path: impl Into<FreeformPath>, logger: &Logger) {
         let path = path.into();
         if self.swap_value_at(&path, None).is_none() {
             let path = path.segments;
@@ -123,15 +123,18 @@ impl FreeformPathToIdMap {
     }
 
     // TODO: consider moving to a HashMapTree method
-    fn swap_value_at(&self, path: &FreeformPath, value: Option<entry::Id>) -> Option<entry::Id> {
-        let mut tree = self.tree.borrow_mut();
+    fn swap_value_at(
+        &mut self,
+        path: &FreeformPath,
+        value: Option<entry::Id>,
+    ) -> Option<entry::Id> {
         let segments = &path.segments;
-        tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value)
+        self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value)
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
         let path = path.into();
-        match self.tree.borrow().get(&path.segments) {
+        match self.tree.get(&path.segments) {
             Some(Some(value)) => Some(*value),
             _ => None,
         }
@@ -177,7 +180,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     logger:                  Logger,
     entries:                 RefCell<HashMap<entry::Id, Rc<Entry>>>,
-    freeform_path_to_id_map: FreeformPathToIdMap,
+    freeform_path_to_id_map: RefCell<FreeformPathToIdMap>,
     examples:                RefCell<Vec<Rc<Example>>>,
     version:                 Cell<SuggestionsDatabaseVersion>,
     notifications:           notification::Publisher<Notification>,
@@ -218,7 +221,7 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        let freeform_path_to_id_map = FreeformPathToIdMap::default();
+        let mut freeform_path_to_id_map = FreeformPathToIdMap::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
@@ -237,7 +240,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            freeform_path_to_id_map,
+            freeform_path_to_id_map: RefCell::new(freeform_path_to_id_map),
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -258,10 +261,10 @@ impl SuggestionDatabase {
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
+            let mut path_to_id_map = self.freeform_path_to_id_map.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path_to_id_map = &self.freeform_path_to_id_map;
                         path_to_id_map.warn_if_exists_and_set(&entry, id, &self.logger);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -273,7 +276,6 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path_to_id_map = &self.freeform_path_to_id_map;
                             path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
                         }
                         None => {
@@ -284,7 +286,6 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let path_to_id_map = &self.freeform_path_to_id_map;
                         path_to_id_map.warn_if_absent_and_remove(&*entry, &self.logger);
                         let errors = entry.apply_modifications(*modification);
                         path_to_id_map.warn_if_exists_and_set(&*entry, id, &self.logger);
@@ -324,7 +325,8 @@ impl SuggestionDatabase {
         &self,
         freeform_path: impl Into<FreeformPath>,
     ) -> Option<Rc<Entry>> {
-        self.freeform_path_to_id_map.get(freeform_path.into()).and_then(|id| self.lookup(id).ok())
+        let path_to_id_map = self.freeform_path_to_id_map.borrow();
+        path_to_id_map.get(freeform_path.into()).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
