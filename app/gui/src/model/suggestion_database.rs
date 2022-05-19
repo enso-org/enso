@@ -66,27 +66,6 @@ impl From<String> for FreeformPath {
     }
 }
 
-impl From<&Entry> for FreeformPath {
-    fn from(entry: &Entry) -> FreeformPath {
-        match entry.kind {
-            Kind::Method => {
-                let mut path = match &entry.self_type {
-                    Some(name) => FreeformPath::from_segments(name.segments()),
-                    None => default(),
-                };
-                path.segments.push(entry.name.clone().into());
-                path
-            }
-            Kind::Module => FreeformPath::from_segments(entry.module.segments()),
-            _ => {
-                let mut path = FreeformPath::from_segments(entry.module.segments());
-                path.segments.push(entry.name.clone().into());
-                path
-            }
-        }
-    }
-}
-
 
 
 // ===========================
@@ -221,7 +200,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    freeform_path_to_id_map.warn_if_exists_and_set(&entry, id);
+                    freeform_path_to_id_map.warn_if_exists_and_set(&entry.fully_qualified_name(), id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -260,7 +239,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        path_to_id_map.warn_if_exists_and_set(&entry, id);
+                        path_to_id_map.warn_if_exists_and_set(&entry.fully_qualified_name(), id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -271,7 +250,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            path_to_id_map.warn_if_absent_and_remove(&*entry);
+                            path_to_id_map.warn_if_absent_and_remove(entry.fully_qualified_name());
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -281,9 +260,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        path_to_id_map.warn_if_absent_and_remove(&*entry);
+                        path_to_id_map.warn_if_absent_and_remove(entry.fully_qualified_name());
                         let errors = entry.apply_modifications(*modification);
-                        path_to_id_map.warn_if_exists_and_set(&*entry, id);
+                        path_to_id_map.warn_if_exists_and_set(entry.fully_qualified_name(), id);
                         for error in errors {
                             error!(
                                 self.logger,

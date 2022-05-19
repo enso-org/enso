@@ -236,6 +236,25 @@ impl Entry {
     pub fn qualified_name(&self) -> tp::QualifiedName {
         tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
     }
+
+    pub fn fully_qualified_name(&self) -> Vec<ImString> {
+        match self.kind {
+            Kind::Method => {
+                let mut path: Vec<ImString> = match &self.self_type {
+                    Some(name) => name.segments().map(|s| s.into()).collect(),
+                    None => default(),
+                };
+                path.push(self.name.clone().into());
+                path
+            }
+            Kind::Module => self.module.segments().map(|s| s.into()).collect(),
+            _ => {
+                let mut path: Vec<ImString> = self.module.segments().map(|s| s.into()).collect();
+                path.push(self.name.clone().into());
+                path
+            }
+        }
+    }
 }
 
 
