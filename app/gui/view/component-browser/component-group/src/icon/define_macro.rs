@@ -14,6 +14,7 @@
 /// ```
 /// use ensogl::prelude::*;
 /// use ensogl::display::shape::*;
+/// use ide_view_component_group::icon;
 /// use ide_view_component_group::define_icons;
 ///
 /// define_icons! {
@@ -24,7 +25,7 @@
 ///         //
 ///         // `use super::*` import is added silently.
 ///         ensogl::define_shape_system! {
-///             (style:Style) {
+///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
 ///                 Plane().into()
 ///             }
 ///         }
@@ -32,27 +33,27 @@
 ///
 ///     pub mod icon2(Icon2) {
 ///         ensogl::define_shape_system! {
-///             (style:Style, color:Vector4) {
-///                 Plane().fill(color).into()
+///             (style:Style, strong_color: Vector4, weak_color: Vector4) {
+///                 Plane().fill(strong_color).into()
 ///             }
 ///         }
 ///     }
 /// }
 ///
-/// //fn main () {
+/// fn main () {
 ///     let app = ensogl::application::Application::new("root");
 ///     let logger = Logger::new("icon");
-///     let icon1 = Id::Icon1.create_shape(&logger, Vector2(10.0, 10.0));///
+///     let icon1 = Id::Icon1.create_shape(&logger, Vector2(10.0, 10.0));
 ///     let icon2_id: Id = "Icon2".parse().unwrap();
 ///     assert_eq!(icon2_id, Id::Icon2);
 ///     let icon2 = icon2_id.create_shape(&logger, Vector2(11.0, 11.0));
-///     app.display.default_scene.add_child(&*icon1);
-///     app.display.default_scene.add_child(&*icon2);
+///     app.display.default_scene.add_child(&icon1);
+///     app.display.default_scene.add_child(&icon2);
 ///
 ///     // Invalid icon
-///     let icon3 = "Icon3".parse();
-///     assert_eq!(icon3, Err(ide_view_component_group::icon::UnknownIcon));
-/// //}
+///     let icon3 = "Icon3".parse::<Id>();
+///     assert!(icon3.is_err());
+/// }
 #[macro_export]
 macro_rules! define_icons {
     ($(
