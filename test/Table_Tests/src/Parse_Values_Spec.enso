@@ -11,7 +11,7 @@ import Standard.Test.Problems
 import Standard.Visualization
 
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 
 from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
@@ -175,6 +175,7 @@ spec = Test.group "Table.parse_values" <|
 
         Warning.get_all t2 . should_equal []
         t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
+        t2.at "ints" . to_vector . first . should_be_an Integer
         t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
         t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
         t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
@@ -192,6 +193,17 @@ spec = Test.group "Table.parse_values" <|
 
         t4 = Table.new [c2] . parse_values (Data_Formatter allow_leading_zeros=True)
         t4 . at "ints0" . to_vector . should_equal [1, 2, Nothing, -1]
+
+        t5 = t.parse_values column_types=[Column_Type_Selection "ints" Decimal, Column_Type_Selection "floats" Auto, Column_Type_Selection "text+ints" Auto]
+        t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
+        # `ints` are requested to be parsed as decimals.
+        t5.at "ints" . to_vector . first . should_be_a Decimal
+        # `floats` are auto-detected as decimals.
+        t5.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+        # `text+ints` is attempted to be parsed (hence whitespace is stripped), but it only fits the text type.
+        t5.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+        # `bools` are not requested to be parsed, so they are kept as-is, with leading whitespace etc.
+        t5.at "bools" . to_vector . should_equal ["true", " False", Nothing, "True"]
 
     Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
         opts = Data_Formatter decimal_point=',' thousand_separator='_'
