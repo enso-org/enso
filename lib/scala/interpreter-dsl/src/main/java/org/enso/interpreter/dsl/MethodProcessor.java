@@ -1,18 +1,30 @@
 package org.enso.interpreter.dsl;
 
-import org.apache.commons.lang3.StringUtils;
-import org.enso.interpreter.dsl.model.MethodDefinition;
-
-import javax.annotation.processing.*;
-import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
-import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.processing.Filer;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
+import org.enso.interpreter.dsl.model.MethodDefinition;
+import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -149,19 +161,23 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       out.println();
 
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
-          String condName = mkArgumentInternalVarName(arg) + "ConditionProfile";
-          String branchName = mkArgumentInternalVarName(arg) + "BranchProfile";
+        if (arg.shouldCheckErrors()) {
+          String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
           out.println(
               "  private final ConditionProfile "
                   + condName
                   + " = ConditionProfile.createCountingProfile();");
+        }
+
+        if (arg.isPositional() && !arg.isThis()) {
+          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
           out.println("  private final BranchProfile " + branchName + " = BranchProfile.create();");
-          if (!arg.isThis() && !arg.acceptsWarning()) {
-            String warningName = mkArgumentInternalVarName(arg) + "WarningProfile";
-            out.println(
-                "  private final BranchProfile " + warningName + " = BranchProfile.create();");
-          }
+        }
+
+        if (arg.shouldCheckWarnings()) {
+          String warningName = mkArgumentInternalVarName(arg) + WARNING_PROFILE;
+          out.println(
+              "  private final BranchProfile " + warningName + " = BranchProfile.create();");
         }
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
@@ -295,42 +311,41 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
   private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    if (!arg.requiresCast()) {
-      generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
-      generateUncheckedArgumentRead(out, arg, argsArray);
-    } else {
-      generateCheckedArgumentRead(out, arg, argsArray);
-    }
-
-    if (!arg.acceptsError()) {
-
-      String varName = mkArgumentInternalVarName(arg);
-      String condProfile = mkArgumentInternalVarName(arg) + "ConditionProfile";
+    String argReference = argsArray + "[" + arg.getPosition() + "]";
+    if (arg.shouldCheckErrors()) {
+      String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
       out.println(
           "    if ("
               + condProfile
               + ".profile(TypesGen.isDataflowError("
-              + varName
+              + argReference
               + "))) {\n"
               + "      return new Stateful(state, "
-              + varName
+              + argReference
               + ");\n"
               + "    }");
-      if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
-        String branchProfile = mkArgumentInternalVarName(arg) + "BranchProfile";
-        out.println(
-            "    else if (TypesGen.isPanicSentinel("
-                + varName
-                + ")) {\n"
-                + "      "
-                + branchProfile
-                + ".enter();\n"
-                + "      throw TypesGen.asPanicSentinel("
-                + varName
-                + ");\n"
-                + "    }");
-      }
+    }
+    if (!arg.isThis()) {
+      String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
+      out.println(
+          "    if (TypesGen.isPanicSentinel("
+              + argReference
+              + ")) {\n"
+              + "      "
+              + branchProfile
+              + ".enter();\n"
+              + "      throw TypesGen.asPanicSentinel("
+              + argReference
+              + ");\n"
+              + "    }");
+    }
+
+    if (!arg.requiresCast()) {
+      generateUncastedArgumentRead(out, arg, argsArray);
+    } else if (arg.isThis()) {
+      generateUncheckedArgumentRead(out, arg, argsArray);
+    } else {
+      generateCheckedArgumentRead(out, arg, argsArray);
     }
   }
 
@@ -395,7 +410,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
     List<MethodDefinition.ArgumentDefinition> argsToCheck =
         arguments.stream()
-            .filter(arg -> !arg.acceptsWarning() && !arg.isThis())
+            .filter(ArgumentDefinition::shouldCheckWarnings)
             .collect(Collectors.toList());
     if (argsToCheck.isEmpty()) {
       return false;
@@ -407,7 +422,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
             "    if ("
                 + arrayRead(argumentsArray, arg.getPosition())
                 + " instanceof WithWarnings) {");
-        out.println("      " + mkArgumentInternalVarName(arg) + "WarningProfile.enter();");
+        out.println("      " + mkArgumentInternalVarName(arg) + WARNING_PROFILE + ".enter();");
         out.println("      anyWarnings = true;");
         out.println(
             "      WithWarnings withWarnings = (WithWarnings) "
@@ -506,4 +521,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     if (elements.length != 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
     return new MethodMetadataEntry(elements[0], elements[1]);
   }
+
+  private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";
+  private static final String PANIC_SENTINEL_PROFILE = "PanicSentinelBranchProfile";
+  private static final String WARNING_PROFILE = "WarningProfile";
 }
