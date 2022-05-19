@@ -2,7 +2,6 @@ package org.enso.interpreter.dsl;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
@@ -19,7 +18,8 @@ import java.util.stream.Collectors;
  * generating code, {@code BuiltinsMetadataProcessor} detects when the processing of the last
  * annotation in the round is being processed and allows for dumping any collected metadata once.
  */
-public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
+public abstract class BuiltinsMetadataProcessor<T extends BuiltinsMetadataProcessor.MetadataEntry>
+    extends AbstractProcessor {
 
   /**
    * Processes annotated elements, generating code for each of them, if necessary.
@@ -44,7 +44,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
       // we read the exisitng metadata.
       // Deletes/renaming are still not going to work nicely but that would be the same case
       // if we were writing metadata information per source file anyway.
-      Map<String, String> pastEntries;
+      Map<String, T> pastEntries;
       try {
         FileObject existingFile =
             processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", metadataPath());
@@ -52,7 +52,8 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
           pastEntries =
               new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
                   .lines()
-                  .collect(Collectors.toMap(l -> l.split(":")[0], Function.identity()));
+                  .map(l -> toMetadataEntry(l))
+                  .collect(Collectors.toMap(e -> e.key(), Function.identity()));
         }
       } catch (NoSuchFileException notFoundException) {
         // This is the first time we are generating the metadata file, ignore the exception.
@@ -70,8 +71,8 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
         try {
           storeMetadata(writer, pastEntries);
           // Dump past entries, to workaround separate compilation + annotation processing issues
-          for (String value : pastEntries.values()) {
-            writer.append(value + "\n");
+          for (MetadataEntry value : pastEntries.values()) {
+            writer.append(value.toString() + "\n");
           }
         } finally {
           writer.close();
@@ -104,7 +105,7 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
    *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
-  protected abstract void storeMetadata(Writer writer, Map<String, String> pastEntries)
+  protected abstract void storeMetadata(Writer writer, Map<String, T> pastEntries)
       throws IOException;
 
   /**
@@ -123,4 +124,22 @@ public abstract class BuiltinsMetadataProcessor extends AbstractProcessor {
    * processing is done.
    */
   protected abstract void cleanup();
+
+  /**
+   * A common interface that all metadata entries have to provide. In the future can avoid plain
+   * text representation.
+   */
+  public interface MetadataEntry {
+    String toString();
+
+    String key();
+  }
+
+  /**
+   * A conversion method for a single raw metadata entry. For now represented as a string.
+   *
+   * @param line raw representation of the metadata entry
+   * @return parsed metedata entry, specific to the given processor
+   */
+  protected abstract T toMetadataEntry(String line);
 }

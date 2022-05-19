@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -13,6 +14,7 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 /** A mutable reference type. */
 @ExportLibrary(MethodDispatchLibrary.class)
+@Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Ref.Ref")
 public class Ref implements TruffleObject {
   private volatile Object value;
 
@@ -21,11 +23,13 @@ public class Ref implements TruffleObject {
    *
    * @param value the initial value to store in the reference.
    */
+  @Builtin.Method(description = "Creates a new Ref")
   public Ref(Object value) {
     this.value = value;
   }
 
   /** @return the current value of the reference. */
+  @Builtin.Method(name = "get", description = "Gets the value stored in the reference")
   public Object getValue() {
     return value;
   }
@@ -35,8 +39,11 @@ public class Ref implements TruffleObject {
    *
    * @param value the value to store.
    */
-  public void setValue(Object value) {
+  @Builtin.Method(name = "put", description = "Stores a new value in the reference")
+  public Object setValue(Object value) {
+    Object old = this.value;
     this.value = value;
+    return old;
   }
 
   @ExportMessage
