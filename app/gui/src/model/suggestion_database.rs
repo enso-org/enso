@@ -126,9 +126,7 @@ impl FreeformPathToIdMap {
     fn swap_value_at(&self, path: &FreeformPath, value: Option<entry::Id>) -> Option<entry::Id> {
         let mut tree = self.tree.borrow_mut();
         let segments = &path.segments;
-        let mut swapped_value = value;
-        tree.swap_value_and_traverse_back_pruning_empty_leaf(segments.iter(), &mut swapped_value);
-        swapped_value
+        tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value)
     }
 
     fn get(&self, path: impl Into<FreeformPath>) -> Option<entry::Id> {
