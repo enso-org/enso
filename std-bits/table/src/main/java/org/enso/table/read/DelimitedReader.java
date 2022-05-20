@@ -52,6 +52,7 @@ public class DelimitedReader {
   private final DatatypeParser valueParser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
+  private final QuoteHelper quoteHelper;
 
   private static final char noQuoteCharacter = '\0';
 
@@ -143,6 +144,7 @@ public class DelimitedReader {
 
     this.valueParser = valueParser;
     parser = setupCsvParser(input);
+    quoteHelper = new QuoteHelper(unused -> reportMismatchedQuote(), quoteCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
@@ -164,46 +166,10 @@ public class DelimitedReader {
     return parser;
   }
 
-  /** Parses a cell, removing surrounding quotes (if applicable). */
-  private String parseCell(String cell) {
-    if (cell == null) return null;
-
-    if (cell.isEmpty()) return cell;
-    if (cell.charAt(0) == quoteCharacter) {
-      return stripQuotes(cell);
-    }
-
-    return cell;
-  }
-
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
     if (cell == null) return COLUMN_NAME;
-
-    if (cell.isEmpty()) return cell;
-    if (cell.charAt(0) == quoteCharacter) {
-      return stripQuotes(cell);
-    }
-
-    return cell;
-  }
-
-  /**
-   * If the first character of a string is a quote, will remove the surrounding quotes.
-   *
-   * <p>If the first character of a string is a quote but the last one is not, mismatched quote
-   * problem is reported.
-   */
-  private String stripQuotes(String cell) {
-    assert cell.charAt(0) == quoteCharacter;
-
-    if (cell.length() < 2 || cell.charAt(cell.length() - 1) != quoteCharacter) {
-      reportMismatchedQuote();
-      return cell.substring(1);
-    } else {
-      // Strip quotes.
-      return cell.substring(1, cell.length() - 1);
-    }
+    return quoteHelper.stripQuotes(cell);
   }
 
   private void reportMismatchedQuote() {
@@ -297,8 +263,7 @@ public class DelimitedReader {
 
         if (keepInvalidRows) {
           for (int i = 0; i < builders.length && i < currentRow.length; i++) {
-            String item = parseCell(currentRow[i]);
-            builders[i] = builders[i].parseAndAppend(item);
+            builders[i] = builders[i].parseAndAppend(currentRow[i]);
           }
 
           // If the current row had less columns than expected, nulls are inserted for the missing
@@ -312,9 +277,7 @@ public class DelimitedReader {
         }
       } else {
         for (int i = 0; i < builders.length; i++) {
-
-          String item = parseCell(currentRow[i]);
-          builders[i] = builders[i].parseAndAppend(item);
+          builders[i] = builders[i].parseAndAppend(currentRow[i]);
         }
 
         target_table_index++;
@@ -329,11 +292,13 @@ public class DelimitedReader {
     for (int i = 0; i < builders.length; i++) {
       String columnName = headerNames.get(i);
       StringStorage col = builders[i].seal();
-      Storage storage = col;
-      if (valueParser != null) {
-        WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
-        storage = parseResult.value();
+
+      WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
+      for (var problem : parseResult.problems()) {
+        reportProblem(problem);
       }
+      Storage storage = parseResult.value();
+
       columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }
     return new Table(columns);
