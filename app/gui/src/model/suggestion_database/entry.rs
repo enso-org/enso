@@ -58,8 +58,13 @@ pub struct MissingThisOnMethod(pub String);
 // === QualifiedNameSegments ===
 // =============================
 
+/// A single segment of a fully qualifed name of an [`Entry`].
 pub type NameSegment = ImString;
 
+/// Segments of a fully qualified name of an [`Entry`].
+///
+/// A fully qualified name can be built by joining the segments using an
+/// [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct QualifiedNameSegments(pub Vec<NameSegment>);
 
