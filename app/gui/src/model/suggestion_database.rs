@@ -255,8 +255,8 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    /// Search the database for an entry at path resulting from splitting the
-    /// `fully_qualified_name` into segments separated by the [`ACCESS`] character.
+    /// Search the database for an entry at `fully_qualified_name`. The string is split into
+    /// segments separated by the [`ACCESS`] character.
     pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
         let name_segments = fully_qualified_name.split(ACCESS).map(entry::NameSegment::new);
         let qn_to_id_map = self.qualified_name_to_id_map.borrow();
