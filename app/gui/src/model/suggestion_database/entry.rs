@@ -237,21 +237,21 @@ impl Entry {
         tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
     }
 
-    pub fn fully_qualified_name(&self) -> Vec<ImString> {
+    pub fn fully_qualified_name(&self) -> impl Iterator<Item = &str> {
+        use itertools::Either::*;
+        use std::iter::*;
         match self.kind {
             Kind::Method => {
-                let mut path: Vec<ImString> = match &self.self_type {
-                    Some(name) => name.segments().map(|s| s.into()).collect(),
-                    None => default(),
+                let self_type = match &self.self_type {
+                    Some(name) => Left(name.segments()),
+                    None => Right(empty()),
+                    // None => Right(std::iter::empty()),
                 };
-                path.push(self.name.clone().into());
-                path
+                Left(self_type.chain(once(self.name.as_str())))
             }
-            Kind::Module => self.module.segments().map(|s| s.into()).collect(),
+            Kind::Module => Right(Left(self.module.segments())),
             _ => {
-                let mut path: Vec<ImString> = self.module.segments().map(|s| s.into()).collect();
-                path.push(self.name.clone().into());
-                path
+                Right(Right(self.module.segments().chain(once(self.name.as_str()))))
             }
         }
     }
