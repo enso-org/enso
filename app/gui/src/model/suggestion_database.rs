@@ -43,15 +43,16 @@ impl QualifiedNameToIdMap {
         let old_value =
             self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, value);
         if old_value.is_some() {
-            event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
+            event!(WARN, "An existing suggestion entry id at {path:?} was overwritten with {id}.");
         }
     }
 
     fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedNameSegments) {
         let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, None);
         if old_value.is_none() {
-            let msg =
-                format!("When removing an id at {path:?} some id was expected but none was found.");
+            let msg = format!(
+                "Could not remove a suggestion entry id at {path:?} because no entry id was found."
+            );
             event!(WARN, "{msg}");
         }
     }
