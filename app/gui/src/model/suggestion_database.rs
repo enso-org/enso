@@ -51,7 +51,7 @@ impl QualifiedNameToIdMap {
         let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, None);
         if old_value.is_none() {
             let msg = format!(
-                "Could not remove a suggestion entry id at {path:?} because none was found."
+                "Could not remove a suggestion entry id at {path:?} because it does not exist."
             );
             event!(WARN, "{msg}");
         }
