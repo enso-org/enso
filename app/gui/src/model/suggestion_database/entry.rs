@@ -682,6 +682,16 @@ mod test {
             let expected_segments: Vec<_> = qualified_name.split(".").collect();
             assert_eq!(qualified_name_segments.0, expected_segments);
         }
+        let atom = language_server::SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        expect(atom, "TestProject.TestModule.TextAtom");
         let method = language_server::SuggestionEntry::Method {
             name:               "create_process".to_string(),
             module:             "Standard.Builtins.Main".to_string(),
@@ -693,5 +703,29 @@ mod test {
             external_id:        None,
         };
         expect(method, "Standard.Builtins.Main.System.create_process");
+        let module = language_server::SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        expect(module, "local.Unnamed_6.Main");
+        let local = language_server::SuggestionEntry::Local {
+            module:      "local.Unnamed_6.Main".to_string(),
+            name:        "operator1".to_string(),
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id: None,
+            scope:       (default()..=default()).into(),
+        };
+        expect(local, "local.Unnamed_6.Main.operator1");
+        let function = language_server::SuggestionEntry::Function {
+            module:      "NewProject.NewModule".to_string(),
+            name:        "testFunction1".to_string(),
+            arguments:   vec![],
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:       (default()..=default()).into(),
+            external_id: None,
+        };
+        expect(function, "NewProject.NewModule.testFunction1");
     }
 }
