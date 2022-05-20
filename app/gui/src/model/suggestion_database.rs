@@ -32,6 +32,12 @@ pub use example::Example;
 // === QualifiedNameToIdMap ===
 // ============================
 
+/// A map from fully qualified names (encoded as [`entry::QualifiedNameSegments`]) to
+/// [`entry::Id`]s. The methods of the type provide semantics of a map, while the internal
+/// representation is based on a [`HashMapTree`].
+///
+/// The internal representation conserves memory in case when many entries sharing common prefix of
+/// path segments are inserted.
 #[derive(Clone, Debug, Default)]
 struct QualifiedNameToIdMap {
     tree: ensogl::data::HashMapTree<entry::NameSegment, Option<entry::Id>>,
