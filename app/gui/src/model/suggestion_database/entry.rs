@@ -259,12 +259,13 @@ impl Entry {
             collect_segments(segments.chain(iter::once(entry.name.as_str())))
         }
         match self.kind {
-            Kind::Method => {
-                let self_type = self.self_type.as_ref();
-                let segments =
-                    self_type.map(|t| collect_segments_and_entry_name(t.segments(), self));
-                segments.unwrap_or_default()
-            }
+            Kind::Method => match &self.self_type {
+                Some(t) => collect_segments_and_entry_name(t.segments(), self),
+                None => {
+                    event!(ERROR, "A suggestion entry {self:?} with Method kind has no self type.");
+                    default()
+                }
+            },
             Kind::Module => collect_segments(self.module.segments()),
             _ => collect_segments_and_entry_name(self.module.segments(), self),
         }
