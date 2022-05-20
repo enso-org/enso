@@ -250,14 +250,20 @@ impl Entry {
         where I: Iterator<Item = &'a str> {
             QualifiedNameSegments(iter.map(NameSegment::new).collect())
         }
-        fn collect_segments_and_entry_name<'a, I>(segments: I, entry: &'a Entry) -> QualifiedNameSegments
-        where I: Iterator<Item = &'a str> {
+        fn collect_segments_and_entry_name<'a, I>(
+            segments: I,
+            entry: &'a Entry,
+        ) -> QualifiedNameSegments
+        where
+            I: Iterator<Item = &'a str>,
+        {
             collect_segments(segments.chain(once(entry.name.as_str())))
         }
         match self.kind {
             Kind::Method => {
                 let self_type = self.self_type.as_ref();
-                let segments = self_type.map(|t| collect_segments_and_entry_name(t.segments(), self));
+                let segments =
+                    self_type.map(|t| collect_segments_and_entry_name(t.segments(), self));
                 segments.unwrap_or_default()
             }
             Kind::Module => collect_segments(self.module.segments()),
