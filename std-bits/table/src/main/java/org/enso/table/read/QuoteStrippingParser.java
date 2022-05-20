@@ -1,16 +1,11 @@
 package org.enso.table.read;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.parsing.DatatypeParser;
-import org.enso.table.parsing.problems.MismatchedQuote;
-import org.enso.table.parsing.problems.ParsingProblem;
+import org.enso.table.parsing.IncrementalDatatypeParser;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
-public class QuoteStrippingParser implements DatatypeParser {
+public class QuoteStrippingParser extends IncrementalDatatypeParser {
 
   private final char quoteCharacter;
 
@@ -28,27 +23,14 @@ public class QuoteStrippingParser implements DatatypeParser {
   }
 
   @Override
-  public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
-    AtomicInteger mismatchedQuotes = new AtomicInteger();
-    QuoteHelper quoteHelper = new QuoteHelper(unused -> mismatchedQuotes.getAndIncrement(), quoteCharacter);
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    QuoteHelper quoteHelper =
+        new QuoteHelper(unused -> problemAggregator.reportMismatchedQuote(), quoteCharacter);
+    return quoteHelper.stripQuotes(text);
+  }
 
-    StringBuilder builder = new StringBuilder(sourceStorage.size());
-    for (int i = 0; i < sourceStorage.size(); ++i) {
-      String item = sourceStorage.getItem(i);
-      String transformed = quoteHelper.stripQuotes(item);
-      builder.appendNoGrow(transformed);
-    }
-
-    List<ParsingProblem> problems;
-    if (mismatchedQuotes.get() == 0) {
-      problems = List.of();
-    } else {
-      problems = new ArrayList<>(mismatchedQuotes.get());
-      for (int i = 0; i < mismatchedQuotes.getAndIncrement(); ++i) {
-        problems.add(new MismatchedQuote());
-      }
-    }
-
-    return new WithProblems<>(builder.seal(), problems);
+  @Override
+  protected Builder makeBuilderWithCapacity(long capacity) {
+    return new StringBuilder((int) capacity);
   }
 }
