@@ -664,6 +664,88 @@ mod test {
     }
 
     #[test]
+    fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
+        // Initialize a suggestion database with sample entries.
+        let entry1 = SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let entry2 = SuggestionEntry::Method {
+            name:               "create_process".to_string(),
+            module:             "Standard.Builtins.Main".to_string(),
+            self_type:          "Standard.Builtins.Main.System".to_string(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let entry3 = SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        let entry4 = SuggestionEntry::Local {
+            module:      "local.Unnamed_6.Main".to_string(),
+            name:        "operator1".to_string(),
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id: None,
+            scope:       (default()..=default()).into(),
+        };
+        let entry5 = SuggestionEntry::Function {
+            module:      "NewProject.NewModule".to_string(),
+            name:        "testFunction1".to_string(),
+            arguments:   vec![],
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:       (default()..=default()).into(),
+            external_id: None,
+        };
+        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
+            SuggestionsDatabaseEntry { id, suggestion }
+        }
+        let ls_response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![
+                db_entry(1, entry1),
+                db_entry(2, entry2),
+                db_entry(3, entry3),
+                db_entry(4, entry4),
+                db_entry(5, entry5),
+            ],
+            current_version: 1,
+        };
+        let db = SuggestionDatabase::from_ls_response(ls_response);
+
+        // Check that the entries used to initialize the database can be found using the
+        // `lookup_by_fully_qualified_name` method.
+        fn expect_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+            let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+            assert!(lookup.is_some());
+            let name = fully_qualified_name.rsplit('.').next().unwrap();
+            assert_eq!(lookup.unwrap().name, name);
+        }
+        expect_lookup(&db, "TestProject.TestModule.TextAtom");
+        expect_lookup(&db, "Standard.Builtins.Main.System.create_process");
+        expect_lookup(&db, "local.Unnamed_6.Main");
+        expect_lookup(&db, "local.Unnamed_6.Main.operator1");
+        expect_lookup(&db, "NewProject.NewModule.testFunction1");
+
+        // Check that looking up names not added to the database does not return entries.
+        fn expect_no_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+            let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+            assert!(lookup.is_none());
+        }
+        expect_no_lookup(&db, "TestProject.TestModule");
+        expect_no_lookup(&db, "Standard.Builtins.Main.create_process");
+        expect_no_lookup(&db, "local.NoSuchEntry");
+    }
+
+    #[test]
     fn lookup_by_fully_qualified_name() {
         // Fill a DB with sample data and test lookups.
         let atom_entry = SuggestionEntry::Atom {
