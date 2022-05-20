@@ -54,6 +54,15 @@ pub struct MissingThisOnMethod(pub String);
 
 
 
+// =============================
+// === QualifiedNameSegments ===
+// =============================
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct QualifiedNameSegments(pub Vec<ImString>);
+
+
+
 // =============
 // === Entry ===
 // =============
@@ -233,14 +242,12 @@ impl Entry {
     }
 
     /// Get the full qualified name of the entry.
-    pub fn qualified_name(&self) -> Vec<ImString> {
-        // pub fn qualified_name(&self) -> tp::QualifiedName {
-        //     tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
-        // }
+    pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
         use itertools::Either::*;
         use std::iter::*;
-        fn collect_im_string_vec<'a>(iter: impl Iterator<Item = &'a str>) -> Vec<ImString> {
-            iter.map(ImString::new).collect()
+        fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments 
+        where I: Iterator<Item = &'a str>{
+            QualifiedNameSegments(iter.map(ImString::new).collect())
         }
         match self.kind {
             Kind::Method => {
@@ -248,10 +255,10 @@ impl Entry {
                     Some(name) => Left(name.segments()),
                     None => Right(empty()),
                 };
-                collect_im_string_vec(self_type.chain(once(self.name.as_str())))
+                collect_segments(self_type.chain(once(self.name.as_str())))
             }
-            Kind::Module => collect_im_string_vec(self.module.segments()),
-            _ => collect_im_string_vec(self.module.segments().chain(once(self.name.as_str()))),
+            Kind::Module => collect_segments(self.module.segments()),
+            _ => collect_segments(self.module.segments().chain(once(self.name.as_str()))),
         }
     }
 }
@@ -664,12 +671,12 @@ mod test {
     }
 
     #[test]
-    fn qualified_name() {
+    fn qualified_name_segments() {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
-            let entry_qualified_name = Entry::from_ls_entry(ls_entry).unwrap().qualified_name();
-            let name_segments = entry_qualified_name;
+            let entry = Entry::from_ls_entry(ls_entry).unwrap();
+            let qualified_name_segments = entry.qualified_name_segments();
             let expected_segments: Vec<_> = qualified_name.split(".").collect();
-            assert_eq!(name_segments, expected_segments);
+            assert_eq!(qualified_name_segments.0, expected_segments);
         }
         let method = language_server::SuggestionEntry::Method {
             name:               "create_process".to_string(),

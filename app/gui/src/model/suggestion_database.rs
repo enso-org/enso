@@ -46,16 +46,16 @@ struct FreeformPathToIdMap {
 }
 
 impl FreeformPathToIdMap {
-    fn warn_if_exists_and_set(&mut self, path: &[PathSegment], id: entry::Id) {
+    fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedNameSegments, id: entry::Id) {
         let value = Some(id);
-        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value);
+        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, value);
         if old_value.is_some() {
             event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
         }
     }
 
-    fn warn_if_absent_and_remove(&mut self, path: &[PathSegment]) {
-        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(path, None);
+    fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedNameSegments) {
+        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, None);
         if old_value.is_none() {
             let msg =
                 format!("When removing an id at {path:?} some id was expected but none was found.");
@@ -156,7 +156,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let path = entry.qualified_name();
+                    let path = entry.qualified_name_segments();
                     freeform_path_to_id_map.warn_if_exists_and_set(&path, id);
                     entries.insert(id, Rc::new(entry));
                 }
@@ -196,7 +196,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path = Entry::qualified_name(&entry);
+                        let path = Entry::qualified_name_segments(&entry);
                         path_to_id_map.warn_if_exists_and_set(&path, id);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -208,7 +208,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path = entry.qualified_name();
+                            let path = entry.qualified_name_segments();
                             path_to_id_map.warn_if_absent_and_remove(&path);
                         }
                         None => {
@@ -219,10 +219,10 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_path = entry.qualified_name();
+                        let old_path = entry.qualified_name_segments();
                         path_to_id_map.warn_if_absent_and_remove(&old_path);
                         let errors = entry.apply_modifications(*modification);
-                        let new_path = entry.qualified_name();
+                        let new_path = entry.qualified_name_segments();
                         path_to_id_map.warn_if_exists_and_set(&new_path, id);
                         for error in errors {
                             error!(
