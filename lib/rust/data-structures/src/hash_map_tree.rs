@@ -603,7 +603,7 @@ mod tests {
     }
 
     #[test]
-    fn replace_and_traverse_back_pruning() {
+    fn replace_value_and_traverse_back_pruning_empty_leaf() {
         let paths = vec![vec![10], vec![10, 20]];
         for path in paths {
             let tree = RefCell::new(HashMapTree::<i32, Option<i32>>::new());
@@ -628,7 +628,7 @@ mod tests {
     }
 
     #[test]
-    fn replace_and_traverse_back_pruning_for_overlapping_paths() {
+    fn replace_value_and_traverse_back_pruning_empty_leaf_for_overlapping_paths() {
         type TestTree = HashMapTree<i32, Option<i32>>;
         fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
             tree.get(path.iter().copied()).and_then(|v| *v)
