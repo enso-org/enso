@@ -256,12 +256,9 @@ impl Entry {
         }
         match self.kind {
             Kind::Method => {
-                match &self.self_type {
-                    Some(self_type) => {
-                        collect_segments_and_entry_name(self_type.segments(), self)
-                    },
-                    None => default(),
-                }
+                let self_type = self.self_type.as_ref();
+                let segments = self_type.map(|t| collect_segments_and_entry_name(t.segments(), self));
+                segments.unwrap_or_default()
             }
             Kind::Module => collect_segments(self.module.segments()),
             _ => collect_segments_and_entry_name(self.module.segments(), self),
