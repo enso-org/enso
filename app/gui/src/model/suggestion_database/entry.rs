@@ -248,7 +248,7 @@ impl Entry {
         is_method && not_extension
     }
 
-    /// Get the full qualified name of the entry.
+    /// Get the segments of the full qualified name of the entry.
     pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
         fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
         where I: Iterator<Item = &'a str> {
