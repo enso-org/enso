@@ -384,8 +384,9 @@ where
         swapped_value
     }
 
-    /// A helper function of [`replace_value_and_traverse_back_pruning_empty_leaf`]. Performs the
-    /// same operation but the replaced value is swapped with `value` instead of being returned.
+    /// A helper of the [`replace_value_and_traverse_back_pruning_empty_leaf`] function. Performs
+    /// the same operation but the replaced value is swapped with `value` instead of being
+    /// returned.
     fn swap_value_and_traverse_back_pruning_empty_leaf<P, I>(
         &mut self,
         mut path: P,
