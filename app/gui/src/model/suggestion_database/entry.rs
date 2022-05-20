@@ -233,26 +233,25 @@ impl Entry {
     }
 
     /// Get the full qualified name of the entry.
-    pub fn qualified_name(&self) -> tp::QualifiedName {
-        tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
-    }
-
-    pub fn fully_qualified_name(&self) -> impl Iterator<Item = &str> {
+    pub fn qualified_name(&self) -> Vec<ImString> {
+        // pub fn qualified_name(&self) -> tp::QualifiedName {
+        //     tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
+        // }
         use itertools::Either::*;
         use std::iter::*;
+        fn collect_im_string_vec<'a>(iter: impl Iterator<Item = &'a str>) -> Vec<ImString> {
+            iter.map(ImString::new).collect()
+        }
         match self.kind {
             Kind::Method => {
                 let self_type = match &self.self_type {
                     Some(name) => Left(name.segments()),
                     None => Right(empty()),
-                    // None => Right(std::iter::empty()),
                 };
-                Left(self_type.chain(once(self.name.as_str())))
+                collect_im_string_vec(self_type.chain(once(self.name.as_str())))
             }
-            Kind::Module => Right(Left(self.module.segments())),
-            _ => {
-                Right(Right(self.module.segments().chain(once(self.name.as_str()))))
-            }
+            Kind::Module => collect_im_string_vec(self.module.segments()),
+            _ => collect_im_string_vec(self.module.segments().chain(once(self.name.as_str()))),
         }
     }
 }
@@ -662,5 +661,22 @@ mod test {
         };
         assert_eq!(non_method.method_id(), None);
         assert_eq!(method.method_id(), Some(expected));
+    }
+
+    #[test]
+    fn qualified_name() {
+        let ls_method = language_server::SuggestionEntry::Method {
+            name:               "create_process".to_string(),
+            module:             "Standard.Builtins.Main".to_string(),
+            self_type:          "Standard.Builtins.Main.System".to_string(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let qn = Entry::from_ls_entry(ls_method).unwrap().qualified_name();
+        let path_segments: Vec<_> = qn.segments().collect();
+        assert_eq!(path_segments, vec!["Standard", "Builtins", "Main", "System", "create_process"]);
     }
 }
