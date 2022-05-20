@@ -176,7 +176,6 @@ case object SuspendedArguments extends IRPass {
         }
       case _: Method.Binding       => throw new CompilerError("")
       case atom: Definition.Atom   => atom
-      case _: Definition.UnionType => binding
       case err: IR.Error           => err
       case _: Definition.Type =>
         throw new CompilerError(

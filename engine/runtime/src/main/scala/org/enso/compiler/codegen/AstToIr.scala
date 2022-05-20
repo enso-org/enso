@@ -137,7 +137,6 @@ object AstToIr {
         IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
       case AstView.Atom(consName, args) =>
         val newArgs = args.map(translateArgumentDefinition(_))
-
         if (newArgs.exists(_.suspended)) {
           val ast = newArgs
             .zip(args)
@@ -148,6 +147,7 @@ object AstToIr {
           Module.Scope.Definition.Atom(
             buildName(consName),
             newArgs,
+            List.empty[Name],
             getIdentifiedLocation(inputAst)
           )
         }

@@ -939,7 +939,7 @@ object IR {
         ): Definition
       }
       object Definition {
-
+/*
         /** The definition of a union type and its members.
           *
           * NB: this should probably be removed once we propagate the union
@@ -1038,11 +1038,12 @@ object IR {
             s"type ${name.showCode(indent)} = $fields"
           }
         }
-
+*/
         /** The definition of an atom constructor and its associated arguments.
           *
           * @param name the name of the atom
           * @param arguments the arguments to the atom constructor
+          * @param variants the names of the variants of this type if a sum type
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
@@ -1050,6 +1051,7 @@ object IR {
         sealed case class Atom(
           name: IR.Name,
           arguments: List[DefinitionArgument],
+          variants: List[IR.Name],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1061,6 +1063,7 @@ object IR {
             *
             * @param name the name of the atom
             * @param arguments the arguments to the atom constructor
+            * @param variants the names of the variants of this type if a sum type
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -1070,12 +1073,13 @@ object IR {
           def copy(
             name: IR.Name                        = name,
             arguments: List[DefinitionArgument]  = arguments,
+            variants: List[IR.Name]              = variants,
             location: Option[IdentifiedLocation] = location,
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
           ): Atom = {
-            val res = Atom(name, arguments, location, passData, diagnostics)
+            val res = Atom(name, arguments, variants, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -1128,6 +1132,7 @@ object IR {
             |IR.Module.Scope.Definition.Atom(
             |name = $name,
             |arguments = $arguments,
+            |variants = $variants,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -1141,8 +1146,12 @@ object IR {
           /** @inheritdoc */
           override def showCode(indent: Int): String = {
             val fields = arguments.map(_.showCode(indent)).mkString(" ")
-
-            s"type ${name.showCode(indent)} $fields"
+            if (variants.isEmpty) {
+              s"type ${name.showCode(indent)} $fields"
+            } else {
+              val alts = variants.map(_.showCode(indent)).mkString(" | ")
+              s"type ${name.showCode(indent)} $fields = $alts"
+            }
           }
         }
 

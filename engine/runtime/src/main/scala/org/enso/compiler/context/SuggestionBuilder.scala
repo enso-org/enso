@@ -43,9 +43,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
+          case IR.Module.Scope.Definition.Atom(name, arguments, variants@_, _, _, _) =>
             val suggestions =
               buildAtom(bindings, module, name.name, arguments, doc)
+
+            // TODO: talk to marcin about how to fix up variants in here
             go(tree ++= suggestions.map(Tree.Node(_, Vector())), scope)
 
           case IR.Module.Scope.Definition.Method
@@ -343,9 +345,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   }
 
   private def buildResolvedUnionTypeName(
-    resolvedName: BindingsMap.ResolvedTypeName
+    resolvedName: BindingsMap.ResolvedName
   ): Option[TypeArg] = resolvedName match {
-    case tp: BindingsMap.ResolvedType =>
+    case tp: BindingsMap.ResolvedConstructor if tp.isSumType =>
       Some(TypeArg.Sum(tp.qualifiedName, tp.getVariants.map(_.qualifiedName)))
     case other: BindingsMap.ResolvedName =>
       buildResolvedTypeName(other).map(TypeArg.Value)
@@ -424,7 +426,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     name: String
   ): Option[TypeArg] = {
     bindings
-      .flatMap(_.resolveTypeName(name).toOption)
+      .flatMap(_.resolveUppercaseName(name).toOption)
       .flatMap(buildResolvedUnionTypeName)
   }
 

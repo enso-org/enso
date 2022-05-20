@@ -227,7 +227,7 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Method definition sugar should not occur during alias analysis."
         )
-      case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
+      case a @ IR.Module.Scope.Definition.Atom(_, args, variants@_, _, _, _) =>
         a.copy(
           arguments =
             analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
@@ -252,7 +252,6 @@ case object AliasAnalysis extends IRPass {
           "analysis."
         )
       case err: IR.Error                            => err
-      case ut: IR.Module.Scope.Definition.UnionType => ut
     }
   }
 

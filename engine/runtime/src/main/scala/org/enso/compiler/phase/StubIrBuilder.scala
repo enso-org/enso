@@ -3,11 +3,7 @@ package org.enso.compiler.phase
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{
-  ModuleReference,
-  ResolvedConstructor,
-  ResolvedMethod
-}
+import org.enso.compiler.data.BindingsMap.{ModuleReference, ResolvedConstructor, ResolvedMethod}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -30,7 +26,13 @@ object StubIrBuilder {
     val consNames = conses.keys.map(_.toLowerCase()).toSet
     val definedConstructors: List[BindingsMap.Cons] =
       conses.toList.map { case (name, cons) =>
-        BindingsMap.Cons(name, cons.getArity, allFieldsDefaulted = false)
+        BindingsMap.Cons(
+          name,
+          cons.getArity,
+          allFieldsDefaulted = false,
+          builtinType = false,
+          variants = cons.getVariants.map(_.getName)
+        );
       }
     val moduleMethods = Option(scope.getMethods.get(scope.getAssociatedType))
       .map(methods =>
@@ -51,7 +53,6 @@ object StubIrBuilder {
       (m.name, List(ResolvedMethod(ModuleReference.Concrete(module), m)))
     )
     val meta = BindingsMap(
-      List(),
       definedConstructors,
       polyglot,
       moduleMethods,

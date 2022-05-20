@@ -87,13 +87,12 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): IR.Module.Scope.Definition =
     binding match {
-      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _) =>
+      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _, _) =>
         atom
           .copy(arguments =
             arguments.map(analyseDefinitionArgument(_, weights))
           )
           .updateMetadata(this -->> weights)
-      case _: IR.Module.Scope.Definition.UnionType => binding
       case method: Method.Conversion =>
         method
           .copy(body = analyseExpression(method.body, weights))

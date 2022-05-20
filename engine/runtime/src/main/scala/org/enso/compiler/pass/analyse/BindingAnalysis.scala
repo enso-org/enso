@@ -50,11 +50,6 @@ case object BindingAnalysis extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    val definedSumTypes = ir.bindings.collect {
-      case sumType: IR.Module.Scope.Definition.UnionType =>
-        BindingsMap.Type(sumType.name.name, sumType.members.map(_.name))
-    }
-
     val definedConstructors = ir.bindings.collect {
       case cons: IR.Module.Scope.Definition.Atom =>
         // FIXME: move to a different pass
@@ -65,7 +60,8 @@ case object BindingAnalysis extends IRPass {
           cons.name.name,
           cons.arguments.length,
           cons.arguments.forall(_.defaultValue.isDefined),
-          isBuiltinType
+          isBuiltinType,
+          cons.variants.map(_.name)
         )
     }
     val importedPolyglot = ir.imports.collect {
@@ -99,7 +95,6 @@ case object BindingAnalysis extends IRPass {
       ) :: moduleMethods
     ir.updateMetadata(
       this -->> BindingsMap(
-        definedSumTypes,
         definedConstructors,
         importedPolyglot,
         methodsWithAutogen,

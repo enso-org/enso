@@ -22,7 +22,7 @@ import scala.annotation.unused
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
-  types: List[BindingsMap.Type],
+  // types: List[BindingsMap.Type],
   constructors: List[BindingsMap.Cons],
   polyglotSymbols: List[BindingsMap.PolyglotSymbol],
   moduleMethods: List[BindingsMap.ModuleMethod],
@@ -202,6 +202,7 @@ case class BindingsMap(
     }
   }
 
+/*
   /** Resolves a name as a type.
     *
     * NB: This should be removed when sum types become proper runtime values.
@@ -211,12 +212,13 @@ case class BindingsMap(
     */
   def resolveTypeName(
     name: String
-  ): Either[ResolutionError, ResolvedTypeName] = {
+  ): Either[ResolutionError, ResolvedName] = {
     types.find(_.name == name) match {
       case Some(value) => Right(ResolvedType(currentModule, value))
       case None        => resolveUppercaseName(name)
     }
   }
+*/
 
   /** Resolves a name in the context of current module.
     *
@@ -736,20 +738,17 @@ object BindingsMap {
     * @param arity the number of fields in the constructor.
     * @param allFieldsDefaulted whether all fields provide a default value.
     * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
+    * @param variants names of variants if this is a sum type
     */
   case class Cons(
-    name: String,
-    arity: Int,
-    allFieldsDefaulted: Boolean,
-    builtinType: Boolean = false
-  )
-
-  /** A representation of a sum type
-    *
-    * @param name the type name
-    * @param members the member names
-    */
-  case class Type(name: String, members: Seq[String])
+     name: String,
+     arity: Int,
+     allFieldsDefaulted: Boolean,
+     builtinType: Boolean = false,
+     variants: Seq[String] = Seq.empty[String]
+  ) {
+    def isSumType: Boolean = ! variants.isEmpty
+  }
 
   /** A representation of an imported polyglot symbol.
     *
@@ -763,75 +762,24 @@ object BindingsMap {
     */
   case class ModuleMethod(name: String)
 
-  /** Represents a resolved name on typelevel.
-    *
-    * NB: should be unified with `ResolvedName` and removed, once sum types get
-    * a proper runtime meaning.
-    */
-  sealed trait ResolvedTypeName {
+
+  /** A result of successful name resolution.
+   */
+  sealed trait ResolvedName {
     def module: ModuleReference
 
     /** Convert the resolved name to abstract form.
-      *
-      * @return `this`, converted to abstract form
-      */
-    def toAbstract: ResolvedTypeName
+     *
+     * @return `this`, converted to abstract form
+     */
+    def toAbstract: ResolvedName
 
     /** Convert the resolved name to concrete form.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this`, converted to concrete form
-      */
-    def toConcrete(moduleMap: ModuleMap): Option[ResolvedTypeName]
-  }
-
-  /** A name resolved to a sum type.
-    *
-    * @param module the module defining the type
-    * @param tp a representation for the type
-    */
-  case class ResolvedType(override val module: ModuleReference, tp: Type)
-      extends ResolvedTypeName {
-    def getVariants: Seq[ResolvedConstructor] = {
-      val bindingsMap = getBindingsFrom(module)
-      tp.members.flatMap(m =>
-        bindingsMap.constructors
-          .find(_.name == m)
-          .map(ResolvedConstructor(module, _))
-      )
-    }
-
-    /** @inheritdoc */
-    override def toAbstract: ResolvedType = {
-      this.copy(module = module.toAbstract)
-    }
-
-    /** @inheritdoc */
-    override def toConcrete(
-      moduleMap: ModuleMap
-    ): Option[ResolvedType] = {
-      module.toConcrete(moduleMap).map(module => this.copy(module = module))
-    }
-
-    def qualifiedName: QualifiedName = module.getName.createChild(tp.name)
-  }
-
-  /** A result of successful name resolution.
-    */
-  sealed trait ResolvedName extends ResolvedTypeName {
-
-    /** Convert the resolved name to abstract form.
-      *
-      * @return `this`, converted to abstract form
-      */
-    override def toAbstract: ResolvedName
-
-    /** Convert the resolved name to concrete form.
-      *
-      * @param moduleMap the mapping from qualified names to modules
-      * @return `this`, converted to concrete form
-      */
-    override def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
+     *
+     * @param moduleMap the mapping from qualified names to modules
+     * @return `this`, converted to concrete form
+     */
+    def toConcrete(moduleMap: ModuleMap): Option[ResolvedName]
   }
 
   /** A representation of a name being resolved to a constructor.
@@ -841,6 +789,18 @@ object BindingsMap {
     */
   case class ResolvedConstructor(module: ModuleReference, cons: Cons)
       extends ResolvedName {
+
+    def isSumType: Boolean = cons.isSumType
+
+    // TODO: lazy val for caching?
+    def getVariants: Seq[ResolvedConstructor] = {
+      val bindingsMap = getBindingsFrom(module)
+      cons.variants.flatMap(m =>
+        bindingsMap.constructors
+          .find(_.name == m)
+          .map(ResolvedConstructor(module, _))
+      )
+    }
 
     /** @inheritdoc */
     override def toAbstract: ResolvedConstructor = {

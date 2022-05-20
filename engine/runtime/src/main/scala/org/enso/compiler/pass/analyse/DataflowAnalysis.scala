@@ -119,13 +119,14 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.Module.Scope.Definition = {
     binding match {
-      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _, _) =>
+      case atom @ IR.Module.Scope.Definition.Atom(_, arguments, variants@_, _, _, _) =>
         arguments.foreach(arg => {
           val argDep  = asStatic(arg)
           val atomDep = asStatic(atom)
           info.dependents.updateAt(argDep, Set(atomDep))
           info.dependencies.updateAt(atomDep, Set(argDep))
         })
+        // do we need to incur a dependency on the parent for each variant?
 
         atom
           .copy(
@@ -154,7 +155,7 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
-      case _: IR.Module.Scope.Definition.UnionType => binding
+      // case _: IR.Module.Scope.Definition.UnionType => binding
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +

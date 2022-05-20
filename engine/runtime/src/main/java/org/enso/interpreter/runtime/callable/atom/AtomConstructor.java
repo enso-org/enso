@@ -31,6 +31,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 import java.util.Map;
+import scala.collection.immutable.List;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
@@ -42,6 +43,9 @@ public final class AtomConstructor implements TruffleObject {
   private final boolean builtin;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
+
+  private @CompilerDirectives.CompilationFinal AtomConstructor parentType;
+  private @CompilerDirectives.CompilationFinal scala.collection.immutable.List<AtomConstructor> variants;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
@@ -247,6 +251,20 @@ public final class AtomConstructor implements TruffleObject {
   public String toString() {
     return name;
   }
+
+  /**
+   * Gets the atom constructor of the parent of this constructor, if this is a variant in a sum type
+   *
+   * @return the parent of this atom constructor if it is a variant in a sum type, null otherwise
+   */
+  public AtomConstructor getParentType() { return parentType; }
+
+  /**
+   * Gets the list of all variants of this constructor if this is a variant in a sum type.
+   *
+   * @return
+   */
+  public List<AtomConstructor> getVariants() { return variants; }
 
   /**
    * Gets the constructor function of this constructor.

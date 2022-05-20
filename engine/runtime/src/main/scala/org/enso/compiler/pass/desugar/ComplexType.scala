@@ -190,8 +190,10 @@ case object ComplexType extends IRPass {
     val allEntities = entityResults ::: lastSignature.toList
 
     val includedNames = atomDefs.map(_.name)
+
+    // build the union type
     val sumType = IR.Module.Scope.Definition
-      .UnionType(typ.name, includedNames, typ.location)
+      .Atom(typ.name, typ.arguments, includedNames, typ.location)
 
     sumType :: atomDefs ::: allEntities
   }
