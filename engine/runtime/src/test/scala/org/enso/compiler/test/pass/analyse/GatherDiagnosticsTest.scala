@@ -92,6 +92,7 @@ class GatherDiagnosticsTest extends CompilerTest {
               IR.DefinitionArgument
                 .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
+            List(),
             None
           ),
           IR.Module.Scope.Definition.Method

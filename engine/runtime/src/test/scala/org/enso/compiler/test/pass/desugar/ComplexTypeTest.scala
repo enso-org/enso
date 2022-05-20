@@ -82,7 +82,7 @@ class ComplexTypeTest extends CompilerTest {
 
       exactly(2, ir.bindings) shouldBe a[Definition.Atom]
       ir.bindings(0)
-        .asInstanceOf[Definition.UnionType]
+        .asInstanceOf[Definition.Type]
         .name
         .name shouldEqual "MyType"
       ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
