@@ -663,6 +663,18 @@ mod test {
         assert_eq!(db.version.get(), 8);
     }
 
+    fn expect_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+        let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+        assert!(lookup.is_some());
+        let name = fully_qualified_name.rsplit('.').next().unwrap();
+        assert_eq!(lookup.unwrap().name, name);
+    }
+
+    fn expect_no_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+        let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+        assert!(lookup.is_none());
+    }
+
     #[test]
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
@@ -723,12 +735,6 @@ mod test {
 
         // Check that the entries used to initialize the database can be found using the
         // `lookup_by_fully_qualified_name` method.
-        fn expect_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
-            let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
-            assert!(lookup.is_some());
-            let name = fully_qualified_name.rsplit('.').next().unwrap();
-            assert_eq!(lookup.unwrap().name, name);
-        }
         expect_lookup(&db, "TestProject.TestModule.TextAtom");
         expect_lookup(&db, "Standard.Builtins.Main.System.create_process");
         expect_lookup(&db, "local.Unnamed_6.Main");
@@ -736,13 +742,79 @@ mod test {
         expect_lookup(&db, "NewProject.NewModule.testFunction1");
 
         // Check that looking up names not added to the database does not return entries.
-        fn expect_no_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
-            let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
-            assert!(lookup.is_none());
-        }
         expect_no_lookup(&db, "TestProject.TestModule");
         expect_no_lookup(&db, "Standard.Builtins.Main.create_process");
         expect_no_lookup(&db, "local.NoSuchEntry");
+    }
+
+    #[test]
+    fn lookup_by_fully_qualified_name_after_db_modification() {
+        // Initialize a suggestion database with a few sample entries.
+        let entry1 = SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let entry2 = SuggestionEntry::Method {
+            name:               "create_process".to_string(),
+            module:             "Standard.Builtins.Main".to_string(),
+            self_type:          "Standard.Builtins.Main.System".to_string(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
+            SuggestionsDatabaseEntry { id, suggestion }
+        }
+        let id1 = 1;
+        let id2 = 2;
+        let response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![db_entry(id1, entry1), db_entry(id2, entry2)],
+            current_version: 1,
+        };
+        let db = SuggestionDatabase::from_ls_response(response);
+
+        // Modify the database contents by applying an update event.
+        let entry3 = SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        let entry1_modification = Box::new(SuggestionsDatabaseModification {
+            arguments:          vec![],
+            module:             Some(FieldUpdate::set("NewProject.NewModule".to_string())),
+            self_type:          None,
+            return_type:        None,
+            documentation:      None,
+            documentation_html: None,
+            scope:              None,
+        });
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![
+                entry::Update::Modify {
+                    id:           id1,
+                    external_id:  None,
+                    modification: entry1_modification,
+                },
+                entry::Update::Remove { id: id2 },
+                entry::Update::Add { id: 3, suggestion: entry3 },
+            ],
+            current_version: 2,
+        };
+        db.apply_update_event(update);
+
+        // Check the results of `lookup_by_fully_qualified_name` after the update.
+        expect_no_lookup(&db, "TestProject.TestModule.TextAtom");
+        expect_lookup(&db, "NewProject.NewModule.TextAtom");
+        expect_no_lookup(&db, "Standard.Builtins.Main.System.create_process");
+        expect_lookup(&db, "local.Unnamed_6.Main");
     }
 
     #[test]
