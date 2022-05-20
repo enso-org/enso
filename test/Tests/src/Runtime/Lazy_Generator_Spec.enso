@@ -1,0 +1,23 @@
+import Standard.Test
+
+type Generator h t
+
+natural =
+    gen ~n = if (n >= 10) then this else Generator n (@Tail_Call gen n+1)
+    gen 2
+
+Generator.n = case this of
+    Generator n _ -> n
+Generator.next = case this of
+    Generator _ n -> n
+
+spec = Test.group "Lazy Generator" <|
+    Test.specify "Generates four numbers properly" <|
+        two = here.natural
+        two.n . should_equal 2
+        three = two.next
+        three.n . should_equal 3
+        four = three.next
+        four.n . should_equal 4
+
+main = Test.Suite.run_main here.spec

@@ -53,6 +53,7 @@ import org.graalvm.options.OptionDescriptors;
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
   StandardTags.ExpressionTag.class,
+  StandardTags.StatementTag.class,
   StandardTags.RootTag.class,
   StandardTags.TryBlockTag.class,
   IdentifiedTag.class

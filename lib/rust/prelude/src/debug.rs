@@ -56,7 +56,7 @@ pub use internal::backtrace;
 // === TraceCopies ===
 // ===================
 
-/// An utility for tracing all copies of CloneRef-able entity.
+/// A utility for tracing all copies of CloneRef-able entity.
 ///
 /// This structure should be added as a field to structure implementing Clone or CloneRef. It will
 /// mark each copy with unique id (the original copy has id of 0). Once enabled, it will print

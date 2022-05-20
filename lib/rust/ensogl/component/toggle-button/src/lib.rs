@@ -230,7 +230,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             // === State ===
 
-            toggle <- any_(frp.toggle,icon.mouse_down);
+            toggle <- any_(frp.toggle,icon.mouse_down_primary);
             frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 
@@ -248,7 +248,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
             frp.source.visible    <+ frp.set_visibility;
             frp.source.is_hovered <+ bool(&icon.mouse_out,&icon.mouse_over);
-            frp.source.is_pressed <+ bool(&icon.mouse_up,&icon.mouse_down);
+            frp.source.is_pressed <+ bool(&icon.mouse_up_primary,&icon.mouse_down_primary);
 
             button_state <- all_with4(&frp.visible,&frp.state,&frp.is_hovered,&frp.is_pressed,
                 |a,b,c,d| ButtonState::new(*a,*b,*c,*d));

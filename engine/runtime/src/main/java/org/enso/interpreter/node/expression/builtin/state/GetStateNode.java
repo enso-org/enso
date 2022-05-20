@@ -44,30 +44,25 @@ public abstract class GetStateNode extends Node {
   }
 
   @Specialization
-  Object doMultiUncached(
-      SmallMap state,
-      Object _this,
-      Object key) {
+  Object doMultiUncached(SmallMap state, Object _this, Object key) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
       return DataflowError.withoutTrace(
-          Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+          Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
     } else {
       return state.getValues()[idx];
     }
   }
 
   @Specialization
-  Object doEmpty(
-      EmptyMap state, Object _this, Object key) {
+  Object doEmpty(EmptyMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 
   @Specialization
-  Object doSingletonError(
-      SingletonMap state, Object _this, Object key) {
+  Object doSingletonError(SingletonMap state, Object _this, Object key) {
     return DataflowError.withoutTrace(
-        Context.get(this).getBuiltins().error().uninitializedState().newInstance(key), this);
+        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 }

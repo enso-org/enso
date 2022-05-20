@@ -66,7 +66,7 @@ fn define_profiler(
             impl Profiler for #obj_ident {
                 fn start(
                     parent: EventId,
-                    label: StaticLabel,
+                    label: Label,
                     time: Option<Timestamp>,
                     start: StartState,
                 ) -> Self {
@@ -128,7 +128,7 @@ fn define_profiler(
             impl Profiler for #obj_ident {
                 fn start(
                     _: EventId,
-                    _: StaticLabel,
+                    _: Label,
                     _: Option<Timestamp>,
                     _: StartState,
                 ) -> Self {
@@ -169,11 +169,11 @@ fn enabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label: StaticLabel) -> Started<#child_ident> {
+            fn new_child(&self, label: Label) -> Started<#child_ident> {
                 let start = Some(Timestamp::now());
                 Started(#child_ident::start(self.0, label, start, StartState::Active))
             }
-            fn new_child_same_start(&self, label: StaticLabel) -> Started<#child_ident> {
+            fn new_child_same_start(&self, label: Label) -> Started<#child_ident> {
                 Started(#child_ident::start(self.0, label, None, StartState::Active))
             }
         }
@@ -189,10 +189,10 @@ fn disabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label: StaticLabel) -> Started<#child_ident> {
+            fn new_child(&self, label: Label) -> Started<#child_ident> {
                 self.new_child_same_start(label)
             }
-            fn new_child_same_start(&self, _label: StaticLabel) -> Started<#child_ident> {
+            fn new_child_same_start(&self, _label: Label) -> Started<#child_ident> {
                 Started(#child_ident(()))
             }
         }

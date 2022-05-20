@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::display::render::pass;
 use crate::display::scene::Scene;
+use crate::display::scene::UpdateStatus;
 use crate::display::symbol::Screen;
 
 
@@ -27,7 +28,9 @@ impl ScreenRenderPass {
 }
 
 impl pass::Definition for ScreenRenderPass {
-    fn run(&mut self, _: &pass::Instance) {
-        self.screen.render();
+    fn run(&mut self, _: &pass::Instance, update_status: UpdateStatus) {
+        if update_status.scene_was_dirty {
+            self.screen.render();
+        }
     }
 }

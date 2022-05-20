@@ -146,7 +146,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       val conversion =
         ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
-      conversion.body shouldBe an [IR.Error.Redefined.ThisArg]
+      conversion.body shouldBe an[IR.Error.Redefined.ThisArg]
     }
   }
 }

@@ -93,12 +93,7 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          Context.get(this)
-              .getBuiltins()
-              .error()
-              .inexhaustivePatternMatchError()
-              .newInstance(object),
-          this);
+          Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       frame.setObject(getStateFrameSlot(), e.getResult().getState());

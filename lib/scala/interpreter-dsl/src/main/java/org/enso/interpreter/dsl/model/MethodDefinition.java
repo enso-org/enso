@@ -12,6 +12,9 @@ import java.util.*;
 /** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
   private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
+  public static final String NODE_PKG = "org.enso.interpreter.node.expression.builtin";
+  public static final String META_PATH =
+      "META-INF" + "/" + NODE_PKG.replace('.', '/') + "/BuiltinMethods.metadata";
 
   private final String packageName;
   private final String originalClassName;
@@ -46,6 +49,22 @@ public class MethodDefinition {
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
     this.modifiesState = execute.getReturnType().toString().equals(STATEFUL);
     this.constructorExpression = initConstructor(element);
+  }
+
+  public boolean hasAliases() {
+    return !annotation.aliases().isEmpty();
+  }
+
+  public String[] aliases() {
+    if (annotation.aliases().isEmpty()) {
+      return new String[0];
+    } else {
+      String[] methodNames = annotation.aliases().split(",");
+      for (int i = 0; i < methodNames.length; i++) {
+        methodNames[i] = annotation.type() + "." + methodNames[i];
+      }
+      return methodNames;
+    }
   }
 
   private String initConstructor(TypeElement element) {
@@ -138,6 +157,11 @@ public class MethodDefinition {
     return annotation.type() + "." + annotation.name();
   }
 
+  /** @return the language-level owner type of this method. */
+  public String getType() {
+    return annotation.type();
+  }
+
   /** @return get the description of this method. */
   public String getDescription() {
     return annotation.description();
@@ -174,6 +198,7 @@ public class MethodDefinition {
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
+    private static final String THIS = "this";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -198,7 +223,7 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       String originalName = element.getSimpleName().toString();
-      name = originalName.equals("_this") ? "this" : originalName;
+      name = originalName.equals("_this") ? THIS : originalName;
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
@@ -220,6 +245,27 @@ public class MethodDefinition {
                 element);
         return false;
       }
+
+      if (isThis() && position != 0) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "Argument `_this` must be the first positional argument.",
+                element);
+        return false;
+      }
+
+      if (isPositional() && position == 0 && !isThis()) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "The first positional argument should be called `_this`.",
+                element);
+        return false;
+      }
+
       return true;
     }
 
@@ -293,7 +339,15 @@ public class MethodDefinition {
     }
 
     public boolean isThis() {
-      return name.equals("this") || position == 0;
+      return name.equals(THIS);
+    }
+
+    public boolean shouldCheckErrors() {
+      return isPositional() && !isThis() && !acceptsError();
+    }
+
+    public boolean shouldCheckWarnings() {
+      return isPositional() && !isThis() && !acceptsWarning();
     }
   }
 }

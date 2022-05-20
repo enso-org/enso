@@ -6,7 +6,11 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.optimise.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
+import org.enso.compiler.pass.optimise.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec,
+  Metadata
+}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode

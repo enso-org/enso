@@ -10,17 +10,17 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.Context;
 
-@BuiltinMethod(type = "", name = "<run_thread>")
+@BuiltinMethod(type = "Special", name = "<run_thread>")
 public abstract class RunThreadNode extends Node {
   static RunThreadNode build() {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(@MonadicState Object state, @Suspend Object th);
+  abstract Thread execute(@MonadicState Object state, @Suspend Object _this);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(Object state, Object th) {
+  Thread doExecute(Object state, Object _this) {
     Context ctx = Context.get(this);
     Thread thread =
         ctx.getEnvironment()
@@ -29,7 +29,7 @@ public abstract class RunThreadNode extends Node {
                   Object p = ctx.getThreadManager().enter();
                   try {
                     ThunkExecutorNodeGen.getUncached()
-                        .executeThunk(th, state, BaseNode.TailStatus.NOT_TAIL);
+                        .executeThunk(_this, state, BaseNode.TailStatus.NOT_TAIL);
                   } finally {
                     ctx.getThreadManager().leave(p);
                   }

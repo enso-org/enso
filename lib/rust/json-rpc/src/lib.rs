@@ -23,6 +23,7 @@
 pub mod api;
 pub mod error;
 pub mod handler;
+pub mod log;
 pub mod macros;
 pub mod messages;
 pub mod test_util;
@@ -31,6 +32,8 @@ pub mod transport;
 pub use api::RemoteMethodCall;
 pub use api::Result;
 pub use enso_prelude as prelude;
+pub use enso_profiler;
+pub use enso_profiler_data;
 pub use enso_web as ensogl;
 pub use error::RpcError;
 pub use handler::Event;

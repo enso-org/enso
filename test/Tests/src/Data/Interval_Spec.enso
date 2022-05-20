@@ -41,6 +41,7 @@ spec =
             interval = Interval.end_exclusive 1 10
             interval.contains 0 . should_be_false
             interval.contains 1 . should_be_true
+            interval.contains 5.5 . should_be_true
             interval.contains 9 . should_be_true
             interval.contains 10 . should_be_false
             interval.contains 10 . should_be_false
@@ -53,11 +54,14 @@ spec =
             interval_3 = Interval.end_exclusive 0 1
             interval_3.contains -1 . should_be_false
             interval_3.contains 0 . should_be_true
+            interval_3.contains 0.5 . should_be_true
+            interval_3.contains 0.99999999 . should_be_true
             interval_3.contains 1 . should_be_false
 
             interval_4 = Interval.inclusive 0 0
             interval_4.contains -1 . should_be_false
             interval_4.contains 0 . should_be_true
+            interval_4.contains 0.00001 . should_be_false
             interval_4.contains 1 . should_be_false
 
             interval_5 = Interval.exclusive 0 0
@@ -69,22 +73,32 @@ spec =
             interval_6.contains -1 . should_be_false
             interval_6.contains 0 . should_be_false
             interval_6.contains 1 . should_be_false
+
+            interval_7 = Interval.start_exclusive 0.123 0.124
+            interval_7.contains 0.123 . should_be_false
+            interval_7.contains 0.1235 . should_be_true
+            interval_7.contains 0.124 . should_be_true
+            interval_7.contains 1 . should_be_false
+
+            (Interval.inclusive 0.1 1) . contains 0.33 . should_be_true
         Test.specify "can be checked for emptiness" <|
             Interval.exclusive 0 0 . is_empty . should_be_true
             Interval.exclusive 1 10 . is_empty . should_be_false
             Interval.start_exclusive 0 0 . is_empty . should_be_true
-            Interval.start_exclusive 1 10 . is_empty . should_be_false
+            Interval.start_exclusive 1 1.1 . is_empty . should_be_false
             Interval.end_exclusive 0 0  . is_empty . should_be_true
             Interval.end_exclusive 1 10 . is_empty . should_be_false
             Interval.inclusive 0 0 . is_empty . should_be_false
-            Interval.inclusive 10 0 . is_empty . should_be_true
+            Interval.inclusive 0.1 0 . is_empty . should_be_true
         Test.specify "can be checked for non-emptiness" <|
             Interval.exclusive 0 0 . not_empty . should_be_false
+            Interval.inclusive 0 0.001 . not_empty . should_be_true
             Interval.exclusive 1 10 . not_empty . should_be_true
             Interval.start_exclusive 0 0 . not_empty . should_be_false
-            Interval.start_exclusive 1 10 . not_empty . should_be_true
+            Interval.start_exclusive 1 1.1 . not_empty . should_be_true
             Interval.end_exclusive 0 0  . not_empty . should_be_false
             Interval.end_exclusive 1 10 . not_empty . should_be_true
             Interval.inclusive 0 0 . not_empty . should_be_true
             Interval.inclusive 10 0 . not_empty . should_be_false
 
+main = Test.Suite.run_main here.spec

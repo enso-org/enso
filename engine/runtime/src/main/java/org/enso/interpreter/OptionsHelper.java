@@ -24,8 +24,7 @@ public class OptionsHelper {
   /**
    * Gets an optional override for the language home directory.
    *
-   * This is used mostly for the runtime tests, as language home is not normally
-   * defined there.
+   * <p>This is used mostly for the runtime tests, as language home is not normally defined there.
    */
   public static Optional<String> getLanguageHomeOverride(TruffleLanguage.Env env) {
     String option = env.getOptions().get(RuntimeOptions.LANGUAGE_HOME_OVERRIDE_KEY);

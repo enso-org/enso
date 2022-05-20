@@ -1,0 +1,41 @@
+name: Code Formatting Check
+
+on:
+  push:
+    branches: [develop, "release/*"]
+  pull_request:
+    branches: ["*"]
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.3.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+
+jobs:
+  test_formatting:
+    name: Test Formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      # No need to run it on multiple distros, result should be the same
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+      - name: Check Code Formatting
+        run: |
+          sbt "scalafmtCheckAll; javafmtCheckAll"

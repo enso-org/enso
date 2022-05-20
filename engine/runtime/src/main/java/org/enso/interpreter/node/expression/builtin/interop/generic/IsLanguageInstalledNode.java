@@ -20,10 +20,7 @@ public abstract class IsLanguageInstalledNode extends Node {
   }
 
   @Specialization
-  boolean doExecute(
-      Object _this,
-      Object language_name,
-      @Cached ExpectStringNode expectStringNode) {
+  boolean doExecute(Object _this, Object language_name, @Cached ExpectStringNode expectStringNode) {
     String name = expectStringNode.execute(language_name);
     return Context.get(this).getEnvironment().getPublicLanguages().get(name) != null;
   }

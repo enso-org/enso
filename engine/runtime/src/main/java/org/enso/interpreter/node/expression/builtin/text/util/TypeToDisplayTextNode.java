@@ -29,7 +29,12 @@ public abstract class TypeToDisplayTextNode extends Node {
       @CachedLibrary(limit = "5") InteropLibrary objects,
       @CachedLibrary(limit = "5") InteropLibrary displays,
       @CachedLibrary(limit = "5") InteropLibrary strings) {
-    if (TypesGen.isLong(value)) {
+    if (value == null) {
+      // TODO [RW] This is a temporary workaround to make it possible to display errors related to
+      // https://www.pivotaltracker.com/story/show/181652974
+      // Most likely it should be removed once that is implemented.
+      return "null";
+    } else if (TypesGen.isLong(value)) {
       return value + " (Integer)";
     } else if (TypesGen.isEnsoBigInteger(value)) {
       return "Integer";
@@ -59,8 +64,7 @@ public abstract class TypeToDisplayTextNode extends Node {
       try {
         return strings.asString(displays.toDisplayString(objects.getMetaObject(value)));
       } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(
-            "Receiver declares a meta object, but does not it return it.");
+        throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
     } else {
       return "a polyglot object";

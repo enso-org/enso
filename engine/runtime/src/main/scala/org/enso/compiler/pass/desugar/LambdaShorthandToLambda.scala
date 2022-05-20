@@ -186,7 +186,7 @@ case object LambdaShorthandToLambda extends IRPass {
           args
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
-            .map { case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+            .map { case s @ IR.CallArgument.Specified(_, value, _, _, _) =>
               s.copy(value = desugarExpression(value, freshNameSupply))
             }
 
@@ -301,7 +301,7 @@ case object LambdaShorthandToLambda extends IRPass {
     *         position is lambda shorthand, otherwise `false`
     */
   def determineLambdaShorthand(args: List[IR.CallArgument]): List[Boolean] = {
-    args.map { case IR.CallArgument.Specified(_, value, _, _, _, _) =>
+    args.map { case IR.CallArgument.Specified(_, value, _, _, _) =>
       value match {
         case _: IR.Name.Blank => true
         case _                => false
@@ -325,7 +325,7 @@ case object LambdaShorthandToLambda extends IRPass {
     val isShorthand = argAndIsShorthand._2
 
     arg match {
-      case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+      case s @ IR.CallArgument.Specified(_, value, _, _, _) =>
         if (isShorthand) {
           val newName = freshNameSupply
             .newName()
@@ -354,7 +354,7 @@ case object LambdaShorthandToLambda extends IRPass {
   ): Option[IR.DefinitionArgument] = {
     if (isShorthand) {
       arg match {
-        case IR.CallArgument.Specified(_, value, _, _, passData, diagnostics) =>
+        case IR.CallArgument.Specified(_, value, _, passData, diagnostics) =>
           // Note [Safe Casting to IR.Name.Literal]
           val defArgName =
             IR.Name.Literal(

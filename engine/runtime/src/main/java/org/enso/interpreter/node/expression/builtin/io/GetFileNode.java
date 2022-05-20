@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.EnsoFile;
 
 @BuiltinMethod(
-    type = "Prim_Io",
+    type = "File",
     name = "get_file",
     description =
         "Takes the text representation of a path and returns a TruffleFile corresponding to it.")
@@ -23,11 +23,9 @@ public abstract class GetFileNode extends Node {
 
   @Specialization
   Object doGetFile(
-      Object _this,
-      Object path,
-      @Cached("build()") ExpectStringNode expectStringNode) {
+      Object _this, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
     String pathStr = expectStringNode.execute(path);
-    var context= Context.get(this);
+    var context = Context.get(this);
     TruffleFile file = context.getEnvironment().getPublicTruffleFile(pathStr);
     EnsoFile ensoFile = new EnsoFile(file);
     return context.getEnvironment().asGuestValue(ensoFile);

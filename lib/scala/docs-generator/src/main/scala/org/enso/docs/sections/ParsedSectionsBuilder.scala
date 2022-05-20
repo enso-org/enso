@@ -4,6 +4,8 @@ import cats.kernel.Monoid
 import cats.syntax.compose._
 import org.enso.syntax.text.ast.Doc
 
+import scala.collection.mutable
+
 /** Combine the documentation into a list of [[Section]]s. */
 final class ParsedSectionsBuilder {
 
@@ -53,21 +55,10 @@ final class ParsedSectionsBuilder {
     * @return the list of parsed sections
     */
   private def buildSections(sections: List[Doc.Section]): List[Section] =
-    sections.map {
+    sections.flatMap {
       case Doc.Section.Raw(_, elems) =>
-        elems match {
-          case Doc.Elem.Text(text) :: tail =>
-            val (key, value) = text.span(_ != const.COLON)
-            if (value.nonEmpty) {
-              val line = value.drop(1).stripPrefix(const.SPACE)
-              val body = if (line.isEmpty) tail else Doc.Elem.Text(line) :: tail
-              Section.Keyed(key, body)
-            } else {
-              Section.Paragraph(elems)
-            }
-          case _ =>
-            Section.Paragraph(elems)
-        }
+        buildRaw(elems)
+
       case Doc.Section.Marked(_, _, typ, elems) =>
         elems match {
           case head :: tail =>
@@ -77,9 +68,9 @@ final class ParsedSectionsBuilder {
               case _ =>
                 None
             }
-            Section.Marked(buildMark(typ), header, tail)
+            List(Section.Marked(buildMark(typ), header, tail))
           case Nil =>
-            Section.Marked(buildMark(typ), None, elems)
+            List(Section.Marked(buildMark(typ), None, elems))
         }
     }
 
@@ -159,6 +150,50 @@ final class ParsedSectionsBuilder {
         case Doc.Section.Raw(_, List(Doc.Elem.Newline)) => false
         case _                                          => true
       }
+
+  /** Builds sections from the [[Doc.Section.Raw]] raw section.
+    *
+    * @param elems the elements of the raw section
+    * @return the resulting list of sections
+    */
+  private def buildRaw(elems: List[Doc.Elem]): List[Section] =
+    elems match {
+      case Doc.Elem.Text(text) :: tail =>
+        val (key, value) = text.span(_ != const.COLON)
+        if (value.nonEmpty) {
+          val line            = value.drop(1).stripPrefix(const.SPACE)
+          val body            = if (line.isEmpty) tail else Doc.Elem.Text(line) :: tail
+          val (keyBody, rest) = splitKeyed(body)
+          Section.Keyed(key, keyBody) :: buildRaw(rest)
+        } else {
+          List(Section.Paragraph(elems))
+        }
+      case Nil =>
+        Nil
+      case elems =>
+        List(Section.Paragraph(elems))
+    }
+
+  private def splitKeyed(
+    elems: List[Doc.Elem]
+  ): (List[Doc.Elem], List[Doc.Elem]) = {
+    @scala.annotation.tailrec
+    def go(
+      elems: List[Doc.Elem],
+      b: mutable.Builder[Doc.Elem, List[Doc.Elem]]
+    ): (List[Doc.Elem], List[Doc.Elem]) =
+      elems match {
+        case Doc.Elem.Newline :: Doc.Elem.Text(text) :: tail
+            if text.contains(const.COLON) =>
+          (b.result(), Doc.Elem.Text(text) :: tail)
+        case elem :: tail =>
+          go(tail, b += elem)
+        case Nil =>
+          (b.result(), Nil)
+      }
+
+    go(elems, List.newBuilder)
+  }
 }
 
 object ParsedSectionsBuilder {

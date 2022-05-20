@@ -378,6 +378,61 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       Section.Raw(2, "And this is not")
     )
   )
+  """ Synopsis
+    |
+    | !Important
+    |    This is a code
+    |
+    | Other: And this is a section""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?= Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        0,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "This is a code")),
+        Doc.Elem.Newline
+      ),
+      Section.Raw(1, "Other: And this is a section")
+    )
+  )
+  """ Synopsis
+    |
+    | ! Important
+    |
+    |    This is a multiline code
+    |
+    | ? Info""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?== Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "This is a multiline code"))
+      ),
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Info,
+        Section.Header("Info")
+      )
+    )
+  )
   """Synopsis
     |
     |! Important
@@ -400,6 +455,36 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         "This is important",
         Doc.Elem.Newline,
         CodeBlock(CodeBlock.Line(4, "And this is a code"))
+      )
+    )
+  )
+  """ Synopsis
+    |
+    | ! Important
+    |
+    |    This is a multiline code
+    |
+    | Other: And this *is* a section""".stripMargin.replaceAll(
+    System.lineSeparator(),
+    "\n"
+  ) ?== Doc(
+    Synopsis(
+      Section.Raw(1, "Synopsis", Doc.Elem.Newline)
+    ),
+    Body(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        Doc.Elem.Newline,
+        CodeBlock(CodeBlock.Line(4, "This is a multiline code"))
+      ),
+      Section.Raw(
+        1,
+        "Other: And this ",
+        Formatter(Formatter.Bold, "is"),
+        " a section"
       )
     )
   )
@@ -1498,6 +1583,105 @@ class DocParserTests extends AnyFlatSpec with Matchers {
           CodeBlock.Line(14, "Examples.csv_path"),
           CodeBlock.Line(10, "File.new path")
         )
+      )
+    )
+  )
+
+  """ UNSTABLE
+    |
+    | Creates a new table from a vector of column names and a vector of vectors
+    | specifying row contents.
+    |
+    | Arguments:
+    | - header: A list of texts specifying the column names
+    | - rows: A vector of vectors, specifying the contents of each table row. The
+    |   length of each element of `rows` must be equal in length to `header`.
+    |
+    | > Example
+    |   Create a table with 3 columns, named `foo`, `bar`, and `baz`, containing
+    |   `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`, respectively.
+    |
+    |       import Standard.Table
+    |
+    |       example_from_rows =
+    |           header = [ 'foo' , 'bar' , 'baz' ]
+    |           row_1 =  [ 1     , True  , 'a'   ]
+    |           row_2 =  [ 2     , False , 'b'   ]
+    |           row_3 =  [ 3     , True  , 'c'   ]
+    |           Table.from_rows header [row_1, row_2, row_3]
+    |
+    | Icon: table-from-rows
+    | Aliases: foo, bar baz, redshift®
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?== Doc(
+    Tags(Tag(1, Tags.Tag.Type.Unstable, None)),
+    Synopsis(Section.Raw(1, Newline)),
+    Body(
+      Section.Raw(
+        1,
+        "Creates a new table from a vector of column names and a vector of vectors",
+        Newline,
+        "specifying row contents.",
+        Newline
+      ),
+      Section.Raw(
+        1,
+        "Arguments:",
+        Newline,
+        List(
+          1,
+          List.Unordered,
+          ListItem("header: A list of texts specifying the column names"),
+          ListItem(
+            "rows: A vector of vectors, specifying the contents of each table row. The",
+            Newline,
+            "   ",
+            "length of each element of ",
+            CodeBlock.Inline("rows"),
+            " must be equal in length to ",
+            CodeBlock.Inline("header"),
+            "."
+          )
+        ),
+        Newline
+      ),
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Newline,
+        "Create a table with 3 columns, named ",
+        CodeBlock.Inline("foo"),
+        ", ",
+        CodeBlock.Inline("bar"),
+        ", and ",
+        CodeBlock.Inline("baz"),
+        ", containing",
+        Newline,
+        CodeBlock.Inline("[1, 2, 3]"),
+        Text(", "),
+        CodeBlock.Inline("[True, False, True]"),
+        ", and ",
+        CodeBlock.Inline("['a', 'b', 'c']"),
+        ", respectively.",
+        Newline,
+        CodeBlock(
+          CodeBlock.Line(7, "import Standard.Table"),
+          CodeBlock.Line(7, "example_from_rows ="),
+          CodeBlock.Line(11, "header = [ 'foo' , 'bar' , 'baz' ]"),
+          CodeBlock.Line(11, "row_1 =  [ 1     , True  , 'a'   ]"),
+          CodeBlock.Line(11, "row_2 =  [ 2     , False , 'b'   ]"),
+          CodeBlock.Line(11, "row_3 =  [ 3     , True  , 'c'   ]"),
+          CodeBlock.Line(11, "Table.from_rows header [row_1, row_2, row_3]")
+        )
+      ),
+      Section.Raw(
+        1,
+        "Icon: table-from-rows",
+        Newline,
+        "Aliases: foo, bar baz, redshift",
+        "®",
+        Newline
       )
     )
   )

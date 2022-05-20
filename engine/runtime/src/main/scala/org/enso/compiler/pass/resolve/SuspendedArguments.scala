@@ -174,9 +174,10 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case _: Method.Binding     => throw new CompilerError("")
-      case atom: Definition.Atom => atom
-      case err: IR.Error         => err
+      case _: Method.Binding       => throw new CompilerError("")
+      case atom: Definition.Atom   => atom
+      case _: Definition.UnionType => binding
+      case err: IR.Error           => err
       case _: Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present."

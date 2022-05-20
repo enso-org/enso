@@ -78,7 +78,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )
@@ -114,7 +114,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )
@@ -122,7 +122,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Cons("Bar", 0, true)
           )
         )
       )
@@ -136,7 +136,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Bar", 0)
+            Cons("Bar", 0, true)
           )
         )
       )
@@ -150,7 +150,7 @@ class MethodDefinitionsTest extends CompilerTest {
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )

@@ -224,8 +224,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Do another thing
           |    z = x * y
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -247,8 +246,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |    ## Return thing
           |    f 1
           |""".stripMargin.preprocessModule.resolve
-      val body = ir
-        .bindings.head
+      val body = ir.bindings.head
         .asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
         .body
         .asInstanceOf[IR.Expression.Block]

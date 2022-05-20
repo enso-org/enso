@@ -61,7 +61,7 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let sprite_system = ShapeSystem::new(&world, &shape());
+    let sprite_system = ShapeSystem::new(&world, &shape(), true);
     let sprite = sprite_system.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));
@@ -79,9 +79,10 @@ pub fn main() {
             let _keep_alive = &navigator;
             i += 1;
             if i == 5 {
-                let shader = sprite.symbol.shader().shader().unwrap();
-                DEBUG!("\n\nVERTEX:\n{shader.vertex}");
-                DEBUG!("\n\nFRAGMENT:\n{shader.fragment}");
+                if let Some(program) = sprite.symbol.shader().program() {
+                    DEBUG!("\n\nVERTEX:\n{program.shader.vertex.code}");
+                    DEBUG!("\n\nFRAGMENT:\n{program.shader.fragment.code}");
+                }
             }
         })
         .forget();

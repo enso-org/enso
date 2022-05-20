@@ -46,9 +46,9 @@ mod js {
         #[allow(unsafe_code)]
         pub fn show_logs();
 
-        /// When the `showLogs` function is evaluated, the `autoFlush` flag is set to true. This
-        /// may happen even before the WASM file is loaded, so it's worth checking whether it
-        /// happened on startup.
+        // When the `showLogs` function is evaluated, the `autoFlush` flag is set to true. This
+        // may happen even before the WASM file is loaded, so it's worth checking whether it
+        // happened on startup.
         #[allow(unsafe_code)]
         pub fn check_auto_flush() -> bool;
     }

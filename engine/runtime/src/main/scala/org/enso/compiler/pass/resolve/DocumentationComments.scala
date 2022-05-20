@@ -148,6 +148,10 @@ case object DocumentationComments extends IRPass {
           "Conversion methods should not yet be present in the compiler " +
           "pipeline."
         )
+      case _: IR.Module.Scope.Definition.UnionType =>
+        throw new CompilerError(
+          "Union types should not yet be present in the compiler pipeline."
+        )
       case method: IR.Module.Scope.Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
       case method: IR.Module.Scope.Definition.Method.Explicit =>

@@ -12,7 +12,7 @@ type C a=3 b=Foo
 type D a=4 b=(Bar 1)
 type E a=5 b=a c=(b+1)
 type F a=6 b=(Foo False) c=(b.v)
-#type D a=4 b=Bar // will crash
+type G a=4 b=Bar
 
 spec =
     Test.group "Atom Constructors" <|
@@ -39,5 +39,8 @@ spec =
             e.c.should_equal 2
             f = F 1
             f.c.should_equal False
+
+        Test.specify "apply defaulted arguments that are themselves fully defaulted" <|
+            G.should_equal (G 4 (Bar 1 (Foo False) False))
 
 main = Test.Suite.run_main here.spec

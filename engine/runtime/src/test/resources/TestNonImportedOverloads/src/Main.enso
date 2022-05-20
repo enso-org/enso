@@ -1,4 +1,4 @@
-from Standard.Builtins import all
+import Standard.Base.Nothing
 from local.TestNonImportedOverloads.Util import all
 
 X.method = 10

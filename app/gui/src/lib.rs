@@ -68,6 +68,7 @@ pub mod constants;
 pub mod controller;
 pub mod executor;
 pub mod ide;
+pub mod integration_test;
 pub mod model;
 pub mod notification;
 pub mod presenter;
@@ -95,7 +96,7 @@ pub mod prelude {
     pub use crate::model;
     pub use crate::model::traits::*;
 
-    pub use enso_profiler as profiler;
+    pub use enso_profiler;
     pub use enso_profiler::prelude::*;
 
     pub use engine_protocol::prelude::BoxFuture;
@@ -126,6 +127,7 @@ mod examples {
 }
 #[allow(unused_imports)]
 use examples::*;
+mod profile_workflow;
 
 use prelude::profiler;
 use prelude::profiler::prelude::*;

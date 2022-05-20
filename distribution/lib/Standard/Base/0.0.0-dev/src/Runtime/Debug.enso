@@ -1,0 +1,33 @@
+## Debug utilities.
+
+## TEXT_ONLY
+
+   Places a breakpoint in the program's execution, dropping the user into an
+   interactive debugging REPL.
+
+   From the REPL, the user is able to manipulate both the program state and
+   its execution in an interactive fashion.
+
+   > Example
+     Dropping into a debugging REPL during execution.
+
+        Debug.breakpoint
+breakpoint : Nothing
+breakpoint = @Builtin_Method "Debug.breakpoint"
+
+## Evaluates the provided Enso code in the caller frame.
+
+   Arguments:
+   - expression: The enso code to evaluate.
+
+   ? Scoping
+     The fact that expression is evaluated in the caller frame means that
+     it has access to variables in the scope enclosing the call to
+     Debug.eval.
+
+   > Example
+     Evaluating the expression 1 + 1 and assigning it to a value.
+
+         result = Debug.eval "1 + 1"
+eval : Text -> Any
+eval expression = @Builtin_Method "Debug.eval"

@@ -130,10 +130,10 @@ object ChecksumBytesHandler {
   }
 
   /** Converts from a binary file segment to a protocol one.
-   *
-   * @param segment the segment to convert
-   * @return `segment` using protocol types
-   */
+    *
+    * @param segment the segment to convert
+    * @return `segment` using protocol types
+    */
   def convertFileSegment(
     segment: FileSegment
   ): FileManagerProtocol.Data.FileSegment = {

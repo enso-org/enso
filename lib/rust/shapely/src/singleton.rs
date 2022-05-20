@@ -135,10 +135,41 @@ macro_rules! define_singleton_enum {
     (
         $(#$meta:tt)*
         $name:ident {
-            $( $(#$field_meta:tt)* $field:ident ),* $(,)?
+            $(
+                $(#$variant_meta:tt)*
+                $variant:ident $(($($variant_field:tt)*))?
+            ),* $(,)?
         }
     ) => {
-        $crate::define_singletons!          { $($(#$field_meta)* $field),* }
-        $crate::define_singleton_enum_from! { $(#$meta)* $name {$($(#$field_meta)* $field),*}}
+        $(
+            $crate::define_singleton_enum_struct! {
+                $(#$variant_meta)*
+                $variant ($($($variant_field)*)?)
+            }
+        )*
+        $crate::define_singleton_enum_from! { $(#$meta)* $name {$($(#$variant_meta)* $variant),*}}
     }
+}
+
+#[macro_export]
+macro_rules! define_singleton_enum_struct {
+    ( $(#$meta:tt)* $name:ident () ) => {
+        #[allow(missing_docs)]
+        #[derive(Copy,Clone,Debug,PartialEq,Eq)]
+        $(#$meta)*
+        pub struct $name;
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self
+            }
+        }
+    };
+
+    ( $(#$meta:tt)* $name:ident ($($args:tt)*) ) => {
+        #[allow(missing_docs)]
+        #[derive(Clone,Debug,PartialEq,Eq)]
+        $(#$meta)*
+        pub struct $name($($args)*);
+    };
 }

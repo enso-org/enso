@@ -10,12 +10,12 @@ mod js {
     use super::*;
     #[wasm_bindgen(module = "/src/display/shape/primitive/glsl/overload.js")]
     extern "C" {
-        /// Returns GLSL code which redirects mangled function names to their original primitive
-        /// definitions.
+        // Returns GLSL code which redirects mangled function names to their original primitive
+        // definitions.
         #[allow(unsafe_code)]
         pub fn builtin_redirections() -> String;
 
-        /// Mangles the provided GLSL code to allow primitive definitions overloading.
+        // Mangles the provided GLSL code to allow primitive definitions overloading.
         #[allow(unsafe_code)]
         pub fn allow_overloading(s: &str) -> String;
     }

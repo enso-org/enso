@@ -653,15 +653,15 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   text.FMT || "\\" >> any     || text.onEscapeInvalid()
   text.FMT || "\\"            || text.onEscapeUnfinished()
 
-  text.FMT_LINE   || "'"           || text.submit()
-  text.FMT_LINE   || "'".many1     || text.submitInvalidQuote()
-  text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
-  text.FMT_LINE   || eof           || text.submitMissingQuote()
-  text.FMT_LINE   || newline       || text.submitMissingQuote()
+  text.FMT_LINE || "'"         || text.submit()
+  text.FMT_LINE || "'".many1   || text.submitInvalidQuote()
+  text.FMT_LINE || text.fmtSeg || text.submitPlainSegment()
+  text.FMT_LINE || eof         || text.submitMissingQuote()
+  text.FMT_LINE || newline     || text.submitMissingQuote()
 
-  text.FMT_BLCK   || text.fmtBSeg  || text.submitPlainSegment()
-  text.FMT_BLCK   || eof           || text.onEndOfBlock()
-  text.FMT_BLCK   || newline       || text.onEndOfLine()
+  text.FMT_BLCK || text.fmtBSeg || text.submitPlainSegment()
+  text.FMT_BLCK || eof          || text.onEndOfBlock()
+  text.FMT_BLCK || newline      || text.onEndOfLine()
 
   text.RAW_LINE || '"'         || text.submit()
   text.RAW_LINE || '"'.many1   || text.submitInvalidQuote()
@@ -669,9 +669,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   text.RAW_LINE || eof         || text.submitMissingQuote()
   text.RAW_LINE || newline     || text.submitMissingQuote()
 
-  text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
-  text.RAW_BLCK   || eof           || text.onEndOfBlock()
-  text.RAW_BLCK   || newline       || text.onEndOfLine()
+  text.RAW_BLCK || text.rawBSeg || text.submitPlainSegment()
+  text.RAW_BLCK || eof          || text.onEndOfBlock()
+  text.RAW_BLCK || newline      || text.onEndOfLine()
 
   text.NEWLINE || space.opt            || text.onNewLine()
   text.NEWLINE || space.opt >> newline || text.onEmptyLine()

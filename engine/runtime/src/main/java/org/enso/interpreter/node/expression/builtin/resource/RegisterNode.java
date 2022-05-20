@@ -22,10 +22,7 @@ public abstract class RegisterNode extends Node {
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
-  ManagedResource doRegister(
-      Object _this,
-      Object resource,
-      Function function) {
+  ManagedResource doRegister(Object _this, Object resource, Function function) {
     return Context.get(this).getResourceManager().register(resource, function);
   }
 }

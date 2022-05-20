@@ -205,7 +205,8 @@ impl {
         self.size
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.context = context.cloned();
         for buffer in &self.buffers {

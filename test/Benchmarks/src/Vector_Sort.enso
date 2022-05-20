@@ -25,27 +25,27 @@ make_partially_sorted_vec n =
     last_num = Ref.new 0
     run_length = Ref.new 0
     Base.Vector.fill n <|
-        case (Ref.get run_length) == 0 of
+        case (run_length.get) == 0 of
             True ->
                 new_direction = if random_gen.nextDouble > 0 then Sort_Order.Ascending else
                     Sort_Order.Descending
-                Ref.put direction new_direction
-                Ref.put run_length ((random_gen.nextLong % (n / 10).floor) - 1)
+                direction.put new_direction
+                run_length.put ((random_gen.nextLong % (n / 10).floor) - 1)
                 num = random_gen.nextInt
-                Ref.put last_num num
+                last_num.put num
                 num
             False ->
                 change = random_gen.nextInt.abs % n
-                num = case Ref.get direction of
+                num = case direction.get of
                     Sort_Order.Ascending ->
-                        num = (Ref.get last_num) + change
-                        Ref.put last_num num
+                        num = last_num.get + change
+                        last_num.put num
                         num
                     Sort_Order.Descending ->
-                        num = (Ref.get last_num) - change
-                        Ref.put last_num num
+                        num = (last_num.get) - change
+                        last_num.put num
                         num
-                Ref.put run_length ((Ref.get run_length) - 1)
+                run_length.put (run_length.get - 1)
                 num
 
 

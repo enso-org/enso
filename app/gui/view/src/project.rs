@@ -255,7 +255,7 @@ impl Model {
         let node = self.graph_editor.nodes().get_cloned_ref(&node_id);
         if let Some(node) = node {
             let visualization =
-                node.view.model.visualization.fullscreen_visualization().clone_ref();
+                node.view.model().visualization.fullscreen_visualization().clone_ref();
             self.display_object.remove_child(&*self.graph_editor);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);

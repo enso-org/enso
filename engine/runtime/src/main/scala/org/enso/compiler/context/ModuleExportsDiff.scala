@@ -14,7 +14,7 @@ object ModuleExportsDiff {
   def compute(
     prev: ModuleExports,
     current: ModuleExports
-  ): Seq[Api.ExportsUpdate] = {
+  ): Vector[Api.ExportsUpdate] = {
     val added   = current.symbols.diff(prev.symbols)
     val removed = prev.symbols.diff(current.symbols)
     val addedUpdate = Option.when(added.nonEmpty) {
@@ -26,6 +26,6 @@ object ModuleExportsDiff {
         Api.ExportsAction.Remove()
       )
     }
-    (addedUpdate ++ removedUpdate).toSeq
+    (addedUpdate ++ removedUpdate).toVector
   }
 }

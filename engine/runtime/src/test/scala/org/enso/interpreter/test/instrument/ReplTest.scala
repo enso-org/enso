@@ -3,9 +3,13 @@ package org.enso.interpreter.test.instrument
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
 import org.graalvm.polyglot.Context
-import org.scalatest.{BeforeAndAfter, EitherValues}
+import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
-class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
+class ReplTest
+    extends InterpreterTest
+    with BeforeAndAfter
+    with EitherValues
+    with Inside {
 
   override def subject: String = "Repl"
 
@@ -19,7 +23,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "initialize properly" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main = Debug.breakpoint
           |""".stripMargin
@@ -30,7 +34,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to execute arbitrary code in the caller scope" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 1
@@ -50,7 +54,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "return the last evaluated value back to normal execution flow" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    a = 5
@@ -65,10 +69,54 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       eval(code) shouldEqual 55
     }
 
+    "allow to access Text representations of the returned values" in {
+      val code =
+        """
+          |polyglot java import java.util.regex.Pattern
+          |import Standard.Base.Runtime.Debug
+          |
+          |type Foo a b
+          |
+          |Foo.to_text = "{" + this.a.to_text + ": " + this.b + "}"
+          |
+          |type Bar x
+          |
+          |Bar.to_text = 42
+          |
+          |type Baz x
+          |
+          |Baz.to_text a b c = a+b+c
+          |
+          |main =
+          |    x = Debug.breakpoint
+          |    x.a
+          |""".stripMargin
+      setSessionManager { executor =>
+        inside(executor.evaluate("2")) { case Right(result) =>
+          result.toString shouldEqual "2"
+        }
+        inside(executor.evaluate("Bar 1")) { case Right(result) =>
+          result.toString shouldEqual "Bar 1"
+        }
+        inside(executor.evaluate("Baz 1")) { case Right(result) =>
+          result.toString shouldEqual "Baz 1"
+        }
+        inside(executor.evaluate("Pattern.compile 'foo'")) {
+          case Right(result) =>
+            result.toString shouldEqual "foo"
+        }
+        inside(executor.evaluate("Foo 2 'a'")) { case Right(result) =>
+          result.toString shouldEqual "{2: a}"
+        }
+        executor.exit()
+      }
+      eval(code) shouldEqual 2
+    }
+
     "be able to define its local variables" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -86,7 +134,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "not overwrite bindings" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -103,7 +151,9 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "access and modify monadic state" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
+          |import Standard.Base.Runtime.State
+          |from Standard.Base.Data.Numbers import Number
           |
           |run =
           |    State.put Number 10
@@ -123,7 +173,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to list local variables in its scope" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -149,7 +199,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to list bindings it has created" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 10
@@ -176,7 +226,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "allow to be nested" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    10 * Debug.breakpoint + 1
@@ -199,7 +249,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "behave well when nested" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    x = 1
@@ -226,7 +276,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "handle errors gracefully" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    Debug.breakpoint
@@ -246,7 +296,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "attach language stack traces to the exception" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
+          |from Standard.Base.Error.Common import Panic
           |
           |main =
           |    Debug.breakpoint
@@ -272,7 +323,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "not pollute bindings upon nested error" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |import Standard.Base.Runtime.Debug
           |
           |main =
           |    Debug.breakpoint

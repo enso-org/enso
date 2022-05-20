@@ -8,8 +8,6 @@
 
 from Standard.Base import all
 
-import Standard.Base.Error.Extensions as Error
-
 ## ALIAS Text Input
 
    Creating text in Enso is as simple as adding a node that contains the text

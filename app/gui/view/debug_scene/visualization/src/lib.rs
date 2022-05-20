@@ -92,9 +92,9 @@ fn constructor_graph() -> visualization::java_script::Definition {
     visualization::java_script::Definition::new_builtin(sources).unwrap()
 }
 
-#[wasm_bindgen]
+#[entry_point]
 #[allow(dead_code, missing_docs)]
-pub fn entry_point_visualization() {
+pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         init(&app);
@@ -133,7 +133,9 @@ fn init(app: &Application) {
         .add(move |time_info: animation::TimeInfo| {
             let _keep_alive = &navigator;
 
-            let data = generate_data((time_info.local / 1000.0).into());
+            let data = generate_data(
+                (time_info.since_animation_loop_started.unchecked_raw() / 1000.0).into(),
+            );
             let data = Rc::new(data);
             let content = serde_json::to_value(data).unwrap();
             let data = Data::from(content);

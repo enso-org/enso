@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries
 
 import io.circe.DecodingFailure
 import org.enso.editions.LibraryName
-import org.enso.pkg.{ComponentGroups, Config, ModuleName, ModuleReference}
+import org.enso.pkg.{ComponentGroups, Config, GroupName, GroupReference}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -29,20 +29,17 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
           "Error message"
         )
       )
-
-      validator.validate(testPackages) shouldEqual testPackages.map { config =>
-        config.componentGroups match {
-          case Right(_) =>
-            Right(config)
-          case Left(error) =>
-            Left(
-              ValidationError.InvalidComponentGroups(
-                libraryName(config),
-                error.getMessage()
-              )
-            )
+      val expected = testPackages.map { config =>
+        val groups = config.componentGroups.left.map { error =>
+          ValidationError.InvalidComponentGroups(
+            libraryName(config),
+            error.getMessage()
+          )
         }
+        libraryName(config) -> groups
       }
+
+      validator.validate(testPackages) shouldEqual expected
     }
 
     "validate duplicate component groups" in {
@@ -64,18 +61,18 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
           ComponentGroups(List(newComponentGroup("Mod1", "one", "two")), List())
         )
       )
-
-      validator
-        .validate(testPackages) shouldEqual Vector(
-        Right(testPackages(0)),
-        Left(
+      val expected = Vector(
+        libraryName(testPackages(0)) -> testPackages(0).componentGroups,
+        libraryName(testPackages(1)) -> Left(
           ValidationError.DuplicatedComponentGroup(
             libraryName(testPackages(1)),
-            ModuleReference(LibraryName("Foo", "Bar"), ModuleName("Mod1"))
+            GroupReference(LibraryName("Foo", "Bar"), GroupName("Mod1"))
           )
         ),
-        Right(testPackages(2))
+        libraryName(testPackages(2)) -> testPackages(2).componentGroups
       )
+
+      validator.validate(testPackages) shouldEqual expected
     }
 
     "validate non-existent extensions" in {
@@ -103,18 +100,18 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
           )
         )
       )
-
-      validator
-        .validate(testPackages) shouldEqual Vector(
-        Right(testPackages(0)),
-        Right(testPackages(1)),
-        Left(
+      val expected = Vector(
+        libraryName(testPackages(0)) -> testPackages(0).componentGroups,
+        libraryName(testPackages(1)) -> testPackages(1).componentGroups,
+        libraryName(testPackages(2)) -> Left(
           ValidationError.ComponentGroupExtendsNothing(
             libraryName(testPackages(2)),
-            ModuleReference(LibraryName("Foo", "Baz"), ModuleName("Mod1"))
+            GroupReference(LibraryName("Foo", "Baz"), GroupName("Mod1"))
           )
         )
       )
+
+      validator.validate(testPackages) shouldEqual expected
     }
   }
 }

@@ -17,6 +17,7 @@ import org.enso.librarymanager.{
 }
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{
+  Component,
   ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
@@ -70,6 +71,9 @@ trait PackageRepository {
   /** Get the loaded library components. */
   def getComponents: PackageRepository.ComponentsMap
 
+  /** Modules required for compilation after loading the component groups. */
+  def getPendingModules: Set[Module]
+
   /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
 
@@ -97,8 +101,9 @@ trait PackageRepository {
 
 object PackageRepository {
 
-  type ModuleMap       = collection.concurrent.Map[String, Module]
-  type FrozenModuleMap = Map[String, Module]
+  type ModuleName      = String
+  type ModuleMap       = collection.concurrent.Map[ModuleName, Module]
+  type FrozenModuleMap = Map[ModuleName, Module]
   type ComponentsMap   = Map[LibraryName, ComponentGroups]
 
   /** A trait representing errors reported by this system */
@@ -191,6 +196,33 @@ object PackageRepository {
       collection.concurrent.TrieMap(builtinsName -> ComponentGroups.empty)
     }
 
+    private def getComponentModules: Set[Module] = {
+      val modules = for {
+        componentGroups <- loadedComponents.readOnlySnapshot().values
+        newComponents      = componentGroups.newGroups.flatMap(_.exports)
+        extendedComponents = componentGroups.extendedGroups.flatMap(_.exports)
+        component <- newComponents ++ extendedComponents
+        module    <- findComponentModule(component)
+      } yield module
+      modules.toSet
+    }
+
+    private def findComponentModule(component: Component): Option[Module] = {
+      def mkModuleName(path: Array[String]): String =
+        path.mkString(LibraryName.separator.toString)
+      @scala.annotation.tailrec
+      def go(path: Array[String]): Option[Module] =
+        if (path.isEmpty) None
+        else {
+          loadedModules.get(mkModuleName(path)) match {
+            case Some(module) => Some(module)
+            case None         => go(path.init)
+          }
+        }
+
+      go(component.name.split(LibraryName.separator))
+    }
+
     /** @inheritdoc */
     override def getModuleMap: ModuleMap = loadedModules
 
@@ -200,6 +232,17 @@ object PackageRepository {
     /** @inheritdoc */
     override def getComponents: ComponentsMap =
       loadedComponents.readOnlySnapshot().toMap
+
+    /** @inheritdoc */
+    override def getPendingModules: Set[Module] =
+      for {
+        module <- getComponentModules
+        isCompiled =
+          module.getCompilationStage.isAtLeast(
+            Module.CompilationStage.AFTER_CODEGEN
+          )
+        if !isCompiled
+      } yield module
 
     /** @inheritdoc */
     override def registerMainProjectPackage(
@@ -269,23 +312,24 @@ object PackageRepository {
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
     /** @inheritdoc */
-    override def initialize(): Either[Error, Unit] = this.synchronized {
-      val unprocessedPackages =
-        loadedPackages.keySet
-          .diff(loadedComponents.keySet)
-          .flatMap(loadedPackages(_))
-      unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
-        (accumulator, pkg) =>
-          for {
-            _ <- accumulator
-            _ <- resolveComponentGroups(pkg)
-          } yield ()
+    override def initialize(): Either[Error, Unit] =
+      this.synchronized {
+        val unprocessedPackages =
+          loadedPackages.keySet
+            .diff(loadedComponents.keySet)
+            .flatMap(loadedPackages(_))
+        unprocessedPackages.foldLeft[Either[Error, Unit]](Right(())) {
+          (accumulator, pkg) =>
+            for {
+              _ <- accumulator
+              _ <- resolveComponentGroups(pkg)
+            } yield ()
+        }
       }
-    }
 
     private def resolveComponentGroups(
       pkg: Package[TruffleFile]
-    ): Either[Error, Unit] = {
+    ): Either[Error, Unit] =
       if (loadedComponents.contains(pkg.libraryName)) Right(())
       else {
         pkg.config.componentGroups match {
@@ -302,7 +346,7 @@ object PackageRepository {
                 (accumulator, componentGroup) =>
                   for {
                     _ <- accumulator
-                    extendedLibraryName = componentGroup.module.libraryName
+                    extendedLibraryName = componentGroup.group.libraryName
                     _ <- ensurePackageIsLoaded(extendedLibraryName)
                     pkgOpt = loadedPackages(extendedLibraryName)
                     _ <- pkgOpt.fold[Either[Error, Unit]](Right(()))(
@@ -316,7 +360,6 @@ object PackageRepository {
               }
         }
       }
-    }
 
     /** Register the list of component groups defined by a library.
       *

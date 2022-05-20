@@ -352,7 +352,7 @@ impl DropDownMenu {
             frp.source.icon_mouse_out  <+ model.icon_overlay.events.mouse_out;
 
 
-            let icon_mouse_down = model.icon_overlay.events.mouse_down.clone_ref();
+            let icon_mouse_down = model.icon_overlay.events.mouse_down_primary.clone_ref();
             visibility_on_mouse_down <- frp.source.menu_visible.sample(&icon_mouse_down) ;
 
             eval visibility_on_mouse_down ([show_menu,hide_menu](is_visible){

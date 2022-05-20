@@ -44,6 +44,11 @@ pub mod free_place_finder;
 ///  - not aligned.
 /// The choice among the options described above is governed by the `way`.
 ///
+/// The Magnet Alignment algorithm is used to calculate the final position in the following cases:
+///  - When creating node with (+) button without nodes selected.
+///  - When creating node at mouse cursor, but not under the source node.
+///  - When the node is pushed left due to lack of space - only horizontally.
+///
 /// To learn more about the align algorithm, see the docs of [`aligned_if_close_to_node`].
 pub fn new_node_position(
     graph_editor: &GraphEditorModel,
@@ -60,7 +65,10 @@ pub fn new_node_position(
         StartCreationEvent | ClickingButton if some_nodes_are_selected =>
             under_selected_nodes(graph_editor),
         StartCreationEvent => at_mouse_aligned_to_close_nodes(graph_editor, mouse_position),
-        ClickingButton => on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap(),
+        ClickingButton => {
+            let pos = on_ray(graph_editor, screen_center, Vector2(0.0, -1.0)).unwrap();
+            magnet_alignment(graph_editor, pos, HorizontallyAndVertically)
+        }
         DroppingEdge { edge_id } =>
             at_mouse_aligned_to_source_node(graph_editor, *edge_id, mouse_position),
         StartCreationFromPortEvent { endpoint } => under(graph_editor, endpoint.node_id),
@@ -113,7 +121,13 @@ pub fn below_line_and_left_aligned(
     let y_offset = y_gap + node::HEIGHT / 2.0;
     let starting_point = Vector2(align_x, line_y - y_offset);
     let direction = Vector2(-1.0, 0.0);
-    on_ray(graph_editor, starting_point, direction).unwrap()
+    let pos = on_ray(graph_editor, starting_point, direction).unwrap();
+    let was_pushed_left = pos.x != align_x;
+    if was_pushed_left {
+        magnet_alignment(graph_editor, pos, Horizontally)
+    } else {
+        pos
+    }
 }
 
 /// Return a position for a newly created node. The position is calculated by taking the mouse
@@ -145,7 +159,7 @@ pub fn at_mouse_aligned_to_source_node(
 }
 
 /// Return a position for a newly created node, aligning it to the `alignment_node` if the proposed
-/// position is close enough to it.
+/// position is close enough to it. Otherwise perform a Magnet Alignment.
 ///
 /// A point is close enough to a node if it is located in an alignment area around a node,
 /// defined in the current theme ([`theme::graph_editor::alignment_area_around_node`]).
@@ -172,7 +186,7 @@ pub fn aligned_if_close_to_node(
 ) -> Vector2 {
     let alignment_node = alignment_node.filter(|node| {
         use theme::graph_editor::alignment_area_around_node as alignment_area_style;
-        let node_bounding_box = node.frp.bounding_box.value();
+        let node_bounding_box = node.bounding_box.value();
         let styles = &graph_editor.styles_frp;
         let left = styles.get_number_or(alignment_area_style::to_the_left_of_node, 0.0);
         let alignment_area_min_x = node_bounding_box.left() - left.value();
@@ -190,7 +204,7 @@ pub fn aligned_if_close_to_node(
     });
     match alignment_node {
         Some(node) => under(graph_editor, node.id()),
-        None => proposed_position,
+        None => magnet_alignment(graph_editor, proposed_position, HorizontallyAndVertically),
     }
 }
 
@@ -244,7 +258,7 @@ pub fn on_ray(
     //   `find_free_place` looks for free place for the origin point, and we want to fit not only
     //   the point, but the whole node.
     let node_areas = nodes.values().map(|node| {
-        let bounding_box = node.frp.bounding_box.value();
+        let bounding_box = node.bounding_box.value();
         let left = bounding_box.left() - x_gap - min_spacing;
         let right = bounding_box.right() + x_gap;
         let top = bounding_box.top() + node::HEIGHT / 2.0 + y_gap;
@@ -252,6 +266,50 @@ pub fn on_ray(
         OccupiedArea { x1: left, x2: right, y1: top, y2: bottom }
     });
     find_free_place(starting_point, direction, node_areas)
+}
+
+
+
+// ==================================
+// === Magnet Alignment Algorithm ===
+// ==================================
+
+/// The maximum distance (in scene units) to the nearest grid line in Magnet Alignment algorithm.
+///
+/// This value defines the "sensitivity" of the Magnet Alignment for new nodes - greater values
+/// lead to more "aggressive" snapping.
+const MAGNET_ALIGNMENT_THRESHOLD: f32 = 150.0;
+
+/// The direction in which the Magnet Alignment algorithm will be applied.
+///
+/// See [`magnet_alignment`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
+pub enum MagnetAlignmentDirection {
+    HorizontallyAndVertically,
+    Horizontally,
+}
+use MagnetAlignmentDirection::*;
+
+/// Perform a Magnet Alignment algorithm.
+///
+/// Magnet Alignment tries to place a node so that it is aligned to the positions of the other
+/// nodes, creating a "grid" of nodes.
+///
+/// `direction` determines whether the Magnet Alignment is used for X-coordinate only or for both
+/// X- and Y-coordinates.
+fn magnet_alignment(
+    graph_editor: &GraphEditorModel,
+    position: Vector2,
+    direction: MagnetAlignmentDirection,
+) -> Vector2 {
+    graph_editor.nodes.recompute_grid(default());
+    let threshold = MAGNET_ALIGNMENT_THRESHOLD;
+    let grid_alignment = graph_editor.nodes.check_grid_magnet_with_threshold(position, threshold);
+    let x = grid_alignment.x.unwrap_or(position.x);
+    let use_for_y = matches!(direction, HorizontallyAndVertically);
+    let y = if use_for_y { grid_alignment.y.unwrap_or(position.y) } else { position.y };
+    on_ray(graph_editor, Vector2(x, y), Vector2(0.0, -1.0)).unwrap()
 }
 
 
@@ -269,7 +327,7 @@ fn node_nearest_to_point(graph_editor: &GraphEditorModel, point: Vector2) -> Opt
     let mut nearest_node = None;
     let nodes = graph_editor.nodes.all.raw.borrow();
     for node in nodes.values() {
-        let node_bounding_box = node.frp.bounding_box.value();
+        let node_bounding_box = node.bounding_box.value();
         let distance_squared = node_bounding_box.squared_distance_to_point(point);
         if distance_squared < min_distance_squared {
             min_distance_squared = distance_squared;

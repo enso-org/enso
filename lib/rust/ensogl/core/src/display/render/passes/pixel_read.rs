@@ -5,6 +5,7 @@ use crate::system::gpu::*;
 use crate::system::js::*;
 
 use crate::display::render::pass;
+use crate::display::scene::UpdateStatus;
 use crate::system::gpu::data::texture::class::TextureOps;
 
 use web_sys::WebGlBuffer;
@@ -50,13 +51,15 @@ impl<T: JsTypedArrayItem> PixelReadPassData<T> {
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct PixelReadPass<T: JsTypedArrayItem> {
-    data:         Option<PixelReadPassData<T>>,
-    sync:         Option<WebGlSync>,
-    position:     Uniform<Vector2<i32>>,
-    threshold:    usize,
-    to_next_read: usize,
+    data:          Option<PixelReadPassData<T>>,
+    sync:          Option<WebGlSync>,
+    position:      Uniform<Vector2<i32>>,
+    threshold:     usize,
+    to_next_read:  usize,
     #[derivative(Debug = "ignore")]
-    callback:     Option<Rc<dyn Fn(Vec<T>)>>,
+    callback:      Option<Rc<dyn Fn(Vec<T>)>>,
+    #[derivative(Debug = "ignore")]
+    sync_callback: Option<Rc<dyn Fn()>>,
 }
 
 impl<T: JsTypedArrayItem> PixelReadPass<T> {
@@ -66,16 +69,26 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let sync = default();
         let position = position.clone_ref();
         let callback = default();
+        let sync_callback = default();
         let threshold = 0;
         let to_next_read = 0;
-        Self { data, sync, position, threshold, to_next_read, callback }
+        Self { data, sync, position, threshold, to_next_read, callback, sync_callback }
     }
 
-    /// Sets a callback which will be evaluated after a successful pixel read action. Please note
-    /// that it will not be evaluated after each run of this pass, as the read is performed in an
-    /// asynchronous fashion and can take longer than a single frame.
+    /// Sets a callback which will be evaluated after a successful pixel read action.
+    ///
+    /// Please note that it will not be evaluated after each run of this pass, as the read is
+    /// performed in an asynchronous fashion and can take longer than a single frame.
     pub fn set_callback<F: Fn(Vec<T>) + 'static>(&mut self, f: F) {
         self.callback = Some(Rc::new(f));
+    }
+
+    /// Sets a callback which will be evaluated after at the beginning of pixel read action.
+    ///
+    /// It will not be evaluated after each run of this pass as the read is performed in an
+    /// asynchronous fashion and can take longer than a single frame.
+    pub fn set_sync_callback<F: Fn() + 'static>(&mut self, f: F) {
+        self.sync_callback = Some(Rc::new(f));
     }
 
     /// Sets a threshold of how often the pass should be run. Threshold of 0 means that it will be
@@ -91,8 +104,8 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let js_array = JsTypedArray::<T>::new_with_length(4);
             let target = Context::PIXEL_PACK_BUFFER;
             let usage = Context::DYNAMIC_READ;
-            context.bind_buffer(target, Some(&buffer));
-            context.buffer_data_with_opt_array_buffer(target, Some(&js_array.buffer()), usage);
+            context.bind_buffer(*target, Some(&buffer));
+            context.buffer_data_with_opt_array_buffer(*target, Some(&js_array.buffer()), *usage);
 
             let texture = match variables.get("pass_id").unwrap() {
                 uniform::AnyUniform::Texture(t) => t,
@@ -107,15 +120,19 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             let attachment_point = Context::COLOR_ATTACHMENT0;
             let gl_texture = Some(&gl_texture);
             let level = 0;
-            context.bind_framebuffer(target, Some(&framebuffer));
+            context.bind_framebuffer(*target, Some(&framebuffer));
             context.framebuffer_texture_2d(
-                target,
-                attachment_point,
-                texture_target,
+                *target,
+                *attachment_point,
+                *texture_target,
                 gl_texture,
                 level,
             );
-
+            context.bind_framebuffer(*target, None);
+            let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
+            if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
+                WARNING!("Framebuffer incomplete (status: {framebuffer_status}).")
+            }
             let data = PixelReadPassData::new(buffer, framebuffer, format, item_type, js_array);
             self.data = Some(data);
         }
@@ -129,29 +146,33 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
         let format = data.format.to::<GlEnum>().into();
         let typ = data.item_type.to::<GlEnum>().into();
         let offset = 0;
-        context.bind_framebuffer(Context::FRAMEBUFFER, Some(&data.framebuffer));
-        context.bind_buffer(Context::PIXEL_PACK_BUFFER, Some(&data.buffer));
+        context.bind_framebuffer(*Context::FRAMEBUFFER, Some(&data.framebuffer));
+        context.bind_buffer(*Context::PIXEL_PACK_BUFFER, Some(&data.buffer));
         context
             .read_pixels_with_i32(position.x, position.y, width, height, format, typ, offset)
             .unwrap();
         let condition = Context::SYNC_GPU_COMMANDS_COMPLETE;
         let flags = 0;
-        let sync = context.fence_sync(condition, flags).unwrap();
+        let sync = context.fence_sync(*condition, flags).unwrap();
         self.sync = Some(sync);
         context.flush();
     }
 
     fn check_and_handle_sync(&mut self, context: &Context, sync: &WebGlSync) {
         let data = self.data.as_ref().unwrap();
-        let status = context.get_sync_parameter(sync, Context::SYNC_STATUS);
-        if status == Context::SIGNALED {
+        let status = context.get_sync_parameter(sync, *Context::SYNC_STATUS);
+        if status == *Context::SIGNALED {
             context.delete_sync(Some(sync));
             self.sync = None;
             let target = Context::PIXEL_PACK_BUFFER;
             let offset = 0;
             let buffer_view = data.js_array.to_object();
-            context.bind_buffer(target, Some(&data.buffer));
-            context.get_buffer_sub_data_with_i32_and_array_buffer_view(target, offset, buffer_view);
+            context.bind_buffer(*target, Some(&data.buffer));
+            context.get_buffer_sub_data_with_i32_and_array_buffer_view(
+                *target,
+                offset,
+                buffer_view,
+            );
             if let Some(f) = &self.callback {
                 f(data.js_array.to_vec());
             }
@@ -160,7 +181,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
 }
 
 impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
-    fn run(&mut self, instance: &pass::Instance) {
+    fn run(&mut self, instance: &pass::Instance, update_status: UpdateStatus) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
         } else {
@@ -169,8 +190,12 @@ impl<T: JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
             if let Some(sync) = self.sync.clone() {
                 self.check_and_handle_sync(&instance.context, &sync);
             }
-            if self.sync.is_none() {
+            let need_sync = update_status.scene_was_dirty || update_status.pointer_position_changed;
+            if need_sync && self.sync.is_none() {
                 self.run_not_synced(&instance.context);
+                if let Some(callback) = &self.sync_callback {
+                    callback()
+                }
             }
         }
     }

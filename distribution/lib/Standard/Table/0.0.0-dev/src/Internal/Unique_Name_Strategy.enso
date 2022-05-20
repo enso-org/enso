@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Unsafe
 
 ## Creates a new Unique_Name_Strategy instance.
 

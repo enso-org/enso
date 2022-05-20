@@ -154,6 +154,7 @@ case object DataflowAnalysis extends IRPass {
         method
           .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
+      case _: IR.Module.Scope.Definition.UnionType => binding
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Sugared method definitions should not occur during dataflow " +
@@ -692,7 +693,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.CallArgument = {
     argument match {
-      case spec @ IR.CallArgument.Specified(name, value, _, _, _, _) =>
+      case spec @ IR.CallArgument.Specified(name, value, _, _, _) =>
         val specDep  = asStatic(spec)
         val valueDep = asStatic(value)
         info.dependents.updateAt(valueDep, Set(specDep))

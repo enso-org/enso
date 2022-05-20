@@ -20,7 +20,6 @@ use ensogl::system::web::Function;
 use ensogl::system::web::JsString;
 use ensogl::system::web::JsValue;
 use fmt::Formatter;
-use std::str::FromStr;
 
 
 

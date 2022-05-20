@@ -20,7 +20,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  NoopEventsMonitor
 }
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
@@ -43,6 +44,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.profiling.{NoopSampler, TempFileSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -145,9 +147,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "lock-manager-service"
   )
 
+  val runtimeEventsMonitor =
+    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
+    else new NoopEventsMonitor
+  log.trace(
+    s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
+  )
+
   lazy val runtimeConnector =
     system.actorOf(
-      RuntimeConnector.props(lockManagerService),
+      RuntimeConnector.props(lockManagerService, runtimeEventsMonitor),
       "runtime-connector"
     )
 
@@ -219,7 +228,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
-          sessionRouter
+          sessionRouter,
+          if (serverConfig.isProfilingEnabled) {
+            val s = TempFileSampler("context-registry")
+            JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
+            s
+          } else NoopSampler()
         ),
       "context-registry"
     )

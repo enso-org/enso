@@ -652,6 +652,7 @@ mock_data! { CssStyleDeclaration => Object
 // === Performance ===
 mock_data! { Performance => EventTarget
     fn now(&self) -> f64;
+    fn time_origin(&self) -> f64;
 }
 
 

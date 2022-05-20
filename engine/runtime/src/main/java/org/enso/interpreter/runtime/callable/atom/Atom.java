@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime.callable.atom;
 
+import java.time.LocalDate;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public class Atom implements TruffleObject {
+public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
 
@@ -204,6 +206,22 @@ public class Atom implements TruffleObject {
   }
 
   @ExportMessage
+  boolean isDate(@CachedLibrary("this") InteropLibrary iop) {
+    var dateConstructor = Context.get(iop).getDateConstructor();
+    if (dateConstructor.isPresent()) {
+      return dateConstructor.get() == this.constructor;
+    } else {
+      return false;
+    }
+  }
+
+  @ExportMessage
+  LocalDate asDate(@CachedLibrary(limit = "3") InteropLibrary iop)
+      throws UnsupportedMessageException {
+    return iop.asDate(fields[0]);
+  }
+
+  @ExportMessage
   static class GetFunctionalDispatch {
     static final int CACHE_SIZE = 10;
 
@@ -234,8 +252,7 @@ public class Atom implements TruffleObject {
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this, UnresolvedSymbol symbol)
+    static Function resolve(Atom _this, UnresolvedSymbol symbol)
         throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(_this.constructor, symbol);
       if (function == null) {
@@ -257,9 +274,7 @@ public class Atom implements TruffleObject {
 
     @CompilerDirectives.TruffleBoundary
     static Function doResolve(
-        AtomConstructor cons,
-        AtomConstructor target,
-        UnresolvedConversion conversion) {
+        AtomConstructor cons, AtomConstructor target, UnresolvedConversion conversion) {
       return conversion.resolveFor(target, cons, getContext().getBuiltins().any());
     }
 
@@ -283,16 +298,12 @@ public class Atom implements TruffleObject {
         @Cached("conversion") UnresolvedConversion cachedConversion,
         @Cached("_this.constructor") AtomConstructor cachedConstructor,
         @Cached("target") AtomConstructor cachedTarget,
-        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)")
-            Function function) {
+        @Cached("doResolve(cachedConstructor, cachedTarget, cachedConversion)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Atom _this,
-        AtomConstructor target,
-        UnresolvedConversion conversion)
+    static Function resolve(Atom _this, AtomConstructor target, UnresolvedConversion conversion)
         throws MethodDispatchLibrary.NoSuchConversionException {
       Function function = doResolve(_this.constructor, target, conversion);
       if (function == null) {

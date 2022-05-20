@@ -14,23 +14,13 @@ use std::vec::Splice;
 
 /// A version of [`std::vec::Vec`] that can't be empty.
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Deref, DerefMut)]
 pub struct NonEmptyVec<T> {
-    elems: Vec<T>,
-}
-
-impl<T> Deref for NonEmptyVec<T> {
-    type Target = Vec<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.elems
-    }
+    pub elems: Vec<T>,
 }
 
 impl<T> NonEmptyVec<T> {
     /// Construct a new non-empty vector.
-    ///
-    /// The vector will not allocate more than the space required to contain `first` and `rest`.
     ///
     /// # Examples
     ///
@@ -45,6 +35,20 @@ impl<T> NonEmptyVec<T> {
         NonEmptyVec { elems }
     }
 
+    /// Construct a new non-empty vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![allow(unused_mut)]
+    /// use enso_prelude::NonEmptyVec;
+    /// let mut vec: NonEmptyVec<usize> = NonEmptyVec::new_with_last(vec![], 0);
+    /// ```
+    pub fn new_with_last(mut elems: Vec<T>, last: T) -> NonEmptyVec<T> {
+        elems.push(last);
+        NonEmptyVec { elems }
+    }
+
     /// Construct a `NonEmptyVec` containing a single element.
     ///
     /// # Examples
@@ -56,7 +60,8 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(vec.len(), 1);
     /// ```
     pub fn singleton(first: T) -> NonEmptyVec<T> {
-        NonEmptyVec::new(first, vec![])
+        let elems = vec![first];
+        Self { elems }
     }
 
     /// Construct a new, `NonEmptyVec<T>` containing the provided element and with the provided
@@ -157,19 +162,24 @@ impl<T> NonEmptyVec<T> {
 
     /// Remove an element from the back of the collection, returning it.
     ///
-    /// Will not pop any item if there is only one item left in the vector.
-    ///
     /// # Examples
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec = NonEmptyVec::new(0, vec![1]);
-    /// assert!(vec.pop().is_some());
-    /// assert!(vec.pop().is_none());
+    /// assert!(vec.pop_if_has_more_than_1_elem().is_some());
+    /// assert!(vec.pop_if_has_more_than_1_elem().is_none());
     /// assert_eq!(vec.len(), 1);
     /// ```
-    pub fn pop(&mut self) -> Option<T> {
+    pub fn pop_if_has_more_than_1_elem(&mut self) -> Option<T> {
         (self.len() > 1).and_option_from(|| self.elems.pop())
+    }
+
+    /// Remove an element from the back of the collection, returning it and a new possibly empty
+    /// vector.
+    pub fn pop(mut self) -> (T, Vec<T>) {
+        let first = self.elems.pop().unwrap();
+        (first, self.elems)
     }
 
     /// Obtain a mutable reference to teh element in the vector at the specified `index`.
@@ -211,6 +221,16 @@ impl<T> NonEmptyVec<T> {
     /// ```
     pub fn first_mut(&mut self) -> &mut T {
         self.elems.first_mut().expect("The NonEmptyVec always has an item in it.")
+    }
+
+    /// Get the tail reference.
+    pub fn tail(&mut self) -> &[T] {
+        &self.elems[1..]
+    }
+
+    /// Get the mutable tail reference.
+    pub fn tail_mut(&mut self) -> &mut [T] {
+        &mut self.elems[1..]
     }
 
     /// Obtain an immutable reference to the last element in the `NonEmptyVec`.
@@ -307,6 +327,17 @@ impl<T> NonEmptyVec<T> {
     {
         self.elems.splice(range, replace_with)
     }
+
+    /// Convert this non-empty vector to vector.
+    pub fn into_vec(self) -> Vec<T> {
+        self.elems
+    }
+
+    /// Consume this non-empty vector, map each element with a function, and produce a new one.
+    pub fn mapped<S>(self, f: impl FnMut(T) -> S) -> NonEmptyVec<S> {
+        let elems = self.elems.into_iter().map(f).collect();
+        NonEmptyVec { elems }
+    }
 }
 
 
@@ -315,5 +346,42 @@ impl<T> NonEmptyVec<T> {
 impl<T: Default> Default for NonEmptyVec<T> {
     fn default() -> Self {
         Self::singleton(default())
+    }
+}
+
+impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
+    type Error = ();
+    fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
+        (!elems.is_empty()).as_result_from(|| NonEmptyVec { elems }, || ())
+    }
+}
+
+impl<T> From<NonEmptyVec<T>> for Vec<T> {
+    fn from(v: NonEmptyVec<T>) -> Self {
+        v.elems
+    }
+}
+
+impl<T> IntoIterator for NonEmptyVec<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonEmptyVec<T> {
+    type Item = &'a T;
+    type IntoIter = slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut NonEmptyVec<T> {
+    type Item = &'a mut T;
+    type IntoIter = slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.elems.iter_mut()
     }
 }

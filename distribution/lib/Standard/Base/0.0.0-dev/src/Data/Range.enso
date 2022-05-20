@@ -9,7 +9,42 @@ type Range
        Arguments:
        - start: The left boundary of the range. Its value is included.
        - end: The right boundary of the range. Its value is excluded.
-    type Range start end
+       - step: The step between consecutive elements of the range. It must be
+         non-zero. Defaults to 1.
+    type Range (start : Integer) (end : Integer) (step : Integer = 1)
+
+    ## Creates a copy of this range with a changed step.
+
+       > Example
+         Create a range of even numbers from 0 to 10 (exclusive).
+
+             0.up_to 10 . with_step 2 . to_vector == [0, 2, 4, 6, 8]
+
+       > Example
+         Create a a decreasing range of even numbers from 10 to 0 (exclusive).
+
+             10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]
+    with_step : Integer -> Range
+    with_step new_step = case new_step of
+        Integer ->
+            if new_step == 0 then here.throw_zero_step_error else
+                if new_step < 0 then Error.throw (Illegal_Argument_Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range this.start this.end this.step.signum*new_step
+        _ ->
+            Error.throw (Illegal_Argument_Error "Range step should be an integer.")
+
+    ## Returns the last element that is included within the range or `Nothing`
+       if the range is empty.
+    last : Integer | Nothing
+    last = if this.is_empty then Nothing else case this.step > 0 of
+        True ->
+            diff = this.end - this.start
+            rem = diff % this.step
+            if rem == 0 then this.end - this.step else this.end - rem
+        False ->
+            diff = this.start - this.end
+            rem = diff % (-this.step)
+            if rem == 0 then this.end - this.step else this.end + rem
 
     ## Get the number of elements in the range.
 
@@ -18,7 +53,9 @@ type Range
 
             0.up_to 100 . length
     length : Number
-    length = this.end - this.start
+    length = case this.last of
+        Nothing -> 0
+        last -> ((last - this.start) . div this.step) + 1
 
     ## Checks if this range is empty.
 
@@ -27,7 +64,9 @@ type Range
 
              0.up_to 100 . is_empty
     is_empty : Boolean
-    is_empty = this.end <= this.start
+    is_empty = if this.step > 0 then this.end <= this.start else
+        if this.step < 0 then this.start <= this.end else
+            here.throw_zero_step_error
 
     ## Checks if this range is not empty.
 
@@ -50,7 +89,8 @@ type Range
 
              1.up_to 10 . map (*2)
     map : (Number -> Any) -> Vector Any
-    map function = this.to_vector.map function
+    map function =
+        Vector.new this.length (i -> function (this.start + i*this.step))
 
     ## Applies a function for each element in the range.
 
@@ -62,11 +102,13 @@ type Range
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
     each function =
-        it start end = if start == end then Nothing else
-            function start
-            @Tail_Call it start+1 end
-        it this.start this.end
-        Nothing
+        go end_condition current =
+            if end_condition current this.end then Nothing else
+                function current
+                @Tail_Call go end_condition current+this.step
+        if this.step > 0 then go (>=) this.start else
+            if this.step < 0 then go (<=) this.start else
+                here.throw_zero_step_error
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -77,22 +119,24 @@ type Range
          an item.
 
        In general, the result of
-           Range start end . fold init f
+           Range start end step . fold init f
        is the same as
-           f (...(f (f init start) start+1)...) end-1
+           f (...(f (f init start) start+step)...) last
 
        > Example
-         In the following example, we'll compute the sum of all integers less
-         than 100.
+         In the following example, we'll compute the sum of all even integers
+         less than 100.
 
-             0.up_to 100 . fold 0 (+)
+             0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold init function =
-        it acc start end = if start == end then acc else
-            new_acc = function acc start
-            @Tail_Call it new_acc start+1 end
-        res = it init this.start this.end
-        res
+        go end_condition acc current =
+            if end_condition current this.end then acc else
+                new_acc = function acc current
+                @Tail_Call go end_condition new_acc current+this.step
+        if this.step > 0 then go (>=) init this.start else
+            if this.step < 0 then go (<=) init this.start else
+                here.throw_zero_step_error
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
@@ -106,12 +150,7 @@ type Range
 
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
-    all predicate =
-        it start end = if start==end then True else
-            r = predicate start
-            if r then (@Tail_Call it start+1 end) else False
-        res = it this.start this.end
-        res
+    all predicate = this . exists (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -155,11 +194,13 @@ type Range
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
     find predicate =
-        limit = this.end
-        go n = if (n >= limit) then Nothing else
-          if (predicate n) then n else
-            @Tail_Call go n+1
-        go this.start
+        go end_condition current =
+            if end_condition current this.end then Nothing else
+                if predicate current then current else
+                    @Tail_Call go end_condition current+this.step
+        if this.step > 0 then go (>=) this.start else
+            if this.step < 0 then go (<=) this.start else
+                here.throw_zero_step_error
 
     ## Converts the range to a vector containing the numbers in the range.
 
@@ -168,11 +209,9 @@ type Range
 
              1.up_to 6 . to_vector
     to_vector : Vector.Vector
-    to_vector =
-        length = Math.max 0 (this.end - this.start)
-        Vector.new length (i -> i + this.start)
+    to_vector = this.map x->x
 
-    ## Does the range contains the specified value
+    ## Checks if the range contains the specified value.
 
        > Example
          Check if an index is in the range of a Vector
@@ -180,5 +219,49 @@ type Range
               vec = ["A", "B", "C", "D", "E"]
               0.up_to vec.length . contains 3
     contains : Integer -> Boolean
-    contains value =
-        (this.start <= value) && (this.end > value)
+    contains value = case value of
+        Integer ->
+            if this.step > 0 then (value >= this.start) && (value < this.end) && (((value - this.start) % this.step) == 0) else
+                if this.step < 0 then (value <= this.start) && (value > this.end) && (((this.start - value) % (-this.step)) == 0) else
+                    here.throw_zero_step_error
+        ## In the future this will be handled by type-checking, but for now we
+           add this so that we avoid a confusing
+           `Range 0 10 . contains 3.0 == False` and get a type error for
+           decimals instead.
+        _ ->
+            Error.throw (Illegal_Argument_Error "`Range.contains` only accepts Integers.")
+
+## ALIAS Range
+
+   Creates an increasing right-exclusive range of integers from `this` to `n`.
+
+   Arguments:
+   - n: The end of the range.
+
+   > Example
+     Create a range containing the numbers 0, 1, 2, 3, 4.
+
+         0.up_to 5
+Integer.up_to : Integer -> Range
+Integer.up_to n = case n of
+    Integer -> Range this n
+    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+
+## ALIAS Range
+
+   Creates a decreasing right-exclusive range of integers from `this` to `n`.
+
+   Arguments:
+   - n: The end of the range.
+
+   > Example
+     Create a range containing the numbers 5, 4, 3, 2, 1.
+
+         5.down_to 0
+Integer.down_to : Integer -> Range
+Integer.down_to n = case n of
+    Integer -> Range this n -1
+    _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
+
+## PRIVATE
+throw_zero_step_error = Error.throw (Illegal_State_Error "A range with step = 0 is ill-formed.")

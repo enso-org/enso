@@ -30,7 +30,7 @@ let config = {
         'copy-webpack-plugin': '^5.1.1',
         devtron: '^1.4.0',
         electron: '17.1.0',
-        'electron-builder': '^22.14.13',
+        'electron-builder': '^23.0.6',
         'crypto-js': '4.0.0',
         'electron-notarize': '1.1.1',
     },

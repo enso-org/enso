@@ -15,7 +15,7 @@ use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
 use crate::system::gpu::data::buffer::usage::BufferUsage;
 use crate::system::gpu::data::default::gpu_default;
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 use enso_shapely::shared;
 use std::iter::Extend;
@@ -187,7 +187,7 @@ impl<T:Storable> {
     pub fn update(&mut self) {
         info!(self.logger, "Updating.", || {
             if let Some(gl) = &self.gl {
-                gl.context.bind_buffer(Context::ARRAY_BUFFER,Some(&gl.buffer));
+                gl.context.bind_buffer(*Context::ARRAY_BUFFER,Some(&gl.buffer));
                 if self.resize_dirty.check() {
                     self.upload_data(&None);
                 } else if self.mut_dirty.check_all() {
@@ -227,6 +227,9 @@ impl<T:Storable> {
             for col in 0..cols {
                 let lloc = loc + col as u32;
                 let off  = col * col_byte_size;
+                // Please note that for performance reasons, vertex attrib 0 should always be
+                // enabled as an array. For more details see
+                // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
                 gl.context.enable_vertex_attrib_array(lloc);
                 if is_integer {
                     gl.context.vertex_attrib_i_pointer_with_i32(lloc,rows,item_type,stride,off);
@@ -243,7 +246,8 @@ impl<T:Storable> {
         }
     }
 
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub(crate) fn set_context(&mut self, context:Option<&Context>) {
         self.gl = context.map(|ctx| {
             self.resize_dirty.set();
@@ -302,7 +306,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_data_with_array_buffer_view(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     &js_array,
                     gl_enum,
                 );
@@ -335,7 +339,7 @@ impl<T: Storable> BufferData<T> {
                 // Note [Safety]
                 let js_array = data.js_buffer_view();
                 gl.context.buffer_sub_data_with_i32_and_array_buffer_view_and_src_offset_and_length(
-                    Context::ARRAY_BUFFER,
+                    *Context::ARRAY_BUFFER,
                     dst_byte_offset,
                     &js_array,
                     start_item,
@@ -460,7 +464,8 @@ crate::with_all_prim_types!([[define_any_buffer] []]);
 #[enum_dispatch]
 #[allow(missing_docs)]
 pub trait IsBuffer {
-    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    /// Set the GPU context. In most cases, this happens during app initialization or during context
+    /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     fn set_context(&self, context: Option<&Context>);
     fn add_element(&self);
     fn len(&self) -> usize;
@@ -475,7 +480,8 @@ pub trait IsBuffer {
 // This implementation is needed, because `enum_dispatch` library requires variant types to
 // implement the trait, as it invokes trait methods explicitly on variant values.
 //
-// Thus we provide implementation that just redirects calls to methods defined in the Buffer itself.
+// Thus, we provide implementation that just redirects calls to methods defined in the Buffer
+// itself.
 impl<T: Storable> IsBuffer for Buffer<T> {
     fn set_context(&self, context: Option<&Context>) {
         self.set_context(context)

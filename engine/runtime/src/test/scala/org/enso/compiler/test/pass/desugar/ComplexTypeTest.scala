@@ -81,8 +81,12 @@ class ComplexTypeTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
 
       exactly(2, ir.bindings) shouldBe a[Definition.Atom]
-      ir.bindings.head.asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
-      ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Bar"
+      ir.bindings(0)
+        .asInstanceOf[Definition.UnionType]
+        .name
+        .name shouldEqual "MyType"
+      ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
+      ir.bindings(2).asInstanceOf[Definition.Atom].name.name shouldEqual "Bar"
     }
 
     "have annotations on the type desugared to annotations on the defined" in {
@@ -94,7 +98,7 @@ class ComplexTypeTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
 
       exactly(1, ir.bindings) shouldBe a[Definition.Atom]
-      ir.bindings.head
+      ir.bindings(1)
         .asInstanceOf[Definition.Atom]
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
@@ -103,42 +107,42 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their methods desugared to methods on included atoms" in {
-      ir.bindings(3) shouldBe an[Definition.Method.Binding]
-      val justIsJust = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(4) shouldBe an[Definition.Method.Binding]
+      val justIsJust = ir.bindings(4).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
       justIsJust.typeName.name shouldEqual "Nothing"
 
-      ir.bindings(7) shouldBe an[Definition.Method.Binding]
-      val justF = ir.bindings(7).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(8) shouldBe an[Definition.Method.Binding]
+      val justF = ir.bindings(8).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
       justF.typeName.name shouldEqual "Nothing"
     }
 
     "have their methods desugared to methods on the defined atoms" in {
-      ir.bindings(5) shouldBe an[Definition.Method.Binding]
-      val justIsJust = ir.bindings(5).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(6) shouldBe an[Definition.Method.Binding]
+      val justIsJust = ir.bindings(6).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
       justIsJust.typeName.name shouldEqual "Just"
 
-      ir.bindings(9) shouldBe an[Definition.Method.Binding]
-      val justF = ir.bindings(9).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(10) shouldBe an[Definition.Method.Binding]
+      val justF = ir.bindings(10).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
       justF.typeName.name shouldEqual "Just"
     }
 
     "have type signatures copied to above each method" in {
-      ir.bindings(2) shouldBe an[IR.Type.Ascription]
-      ir.bindings(6) shouldBe an[IR.Type.Ascription]
-      ir.bindings(4) shouldBe an[IR.Type.Ascription]
-      ir.bindings(8) shouldBe an[IR.Type.Ascription]
+      ir.bindings(3) shouldBe an[IR.Type.Ascription]
+      ir.bindings(7) shouldBe an[IR.Type.Ascription]
+      ir.bindings(5) shouldBe an[IR.Type.Ascription]
+      ir.bindings(9) shouldBe an[IR.Type.Ascription]
 
       val nothingIsJustSigName = ir
-        .bindings(2)
+        .bindings(3)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.MethodReference]
       val nothingIsJustMethodName = ir
-        .bindings(3)
+        .bindings(4)
         .asInstanceOf[Definition.Method.Binding]
         .methodReference
 
@@ -148,12 +152,12 @@ class ComplexTypeTest extends CompilerTest {
       )
 
       val nothingFSigName = ir
-        .bindings(6)
+        .bindings(7)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.MethodReference]
       val nothingFMethodName = ir
-        .bindings(7)
+        .bindings(8)
         .asInstanceOf[Definition.Method.Binding]
         .methodReference
 
@@ -163,12 +167,12 @@ class ComplexTypeTest extends CompilerTest {
       )
 
       val justIsJustSigName = ir
-        .bindings(4)
+        .bindings(5)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.MethodReference]
       val justIsJustMethodName = ir
-        .bindings(5)
+        .bindings(6)
         .asInstanceOf[Definition.Method.Binding]
         .methodReference
 
@@ -178,12 +182,12 @@ class ComplexTypeTest extends CompilerTest {
       )
 
       val justFSigName = ir
-        .bindings(8)
+        .bindings(9)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.MethodReference]
       val justFMethodName = ir
-        .bindings(9)
+        .bindings(10)
         .asInstanceOf[Definition.Method.Binding]
         .methodReference
 
@@ -194,15 +198,15 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "leave un-associated signatures intact" in {
-      ir.bindings(1) shouldBe an[IR.Type.Ascription]
-      ir.bindings(1)
+      ir.bindings(2) shouldBe an[IR.Type.Ascription]
+      ir.bindings(2)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.Literal]
         .name shouldEqual "invalid_sig"
 
-      ir.bindings(10) shouldBe an[IR.Type.Ascription]
-      ir.bindings(10)
+      ir.bindings(11) shouldBe an[IR.Type.Ascription]
+      ir.bindings(11)
         .asInstanceOf[IR.Type.Ascription]
         .typed
         .asInstanceOf[IR.Name.Literal]
@@ -225,8 +229,8 @@ class ComplexTypeTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     "have their types translated untouched" in {
-      ir.bindings.head shouldBe a[Definition.Atom]
-      val atom = ir.bindings.head.asInstanceOf[Definition.Atom]
+      ir.bindings(1) shouldBe a[Definition.Atom]
+      val atom = ir.bindings(1).asInstanceOf[Definition.Atom]
       atom.name.name shouldEqual "Baz"
     }
 
@@ -237,10 +241,10 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their valid methods desugared" in {
-      ir.bindings(1) shouldBe a[Definition.Method.Binding]
       ir.bindings(2) shouldBe a[Definition.Method.Binding]
-      val methodOnBar = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
-      val methodOnBaz = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(3) shouldBe a[Definition.Method.Binding]
+      val methodOnBar = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
+      val methodOnBaz = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
       methodOnBar.typeName.name shouldEqual "Bar"
       methodOnBar.methodName.name shouldEqual "g"
       methodOnBaz.typeName.name shouldEqual "Baz"

@@ -89,7 +89,7 @@ class PatternsTest extends CompilerTest {
         Resolution(
           ResolvedConstructor(
             ModuleReference.Concrete(ctx.module),
-            Cons("Foo", 3)
+            Cons("Foo", 3, false)
           )
         )
       )

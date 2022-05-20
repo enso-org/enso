@@ -24,11 +24,11 @@ class DetachVisualisationCmd(
   ): Future[Unit] = {
     ctx.locking.acquireContextLock(request.contextId)
     try {
-        if (doesContextExist) {
-          detachVisualization()
-        } else {
-          replyWithContextNotExistError()
-        }
+      if (doesContextExist) {
+        detachVisualization()
+      } else {
+        replyWithContextNotExistError()
+      }
     } finally {
       ctx.locking.releaseContextLock(request.contextId)
     }

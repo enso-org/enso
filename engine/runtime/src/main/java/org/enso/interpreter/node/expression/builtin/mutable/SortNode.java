@@ -32,35 +32,26 @@ public abstract class SortNode extends Node {
   }
 
   @Specialization
-  Object doSortFunction(
-      VirtualFrame frame,
-      Array _this,
-      Function comparator) {
+  Object doSortFunction(VirtualFrame frame, Array _this, Function comparator) {
     Context context = Context.get(this);
     Comparator<Object> compare = getComparator(comparator, context);
     return runSort(compare, _this, context);
   }
 
   @Specialization
-  Object doSortCallable(
-      VirtualFrame frame,
-      Array _this,
-      Object comparator) {
+  Object doSortCallable(VirtualFrame frame, Array _this, Object comparator) {
     Comparator<Object> compare = (l, r) -> comparatorNode.execute(frame, comparator, l, r);
     return runSort(compare, _this, Context.get(this));
   }
 
   @Specialization
-  Object doAtomThis(
-      VirtualFrame frame,
-      Atom _this,
-      Object that) {
+  Object doAtomThis(VirtualFrame frame, Atom _this, Object that) {
     return Context.get(this).getBuiltins().nothing().newInstance();
   }
 
   Object runSort(Comparator<Object> compare, Array _this, Context context) {
     doSort(_this.getItems(), compare);
-    LoopNode.reportLoopCount(this, _this.length());
+    LoopNode.reportLoopCount(this, (int) _this.length());
     return context.getBuiltins().nothing().newInstance();
   }
 

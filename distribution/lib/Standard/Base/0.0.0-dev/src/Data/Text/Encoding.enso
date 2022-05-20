@@ -1,0 +1,102 @@
+from Standard.Base import all
+
+polyglot java import java.nio.charset.Charset
+polyglot java import java.nio.charset.UnsupportedCharsetException
+polyglot java import org.enso.base.Text_Utils
+
+## Get all available character sets from Java as Encodings.
+   Used to provide auto completion in the UI.
+all_character_sets : Vector.Vector Text
+all_character_sets =
+    java_array = Charset.availableCharsets.keySet.toArray
+    Vector.Vector java_array
+
+## Get all available Encodings.
+all_encodings : Vector Encoding
+all_encodings =
+    here.all_character_sets . map Encoding
+
+## Represents a character encoding.
+type Encoding
+    ## Create a new Encoding object.
+
+       Arguments:
+       - character_set: java.nio.charset name.
+    type Encoding (character_set:Text)
+
+    ## PRIVATE
+       Convert an Encoding to it's corresponding Java Charset
+    to_java_charset : Charset
+    to_java_charset =
+        Panic.catch UnsupportedCharsetException (Charset.forName this.character_set) _->
+            Error.throw (Illegal_Argument_Error ("Unknown Character Set: " + this.character_set))
+
+    ## Encoding for ASCII.
+    ascii : Encoding
+    ascii = Encoding "US-ASCII"
+
+    ## Encoding for Unicode UTF-8.
+    utf_8 : Encoding
+    utf_8 = Encoding "UTF-8"
+
+    ## Encoding for Unicode UTF-16 Little Endian.
+    utf_16_le : Encoding
+    utf_16_le = Encoding "UTF-16LE"
+
+    ## Encoding for Unicode UTF-16 Big Endian.
+    utf_16_be : Encoding
+    utf_16_be = Encoding "UTF-16BE"
+
+    ## Encoding for Unicode UTF-32 Little Endian.
+    utf_32_le : Encoding
+    utf_32_le = Encoding "UTF-32LE"
+
+    ## Encoding for Unicode UTF-32 Big Endian.
+    utf_32_be : Encoding
+    utf_32_be = Encoding "UTF-32BE"
+
+    ## Encoding for Central European (Windows).
+    windows_1250 : Encoding
+    windows_1250 = Encoding "windows-1250"
+
+    ## Encoding for Cyrillic (Windows).
+    windows_1251 : Encoding
+    windows_1251 = Encoding "windows-1251"
+
+    ## ALIAS ISO-8859-1
+
+       Encoding for Western European (Windows).
+    windows_1252 : Encoding
+    windows_1252 = Encoding "windows-1252"
+
+    ## Encoding for Greek (Windows).
+    windows_1253 : Encoding
+    windows_1253 = Encoding "windows-1253"
+
+    ## ALIAS ISO-8859-9
+
+       Encoding for Turkish (Windows).
+    windows_1254 : Encoding
+    windows_1254 = Encoding "windows-1254"
+
+    ## Encoding for Hebrew (Windows).
+    windows_1255 : Encoding
+    windows_1255 = Encoding "windows-1255"
+
+    ## Encoding for Arabic (Windows).
+    windows_1256 : Encoding
+    windows_1256 = Encoding "windows-1256"
+
+    ## Encoding for Baltic (Windows).
+    windows_1257 : Encoding
+    windows_1257 = Encoding "windows-1257"
+
+    ## Encoding for Vietnamese (Windows).
+    windows_1258 : Encoding
+    windows_1258 = Encoding "windows-1258"
+
+## One or more byte sequences were not decodable using the Encoding.
+type Encoding_Error (message:Text)
+
+Encoding_Error.to_display_text : Text
+Encoding_Error.to_display_text = "Encoding_Error: " + this.message

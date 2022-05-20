@@ -15,9 +15,7 @@ public abstract class LookupClassNode extends Node {
 
   @Specialization
   Object doExecute(
-      Object _this,
-      Object name,
-      @Cached("build()") ExpectStringNode expectStringNode) {
+      Object _this, Object name, @Cached("build()") ExpectStringNode expectStringNode) {
     return Context.get(this).getEnvironment().lookupHostSymbol(expectStringNode.execute(name));
   }
 

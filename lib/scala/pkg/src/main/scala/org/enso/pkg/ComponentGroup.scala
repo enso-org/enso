@@ -48,13 +48,13 @@ object ComponentGroups {
 
 /** The definition of a single component group.
   *
-  * @param module the module name
+  * @param group the group name
   * @param color the component group color
   * @param icon the component group icon
   * @param exports the list of components provided by this component group
   */
 case class ComponentGroup(
-  module: ModuleName,
+  group: GroupName,
   color: Option[String],
   icon: Option[String],
   exports: Seq[Component]
@@ -76,7 +76,7 @@ object ComponentGroup {
       Fields.Exports -> componentGroup.exports.asJson
     )
     Json.obj(
-      componentGroup.module.name -> Json.obj(
+      componentGroup.group.name -> Json.obj(
         color.toSeq ++ icon.toSeq ++ exports.toSeq: _*
       )
     )
@@ -87,7 +87,7 @@ object ComponentGroup {
     for {
       name <- decodeName(json)
       componentGroup <- decodeComponentGroup(
-        ModuleName(name),
+        GroupName(name),
         json.downField(name)
       )
     } yield componentGroup
@@ -99,7 +99,7 @@ object ComponentGroup {
       .toRight(decodingFailure(cursor.history))
 
   private def decodeComponentGroup(
-    name: ModuleName,
+    name: GroupName,
     cursor: ACursor
   ): Decoder.Result[ComponentGroup] = {
     if (cursor.keys.nonEmpty) {
@@ -119,11 +119,11 @@ object ComponentGroup {
 
 /** The definition of a component group that extends an existing one.
   *
-  * @param module the reference to the extended component group
+  * @param group the reference to the extended component group
   * @param exports the list of components provided by this component group
   */
 case class ExtendedComponentGroup(
-  module: ModuleReference,
+  group: GroupReference,
   exports: Seq[Component]
 )
 object ExtendedComponentGroup {
@@ -140,7 +140,7 @@ object ExtendedComponentGroup {
         Fields.Exports -> extendedComponentGroup.exports.asJson
       )
       Json.obj(
-        extendedComponentGroup.module.qualifiedName -> Json.obj(
+        extendedComponentGroup.group.qualifiedName -> Json.obj(
           exports.toSeq: _*
         )
       )
@@ -150,7 +150,7 @@ object ExtendedComponentGroup {
   implicit val decoder: Decoder[ExtendedComponentGroup] = { json =>
     for {
       moduleName <- decodeModuleName(json)
-      moduleReference <- ModuleReference
+      moduleReference <- GroupReference
         .fromModuleName(moduleName)
         .toRight(
           DecodingFailure(
@@ -174,7 +174,7 @@ object ExtendedComponentGroup {
       .toRight(decodingFailure(cursor.history))
 
   private def decodeExtendedComponentGroup(
-    reference: ModuleReference,
+    reference: GroupReference,
     cursor: ACursor
   ): Decoder.Result[ExtendedComponentGroup] =
     if (cursor.keys.nonEmpty) {
@@ -271,36 +271,36 @@ object Shortcut {
   }
 }
 
-/** The reference to a module.
+/** The reference to a component group.
   *
   * @param libraryName the qualified name of a library where the module is defined
-  * @param moduleName the module name
+  * @param groupName the module name
   */
-case class ModuleReference(
+case class GroupReference(
   libraryName: LibraryName,
-  moduleName: ModuleName
+  groupName: GroupName
 ) {
 
   /** The qualified name of the library consists of its prefix and name
     * separated with a dot.
     */
   def qualifiedName: String =
-    s"$libraryName${LibraryName.separator}${moduleName.name}"
+    s"$libraryName${LibraryName.separator}${groupName.name}"
 
   /** @inheritdoc */
   override def toString: String = qualifiedName
 
 }
-object ModuleReference {
+object GroupReference {
 
-  /** Create a [[ModuleReference]] from string. */
-  def fromModuleName(moduleName: String): Option[ModuleReference] =
+  /** Create a [[GroupReference]] from string. */
+  def fromModuleName(moduleName: String): Option[GroupReference] =
     moduleName.split(LibraryName.separator).toList match {
       case namespace :: name :: module :: modules =>
         Some(
-          ModuleReference(
+          GroupReference(
             LibraryName(namespace, name),
-            ModuleName.fromComponents(module, modules)
+            GroupName.fromComponents(module, modules)
           )
         )
       case _ =>
@@ -312,20 +312,20 @@ object ModuleReference {
   *
   * @param name the module name
   */
-case class ModuleName(name: String)
-object ModuleName {
+case class GroupName(name: String)
+object GroupName {
 
-  /** Create a [[ModuleName]] from its components. */
-  def fromComponents(item: String, items: List[String]): ModuleName =
-    ModuleName((item :: items).mkString(LibraryName.separator.toString))
+  /** Create a [[GroupName]] from its components. */
+  def fromComponents(item: String, items: List[String]): GroupName =
+    GroupName((item :: items).mkString(LibraryName.separator.toString))
 
-  /** [[Encoder]] instance for the [[ModuleName]]. */
-  implicit val encoder: Encoder[ModuleName] = { moduleName =>
+  /** [[Encoder]] instance for the [[GroupName]]. */
+  implicit val encoder: Encoder[GroupName] = { moduleName =>
     moduleName.name.asJson
   }
 
-  /** [[Decoder]] instance for the [[ModuleName]]. */
-  implicit val decoder: Decoder[ModuleName] = { json =>
+  /** [[Decoder]] instance for the [[GroupName]]. */
+  implicit val decoder: Decoder[GroupName] = { json =>
     json.as[String] match {
       case Left(_) =>
         Left(
@@ -335,7 +335,7 @@ object ModuleName {
           )
         )
       case Right(name) =>
-        Right(ModuleName(name))
+        Right(GroupName(name))
     }
   }
 }

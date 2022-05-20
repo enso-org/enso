@@ -259,11 +259,26 @@ ensogl_core::define_endpoints! {
         paste_string          (String),
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
+        /// Explicitly set the color of all text.
         set_color_all         (color::Rgba),
+        set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
+        /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
+        /// Set font in the text area. The name will be looked up in [`typeface::font::Registry`].
+        ///
+        /// Note, that this is a relatively heavy operation - it requires not only redrawing all
+        /// lines, but also re-load internal structures for rendering (like WebGL buffers,
+        /// MSDF texture, etc.).
+        set_font              (String),
         set_content           (String),
+        /// Set content, truncating the trailing characters on every line to fit a width in pixels
+        /// when rendered with current font and font size. The truncated substrings are replaced
+        /// with an ellipsis character ("…").
+        ///
+        /// Unix (`\n`) and MS-DOS (`\r\n`) style line endings are recognized.
+        set_content_truncated (String, f32),
     }
     Output {
         pointer_style   (cursor::Style),
@@ -273,6 +288,7 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        /// Color that is used for all text that does not explicitly have a color set.
         default_color   (color::Rgba),
     }
 }
@@ -473,10 +489,22 @@ impl Area {
                 input.insert(s);
                 input.remove_all_cursors();
             });
+            input.set_content <+ input.set_content_truncated.map(f!(((text, max_width_px)) {
+                m.text_truncated_with_ellipsis(text.clone(), m.default_font_size(), *max_width_px)
+            }));
+
+
+            // === Font ===
+
+            eval input.set_font ((t) m.set_font(t));
+
 
             // === Colors ===
 
-            eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            eval input.set_default_color ((t)
+                m.buffer.frp.set_default_color(*t);
+                m.redraw(false) ;
+            );
             self.frp.source.default_color <+ self.frp.set_default_color;
 
             eval input.set_default_text_size ((t) {
@@ -494,6 +522,13 @@ impl Area {
                 m.redraw(false);
             });
             self.frp.source.selection_color <+ self.frp.set_selection_color;
+
+
+            // === Style ===
+
+            m.buffer.frp.set_sdf_bold <+ input.set_sdf_bold;
+            eval_ input.set_sdf_bold (m.redraw(false));
+
 
             // === Changes ===
 
@@ -513,19 +548,19 @@ impl Area {
     //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
     //        is a very non-standard implementation, and thus has to handle the new display object
     //        callbacks in a special way as well.
-    //     2. The `self.data.camera` has to still be used, otherwise there would be no way to
-    // convert        the screen to object space (see the [`to_object_space`] function). This is
-    // a very        temporary solution, as any object can be assigned to more than one scene
-    // layer, and thus        can be rendered from more than one camera. Screen / object space
-    // location of events        should thus become much more primitive information /
-    // mechanisms.     Please note, that this function handles the selection management
-    // correctly, as it uses     the new shape system definition, and thus, inherits the scene
-    // layer settings from this     display object.
+    //     2. The `self.data.layer` currently needs to be stored for two main purposes:
+    //        - so that the [`set_font`] function can add newly created Glyphs to a layer to make
+    //          them visible;
+    //        - to provide a way to convert the screen to object space (see the [`to_object_space`]
+    //          function).
+    //        This is a very temporary solution, as any object can be assigned to more than one
+    //        scene layer. Screen / object space location of events should thus become much more
+    //        primitive information / mechanisms. Please note, that this function handles the
+    //        selection management correctly, as it uses the new shape system definition, and thus,
+    //        inherits the scene layer settings from this display object.
     pub fn add_to_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.add_exclusive(&symbol);
-        }
-        self.data.camera.set(layer.camera());
+        self.data.layer.set(layer.clone_ref());
+        self.data.add_symbols_to_scene_layer();
         layer.add_exclusive(self);
     }
 
@@ -533,24 +568,7 @@ impl Area {
     // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
     pub fn remove_from_scene_layer(&self, layer: &display::scene::Layer) {
-        for symbol in self.symbols() {
-            layer.remove_symbol(&symbol);
-        }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        default()
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
-        let text_symbol = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let shapes = &self.data.app.display.default_scene.shapes;
-        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
-        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
-        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
-        SmallVec::from_buf([text_symbol /* selection_symbol */])
+        self.data.remove_symbols_from_scene_layer(layer);
     }
 }
 
@@ -563,17 +581,17 @@ impl Area {
 /// Internal representation of `Area`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct AreaModel {
-    app:    Application,
+    app:   Application,
     // FIXME[ao]: this is a temporary solution to handle properly areas in different views. Should
     //            be replaced with proper object management.
-    camera: Rc<CloneRefCell<display::camera::Camera2d>>,
+    layer: Rc<CloneRefCell<display::scene::Layer>>,
 
     logger:         Logger,
     frp_endpoints:  FrpEndpoints,
     buffer:         buffer::View,
     display_object: display::object::Instance,
     #[cfg(target_arch = "wasm32")]
-    glyph_system:   glyph::System,
+    glyph_system:   Rc<RefCell<glyph::System>>,
     lines:          Lines,
     single_line:    Rc<Cell<bool>>,
     selection_map:  Rc<RefCell<SelectionMap>>,
@@ -586,27 +604,22 @@ impl AreaModel {
         let scene = &app.display.default_scene;
         let logger = Logger::new("text_area");
         let selection_map = default();
+        let display_object = display::object::Instance::new(&logger);
         #[cfg(target_arch = "wasm32")]
         let glyph_system = {
             let fonts = scene.extension::<typeface::font::Registry>();
             let font = fonts.load("DejaVuSansMono");
-            typeface::glyph::System::new(&scene, font)
+            let glyph_system = typeface::glyph::System::new(&scene, font);
+            display_object.add_child(&glyph_system);
+            Rc::new(RefCell::new(glyph_system))
         };
-        let display_object = display::object::Instance::new(&logger);
         let buffer = default();
         let lines = default();
         let single_line = default();
-        let camera = Rc::new(CloneRefCell::new(scene.camera().clone_ref()));
+        let layer = Rc::new(CloneRefCell::new(scene.layers.main.clone_ref()));
 
-        #[cfg(target_arch = "wasm32")]
-        display_object.add_child(&glyph_system);
-
-        // FIXME[WD]: These settings should be managed wiser. They should be set up during
-        // initialization of the shape system, not for every area creation. To be improved during
-        // refactoring of the architecture some day.
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol = &shape_system.shape_system.sprite_system.symbol;
-        shape_system.shape_system.set_pointer_events(false);
 
         // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
         // pointer and nodes. Should be refactored when proper sorting mechanisms are in place.
@@ -617,7 +630,7 @@ impl AreaModel {
 
         Self {
             app,
-            camera,
+            layer,
             logger,
             frp_endpoints,
             buffer,
@@ -635,6 +648,7 @@ impl AreaModel {
     fn on_modified_selection(&self, _: &buffer::selection::Group, _: f32, _: bool) {}
 
     #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
     fn on_modified_selection(
         &self,
         selections: &buffer::selection::Group,
@@ -722,7 +736,7 @@ impl AreaModel {
 
     /// Transforms screen position to the object (display object) coordinate system.
     fn to_object_space(&self, screen_pos: Vector2) -> Vector2 {
-        let camera = self.camera.get();
+        let camera = self.layer.get().camera();
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
         let inv_object_matrix = self.transform_matrix().try_inverse().unwrap();
@@ -746,6 +760,7 @@ impl AreaModel {
         Location(line, column)
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         self.redraw(true);
         self
@@ -792,12 +807,13 @@ impl AreaModel {
         let line_object = line.display_object().clone_ref();
         let line_range = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
         let mut line_style = self.buffer.sub_style(line_range.start..line_range.end).iter();
-        let mut pen = pen::Pen::new(&self.glyph_system.font);
+        let glyph_system = self.glyph_system.borrow();
+        let mut pen = pen::Pen::new(&glyph_system.font);
         let mut divs = vec![];
         let mut column = 0.column();
         let mut last_cursor = None;
         let mut last_cursor_target = default();
-        line.resize_with(content.chars().count(), || self.glyph_system.new_glyph());
+        line.resize_with(content.chars().count(), || glyph_system.new_glyph());
         let mut iter = line.glyphs.iter_mut().zip(content.chars());
         loop {
             let next = iter.next();
@@ -822,15 +838,16 @@ impl AreaModel {
                 Some((glyph, chr)) => {
                     let chr_bytes: Bytes = chr.len_utf8().into();
                     line_style.drop(chr_bytes - 1.bytes());
-                    let glyph_info = self.glyph_system.font.glyph_info(chr);
-                    let size = glyph_info.scale.scale(chr_size);
+                    let glyph_info = glyph_system.font.glyph_info(chr);
                     let glyph_offset = glyph_info.offset.scale(chr_size);
                     let glyph_x = info.offset + glyph_offset.x;
                     let glyph_y = glyph_offset.y;
                     glyph.set_position_xy(Vector2(glyph_x, glyph_y));
                     glyph.set_char(chr);
                     glyph.set_color(style.color);
-                    glyph.size.set(size);
+                    glyph.set_bold(style.bold.raw);
+                    glyph.set_sdf_bold(style.sdf_bold.raw);
+                    glyph.set_font_size(chr_size);
                     match &last_cursor {
                         None => line_object.add_child(glyph),
                         Some(cursor) => {
@@ -849,6 +866,86 @@ impl AreaModel {
         let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
         last_offset - cursor_offset
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn line_truncated_with_ellipsis(&self, line: &str, _: style::Size, _: f32) -> String {
+        line.to_string()
+    }
+
+    /// Truncate a `line` of text if its length on screen exceeds `max_width_px` when rendered
+    /// using the current font at `font_size`. Return the truncated string with an ellipsis ("…")
+    /// character appended, or `content` if not truncated.
+    ///
+    /// The truncation point is chosen such that the resulting string with ellipsis will fit in
+    /// `max_width_px` if possible. The `line` must not contain newline characters.
+    #[cfg(target_arch = "wasm32")]
+    fn line_truncated_with_ellipsis(
+        &self,
+        line: &str,
+        font_size: style::Size,
+        max_width_px: f32,
+    ) -> String {
+        const ELLIPSIS: char = '\u{2026}';
+        let mut pen = pen::Pen::new(&self.glyph_system.borrow().font);
+        let mut truncation_point = 0.bytes();
+        let truncate = line.char_indices().any(|(i, ch)| {
+            let char_info = pen::CharInfo::new(ch, font_size.raw);
+            let pen_info = pen.advance(Some(char_info));
+            let next_width = pen_info.offset + char_info.size;
+            if next_width > max_width_px {
+                return true;
+            }
+            let width_of_ellipsis = pen::CharInfo::new(ELLIPSIS, font_size.raw).size;
+            let char_length: Bytes = ch.len_utf8().into();
+            if next_width + width_of_ellipsis <= max_width_px {
+                truncation_point = Bytes::from(i) + char_length;
+            }
+            false
+        });
+        if truncate {
+            let truncated_content = line[..truncation_point.as_usize()].to_string();
+            truncated_content + String::from(ELLIPSIS).as_str()
+        } else {
+            line.to_string()
+        }
+    }
+
+    /// Truncate trailing characters on every line of `text` that exceeds `max_width_px` when
+    /// rendered using the current font at `font_size`. Return `text` with every truncated
+    /// substring replaced with an ellipsis character ("…").
+    ///
+    /// The truncation point of every line is chosen such that the truncated string with ellipsis
+    /// will fit in `max_width_px` if possible. Unix (`\n`) and MS-DOS (`\r\n`) style line endings
+    /// are recognized and preserved in the returned string.
+    fn text_truncated_with_ellipsis(
+        &self,
+        text: String,
+        font_size: style::Size,
+        max_width_px: f32,
+    ) -> String {
+        let lines = text.split_inclusive('\n');
+        /// Return the length of a trailing Unix (`\n`) or MS-DOS (`\r\n`) style line ending in
+        /// `s`, or 0 if not found.
+        fn length_of_trailing_line_ending(s: &str) -> usize {
+            if s.ends_with("\r\n") {
+                2
+            } else if s.ends_with('\n') {
+                1
+            } else {
+                0
+            }
+        }
+        let tuples_of_lines_and_endings =
+            lines.map(|line| line.split_at(line.len() - length_of_trailing_line_ending(line)));
+        let lines_truncated_with_ellipsis = tuples_of_lines_and_endings.map(|(line, ending)| {
+            self.line_truncated_with_ellipsis(line, font_size, max_width_px) + ending
+        });
+        lines_truncated_with_ellipsis.collect()
+    }
+
+    fn default_font_size(&self) -> style::Size {
+        *self.buffer.style.get().size.default()
     }
 
     fn new_line(&self, index: usize) -> Line {
@@ -919,6 +1016,55 @@ impl AreaModel {
         let start = self.buffer.snap_location(selection.start);
         let end = self.buffer.snap_location(selection.end);
         selection.with_start(start).with_end(end)
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[profile(Debug)]
+    #[cfg(target_arch = "wasm32")]
+    fn set_font(&self, font_name: &str) {
+        let app = &self.app;
+        let scene = &app.display.default_scene;
+        let fonts = scene.extension::<typeface::font::Registry>();
+        let font = fonts.load(font_name);
+        let glyph_system = typeface::glyph::System::new(&scene, font);
+        self.display_object.add_child(&glyph_system);
+        let old_glyph_system = self.glyph_system.replace(glyph_system);
+        self.display_object.remove_child(&old_glyph_system);
+        // Remove old Glyph structures, as they still refer to the old Glyph System.
+        self.lines.rc.take();
+        self.add_symbols_to_scene_layer();
+        self.redraw(true);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn set_font(&self, _font_name: &str) {}
+
+    fn add_symbols_to_scene_layer(&self) {
+        let layer = &self.layer.get();
+        for symbol in self.symbols() {
+            layer.add_exclusive(&symbol);
+        }
+    }
+
+    fn remove_symbols_from_scene_layer(&self, layer: &display::scene::Layer) {
+        for symbol in self.symbols() {
+            layer.remove_symbol(&symbol);
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn symbols(&self) -> SmallVec<[display::Symbol; 1]> {
+        let text_symbol = self.glyph_system.borrow().sprite_system().symbol.clone_ref();
+        let shapes = &self.app.display.default_scene.shapes;
+        let selection_system = shapes.shape_system(PhantomData::<selection::shape::Shape>);
+        let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
+        //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
+        SmallVec::from_buf([text_symbol /* selection_symbol */])
     }
 }
 
@@ -1005,5 +1151,24 @@ impl Drop for Area {
         // TODO[ao]: This is workaround for memory leak causing text to stay even when component
         //           is deleted. See "FIXME: memory leak." comment above.
         self.remove_all_cursors();
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Assert that there is no inherent memory leak in the [text::Area].
+    #[test]
+    fn assert_no_leak() {
+        let app = Application::new("root");
+        let text = app.new_view::<Area>();
+        let text_frp = Rc::downgrade(&text.frp);
+        let text_data = Rc::downgrade(&text.data);
+        drop(text);
+        assert_eq!(text_frp.strong_count(), 0, "There are FRP references left.");
+        assert_eq!(text_data.strong_count(), 0, "There are  data references left.");
     }
 }

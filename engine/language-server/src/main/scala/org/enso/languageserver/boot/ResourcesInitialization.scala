@@ -29,11 +29,11 @@ object ResourcesInitialization {
     * @return the initialization component
     */
   def apply(
-             eventStream: EventStream,
-             directoriesConfig: ProjectDirectoriesConfig,
-             suggestionsRepo: SqlSuggestionsRepo,
-             versionsRepo: SqlVersionsRepo,
-             truffleContext: Context
+    eventStream: EventStream,
+    directoriesConfig: ProjectDirectoriesConfig,
+    suggestionsRepo: SqlSuggestionsRepo,
+    versionsRepo: SqlVersionsRepo,
+    truffleContext: Context
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),

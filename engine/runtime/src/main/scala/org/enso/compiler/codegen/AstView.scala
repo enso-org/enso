@@ -431,7 +431,7 @@ object AstView {
                   .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
               Some((v, expr, None, true))
             case AST.App.Section
-            .Right(AST.Ident.Opr("~"), AST.Ident.Blank.any(v)) =>
+                  .Right(AST.Ident.Opr("~"), AST.Ident.Blank.any(v)) =>
               Some((v, expr, None, true))
             case _ => None
           }

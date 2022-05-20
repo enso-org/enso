@@ -255,6 +255,11 @@ jobs:
           gu install python
           gu install r
 
+      - name: Enable assertions for tests
+        shell: bash
+        run: |
+          echo "JAVA_TOOL_OPTIONS=-ea" >> $GITHUB_ENV
+
       - name: Prepare configuration for the Database tests
         shell: bash
         if: runner.os == 'Linux'

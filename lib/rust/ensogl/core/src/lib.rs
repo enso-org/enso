@@ -19,11 +19,13 @@
 #![feature(type_alias_impl_trait)]
 #![feature(unboxed_closures)]
 #![feature(trace_macros)]
+#![feature(const_trait_impl)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
+#![allow(clippy::precedence)]
 #![allow(dead_code)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
@@ -63,6 +65,7 @@ pub mod prelude {
     pub use super::types::*;
     pub use crate::data::container::AddMut;
     pub use crate::shapes_order_dependencies;
+    pub use crate::types::unit2::traits::*;
     pub use enso_data_structures as data;
     pub use enso_logger as logger;
     pub use enso_logger::AnyLogger;

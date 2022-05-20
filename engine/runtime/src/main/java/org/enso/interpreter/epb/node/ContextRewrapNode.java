@@ -15,7 +15,8 @@ import org.enso.interpreter.epb.runtime.PolyglotProxy;
 @ReportPolymorphism
 public abstract class ContextRewrapNode extends Node {
 
-  /** Create a new context rewrap node.
+  /**
+   * Create a new context rewrap node.
    *
    * @return a new context rewrap node.
    */

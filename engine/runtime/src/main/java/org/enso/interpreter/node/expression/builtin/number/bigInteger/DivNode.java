@@ -24,9 +24,7 @@ public abstract class DivNode extends Node {
   }
 
   @Specialization
-  Object doLong(
-      EnsoBigInteger _this,
-      long that) {
+  Object doLong(EnsoBigInteger _this, long that) {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.divide(_this.getValue(), that));
     } catch (ArithmeticException e) {

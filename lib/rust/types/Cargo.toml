@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 nalgebra = { version = "0.26.1" }
 num-traits = { version = "0.2" }
+paste = "1.0.7"
 
 [dev-dependencies]
 assert_approx_eq = { version = "1.1.0" }

@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from Standard.Builtins import Array
-
 ## PRIVATE
 
    An efficient builder for concatenating vectors.

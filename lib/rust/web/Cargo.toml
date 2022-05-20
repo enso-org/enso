@@ -11,9 +11,10 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 enso-data-structures = { path = "../data-structures" }
+enso-debug-api = { path = "../debug-api" }
 enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude", features = ["wasm-bindgen"] }
-console_error_panic_hook = { version = "0.1.1", optional = true }
+console_error_panic_hook = { version = "0.1.6", optional = true }
 failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
 js-sys = { version = "0.3.28" }

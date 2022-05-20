@@ -3,11 +3,11 @@ package org.enso.interpreter.node.expression.builtin.special;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
-@BuiltinMethod(type = "", name = "<join_thread>")
+@BuiltinMethod(type = "Special", name = "<join_thread>")
 public class JoinThreadNode extends Node {
-  public Object execute(Object thread) {
+  public Object execute(Object _this) {
     try {
-      ((Thread) thread).join();
+      ((Thread) _this).join();
     } catch (InterruptedException e) {
     }
     return null;

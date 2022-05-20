@@ -179,6 +179,41 @@ define_themes! { [light:0, dark:1]
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
         }
+        component_browser {
+            component_group {
+                header {
+                    text {
+                        font = "DejaVuSans-Bold", "DejaVuSans-Bold";
+                        size = 12.0, 12.0;
+                        color_intensity = 1.0, 1.0;
+                    }
+                    height = 27.0, 27.0;
+                    padding {
+                        left   = 16.5, 16.5;
+                        right  = 2.5, 2.5;
+                        bottom = 5.0, 5.0;
+                    }
+                    shadow = shadow , shadow;
+                    shadow {
+                        size     = 27.0 , 27.0;
+                        spread   = shadow::spread   , shadow::spread;
+                        fading   = shadow::fading   , shadow::fading;
+                        exponent = shadow::exponent , shadow::exponent;
+                        offset_x = shadow::offset_x , shadow::offset_x;
+                        offset_y = shadow::offset_y , shadow::offset_y;
+                    }
+                }
+                entries {
+                    text {
+                        font = "DejaVuSans", "DejaVuSans";
+                        size = 12.0, 12.0;
+                        color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
+                    }
+                }
+                background_color_intensity = 0.2, 0.2;
+                dimmed_color_intensity = 0.5, 0.5;
+            }
+        }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
@@ -377,10 +412,10 @@ define_themes! { [light:0, dark:1]
         // The specific conditions when the alignment mechanism is triggered, as well as the
         // algorithm used to perform the alignment, are governed by the Graph Editor.
         alignment_area_around_node {
-            above_node           = 7.0  , 7.0;
+            above_node           = 15.0  , 15.0;
             below_node           = 50.0 , 50.0;
-            to_the_left_of_node  = 5.0  , 5.0;
-            to_the_right_of_node = 5.0  , 5.0;
+            to_the_left_of_node  = 25.0  , 25.0;
+            to_the_right_of_node = 25.0  , 25.0;
         }
         node {
             // Original RGB values (for reference after fixing color-conversion issues)
@@ -524,7 +559,11 @@ define_themes! { [light:0, dark:1]
             text {
                 highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+                font      = "DejaVuSansMono", "DejaVuSansMono";
                 size      = 12.0, 12.0;
+            }
+            highlight {
+                corner_radius = 12.0, 12.0;
             }
         }
     }

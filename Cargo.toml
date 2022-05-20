@@ -5,15 +5,24 @@
 # where plausible.
 members = [
     "app/gui",
+    "app/gui/enso-profiler-enso-data",
     "build/enso-formatter",
     "build/rust-scripts",
     "lib/rust/*",
+    "lib/rust/parser/src/syntax/tree/visitor",
+    "lib/rust/parser/src/syntax/tree/builder",
     "lib/rust/profiler/data",
     "integration-test"
 ]
 
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
+
+# We are using a version with extended functionality. The changes have been PR'd upstream:
+# https://github.com/rustwasm/console_error_panic_hook/pull/24
+# Remove this patch when the issue is resolved.
+[patch.crates-io]
+console_error_panic_hook = { git = 'https://github.com/enso-org/console_error_panic_hook' }
 
 [profile.dev]
 opt-level = 0
@@ -41,7 +50,4 @@ debug-assertions = true
 
 [profile.integration-test]
 inherits = "test"
-# The integration-test profile was created to be able run integration tests with optimizations (as they took a lot of
-# time). There is, however, an issue with running them with optimizations #181740444.
-# opt-level = 2
-opt-level = 0
+opt-level = 2

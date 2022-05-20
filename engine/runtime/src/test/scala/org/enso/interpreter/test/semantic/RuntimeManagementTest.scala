@@ -21,7 +21,9 @@ class RuntimeManagementTest extends InterpreterTest {
         .asHostObject[Context]()
 
       val code =
-        """from Standard.Builtins import all
+        """import Standard.Base.Runtime.Thread
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |foo x =
           |    if x == 0 then IO.println "Start." else Nothing
@@ -75,7 +77,8 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
           |
           |type Mock_File i
           |
@@ -84,7 +87,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
           |
           |main =
           |    here.create_resource 0
@@ -113,7 +116,9 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual closure of other managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |
@@ -122,8 +127,8 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.finalize r else Nothing
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then r.finalize else Nothing
           |
           |main =
           |    here.create_resource 0
@@ -152,7 +157,9 @@ class RuntimeManagementTest extends InterpreterTest {
     "Automatically free managed resources amongst manual takeover of other managed resources" in {
       val code =
         """
-          |from Standard.Builtins import all
+          |from Standard.Base.Runtime.Resource import Managed_Resource
+          |from Standard.Base.IO import all
+          |import Standard.Base.Nothing
           |
           |type Mock_File i
           |
@@ -161,8 +168,8 @@ class RuntimeManagementTest extends InterpreterTest {
           |create_resource i =
           |    c = Mock_File i
           |    r = Managed_Resource.register c here.free_resource
-          |    Managed_Resource.with r f-> IO.println ("Accessing: " + f.to_text)
-          |    if i % 2 == 0 then Managed_Resource.take r else Nothing
+          |    r . with f-> IO.println ("Accessing: " + f.to_text)
+          |    if i % 2 == 0 then r.take else Nothing
           |
           |main =
           |    here.create_resource 0

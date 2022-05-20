@@ -115,6 +115,7 @@ case object TailCall extends IRPass {
             arguments = args.map(analyseDefArgument)
           )
           .updateMetadata(this -->> TailPosition.Tail)
+      case _: IR.Module.Scope.Definition.UnionType => definition
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -271,7 +272,7 @@ case object TailCall extends IRPass {
     */
   def analyseCallArg(argument: IR.CallArgument): IR.CallArgument = {
     argument match {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
+      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]

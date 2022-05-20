@@ -23,10 +23,10 @@ import scala.util.{Failure, Success}
   * @param versionsRepo the versions repo
   */
 class RepoInitialization(
-                          directoriesConfig: ProjectDirectoriesConfig,
-                          eventStream: EventStream,
-                          suggestionsRepo: SqlSuggestionsRepo,
-                          versionsRepo: SqlVersionsRepo
+  directoriesConfig: ProjectDirectoriesConfig,
+  eventStream: EventStream,
+  suggestionsRepo: SqlSuggestionsRepo,
+  versionsRepo: SqlVersionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent
     with LazyLogging {
@@ -43,7 +43,7 @@ class RepoInitialization(
       for {
         _ <- Future {
           logger.info(
-            "Initializing suggestions repo [{}].",
+            "Initializing suggestions repo [{}]...",
             MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
@@ -75,7 +75,7 @@ class RepoInitialization(
       for {
         _ <- Future {
           logger.info(
-            "Initializing versions repo [{}].",
+            "Initializing versions repo [{}]...",
             MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }

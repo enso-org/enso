@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use crate::system::gpu::data::prim::*;
 
-use crate::system::Context;
+use crate::system::gpu::Context;
 
 
 
@@ -12,7 +12,8 @@ use crate::system::Context;
 // ==============
 
 /// The newtype for WebGL enums.
-#[derive(Copy, Clone, Debug, Default, Display)]
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, Deref, Display)]
 pub struct GlEnum(pub u32);
 
 impl From<GlEnum> for u32 {
@@ -159,21 +160,21 @@ macro_rules! define_singleton_enum_gl_from {
 // ================================
 
 define_gl_enum_conversions! { [GlEnum]
-    bool                = GlEnum(Context::BOOL),
-    u8                  = GlEnum(Context::UNSIGNED_BYTE),
-    u16                 = GlEnum(Context::UNSIGNED_SHORT),
-    u32                 = GlEnum(Context::UNSIGNED_INT),
-    i8                  = GlEnum(Context::BYTE),
-    i16                 = GlEnum(Context::SHORT),
-    i32                 = GlEnum(Context::INT),
-    f16                 = GlEnum(Context::HALF_FLOAT),
-    f32                 = GlEnum(Context::FLOAT),
-    f32_u24_u8_REV      = GlEnum(Context::FLOAT_32_UNSIGNED_INT_24_8_REV),
-    u16_4_4_4_4         = GlEnum(Context::UNSIGNED_SHORT_4_4_4_4),
-    u16_5_5_5_1         = GlEnum(Context::UNSIGNED_SHORT_5_5_5_1),
-    u16_5_6_5           = GlEnum(Context::UNSIGNED_SHORT_5_6_5),
-    u32_f10_f11_f11_REV = GlEnum(Context::UNSIGNED_INT_10F_11F_11F_REV),
-    u32_24_8            = GlEnum(Context::UNSIGNED_INT_24_8),
-    u32_2_10_10_10_REV  = GlEnum(Context::UNSIGNED_INT_2_10_10_10_REV),
-    u32_5_9_9_9_REV     = GlEnum(Context::UNSIGNED_INT_5_9_9_9_REV),
+    bool                = Context::BOOL,
+    u8                  = Context::UNSIGNED_BYTE,
+    u16                 = Context::UNSIGNED_SHORT,
+    u32                 = Context::UNSIGNED_INT,
+    i8                  = Context::BYTE,
+    i16                 = Context::SHORT,
+    i32                 = Context::INT,
+    f16                 = Context::HALF_FLOAT,
+    f32                 = Context::FLOAT,
+    f32_u24_u8_REV      = Context::FLOAT_32_UNSIGNED_INT_24_8_REV,
+    u16_4_4_4_4         = Context::UNSIGNED_SHORT_4_4_4_4,
+    u16_5_5_5_1         = Context::UNSIGNED_SHORT_5_5_5_1,
+    u16_5_6_5           = Context::UNSIGNED_SHORT_5_6_5,
+    u32_f10_f11_f11_REV = Context::UNSIGNED_INT_10F_11F_11F_REV,
+    u32_24_8            = Context::UNSIGNED_INT_24_8,
+    u32_2_10_10_10_REV  = Context::UNSIGNED_INT_2_10_10_10_REV,
+    u32_5_9_9_9_REV     = Context::UNSIGNED_INT_5_9_9_9_REV,
 }

@@ -11,7 +11,11 @@ public abstract class AnyResolverNode extends BaseResolverNode {
   public abstract Function execute(UnresolvedSymbol symbol, Object _this);
 
   @Specialization(
-      guards = {"!getContext().isInlineCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+      guards = {
+        "!getContext().isInlineCachingDisabled()",
+        "cachedSymbol == symbol",
+        "function != null"
+      },
       limit = "CACHE_SIZE")
   Function resolveCached(
       UnresolvedSymbol symbol,
@@ -22,8 +26,7 @@ public abstract class AnyResolverNode extends BaseResolverNode {
   }
 
   @Specialization(replaces = "resolveCached")
-  Function resolve(
-      UnresolvedSymbol symbol, Object _this) {
+  Function resolve(UnresolvedSymbol symbol, Object _this) {
     return throwIfNull(resolveMethodOnAny(symbol), _this, symbol);
   }
 }

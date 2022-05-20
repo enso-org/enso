@@ -114,7 +114,15 @@ case object ComplexType extends IRPass {
       .collect { case d: IR.Module.Scope.Definition.Atom => d }
       .map(atom =>
         annotations
-          .map(ann => atom.updateMetadata(ModuleAnnotations -->> ann))
+          .map(ann => {
+            val old = atom
+              .getMetadata(ModuleAnnotations)
+              .map(_.annotations)
+              .getOrElse(Nil)
+            atom.updateMetadata(
+              ModuleAnnotations -->> ann.copy(ann.annotations ++ old)
+            )
+          })
           .getOrElse(atom)
       )
     val atomIncludes           = typ.body.collect { case n: IR.Name => n }
@@ -181,7 +189,11 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    atomDefs ::: allEntities
+    val includedNames = atomDefs.map(_.name)
+    val sumType = IR.Module.Scope.Definition
+      .UnionType(typ.name, includedNames, typ.location)
+
+    sumType :: atomDefs ::: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.

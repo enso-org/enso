@@ -394,16 +394,16 @@ impl ActionBar {
             frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
 
             let reset_position_icon = &model.icons.reset_position_icon.events;
-            reset_position_icon_down <- reset_position_icon.mouse_down.constant(());
+            let reset_position_icon_down = reset_position_icon.mouse_down_primary.clone_ref();
             frp.source.on_container_reset_position <+ reset_position_icon_down;
 
             let drag_icon      = &model.icons.drag_icon.events;
-            start_dragging     <- drag_icon.mouse_down.constant(());
+            let start_dragging = &drag_icon.mouse_down_primary;
             end_dragging       <- mouse.up.gate(&frp.source.container_drag_state);
-            should_drag        <- bool(&end_dragging,&start_dragging);
+            should_drag        <- bool(&end_dragging,start_dragging);
             frp.source.container_drag_state <+ should_drag;
 
-            show_reset_icon <- bool(&reset_position_icon_down,&start_dragging);
+            show_reset_icon <- bool(&reset_position_icon_down,start_dragging);
             eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
         }
         self

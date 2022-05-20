@@ -158,7 +158,7 @@ macro_rules! gen_stats {
         // === StatsData ===
 
         /// Raw data of all the gathered stats.
-        #[derive(Debug,Default,Clone,Copy)]
+        #[derive(Debug,Default,Clone,Copy,serde::Serialize,serde::Deserialize)]
         #[allow(missing_docs)]
         pub struct StatsData {
             $(pub $field : $field_type),*

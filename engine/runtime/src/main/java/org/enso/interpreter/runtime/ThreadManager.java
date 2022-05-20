@@ -69,15 +69,17 @@ public class ThreadManager {
       interruptFlags.replaceAll((t, b) -> true);
       Object p = enter();
       try {
-        env.submitThreadLocal(null, new ThreadLocalAction(true, false) {
-          @Override
-          protected void perform(ThreadLocalAction.Access access) {
-            Boolean interrupt = interruptFlags.get(access.getThread());
-            if (Boolean.TRUE.equals(interrupt)) {
-                throw new ThreadInterruptedException();
-            }
-          }
-        });
+        env.submitThreadLocal(
+            null,
+            new ThreadLocalAction(true, false) {
+              @Override
+              protected void perform(ThreadLocalAction.Access access) {
+                Boolean interrupt = interruptFlags.get(access.getThread());
+                if (Boolean.TRUE.equals(interrupt)) {
+                  throw new ThreadInterruptedException();
+                }
+              }
+            });
       } finally {
         leave(p);
       }

@@ -108,6 +108,18 @@ impl StyleWatchFrp {
         sampler
     }
 
+    /// Queries the style sheet for a text. Returns empty string if not found.
+    pub fn get_text<T: Into<Path>>(&self, path: T) -> frp::Sampler<String> {
+        let network = &self.network;
+        let (source, current) = self.get_internal(path);
+        frp::extend! { network
+            value   <- source.map(|t| t.text().unwrap_or_default());
+            sampler <- value.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
+
     /// Queries style sheet number.
     pub fn get_number_or<T: Into<Path>>(&self, path: T, fallback: f32) -> frp::Sampler<f32> {
         let network = &self.network;

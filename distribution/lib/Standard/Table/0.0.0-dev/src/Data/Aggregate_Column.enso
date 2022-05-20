@@ -126,7 +126,7 @@ type Aggregate_Column
        - prefix: added at the start of the result.
        - suffix: added at the end of the result.
        - quote_char: character used to quote the values if the value is `Empty`
-         or contains the separtor.
+         or contains the separator.
     type Concatenate (column:Column|Text|Integer) (new_name:Text|Nothing=Nothing) (separator:Text="") (prefix:Text="") (suffix:Text="") (quote_char:Text="")
 
     ## Creates a new column with the first value in each group. If no rows,

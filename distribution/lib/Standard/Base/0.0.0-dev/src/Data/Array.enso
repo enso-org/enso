@@ -1,0 +1,179 @@
+import Standard.Base.Data.Vector
+
+## Utilities for working with primitive arrays.
+type Array
+
+    ## The type of primitive mutable arrays.
+    @Builtin_Type
+    type Array
+
+    ## Gets the element at index in the array this.
+
+       Arguments:
+       - index: The index to get the element from.
+
+       ? Safety
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
+
+       > Example
+         Get the element at index 1.
+
+             [1,2,3].to_array.at 1
+    at : Integer -> Any
+    at index = @Builtin_Method "Array.at"
+
+    ## Set the cell at the specified index to the provided value, returning
+       the array.
+
+       Arguments:
+       - index: The position in the array to set.
+       - value: The value to set at position index.
+
+       The array is mutated in place, and only returned to facilitate a natural
+       programming style in Enso.
+
+       ? Safety
+         If index < 0 or index >= this.length, then this operation will result
+         in an Invalid_Array_Index_Error exception.
+    set_at : Integer -> Any -> Array
+    set_at index value = @Builtin_Method "Array.set_at"
+
+    ## Gets the length of the array this.
+
+       > Example
+         Getting the length of an array.
+
+             [1,2,3].to_array.length
+    length : Integer
+    length = @Builtin_Method "Array.length"
+
+    ## Sorts the this array in place.
+
+       Arguments:
+       - comparator: A comparison function that takes two elements and returns
+         an Ordering that describes how the first element is ordered with
+         respect to the second.
+
+      > Example
+        Sorting an array of numbers.
+
+            [1,2,3].to_array.sort
+    sort : (Any -> Any -> Ordering) -> Nothing
+    sort comparator = @Builtin_Method "Array.sort"
+
+    ## Identity.
+
+       This method is implemented purely for completeness with the runtime's
+       primitive array protocol.
+    to_array : Array
+    to_array = @Builtin_Method "Array.to_array"
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a Text used to display this value in the IDE.
+
+       The particular representation is left unspecified and subject to change in
+       the future. The current implementation uses JSON serialization as the
+       default.
+
+       > Example
+         Converting an array to its default visualization representation.
+
+             [1, 2, 3, 4].to_array.to_default_visualization_data
+    to_default_visualization_data : Text
+    to_default_visualization_data =
+        Vector.Vector this . to_default_visualization_data
+
+## Creates an array with length 0.
+
+   > Example
+     Create an empty array.
+
+         Array.empty
+empty : Array
+empty = @Builtin_Method "Array.empty"
+
+## Creates a new array of length size, with all elements uninitialized.
+
+   Arguments:
+   - size: The size of the array to create.
+
+   > Example
+     Create a new array of size 10.
+
+         Array.new 10
+new : Integer -> Array
+new size = @Builtin_Method "Array.new"
+
+## PRIVATE
+
+   Create an array with one element provided.
+
+   Arguments:
+   - item_1: The one element in the array.
+new_1 : Any -> Array
+new_1 item_1 = @Builtin_Method "Array.new_1"
+
+## PRIVATE
+
+   Create an array with two elements provided.
+
+   Arguments:
+   - item_1: The first element.
+   - item_2: The second element.
+new_2 : Any -> Any -> Array
+new_2 item_1 item_2 = @Builtin_Method "Array.new_2"
+
+## PRIVATE
+
+   Create an array with three elements provided.
+
+   Arguments:
+   - item_1: The first element.
+   - item_2: The second element.
+   - item_3: The third element.
+new_3 : Any -> Any -> Any -> Array
+new_3 item_1 item_2 item_3 = @Builtin_Method "Array.new_3"
+
+## PRIVATE
+
+   Create an array with four elements provided.
+
+   Arguments:
+   - item_1: The first element.
+   - item_2: The second element.
+   - item_3: The third element.
+   - item_4: The fourth element.
+new_4 : Any -> Any -> Any -> Any -> Array
+new_4 item_1 item_2 item_3 item_4 = @Builtin_Method "Array.new_4"
+
+## Copies from the source array, beginning at the specified position, to the
+   specified position in the destination array.
+
+   Arguments:
+   - src: The source array.
+   - source_index: The start position in the src array.
+   - dest: The desination array.
+   - dest_index: The start position in the that array.
+
+   A subsequence of array elements are copied from the src array to the
+   dest array. The number of components copied is equal to count. The
+   components at positions source_index through source_index + count - 1
+   in the strc array are copied into positions dest_index through
+   dest_index + count - 1, respectively, of the destination array.
+
+   If the src and dest arguments refer to the same array, then the copy
+   is performed as if the components at positions source_index through
+   source_index + count - 1 are first copied to a temporary array with
+   length count, and then the contents of the temporary array are copied
+   into positions dest_index through dest_index + count - 1 of the
+   destination array.
+
+   > Example
+     Copying elements from one array to another.
+
+         Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
+copy : Array -> Integer -> Array -> Integer -> Integer -> Nothing
+copy src source_index dest dest_index count = @Builtin_Method "Array.copy"

@@ -30,7 +30,7 @@ object StubIrBuilder {
     val consNames = conses.keys.map(_.toLowerCase()).toSet
     val definedConstructors: List[BindingsMap.Cons] =
       conses.toList.map { case (name, cons) =>
-        BindingsMap.Cons(name, cons.getArity)
+        BindingsMap.Cons(name, cons.getArity, allFieldsDefaulted = false)
       }
     val moduleMethods = Option(scope.getMethods.get(scope.getAssociatedType))
       .map(methods =>
@@ -51,6 +51,7 @@ object StubIrBuilder {
       (m.name, List(ResolvedMethod(ModuleReference.Concrete(module), m)))
     )
     val meta = BindingsMap(
+      List(),
       definedConstructors,
       polyglot,
       moduleMethods,

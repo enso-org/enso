@@ -124,7 +124,7 @@ pub fn on_frame(
     let half_height = screen.height / 2.0;
 
     if !frozen {
-        let t = time.local / 1000.0;
+        let t = time.since_animation_loop_started.unchecked_raw() / 1000.0;
         let length = sprites.len() as f32;
         for (i, sprite) in sprites.iter_mut().enumerate() {
             let i = i as f32;

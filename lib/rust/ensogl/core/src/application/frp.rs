@@ -1110,7 +1110,7 @@ macro_rules! define_endpoints_2_normalized_public {
                     use $crate::application::command::*;
 
                     $crate::frp::extend! { $output_opts network
-                        $( $out_field <- private_output.$out_field.sampler(); )*
+                        $( $out_field <- private_output.$out_field.profile().sampler(); )*
                     }
                     let mut status_map : HashMap<String,$crate::frp::Sampler<bool>> = default();
                     let mut command_map : HashMap<String,Command> = default();

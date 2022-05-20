@@ -2,6 +2,13 @@
 
 #### Visual Environment
 
+- [Long names on the Node Searcher's list are truncated.][3373] The part of the
+  name that doesn't fit in the Searcher's window is replaced with an ellipsis
+  character ("…").
+- [Magnet Alignment algorithm is used while placing new nodes][3366]. When we
+  find an available free space for a new node, the node gets aligned with the
+  surrounding nodes horizontally and vertically. This helps to preserve a nice
+  grid-like layout for all the nodes.
 - [Nodes created via the <kbd>TAB</kbd> key or by clicking the (+) button on the
   screen are now placed below all the selected nodes when more than one node is
   selected.][3361] (Previously, they were placed below the first node that was
@@ -42,6 +49,12 @@
   node cration.][3186]
 - [Fixed developer console error about failing to decode a notification
   "executionContext/visualisationEvaluationFailed"][3193]
+
+#### EnsoGL (rendering engine)
+
+- [You can change font and set letters bold in the <code>text::Area</code>
+  component][3385]. Use the <code>set_font</code> and
+  <code>set_bold_bytes</code> respectively.
 
 #### Enso Standard Library
 
@@ -90,8 +103,27 @@
 - [Implemented `Panic.catch` and helper functions for handling errors. Added a
   type parameter to `Panic.recover` to recover specific types of errors.][3344]
 - [Added warning handling to `Table.aggregate`][3349]
-- [Improved performance of `Table.aggregate` and full warnings implementation]
-  [3364]
+- [Improved performance of `Table.aggregate` and full warnings
+  implementation][3364]
+- [Implemented `Text.reverse`][3377]
+- [Implemented support for most Table aggregations in the Database
+  backend.][3383]
+- [Update `Text.replace` to new API.][3393]
+- [Add encoding support to `Text.bytes` and `Text.from_bytes`. Renamed and added
+  encoding to `File.read_text`. New `File.read` API.][3390]
+- [Improved the `Range` type. Added a `down_to` counterpart to `up_to` and
+  `with_step` allowing to change the range step.][3408]
+- [Aligned `Text.split` API with other methods and added `Text.lines`.][3415]
+- [Implemented a basic reader for the `Delimited` file format.][3424]
+- [Implemented a reader for the `Excel` file format.][3425]
+- [Added custom encoding support to the `Delimited` file format reader.][3430]
+- [Implemented `compute` method on `Vector` for statistics calculations.][3442]
+- [Promote get and put to be methods of Ref type rather than of Ref
+  module][3457]
+- [Implemented `Table.parse_values`, parsing text columns according to a
+  specified type.][3455]
+- [Promote with, take, finalize to be methods of Managed_Resource
+  instance][3460]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -140,6 +172,26 @@
 [3349]: https://github.com/enso-org/enso/pull/3349
 [3361]: https://github.com/enso-org/enso/pull/3361
 [3364]: https://github.com/enso-org/enso/pull/3364
+[3373]: https://github.com/enso-org/enso/pull/3373
+[3377]: https://github.com/enso-org/enso/pull/3377
+[3366]: https://github.com/enso-org/enso/pull/3366
+[3379]: https://github.com/enso-org/enso/pull/3379
+[3381]: https://github.com/enso-org/enso/pull/3381
+[3391]: https://github.com/enso-org/enso/pull/3391
+[3383]: https://github.com/enso-org/enso/pull/3383
+[3385]: https://github.com/enso-org/enso/pull/3385
+[3392]: https://github.com/enso-org/enso/pull/3392
+[3393]: https://github.com/enso-org/enso/pull/3393
+[3390]: https://github.com/enso-org/enso/pull/3390
+[3408]: https://github.com/enso-org/enso/pull/3408
+[3415]: https://github.com/enso-org/enso/pull/3415
+[3424]: https://github.com/enso-org/enso/pull/3424
+[3425]: https://github.com/enso-org/enso/pull/3425
+[3430]: https://github.com/enso-org/enso/pull/3430
+[3442]: https://github.com/enso-org/enso/pull/3442
+[3457]: https://github.com/enso-org/enso/pull/3457
+[3455]: https://github.com/enso-org/enso/pull/3455
+[3460]: https://github.com/enso-org/enso/pull/3460
 
 #### Enso Compiler
 
@@ -148,13 +200,38 @@
 - [Added the ability to decorate values with warnings.][3248]
 - [Fixed issues related to constructors' default arguments][3330]
 - [Fixed compiler issue related to module cache.][3367]
+- [Fixed execution of defaulted arguments of Atom Constructors][3358]
+- [Converting Enso Date to java.time.LocalDate and back][3374]
+- [Functions with all-defaulted arguments now execute automatically][3414]
+- [Provide `tagValues` for function arguments in the language server][3422]
+- [Delay construction of Truffle nodes to speed initialization][3429]
+- [Frgaal compiler integration to allow for latest Java constructs][3421]
+- [Support for Chrome developer tools --inspect option][3432]
+- [Move Builtin Types and Methods definitions to stdlib][3363]
+- [Reduce boilerplate by generating BuiltinMethod nodes from simple method
+  signatures][3444]
+- [Generate boilerplate classes related to error handling and varargs in
+  builtins from method signatures][3454]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
 [3258]: https://github.com/enso-org/enso/pull/3258
 [3330]: https://github.com/enso-org/enso/pull/3330
+[3358]: https://github.com/enso-org/enso/pull/3358
 [3360]: https://github.com/enso-org/enso/pull/3360
 [3367]: https://github.com/enso-org/enso/pull/3367
+[3374]: https://github.com/enso-org/enso/pull/3374
+[3412]: https://github.com/enso-org/enso/pull/3412
+[3414]: https://github.com/enso-org/enso/pull/3414
+[3417]: https://github.com/enso-org/enso/pull/3417
+[3422]: https://github.com/enso-org/enso/pull/3422
+[3429]: https://github.com/enso-org/enso/pull/3429
+[3421]: https://github.com/enso-org/enso/pull/3421
+[3432]: https://github.com/enso-org/enso/pull/3432
+[3363]: https://github.com/enso-org/enso/pull/3363
+[3444]: https://github.com/enso-org/enso/pull/3444
+[3453]: https://github.com/enso-org/enso/pull/3453
+[3454]: https://github.com/enso-org/enso/pull/3454
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

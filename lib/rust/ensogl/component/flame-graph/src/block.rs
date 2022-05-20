@@ -4,23 +4,15 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
 use ensogl::frp;
+use ensogl_core::application::tooltip;
 use ensogl_core::application::Application;
+use ensogl_core::data::color;
+use ensogl_core::data::color::Lcha;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
-use ensogl_gui_component::component::Component;
+use ensogl_gui_component::component::ComponentView;
 use ensogl_text as text;
-
-
-
-// =======================
-// === Layout Constants ===
-// =======================
-
-const TEXT_OFFSET_X: f32 = 4.0;
-const TEXT_OFFSET_Y: f32 = -2.0;
-
-const EMPTY_LABEL: &str = "<No Label>";
 
 
 
@@ -31,11 +23,11 @@ const EMPTY_LABEL: &str = "<No Label>";
 mod background {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style) {
+        (style:Style,color_rgba:Vector4<f32>) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
             let zoom                 = Var::<f32>::from("1.0/zoom()");
-            let base_color           = style.get_color("flame_graph_color");
+            let color = Var::<color::Rgba>::from(color_rgba);
 
             let shape = Rect((&width,&height));
 
@@ -49,7 +41,7 @@ mod background {
 
             let shape = shape - left;
             let shape = shape - right;
-            let shape = shape.fill(base_color);
+            let shape = shape.fill(color);
 
             (shape).into()
         }
@@ -65,21 +57,27 @@ mod background {
 ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
-        set_size(Vector2)
+        set_size(Vector2),
+        set_color(Lcha)
     }
     Output {}
 }
 
 impl component::Frp<Model> for Frp {
-    fn init(api: &Self::Private, _app: &Application, model: &Model, _style: &StyleWatchFrp) {
+    fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
         let background = &model.background.events;
+
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
             eval api.input.set_size((size) model.set_size(*size));
+            eval api.input.set_color((color) model.set_color(*color));
 
-            is_hovered <- bool(&background.mouse_out, &background.mouse_over);
-            eval is_hovered((hovered) model.set_label_visible(*hovered));
+            tooltip_content <- api.input.set_content.sample(&background.mouse_over);
+            tooltip <- tooltip_content.map(|content| tooltip::Style::set_label(content.clone()));
+            app.frp.set_tooltip <+ tooltip;
+
+            app.frp.set_tooltip <+ background.mouse_out.constant(tooltip::Style::unset_label());
         }
     }
 }
@@ -96,7 +94,6 @@ pub struct Model {
     background:     background::View,
     label:          Rc<RefCell<Option<text::Area>>>,
     display_object: display::object::Instance,
-    text:           Rc<RefCell<Option<String>>>,
 }
 
 impl component::Model for Model {
@@ -108,14 +105,13 @@ impl component::Model for Model {
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
         let label = default();
-        let text = default();
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         scene.layers.tooltip.add_exclusive(&background);
 
         let app = app.clone_ref();
-        Model { app, background, label, display_object, text }
+        Model { app, background, label, display_object }
     }
 }
 
@@ -125,36 +121,13 @@ impl Model {
     }
 
     fn set_content(&self, t: &str) {
-        self.text.set(t.to_owned());
         if let Some(label) = self.label.borrow().deref() {
             label.set_content(t.to_owned())
         }
     }
 
-    fn set_label_visible(&self, visible: bool) {
-        if visible {
-            self.enable_label();
-        } else if let Some(label) = self.label.take() {
-            label.unset_parent()
-        }
-    }
-
-    fn enable_label(&self) {
-        let label = self.app.new_view::<text::Area>();
-        self.add_child(&label);
-
-        let text_layer = &self.app.display.default_scene.layers.tooltip_text;
-        label.add_to_scene_layer(text_layer);
-
-        let text_size = label.height.value();
-        let text_origin = Vector2(
-            TEXT_OFFSET_X - self.background.size.get().x / 2.0,
-            TEXT_OFFSET_Y + text_size / 2.0,
-        );
-        label.set_position_xy(text_origin);
-        label.set_content(self.text.borrow().clone().unwrap_or_else(|| EMPTY_LABEL.to_owned()));
-
-        self.label.set(label);
+    fn set_color(&self, color: Lcha) {
+        self.background.color_rgba.set(color::Rgba::from(color).into());
     }
 }
 
@@ -171,4 +144,4 @@ impl display::Object for Model {
 // =================
 
 #[allow(missing_docs)]
-pub type Block = Component<Model, Frp>;
+pub type Block = ComponentView<Model, Frp>;

@@ -76,7 +76,9 @@ lazy_static! {
     static ref SIDE_KEYS_SET: HashSet<&'static str> = SIDE_KEYS.iter().copied().collect();
 }
 
-const DOUBLE_EVENT_TIME_MS: f32 = 300.0;
+/// The maximum time difference between presses/clicks where they are treated as single
+/// `DoublePress`/`DoubleClick` event.
+pub const DOUBLE_EVENT_TIME_MS: f32 = 300.0;
 
 
 

@@ -45,17 +45,17 @@ public class ReadArgumentNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    Object argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
+    Object arguments[] = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
 
     if (defaultValue == null) {
-      return argument;
+      return arguments[index];
     }
 
     // Note [Handling Argument Defaults]
-    if (defaultingProfile.profile(argument == null)) {
+    if (defaultingProfile.profile(arguments.length <= index || arguments[index] == null)) {
       return defaultValue.executeGeneric(frame);
     } else {
-      return argument;
+      return arguments[index];
     }
   }
 

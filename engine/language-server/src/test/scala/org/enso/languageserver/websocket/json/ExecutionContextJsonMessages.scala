@@ -220,4 +220,18 @@ object ExecutionContextJsonMessages {
           }
           """
 
+  def executionContextGetComponentGroupsRequest(
+    reqId: Int,
+    contextId: Api.ContextId
+  ) =
+    json"""
+            { "jsonrpc": "2.0",
+              "method": "executionContext/getComponentGroups",
+              "id": $reqId,
+              "params": {
+                "contextId": $contextId
+              }
+            }
+            """
+
 }

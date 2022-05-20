@@ -8,3 +8,34 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+component-groups:
+  extends:
+    - Standard.Base.Input:
+        exports:
+          - Standard.Table.Data.Table.new
+          - Standard.Table.Data.Table.from_rows
+          - Standard.Table.Data.Column.from_vector
+          - Standard.Table.Io.Csv.from_csv
+          - Standard.Table.Io.Spreadsheet.from_xlsx
+          - Standard.Table.Io.Spreadsheet.from_xls
+    - Standard.Base.Select:
+        exports:
+          - Standard.Table.Data.Table.Table.at
+          - Standard.Table.Data.Table.Table.select_columns
+          - Standard.Table.Data.Table.Table.rename_columns
+          - Standard.Table.Data.Table.Table.remove_columns
+          - Standard.Table.Data.Table.Table.reorder_columns
+          - Standard.Table.Data.Table.Table.sort_columns
+    - Standard.Base.Join:
+        exports:
+          - Standard.Table.Data.Table.Table.join
+          - Standard.Table.Data.Table.Table.group
+    - Standard.Base.Transform:
+        exports:
+          - Standard.Table.Data.Table.Table.sort
+          - Standard.Table.Data.Table.Table.to_csv
+          - Standard.Table.Data.Column.Column.to_table
+    - Standard.Base.Output:
+        exports:
+          - Standard.Table.Data.Table.Table.write_csv
+          - Standard.Table.Data.Table.Table.write_xlsx

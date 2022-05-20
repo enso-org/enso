@@ -16,14 +16,14 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for simple patterns" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |main =
           |    f = case _ of
-          |        Builtins.Cons a _ -> a
-          |        Builtins.Nil -> -10
+          |        Cons a _ -> a
+          |        Nil -> -10
           |
-          |    f (Builtins.Cons 10 Builtins.Nil) - f Nil
+          |    f (Cons 10 Nil) - f Nil
           |""".stripMargin
 
       eval(code) shouldEqual 20
@@ -31,7 +31,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |type MyAtom a
           |
@@ -77,7 +77,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for level one nested patterns" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |type MyAtom
           |
@@ -94,7 +94,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for deeply nested patterns" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |type MyAtom
           |
@@ -118,7 +118,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "correctly result in errors for incomplete matches" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |type MyAtom
           |
@@ -135,7 +135,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for pattern matches in pattern matches" in {
       val code =
-        """from Standard.Builtins import all
+        """from Standard.Base.Data.List import all
           |
           |type MyAtom a
           |type One a

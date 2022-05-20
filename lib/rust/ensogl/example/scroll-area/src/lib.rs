@@ -20,18 +20,14 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
+use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::shape::Circle;
-use ensogl_core::display::shape::PixelDistance;
-use ensogl_core::display::shape::Rect;
-use ensogl_core::display::shape::ShapeOps;
-use ensogl_core::display::shape::ShapeSystem;
-use ensogl_core::display::Sprite;
 use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf_sys::run_once_initialized;
@@ -54,6 +50,32 @@ pub fn main() {
 
 
 
+// ==========================
+// === Shapes definitions ===
+// ==========================
+
+mod content {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            Circle(50.px()).fill(color::Rgb::new(1.0,0.0,0.0)).into()
+        }
+    }
+}
+
+mod background {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let size = (200.px(), 200.px());
+            let color = color::Rgb::new(0.9, 0.9, 0.9);
+            Rect(size).corners_radius(5.5.px()).fill(color).into()
+        }
+    }
+}
+
+
+
 // ========================
 // === Init Application ===
 // ========================
@@ -63,22 +85,14 @@ fn init(app: &Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
+    let logger: Logger = app.logger.sub("ScrollAreaDemo");
+
     let scene = &app.display.default_scene;
     scene.camera().set_position_xy(Vector2(100.0, -100.0));
 
-
-    // === Background ===
-
-    let background_color = color::Rgba::new(0.9, 0.9, 0.9, 1.0);
-    let background_size = (200.px(), 200.px());
-    let background_shape = Rect(background_size).corners_radius(5.5.px()).fill(background_color);
-    let background_system = ShapeSystem::new(scene, background_shape);
-    let background: Sprite = background_system.new_instance();
-    scene.add_child(&background_system);
-    background.size.set(Vector2::new(200.0, 200.0));
-    background.set_position_x(100.0);
-    background.set_position_y(-100.0);
-    std::mem::forget(background);
+    let navigator = Navigator::new(scene, &scene.camera());
+    navigator.disable_wheel_panning();
+    std::mem::forget(navigator);
 
 
     // === Scroll Area ===
@@ -88,17 +102,28 @@ fn init(app: &Application) {
     scroll_area.resize(Vector2(200.0, 200.0));
     scroll_area.set_content_width(300.0);
     scroll_area.set_content_height(1000.0);
+    scroll_area.set_corner_radius(5.5);
+
+
+    // === Background ===
+
+    let background = background::View::new(&logger);
+    scroll_area.add_child(&background);
+    scene.layers.below_main.add_exclusive(&background);
+    background.size.set(Vector2::new(200.0, 200.0));
+    background.set_position_x(100.0);
+    background.set_position_y(-100.0);
+    std::mem::forget(background);
 
 
     // === Content ===
 
-    let sprite_system = ShapeSystem::new(scene, &Circle(50.px()));
-    let sprite: Sprite = sprite_system.new_instance();
-    scroll_area.content.add_child(&sprite_system);
-    sprite.size.set(Vector2::new(100.0, 100.0));
-    sprite.set_position_x(100.0);
-    sprite.set_position_y(-100.0);
-    std::mem::forget(sprite);
+    let content = content::View::new(&logger);
+    scroll_area.content().add_child(&content);
+    content.size.set(Vector2::new(100.0, 100.0));
+    content.set_position_x(100.0);
+    content.set_position_y(-100.0);
+    std::mem::forget(content);
 
 
     std::mem::forget(scroll_area);

@@ -1,8 +1,8 @@
 package org.enso.interpreter.instrument
 
 import java.nio.ByteBuffer
-
 import com.oracle.truffle.api.TruffleStackTrace
+import com.typesafe.scalalogging.Logger
 import org.enso.interpreter.instrument.ReplDebuggerInstrument.ReplExecutionEventNode
 import org.enso.polyglot.debugger._
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -91,7 +91,15 @@ class DebuggerMessageHandler extends MessageEndpoint {
                   Debugger.createEvaluationFailure(exceptionWithTraces)
                 )
               case Right(value) =>
-                sendToClient(Debugger.createEvaluationSuccess(value))
+                node.showObject(value) match {
+                  case Left(error) =>
+                    Logger[this.type].warn(
+                      s"Failed to call `to_text` on computation result (${error.getMessage}), falling back to Java representation."
+                    )
+                    sendToClient(Debugger.createEvaluationSuccess(value))
+                  case Right(repr: String) =>
+                    sendToClient(Debugger.createEvaluationSuccess(repr))
+                }
             }
           case ListBindingsRequest =>
             val bindings = node.listBindings()

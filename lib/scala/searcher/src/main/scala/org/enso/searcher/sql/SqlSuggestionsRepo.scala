@@ -3,7 +3,6 @@ package org.enso.searcher.sql
 import java.util.UUID
 
 import org.enso.polyglot.{ExportedSymbol, Suggestion}
-import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExportsAction,
   ExportsUpdate,
@@ -41,7 +40,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(initQuery.transactionally)
+    db.run(initQuery)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
@@ -58,7 +57,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     db.run(getAllMethodsQuery(calls))
 
   override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery)
+    db.run(getAllModulesQuery.transactionally)
 
   /** @inheritdoc */
   override def search(
@@ -68,9 +67,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(
-      searchQuery(module, selfType, returnType, kinds, position)
-    )
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -88,7 +85,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def applyTree(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): Future[Seq[QueryResult[SuggestionUpdate]]] =
     db.run(applyTreeQuery(tree).transactionally)
 
@@ -385,9 +382,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the result of applying updates with the new database version
     */
   private def applyTreeQuery(
-    tree: Tree[SuggestionUpdate]
+    tree: Seq[SuggestionUpdate]
   ): DBIO[Seq[QueryResult[SuggestionUpdate]]] = {
-    val queries = tree.toVector.map {
+    val queries = tree.map {
       case update @ SuggestionUpdate(suggestion, action) =>
         val query = action match {
           case SuggestionAction.Add() =>
@@ -800,28 +797,34 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   ] = {
     def updateQuery(column: String) =
       sqlu"""update suggestions
-          set #$column = $newName || substr(#$column, length($oldName) + 1)
-          where #$column like '#$oldName.%'"""
+          set #$column =
+            substr(#$column, 0, instr(#$column, $oldName)) ||
+            $newName ||
+            substr(#$column, instr(#$column, $oldName) + length($oldName))
+          where #$column like '%.#$oldName.%'"""
     val argumentsUpdateQuery =
       sqlu"""update arguments
-          set type = $newName || substr(type, length($oldName) + 1)
-          where type like '#$oldName.%'"""
+          set type =
+            substr(type, 0, instr(type, $oldName)) ||
+            $newName ||
+            substr(type, instr(type, $oldName) + length($oldName))
+          where type like '%.#$oldName.%'"""
     def noop[A] = DBIO.successful(Seq[A]())
 
     val selectUpdatedModulesQuery = Suggestions
-      .filter(row => row.module.like(s"$newName.%"))
+      .filter(row => row.module.like(s"%.$newName.%"))
       .map(row => (row.id, row.module))
       .result
     val selectUpdatedSelfTypesQuery = Suggestions
-      .filter(_.selfType.like(s"$newName.%"))
+      .filter(_.selfType.like(s"%.$newName.%"))
       .map(row => (row.id, row.selfType))
       .result
     val selectUpdatedReturnTypesQuery = Suggestions
-      .filter(_.returnType.like(s"$newName.%"))
+      .filter(_.returnType.like(s"%.$newName.%"))
       .map(row => (row.id, row.returnType))
       .result
     val selectUpdatedArgumentsQuery = Arguments
-      .filter(_.tpe.like(s"$newName.%"))
+      .filter(_.tpe.like(s"%.$newName.%"))
       .map(row => (row.suggestionId, row.index, row.tpe))
       .result
 
@@ -938,9 +941,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         (row.scopeStartLine === ScopeColumn.EMPTY) ||
         (
           row.scopeStartLine <= value.line &&
-          row.scopeStartOffset <= value.character &&
-          row.scopeEndLine >= value.line &&
-          row.scopeEndOffset >= value.character
+          row.scopeEndLine >= value.line
         )
       }
   }

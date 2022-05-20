@@ -7,8 +7,8 @@ import org.enso.pkg.{
   ComponentGroups,
   Config,
   ExtendedComponentGroup,
-  ModuleName,
-  ModuleReference
+  GroupName,
+  GroupReference
 }
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -274,11 +274,11 @@ object ComponentGroupsResolverSpec {
 
   /** Create a new component group. */
   def newComponentGroup(
-    module: String,
+    group: String,
     exports: String*
   ): ComponentGroup =
     ComponentGroup(
-      module  = ModuleName(module),
+      group   = GroupName(group),
       color   = None,
       icon    = None,
       exports = exports.map(Component(_, None))
@@ -288,13 +288,13 @@ object ComponentGroupsResolverSpec {
   def extendedComponentGroup(
     extendedLibraryNamespace: String,
     extendedLibraryName: String,
-    extendedModule: String,
+    extendedGroup: String,
     exports: String*
   ): ExtendedComponentGroup =
     ExtendedComponentGroup(
-      module = ModuleReference(
+      group = GroupReference(
         LibraryName(extendedLibraryNamespace, extendedLibraryName),
-        ModuleName(extendedModule)
+        GroupName(extendedGroup)
       ),
       exports = exports.map(Component(_, None))
     )
@@ -303,12 +303,12 @@ object ComponentGroupsResolverSpec {
   def libraryComponentGroup(
     namespace: String,
     name: String,
-    module: String,
+    group: String,
     exports: String*
   ): LibraryComponentGroup =
     LibraryComponentGroup(
       library = LibraryName(namespace, name),
-      module  = ModuleName(module),
+      group   = GroupName(group),
       color   = None,
       icon    = None,
       exports = exports.map(LibraryComponent(_, None))

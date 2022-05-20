@@ -38,11 +38,19 @@ object DistributionPackage {
     }
   }
 
+  /**
+    * Conditional copying, based on the contents of cache and timestamps of files.
+    *
+    * @param source source directory
+    * @param destination target directory
+    * @param cache cache used for persisting the cached information
+    * @return true, if copying was necessary, false if no change was detected between the directories
+    */
   def copyDirectoryIncremental(
     source: File,
     destination: File,
     cache: CacheStore
-  ): Unit = {
+  ): Boolean = {
     val allFiles = source.allPaths.get().toSet
     Tracked.diffInputs(cache, FileInfo.lastModified)(allFiles) { diff =>
       val missing = diff.unmodified.exists { f =>
@@ -55,7 +63,8 @@ object DistributionPackage {
       if (diff.modified.nonEmpty || diff.removed.nonEmpty || missing) {
         IO.delete(destination)
         IO.copyDirectory(source, destination)
-      }
+        true
+      } else false
     }
   }
 
@@ -80,17 +89,6 @@ object DistributionPackage {
         }
       }
     }
-  }
-
-  def downloadFileToLocation(
-    address: String,
-    location: File
-  ): File = {
-    val exitCode = (url(address) #> location).!
-    if (exitCode != 0) {
-      throw new RuntimeException(s"Downloading the file at $address failed.")
-    }
-    location
   }
 
   def executableName(baseName: String): String =
@@ -154,7 +152,6 @@ object DistributionPackage {
       cacheFactory    = cacheFactory.sub("engine-libraries"),
       log             = log
     )
-    getStdlibDataFiles(distributionRoot, targetStdlibVersion)
 
     copyDirectoryIncremental(
       file("distribution/bin"),
@@ -236,19 +233,6 @@ object DistributionPackage {
       }
     }
 
-  }
-
-  private def getStdlibDataFiles(
-    distributionRoot: File,
-    stdlibVersion: String
-  ): Unit = {
-    val exampleImageUrl =
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/" +
-      "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
-    downloadFileToLocation(
-      exampleImageUrl,
-      distributionRoot / s"lib/Standard/Examples/$stdlibVersion/data/image.png"
-    )
   }
 
   private def buildEngineManifest(

@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::system::gpu::*;
 
 use crate::display::render::pass;
+use crate::display::scene::UpdateStatus;
 
 
 
@@ -67,9 +68,9 @@ impl {
     }
 
     /// Run all the registered passes in this composer.
-    pub fn run(&mut self) {
+    pub fn run(&mut self, update_status: UpdateStatus) {
         for pass in &mut self.passes {
-            pass.run();
+            pass.run(update_status);
         }
     }
 }}
@@ -118,7 +119,7 @@ impl ComposerPass {
     }
 
     /// Run the pass.
-    pub fn run(&mut self) {
-        self.pass.run(&self.instance);
+    pub fn run(&mut self, update_status: UpdateStatus) {
+        self.pass.run(&self.instance, update_status);
     }
 }

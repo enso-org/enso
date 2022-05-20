@@ -1,13 +1,14 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
-import io.circe.{Encoder, Json}
 import io.circe.generic.auto._
+import io.circe.{Encoder, Json}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.libraries.LibraryComponentGroup
 import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnostic
+
+import java.util.UUID
 
 /** The execution JSON RPC API provided by the language server.
   *
@@ -85,6 +86,21 @@ object ExecutionApi {
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
+    }
+  }
+
+  case object ExecutionContextGetComponentGroups
+      extends Method("executionContext/getComponentGroups") {
+
+    case class Params(contextId: ContextId)
+
+    case class Result(componentGroups: Seq[LibraryComponentGroup])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextGetComponentGroups.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ExecutionContextGetComponentGroups.Result
     }
   }
 

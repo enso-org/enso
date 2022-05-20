@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "get_source_location",
+    name = "get_source_location_builtin",
     description = "Returns a textual representation of the location of the callsite.")
 public class GetSourceLocationNode extends Node {
 

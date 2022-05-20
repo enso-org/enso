@@ -202,7 +202,6 @@ impl ProjectNameModel {
 
     fn set_color(&self, value: color::Rgba) {
         self.text_field.set_default_color(value);
-        self.text_field.set_color_all(value);
     }
 
     fn set_position(&self, value: Vector3<f32>) {
@@ -265,10 +264,10 @@ impl ProjectName {
 
             // === Mouse IO ===
 
-            mouse_down <- model.view.events.mouse_down.constant(());
+            let mouse_down = model.view.events.mouse_down_primary.clone_ref();
             frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
                                           &model.view.events.mouse_over);
-            frp.source.mouse_down <+ model.view.events.mouse_down.constant(());
+            frp.source.mouse_down <+ model.view.events.mouse_down_primary;
 
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);

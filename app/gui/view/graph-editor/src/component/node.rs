@@ -21,6 +21,7 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::scene::Layer;
+use ensogl::gui;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use ensogl_component::text;
@@ -126,6 +127,8 @@ pub mod backdrop {
     use super::*;
 
     ensogl::define_shape_system! {
+        // Disable to allow interaction with the output port.
+        pointer_events = false;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");
@@ -329,7 +332,6 @@ ensogl::define_endpoints_2! {
         visualization_visible    (bool),
         visualization_path       (Option<visualization::Path>),
         expression_label_visible (bool),
-        tooltip                  (tooltip::Style),
         bounding_box             (BoundingBox)
     }
 }
@@ -385,12 +387,11 @@ ensogl::define_endpoints_2! {
 ///    complex logically (the events are emitted from node to graph, then processed there and
 ///    emitted back to the right node).
 ///
-/// Currently, the solution "C" (most optimal) is implemented here.
+/// Currently, the solution "C" (nearest to optimal) is implemented here.
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub model: Rc<NodeModel>,
-    pub frp:   Frp,
+    widget: gui::Widget<NodeModel, Frp>,
 }
 
 impl AsRef<Node> for Node {
@@ -399,10 +400,17 @@ impl AsRef<Node> for Node {
     }
 }
 
+impl AsRef<gui::Widget<NodeModel, Frp>> for Node {
+    fn as_ref(&self) -> &gui::Widget<NodeModel, Frp> {
+        &self.widget
+    }
+}
+
+
 impl Deref for Node {
-    type Target = Frp;
+    type Target = gui::Widget<NodeModel, Frp>;
     fn deref(&self) -> &Self::Target {
-        &self.frp
+        &self.widget
     }
 }
 
@@ -430,6 +438,7 @@ pub struct NodeModel {
 
 impl NodeModel {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.default_scene => {
@@ -476,14 +485,6 @@ impl NodeModel {
         display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
-        // Disable shadows to allow interaction with the output port.
-        let shape_system = scene
-            .layers
-            .main
-            .shape_system_registry
-            .shape_system(scene, PhantomData::<backdrop::DynamicShape>);
-        shape_system.shape_system.set_pointer_events(false);
-
         let input = input::Area::new(&logger, app);
         let visualization = visualization::Container::new(&logger, app, registry);
 
@@ -528,17 +529,20 @@ impl NodeModel {
         .init()
     }
 
+    #[profile(Debug)]
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_crumbs_by_id(&self, id: ast::Id) -> Option<Crumbs> {
         let input_crumbs = self.input.get_crumbs_by_id(id).map(Crumbs::input);
         input_crumbs.or_else(|| self.output.get_crumbs_by_id(id).map(Crumbs::output))
     }
 
+    #[profile(Debug)]
     fn init(self) -> Self {
         self.set_expression(Expression::new_plain("empty"));
         self
     }
 
+    #[profile(Debug)]
     fn set_layers(&self, layer: &Layer, text_layer: &Layer, action_bar_layer: &Layer) {
         layer.add_exclusive(&self.display_object);
         action_bar_layer.add_exclusive(&self.action_bar);
@@ -555,6 +559,7 @@ impl NodeModel {
     ///
     /// `action_bar` is moved to the `edited_node` layer as well, though normally it lives on a
     /// separate `above_nodes` layer, unlike every other node component.
+    #[profile(Debug)]
     pub fn move_to_edited_node_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.edited_node;
@@ -570,6 +575,7 @@ impl NodeModel {
     ///
     /// `action_bar` is handled separately, as it uses `above_nodes` scene layer unlike any other
     /// node component.
+    #[profile(Debug)]
     pub fn move_to_main_layer(&self) {
         let scene = &self.app.display.default_scene;
         let layer = &scene.layers.main;
@@ -588,12 +594,14 @@ impl NodeModel {
         HEIGHT
     }
 
+    #[profile(Debug)]
     fn set_expression(&self, expr: impl Into<Expression>) {
         let expr = expr.into();
         self.output.set_expression(&expr);
         self.input.set_expression(&expr);
     }
 
+    #[profile(Debug)]
     fn set_expression_usage_type(&self, crumbs: &Crumbs, tp: &Option<Type>) {
         match crumbs.endpoint {
             Endpoint::Input => self.input.set_expression_usage_type(&crumbs.crumbs, tp),
@@ -601,6 +609,7 @@ impl NodeModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
         let size = Vector2(width, height);
@@ -630,11 +639,13 @@ impl NodeModel {
         size
     }
 
+    #[profile(Debug)]
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn visualization(&self) -> &visualization::Container {
         &self.visualization
     }
 
+    #[profile(Debug)]
     fn set_error(&self, error: Option<&Error>) {
         if let Some(error) = error {
             self.error_visualization.display_kind(*error.kind);
@@ -647,6 +658,7 @@ impl NodeModel {
         }
     }
 
+    #[profile(Debug)]
     fn set_error_color(&self, color: &color::Lcha) {
         self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
         if color.alpha < EPSILON {
@@ -659,6 +671,7 @@ impl NodeModel {
 
 impl Node {
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    #[profile(Debug)]
     pub fn new(app: &Application, registry: visualization::Registry) -> Self {
         let frp = Frp::new();
         let network = &frp.private.network;
@@ -697,7 +710,7 @@ impl Node {
 
             // === Background Press ===
 
-            out.background_press <+ model.drag_area.events.mouse_down.constant(());
+            out.background_press <+ model.drag_area.events.mouse_down_primary;
             out.background_press <+ model.input.on_background_press;
 
 
@@ -915,10 +928,10 @@ impl Node {
             // === Tooltip ===
 
             // Hide tooltip if we show the preview vis.
-            out.tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
+            app.frp.set_tooltip <+ preview_visible.on_true().constant(tooltip::Style::unset_label());
             // Propagate output tooltip. Only if it is not hidden, or to disable it.
             block_tooltip      <- hide_tooltip && has_tooltip;
-            out.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
+            app.frp.set_tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
             // === Type Labels ===
@@ -949,9 +962,12 @@ impl Node {
         frp.set_disabled.emit(false);
         frp.show_quick_action_bar_on_hover.emit(true);
 
-        Self { model, frp }
+        let display_object = model.display_object.clone_ref();
+        let widget = gui::Widget::new(app, frp, model, display_object);
+        Node { widget }
     }
 
+    #[profile(Debug)]
     fn error_color(error: &Option<Error>, style: &StyleWatch) -> color::Lcha {
         use ensogl_hardcoded_theme::graph_editor::node::error as error_theme;
 
@@ -969,7 +985,7 @@ impl Node {
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        self.deref().display_object()
     }
 }
 
@@ -986,6 +1002,7 @@ fn visualization_offset(node_width: f32) -> Vector2 {
     Vector2(x_offset_to_node_center(node_width), VISUALIZATION_OFFSET_Y)
 }
 
+#[profile(Debug)]
 fn bounding_box(
     node_position: Vector2,
     node_size: Vector2,

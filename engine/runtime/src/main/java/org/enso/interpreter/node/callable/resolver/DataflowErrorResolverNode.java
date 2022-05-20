@@ -26,9 +26,7 @@ public abstract class DataflowErrorResolverNode extends BaseResolverNode {
   }
 
   @Specialization(replaces = "resolveCached")
-  Function resolve(
-      UnresolvedSymbol symbol,
-      DataflowError _this) {
+  Function resolve(UnresolvedSymbol symbol, DataflowError _this) {
     return resolveMethodOnError(symbol);
   }
 }

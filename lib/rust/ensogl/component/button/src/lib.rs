@@ -317,7 +317,7 @@ impl<Shape: ButtonShape> View<Shape> {
 
             // Mouse
             frp.source.is_hovered <+ bool(&events.mouse_out,&events.mouse_over);
-            pressed_on_me         <- model.shape.events.mouse_down.gate(&frp.is_hovered);
+            pressed_on_me         <- model.shape.events.mouse_down_primary.gate(&frp.is_hovered);
             tracking_for_release  <- bool(&mouse.up_primary,&pressed_on_me);
             mouse_released_on_me  <- mouse.up_primary.gate(&frp.is_hovered);
             was_clicked           <- tracking_for_release.previous();

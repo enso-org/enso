@@ -163,6 +163,21 @@ commands.build.rust = async function (argv) {
     if (argv.dev) {
         args.push('--dev')
     }
+    let allowExtraMb = 0
+    // Use the environment-variable API provided by the `enso_profiler_macros` library to implement
+    // the public interface to profiling-level configuration
+    // (see: https://github.com/enso-org/design/blob/main/epics/profiling/implementation.md)
+    if (argv['profiling-level']) {
+        process.env.ENSO_MAX_PROFILING_LEVEL = argv['profiling-level']
+        // Enabling more profiling can increase the binary size a bit. Since profiling must be
+        // performed in release mode for accuracy, builds with profiling enabled will tend to be
+        // subject to the binary size check below.
+        // Because builds with a profiling-level set are not true release builds, we could disable
+        // the limit here; instead we set an extra allowance, as a sanity check on the size increase
+        // caused by high profiling levels. This value is chosen to be higher than extensive profiling
+        // should ever exceed.
+        allowExtraMb = 0.5
+    }
     args.push('--')
     // Enable a Rust unstable feature that the `#[profile]` macro uses to obtain source-file and line
     // number information to include in generated profile files.
@@ -192,7 +207,8 @@ commands.build.rust = async function (argv) {
         console.log('Minimizing the WASM binary.')
         await gzip(paths.wasm.main, paths.wasm.mainGz)
 
-        const limitMb = 4.65
+        const releaseLimitMb = 4.37
+        let limitMb = releaseLimitMb + allowExtraMb
         await checkWasmSize(paths.wasm.mainGz, limitMb)
     }
     // Copy WASM files from temporary directory to Webpack's `dist` directory.
@@ -238,12 +254,17 @@ commands.start.rust = async function (argv) {
 commands.start.js = async function (argv) {
     await installJsDeps()
     console.log(`Building JS target.` + argv)
-    // The backend path is being prepended here, as appending would be incorrect.
-    // That is because `targetArgs` might include `-- …` and appended args could
-    // end up being passed to the spawned backend process.
-    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
-        targetArgs
-    )
+    const args = []
+    if (argv.backend) {
+        // The backend path is being prepended here, as appending would be incorrect.
+        // That is because `targetArgs` might include `-- …` and appended args could
+        // end up being passed to the spawned backend process.
+        args.push('--backend-path')
+        args.push(paths.get_project_manager_path(paths.dist.bin))
+    } else {
+        args.push('--no-backend')
+    }
+    args.concat(targetArgs)
     if (argv.dev) {
         args.push('--dev')
     }
@@ -282,7 +303,7 @@ commands.test.rust = async function (argv) {
 commands['integration-test'] = command('Run integration test suite')
 commands['integration-test'].rust = async function (argv) {
     let pm_process = null
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         let env = { ...process.env, PROJECTS_ROOT: path.resolve(os.tmpdir(), 'enso') }
         pm_process = await build_project_manager().then(() => run_project_manager({ env: env }))
     }
@@ -303,6 +324,44 @@ commands['integration-test'].rust = async function (argv) {
             pm_process.kill()
         }
     }
+}
+
+// === Profile ===
+
+commands.profile = command('Profile the application')
+commands.profile.rust = async function (argv) {
+    console.log(`Building with full optimization. This may take a few minutes...`)
+    let defaults = { 'profiling-level': 'debug' }
+    let argv2 = Object.assign({}, defaults, argv)
+    await commands.build.rust(argv2)
+}
+commands.profile.js = async function (argv) {
+    await installJsDeps()
+    console.log(`Profiling the application.` + argv)
+    let workflow = argv['workflow']
+    let save_profile = argv[`save-profile`]
+    if (workflow === undefined) {
+        console.error(
+            `'Profile' command requires a workflow argument. ` +
+                `For a list of available workflows, pass --workflow=help`
+        )
+        return
+    }
+    if (save_profile === undefined) {
+        console.error(
+            `'Profile' command requires a --save-profile argument ` +
+                `indicating path to output file.`
+        )
+        return
+    }
+    let out_path = path.resolve(save_profile)
+    const tail = ['--entry-point=profile', '--workflow=' + workflow, '--save-profile=' + out_path]
+    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(
+        targetArgs
+    )
+    await cmd.with_cwd(paths.ide_desktop.root, async () => {
+        await run('npm', ['run', 'start', '--'].concat(args).concat(tail))
+    })
 }
 
 // === Lint ===
@@ -348,7 +407,7 @@ commands.watch.common = async function (argv) {
     // Init JS build and project manager.
 
     await installJsDeps()
-    if (argv.backend !== 'false') {
+    if (argv.backend) {
         await build_project_manager().then(run_project_manager)
     }
 
@@ -452,13 +511,13 @@ let optParser = yargs
     .demandCommand()
 
 optParser.options('rust', {
-    describe: 'Run the Rust target',
+    describe: 'Run the Rust target (use --no-rust to disable)',
     type: 'bool',
     default: true,
 })
 
 optParser.options('js', {
-    describe: 'Run the JavaScript target',
+    describe: 'Run the JavaScript target (use --no-js to disable)',
     type: 'bool',
     default: true,
 })
@@ -481,7 +540,7 @@ optParser.options('target', {
 })
 
 optParser.options('backend', {
-    describe: 'Start the backend process automatically [true]',
+    describe: 'Start own backend process (use --no-backend to disable)',
     type: 'bool',
     default: true,
 })

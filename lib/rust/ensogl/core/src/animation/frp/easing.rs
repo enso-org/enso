@@ -58,7 +58,7 @@ impl Easing {
     ) -> Self {
         let frp = &self.frp;
         frp::extend! { network
-            eval frp.set_duration    ((t) animator.set_duration(*t));
+            eval frp.set_duration    ((t) animator.set_duration((*t).ms()));
             eval frp.target          ((t) animator.from_now_to(*t));
             eval frp.stop_and_rewind ((t) animator.stop_and_rewind_to(*t));
         }
