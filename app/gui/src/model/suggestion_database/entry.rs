@@ -250,7 +250,7 @@ impl Entry {
         where I: Iterator<Item = &'a str> {
             QualifiedNameSegments(iter.map(NameSegment::new).collect())
         }
-        fn segments_and_entry_name<'a, I>(segments: I, entry: &'a Entry) -> QualifiedNameSegments
+        fn collect_segments_and_entry_name<'a, I>(segments: I, entry: &'a Entry) -> QualifiedNameSegments
         where I: Iterator<Item = &'a str> {
             collect_segments(segments.chain(once(entry.name.as_str())))
         }
@@ -258,13 +258,13 @@ impl Entry {
             Kind::Method => {
                 match &self.self_type {
                     Some(self_type) => {
-                        segments_and_entry_name(self_type.segments(), self)
+                        collect_segments_and_entry_name(self_type.segments(), self)
                     },
                     None => default(),
                 }
             }
             Kind::Module => collect_segments(self.module.segments()),
-            _ => segments_and_entry_name(self.module.segments(), self),
+            _ => collect_segments_and_entry_name(self.module.segments(), self),
         }
     }
 }
