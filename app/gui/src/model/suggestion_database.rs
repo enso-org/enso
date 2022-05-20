@@ -28,21 +28,13 @@ pub use example::Example;
 
 
 
-// ===============
-// === Aliases ===
-// ===============
-
-type PathSegment = ImString;
-
-
-
 // ===========================
 // === FreeformPathToIdMap ===
 // ===========================
 
 #[derive(Clone, Debug, Default)]
 struct FreeformPathToIdMap {
-    tree: ensogl::data::HashMapTree<PathSegment, Option<entry::Id>>,
+    tree: ensogl::data::HashMapTree<entry::NameSegment, Option<entry::Id>>,
 }
 
 impl FreeformPathToIdMap {
@@ -67,7 +59,7 @@ impl FreeformPathToIdMap {
     fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
-        I: Into<PathSegment>, {
+        I: Into<entry::NameSegment>, {
         self.tree.get(path).and_then(|v| *v)
     }
 }
@@ -258,7 +250,7 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`.
     pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let path_segments = fully_qualified_name.split(ACCESS).map(PathSegment::new);
+        let path_segments = fully_qualified_name.split(ACCESS).map(entry::NameSegment::new);
         let path_to_id_map = self.freeform_path_to_id_map.borrow();
         path_to_id_map.get(path_segments).and_then(|id| self.lookup(id).ok())
     }

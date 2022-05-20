@@ -58,8 +58,10 @@ pub struct MissingThisOnMethod(pub String);
 // === QualifiedNameSegments ===
 // =============================
 
+pub type NameSegment = ImString;
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct QualifiedNameSegments(pub Vec<ImString>);
+pub struct QualifiedNameSegments(pub Vec<NameSegment>);
 
 
 
@@ -247,7 +249,7 @@ impl Entry {
         use std::iter::*;
         fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
         where I: Iterator<Item = &'a str> {
-            QualifiedNameSegments(iter.map(ImString::new).collect())
+            QualifiedNameSegments(iter.map(NameSegment::new).collect())
         }
         match self.kind {
             Kind::Method => {
