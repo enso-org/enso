@@ -675,6 +675,10 @@ mod test {
         assert!(lookup.is_none());
     }
 
+    fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
+        SuggestionsDatabaseEntry { id, suggestion }
+    }
+
     #[test]
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
@@ -718,9 +722,6 @@ mod test {
             scope:       (default()..=default()).into(),
             external_id: None,
         };
-        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
-            SuggestionsDatabaseEntry { id, suggestion }
-        }
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
                 db_entry(1, entry1),
@@ -839,9 +840,6 @@ mod test {
             documentation_html: None,
             external_id:        None,
         };
-        fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
-            SuggestionsDatabaseEntry { id, suggestion }
-        }
         let atom_entry_id = 12;
         let method_entry_id = 15;
         let response = language_server::response::GetSuggestionDatabase {
