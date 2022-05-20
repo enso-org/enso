@@ -245,8 +245,8 @@ impl Entry {
     pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
         use itertools::Either::*;
         use std::iter::*;
-        fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments 
-        where I: Iterator<Item = &'a str>{
+        fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
+        where I: Iterator<Item = &'a str> {
             QualifiedNameSegments(iter.map(ImString::new).collect())
         }
         match self.kind {
@@ -537,7 +537,8 @@ mod test {
             expected_code: &str,
             expected_imports: &[&module::QualifiedName],
         ) {
-            let CodeToInsert { code, imports } = entry.code_to_insert(current_module, generate_this);
+            let CodeToInsert { code, imports } =
+                entry.code_to_insert(current_module, generate_this);
             assert_eq!(code, expected_code);
             assert_eq!(imports.iter().collect_vec().as_slice(), expected_imports);
         }
@@ -575,7 +576,8 @@ mod test {
             name: "module_extension".to_string(),
             ..module_method.clone()
         };
-        let atom_type = tp::QualifiedName::new_module_member(atom.module.clone(), atom.name.clone());
+        let atom_type =
+            tp::QualifiedName::new_module_member(atom.module.clone(), atom.name.clone());
         let atom_extension = Entry {
             module: another_module.clone(),
             name: "atom_extension".to_string(),

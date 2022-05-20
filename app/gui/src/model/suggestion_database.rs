@@ -48,7 +48,8 @@ struct FreeformPathToIdMap {
 impl FreeformPathToIdMap {
     fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedNameSegments, id: entry::Id) {
         let value = Some(id);
-        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, value);
+        let old_value =
+            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, value);
         if old_value.is_some() {
             event!(WARN, "An existing id at {path:?} was overwritten with {id}.");
         }
