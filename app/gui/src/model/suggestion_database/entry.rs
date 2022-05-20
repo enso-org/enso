@@ -60,7 +60,7 @@ pub struct MissingThisOnMethod(pub String);
 
 pub type NameSegment = ImString;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct QualifiedNameSegments(pub Vec<NameSegment>);
 
 
@@ -245,22 +245,26 @@ impl Entry {
 
     /// Get the full qualified name of the entry.
     pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
-        use itertools::Either::*;
         use std::iter::*;
         fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
         where I: Iterator<Item = &'a str> {
             QualifiedNameSegments(iter.map(NameSegment::new).collect())
         }
+        fn segments_and_entry_name<'a, I>(segments: I, entry: &'a Entry) -> QualifiedNameSegments
+        where I: Iterator<Item = &'a str> {
+            collect_segments(segments.chain(once(entry.name.as_str())))
+        }
         match self.kind {
             Kind::Method => {
-                let self_type = match &self.self_type {
-                    Some(name) => Left(name.segments()),
-                    None => Right(empty()),
-                };
-                collect_segments(self_type.chain(once(self.name.as_str())))
+                match &self.self_type {
+                    Some(self_type) => {
+                        segments_and_entry_name(self_type.segments(), self)
+                    },
+                    None => default(),
+                }
             }
             Kind::Module => collect_segments(self.module.segments()),
-            _ => collect_segments(self.module.segments().chain(once(self.name.as_str()))),
+            _ => segments_and_entry_name(self.module.segments(), self),
         }
     }
 }
