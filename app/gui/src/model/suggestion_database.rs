@@ -101,12 +101,12 @@ pub enum Notification {
 /// argument names and types.
 #[derive(Clone, Debug)]
 pub struct SuggestionDatabase {
-    logger:                  Logger,
-    entries:                 RefCell<HashMap<entry::Id, Rc<Entry>>>,
+    logger:                   Logger,
+    entries:                  RefCell<HashMap<entry::Id, Rc<Entry>>>,
     qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
-    examples:                RefCell<Vec<Rc<Example>>>,
-    version:                 Cell<SuggestionsDatabaseVersion>,
-    notifications:           notification::Publisher<Notification>,
+    examples:                 RefCell<Vec<Rc<Example>>>,
+    version:                  Cell<SuggestionsDatabaseVersion>,
+    notifications:            notification::Publisher<Notification>,
 }
 
 impl SuggestionDatabase {
