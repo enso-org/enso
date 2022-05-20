@@ -245,7 +245,6 @@ impl Entry {
 
     /// Get the full qualified name of the entry.
     pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
-        use std::iter::*;
         fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
         where I: Iterator<Item = &'a str> {
             QualifiedNameSegments(iter.map(NameSegment::new).collect())
@@ -257,7 +256,7 @@ impl Entry {
         where
             I: Iterator<Item = &'a str>,
         {
-            collect_segments(segments.chain(once(entry.name.as_str())))
+            collect_segments(segments.chain(iter::once(entry.name.as_str())))
         }
         match self.kind {
             Kind::Method => {
