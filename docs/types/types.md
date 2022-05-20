@@ -1,6 +1,6 @@
 # A note on conventions
 
-Due to two things that feel like 'primes' popping up in conversation below, we've chosen to denote one with 'x.type' and the other with 'Code x'.
+Due to two things that feel like 'primes' popping up in the conversation below, we've chosen to denote one with 'x.type' and the other with 'Code x'.
 
 # `type` declarations and `type` elaboration
 
