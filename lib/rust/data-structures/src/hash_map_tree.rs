@@ -619,24 +619,24 @@ mod tests {
     fn replace_and_traverse_back_pruning_for_overlapping_paths() {
         type TestTree = HashMapTree<i32, Option<i32>>;
         fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
-            tree.get(path.iter().map(|v| *v)).and_then(|v| *v)
+            tree.get(path.iter().copied()).and_then(|v| *v)
         }
         let mut tree = TestTree::new();
         let paths = &[vec![10, 20], vec![10, 20, 25], vec![10], vec![10, 30, 35], vec![10, 30]];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            assert_eq!(get_and_flatten(&mut tree, &path), None);
+            assert_eq!(get_and_flatten(&mut tree, path), None);
             let result =
                 tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), *value);
             assert_eq!(result, None);
-            assert_eq!(get_and_flatten(&mut tree, &path), *value);
+            assert_eq!(get_and_flatten(&mut tree, path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            assert_eq!(get_and_flatten(&mut tree, &path), *value);
+            assert_eq!(get_and_flatten(&mut tree, path), *value);
             let result =
                 tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), None);
             assert_eq!(result, *value);
-            assert_eq!(get_and_flatten(&mut tree, &path), None);
+            assert_eq!(get_and_flatten(&mut tree, path), None);
         }
     }
 }
