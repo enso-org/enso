@@ -672,7 +672,7 @@ mod test {
 
     fn expect_no_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
-        assert!(lookup.is_none());
+        assert_eq!(lookup, None);
     }
 
     fn db_entry(id: SuggestionId, suggestion: SuggestionEntry) -> SuggestionsDatabaseEntry {
@@ -749,7 +749,7 @@ mod test {
     }
 
     #[test]
-    fn lookup_by_fully_qualified_name_after_db_modification() {
+    fn lookup_by_fully_qualified_name_after_db_update() {
         // Initialize a suggestion database with a few sample entries.
         let entry1 = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
@@ -815,6 +815,50 @@ mod test {
         expect_no_lookup(&db, "TestProject.TestModule.TextAtom");
         expect_lookup(&db, "NewProject.NewModule.TextAtom");
         expect_no_lookup(&db, "Standard.Builtins.Main.System.create_process");
+        expect_lookup(&db, "local.Unnamed_6.Main");
+    }
+
+    #[test]
+    fn lookup_by_fully_qualified_name_after_db_update_reuses_id() {
+        // Initialize a suggestion database with a sample entry.
+        let entry1 = SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        let id = 1;
+        let response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![db_entry(id, entry1)],
+            current_version: 1,
+        };
+        let db = SuggestionDatabase::from_ls_response(response);
+
+        // Apply a DB update removing the entry.
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Remove { id }],
+            current_version: 2,
+        };
+        db.apply_update_event(update);
+
+        // Apply a DB update adding a different entry at the same `id`.
+        let entry2 = SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        let update = SuggestionDatabaseUpdatesEvent {
+            updates:         vec![entry::Update::Add { id, suggestion: entry2 }],
+            current_version: 3,
+        };
+        db.apply_update_event(update);
+
+        // Check that the first entry is not visible in the DB and the second one is visible.
+        expect_no_lookup(&db, "TestProject.TestModule.TextAtom");
         expect_lookup(&db, "local.Unnamed_6.Main");
     }
 
