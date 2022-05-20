@@ -156,8 +156,8 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let path = entry.qualified_name_segments();
-                    qualified_name_to_id_map.warn_if_exists_and_set(&path, id);
+                    let qualified_name = entry.qualified_name_segments();
+                    qualified_name_to_id_map.warn_if_exists_and_set(&qualified_name, id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -196,8 +196,8 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path = Entry::qualified_name_segments(&entry);
-                        qn_to_id_map.warn_if_exists_and_set(&path, id);
+                        let qualified_name = Entry::qualified_name_segments(&entry);
+                        qn_to_id_map.warn_if_exists_and_set(&qualified_name, id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -208,8 +208,8 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path = entry.qualified_name_segments();
-                            qn_to_id_map.warn_if_absent_and_remove(&path);
+                            let qualified_name = entry.qualified_name_segments();
+                            qn_to_id_map.warn_if_absent_and_remove(&qualified_name);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -219,11 +219,11 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_path = entry.qualified_name_segments();
-                        qn_to_id_map.warn_if_absent_and_remove(&old_path);
+                        let old_qualified_name = entry.qualified_name_segments();
+                        qn_to_id_map.warn_if_absent_and_remove(&old_qualified_name);
                         let errors = entry.apply_modifications(*modification);
-                        let new_path = entry.qualified_name_segments();
-                        qn_to_id_map.warn_if_exists_and_set(&new_path, id);
+                        let new_qualified_name = entry.qualified_name_segments();
+                        qn_to_id_map.warn_if_exists_and_set(&new_qualified_name, id);
                         for error in errors {
                             error!(
                                 self.logger,
