@@ -28,16 +28,16 @@ pub use example::Example;
 
 
 
-// ===========================
-// === FreeformPathToIdMap ===
-// ===========================
+// ============================
+// === QualifiedNameToIdMap ===
+// ============================
 
 #[derive(Clone, Debug, Default)]
-struct FreeformPathToIdMap {
+struct QualifiedNameToIdMap {
     tree: ensogl::data::HashMapTree<entry::NameSegment, Option<entry::Id>>,
 }
 
-impl FreeformPathToIdMap {
+impl QualifiedNameToIdMap {
     fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedNameSegments, id: entry::Id) {
         let value = Some(id);
         let old_value =
@@ -103,7 +103,7 @@ pub enum Notification {
 pub struct SuggestionDatabase {
     logger:                  Logger,
     entries:                 RefCell<HashMap<entry::Id, Rc<Entry>>>,
-    freeform_path_to_id_map: RefCell<FreeformPathToIdMap>,
+    qualified_name_to_id_map: RefCell<QualifiedNameToIdMap>,
     examples:                RefCell<Vec<Rc<Example>>>,
     version:                 Cell<SuggestionsDatabaseVersion>,
     notifications:           notification::Publisher<Notification>,
@@ -114,11 +114,11 @@ impl SuggestionDatabase {
     pub fn new_empty(logger: impl AnyLogger) -> Self {
         let logger = Logger::new_sub(logger, "SuggestionDatabase");
         let entries = default();
-        let freeform_path_to_id_map = default();
+        let qualified_name_to_id_map = default();
         let examples = default();
         let version = default();
         let notifications = default();
-        Self { logger, entries, freeform_path_to_id_map, examples, version, notifications }
+        Self { logger, entries, qualified_name_to_id_map, examples, version, notifications }
     }
 
     /// Create a database filled with entries provided by the given iterator.
@@ -144,13 +144,13 @@ impl SuggestionDatabase {
     fn from_ls_response(response: language_server::response::GetSuggestionDatabase) -> Self {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        let mut freeform_path_to_id_map = FreeformPathToIdMap::default();
+        let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
                     let path = entry.qualified_name_segments();
-                    freeform_path_to_id_map.warn_if_exists_and_set(&path, id);
+                    qualified_name_to_id_map.warn_if_exists_and_set(&path, id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -164,7 +164,7 @@ impl SuggestionDatabase {
         Self {
             logger,
             entries: RefCell::new(entries),
-            freeform_path_to_id_map: RefCell::new(freeform_path_to_id_map),
+            qualified_name_to_id_map: RefCell::new(qualified_name_to_id_map),
             examples: RefCell::new(examples),
             version: Cell::new(response.current_version),
             notifications: default(),
@@ -185,12 +185,12 @@ impl SuggestionDatabase {
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
-            let mut path_to_id_map = self.freeform_path_to_id_map.borrow_mut();
+            let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
                         let path = Entry::qualified_name_segments(&entry);
-                        path_to_id_map.warn_if_exists_and_set(&path, id);
+                        qn_to_id_map.warn_if_exists_and_set(&path, id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -202,7 +202,7 @@ impl SuggestionDatabase {
                     match removed {
                         Some(entry) => {
                             let path = entry.qualified_name_segments();
-                            path_to_id_map.warn_if_absent_and_remove(&path);
+                            qn_to_id_map.warn_if_absent_and_remove(&path);
                         }
                         None => {
                             error!(self.logger, "Received Remove event for nonexistent id: {id}");
@@ -213,10 +213,10 @@ impl SuggestionDatabase {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
                         let old_path = entry.qualified_name_segments();
-                        path_to_id_map.warn_if_absent_and_remove(&old_path);
+                        qn_to_id_map.warn_if_absent_and_remove(&old_path);
                         let errors = entry.apply_modifications(*modification);
                         let new_path = entry.qualified_name_segments();
-                        path_to_id_map.warn_if_exists_and_set(&new_path, id);
+                        qn_to_id_map.warn_if_exists_and_set(&new_path, id);
                         for error in errors {
                             error!(
                                 self.logger,
@@ -250,9 +250,9 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`.
     pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let path_segments = fully_qualified_name.split(ACCESS).map(entry::NameSegment::new);
-        let path_to_id_map = self.freeform_path_to_id_map.borrow();
-        path_to_id_map.get(path_segments).and_then(|id| self.lookup(id).ok())
+        let name_segments = fully_qualified_name.split(ACCESS).map(entry::NameSegment::new);
+        let qn_to_id_map = self.qualified_name_to_id_map.borrow();
+        qn_to_id_map.get(name_segments).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
