@@ -2,10 +2,10 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.BoolBuilder;
 import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.parsing.problems.InvalidFormatProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 import org.graalvm.collections.EconomicSet;
 
-public class BooleanParser extends DatatypeParser<InvalidFormatProblemAggregator> {
+public class BooleanParser extends IncrementalDatatypeParser {
 
   private final EconomicSet<String> trueValues;
   private final EconomicSet<String> falseValues;
@@ -22,7 +22,7 @@ public class BooleanParser extends DatatypeParser<InvalidFormatProblemAggregator
   }
 
   @Override
-  public Object parseSingleValue(String text, InvalidFormatProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     // TODO we may want to use equality checks taking Unicode Normalization into account, to be
     // revised in: https://www.pivotaltracker.com/story/show/182166382
     if (trueValues.contains(text)) return true;
@@ -33,12 +33,7 @@ public class BooleanParser extends DatatypeParser<InvalidFormatProblemAggregator
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     return new BoolBuilder((int) capacity);
-  }
-
-  @Override
-  public InvalidFormatProblemAggregator makeProblemAggregator() {
-    return new InvalidFormatProblemAggregator();
   }
 }

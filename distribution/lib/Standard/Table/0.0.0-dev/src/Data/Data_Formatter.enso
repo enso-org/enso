@@ -1,5 +1,19 @@
 from Standard.Base import all
 
+from Standard.Base.Data.Time.Date as Date_Module import Date
+from Standard.Base.Data.Time as Time_Module import Time
+from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
+
+polyglot java import org.enso.table.parsing.IntegerParser
+polyglot java import org.enso.table.parsing.DecimalParser
+polyglot java import org.enso.table.parsing.BooleanParser
+polyglot java import org.enso.table.parsing.DateParser
+polyglot java import org.enso.table.parsing.TimeParser
+polyglot java import org.enso.table.parsing.DateTimeParser
+polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
+
 ## Specifies options for reading text data in a table to more specific types and
    serializing them back.
 
@@ -27,3 +41,55 @@ from Standard.Base import all
    - true_values: Values representing True.
    - false_values: Values representing False.
 type Data_Formatter trim_values:Boolean=True allow_leading_zeros:Boolean=False decimal_point:Text='.' thousand_separator:Text='' datetime_formats:[Text]=["yyyy-MM-dd HH:mm:ss"] date_formats:[Text]=["yyyy-MM-dd"] time_formats:[Text]=["HH:mm:ss"] locale:Locale=Locale.default true_values:[Text]=["True","true","TRUE"] false_values:[Text]=["False","false","FALSE"]
+
+## PRIVATE
+Data_Formatter.get_thousand_separator = if this.thousand_separator.is_empty then Nothing else this.thousand_separator
+
+## PRIVATE
+Data_Formatter.wrap_base_parser base_parser =
+    if this.trim_values.not then base_parser else
+        WhitespaceStrippingParser.new base_parser
+
+## PRIVATE
+Data_Formatter.make_integer_parser = this.wrap_base_parser <|
+    IntegerParser.new this.get_thousand_separator this.allow_leading_zeros
+
+## PRIVATE
+Data_Formatter.make_decimal_parser = this.wrap_base_parser <|
+    DecimalParser.new this.decimal_point this.get_thousand_separator this.allow_leading_zeros
+
+## PRIVATE
+Data_Formatter.make_boolean_parser = this.wrap_base_parser <|
+    BooleanParser.new this.true_values.to_array this.false_values.to_array
+
+## PRIVATE
+Data_Formatter.make_date_parser = this.wrap_base_parser <|
+    DateParser.new this.date_formats.to_array this.locale.java_locale
+
+## PRIVATE
+Data_Formatter.make_identity_parser = this.wrap_base_parser IdentityParser.new
+
+## PRIVATE
+Data_Formatter.make_datetime_parser = this.wrap_base_parser <|
+    DateTimeParser.new this.datetime_formats.to_array this.locale.java_locale
+
+## PRIVATE
+Data_Formatter.make_time_parser = this.wrap_base_parser <|
+    TimeParser.new this.time_formats.to_array this.locale.java_locale
+
+## PRIVATE
+Data_Formatter.make_datatype_parser datatype = case datatype of
+    Integer -> this.make_integer_parser
+    Decimal -> this.make_decimal_parser
+    Boolean -> this.make_boolean_parser
+    _ ->
+        if datatype == Date then this.make_date_parser else
+            if datatype == Time then this.make_datetime_parser else
+                if datatype == Time_Of_Day then this.make_time_parser else
+                    Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
+
+## PRIVATE
+Data_Formatter.make_auto_parser =
+    parsers = [this.make_integer_parser, this.make_decimal_parser, this.make_datetime_parser, this.make_date_parser, this.make_time_parser, this.make_boolean_parser]
+    fallback_parser = this.make_identity_parser
+    TypeInferringParser.new parsers.to_array fallback_parser

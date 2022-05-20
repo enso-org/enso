@@ -124,6 +124,7 @@
   specified type.][3455]
 - [Promote with, take, finalize to be methods of Managed_Resource
   instance][3460]
+- [Implemented automatic type detection for `Table.parse_values`.][3462]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -192,6 +193,7 @@
 [3457]: https://github.com/enso-org/enso/pull/3457
 [3455]: https://github.com/enso-org/enso/pull/3455
 [3460]: https://github.com/enso-org/enso/pull/3460
+[3462]: https://github.com/enso-org/enso/pull/3462
 
 #### Enso Compiler
 

@@ -11,7 +11,7 @@ import Standard.Test.Problems
 import Standard.Visualization
 
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection
+from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 
 from Standard.Table.Error as Table_Errors import Invalid_Format, Leading_Zeros, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 
@@ -55,14 +55,14 @@ spec = Test.group "Table.parse_values" <|
 
         opts = Data_Formatter allow_leading_zeros=True
         t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
-        t6 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Integer]
+        t6 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Integer]
         t6.at "ints" . to_vector . should_equal t1_parsed_zeros
         Warning.get_all t6 . should_equal []
 
-        t7 = t1.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t7 = t1.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Decimal]
         t7.at "ints" . to_vector . should_equal t1_parsed_zeros
         Warning.get_all t7 . should_equal []
-        t8 = t2.parse_values parser=opts column_types=[Column_Type_Selection 0 Decimal]
+        t8 = t2.parse_values value_formatter=opts column_types=[Column_Type_Selection 0 Decimal]
         t8.at "floats" . to_vector . should_equal [0.0, 0.0, 0.0, 1.0, -10.0, 1.0]
         Warning.get_all t8 . should_equal []
 
@@ -158,9 +158,52 @@ spec = Test.group "Table.parse_values" <|
         problems = [(Duplicate_Type_Selector "floats" ambiguous=True), (Duplicate_Type_Selector "bools" ambiguous=False)]
         Problems.test_problem_handling action problems tester
 
-    Test.specify "should guess the datatype for columns" pending="TODO" <|
-        # TODO (next PR): ints, decimals, int+dec, just text, all dates, mixed dates, ints+text, ints in quotes
-        Error.throw "TODO"
+    Test.specify "should guess the datatype for columns" <|
+        c1 = ["ints", ["1", "  +2", "-123", Nothing]]
+        c2 = ["ints0", ["01", "02 ", Nothing, "-1"]]
+        c3 = ["floats", ["  1.0  ", "2.2", Nothing, "-1.0"]]
+        c4 = ["bools", ["true", " False", Nothing, "True"]]
+        c5 = ["floats+ints", ["1", "2.2  ", "-1.0", Nothing]]
+        c6 = ["text", ["foobar", "foo", "", Nothing]]
+        c7 = ["dates", ["2022-10-01", "  2000-01-01", "1999-01-02", Nothing]]
+        c8 = ["datetimes", ["2022-10-01 01:02:03  ", "2000-01-01 01:02:03", "1999-01-02 01:02:03", Nothing]]
+        c9 = ["times", ["01:02:03", "  00:00:00  ", "01:02:03", Nothing]]
+        c10 = ["mixeddates", ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]]
+        c11 = ["text+ints", ["1", "2", "  foobar", Nothing]]
+        t = Table.new [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11]
+        t2 = t.parse_values
+
+        Warning.get_all t2 . should_equal []
+        t2.at "ints" . to_vector . should_equal [1, 2, -123, Nothing]
+        t2.at "ints" . to_vector . first . should_be_an Integer
+        t2.at "ints0" . to_vector . should_equal ["01", "02", Nothing, "-1"]
+        t2.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+        t2.at "bools" . to_vector . should_equal [True, False, Nothing, True]
+        t2.at "floats+ints" . to_vector . should_equal [1.0, 2.2, -1.0, Nothing]
+        t2.at "text" . to_vector . should_equal ["foobar", "foo", "", Nothing]
+        t2.at "dates" . to_vector . map date_as_vector . should_equal [[2022, 10, 1], [2000, 1, 1], [1999, 1, 2], Nothing]
+        t2.at "datetimes" . to_vector . map datetime_as_vector . should_equal [[2022, 10, 1, 1, 2, 3, 0], [2000, 1, 1, 1, 2, 3, 0], [1999, 1, 2, 1, 2, 3, 0], Nothing]
+        t2.at "times" . to_vector . map time_as_vector . should_equal [[1, 2, 3, 0], [0, 0, 0, 0], [1, 2, 3, 0], Nothing]
+        t2.at "mixeddates" . to_vector . should_equal ["2022-10-01", "2000-01-01 01:02:03", "01:02:03", Nothing]
+        t2.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+
+        t3 = Table.new [["bools", ["1", "0", "True"]],  ["ints", ["1", "0", "0"]]] . parse_values (Data_Formatter true_values=["1", "True"] false_values=["0", "False"])
+        t3.at "bools" . to_vector . should_equal [True, False, True]
+        t3.at "ints" . to_vector . should_equal [1, 0, 0]
+
+        t4 = Table.new [c2] . parse_values (Data_Formatter allow_leading_zeros=True)
+        t4 . at "ints0" . to_vector . should_equal [1, 2, Nothing, -1]
+
+        t5 = t.parse_values column_types=[Column_Type_Selection "ints" Decimal, Column_Type_Selection "floats" Auto, Column_Type_Selection "text+ints" Auto]
+        t5.at "ints" . to_vector . should_equal [1.0, 2.0, -123.0, Nothing]
+        # `ints` are requested to be parsed as decimals.
+        t5.at "ints" . to_vector . first . should_be_a Decimal
+        # `floats` are auto-detected as decimals.
+        t5.at "floats" . to_vector . should_equal [1.0, 2.2, Nothing, -1.0]
+        # `text+ints` is attempted to be parsed (hence whitespace is stripped), but it only fits the text type.
+        t5.at "text+ints" . to_vector .  should_equal ["1", "2", "foobar", Nothing]
+        # `bools` are not requested to be parsed, so they are kept as-is, with leading whitespace etc.
+        t5.at "bools" . to_vector . should_equal ["true", " False", Nothing, "True"]
 
     Test.specify "should allow to specify a thousands separator and a custom decimal point" <|
         opts = Data_Formatter decimal_point=',' thousand_separator='_'
@@ -234,8 +277,16 @@ spec = Test.group "Table.parse_values" <|
         expected_warnings.append (Invalid_Format "times" Time_Of_Day.Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
-    Test.specify "should fallback to text if whitespace is present and trimming is turned off" pending="TODO" <|
-        ## TODO next PR
-        Error.throw "TODO"
+    Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
+        c1 = ["1", "  +2", "-123", Nothing]
+        c2 = ["  1.0  ", "2.2", Nothing, "-1.0"]
+        c3 = ["true", " False", Nothing, "True"]
+        t = Table.new [["ints", c1], ["floats", c2], ["bools", c3]]
+        t2 = t.parse_values (Data_Formatter trim_values=False)
+
+        Warning.get_all t2 . should_equal []
+        t2.at "ints" . to_vector . should_equal c1
+        t2.at "floats" . to_vector . should_equal c2
+        t2.at "bools" . to_vector . should_equal c3
 
 main = Test.Suite.run_main here.spec
