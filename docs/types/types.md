@@ -10,12 +10,12 @@ We shall have one keyword for defining new types.
 type Foo x y z
 ```
 
-This creates an Atom constructor named 'Foo' and allows us to talk about the named fields x y and z.
+This creates an Atom constructor named 'Foo' and allows us to talk about the named fields `x`, `y`, and `z`.
 
-Arguments to atom constructors can have defaults and explicit type signatures. There are some limitations on type signatures that will be 
+Arguments to atom constructors can have defaults and explicit type signatures. However, there are some limitations on type signatures that will be 
 discussed later.
 
-Nesting type declarations allows creation of subtyping relationships and allows us to express a concept
+Nesting type declarations allow the creation of subtyping relationships and allow us to express a concept
 like 'data' declarations in Haskell.
 
 ```
@@ -36,10 +36,10 @@ List : Type -> Type
 List Int : Type
 ```
 
-Given a type declaration, we desugar it into atoms and atom constructors, and define subtyping relationships in a two step process. 
+Given a type declaration, we desugar it into atoms and atom constructors and define subtyping relationships in a two-step process. 
 
-First we gather all of the type variables used in its definition, and build a new type with those type variables expressed in sequence.
-Then if certain conditions are met, (e.g. the two have the exact same shape) we allow punning between the basic type constructor and 
+First, we gather all of the type variables used in its definition and build a new type with those type variables expressed in sequence.
+Then if certain conditions are met (e.g. the two have the exact same shape), we allow punning between the basic type constructor and 
 this elaborated type constructor. 
 
 e.g.
@@ -79,7 +79,7 @@ type List a
   type Cons (head : a) (tail : List a)
 ```
 
-this elaborates each of these type declarations and finds a couple of puns:
+this elaborates on each of these type declarations and finds a couple of puns:
 
 ```
 type List.type a = List a
@@ -98,7 +98,7 @@ type Cons.type a
 List serves double duty in the above. It acts as the type constructor for lists, so that `List Int` is a well formed `Type`, but it also
 acts as the container holding its static methods.
 
-There are two forms of static methods that we are interested in in the long term. We'll classify them as 'normal' static methods and 'explicit' static methods. For now we're going to support 'normal' static methods as they are needed for 'from' conversions, but there is an opportunity to allow more with explicit statics later on for some uses involving meta-programming.
+There are two forms of static methods that we are interested in in the long term. We'll classify them as 'normal' static methods and 'explicit' static methods. For now, we're going to support 'normal' static methods as they are needed for 'from' conversions. Still, there is an opportunity to allow more explicit statics later on for some uses involving meta-programming.
 
 ```
 type Vector a
@@ -121,11 +121,11 @@ with the obvious subtyping relationship
 MkVec.type a <: Vector a
 ```
 
-Similarly to the pun story above, when you have a single `type` statement contained in a parent `type` statement and the shape aligns, we
-should be willing to allow punning between them, eliminating the distinct `MkVec.type` here. This results a nice "obvious" usage pattern, where
-we aren't distinguishing between several vector types. The type of the module it lives in the type constructor, and the type of its individual constuctor that is limited to only holding arrays.
+Similarly to the pun story above, when you have a single `type` statement contained in a parent `type` statement, and the shape aligns, we
+should be willing to allow punning between them, eliminating the distinct `MkVec.type` here. This results in a nice "obvious" usage pattern, where
+we aren't distinguishing between several vector types. The type of the module lives in the type constructor, and the type of its individual constructor that is limited to only holding arrays.
 
-Use `Vector` itself as the place where the statics live allows for a convenient usage pattern:
+Using `Vector` itself as the place where the statics live allows for a convenient usage pattern:
 
 ```
 Vector.from [1,2,3] : Vector Int
@@ -137,7 +137,7 @@ where 'Vector' is playing double duty as a type constructor and as the bag of st
 Vec ([1,2,3].to Array) : Vector Int
 ```
 
-Since static methods live in the topmost atom _constructor_, this implies a constraint on type statements that contain statics. Namely that it has to pun with its own type. This translates to having no distinct type variables for each of its arguments. We may choose to relax this in the future, but by being overstrict right now we leave room for evolving the language spec, rather than risk users depending on bad behaviors we'd have to change later.
+Since static methods live in the topmost atom _constructor_, this implies a constraint on type statements that contain statics. Namely that it has to pun with its own type. This translates to having no distinct type variables for each of its arguments. We may choose to relax this in the future, but by being overstrict right now, we leave room for evolving the language spec rather than risk users depending on bad behaviors we'd have to change later.
 
 e.g.
 
