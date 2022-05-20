@@ -156,7 +156,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let path = entry.fully_qualified_name();
+                    let path = entry.qualified_name();
                     freeform_path_to_id_map.warn_if_exists_and_set(&path, id);
                     entries.insert(id, Rc::new(entry));
                 }
@@ -196,7 +196,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let path = Entry::fully_qualified_name(&entry);
+                        let path = Entry::qualified_name(&entry);
                         path_to_id_map.warn_if_exists_and_set(&path, id);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -208,7 +208,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let path = entry.fully_qualified_name();
+                            let path = entry.qualified_name();
                             path_to_id_map.warn_if_absent_and_remove(&path);
                         }
                         None => {
@@ -219,10 +219,10 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_path = entry.fully_qualified_name();
+                        let old_path = entry.qualified_name();
                         path_to_id_map.warn_if_absent_and_remove(&old_path);
                         let errors = entry.apply_modifications(*modification);
-                        let new_path = entry.fully_qualified_name();
+                        let new_path = entry.qualified_name();
                         path_to_id_map.warn_if_exists_and_set(&new_path, id);
                         for error in errors {
                             error!(
@@ -256,7 +256,7 @@ impl SuggestionDatabase {
     }
 
     /// Search the database for an entry at `fully_qualified_name`.
-    pub fn lookup_by_fully_qualified_path(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
+    pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
         let path_segments = fully_qualified_name.split(ACCESS).map(PathSegment::new);
         let path_to_id_map = self.freeform_path_to_id_map.borrow();
         path_to_id_map.get(path_segments).and_then(|id| self.lookup(id).ok())
@@ -669,7 +669,7 @@ mod test {
     }
 
     #[test]
-    fn lookup_by_fully_qualified_path() {
+    fn lookup_by_fully_qualified_name() {
         // Fill a DB with sample data and test lookups.
         let atom_entry = SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),
@@ -704,18 +704,18 @@ mod test {
         };
         let db = SuggestionDatabase::from_ls_response(response);
         let atom_path = "TestProject.TestModule.TextAtom";
-        let atom_lookup = db.lookup_by_fully_qualified_path(atom_path);
+        let atom_lookup = db.lookup_by_fully_qualified_name(atom_path);
         assert!(atom_lookup.is_some());
         assert_eq!(atom_lookup.unwrap().name, "TextAtom".to_string());
         let project_name = "TestProject";
-        let project_lookup = db.lookup_by_fully_qualified_path(project_name);
+        let project_lookup = db.lookup_by_fully_qualified_name(project_name);
         assert!(project_lookup.is_none());
         let method_path = "Standard.Builtins.Main.System.create_process";
-        let method_lookup = db.lookup_by_fully_qualified_path(method_path);
+        let method_lookup = db.lookup_by_fully_qualified_name(method_path);
         assert!(method_lookup.is_some());
         assert_eq!(method_lookup.unwrap().name, "create_process".to_string());
         let nonexistent_path = "Standard.Builtins.Main.create_process";
-        let nonexistent_lookup = db.lookup_by_fully_qualified_path(nonexistent_path);
+        let nonexistent_lookup = db.lookup_by_fully_qualified_name(nonexistent_path);
         assert_eq!(nonexistent_lookup, None);
 
         // Modify the DB contents and test lookups.
@@ -751,18 +751,18 @@ mod test {
             current_version: 2,
         };
         db.apply_update_event(update);
-        let module_lookup = db.lookup_by_fully_qualified_path("local.Unnamed_6.Main");
+        let module_lookup = db.lookup_by_fully_qualified_name("local.Unnamed_6.Main");
         assert!(module_lookup.is_some());
         assert_eq!(module_lookup.unwrap().name, "Main".to_string());
-        let local_lookup = db.lookup_by_fully_qualified_path("local.Unnamed_6.Main.operator1");
+        let local_lookup = db.lookup_by_fully_qualified_name("local.Unnamed_6.Main.operator1");
         assert!(local_lookup.is_some());
         assert_eq!(local_lookup.unwrap().name, "operator1".to_string());
-        let removed_method_lookup = db.lookup_by_fully_qualified_path(method_path);
+        let removed_method_lookup = db.lookup_by_fully_qualified_name(method_path);
         assert!(removed_method_lookup.is_none());
-        let old_atom_lookup = db.lookup_by_fully_qualified_path(atom_path);
+        let old_atom_lookup = db.lookup_by_fully_qualified_name(atom_path);
         assert_eq!(old_atom_lookup, None);
         let new_atom_path = "NewProject.NewModule.TextAtom";
-        let new_atom_lookup = db.lookup_by_fully_qualified_path(new_atom_path);
+        let new_atom_lookup = db.lookup_by_fully_qualified_name(new_atom_path);
         assert!(new_atom_lookup.is_some());
         assert_eq!(new_atom_lookup.unwrap().name, "TextAtom".to_string());
 
@@ -784,10 +784,10 @@ mod test {
             current_version: 3,
         };
         db.apply_update_event(update);
-        let removed_method_lookup = db.lookup_by_fully_qualified_path(method_path);
+        let removed_method_lookup = db.lookup_by_fully_qualified_name(method_path);
         assert_eq!(removed_method_lookup, None);
         let function_path = "NewProject.NewModule.testFunction1";
-        let function_lookup = db.lookup_by_fully_qualified_path(function_path);
+        let function_lookup = db.lookup_by_fully_qualified_name(function_path);
         assert!(function_lookup.is_some());
         assert_eq!(function_lookup.unwrap().name, "testFunction1".to_string());
     }

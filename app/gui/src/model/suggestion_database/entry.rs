@@ -521,20 +521,19 @@ mod test {
     use super::*;
 
 
-    fn expect(
-        entry: &Entry,
-        current_module: Option<&module::QualifiedName>,
-        generate_this: bool,
-        expected_code: &str,
-        expected_imports: &[&module::QualifiedName],
-    ) {
-        let CodeToInsert { code, imports } = entry.code_to_insert(current_module, generate_this);
-        assert_eq!(code, expected_code);
-        assert_eq!(imports.iter().collect_vec().as_slice(), expected_imports);
-    }
-
     #[test]
     fn code_from_entry() {
+        fn expect(
+            entry: &Entry,
+            current_module: Option<&module::QualifiedName>,
+            generate_this: bool,
+            expected_code: &str,
+            expected_imports: &[&module::QualifiedName],
+        ) {
+            let CodeToInsert { code, imports } = entry.code_to_insert(current_module, generate_this);
+            assert_eq!(code, expected_code);
+            assert_eq!(imports.iter().collect_vec().as_slice(), expected_imports);
+        }
         let main_module = module::QualifiedName::from_text("local.Project.Main").unwrap();
         let another_module =
             module::QualifiedName::from_text("local.Project.Another_Module").unwrap();
@@ -569,10 +568,11 @@ mod test {
             name: "module_extension".to_string(),
             ..module_method.clone()
         };
+        let atom_type = tp::QualifiedName::new_module_member(atom.module.clone(), atom.name.clone());
         let atom_extension = Entry {
             module: another_module.clone(),
             name: "atom_extension".to_string(),
-            self_type: Some(atom.qualified_name()),
+            self_type: Some(atom_type),
             ..module_method.clone()
         };
 
@@ -665,7 +665,13 @@ mod test {
 
     #[test]
     fn qualified_name() {
-        let ls_method = language_server::SuggestionEntry::Method {
+        fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
+            let entry_qualified_name = Entry::from_ls_entry(ls_entry).unwrap().qualified_name();
+            let name_segments = entry_qualified_name;
+            let expected_segments: Vec<_> = qualified_name.split(".").collect();
+            assert_eq!(name_segments, expected_segments);
+        }
+        let method = language_server::SuggestionEntry::Method {
             name:               "create_process".to_string(),
             module:             "Standard.Builtins.Main".to_string(),
             self_type:          "Standard.Builtins.Main.System".to_string(),
@@ -675,8 +681,6 @@ mod test {
             documentation_html: None,
             external_id:        None,
         };
-        let qn = Entry::from_ls_entry(ls_method).unwrap().qualified_name();
-        let path_segments: Vec<_> = qn.segments().collect();
-        assert_eq!(path_segments, vec!["Standard", "Builtins", "Main", "System", "create_process"]);
+        expect(method, "Standard.Builtins.Main.System.create_process");
     }
 }
