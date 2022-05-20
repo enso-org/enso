@@ -259,12 +259,20 @@ public final class AtomConstructor implements TruffleObject {
    */
   public AtomConstructor getParentType() { return parentType; }
 
+  public void setParentType(AtomConstructor parent) {
+    parentType = parent;
+  }
+
   /**
    * Gets the list of all variants of this constructor if this is a variant in a sum type.
    *
    * @return
    */
   public List<AtomConstructor> getVariants() { return variants; }
+
+  public void setVariants(List<AtomConstructor> variantConstructors) {
+    variants = variantConstructors;
+  }
 
   /**
    * Gets the constructor function of this constructor.

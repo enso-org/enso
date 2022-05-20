@@ -23,7 +23,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
       BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
-    localBindings.constructors.foreach { tp =>
+    val constructors = localBindings.constructors.map { tp =>
       if (tp.builtinType) {
         val builtinType = builtins.getBuiltinType(tp.name)
         if (builtinType == null) {
@@ -31,10 +31,19 @@ class RuntimeStubsGenerator(builtins: Builtins) {
         }
         scope.registerConstructor(builtinType)
         builtinType.setShadowDefinitions(scope)
+        (tp, builtinType)
       } else {
-        val constructor = new AtomConstructor(tp.name, scope)
+        val constructor = new AtomConstructor(tp.name, scope, false)
         scope.registerConstructor(constructor)
+        (tp, constructor)
       }
+    }
+
+    // link parents to variants and vice versa
+    constructors.foreach { case (tp,tcons) =>
+      val variants = tp.variants.map(scope.getConstructor(_).get()).toList;
+      tcons.setVariants(variants);
+      variants.foreach(_.setParentType(tcons));
     }
   }
 }
