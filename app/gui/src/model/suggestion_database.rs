@@ -782,12 +782,6 @@ mod test {
         let db = SuggestionDatabase::from_ls_response(response);
 
         // Modify the database contents by applying an update event.
-        let entry3 = SuggestionEntry::Module {
-            module:             "local.Unnamed_6.Main".to_string(),
-            documentation:      None,
-            documentation_html: None,
-            reexport:           None,
-        };
         let entry1_modification = Box::new(SuggestionsDatabaseModification {
             arguments:          vec![],
             module:             Some(FieldUpdate::set("NewProject.NewModule".to_string())),
@@ -797,6 +791,12 @@ mod test {
             documentation_html: None,
             scope:              None,
         });
+        let entry3 = SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
         let update = SuggestionDatabaseUpdatesEvent {
             updates:         vec![
                 entry::Update::Modify {
