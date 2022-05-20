@@ -24,7 +24,7 @@ public abstract class IncrementalDatatypeParser implements DatatypeParser {
    * @return the parsed value or null if the value could not be parsed or could be parsed but should
    *     be treated as missing value
    */
-  public abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
+  protected abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
 
   /**
    * Creates a new column builder expecting the specific datatype, with a specified capacity.
@@ -36,7 +36,7 @@ public abstract class IncrementalDatatypeParser implements DatatypeParser {
    * builder returned here expects - it should never return a value that cannot be accepted by the
    * builder.
    */
-  public abstract Builder makeBuilderWithCapacity(long capacity);
+  protected abstract Builder makeBuilderWithCapacity(long capacity);
 
   @Override
   public WithProblems<Storage> parseColumn(StringStorage sourceStorage) {

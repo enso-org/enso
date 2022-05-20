@@ -25,7 +25,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     for (var formatter : formatters) {
       try {
         return parseStrategy.parse(text, formatter);
@@ -38,7 +38,7 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     // Once datetime gets first-class support in our dataframes, a more specific builder type should
     // be used.
     return new ObjectBuilder((int) capacity);

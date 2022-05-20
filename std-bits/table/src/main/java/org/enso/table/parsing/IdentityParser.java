@@ -1,7 +1,6 @@
 package org.enso.table.parsing;
 
 import java.util.List;
-import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
@@ -17,7 +16,7 @@ public class IdentityParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  public StringBuilder makeBuilderWithCapacity(long capacity) {
     return new StringBuilder((int) capacity);
   }
 

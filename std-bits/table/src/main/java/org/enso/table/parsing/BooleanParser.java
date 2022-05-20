@@ -22,7 +22,7 @@ public class BooleanParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     // TODO we may want to use equality checks taking Unicode Normalization into account, to be
     // revised in: https://www.pivotaltracker.com/story/show/182166382
     if (trueValues.contains(text)) return true;
@@ -33,7 +33,7 @@ public class BooleanParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     return new BoolBuilder((int) capacity);
   }
 }

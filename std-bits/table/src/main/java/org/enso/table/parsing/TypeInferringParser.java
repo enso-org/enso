@@ -10,35 +10,32 @@ import org.enso.table.read.WithProblems;
  * The type inferring parser tries to parse the given column using a set of provided parsers. It
  * returns the result of the first parser that succeeds without reporting any problems.
  *
- * <p>At least one parser must always be provided. The last parser on the list is used as a fallback
- * - its result is returned regardless of whether it contained problems or not.
+ * <p>If all parsers from the set reported problems, the fallback parser is used and its result is
+ * returned regardless of any problems.
  */
 public class TypeInferringParser implements DatatypeParser {
 
   private final IncrementalDatatypeParser[] baseParsers;
+  private final DatatypeParser fallbackParser;
 
-  public TypeInferringParser(IncrementalDatatypeParser[] baseParsers) {
-    if (baseParsers.length == 0) {
-      throw new IllegalArgumentException("At least one parser must be provided.");
-    }
+  public TypeInferringParser(
+      IncrementalDatatypeParser[] baseParsers, DatatypeParser fallbackParser) {
     this.baseParsers = baseParsers;
+    this.fallbackParser = fallbackParser;
   }
 
   @Override
   public WithProblems<Storage> parseColumn(StringStorage sourceStorage) {
     parsers:
-    for (int i = 0; i < baseParsers.length; ++i) {
-      boolean isLast = i == baseParsers.length - 1;
-
-      IncrementalDatatypeParser parser = baseParsers[i];
+    for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
       var aggregator = new ProblemAggregator();
 
-      for (int j = 0; j < sourceStorage.size(); ++j) {
-        String cell = sourceStorage.getItem(j);
+      for (int i = 0; i < sourceStorage.size(); ++i) {
+        String cell = sourceStorage.getItem(i);
         if (cell != null) {
           Object parsed = parser.parseSingleValue(cell, aggregator);
-          if (aggregator.hasProblems() && !isLast) {
+          if (aggregator.hasProblems()) {
             continue parsers;
           }
           builder.appendNoGrow(parsed);
@@ -50,6 +47,6 @@ public class TypeInferringParser implements DatatypeParser {
       return new WithProblems<>(builder.seal(), aggregator.getAggregatedProblems());
     }
 
-    throw new IllegalStateException("`baseParsers` should not be empty.");
+    return fallbackParser.parseColumn(sourceStorage);
   }
 }

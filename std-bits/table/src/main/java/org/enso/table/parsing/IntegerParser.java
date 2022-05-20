@@ -18,7 +18,7 @@ public class IntegerParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     if (thousandsSeparator != null
         && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
       problemAggregator.reportInvalidFormat(text);
@@ -55,7 +55,7 @@ public class IntegerParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     return NumericBuilder.createLongBuilder((int) capacity);
   }
 }

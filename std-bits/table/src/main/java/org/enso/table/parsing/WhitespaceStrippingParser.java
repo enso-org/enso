@@ -15,13 +15,13 @@ public class WhitespaceStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     String stripped = text.strip();
     return innerParser.parseSingleValue(stripped, problemAggregator);
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     return innerParser.makeBuilderWithCapacity(capacity);
   }
 }
