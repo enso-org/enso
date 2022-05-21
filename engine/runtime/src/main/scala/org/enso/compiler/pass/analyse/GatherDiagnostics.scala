@@ -67,7 +67,7 @@ case object GatherDiagnostics extends IRPass {
       case x                  => x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
-      diagnostics.distinctBy(d => (d.location, d.message))
+      diagnostics.distinctBy(d => d)
     )
   }
 
