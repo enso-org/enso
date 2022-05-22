@@ -26,4 +26,4 @@ Please include the following checklist in your PR:
 - All code has been tested:
   - [ ] Unit tests have been written where possible.
   - [ ] If GUI codebase was changed: Enso GUI was tested when built using BOTH
-        `./run dist` and `./run watch`.
+        `./run.sh dist` and `./run.sh watch`.
