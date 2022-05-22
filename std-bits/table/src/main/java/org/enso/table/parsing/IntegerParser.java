@@ -2,9 +2,9 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
-import org.enso.table.parsing.problems.NumericProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregator;
 
-public class IntegerParser extends DatatypeParser<NumericProblemAggregator> {
+public class IntegerParser extends IncrementalDatatypeParser {
   private final String thousandsSeparator;
   private final boolean leadingZerosAllowed;
 
@@ -18,7 +18,7 @@ public class IntegerParser extends DatatypeParser<NumericProblemAggregator> {
   }
 
   @Override
-  public Object parseSingleValue(String text, NumericProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     if (thousandsSeparator != null
         && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
       problemAggregator.reportInvalidFormat(text);
@@ -55,12 +55,7 @@ public class IntegerParser extends DatatypeParser<NumericProblemAggregator> {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(long capacity) {
     return NumericBuilder.createLongBuilder((int) capacity);
-  }
-
-  @Override
-  public NumericProblemAggregator makeProblemAggregator() {
-    return new NumericProblemAggregator();
   }
 }

@@ -5,8 +5,6 @@ import Standard.Table.Data.Column
 import Standard.Table.Io.Csv
 import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
-from Standard.Base.Data.Time as Time_Module import Time
-from Standard.Base.Data.Time.Time_Of_Day as Time_Of_Day_Module import Time_Of_Day
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
 import Standard.Table.Internal.Table_Helpers
@@ -30,14 +28,6 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
-
-polyglot java import org.enso.table.parsing.IntegerParser
-polyglot java import org.enso.table.parsing.DecimalParser
-polyglot java import org.enso.table.parsing.BooleanParser
-polyglot java import org.enso.table.parsing.DateParser
-polyglot java import org.enso.table.parsing.TimeParser
-polyglot java import org.enso.table.parsing.DateTimeParser
-polyglot java import org.enso.table.parsing.WhitespaceStrippingParser
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -553,7 +543,7 @@ type Table
        a leading 0). However, settings in the `Data_Formatter` can
        control this.
     parse_values : Data_Formatter -> (Nothing | [Column_Type_Selection]) -> Problem_Behavior -> Table
-    parse_values parser=Data_Formatter column_types=Nothing on_problems=Report_Warning =
+    parse_values value_formatter=Data_Formatter column_types=Nothing on_problems=Report_Warning =
         columns = this.columns
         problem_builder = Vector.new_builder
 
@@ -595,22 +585,9 @@ type Table
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
             Nothing -> column
-            Auto -> Error.unimplemented "Automatic datatype inference is not implemented yet."
             _ ->
-                parse_options = parser
-                thousand_separator = if parse_options.thousand_separator.is_empty then Nothing else parse_options.thousand_separator
-                base_parser = case expected_type of
-                    Integer -> IntegerParser.new thousand_separator parse_options.allow_leading_zeros
-                    Decimal -> DecimalParser.new parse_options.decimal_point thousand_separator parse_options.allow_leading_zeros
-                    Boolean -> BooleanParser.new parse_options.true_values.to_array parse_options.false_values.to_array
-                    _ ->
-                        if expected_type == Date then DateParser.new parse_options.date_formats.to_array parse_options.locale.java_locale else
-                            if expected_type == Time then DateTimeParser.new parse_options.datetime_formats.to_array parse_options.locale.java_locale else
-                                if expected_type == Time_Of_Day then TimeParser.new parse_options.time_formats.to_array parse_options.locale.java_locale else
-                                    Error.throw (Illegal_Argument_Error "Unsupported target datatype: "+expected_type.to_text)
-                parser = case parse_options.trim_values of
-                    False -> base_parser
-                    True -> WhitespaceStrippingParser.new base_parser
+                parser = if expected_type == Auto then value_formatter.make_auto_parser else
+                    value_formatter.make_datatype_parser expected_type
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn storage
                 new_storage = new_storage_and_problems.value
