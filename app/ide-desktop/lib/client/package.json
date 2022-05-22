@@ -32,6 +32,6 @@
   "scripts": {
     "start": "electron ../../../../dist/content -- ",
     "build": "webpack ",
-    "dist": "electron-builder --publish never --config electron-builder-config.js"
+    "dist": "node electron-builder-config.mjs && electron-builder --publish never --config electron-builder-config.json"
   }
 }

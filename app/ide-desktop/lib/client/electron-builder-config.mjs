@@ -1,14 +1,16 @@
 // This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
 
-const path = require('path')
-const utils = require('../../utils')
+import path from 'node:path'
+import fs from 'node:fs'
 
-const dist = utils.require_env('ENSO_BUILD_IDE')
-const gui = utils.require_env('ENSO_BUILD_GUI')
-const icons = utils.require_env('ENSO_BUILD_ICONS')
-const project_manager = utils.require_env('ENSO_BUILD_PROJECT_MANAGER')
+import { require_env } from '../../utils.mjs'
+import { project_manager_bundle } from './paths.mjs'
+import build from '../../build.json' assert { type: 'json' }
 
-const build = require('../../build.json')
+const dist = require_env('ENSO_BUILD_IDE')
+const gui = require_env('ENSO_BUILD_GUI')
+const icons = require_env('ENSO_BUILD_ICONS')
+const project_manager = require_env('ENSO_BUILD_PROJECT_MANAGER')
 
 const config = {
     appId: 'org.enso',
@@ -53,7 +55,11 @@ const config = {
         { from: `${dist}/client`, to: '.' },
     ],
     extraResources: [
-        { from: `${project_manager}/`, to: './enso', filter: ['!**.tar.gz', '!**.zip'] },
+        {
+            from: `${project_manager}/`,
+            to: project_manager_bundle,
+            filter: ['!**.tar.gz', '!**.zip'],
+        },
     ],
     fileAssociations: [
         {
@@ -91,11 +97,11 @@ const config = {
         // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
         sign: false,
     },
-    afterAllArtifactBuild: path.join(__dirname, 'tasks', 'computeHashes.js'),
+    afterAllArtifactBuild: path.join('tasks', 'computeHashes.js'),
 
     // TODO [mwu]: Temporarily disabled, signing should be revised.
     //             In particular, engine should handle signing of its artifacts.
     // afterPack: 'tasks/prepareToSign.js',
 }
 
-module.exports = config
+fs.writeFileSync('electron-builder-config.json', JSON.stringify(config, null, 2))

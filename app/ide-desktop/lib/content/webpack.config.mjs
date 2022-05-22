@@ -1,22 +1,25 @@
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-const CompressionPlugin = require('compression-webpack-plugin')
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin')
-const path = require('path')
-const webpack = require('webpack')
-const utils = require('../../utils')
-const BUILD_INFO = require('../../build.json')
+import path, { dirname } from 'node:path'
+import child_process from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
-const thisPath = path.resolve(__dirname)
+import webpack from 'webpack'
+import CompressionPlugin from 'compression-webpack-plugin'
+import CopyWebpackPlugin from 'copy-webpack-plugin'
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 
-const child_process = require('child_process')
+import { require_env } from '../../utils.mjs'
+import * as BUILD_INFO from '../../build.json' assert { type: 'json' }
+
+const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+
 function git(command) {
     return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
-const output_path = utils.require_env('ENSO_BUILD_GUI')
-const wasm_path = utils.require_env('ENSO_BUILD_GUI_WASM')
-const js_glue_path = utils.require_env('ENSO_BUILD_GUI_JS_GLUE')
-const assets_path = utils.require_env('ENSO_BUILD_GUI_ASSETS')
+const output_path = require_env('ENSO_BUILD_GUI')
+const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
+const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
+const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
 
 // scala-parser.js is compiled from Scala code, so no source map is available for it.
 const IGNORE_SOURCE_MAPS = [/scala-parser\.js/]
@@ -36,7 +39,7 @@ const sourceMapLoader = ignored => ({
     },
 })
 
-module.exports = {
+export default {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.ts'),
         wasm_imports: './src/wasm_imports.js',
@@ -107,7 +110,9 @@ module.exports = {
                     test: [/\.js$/, /\.tsx?$/],
                     enforce: 'pre',
                     exclude: /node_modules[\\\/]@firebase/,
-                }, sourceMapLoader(IGNORE_SOURCE_MAPS))
+                },
+                sourceMapLoader(IGNORE_SOURCE_MAPS)
+            ),
         ],
     },
 }

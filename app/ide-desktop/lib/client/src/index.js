@@ -10,7 +10,7 @@ import * as Server from 'enso-studio-common/src/server'
 import util from 'util'
 import yargs from 'yargs'
 
-import paths from '../../../../../build/paths'
+import { project_manager_bundle } from '../paths.mjs'
 
 const child_process = require('child_process')
 const fss = require('fs')
@@ -21,6 +21,11 @@ const fss = require('fs')
 
 const root = Electron.app.getAppPath()
 const resources = path.join(root, '..')
+const project_manager_executable = path.join(
+    resources,
+    project_manager_bundle,
+    PROJECT_MANAGER_IN_BUNDLE_PATH
+)
 
 // FIXME default options parsed wrong
 // https://github.com/yargs/yargs/issues/1590
@@ -376,15 +381,11 @@ Electron.app.on('web-contents-created', (event, contents) => {
 // =======================
 
 function projectManagerPath() {
-    let binPath = args['backend-path']
-    if (!binPath) {
-        binPath = paths.get_project_manager_path(resources)
-    }
+    let binPath = args['backend-path'] ?? project_manager_executable
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
     return binPath
 }
-
 /**
  * Executes the Project Manager with given arguments.
  *

@@ -10,7 +10,6 @@ import { default as sharp } from 'sharp'
 import { platform } from 'os'
 import path from 'path'
 import url from 'url'
-import utils from '../../../utils.js'
 
 class Logo {
     constructor(size = 64, compatibleMode = true) {

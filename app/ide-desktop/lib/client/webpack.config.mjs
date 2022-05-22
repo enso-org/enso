@@ -1,15 +1,17 @@
-const Copy = require('copy-webpack-plugin')
-const path = require('path')
-const utils = require('../../utils')
-const webpack = require('webpack')
-const BUILD_INFO = require("../../build.json");
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
-const thisPath = path.resolve(__dirname)
+import webpack from 'webpack'
+import CopyPlugin from 'copy-webpack-plugin'
+import { require_env } from '../../utils.mjs'
 
-const dist = path.resolve(utils.require_env('ENSO_BUILD_IDE'), 'client')
+const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
+const dist = path.resolve(require_env('ENSO_BUILD_IDE'), 'client')
+const project_manager_in_bundle_path = require_env('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
 const bundled_engine_version = process.env['ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION']
 
-module.exports = {
+export default {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.js'),
     },
@@ -20,7 +22,7 @@ module.exports = {
         filename: '[name].js',
     },
     plugins: [
-        new Copy({
+        new CopyPlugin({
             patterns: [
                 {
                     from: path.resolve(thisPath, 'package.json'),
@@ -35,6 +37,7 @@ module.exports = {
         }),
         new webpack.DefinePlugin({
             BUNDLED_ENGINE_VERSION: JSON.stringify(bundled_engine_version),
+            PROJECT_MANAGER_IN_BUNDLE_PATH: JSON.stringify(project_manager_in_bundle_path),
         }),
     ],
     performance: {
