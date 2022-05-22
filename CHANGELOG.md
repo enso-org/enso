@@ -210,6 +210,7 @@
 - [Move Builtin Types and Methods definitions to stdlib][3363]
 - [Reduce boilerplate by generating BuiltinMethod nodes from simple method
   signatures][3444]
+- [Avoid needless concatenations of warning/error messages][3465]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -229,6 +230,7 @@
 [3363]: https://github.com/enso-org/enso/pull/3363
 [3444]: https://github.com/enso-org/enso/pull/3444
 [3453]: https://github.com/enso-org/enso/pull/3453
+[3465]: https://github.com/enso-org/enso/pull/3465
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
