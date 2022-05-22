@@ -6,9 +6,19 @@ import org.enso.table.data.column.storage.Storage;
 
 /** A builder for boolean columns. */
 public class BoolBuilder extends TypedBuilder {
-  private final BitSet vals = new BitSet();
-  private final BitSet isNa = new BitSet();
+  private final BitSet vals;
+  private final BitSet isNa;
   int size = 0;
+
+  public BoolBuilder() {
+    vals = new BitSet();
+    isNa = new BitSet();
+  }
+
+  public BoolBuilder(int capacity) {
+    vals = new BitSet(capacity);
+    isNa = new BitSet(capacity);
+  }
 
   @Override
   public void appendNoGrow(Object o) {

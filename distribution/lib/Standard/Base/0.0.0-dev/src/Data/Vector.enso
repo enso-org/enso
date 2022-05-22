@@ -980,6 +980,9 @@ type Vector
         json = this.take_start 100 . to_json
         json.to_text
 
+## PRIVATE
+type Wrapped_Error error
+
 type Builder
 
     ## PRIVATE

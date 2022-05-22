@@ -229,4 +229,9 @@ impl ScrollArea {
     pub fn content(&self) -> &display::object::Instance {
         &self.model.content
     }
+
+    /// A scene layer containing the content of the ScrollArea.
+    pub fn content_layer(&self) -> &layer::Layer {
+        &self.model.display_object.layer.masked_layer
+    }
 }
