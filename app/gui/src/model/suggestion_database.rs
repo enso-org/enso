@@ -321,10 +321,8 @@ impl SuggestionDatabase {
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
     pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let name_segments = fully_qualified_name.split(ACCESS);
-        let qualified_name = name_segments.map(entry::QualifiedNameSegment::new);
-        let qn_to_id_map = self.qualified_name_to_id_map.borrow();
-        qn_to_id_map.get(qualified_name).and_then(|id| self.lookup(id).ok())
+        let id = self.qualified_name_to_id_map.borrow().get(fully_qualified_name.split(ACCESS));
+        id.and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
