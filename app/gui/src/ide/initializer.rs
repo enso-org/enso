@@ -53,7 +53,6 @@ pub struct Initializer {
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
-        init_tracing(WARN);
         let logger = Logger::new("ide::Initializer");
         Self { config, logger }
     }

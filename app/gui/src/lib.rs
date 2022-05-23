@@ -129,14 +129,17 @@ mod examples {
 use examples::*;
 mod profile_workflow;
 
+use prelude::init_tracing;
 use prelude::profiler;
 use prelude::profiler::prelude::*;
+use prelude::WARN;
 
 /// IDE startup function.
 #[profile(Objective)]
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
+    init_tracing(WARN);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]
