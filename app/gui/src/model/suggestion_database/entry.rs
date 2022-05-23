@@ -54,9 +54,9 @@ pub struct MissingThisOnMethod(pub String);
 
 
 
-// =============================
-// === QualifiedNameSegments ===
-// =============================
+// =====================
+// === QualifiedName ===
+// =====================
 
 /// A single segment of a fully qualifed name of an [`Entry`].
 pub type NameSegment = ImString;
@@ -66,12 +66,15 @@ pub type NameSegment = ImString;
 /// A fully qualified name can be built by joining the segments using an
 /// [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct QualifiedNameSegments(pub Vec<NameSegment>);
+pub struct QualifiedName {
+    pub segments: Vec<NameSegment>,
+}
 
-impl<'a> FromIterator<&'a str> for QualifiedNameSegments {
+impl<'a> FromIterator<&'a str> for QualifiedName {
     fn from_iter<T>(iter: T) -> Self
     where T: IntoIterator<Item = &'a str> {
-        Self(iter.into_iter().map(NameSegment::new).collect())
+        let segments = iter.into_iter().map(NameSegment::new).collect();
+        Self { segments }
     }
 }
 
@@ -256,7 +259,7 @@ impl Entry {
     }
 
     /// Get the segments of the full qualified name of the entry.
-    pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
+    pub fn qualified_name(&self) -> QualifiedName {
         fn chain_iter_with_entry_name<'a>(
             iter: impl IntoIterator<Item = &'a str>,
             entry: &'a Entry,
@@ -686,12 +689,12 @@ mod test {
     }
 
     #[test]
-    fn qualified_name_segments() {
+    fn qualified_name() {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
             let entry = Entry::from_ls_entry(ls_entry).unwrap();
-            let qualified_name_segments = entry.qualified_name_segments();
+            let entry_qualified_name = entry.qualified_name();
             let expected_segments: Vec<_> = qualified_name.split('.').collect();
-            assert_eq!(qualified_name_segments.0, expected_segments);
+            assert_eq!(entry_qualified_name.segments, expected_segments);
         }
         let atom = language_server::SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),

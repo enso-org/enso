@@ -32,7 +32,7 @@ pub use example::Example;
 // === QualifiedNameToIdMap ===
 // ============================
 
-/// A map from fully qualified names (encoded as [`entry::QualifiedNameSegments`]) to
+/// A map from fully qualified names (encoded as [`entry::QualifiedName`]) to
 /// [`entry::Id`]s. The methods of the type provide semantics of a map, while the internal
 /// representation is based on a [`HashMapTree`].
 ///
@@ -44,17 +44,20 @@ struct QualifiedNameToIdMap {
 }
 
 impl QualifiedNameToIdMap {
-    fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedNameSegments, id: entry::Id) {
+    fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
+        let segments = &path.segments;
         let old_value =
-            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, value);
+            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value);
         if old_value.is_some() {
             event!(WARN, "An existing suggestion entry id at {path:?} was overwritten with {id}.");
         }
     }
 
-    fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedNameSegments) {
-        let old_value = self.tree.replace_value_and_traverse_back_pruning_empty_leaf(&path.0, None);
+    fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
+        let segments = &path.segments;
+        let old_value =
+            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, None);
         if old_value.is_none() {
             let msg = format!(
                 "Could not remove a suggestion entry id at {path:?} because it does not exist."
@@ -156,7 +159,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let qualified_name = entry.qualified_name_segments();
+                    let qualified_name = entry.qualified_name();
                     qualified_name_to_id_map.warn_if_exists_and_set(&qualified_name, id);
                     entries.insert(id, Rc::new(entry));
                 }
@@ -196,7 +199,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let qualified_name = Entry::qualified_name_segments(&entry);
+                        let qualified_name = Entry::qualified_name(&entry);
                         qn_to_id_map.warn_if_exists_and_set(&qualified_name, id);
                         entries.insert(id, Rc::new(entry));
                     }
@@ -208,7 +211,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let qualified_name = entry.qualified_name_segments();
+                            let qualified_name = entry.qualified_name();
                             qn_to_id_map.warn_if_absent_and_remove(&qualified_name);
                         }
                         None => {
@@ -219,10 +222,10 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_qualified_name = entry.qualified_name_segments();
+                        let old_qualified_name = entry.qualified_name();
                         qn_to_id_map.warn_if_absent_and_remove(&old_qualified_name);
                         let errors = entry.apply_modifications(*modification);
-                        let new_qualified_name = entry.qualified_name_segments();
+                        let new_qualified_name = entry.qualified_name();
                         qn_to_id_map.warn_if_exists_and_set(&new_qualified_name, id);
                         for error in errors {
                             error!(
