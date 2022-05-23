@@ -280,7 +280,12 @@ impl Entry {
             Kind::Method => match &self.self_type {
                 Some(t) => chain_iter_with_entry_name(t, self).collect(),
                 None => {
-                    event!(ERROR, "A suggestion entry {self:?} with Method kind has no self type.");
+                    let msg = format!(
+                        "Cannot construct a fully qualified name for the suggestion database \
+                        entry {self:?}. Every entry with the 'Method' kind should have a self \
+                        type set, but this entry is missing the self type."
+                    );
+                    event!(ERROR, "{msg}");
                     default()
                 }
             },
