@@ -862,6 +862,7 @@ version = "4.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95ebf10dda65f19ff0f42ea15572a359ed60d7fc74fdc984d90310937be0014b"
 dependencies = [
+ "serde",
  "utf8-width",
 ]
 
@@ -1677,7 +1678,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#434333c33de685ec415277bfc965ed7d8e1cb12a"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#8103c8d8983a080377d2c807580e7ef019f9f48c"
 dependencies = [
  "anyhow",
  "argh",
@@ -3504,7 +3505,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=develop#434333c33de685ec415277bfc965ed7d8e1cb12a"
+source = "git+https://github.com/enso-org/ci-build?branch=develop#8103c8d8983a080377d2c807580e7ef019f9f48c"
 dependencies = [
  "anyhow",
  "async-compression",
