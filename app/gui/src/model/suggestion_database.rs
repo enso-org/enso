@@ -734,14 +734,14 @@ mod test {
         assert_eq!(db.version.get(), 8);
     }
 
-    fn expect_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+    fn lookup_and_verify_result_name(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
         assert!(lookup.is_some());
         let name = fully_qualified_name.rsplit('.').next().unwrap();
         assert_eq!(lookup.unwrap().name, name);
     }
 
-    fn expect_no_lookup(db: &SuggestionDatabase, fully_qualified_name: &str) {
+    fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
         assert_eq!(lookup, None);
     }
@@ -807,16 +807,16 @@ mod test {
 
         // Check that the entries used to initialize the database can be found using the
         // `lookup_by_fully_qualified_name` method.
-        expect_lookup(&db, "TestProject.TestModule.TextAtom");
-        expect_lookup(&db, "Standard.Builtins.Main.System.create_process");
-        expect_lookup(&db, "local.Unnamed_6.Main");
-        expect_lookup(&db, "local.Unnamed_6.Main.operator1");
-        expect_lookup(&db, "NewProject.NewModule.testFunction1");
+        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextAtom");
+        lookup_and_verify_result_name(&db, "Standard.Builtins.Main.System.create_process");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main.operator1");
+        lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
 
         // Check that looking up names not added to the database does not return entries.
-        expect_no_lookup(&db, "TestProject.TestModule");
-        expect_no_lookup(&db, "Standard.Builtins.Main.create_process");
-        expect_no_lookup(&db, "local.NoSuchEntry");
+        lookup_and_verify_empty_result(&db, "TestProject.TestModule");
+        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.create_process");
+        lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
     }
 
     #[test]
@@ -883,10 +883,10 @@ mod test {
         db.apply_update_event(update);
 
         // Check the results of `lookup_by_fully_qualified_name` after the update.
-        expect_no_lookup(&db, "TestProject.TestModule.TextAtom");
-        expect_lookup(&db, "NewProject.NewModule.TextAtom");
-        expect_no_lookup(&db, "Standard.Builtins.Main.System.create_process");
-        expect_lookup(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
+        lookup_and_verify_result_name(&db, "NewProject.NewModule.TextAtom");
+        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.System.create_process");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
 
     #[test]
@@ -929,7 +929,7 @@ mod test {
         db.apply_update_event(update);
 
         // Check that the first entry is not visible in the DB and the second one is visible.
-        expect_no_lookup(&db, "TestProject.TestModule.TextAtom");
-        expect_lookup(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
 }
