@@ -45,6 +45,7 @@ struct QualifiedNameToIdMap {
 }
 
 impl QualifiedNameToIdMap {
+    /// Gets the [`entry::Id`] at the specified path or [`None`] if not found.
     pub fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
@@ -52,6 +53,8 @@ impl QualifiedNameToIdMap {
         self.tree.get(path).and_then(|v| *v)
     }
 
+    /// Sets the `id` at `path`. Emits a warning if an `id` was set at this `path` before the
+    /// operation.
     pub fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
@@ -60,6 +63,8 @@ impl QualifiedNameToIdMap {
         }
     }
 
+    /// Removes the [`entry::Id`] stored at `path`. Emits a warning if there was no [`entry::Id`]
+    /// stored at `path` before the operation.
     pub fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
