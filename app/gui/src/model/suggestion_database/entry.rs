@@ -703,6 +703,9 @@ mod test {
         assert_eq!(method.method_id(), Some(expected));
     }
 
+    /// Test the result of the [`Entry::qualified_name`] method when applied to entries with
+    /// different values of [`Entry::kind`]. The entries are constructed from mock Language Server
+    /// responses.
     #[test]
     fn qualified_name() {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
