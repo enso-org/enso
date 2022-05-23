@@ -68,6 +68,13 @@ pub type NameSegment = ImString;
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct QualifiedNameSegments(pub Vec<NameSegment>);
 
+impl<'a> FromIterator<&'a str> for QualifiedNameSegments {
+    fn from_iter<T>(iter: T) -> Self
+    where T: IntoIterator<Item = &'a str> {
+        Self(iter.into_iter().map(NameSegment::new).collect())
+    }
+}
+
 
 
 // =============
@@ -250,29 +257,22 @@ impl Entry {
 
     /// Get the segments of the full qualified name of the entry.
     pub fn qualified_name_segments(&self) -> QualifiedNameSegments {
-        fn collect_segments<'a, I>(iter: I) -> QualifiedNameSegments
-        where I: Iterator<Item = &'a str> {
-            QualifiedNameSegments(iter.map(NameSegment::new).collect())
-        }
-        fn collect_segments_and_entry_name<'a, I>(
-            segments: I,
+        fn chain_iter_with_entry_name<'a>(
+            iter: impl IntoIterator<Item = &'a str>,
             entry: &'a Entry,
-        ) -> QualifiedNameSegments
-        where
-            I: Iterator<Item = &'a str>,
-        {
-            collect_segments(segments.chain(iter::once(entry.name.as_str())))
+        ) -> impl Iterator<Item = &'a str> {
+            iter.into_iter().chain(iter::once(entry.name.as_str()))
         }
         match self.kind {
             Kind::Method => match &self.self_type {
-                Some(t) => collect_segments_and_entry_name(t.segments(), self),
+                Some(t) => chain_iter_with_entry_name(t.segments(), self).collect(),
                 None => {
                     event!(ERROR, "A suggestion entry {self:?} with Method kind has no self type.");
                     default()
                 }
             },
-            Kind::Module => collect_segments(self.module.segments()),
-            _ => collect_segments_and_entry_name(self.module.segments(), self),
+            Kind::Module => self.module.segments().collect(),
+            _ => chain_iter_with_entry_name(self.module.segments(), self).collect(),
         }
     }
 }
