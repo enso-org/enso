@@ -589,8 +589,8 @@ mod test {
             name: "module_extension".to_string(),
             ..module_method.clone()
         };
-        let atom_type =
-            tp::QualifiedName::new_module_member(atom.module.clone(), atom.name.clone());
+        let atom_module = atom.module.clone();
+        let atom_type = tp::QualifiedName::new_module_member(atom_module, atom.name.clone());
         let atom_extension = Entry {
             module: another_module.clone(),
             name: "atom_extension".to_string(),
