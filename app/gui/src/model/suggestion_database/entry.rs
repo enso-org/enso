@@ -701,7 +701,7 @@ mod test {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
             let entry = Entry::from_ls_entry(ls_entry).unwrap();
             let entry_qualified_name = entry.qualified_name();
-            let expected_segments: Vec<_> = qualified_name.split('.').collect();
+            let expected_segments = qualified_name.split('.').collect_vec();
             assert_eq!(entry_qualified_name.segments, expected_segments);
         }
         let atom = language_server::SuggestionEntry::Atom {
