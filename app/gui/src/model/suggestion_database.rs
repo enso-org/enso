@@ -45,14 +45,14 @@ struct QualifiedNameToIdMap {
 }
 
 impl QualifiedNameToIdMap {
-    fn get<P, I>(&self, path: P) -> Option<entry::Id>
+    pub fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
         I: Into<entry::NameSegment>, {
         self.tree.get(path).and_then(|v| *v)
     }
 
-    fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
+    pub fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
@@ -60,7 +60,7 @@ impl QualifiedNameToIdMap {
         }
     }
 
-    fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
+    pub fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
