@@ -10,8 +10,8 @@ use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
-use ensogl::data::HashMapTree;
 use enso_text::Location;
+use ensogl::data::HashMapTree;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -54,16 +54,14 @@ impl QualifiedNameToIdMap {
 
     fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
-        let old_value =
-            self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
+        let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
             event!(WARN, "An existing suggestion entry id at {path:?} was overwritten with {id}.");
         }
     }
 
     fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
-        let old_value =
-            self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
+        let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
                 "Could not remove a suggestion entry id at {path:?} because it does not exist."
@@ -81,10 +79,14 @@ impl QualifiedNameToIdMap {
     ///
     /// The function is optimized to not create new empty nodes if they would be deleted by the
     /// function before it returns.
-    fn replace_value_and_traverse_back_pruning_empty_subtrees(&mut self, path: &entry::QualifiedName, value: Option<entry::Id>) -> Option<entry::Id> {
-        // A helper of the [`replace_value_and_traverse_back_pruning_empty_subtrees`] function. Performs
-        // the same operation but the replaced value is swapped with `value` instead of being
-        // returned.
+    fn replace_value_and_traverse_back_pruning_empty_subtrees(
+        &mut self,
+        path: &entry::QualifiedName,
+        value: Option<entry::Id>,
+    ) -> Option<entry::Id> {
+        // A helper of the [`replace_value_and_traverse_back_pruning_empty_subtrees`] function.
+        // Performs the same operation but the replaced value is swapped with `value`
+        // instead of being returned.
         fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
             node: &mut HashMapTree<entry::NameSegment, Option<entry::Id>>,
             mut path: P,
@@ -114,7 +116,11 @@ impl QualifiedNameToIdMap {
 
         let mut path_iter = path.into_iter();
         let mut swapped_value = value;
-        swap_value_and_traverse_back_pruning_empty_subtrees(&mut self.tree, &mut path_iter, &mut swapped_value);
+        swap_value_and_traverse_back_pruning_empty_subtrees(
+            &mut self.tree,
+            &mut path_iter,
+            &mut swapped_value,
+        );
         swapped_value
     }
 }
