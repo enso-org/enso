@@ -58,8 +58,10 @@ pub struct MissingThisOnMethod(pub String);
 // === QualifiedName ===
 // =====================
 
-/// A single segment of a fully qualifed name of an [`Entry`].
-pub type NameSegment = ImString;
+im_string_newtype! {
+    /// A single segment of a fully qualifed name of an [`Entry`].
+    QualifiedNameSegment
+}
 
 /// Segments of a fully qualified name of an [`Entry`].
 ///
@@ -67,19 +69,19 @@ pub type NameSegment = ImString;
 /// [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct QualifiedName {
-    pub segments: Vec<NameSegment>,
+    pub segments: Vec<QualifiedNameSegment>,
 }
 
 impl<'a> FromIterator<&'a str> for QualifiedName {
     fn from_iter<T>(iter: T) -> Self
     where T: IntoIterator<Item = &'a str> {
-        let segments = iter.into_iter().map(NameSegment::new).collect();
+        let segments = iter.into_iter().map(|s| s.into()).collect();
         Self { segments }
     }
 }
 
 impl<'a> IntoIterator for &'a QualifiedName {
-    type Item = &'a NameSegment;
+    type Item = &'a QualifiedNameSegment;
     type IntoIter = impl Iterator<Item = Self::Item>;
     fn into_iter(self) -> Self::IntoIter {
         self.segments.iter()
@@ -701,8 +703,8 @@ mod test {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
             let entry = Entry::from_ls_entry(ls_entry).unwrap();
             let entry_qualified_name = entry.qualified_name();
-            let expected_segments = qualified_name.split('.').collect_vec();
-            assert_eq!(entry_qualified_name.segments, expected_segments);
+            let expected_qualified_name = qualified_name.split('.').collect();
+            assert_eq!(entry_qualified_name, expected_qualified_name);
         }
         let atom = language_server::SuggestionEntry::Atom {
             name:               "TextAtom".to_string(),

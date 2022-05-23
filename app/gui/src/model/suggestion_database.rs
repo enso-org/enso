@@ -41,7 +41,7 @@ pub use example::Example;
 /// segments.
 #[derive(Clone, Debug, Default)]
 struct QualifiedNameToIdMap {
-    tree: HashMapTree<entry::NameSegment, Option<entry::Id>>,
+    tree: HashMapTree<entry::QualifiedNameSegment, Option<entry::Id>>,
 }
 
 impl QualifiedNameToIdMap {
@@ -49,7 +49,7 @@ impl QualifiedNameToIdMap {
     pub fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
-        I: Into<entry::NameSegment>, {
+        I: Into<entry::QualifiedNameSegment>, {
         self.tree.get(path).and_then(|v| *v)
     }
 
@@ -93,12 +93,12 @@ impl QualifiedNameToIdMap {
         // Performs the same operation but the replaced value is swapped with `value`
         // instead of being returned.
         fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
-            node: &mut HashMapTree<entry::NameSegment, Option<entry::Id>>,
+            node: &mut HashMapTree<entry::QualifiedNameSegment, Option<entry::Id>>,
             mut path: P,
             value: &mut Option<entry::Id>,
         ) where
             P: Iterator<Item = I>,
-            I: Into<entry::NameSegment>,
+            I: Into<entry::QualifiedNameSegment>,
         {
             use std::collections::hash_map::Entry;
             match path.next() {
@@ -318,9 +318,10 @@ impl SuggestionDatabase {
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
     pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let name_segments = fully_qualified_name.split(ACCESS).map(entry::NameSegment::new);
+        let name_segments = fully_qualified_name.split(ACCESS);
+        let qualified_name = name_segments.map(entry::QualifiedNameSegment::new);
         let qn_to_id_map = self.qualified_name_to_id_map.borrow();
-        qn_to_id_map.get(name_segments).and_then(|id| self.lookup(id).ok())
+        qn_to_id_map.get(qualified_name).and_then(|id| self.lookup(id).ok())
     }
 
     /// Search the database for entries with given name and visible at given location in module.
