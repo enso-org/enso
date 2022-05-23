@@ -265,7 +265,7 @@ impl Entry {
         }
         match self.kind {
             Kind::Method => match &self.self_type {
-                Some(t) => chain_iter_with_entry_name(t.segments(), self).collect(),
+                Some(t) => chain_iter_with_entry_name(t, self).collect(),
                 None => {
                     event!(ERROR, "A suggestion entry {self:?} with Method kind has no self type.");
                     default()

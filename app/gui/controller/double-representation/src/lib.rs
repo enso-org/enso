@@ -5,6 +5,7 @@
 #![feature(drain_filter)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
+#![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
