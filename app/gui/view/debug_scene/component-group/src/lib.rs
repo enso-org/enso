@@ -215,8 +215,14 @@ fn init(app: &Application) {
     app.display.add_child(&scroll_area);
 
     let camera = &scroll_area.content_layer().camera();
-    let parent_layer = scroll_area.content_layer();
-    let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
+    let normal_parent_layer = scroll_area.content_layer();
+    let selected_parent_layer = &app.display.default_scene.layers.selection;
+    let layers = component_group::Layers::new(
+        &app.logger,
+        camera,
+        normal_parent_layer,
+        selected_parent_layer,
+    );
 
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
@@ -255,11 +261,7 @@ fn init(app: &Application) {
     selection_animation.target.emit(first_component_group.selection_position_target.value());
     selection_animation.skip.emit(());
 
-    ComponentGroupController::init(
-        &[first_component_group.clone_ref()],
-        &network,
-        &scroll_area,
-    );
+    ComponentGroupController::init(&[first_component_group.clone_ref()], &network, &scroll_area);
 
     let mock_entries = MockEntries::new(10);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());

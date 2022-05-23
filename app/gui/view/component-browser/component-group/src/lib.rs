@@ -95,7 +95,7 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let color = Var::<color::Rgba>::from(color);
+            let color = Var::<color::Rgba>::from(color::Rgba::transparent());
             Plane().fill(color).into()
         }
     }
@@ -286,6 +286,8 @@ impl component::Frp<Model> for Frp {
         // === Header ===
 
         frp::extend! { network
+            model.entries.disallow_selecting_entries_above <+ input.set_header_pos;
+
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
@@ -379,13 +381,33 @@ impl component::Frp<Model> for Frp {
 /// bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
+    normal:   LayersInner,
+    selected: LayersInner,
+}
+
+impl Layers {
+    pub fn new(
+        logger: &Logger,
+        camera: &Camera2d,
+        normal_parent_layer: &layer::Layer,
+        selected_parent_layer: &layer::Layer,
+    ) -> Self {
+        let normal = LayersInner::new(logger, camera, normal_parent_layer);
+        let selected = LayersInner::new(logger, camera, selected_parent_layer);
+
+        Self { normal, selected }
+    }
+}
+
+#[derive(Debug, Clone, CloneRef)]
+pub struct LayersInner {
     background:  layer::Layer,
     text:        layer::Layer,
     header:      layer::Layer,
     header_text: layer::Layer,
 }
 
-impl Layers {
+impl LayersInner {
     /// Constructor.
     ///
     /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer` as
@@ -414,17 +436,17 @@ impl Layers {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object:    display::object::Instance,
-    header:            text::Area,
+    display_object:             display::object::Instance,
+    header:                     text::Area,
     selected_header:            text::Area,
-    header_background: header_background::View,
+    header_background:          header_background::View,
     selected_header_background: header_background::View,
-    header_text:       Rc<RefCell<String>>,
-    header_overlay:    header_overlay::View,
-    background:        background::View,
+    header_text:                Rc<RefCell<String>>,
+    header_overlay:             header_overlay::View,
+    background:                 background::View,
     selected_background:        background::View,
-    selected_entries: list_view::ListView<Entry>,
-    entries:           list_view::ListView<Entry>,
+    selected_entries:           list_view::ListView<Entry>,
+    entries:                    list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -445,14 +467,11 @@ impl component::Model for Model {
         let background = background::View::new(&logger);
         let selected_background = background::View::new(&logger);
         selected_background.color.set(color::Rgba(0.8, 0.7, 0.6, 1.0).into());
-        app.display.default_scene.layers.selection.add_exclusive(&selected_background);
         let header_background = header_background::View::new(&logger);
         let selected_header_background = header_background::View::new(&logger);
         selected_header_background.color.set(color::Rgba::red().into());
-        app.display.default_scene.layers.selection_header.add_exclusive(&selected_header_background);
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
-        selected_header.add_to_scene_layer(&app.display.default_scene.layers.selection_header_text);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         let selected_entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
@@ -465,8 +484,6 @@ impl component::Model for Model {
         selected_entries.show_background_shadow(false);
         selected_entries.set_background_corners_radius(0.0);
         selected_entries.hide_selection();
-        app.display.default_scene.layers.selection.add_exclusive(&selected_entries);
-        selected_entries.set_label_layer(&app.display.default_scene.layers.selection_text);
         display_object.add_child(&background);
         display_object.add_child(&selected_background);
         display_object.add_child(&header_background);
@@ -497,12 +514,19 @@ impl Model {
     /// Assign a set of layers to render the component group in. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers) {
-        layers.background.add_exclusive(&self.background);
-        layers.header_text.add_exclusive(&self.header_overlay);
-        layers.background.add_exclusive(&self.entries);
-        self.entries.set_label_layer(&layers.text);
-        layers.header.add_exclusive(&self.header_background);
-        self.header.add_to_scene_layer(&layers.header_text);
+        // normal:
+        layers.normal.background.add_exclusive(&self.background);
+        layers.normal.header_text.add_exclusive(&self.header_overlay);
+        layers.normal.background.add_exclusive(&self.entries);
+        self.entries.set_label_layer(&layers.normal.text);
+        layers.normal.header.add_exclusive(&self.header_background);
+        self.header.add_to_scene_layer(&layers.normal.header_text);
+        // selected:
+        layers.selected.background.add_exclusive(&self.selected_background);
+        layers.selected.background.add_exclusive(&self.selected_entries);
+        self.selected_entries.set_label_layer(&layers.selected.text);
+        layers.selected.header.add_exclusive(&self.selected_header_background);
+        self.selected_header.add_to_scene_layer(&layers.selected.header_text);
     }
 
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
@@ -563,8 +587,8 @@ impl Model {
         self.entries.set_position_y(-header_height / 2.0);
         self.selected_entries.resize(size - Vector2(0.0, header_height));
         self.selected_entries.set_position_y(-header_height / 2.0);
-        self.entries.disallow_selecting_entries_above(header_pos);
-        self.selected_entries.disallow_selecting_entries_above(header_pos);
+        //self.entries.disallow_selecting_entries_above(header_pos);
+        //self.selected_entries.disallow_selecting_entries_above(header_pos);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
@@ -572,7 +596,8 @@ impl Model {
         let header_padding_right = header_geometry.padding_right;
         let max_text_width = size.x - header_padding_left - header_padding_right;
         self.header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
-        self.selected_header.set_content_truncated(self.header_text.borrow().clone(), max_text_width);
+        self.selected_header
+            .set_content_truncated(self.header_text.borrow().clone(), max_text_width);
     }
 
     fn selection_position(

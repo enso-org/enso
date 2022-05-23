@@ -562,11 +562,8 @@ pub struct HardcodedLayers {
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
     pub mask:               Layer,
-    pub selection: Layer,
-    pub selection_header: Layer,
-    pub selection_header_text: Layer,
-    pub selection_text: Layer,
-    pub selection_mask: Layer,
+    pub selection:          Layer,
+    pub selection_mask:     Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -588,9 +585,6 @@ impl HardcodedLayers {
         let above_nodes = Layer::new_with_cam(logger.sub("above_nodes"), main_cam);
         let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"), main_cam);
         let selection = Layer::new_with_cam(logger.sub("selection"), main_cam);
-        let selection_header = Layer::new_with_cam(logger.sub("selection_header"), main_cam);
-        let selection_header_text = Layer::new_with_cam(logger.sub("selection_header_text"), main_cam);
-        let selection_text = Layer::new_with_cam(logger.sub("selection_text"), main_cam);
         let selection_mask = Layer::new_with_cam(logger.sub("selection_mask"), main_cam);
         let panel = Layer::new(logger.sub("panel"));
         let panel_text = Layer::new(logger.sub("panel_text"));
@@ -606,9 +600,6 @@ impl HardcodedLayers {
         let tooltip_text = Layer::new_with_cam(logger.sub("tooltip_text"), main_cam);
         let cursor = Layer::new(logger.sub("cursor"));
 
-        selection.add_sublayer(&selection_text);
-        selection.add_sublayer(&selection_header);
-        selection_header.add_sublayer(&selection_header_text);
         selection.set_mask(&selection_mask);
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
         root.set_sublayers(&[
@@ -640,9 +631,6 @@ impl HardcodedLayers {
             above_nodes,
             above_nodes_text,
             selection,
-            selection_header,
-            selection_header_text,
-            selection_text,
             selection_mask,
             panel,
             panel_text,

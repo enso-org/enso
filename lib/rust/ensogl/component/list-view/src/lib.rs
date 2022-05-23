@@ -134,7 +134,7 @@ pub mod background {
 struct View {
     position_y: f32,
     size:       Vector2<f32>,
-    dis: f32,
+    dis:        f32,
 }
 
 /// An internal structure describing where selection would go after jump (i.e. after navigating with
@@ -157,7 +157,7 @@ impl Default for JumpTarget {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model<E: Entry> {
     app:            Application,
-    pub entries:        entry::List<E>,
+    pub entries:    entry::List<E>,
     selection:      selection::View,
     background:     background::View,
     scrolled_area:  display::object::Instance,
@@ -223,7 +223,10 @@ impl<E: Entry> Model<E> {
         entries.update_entries_new_provider(provider, visible_entries, entry_width, style_prefix);
     }
 
-    fn visible_entries(View { position_y, size, dis }: &View, entry_count: usize) -> Range<entry::Id> {
+    fn visible_entries(
+        View { position_y, size, dis }: &View,
+        entry_count: usize,
+    ) -> Range<entry::Id> {
         if entry_count == 0 {
             0..0
         } else {
@@ -308,6 +311,9 @@ ensogl_core::define_endpoints! {
         /// mouse and keyboard will work. Used in cases where the ListView user want to manage the
         /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
+        /// TODO: Better name? We "restrict" the size of the list view from the top. It works the
+        /// same way as `set_header_pos` in Component Group.
+        /// TODO: can we use `resize` instead?
         disallow_selecting_entries_above(f32),
 
         resize(Vector2<f32>),
@@ -353,8 +359,8 @@ ensogl_core::define_endpoints! {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ListView<E: Entry> {
-    pub model:   Model<E>,
-    pub frp: Frp<E>,
+    pub model: Model<E>,
+    pub frp:   Frp<E>,
 }
 
 impl<E: Entry> Deref for ListView<E> {

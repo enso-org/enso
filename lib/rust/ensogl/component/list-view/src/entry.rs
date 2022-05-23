@@ -99,7 +99,7 @@ pub struct Label {
     /// separate network for them would be an unnecessary overhead.
     /// Note: Networks extending this field will not outlive [`Label`].
     pub network:    enso_frp::Network,
-    init: enso_frp::Source<()>,
+    init:           enso_frp::Source<()>,
     style_watch:    StyleWatchFrp,
 }
 

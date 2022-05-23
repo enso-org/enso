@@ -185,7 +185,6 @@ impl<E: Entry> ListData<E, E::Params> {
                     |e: &DisplayedEntry<E>| e.id.get().map_or(true, |i| !range.contains(&i));
                 let outdated = entries.iter().filter(|e| is_outdated(e));
                 for (entry, (id, model)) in outdated.zip(models) {
-                    DEBUG!("Update entry: {id:?}: {model:?}");
                     Self::update_entry(&self.logger, entry, id, &model);
                 }
             });
