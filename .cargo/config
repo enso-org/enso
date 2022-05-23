@@ -1,6 +1,6 @@
 [build]
 target-dir = "target/rust/"
-rustflags = []
+rustflags = ["--cfg", "tokio_unstable"]
 
 [target.wasm32-unknown-unknown]
 rustflags = [

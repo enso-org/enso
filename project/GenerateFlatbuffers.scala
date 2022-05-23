@@ -43,8 +43,9 @@ object GenerateFlatbuffers {
       val allGeneratedSourcesExist = generatedSources.forall(_.exists())
       if (schemasDiff.modified.nonEmpty || !allGeneratedSourcesExist) {
         schemas foreach { schema =>
-          val cmdGenerate =
-            s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
+          val cmdGenerate = Process(flatcCmd, List("--java", "-o", out.getAbsolutePath, schema.toString))
+//          val cmdGenerate =
+//            s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
           cmdGenerate.!! // Note [flatc Error Reporting]
         }
 
@@ -159,8 +160,9 @@ object GenerateFlatbuffers {
   ): Set[File] = {
     val affectedSources =
       schemas.flatMap { schema =>
-        val cmdMakeRules =
-          s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
+        val cmdMakeRules = Process(flatcCmd, List("-M", "--java", "-o", out.getAbsolutePath, schema.getAbsolutePath))
+//        val cmdMakeRules =
+//          s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
         val makeRules =
           try {
             cmdMakeRules.!!

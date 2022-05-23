@@ -1,13 +1,12 @@
 [package]
-name    = "enso-parser"
+name = "enso-parser"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-
-description  = "Enso Parser."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso"
-repository   = "https://github.com/enso-org/enso"
+description = "Enso Parser."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [dependencies]
@@ -17,4 +16,3 @@ enso-types = { path = "../types" }
 enso-shapely-macros = { path = "../shapely/macros" }
 enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor" }
 enso-parser-syntax-tree-builder = { path = "src/syntax/tree/builder" }
-

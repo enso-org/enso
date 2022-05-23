@@ -12,8 +12,8 @@ ast = { version = "0.1.0", path = "../../language/ast/impl" }
 engine-protocol = { version = "0.1.0", path = "../engine-protocol" }
 parser = { version = "0.1.0", path = "../../language/parser" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
-enso-logger = { path = "../../../../lib/rust/logger"}
-enso-prelude = { path = "../../../../lib/rust/prelude"}
+enso-logger = { path = "../../../../lib/rust/logger" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-text = { path = "../../../../lib/rust/text" }
 failure = { version = "0.1.6" }
 itertools = { version = "0.10.0" }

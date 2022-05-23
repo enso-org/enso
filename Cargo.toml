@@ -1,20 +1,19 @@
 [workspace]
-
 # Listing only the "root" crates of each app/library. All path dependencies are included in the workspace automatically.
 # If you want to add sub crate (like `app/gui/config` or `lib/rust/ensogl/example`), just add it as a path dependency
 # where plausible.
 members = [
-    "app/gui",
-    "app/gui/enso-profiler-enso-data",
-    "build/enso-formatter",
-    "build/rust-scripts",
-    "lib/rust/*",
-    "lib/rust/parser/src/syntax/tree/visitor",
-    "lib/rust/parser/src/syntax/tree/builder",
-    "lib/rust/profiler/data",
-    "integration-test"
+  "app/gui",
+  "app/gui/enso-profiler-enso-data",
+  "build",
+  "build/enso-formatter",
+  "build/rust-scripts",
+  "lib/rust/*",
+  "lib/rust/parser/src/syntax/tree/visitor",
+  "lib/rust/parser/src/syntax/tree/builder",
+  "lib/rust/profiler/data",
+  "integration-test"
 ]
-
 # The default memebers are those we want to check and test by default.
 default-members = ["app/gui", "lib/rust/*"]
 
@@ -51,3 +50,13 @@ debug-assertions = true
 [profile.integration-test]
 inherits = "test"
 opt-level = 2
+
+[profile.buildscript]
+inherits = "release"
+opt-level = 2
+lto = false
+debug = false
+debug-assertions = true
+#[patch."https://github.com/enso-org/ci-build"]
+#enso-build = { path = '../ci-build/build' }
+#ide-ci = { path = '../ci-build/ci_utils' }
