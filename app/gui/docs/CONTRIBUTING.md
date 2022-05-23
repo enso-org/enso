@@ -52,10 +52,10 @@ application icon if built on Linux or Windows due to non-trivial icon generation
 on these platforms. To develop the source code you will need the following
 setup:
 
-- **The Rust Toolchain (nightly-2021-11-29)**
+- **The Rust Toolchain**
 
   This project uses several features available only in the nightly Rust
-  toolchain. Please use the [the Rust toolchain installer](https://rustup.rs) to
+  toolchain. Please use [the Rust toolchain installer](https://rustup.rs) to
   manage Rust toolchains. It will automatically download the toolchain needed to
   build the project.
 
@@ -64,7 +64,7 @@ setup:
   ```bash
   rustup toolchain install stable                  # Stable toolchain required for the following tools.
   cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
-  cargo +stable install cargo-watch                # To enable ./run watch utility
+  cargo +stable install cargo-watch                # To enable `./run.sh wasm watch` utility
   ```
 
   Make sure that your `PATH` environment variable is set up correctly, so that
@@ -120,7 +120,7 @@ setup:
 ## Working with sources
 
 Please be sure to carefully read the
-[Rust style guide 1](./contributing/style-guide.md) and the
+[Rust style guide 1](contributing/style-guide.md) and the
 [Rust style guide 2](https://enso.org/docs/developer/ide/contributing/style-guide.html)
 before contributing to the codebase.
 
@@ -138,8 +138,8 @@ refactoring, and it is not finished yet: the Engine files are still not in the
 
 The root directory contains `Cargo.toml` and `build.sbt` files, allowing to open
 all rust or scala code as a single project in your favorite IDE. There is also a
-`run` script used for building and running the Enso IDE (see next section for
-details).
+`run.sh` and `run.cmd` scripts used for building and running the Enso IDE (see
+next section for details).
 
 The subdirectories of interests are:
 
@@ -163,8 +163,7 @@ The subdirectories of interests are:
     WASM.
   - `rust/frp`: The library allows following the Functional Reactive Programming
     paradigm in rust.
-- `build`: All building scripts and utilities, mostly the logic of the `./run`
-  script.
+- `build`: Build script that is wrapped by the `run` script.
 - `integration-test`: A single crate with all integration tests of our
   applications.
 
@@ -173,83 +172,60 @@ Engine files, which will be moved to `app/engine` soon.
 
 ### Development
 
-As this is a multi-part project with many complex dependencies, it is equipped
+As this is a multipart project with many complex dependencies, it is equipped
 with a build script which both validates your working environment and takes care
 of providing the most suitable compilation flags for a particular development
-stage. To run the build script simply run `node ./run` in the root of the
-codebase. On macOS and Linux you can use a simpler form of `./run`, however,
-this doc will use the former form in order to stay cross-platform compatible.
-Run `node ./run help` to learn about available commands and options. All
-arguments provided after the `--` symbol will be passed to sub-commands. For
-example `node ./run build -- --dev` will pass the `--dev` flag to `cargo` (Rust
-build tool). The most common options are presented below:
+stage.
 
-- **Interactive mode** Run `node ./run watch` to start a local web-server and a
-  source-file watch utility which will build the project on every change. Open
+The build-script is invokable by invoking the following script from the working
+copy root:
+
+- `./run.sh` in bash-compatible environments, like Linux or macOS;
+- `.\run.cmd` on Windows.
+
+For brevity, this guide will use `./run.sh` form from here onwards.
+
+In general, `./run.sh` should also work on Windows ports of `bash` (like the
+ones provided by `git` or MSYS2). These configurations are not tested though.
+
+Run `./run.sh --help` to learn about available commands and options. Some
+subcommands allow passing additional arguments following `--` argument to the
+underlying call. For example `./run.sh ide build -- FLAG` will pass the `FLAG`
+flag to `wasm-pack` (Rust WASM build tool). The most common options are
+presented below:
+
+- **Interactive mode** Run `./run.sh ide watch` to start a local web-server and
+  a source-file watch utility which will build the project on every change. Open
   `http://localhost:8080` (the port may vary and will be reported in the
   terminal if `8080` was already in use) to run the application, or
   `http://localhost:8080/?entry` to open example demo scenes list. Please
   remember to disable the cache in your browser during the development! By
   default, the script disables heavyweight optimizations to provide interactive
-  development experience. The scripts are thin wrappers for
-  [wasm-pack](https://github.com/rustwasm/wasm-pack) and accept the same
-  [command line arguments](https://rustwasm.github.io/wasm-pack/book/commands/build.html).
-
+  development experience.
 - **Production mode** In order to compile in a production mode (enable all
   optimizations, strip WASM debug symbols, minimize the output binaries, etc.),
-  run `node ./run build`. To create platform-specific packages and installers
-  use `node ./run dist` instead. The final executables will be located at
-  `dist/client/$PLATFORM`.
+  run `./run.sh gui build`. To create platform-specific packages and installers
+  use `./run.sh ide build` instead. The final executables will be located at
+  `dist/ide`.
 - **Selective mode** In order to compile only part of the project, and thus
   drastically shorten the incremental compile time, you are advised to use the
-  selective compilation mode by passing the `--crate` option to the `build` or
-  `watch` command, e.g. `node ./watch --crate ensogl/example` to compile only
-  the renderer-related example scenes. Please note, that in order to run a scene
-  in a web-browser, the scene has to be compiled and has to expose a public
-  function with a name starting with `entry_point_`. Thus, if you compile only
-  selected crate, you will have access only to the example scenes that were
-  defined or re-exported by that crate. In particular, the `ide` crate exposes
-  the `entry_point_ide` function, so you have to compile it to test your code in
-  the Enso IDE.
-
-### Updating JS dependencies
-
-JS parts of the project are using [`lerna`](https://lerna.js.org/) to manage JS
-dependencies. When you add a new JS dependency or update an old one to the new
-version, `lerna` must be re-run to trigger `npm install` for all projects. The
-easiest way to do so is to run `./run clean --no-rust` command. You can also
-manually call `npm run install` in `app/ide-desktop/` directory with a similar
-result. Our CI does that for every build at the moment.
-
-### Testing IDE with a specific version of a backend
-
-Sometimes changes to the IDE must be tested against the unreleased Enso Engine
-version. To perform this one should:
-
-- commit code to [enso](https://github.com/enso-org/enso) repository and allow
-  CI to successfully complete;
-- enter the
-  [`Engine CI` runs](https://github.com/enso-org/enso/actions/workflows/scala.yml)
-  and select the run for the commit to be tested;
-- download the Enso Engine artifact appropriate for your OS (e.g.
-  `enso-engine-0.2.9-SNAPSHOT-windows-amd64.zip`);
-- extract the archive into
-  [`ENSO_DATA_DIRECTORY/dist`](https://dev.enso.org/docs/enso/distribution/distribution.html#installed-enso-distribution-layout).
-  Rename the extracted folder by erasing initial `enso-`, e.g. change
-  `enso-0.2.9-SNAPSHOT` to `0.2.9-SNAPSHOT`;
-- open the `package.yaml` of the tested project (by default it is under
-  `~/enso/projects/Unnamed/`) and change the `enso-version` value to the version
-  of the downloaded package (e.g. `enso-version: 0.2.9-SNAPSHOT`);
-- run the IDE opening the updated project. Project Manager should automatically
-  spawn the Language Server from the extracted package.
+  selective compilation mode by passing the `--crate-path` option to the `build`
+  or `watch` command, e.g. `./run.sh ide watch --crate-path ensogl/example` to
+  compile only the renderer-related example scenes. Please note, that in order
+  to run a scene in a web-browser, the scene has to be compiled and has to
+  expose a public function with a name starting with `entry_point_`. Thus, if
+  you compile only selected crate, you will have access only to the example
+  scenes that were defined or re-exported by that crate. In particular, the
+  `ide` crate exposes the `entry_point_ide` function, so you have to compile it
+  to test your code in the Enso IDE.
 
 ### Using IDE as a library.
 
 In case you want to use the IDE as a library, for example to embed it into
-another website, you need to first build it using `node ./run {built,dist}` and
-find the necessary artifacts located at `dist/content`. Especially, the
-`dist/content/index.js` defines a function `window.enso.main(cfg)` which you can
-use to run the IDE. Currently, the configuration argument can contain the
+another website, you need to first build it using `./run.sh gui build` and find
+the necessary artifacts located at `dist/gui`. Especially, the
+`dist/gui/assets/index.js` defines a function `window.enso.main(cfg)` which you
+can use to run the IDE. Currently, the configuration argument can contain the
 following options:
 
 - `entry` - the entry point, one of predefined scenes. Set it to empty string to
@@ -261,15 +237,15 @@ following options:
 After changing the code it's always a good idea to lint and test the code. We
 have prepared several scripts which maximally automate the process:
 
-- **Size Validation** Use `node ./run build` to check if the size of the final
-  binary did not grew too much in comparison to the previous release. Watching
-  the resulting binary size is one of the most important responsibility of each
-  contributor in order to keep the project small and suitable for web-based
-  usage. In case the size will exceed the limits:
+- **Size Validation** Use `./run.sh wasm build` to check if the size of the
+  final binary did not grew too much in comparison to the previous release.
+  Watching the resulting binary size is one of the most important responsibility
+  of each contributor in order to keep the project small and suitable for
+  web-based usage. In case the size will exceed the limits:
 
   - If the PR does not include any new libraries, you are allowed to increase
     the limit by 10KB. In case the limit will be exceeded by more than 10KB,
-    check which part of the code contributet to it, and talk about it with the
+    check which part of the code contribute to it, and talk about it with the
     code owner.
   - If the PR does include new libraries, you are allowed to increase the limit
     by 10KB, but you should also consider if it is possible to get the same
@@ -283,28 +259,19 @@ have prepared several scripts which maximally automate the process:
     talking with code owner about this case.
 
 - **Testing** For the test suite to run you need a current version of Chrome
-  installed. Use `node ./run test` run both unit and web-based visual test.
-
-  - _Note for Windows users_: there is a
-    [known issue with wasm-pack](https://github.com/rustwasm/wasm-pack/issues/611)
-    using the wrong version of the chrome driver. There is
-    [a workaround](https://github.com/rustwasm/wasm-pack/issues/611#issuecomment-522093207)
-    described in the issue: download compatible ChromeDriver from the
-    [official source](https://chromedriver.chromium.org/downloads) and ensure it
-    is in your `PATH`.
-
+  installed. Use `./run.sh wasm test` run both unit and web-based visual test.
 - **Integration Tests** The integration tests are gathered in `integration-test`
-  crate. You can run them with `node ./run integration-test` command. The script
-  will spawn required Engine process.
+  crate. You can run them with `./run.sh ide integration-test` command. The
+  script will spawn required Engine process.
   - To run une test suite add `-- --test <suite-name>` at end of command
     options. The `<suite-name>` is a name of the file in
     `integration-test/tests` directory without extension, for example
     `graph_editor`.
   - The integration test can create and leave new Enso projects. **Keep it in
-    mind when running the script with your own backend (the `--no-backend`
+    mind when running the script with your own backend (the `--external-backend`
     option)**. The Engine spawned by the script will use a dedicated workspace
     created in temporary directory, so the user workspace will not be affected.
-- **Linting** Please be sure to fix all errors reported by `node ./run lint`
+- **Linting** Please be sure to fix all errors reported by `./run.sh lint`
   before creating a pull request to this repository.
 
 ### Development Branches

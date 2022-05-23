@@ -1761,6 +1761,7 @@ name = "enso-build3"
 version = "0.1.0"
 dependencies = [
  "enso-build",
+ "ide-ci",
 ]
 
 [[package]]
