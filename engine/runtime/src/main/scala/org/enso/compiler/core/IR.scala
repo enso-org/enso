@@ -6361,46 +6361,6 @@ object IR {
     /** The location at which the diagnostic occurs. */
     val location: Option[IdentifiedLocation]
 
-    /** Equals based on returned keys.
-      */
-    override def equals(other: Any): Boolean = {
-      other match {
-        case o: Diagnostic => {
-          if (getClass() != other.getClass()) {
-            return false
-          }
-
-          if (location != o.location) {
-            return false
-          }
-
-          val myKeys    = diagnosticKeys()
-          val otherKeys = o.diagnosticKeys()
-
-          if (myKeys.length != otherKeys.length) {
-            return false;
-          }
-
-          for (i <- myKeys.indices) {
-            if (myKeys(i) != otherKeys(i)) {
-              return false;
-            }
-          }
-          return true
-        }
-        case _ => false
-      }
-    }
-
-    /** Hascode computed on returned keys */
-    override def hashCode(): Int = {
-      var sum = location.hashCode
-      for (k <- diagnosticKeys()) {
-        sum += k.hashCode
-      }
-      return sum
-    }
-
     /** The important keys identifying identity of the diagnostic
       */
     def diagnosticKeys(): Array[Any]

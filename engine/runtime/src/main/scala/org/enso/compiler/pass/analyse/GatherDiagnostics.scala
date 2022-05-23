@@ -67,8 +67,51 @@ case object GatherDiagnostics extends IRPass {
       case x                  => x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
-      diagnostics.distinctBy(d => d)
+      diagnostics.distinctBy(d => new DiagnosticKeys(d))
     )
+  }
+
+  final private class DiagnosticKeys(private val diagnostic: IR.Diagnostic) {
+
+    /** Equals is based on type of diagnostic, its location and its diagnostic keys.
+      */
+    override def equals(any: Any): Boolean = {
+      any match {
+        case other: DiagnosticKeys => {
+          if (diagnostic.getClass() != other.diagnostic.getClass()) {
+            return false
+          }
+
+          if (diagnostic.location != other.diagnostic.location) {
+            return false
+          }
+
+          val myKeys    = diagnostic.diagnosticKeys()
+          val otherKeys = other.diagnostic.diagnosticKeys()
+
+          if (myKeys.length != otherKeys.length) {
+            return false;
+          }
+
+          for (i <- myKeys.indices) {
+            if (myKeys(i) != otherKeys(i)) {
+              return false;
+            }
+          }
+          return true
+        }
+        case _ => false
+      }
+    }
+
+    /** Hascode computed from location and provided diagnostic keys */
+    override def hashCode(): Int = {
+      var sum = diagnostic.location.hashCode
+      for (k <- diagnostic.diagnosticKeys()) {
+        sum += k.hashCode
+      }
+      return sum
+    }
   }
 
   /** A container for diagnostics found in the IR.
