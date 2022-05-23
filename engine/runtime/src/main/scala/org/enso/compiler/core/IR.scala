@@ -6369,6 +6369,11 @@ object IR {
           if (getClass() != other.getClass()) {
             return false
           }
+
+          if (location != o.location) {
+            return false
+          }
+
           val myKeys    = diagnosticKeys()
           val otherKeys = o.diagnosticKeys()
 
@@ -6389,7 +6394,7 @@ object IR {
 
     /** Hascode computed on returned keys */
     override def hashCode(): Int = {
-      var sum = 0
+      var sum = location.hashCode
       for (k <- diagnosticKeys()) {
         sum += k.hashCode
       }
