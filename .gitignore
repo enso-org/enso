@@ -103,6 +103,9 @@ bench-report*.xml
 .bloop/
 .bsp/
 project/metals.sbt
+/app/ide-desktop/build.json
+/app/ide-desktop/lib/client/electron-builder-config.json
+
 
 #################
 ## Build Cache ##
@@ -128,6 +131,9 @@ distribution/lib/Standard/Database/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 distribution/lib/*/*/*/manifest.yaml
+
+# Resources that are downloaded during the build.
+/lib/scala/pkg/src/main/resources/*
 
 test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json

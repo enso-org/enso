@@ -130,7 +130,8 @@ impl ManagingProjectAPI for Handle {
             let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
             let name = choose_new_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
-            let version = Some(enso_config::engine_version_supported.to_string());
+            let version =
+                enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
             let action = MissingComponentAction::Install;
 
             let create_result =

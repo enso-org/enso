@@ -727,7 +727,7 @@ type Output_Stream
                  out_stream.write_bytes "hello".utf_8
                  out_stream.close
     write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
+    write_bytes contents = this.stream_resource . with java_stream->
         here.handle_java_exceptions this.file <|
             java_stream.write contents.to_array
             java_stream.flush
@@ -752,7 +752,7 @@ type Output_Stream
                  out_stream = file.new_output_stream [Option.Create]
                  out_stream.close
     close : Nothing
-    close = Managed_Resource.finalize this.stream_resource
+    close = this.stream_resource . finalize
 
 ## An input stream, allowing for interactive reading of contents from an open
    file.
@@ -786,7 +786,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_all_bytes : Vector.Vector ! File_Error
-    read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
+    read_all_bytes = this.stream_resource . with java_stream->
         here.handle_java_exceptions this.file <|
             Vector.Vector java_stream.readAllBytes
 
@@ -816,7 +816,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_n_bytes : Integer -> Vector.Vector ! File_Error
-    read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
+    read_n_bytes n = this.stream_resource . with java_stream->
         here.handle_java_exceptions this.file <|
             bytes = java_stream.readNBytes n
             Vector.Vector bytes
@@ -841,7 +841,7 @@ type Input_Stream
                  in_stream.close
                  bytes
     read_byte : Integer ! File_Error
-    read_byte = Managed_Resource.with this.stream_resource java_stream->
+    read_byte = this.stream_resource . with java_stream->
         here.handle_java_exceptions this.file <|
             java_stream.read
 
@@ -864,7 +864,7 @@ type Input_Stream
                  in_stream = file.new_input_stream [Option.Read]
                  in_stream.close
     close : Nothing
-    close = Managed_Resource.finalize this.stream_resource
+    close = this.stream_resource . finalize
 
     ## PRIVATE
 
@@ -876,7 +876,7 @@ type Input_Stream
        Useful when integrating with polyglot functions requiring an
        `InputStream` as an argument.
     with_java_stream : (Java_Input_Stream -> Any) -> Any
-    with_java_stream f = Managed_Resource.with this.stream_resource f
+    with_java_stream f = this.stream_resource . with f
 
 
 ## PRIVATE

@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
@@ -33,7 +32,9 @@ public class StringStorage extends ObjectStorage {
     return (String) super.getItem(idx);
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public long getType() {
     return Type.STRING;

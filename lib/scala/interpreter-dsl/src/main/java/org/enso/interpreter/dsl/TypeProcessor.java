@@ -15,7 +15,7 @@ import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")
 @ServiceProvider(service = Processor.class)
-public class TypeProcessor extends BuiltinsMetadataProcessor {
+public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeMetadataEntry> {
 
   private final Map<Filer, Map<String, BuiltinTypeConstr>> builtinTypes = new HashMap<>();
 
@@ -84,7 +84,7 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
    * @throws IOException
    */
   @Override
-  protected void storeMetadata(Writer writer, Map<String, String> pastEntries) throws IOException {
+  protected void storeMetadata(Writer writer, Map<String, TypeMetadataEntry> pastEntries) throws IOException {
     JavaFileObject gen = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
     for (Filer f : builtinTypes.keySet()) {
       System.out.println("foo" + f.toString());
@@ -126,17 +126,16 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
       pastEntries
           .values()
           .forEach(
-              entry -> {
-                String[] elements = entry.split(":");
-                if (elements.length == 4 && !elements[3].isEmpty()) {
-                  out.println(
-                      "    public static void final String "
-                          + elements[0].toUpperCase()
-                          + " = \""
-                          + elements[3]
-                          + "\";");
-                }
-              });
+              entry ->
+                entry.stdlibName().ifPresent(n ->
+                        out.println(
+                        "    public static final String "
+                                + entry.ensoName().toUpperCase()
+                                + " = \""
+                                + n
+                                + "\";")
+                )
+          );
 
       out.println();
       out.println("}");
@@ -170,5 +169,31 @@ public class TypeProcessor extends BuiltinsMetadataProcessor {
   @Override
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.latest();
+  }
+
+  public record TypeMetadataEntry(String ensoName, String clazzName, String[] paramNames, Optional<String> stdlibName) implements MetadataEntry {
+
+    @Override
+    public String toString() {
+      return ensoName + ":" + clazzName + ":" + StringUtils.join(paramNames, ",") + ":" + stdlibName.orElse("");
+    }
+
+    @Override
+    public String key() {
+      return ensoName;
+    }
+  }
+
+  @Override
+  protected TypeMetadataEntry toMetadataEntry(String line) {
+    return fromStringToMetadataEntry(line);
+  }
+
+  public static TypeMetadataEntry fromStringToMetadataEntry(String line) {
+    String[] elements = line.split(":");
+    if (elements.length < 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    String[] params = elements.length >= 3 ? elements[2].split(",") : new String[0];
+    Optional<String> stdLibName = elements.length == 4 ? Optional.of(elements[3]) : Optional.empty();
+    return new TypeMetadataEntry(elements[0], elements[1], params, stdLibName);
   }
 }

@@ -7,18 +7,23 @@ import * as loader_module from 'enso-studio-common/src/loader'
 // @ts-ignore
 import * as html_utils from 'enso-studio-common/src/html_utils'
 // @ts-ignore
-import * as globalConfig from '../../../../gui/config.yaml'
+import globalConfig from '../../../../gui/config.yaml'
 // @ts-ignore
-import cfg from '../../../config'
+import { defaultLogServerHost } from '../../../config'
 // @ts-ignore
 import assert from 'assert'
+// @ts-ignore
+import buildCfg from '../../../build.json'
 
 // @ts-ignore
 import firebase from 'firebase/app'
 // @ts-ignore
 import 'firebase/auth'
-// @ts-ignore
-import semver from 'semver'
+
+import * as semver from 'semver'
+import { SemVer, Comparator } from 'semver'
+
+const authInfo = 'auth-info'
 
 // ==================
 // === Global API ===
@@ -474,42 +479,17 @@ class ErrorDetails {
 /// Utility methods helping to work with the versions.
 class Versions {
     /// Development version.
-    static devVersion = semver.coerce('0.0.0')
-    /// Version of the `client` js package.
-    static clientVersion = require('../../client/package.json').version
+    static devVersion = new SemVer('0.0.0')
+    static devPrerelease = 'dev'
 
-    /// Compare the application version with the minimum supported version and
-    /// return `true` if the application version is supported, i.e. greater or
-    /// equal than the minimum supported version.
-    static compare(minSupportedVersion: string, applicationVersion: string): boolean {
-        const appVersion = semver.clean(applicationVersion, { loose: true })
-        if (ok(appVersion)) {
-            if (semver.eq(appVersion, Versions.devVersion)) {
-                return true
-            } else {
-                const minVersion = semver.clean(minSupportedVersion, { loose: true })
-                if (ok(minVersion)) {
-                    return semver.gte(appVersion, minVersion)
-                } else {
-                    throw new ErrorDetails('Failed to parse app version.', { applicationVersion })
-                }
-            }
-        } else {
-            throw new ErrorDetails('Failed to parse minimum supported version.', {
-                minSupportedVersion,
-            })
-        }
-    }
+    /// Version of the `client` js package.
+    static ideVersion = new SemVer(buildCfg.version, { loose: true })
 
     static isDevVersion(): boolean {
-        const clientVersion = Versions.clientVersion
-        const appVersion = semver.clean(clientVersion, { loose: true })
-        if (ok(appVersion)) {
-            return semver.eq(appVersion, Versions.devVersion)
-        } else {
-            console.error('Failed to parse applicationVersion.', { clientVersion })
-            return false
-        }
+        const clientVersion = Versions.ideVersion
+        const releaseDev = clientVersion.compareMain(Versions.devVersion) === 0
+        const prereleaseDev = clientVersion.prerelease.toString().includes(Versions.devPrerelease)
+        return releaseDev || prereleaseDev
     }
 }
 
@@ -552,13 +532,16 @@ async function fetchApplicationConfig(url: string) {
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
 async function checkMinSupportedVersion(config: Config) {
+    console.log(config)
+    if (config.skip_min_version_check === true || Versions.isDevVersion()) {
+        return true
+    }
     try {
-        const appConfig: any = await fetchApplicationConfig(config.application_config_url)
-        const clientVersion = Versions.clientVersion
-        const minSupportedVersion = appConfig.minimumSupportedVersion
-
-        console.log(`Application version check.`, { minSupportedVersion, clientVersion })
-        return Versions.compare(minSupportedVersion, clientVersion)
+        // const appConfig: any = await fetchApplicationConfig(config.application_config_url)
+        // const clientVersion = Versions.ideVersion
+        // const minSupportedVersion = appConfig.minimumSupportedVersion
+        const comparator = new Comparator('>=2.0.0-alpha.6')
+        return comparator.test(Versions.ideVersion)
     } catch (e) {
         console.error('Minimum version check failed.', e)
         return true
@@ -578,7 +561,7 @@ class FirebaseAuthentication {
 
     constructor(authCallback: any) {
         this.firebaseui = require('firebaseui')
-        this.config = this.getFirebaseConfig()
+        this.config = require('../firebase.yaml')
         // initialize Firebase
         firebase.initializeApp(this.config)
         // create HTML markup
@@ -599,19 +582,6 @@ class FirebaseAuthentication {
                 this.handleSignedOutUser()
             }
         })
-    }
-
-    protected getFirebaseConfig() {
-        const config = require('../firebase.yaml')
-        // @ts-ignore
-        const firebaseApiKey = FIREBASE_API_KEY
-        if (ok(firebaseApiKey) && firebaseApiKey.length > 0) {
-            // @ts-ignore
-            config['apiKey'] = firebaseApiKey
-            return config
-        } else {
-            throw new Error('Empty FIREBASE_API_KEY')
-        }
     }
 
     protected hasEmailAuth(user: any): boolean {
@@ -700,13 +670,11 @@ class FirebaseAuthentication {
     /// ```
     protected createHtml() {
         const authContainer = 'auth-container'
-        const authInfo = 'auth-info'
         const authHeader = 'auth-header'
         const authText = 'auth-text'
         const firebaseuiContainer = 'firebaseui-container'
         const userSignedOut = 'user-signed-out'
         const userEmailNotVerified = 'user-email-not-verified'
-        const versionCheck = 'version-check'
 
         const authHeaderText = document.createTextNode('Sign in to Enso')
         const authTextText = document.createTextNode(
@@ -714,9 +682,6 @@ class FirebaseAuthentication {
         )
         const userEmailNotVerifiedText = document.createTextNode(
             'Verification link is sent. You can sign in after verifying your email.'
-        )
-        const versionCheckText = document.createTextNode(
-            'This version is no longer supported. Please download a new one.'
         )
 
         let root = document.getElementById('root')
@@ -756,14 +721,7 @@ class FirebaseAuthentication {
         authContainerDiv.appendChild(userSignedOutDiv)
         authContainerDiv.appendChild(userEmailNotVerifiedDiv)
 
-        // div#version-check
-        let versionCheckDiv = document.createElement('div')
-        versionCheckDiv.id = versionCheck
-        versionCheckDiv.className = authInfo
-        versionCheckDiv.appendChild(versionCheckText)
-
         root.appendChild(authContainerDiv)
-        root.appendChild(versionCheckDiv)
     }
 }
 
@@ -817,19 +775,23 @@ class Config {
     public email: string
     public application_config_url: string
     public test_workflow: string
+    public skip_min_version_check: boolean
+    public preferred_engine_version: SemVer
 
     static default() {
         let config = new Config()
         config.use_loader = true
         config.wasm_url = '/assets/ide.wasm'
         config.wasm_glue_url = '/assets/wasm_imports.js'
-        config.crash_report_host = cfg.defaultLogServerHost
+        config.crash_report_host = defaultLogServerHost
         config.data_gathering = true
         config.is_in_cloud = false
         config.entry = null
-        config.authentication_enabled = true
+        config.authentication_enabled = !Versions.isDevVersion()
         config.application_config_url =
-            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json' // FIXME
+        config.skip_min_version_check = false
+        config.preferred_engine_version = Versions.ideVersion
         return config
     }
 
@@ -882,6 +844,11 @@ class Config {
         this.test_workflow = ok(other.test_workflow)
             ? tryAsString(other.test_workflow)
             : this.test_workflow
+        this.skip_min_version_check = ok(other.skip_min_version_check)
+            ? tryAsBoolean(other.skip_min_version_check)
+            : this.skip_min_version_check
+        this.preferred_engine_version =
+            semver.parse(other.preferred_engine_version) ?? this.preferred_engine_version
     }
 }
 
@@ -969,6 +936,21 @@ async function runEntryPoint(config: Config) {
     }
 }
 
+function createVersionCheckHtml() {
+    // div#version-check
+    const versionCheckText = document.createTextNode(
+        'This version is no longer supported. Please download a new one.'
+    )
+
+    let root = document.getElementById('root')
+    let versionCheckDiv = document.createElement('div')
+    versionCheckDiv.id = 'version-check'
+    versionCheckDiv.className = authInfo
+    versionCheckDiv.style.display = 'block'
+    versionCheckDiv.appendChild(versionCheckText)
+    root.appendChild(versionCheckDiv)
+}
+
 API.main = async function (inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
@@ -979,7 +961,7 @@ API.main = async function (inputConfig: any) {
     config.updateFromObject(urlConfig)
 
     if (await checkMinSupportedVersion(config)) {
-        if (config.authentication_enabled && !Versions.isDevVersion()) {
+        if (config.authentication_enabled) {
             new FirebaseAuthentication(function (user: any) {
                 config.email = user.email
                 runEntryPoint(config)
@@ -989,7 +971,6 @@ API.main = async function (inputConfig: any) {
         }
     } else {
         // Display a message asking to update the application.
-        document.getElementById('auth-container').style.display = 'none'
-        document.getElementById('version-check').style.display = 'block'
+        createVersionCheckHtml()
     }
 }

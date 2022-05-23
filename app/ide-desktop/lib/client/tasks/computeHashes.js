@@ -1,7 +1,6 @@
 const crypto = require('crypto')
 const fs = require('fs')
-const glob = require('glob')
-const paths = require('../../../../../build/paths')
+const path = require('path')
 
 // =================
 // === Constants ===
@@ -28,9 +27,16 @@ function getChecksum(path, type) {
     })
 }
 
+// Based on https://stackoverflow.com/a/57371333
+function changeExtension(file, extension) {
+    const basename = path.basename(file, path.extname(file))
+    return path.join(path.dirname(file), `${basename}.${extension}`)
+}
+
 async function writeFileChecksum(path, type) {
     let checksum = await getChecksum(path, type)
-    let targetPath = `${path}.${type}`
+    let targetPath = changeExtension(path, type)
+    console.log(`Writing ${targetPath}.`)
     fs.writeFile(targetPath, checksum, 'utf8', err => {
         if (err) {
             throw err
@@ -42,9 +48,9 @@ async function writeFileChecksum(path, type) {
 // === Callback ===
 // ================
 
-exports.default = async function () {
-    let files = glob.sync(paths.dist.client + '/*.{dmg,exe,AppImage}')
-    for (let file of files) {
+exports.default = async function (context) {
+    // `context` is BuildResult, see https://www.electron.build/configuration/configuration.html#buildresult
+    for (let file of context.artifactPaths) {
         console.log(`Generating ${CHECKSUM_TYPE} checksum for ${file}.`)
         await writeFileChecksum(file, CHECKSUM_TYPE)
     }

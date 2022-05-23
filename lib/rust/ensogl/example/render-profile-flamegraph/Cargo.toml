@@ -7,7 +7,6 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-
 [dependencies]
 enso-frp = { path = "../../../frp" }
 enso-profiler = { path = "../../../profiler" }
@@ -21,9 +20,8 @@ ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf-sys = { path = "../../component/text/msdf-sys" }
 ensogl-tooltip = { path = "../../component/tooltip" }
 futures = "0.3"
-wasm-bindgen = { version = "0.2.58", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
 wasm-bindgen-futures = "0.4"
-
 
 [dependencies.web-sys]
 version = "0.3"

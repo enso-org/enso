@@ -209,11 +209,11 @@ learn details on setting your system up. Quick summary:
 ```bash
 enso$ rustup toolchain install stable                  # Stable toolchain required for the following tools.
 enso$ cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
-enso$ cargo +stable install cargo-watch                # To enable ./run watch utility
+enso$ cargo +stable install cargo-watch                # To enable `./run.sh wasm watch` utility
 ```
 
 The previous three steps shall be enough to build the IDE via
-`./run build --dev`.
+`./run.sh wasm build run wasm build --wasm-profile dev`.
 
 ### Getting Set Up (JVM)
 
@@ -498,8 +498,7 @@ in our issue tracker and we will get back to you as soon as possible.
 ### Testing Enso
 
 Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `./run test`. Finally, you
-can run the WASM tests for the rust components by using `./run test --wasm`.
+`sbt / test`. To test the Rust components you can run `./run.sh wasm test`.
 
 #### Testing Enso Libraries
 
@@ -607,21 +606,19 @@ Hello, World!
 #### Running IDE
 
 You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a
-development version of the language server. IDE executable has `--no-backend`
-flag that switches off the bundled backend. That requires you to run the project
-manager process yourself. You can either get a project manager from one of the
-latest releases on [GitHub](https://github.com/enso-org/enso/releases), or build
-one using SBT `buildProjectManagerDistribution` command.
+development version of the language server. IDE executable has
+`--external-backend` flag that switches off the bundled backend. That requires
+you to run the project manager process yourself. You can either get a project
+manager from one of the latest releases on
+[GitHub](https://github.com/enso-org/enso/releases), or build one using SBT
+`buildProjectManagerDistribution` command.
 
-Running development version of the IDE is possible via the `./run` script in the
-root of the repository:
+Running development version of the IDE is possible via the `./run.sh` script in
+the root of the repository:
 
 ```bash
-$ ./run start --dev --no-backend
+$ ./run.sh ide start --wasm-profile dev --external-backend
 ```
-
-One can also add `--no-rust` to speed the start up when no changes to IDE
-sources were made.
 
 ##### Bash
 
