@@ -5,6 +5,12 @@ import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.parsing.IncrementalDatatypeParser;
 import org.enso.table.parsing.problems.ProblemAggregator;
 
+/**
+ * A parser that parses a text column, stripping any enclosing quotes from the values.
+ *
+ * <p>It acts almost like {@code IdentityParser}, but will remove the enclosing quotes, so that
+ * `"123"` will become `123` etc.
+ */
 public class QuoteStrippingParser extends IncrementalDatatypeParser {
 
   private final char quoteCharacter;
