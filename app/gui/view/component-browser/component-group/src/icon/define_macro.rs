@@ -2,6 +2,8 @@
 // === Define Icons Macro ===
 // ==========================
 
+// Lint gives an erroneous warning: the main is actually needed, because we generate modules here.
+#[allow(clippy::needless_doctest_main)]
 /// Macro for defining icon set.
 ///
 /// The macro takes many modules with attached "variant name". Inside the modules, there should
