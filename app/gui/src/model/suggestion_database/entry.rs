@@ -59,14 +59,14 @@ pub struct MissingThisOnMethod(pub String);
 // =====================
 
 im_string_newtype! {
-    /// A single segment of a fully qualifed name of an [`Entry`].
+    /// A single segment of a [`QualifiedName`] of an [`Entry`].
     QualifiedNameSegment
 }
 
-/// Segments of a fully qualified name of an [`Entry`].
+/// A fully qualified name of an [`Entry`].
 ///
-/// A fully qualified name can be built by joining the segments using an
-/// [`ast::opr::predefined::ACCESS`] character.
+/// A string representation of a fully qualified name can be built by joining the
+/// [`QualifiedName::segments`] using an [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct QualifiedName {
