@@ -754,6 +754,9 @@ mod test {
         SuggestionsDatabaseEntry { id, suggestion }
     }
 
+    /// Initializes a [`SuggestionDatabase`] with a few sample entries of varying [`entry::Kind`]
+    /// and tests the results of the [`SuggestionDatabase::lookup_by_fully_qualified_name`] method
+    /// when called on that database.
     #[test]
     fn lookup_by_fully_qualified_name_in_db_created_from_ls_response() {
         // Initialize a suggestion database with sample entries.
@@ -823,6 +826,9 @@ mod test {
         lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
     }
 
+    /// Apply a [`SuggestionDatabaseUpdatesEvent`] to a [`SuggestionDatabase`] initialized with
+    /// sample data, then test the results of calling the
+    /// [`SuggestionDatabase::lookup_by_fully_qualified_name`] method on that database.
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update() {
         // Initialize a suggestion database with a few sample entries.
