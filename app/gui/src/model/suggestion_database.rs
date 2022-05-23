@@ -943,4 +943,54 @@ mod test {
         lookup_and_verify_empty_result(&db, "TestProject.TestModule.TextAtom");
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
+
+    #[test]
+    fn replace_value_and_traverse_back_pruning_empty_leaf() {
+        let paths = vec![vec![10], vec![10, 20]];
+        for path in paths {
+            let tree = RefCell::new(HashMapTree::<i32, Option<i32>>::new());
+            let expected_result = RefCell::new(None);
+            let replace_and_verify_result = |value| {
+                let path = path.clone();
+                let mut tree = tree.borrow_mut();
+                let result = tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value);
+                assert_eq!(result, *expected_result.borrow());
+                *expected_result.borrow_mut() = value;
+            };
+            assert_eq!(tree.borrow().get(path.clone()), None);
+            replace_and_verify_result(None);
+            replace_and_verify_result(Some(1));
+            replace_and_verify_result(Some(2));
+            assert_eq!(*tree.borrow().get(path.clone()).unwrap(), Some(2));
+            replace_and_verify_result(None);
+            assert_eq!(tree.borrow().get(path.clone()), None);
+            replace_and_verify_result(None);
+            assert_eq!(tree.borrow().get(path.clone()), None);
+        }
+    }
+
+    #[test]
+    fn replace_value_and_traverse_back_pruning_empty_leaf_for_overlapping_paths() {
+        type TestTree = HashMapTree<i32, Option<i32>>;
+        fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
+            tree.get(path.iter().copied()).and_then(|v| *v)
+        }
+        let mut tree = TestTree::new();
+        let paths = &[vec![10, 20], vec![10, 20, 25], vec![10], vec![10, 30, 35], vec![10, 30]];
+        let values = &[1, 2, 3, 4, 5].map(Some);
+        for (path, value) in paths.iter().zip(values) {
+            assert_eq!(get_and_flatten(&mut tree, path), None);
+            let result =
+                tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), *value);
+            assert_eq!(result, None);
+            assert_eq!(get_and_flatten(&mut tree, path), *value);
+        }
+        for (path, value) in paths.iter().zip(values) {
+            assert_eq!(get_and_flatten(&mut tree, path), *value);
+            let result =
+                tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), None);
+            assert_eq!(result, *value);
+            assert_eq!(get_and_flatten(&mut tree, path), None);
+        }
+    }
 }
