@@ -10,6 +10,7 @@ use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
+use ensogl::data::HashMapTree;
 use enso_text::Location;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
@@ -40,24 +41,29 @@ pub use example::Example;
 /// segments.
 #[derive(Clone, Debug, Default)]
 struct QualifiedNameToIdMap {
-    tree: ensogl::data::HashMapTree<entry::NameSegment, Option<entry::Id>>,
+    tree: HashMapTree<entry::NameSegment, Option<entry::Id>>,
 }
 
 impl QualifiedNameToIdMap {
+    fn get<P, I>(&self, path: P) -> Option<entry::Id>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<entry::NameSegment>, {
+        self.tree.get(path).and_then(|v| *v)
+    }
+
     fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
-        let segments = &path.segments;
         let old_value =
-            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, value);
+            self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
             event!(WARN, "An existing suggestion entry id at {path:?} was overwritten with {id}.");
         }
     }
 
     fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
-        let segments = &path.segments;
         let old_value =
-            self.tree.replace_value_and_traverse_back_pruning_empty_leaf(segments, None);
+            self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
                 "Could not remove a suggestion entry id at {path:?} because it does not exist."
@@ -66,13 +72,53 @@ impl QualifiedNameToIdMap {
         }
     }
 
-    fn get<P, I>(&self, path: P) -> Option<entry::Id>
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<entry::NameSegment>, {
-        self.tree.get(path).and_then(|v| *v)
+    /// Sets the value at `path` to `value` and returns the replaced value (returns `None` if there
+    /// was no node at `path`). Then visits nodes on the `path` in reverse order and removes every
+    /// visited empty leaf node from its parent.
+    ///
+    /// A node is defined as empty when it contains a `None` value. A node is a leaf when its
+    /// [`is_leaf`] method returns `true`.
+    ///
+    /// The function is optimized to not create new empty nodes if they would be deleted by the
+    /// function before it returns.
+    fn replace_value_and_traverse_back_pruning_empty_subtrees(&mut self, path: &entry::QualifiedName, value: Option<entry::Id>) -> Option<entry::Id> {
+        // A helper of the [`replace_value_and_traverse_back_pruning_empty_subtrees`] function. Performs
+        // the same operation but the replaced value is swapped with `value` instead of being
+        // returned.
+        fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
+            node: &mut HashMapTree<entry::NameSegment, Option<entry::Id>>,
+            mut path: P,
+            value: &mut Option<entry::Id>,
+        ) where
+            P: Iterator<Item = I>,
+            I: Into<entry::NameSegment>,
+        {
+            use std::collections::hash_map::Entry;
+            match path.next() {
+                None => std::mem::swap(&mut node.value, value),
+                Some(key) => match node.branches.entry(key.into()) {
+                    Entry::Occupied(mut entry) => {
+                        let node = entry.get_mut();
+                        swap_value_and_traverse_back_pruning_empty_subtrees(node, path, value);
+                        if node.value.is_none() && node.is_leaf() {
+                            entry.remove_entry();
+                        }
+                    }
+                    Entry::Vacant(entry) =>
+                        if let Some(v) = value.take() {
+                            entry.insert(default()).set(path, Some(v));
+                        },
+                },
+            }
+        }
+
+        let mut path_iter = path.into_iter();
+        let mut swapped_value = value;
+        swap_value_and_traverse_back_pruning_empty_subtrees(&mut self.tree, &mut path_iter, &mut swapped_value);
+        swapped_value
     }
 }
+
 
 
 // ==============

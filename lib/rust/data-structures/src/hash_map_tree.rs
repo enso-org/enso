@@ -355,66 +355,6 @@ where K: Eq + Hash
     }
 }
 
-impl<K, V, S> HashMapTree<K, Option<V>, S>
-where
-    K: Eq + Hash,
-    S: BuildHasher + Default,
-{
-    /// Sets the value at `path` to `value` and returns the replaced value (returns `None` if there
-    /// was no node at `path`). Then visits nodes on the `path` in reverse order and removes every
-    /// visited empty leaf node from its parent.
-    ///
-    /// A node is defined as empty when it contains a `None` value. A node is a leaf when its
-    /// [`is_leaf`] method returns `true`.
-    ///
-    /// The function is optimized to not create new empty nodes if they would be deleted by the
-    /// function before it returns.
-    pub fn replace_value_and_traverse_back_pruning_empty_leaf<P, I>(
-        &mut self,
-        path: P,
-        value: Option<V>,
-    ) -> Option<V>
-    where
-        P: IntoIterator<Item = I>,
-        I: Into<K>,
-    {
-        let mut path_iter = path.into_iter();
-        let mut swapped_value = value;
-        self.swap_value_and_traverse_back_pruning_empty_leaf(&mut path_iter, &mut swapped_value);
-        swapped_value
-    }
-
-    /// A helper of the [`replace_value_and_traverse_back_pruning_empty_leaf`] function. Performs
-    /// the same operation but the replaced value is swapped with `value` instead of being
-    /// returned.
-    fn swap_value_and_traverse_back_pruning_empty_leaf<P, I>(
-        &mut self,
-        mut path: P,
-        value: &mut Option<V>,
-    ) where
-        P: Iterator<Item = I>,
-        I: Into<K>,
-    {
-        use std::collections::hash_map::Entry;
-        match path.next() {
-            None => std::mem::swap(&mut self.value, value),
-            Some(key) => match self.branches.entry(key.into()) {
-                Entry::Occupied(mut entry) => {
-                    let node = entry.get_mut();
-                    node.swap_value_and_traverse_back_pruning_empty_leaf(path, value);
-                    if node.value.is_none() && node.is_leaf() {
-                        entry.remove_entry();
-                    }
-                }
-                Entry::Vacant(entry) =>
-                    if let Some(v) = value.take() {
-                        entry.insert(default()).set(path, Some(v));
-                    },
-            },
-        }
-    }
-}
-
 
 
 // === Impls ===

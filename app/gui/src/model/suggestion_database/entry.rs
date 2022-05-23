@@ -78,6 +78,14 @@ impl<'a> FromIterator<&'a str> for QualifiedName {
     }
 }
 
+impl<'a> IntoIterator for &'a QualifiedName {
+    type Item = &'a NameSegment;
+    type IntoIter = impl Iterator<Item = Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.segments.iter()
+    }
+}
+
 
 
 // =============
