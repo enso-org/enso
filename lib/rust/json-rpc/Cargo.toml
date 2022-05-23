@@ -8,11 +8,11 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-prelude = { path = "../prelude", features = ["futures"]}
-enso-shapely = { path = "../shapely"}
+enso-prelude = { path = "../prelude", features = ["futures"] }
+enso-shapely = { path = "../shapely" }
 enso-web = { path = "../web" }
-enso-profiler-data = {path = "../profiler/data"}
-enso-profiler = {path = "../profiler"}
+enso-profiler-data = { path = "../profiler/data" }
+enso-profiler = { path = "../profiler" }
 futures = { version = "0.3.1" }
 failure = { version = "0.1.6" }
 serde = { version = "1.0.0", features = ["derive"] }

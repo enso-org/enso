@@ -157,10 +157,11 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // ============================================================================
 
 ThisBuild / javacOptions ++= Seq(
-  "-encoding",    // Provide explicit encoding (the next line)
-  "UTF-8",        // Specify character encoding used by Java source files.
-  "-deprecation", // Shows a description of each use or override of a deprecated member or class.
-  "-g"            // Include debugging information
+  "-encoding",         // Provide explicit encoding (the next line)
+  "UTF-8",             // Specify character encoding used by Java source files
+  "-deprecation",      // Shows a description of each use or override of a deprecated member or class
+  "-g",                // Include debugging information
+  "-Xlint:unchecked",  // Enable additional warnings
 )
 
 ThisBuild / scalacOptions ++= Seq(

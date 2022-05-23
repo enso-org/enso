@@ -32,6 +32,7 @@ pub fn engine_version_requirement() -> semver::VersionReq {
 }
 
 
+
 // ============
 // === Args ===
 // ============
@@ -60,8 +61,10 @@ ensogl::read_args! {
         authentication_enabled : bool,
         email                  : String,
         application_config_url : String,
-        /// When profiling the application (e.g. with the `./run profile` command), this argument
+        /// When profiling the application (e.g. with the `./run.sh profile` command), this argument
         /// chooses what is profiled.
-        test_workflow          : String,
+        test_workflow            : String,
+        skip_min_version_check   : bool,
+        preferred_engine_version : semver::Version,
     }
 }

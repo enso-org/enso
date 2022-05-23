@@ -18,12 +18,12 @@ enso-callback = { path = "../../callback" }
 enso-data-structures = { path = "../../data-structures" }
 enso-debug-api = { path = "../../debug-api" }
 enso-frp = { path = "../../frp" }
-enso-generics = { path = "../../generics"}
-enso-logger = { path = "../../logger"}
-enso-optics = { path = "../../optics"}
-enso-prelude = { path = "../../prelude"}
-enso-profiler = { path = "../../profiler"}
-enso-shapely = { path = "../../shapely"}
+enso-generics = { path = "../../generics" }
+enso-logger = { path = "../../logger" }
+enso-optics = { path = "../../optics" }
+enso-prelude = { path = "../../prelude" }
+enso-profiler = { path = "../../profiler" }
+enso-shapely = { path = "../../shapely" }
 enso-shortcuts = { path = "../../shortcuts" }
 enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
@@ -40,11 +40,11 @@ nalgebra = { version = "0.26.1" }
 num_enum = { version = "0.5.1" }
 num-traits = { version = "0.2" }
 rustc-hash = { version = "1.0.1" }
+semver = { version = "1.0.9" }
 serde = { version = "1" }
 shrinkwraprs = { version = "0.3.0" }
 smallvec = { version = "1.0.0" }
 typenum = { version = "1.11.2" }
-
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }

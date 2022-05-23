@@ -322,8 +322,8 @@ is_a value typ = if typ == Any then True else
                     Constructor _ ->
                         meta_typ = here.meta typ
                         case meta_typ of
-                            Atom _ -> meta_val.constructor == meta_typ.constructor
-                            Constructor _ -> meta_val.constructor == meta_typ
+                            Atom _ -> meta_val == meta_typ.constructor
+                            Constructor _ -> meta_val == meta_typ
                             _ -> False
                     Error _ -> typ == Error
                     Unresolved_Symbol _ -> typ == Unresolved_Symbol

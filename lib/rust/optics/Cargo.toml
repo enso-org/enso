@@ -1,18 +1,15 @@
 [package]
-name    = "enso-optics"
+name = "enso-optics"
 version = "0.2.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2021"
-
-description  = "An implementation of functional optics."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/optics"
-repository   = "https://github.com/enso-org/enso"
+description = "An implementation of functional optics."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/optics"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
-
-keywords = ["optics","lenses"]
+keywords = ["optics", "lenses"]
 categories = ["algorithms"]
-
 publish = true
 
 [lib]

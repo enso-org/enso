@@ -1,4 +1,4 @@
-# This is the repository for Enso's graphical interface component. If you're looking for the main product repository, you may find it at at 👉 <a href="https://github.com/enso-org/enso">github.com/enso-org/enso</a> 👈
+# This is the subtree for Enso's graphical interface component. If you're looking for the repository root, you may find it at at 👉 <a href="https://github.com/enso-org/enso">github.com/enso-org/enso</a> 👈
 
 <br/>
 
@@ -44,18 +44,18 @@ as well as the [source code](https://github.com/enso-org). See the
 [demo scenes](http://TODO), and read the [documentation](docs/product) to learn
 more.
 
-Currently to start IDE you have to run **Enso Project Manager** first. For more
-information and packages see
-[Enso repository](https://github.com/enso-org/enso).
-
 <br/>
 
 ### Building
 
-The project builds on MacOS, Linux, and Windows. Simply run `node ./run build`
-to build it and use `node ./run --help` to learn about other available commands
-and options. Read the detailed [development guide](docs/CONTRIBUTING.md) to
-learn more.
+The project builds on macOS, Linux, and Windows. Build functionality is provided
+by our build script, that are accessible through `run.sh` (Linux and macOS) or
+`run.cmd` (Windows) wrappers.
+
+To build the project, simply run `./run.sh ide build` (on Linux or macOS) or
+`.\run.cmd ide build` (Windows) to build IDE. To learn more about other
+available commands use `--help` argument. Read the detailed
+[development guide](docs/CONTRIBUTING.md) to learn more.
 
 <br/>
 

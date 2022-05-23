@@ -16,4 +16,3 @@ ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../../../lib/rust/en
 ensogl-list-view = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-text = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-label = { path = "../../../../../lib/rust/ensogl/component/label/" }
-

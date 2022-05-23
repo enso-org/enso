@@ -29,7 +29,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public StorageBuilder parseAndAppend(String value) {
+  public StringStorageBuilder parseAndAppend(String value) {
     ensureAppendable();
     data[size++] = value;
     return this;
@@ -45,7 +45,7 @@ public class StringStorageBuilder extends StorageBuilder {
 
   /** @inheritDoc */
   @Override
-  public Storage seal() {
+  public StringStorage seal() {
     return new StringStorage(data, size);
   }
 }
