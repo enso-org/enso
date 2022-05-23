@@ -68,6 +68,7 @@ im_string_newtype! {
 /// A fully qualified name can be built by joining the segments using an
 /// [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
 }
