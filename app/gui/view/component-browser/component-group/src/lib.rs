@@ -404,7 +404,6 @@ impl Layers {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    app:               Application,
     display_object:    display::object::Instance,
     header:            text::Area,
     header_background: header_background::View,
@@ -437,6 +436,7 @@ impl component::Model for Model {
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
+        // FIXME(#182194574): Hide selection again once we have a proper selection box.
         //entries.hide_selection();
         display_object.add_child(&background);
         display_object.add_child(&header_background);
@@ -445,7 +445,6 @@ impl component::Model for Model {
         display_object.add_child(&entries);
 
         Model {
-            app: app.clone_ref(),
             display_object,
             header_overlay,
             header,
@@ -469,7 +468,7 @@ impl Model {
         self.header.add_to_scene_layer(&layers.header_text);
     }
 
-    /// Whether the `point` (screen-space coordinates) is inside the component group shape.
+    /// Whether the `point` (object-space coordinates) is inside the component group shape.
     pub fn is_inside(&self, point: Vector2<f32>) -> bool {
         let size = self.background.size.get();
         is_point_inside(point, size)

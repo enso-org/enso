@@ -1,5 +1,5 @@
-//! Provides a multi wrapper, an abstraction used to propagate FRP events from multiple component
-//! groups.
+//! Provides a multi component group wrapper, an abstraction used to propagate FRP events from
+//! multiple component groups.
 //!
 //! See [`Wrapper`] docs.
 
@@ -113,11 +113,11 @@ newtype_prim! {
 ///
 /// Each field in this struct corresponds to certain component group FRP output with additional
 /// [`GroupId`] attached. [`GroupId`] is a simple index inside `groups` iterator passed to the
-/// [`Wrapper::new`] constructor.
+/// [`Wrapper::new`] constructor. Only focused component groups propagate their events. At all
+/// times only a single group remains focused.
 ///
-/// In addition to propagating FRP outputs, the [`Wrapper`] also emits `focus` and `defocus` when
-/// the mouse moves in or out the component group shape. At all times only a single group remains
-/// focused.
+/// In addition to propagating FRP outputs, the [`Wrapper`] also emits `group.focus()` and
+/// `group.defocus()` when the mouse moves in or out the `group` shape.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct Wrapper {
@@ -150,8 +150,7 @@ impl Wrapper {
             let id = GroupId::from(i);
             frp::extend! { network
                 mouse_in <- map(&mouse.position,f!([scene,group](pos) {
-                    let pos_obj_space =
-                        group.to_object_space(&scene, *pos);
+                    let pos_obj_space = group.to_object_space(&scene, *pos);
                     group.is_inside(pos_obj_space)
                 }));
                 mouse_in_group <+ mouse_in.on_change().on_true().map(move |_| id);

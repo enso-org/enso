@@ -290,7 +290,7 @@ fn init(app: &Application) {
         wide_component_group.clone_ref().into(),
     ]);
     let scene = &app.display.default_scene;
-    let multiview = component_group::multi::Wrapper::new(&scene, &network, groups.iter().cloned());
+    let multiview = component_group::multi::Wrapper::new(scene, &network, groups.iter().cloned());
 
     frp::extend! { network
         selected_entry <- multiview.selected_entry.on_change();
