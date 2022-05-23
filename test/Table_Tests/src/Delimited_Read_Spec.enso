@@ -63,12 +63,28 @@ spec =
             t4.at "Column_2" . to_vector . should_equal ["b", "e"]
             t4.at "Column_3" . to_vector . should_equal ["c", "f"]
 
-        Test.specify "should not infer headers if the file consists of just one row" <|
-            t4 = File.read (Enso_Project.data / "one_row.csv") (File_Format.Delimited "," headers=File_Format.Infer)
-            t4.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
-            t4.at "Column_1" . to_vector . should_equal ["x"]
-            t4.at "Column_2" . to_vector . should_equal ["y"]
-            t4.at "Column_3" . to_vector . should_equal ["z"]
+            t5 = File.read (Enso_Project.data / "numbers_in_header.csv") (File_Format.Delimited "," headers=File_Format.Infer)
+            t5.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
+            t5.at "Column_1" . to_vector . should_equal ["a", "1"]
+            t5.at "Column_2" . to_vector . should_equal ["b", "2"]
+            t5.at "Column_3" . to_vector . should_equal [0, 3]
+
+            t6 = File.read (Enso_Project.data / "quoted_numbers_in_header.csv") (File_Format.Delimited "," headers=File_Format.Infer)
+            t6.columns.map .name . should_equal ["1", "x"]
+            t6.at "1" . to_vector . should_equal ["y"]
+            t6.at "x" . to_vector . should_equal [2]
+
+        Test.specify "should not use the first row as headers if it is the only row, unless specifically asked to" <|
+            t1 = File.read (Enso_Project.data / "one_row.csv") (File_Format.Delimited "," headers=File_Format.Infer)
+            t1.columns.map .name . should_equal ["Column_1", "Column_2", "Column_3"]
+            t1.at "Column_1" . to_vector . should_equal ["x"]
+            t1.at "Column_2" . to_vector . should_equal ["y"]
+            t1.at "Column_3" . to_vector . should_equal ["z"]
+
+            t2 = File.read (Enso_Project.data / "one_row.csv") (File_Format.Delimited "," headers=True)
+            t2.columns.map .name . should_equal ["x", "y", "z"]
+            t2.row_count .  should_equal 0
+            t2.at "x" . to_vector . should_equal []
 
         Test.specify "should be able to load even an empty file" <|
             table = File.read (Enso_Project.data / "empty.txt") (File_Format.Delimited "," headers=True value_formatter=Nothing)
@@ -284,7 +300,7 @@ spec =
             t2 = (Enso_Project.data / "data_small.csv") . read (File_Format.Delimited "," headers=True value_formatter=(Data_Formatter allow_leading_zeros=True))
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
-        Test.specify "should be able to detect known types automatically" <|
+        Test.specify "should be able to detect types automatically" <|
             t1 = (Enso_Project.data / "data_small.csv") . read
             t1.at "Code" . to_vector . should_equal ["gxl", "wca", "nfw", "der"]
             t1.at "Index" . to_vector . should_equal [7, 0, 1, 7]
