@@ -225,7 +225,7 @@ fn init(app: &Application) {
     second_component_group.set_dimmed(true);
 
     scroll_area.content().add_child(&first_component_group);
-    scroll_area.content().add_child(&second_component_group);
+    //scroll_area.content().add_child(&second_component_group);
 
     // This is a workaround for a bug - without this transparent shape the content of the scroll
     // area is invisible.
@@ -256,7 +256,7 @@ fn init(app: &Application) {
     selection_animation.skip.emit(());
 
     ComponentGroupController::init(
-        &[first_component_group.clone_ref(), second_component_group.clone_ref()],
+        &[first_component_group.clone_ref()],
         &network,
         &scroll_area,
     );
@@ -264,7 +264,7 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(10);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    second_component_group.set_entries(model_provider);
+    //second_component_group.set_entries(model_provider);
 
     // === Color sliders ===
 

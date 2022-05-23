@@ -95,7 +95,7 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let color = Var::<color::Rgba>::from(color);
+            let color = Var::<color::Rgba>::from(color::Rgba::transparent());
             Plane().fill(color).into()
         }
     }
@@ -115,7 +115,7 @@ pub mod header_background {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let bg = Rect((width.clone(), height.clone())).fill(color);
+            let bg = Rect((width.clone(), height.clone())).fill(color::Rgba::transparent());
             // We use wider and shorter rect for the shadow because of the visual artifacts that
             // will appear otherwise:
             // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
@@ -462,7 +462,7 @@ impl component::Model for Model {
         selected_entries.set_background_color(HOVER_COLOR);
         selected_entries.show_background_shadow(false);
         selected_entries.set_background_corners_radius(0.0);
-        selected_entries.hide_selection();
+        //selected_entries.hide_selection();
         app.display.default_scene.layers.selection.add_exclusive(&selected_entries);
         selected_entries.set_label_layer(&app.display.default_scene.layers.selection_text);
         display_object.add_child(&background);

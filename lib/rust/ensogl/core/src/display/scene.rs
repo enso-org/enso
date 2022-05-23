@@ -603,7 +603,7 @@ impl HardcodedLayers {
         let cursor = Layer::new(logger.sub("cursor"));
 
         selection.add_sublayer(&selection_text);
-        selection.set_mask(&selection_mask);
+        //selection.set_mask(&selection_mask);
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
         root.set_sublayers(&[
             &viz,

@@ -154,9 +154,9 @@ impl Default for JumpTarget {
 
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
-struct Model<E: Entry> {
+pub struct Model<E: Entry> {
     app:            Application,
-    entries:        entry::List<E>,
+    pub entries:        entry::List<E>,
     selection:      selection::View,
     background:     background::View,
     scrolled_area:  display::object::Instance,
@@ -351,7 +351,7 @@ ensogl_core::define_endpoints! {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ListView<E: Entry> {
-    model:   Model<E>,
+    pub model:   Model<E>,
     pub frp: Frp<E>,
 }
 
