@@ -1,56 +1,29 @@
-const fss = require('fs')
+// This file cannot be made ES6 module due to: https://github.com/develar/read-config-file/issues/10
 
-function get_build_config() {
-    const buildInfoPath = paths.dist.buildInfo
+import path from 'node:path'
+import fs from 'node:fs'
 
-    let exists = fss.existsSync(buildInfoPath)
-    if (exists) {
-        let configFile = fss.readFileSync(buildInfoPath)
-        return JSON.parse(configFile.toString())
-    }
-}
-const build = get_build_config()
+import { require_env } from '../../utils.mjs'
+import { project_manager_bundle } from './paths.mjs'
+import build from '../../build.json' assert { type: 'json' }
 
-let config = {
-    name: 'Enso',
-    description: 'Enso Data Processing Environment.',
-    main: 'index.js',
+const dist = require_env('ENSO_BUILD_IDE')
+const gui = require_env('ENSO_BUILD_GUI')
+const icons = require_env('ENSO_BUILD_ICONS')
+const project_manager = require_env('ENSO_BUILD_PROJECT_MANAGER')
 
-    dependencies: {
-        'create-servers': '^3.1.0',
-        'electron-is-dev': '^1.1.0',
-        'enso-studio-common': '1.0.0',
-        'enso-studio-content': '1.0.0',
-        'enso-studio-icons': '1.0.0',
-        yargs: '^15.3.0',
-    },
-
-    devDependencies: {
-        'compression-webpack-plugin': '^3.1.0',
-        'copy-webpack-plugin': '^5.1.1',
-        devtron: '^1.4.0',
-        electron: '17.1.0',
-        'electron-builder': '^23.0.6',
-        'crypto-js': '4.0.0',
-        'electron-notarize': '1.1.1',
-    },
-
-    scripts: {
-        start: `electron ${paths.dist.content} -- `,
-        build: 'webpack ',
-        dist: 'electron-builder --publish never' + ' --' + build.target,
-    },
-}
-
-config.build = {
+const config = {
     appId: 'org.enso',
     productName: 'Enso',
-    copyright: 'Copyright © 2021 ${author}.',
+    extraMetadata: {
+        version: build.version,
+    },
+    copyright: 'Copyright © 2022 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['dmg'],
-        icon: `${paths.dist.root}/icons/icon.icns`,
+        icon: `${icons}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
         type: 'distribution',
@@ -68,16 +41,26 @@ config.build = {
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['nsis'],
-        icon: `${paths.dist.root}/icons/icon.ico`,
+        icon: `${icons}/icon.ico`,
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
         target: ['AppImage'],
-        icon: `${paths.dist.root}/icons/png`,
+        icon: `${icons}/png`,
         category: 'Development',
     },
-    files: [{ from: paths.dist.content, to: '.' }],
-    extraResources: [{ from: paths.dist.bin, to: '.', filter: ['!**.tar.gz', '!**.zip'] }],
+    files: [
+        '!**/node_modules/**/*',
+        { from: `${gui}/`, to: '.' },
+        { from: `${dist}/client`, to: '.' },
+    ],
+    extraResources: [
+        {
+            from: `${project_manager}/`,
+            to: project_manager_bundle,
+            filter: ['!**.tar.gz', '!**.zip'],
+        },
+    ],
     fileAssociations: [
         {
             ext: 'enso',
@@ -86,7 +69,7 @@ config.build = {
         },
     ],
     directories: {
-        output: paths.dist.client,
+        output: `${dist}`,
     },
     nsis: {
         // Disables "block map" generation during electron building. Block maps
@@ -114,12 +97,11 @@ config.build = {
         // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
         sign: false,
     },
-    publish: [],
-    afterAllArtifactBuild: 'tasks/computeHashes.js',
-    afterPack: 'tasks/prepareToSign.js',
-    // Notarizing has been disabled due to reasons described in the relevant issue:
-    // https://github.com/enso-org/ide/issues/1839
-    // afterSign: "tasks/notarize.js",
+    afterAllArtifactBuild: path.join('tasks', 'computeHashes.js'),
+
+    // TODO [mwu]: Temporarily disabled, signing should be revised.
+    //             In particular, engine should handle signing of its artifacts.
+    // afterPack: 'tasks/prepareToSign.js',
 }
 
-module.exports = { config }
+fs.writeFileSync('electron-builder-config.json', JSON.stringify(config, null, 2))

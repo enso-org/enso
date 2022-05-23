@@ -1,18 +1,15 @@
 [package]
-name    = "enso-shapely-macros"
+name = "enso-shapely-macros"
 version = "0.2.1"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-
-description  = "Automated typeclass derivation."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/shapely/macros"
-repository   = "https://github.com/enso-org/enso"
+description = "Automated typeclass derivation."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/shapely/macros"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../../LICENSE"
-
 keywords = ["typeclass", "deriving", "macro"]
 categories = ["algorithms"]
-
 publish = true
 
 [lib]
@@ -22,18 +19,16 @@ proc-macro = true
 default = []
 
 [dependencies]
-enso-macro-utils  = { path = "../../macro-utils" }
-proc-macro2  = "1.0"
-quote        = "1.0"
-Inflector    = "0.11.4"
-itertools    = "0.8.1"
-boolinator   = "2.4.0"
+enso-macro-utils = { path = "../../macro-utils" }
+proc-macro2 = "1.0"
+quote = "1.0"
+Inflector = "0.11.4"
+itertools = "0.8.1"
+boolinator = "2.4.0"
 
 [dependencies.syn]
 version = "1.0"
-features = [
-  'extra-traits', 'visit', 'full'
-]
+features = ['extra-traits', 'visit', 'full']
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.8"

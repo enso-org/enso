@@ -71,6 +71,13 @@ impl ArgReader for bool {
     }
 }
 
+impl ArgMarker for semver::Version {}
+impl ArgReader for semver::Version {
+    fn read_arg(str: String) -> Option<Self> {
+        semver::Version::parse(&str).ok()
+    }
+}
+
 
 
 // =================

@@ -1,11 +1,9 @@
 [package]
-name    = "launcher-shims"
+name = "launcher-shims"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-
-description  = "Small wrappers for the launcher executable used for testing launcher upgrade."
-
+description = "Small wrappers for the launcher executable used for testing launcher upgrade."
 publish = false
 
 [dependencies]

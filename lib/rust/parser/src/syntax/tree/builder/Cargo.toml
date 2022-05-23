@@ -1,25 +1,22 @@
 [package]
-name    = "enso-parser-syntax-tree-builder"
+name = "enso-parser-syntax-tree-builder"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-
-description  = "Enso Parser AST Builder."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso"
-repository   = "https://github.com/enso-org/enso"
+description = "Enso Parser AST Builder."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-proc-macro2  = "1.0"
-enso-macro-utils  = { path = "../../../../../macro-utils" }
-quote        = "1.0"
+proc-macro2 = "1.0"
+enso-macro-utils = { path = "../../../../../macro-utils" }
+quote = "1.0"
 
 [dependencies.syn]
 version = "1.0"
-features = [
-    'extra-traits', 'visit', 'full'
-]
+features = ['extra-traits', 'visit', 'full']
