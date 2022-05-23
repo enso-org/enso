@@ -256,5 +256,12 @@ spec =
             t2 = (Enso_Project.data / "data_small.csv") . read (File_Format.Delimited "," headers=True value_formatter=(Data_Formatter allow_leading_zeros=True))
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
+        Test.specify "should be able to detect known types automatically" <|
+            ## TODO update this once headers are inferred (next PR)
+            t1 = (Enso_Project.data / "data_small.csv") . read
+            t1.at "Column_1" . to_vector . should_equal ["Code", "gxl", "wca", "nfw", "der"]
+
+            t2 = (Enso_Project.data / "sample.tsv") . read
+            t2.at "Column_1" . to_vector . should_equal ["a", "1", "4"]
 
 main = Test.Suite.run_main here.spec
