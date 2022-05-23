@@ -16,10 +16,10 @@ enso-data-structures = { path = "../../lib/rust/data-structures" }
 enso-debug-api = { path = "../../lib/rust/debug-api" }
 enso-debug-scene = { path = "view/debug_scene" }
 enso-frp = { path = "../../lib/rust/frp" }
-enso-logger = { path = "../../lib/rust/logger"}
-enso-prelude = { path = "../../lib/rust/prelude"}
+enso-logger = { path = "../../lib/rust/logger" }
+enso-prelude = { path = "../../lib/rust/prelude" }
 enso-profiler = { path = "../../lib/rust/profiler" }
-enso-shapely = { path = "../../lib/rust/shapely"}
+enso-shapely = { path = "../../lib/rust/shapely" }
 enso-text = { path = "../../lib/rust/text" }
 enso-web = { path = "../../lib/rust/web" }
 ensogl = { path = "../../lib/rust/ensogl" }

@@ -118,6 +118,13 @@
 - [Implemented a reader for the `Excel` file format.][3425]
 - [Added custom encoding support to the `Delimited` file format reader.][3430]
 - [Implemented `compute` method on `Vector` for statistics calculations.][3442]
+- [Promote get and put to be methods of Ref type rather than of Ref
+  module][3457]
+- [Implemented `Table.parse_values`, parsing text columns according to a
+  specified type.][3455]
+- [Promote with, take, finalize to be methods of Managed_Resource
+  instance][3460]
+- [Implemented automatic type detection for `Table.parse_values`.][3462]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -183,6 +190,10 @@
 [3425]: https://github.com/enso-org/enso/pull/3425
 [3430]: https://github.com/enso-org/enso/pull/3430
 [3442]: https://github.com/enso-org/enso/pull/3442
+[3457]: https://github.com/enso-org/enso/pull/3457
+[3455]: https://github.com/enso-org/enso/pull/3455
+[3460]: https://github.com/enso-org/enso/pull/3460
+[3462]: https://github.com/enso-org/enso/pull/3462
 
 #### Enso Compiler
 
@@ -201,6 +212,8 @@
 - [Move Builtin Types and Methods definitions to stdlib][3363]
 - [Reduce boilerplate by generating BuiltinMethod nodes from simple method
   signatures][3444]
+- [Generate boilerplate classes related to error handling and varargs in
+  builtins from method signatures][3454]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -220,6 +233,7 @@
 [3363]: https://github.com/enso-org/enso/pull/3363
 [3444]: https://github.com/enso-org/enso/pull/3444
 [3453]: https://github.com/enso-org/enso/pull/3453
+[3454]: https://github.com/enso-org/enso/pull/3454
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

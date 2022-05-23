@@ -2,5 +2,5 @@
  * Configuration options that are only used by the JavaScript part of the project.
  */
 
-exports.defaultLogServerPort = 20060
-exports.defaultLogServerHost = `localhost:${exports.defaultLogServerPort}`
+export const defaultLogServerPort = 20060
+export const defaultLogServerHost = `localhost:${defaultLogServerPort}`

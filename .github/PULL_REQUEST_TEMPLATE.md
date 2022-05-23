@@ -17,7 +17,13 @@
 Please include the following checklist in your PR:
 
 - [ ] The documentation has been updated if necessary.
-- [ ] All code conforms to the [Scala](https://github.com/enso-org/enso/blob/develop/docs/style-guide/scala.md), [Java](https://github.com/enso-org/enso/blob/develop/docs/style-guide/java.md), and [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md) style guides.
+- [ ] All code conforms to the
+      [Scala](https://github.com/enso-org/enso/blob/develop/docs/style-guide/scala.md),
+      [Java](https://github.com/enso-org/enso/blob/develop/docs/style-guide/java.md),
+      and
+      [Rust](https://github.com/enso-org/enso/blob/develop/docs/style-guide/rust.md)
+      style guides.
 - All code has been tested:
   - [ ] Unit tests have been written where possible.
-  - [ ] If GUI codebase was changed: Enso GUI was tested when built using BOTH `./run dist` and `./run watch`.
+  - [ ] If GUI codebase was changed: Enso GUI was tested when built using BOTH
+        `./run.sh ide dist` and `./run.sh ide watch`.

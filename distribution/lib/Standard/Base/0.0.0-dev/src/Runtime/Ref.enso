@@ -1,0 +1,39 @@
+## Utilities for working with mutable references.
+type Ref
+
+    ## A mutable reference type.
+    @Builtin_Type
+    type Ref
+
+    ## Gets the contents of this mutable reference ref.
+
+       > Example
+         Getting the contents of a reference.
+
+             (Ref.new 0) . get
+    get : Any
+    get ref = @Builtin_Method "Ref.get"
+
+    ## Puts a new value into this reference, returning the old value.
+
+       Arguments:
+       - new_value: The new value to store in this ref.
+
+       > Example
+         Storing the value 10 in a reference.
+
+             (Ref.new 0) . put 10
+    put : Any -> Any
+    put new_value = @Builtin_Method "Ref.put"
+
+## Creates a new reference containing the provided value.
+
+   Arguments:
+   - value: The value to be contained in the ref.
+
+   > Example
+     Creating a new reference containing the value 7.
+
+         Ref.new 7
+new : Any -> Ref
+new value = @Builtin_Method "Ref.new"

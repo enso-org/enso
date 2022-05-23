@@ -198,6 +198,7 @@ public class MethodDefinition {
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
+    private static final String THIS = "this";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -222,7 +223,7 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       String originalName = element.getSimpleName().toString();
-      name = originalName.equals("_this") ? "this" : originalName;
+      name = originalName.equals("_this") ? THIS : originalName;
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
@@ -244,6 +245,27 @@ public class MethodDefinition {
                 element);
         return false;
       }
+
+      if (isThis() && position != 0) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "Argument `_this` must be the first positional argument.",
+                element);
+        return false;
+      }
+
+      if (isPositional() && position == 0 && !isThis()) {
+        processingEnvironment
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "The first positional argument should be called `_this`.",
+                element);
+        return false;
+      }
+
       return true;
     }
 
@@ -317,7 +339,15 @@ public class MethodDefinition {
     }
 
     public boolean isThis() {
-      return name.equals("this") || position == 0;
+      return name.equals(THIS);
+    }
+
+    public boolean shouldCheckErrors() {
+      return isPositional() && !isThis() && !acceptsError();
+    }
+
+    public boolean shouldCheckWarnings() {
+      return isPositional() && !isThis() && !acceptsWarning();
     }
   }
 }

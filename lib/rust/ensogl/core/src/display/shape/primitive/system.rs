@@ -459,6 +459,7 @@ macro_rules! _define_shape_system {
                 type StaticShape = Shape;
                 type System      = ShapeSystem;
 
+                #[profile(Debug)]
                 fn new(logger:impl AnyLogger) -> Self {
                     let logger : Logger = Logger::new_sub(&logger,"dyn_shape");
                     let display_object  = display::object::Instance::new(&logger);
@@ -477,6 +478,7 @@ macro_rules! _define_shape_system {
             }
 
             impl display::shape::system::DynamicShapeInternals for DynamicShape {
+                #[profile(Debug)]
                 fn add_instance(&self, shape:Shape) {
                     self.display_object.add_child(&shape);
                     self.params.size.add_attribute_binding(shape.sprite.size.clone_ref());
@@ -487,6 +489,7 @@ macro_rules! _define_shape_system {
                     self.shapes.borrow_mut().push(shape);
                 }
 
+                #[profile(Debug)]
                 fn drop_instances(&self) {
                     for shape in mem::take(&mut *self.shapes.borrow_mut()) {
                         self.display_object.remove_child(&shape);
@@ -539,6 +542,7 @@ macro_rules! _define_shape_system {
                     std::any::TypeId::of::<ShapeSystem>().into()
                 }
 
+                #[profile(Debug)]
                 fn new(scene:&display::scene::Scene) -> Self {
                     let style_watch   = display::shape::StyleWatch::new(&scene.style_sheet);
                     let shape_def     = Self::shape_def(&style_watch);
@@ -568,6 +572,7 @@ macro_rules! _define_shape_system {
             impl display::shape::StaticShapeSystemInstance for ShapeSystem {
                 type Shape = Shape;
 
+                #[profile(Debug)]
                 fn new_instance(&self) -> Self::Shape {
                     let sprite = self.shape_system.new_instance();
                     let id     = sprite.instance_id;
@@ -579,6 +584,7 @@ macro_rules! _define_shape_system {
             impl display::shape::DynShapeSystemInstance for ShapeSystem {
                 type DynamicShape = DynamicShape;
 
+                #[profile(Debug)]
                 fn instantiate(&self, dyn_shape:&Self::DynamicShape) -> symbol::GlobalInstanceId {
                     let sprite = self.shape_system.new_instance();
                     let instance_id = sprite.instance_id;
@@ -597,6 +603,7 @@ macro_rules! _define_shape_system {
             }
 
             impl ShapeSystem {
+                #[profile(Debug)]
                 fn init_refresh_on_style_change(self) -> Self {
                     let shape_system = self.shape_system.clone_ref();
                     let style_watch  = self.style_watch.clone_ref();
@@ -607,6 +614,7 @@ macro_rules! _define_shape_system {
                 }
 
                 /// The canvas shape definition.
+                #[profile(Debug)]
                 pub fn shape_def
                 (__style_watch__:&display::shape::StyleWatch)
                 -> display::shape::primitive::def::AnyShape {

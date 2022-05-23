@@ -202,7 +202,6 @@ impl ProjectNameModel {
 
     fn set_color(&self, value: color::Rgba) {
         self.text_field.set_default_color(value);
-        self.text_field.set_color_all(value);
     }
 
     fn set_position(&self, value: Vector3<f32>) {

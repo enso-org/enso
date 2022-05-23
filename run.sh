@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e # Exit on error.
+
+# Get the directory of the script, as per https://stackoverflow.com/a/246128
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+BIN_CRATE_NAME=enso-build3
+TARGET_DIR="${SCRIPT_DIR}/target/enso-build/"
+TARGET_EXE="${TARGET_DIR}buildscript/${BIN_CRATE_NAME}"
+
+cargo build --profile buildscript --target-dir "$TARGET_DIR" --package ${BIN_CRATE_NAME}
+"$TARGET_EXE" $@

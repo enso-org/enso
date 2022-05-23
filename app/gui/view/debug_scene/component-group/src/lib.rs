@@ -241,7 +241,12 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&transparent_circle);
     std::mem::forget(transparent_circle);
 
-    // === Regular Component Group ===
+    let scroll_area = ScrollArea::new(app);
+    scroll_area.set_position_xy(Vector2(0.0, 100.0));
+    scroll_area.resize(Vector2(170.0, 400.0));
+    scroll_area.set_content_width(150.0);
+    scroll_area.set_content_height(2000.0);
+    app.display.add_child(&scroll_area);
 
     let selection = selection_box::View::new(&app.logger);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));

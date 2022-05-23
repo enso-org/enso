@@ -4,6 +4,7 @@ import Standard.Table
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
+import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Delimited_Reader
 
 import Standard.Table.Io.Excel as Excel_Module
@@ -23,16 +24,16 @@ type Auto
         extension = file.extension
 
         output = Ref.new File_Format.Bytes
-        if ".txt".equals_ignore_case extension then Ref.put output File_Format.Text
-        if ".log".equals_ignore_case extension then Ref.put output File_Format.Text
-        if ".csv".equals_ignore_case extension then Ref.put output (File_Format.Delimited ',')
-        if ".tsv".equals_ignore_case extension then Ref.put output (File_Format.Delimited '\t')
-        if ".xlsx".equals_ignore_case extension then Ref.put output File_Format.Excel
-        if ".xlsm".equals_ignore_case extension then Ref.put output File_Format.Excel
-        if ".xls".equals_ignore_case extension then Ref.put output File_Format.Excel
-        if ".xlt".equals_ignore_case extension then Ref.put output File_Format.Excel
+        if ".txt".equals_ignore_case extension then output.put File_Format.Text
+        if ".log".equals_ignore_case extension then output.put File_Format.Text
+        if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited ',')
+        if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited '\t')
+        if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel
+        if ".xlsm".equals_ignore_case extension then output.put File_Format.Excel
+        if ".xls".equals_ignore_case extension then output.put File_Format.Excel
+        if ".xlt".equals_ignore_case extension then output.put File_Format.Excel
 
-        Ref.get output
+        output.get
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
