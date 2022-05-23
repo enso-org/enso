@@ -257,11 +257,14 @@ spec =
             t2.at "Leading0s" . to_vector . should_equal [1, 2, 123, Nothing]
 
         Test.specify "should be able to detect known types automatically" <|
-            ## TODO update this once headers are inferred (next PR)
             t1 = (Enso_Project.data / "data_small.csv") . read
-            t1.at "Column_1" . to_vector . should_equal ["Code", "gxl", "wca", "nfw", "der"]
+            t1.at "Code" . to_vector . should_equal ["gxl", "wca", "nfw", "der"]
+            t1.at "Index" . to_vector . should_equal [7, 0, 1, 7]
 
             t2 = (Enso_Project.data / "sample.tsv") . read
-            t2.at "Column_1" . to_vector . should_equal ["a", "1", "4"]
+            t2.at "a" . to_vector . should_equal [1, 4]
+            t2.at "b" . to_vector . should_equal [2, 5]
+            t2.at "c" . to_vector . should_equal [3, 6]
+            t2.columns.map .name . should_equal ["a", "b", "c"]
 
 main = Test.Suite.run_main here.spec

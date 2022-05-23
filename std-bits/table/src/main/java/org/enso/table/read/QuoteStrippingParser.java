@@ -29,7 +29,7 @@ public class QuoteStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     return QuoteHelper.stripQuotes(quoteCharacter, problemAggregator::reportMismatchedQuote, text);
   }
 

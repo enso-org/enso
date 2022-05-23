@@ -24,7 +24,7 @@ public abstract class IncrementalDatatypeParser implements DatatypeParser {
    * @return the parsed value or null if the value could not be parsed or could be parsed but should
    *     be treated as missing value
    */
-  protected abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
+  public abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
 
   /**
    * Creates a new column builder expecting the specific datatype, with a specified capacity.
