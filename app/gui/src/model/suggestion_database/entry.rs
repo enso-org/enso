@@ -271,7 +271,7 @@ impl Entry {
 
     /// Get the full qualified name of the entry.
     pub fn qualified_name(&self) -> QualifiedName {
-        fn chain_iter_with_entry_name<'a>(
+        fn chain_iter_and_entry_name<'a>(
             iter: impl IntoIterator<Item = &'a str>,
             entry: &'a Entry,
         ) -> impl Iterator<Item = &'a str> {
@@ -279,7 +279,7 @@ impl Entry {
         }
         match self.kind {
             Kind::Method => match &self.self_type {
-                Some(t) => chain_iter_with_entry_name(t, self).collect(),
+                Some(t) => chain_iter_and_entry_name(t, self).collect(),
                 None => {
                     let msg = format!(
                         "Cannot construct a fully qualified name for the suggestion database \
@@ -291,7 +291,7 @@ impl Entry {
                 }
             },
             Kind::Module => self.module.into_iter().collect(),
-            _ => chain_iter_with_entry_name(&self.module, self).collect(),
+            _ => chain_iter_and_entry_name(&self.module, self).collect(),
         }
     }
 }
