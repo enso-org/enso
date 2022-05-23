@@ -945,52 +945,53 @@ mod test {
     }
 
     #[test]
-    fn replace_value_and_traverse_back_pruning_empty_leaf() {
-        let paths = vec![vec![10], vec![10, 20]];
+    fn replace_value_and_traverse_back_pruning_empty_subtrees() {
+        let paths = vec!["A", "A.B"];
         for path in paths {
-            let tree = RefCell::new(HashMapTree::<i32, Option<i32>>::new());
+            let qualified_name = entry::QualifiedName::from_iter(path.split(ACCESS));
+            let qn_to_id_map: RefCell<QualifiedNameToIdMap> = default();
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
-                let path = path.clone();
-                let mut tree = tree.borrow_mut();
-                let result = tree.replace_value_and_traverse_back_pruning_empty_leaf(path, value);
+                let mut map = qn_to_id_map.borrow_mut();
+                let result =
+                    map.replace_value_and_traverse_back_pruning_empty_subtrees(&qualified_name, value);
                 assert_eq!(result, *expected_result.borrow());
                 *expected_result.borrow_mut() = value;
             };
-            assert_eq!(tree.borrow().get(path.clone()), None);
+            assert_eq!(qn_to_id_map.borrow().get(&qualified_name), None);
             replace_and_verify_result(None);
             replace_and_verify_result(Some(1));
             replace_and_verify_result(Some(2));
-            assert_eq!(*tree.borrow().get(path.clone()).unwrap(), Some(2));
+            assert_eq!(qn_to_id_map.borrow().get(&qualified_name), Some(2));
             replace_and_verify_result(None);
-            assert_eq!(tree.borrow().get(path.clone()), None);
+            assert_eq!(qn_to_id_map.borrow().get(&qualified_name), None);
             replace_and_verify_result(None);
-            assert_eq!(tree.borrow().get(path.clone()), None);
+            assert_eq!(qn_to_id_map.borrow().get(&qualified_name), None);
         }
     }
 
     #[test]
     fn replace_value_and_traverse_back_pruning_empty_leaf_for_overlapping_paths() {
-        type TestTree = HashMapTree<i32, Option<i32>>;
-        fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
-            tree.get(path.iter().copied()).and_then(|v| *v)
-        }
-        let mut tree = TestTree::new();
-        let paths = &[vec![10, 20], vec![10, 20, 25], vec![10], vec![10, 30, 35], vec![10, 30]];
+        // type TestTree = HashMapTree<i32, Option<i32>>;
+        // fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
+        //     tree.get(path.iter().copied()).and_then(|v| *v)
+        // }
+        let mut map: QualifiedNameToIdMap = default();
+        let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
         for (path, value) in paths.iter().zip(values) {
-            assert_eq!(get_and_flatten(&mut tree, path), None);
-            let result =
-                tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), *value);
+            let path = entry::QualifiedName::from_iter(path.split(ACCESS));
+            assert_eq!(map.get(&path), None);
+            let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, *value);
             assert_eq!(result, None);
-            assert_eq!(get_and_flatten(&mut tree, path), *value);
+            assert_eq!(map.get(&path), *value);
         }
         for (path, value) in paths.iter().zip(values) {
-            assert_eq!(get_and_flatten(&mut tree, path), *value);
-            let result =
-                tree.replace_value_and_traverse_back_pruning_empty_leaf(path.clone(), None);
+            let path = entry::QualifiedName::from_iter(path.split(ACCESS));
+            assert_eq!(map.get(&path), *value);
+            let result = map.replace_value_and_traverse_back_pruning_empty_subtrees(&path, None);
             assert_eq!(result, *value);
-            assert_eq!(get_and_flatten(&mut tree, path), None);
+            assert_eq!(map.get(&path), None);
         }
     }
 }
