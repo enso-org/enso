@@ -734,6 +734,8 @@ mod test {
         assert_eq!(db.version.get(), 8);
     }
 
+    /// Looks up an entry at `fully_qualified_name` in the `db` and verifies the name of the
+    /// retrieved entry.
     fn lookup_and_verify_result_name(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
         assert!(lookup.is_some());
@@ -741,6 +743,8 @@ mod test {
         assert_eq!(lookup.unwrap().name, name);
     }
 
+    /// Looks up an entry at `fully_qualified_name` in the `db` and verifies that the lookup result
+    /// is [`None`].
     fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
         assert_eq!(lookup, None);
