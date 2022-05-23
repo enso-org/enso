@@ -269,7 +269,7 @@ impl Entry {
         is_method && not_extension
     }
 
-    /// Get the segments of the full qualified name of the entry.
+    /// Get the full qualified name of the entry.
     pub fn qualified_name(&self) -> QualifiedName {
         fn chain_iter_with_entry_name<'a>(
             iter: impl IntoIterator<Item = &'a str>,
