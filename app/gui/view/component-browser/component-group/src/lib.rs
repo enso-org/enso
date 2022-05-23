@@ -95,7 +95,7 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let color = Var::<color::Rgba>::from(color::Rgba::transparent());
+            let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
         }
     }
@@ -115,7 +115,7 @@ pub mod header_background {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let bg = Rect((width.clone(), height.clone())).fill(color::Rgba::transparent());
+            let bg = Rect((width.clone(), height.clone())).fill(color);
             // We use wider and shorter rect for the shadow because of the visual artifacts that
             // will appear otherwise:
             // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
@@ -344,12 +344,13 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header);
             model.entries.select_entry <+ select_header.constant(None);
 
-            out.selection_position_target <+ all_with4(
+            out.selection_position_target <+ all_with5(
                 &out.is_header_selected,
                 &out.size,
                 &header_geometry,
                 &model.entries.selection_position_target,
-                f!((h_sel, size, h, esp) model.selection_position(*h_sel, *size, *h, *esp))
+                &input.set_header_pos,
+                f!((h_sel, size, h, esp, h_pos) model.selection_position(*h_sel, *size, *h, *esp, *h_pos))
             );
         }
 
@@ -447,10 +448,11 @@ impl component::Model for Model {
         app.display.default_scene.layers.selection.add_exclusive(&selected_background);
         let header_background = header_background::View::new(&logger);
         let selected_header_background = header_background::View::new(&logger);
-        app.display.default_scene.layers.selection.add_exclusive(&selected_header_background);
+        selected_header_background.color.set(color::Rgba::red().into());
+        app.display.default_scene.layers.selection_header.add_exclusive(&selected_header_background);
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
-        selected_header.add_to_scene_layer(&app.display.default_scene.layers.selection_text);
+        selected_header.add_to_scene_layer(&app.display.default_scene.layers.selection_header_text);
         let entries = app.new_view::<list_view::ListView<Entry>>();
         let selected_entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
@@ -459,10 +461,10 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         selected_entries.set_style_prefix(entry::STYLE_PATH);
-        selected_entries.set_background_color(HOVER_COLOR);
+        selected_entries.set_background_color(color::Rgba::red());
         selected_entries.show_background_shadow(false);
         selected_entries.set_background_corners_radius(0.0);
-        //selected_entries.hide_selection();
+        selected_entries.hide_selection();
         app.display.default_scene.layers.selection.add_exclusive(&selected_entries);
         selected_entries.set_label_layer(&app.display.default_scene.layers.selection_text);
         display_object.add_child(&background);
@@ -532,6 +534,7 @@ impl Model {
         // === Header Background ===
 
         self.header_background.height.set(header_height);
+        self.selected_header_background.height.set(header_height);
         let shadow_size = header_geometry.shadow_size;
         let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
         // We need to render both the header background and the shadow below it, so we add
@@ -560,6 +563,8 @@ impl Model {
         self.entries.set_position_y(-header_height / 2.0);
         self.selected_entries.resize(size - Vector2(0.0, header_height));
         self.selected_entries.set_position_y(-header_height / 2.0);
+        self.entries.disallow_selecting_entries_above(header_pos);
+        self.selected_entries.disallow_selecting_entries_above(header_pos);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
@@ -576,9 +581,10 @@ impl Model {
         size: Vector2,
         header_geometry: HeaderGeometry,
         entries_selection_position: Vector2,
+        header_pos: f32,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0)
+            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0 - header_pos)
         } else {
             self.entries.position().xy() + entries_selection_position
         }

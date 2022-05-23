@@ -563,6 +563,8 @@ pub struct HardcodedLayers {
     pub cursor:             Layer,
     pub mask:               Layer,
     pub selection: Layer,
+    pub selection_header: Layer,
+    pub selection_header_text: Layer,
     pub selection_text: Layer,
     pub selection_mask: Layer,
 }
@@ -586,6 +588,8 @@ impl HardcodedLayers {
         let above_nodes = Layer::new_with_cam(logger.sub("above_nodes"), main_cam);
         let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"), main_cam);
         let selection = Layer::new_with_cam(logger.sub("selection"), main_cam);
+        let selection_header = Layer::new_with_cam(logger.sub("selection_header"), main_cam);
+        let selection_header_text = Layer::new_with_cam(logger.sub("selection_header_text"), main_cam);
         let selection_text = Layer::new_with_cam(logger.sub("selection_text"), main_cam);
         let selection_mask = Layer::new_with_cam(logger.sub("selection_mask"), main_cam);
         let panel = Layer::new(logger.sub("panel"));
@@ -603,7 +607,9 @@ impl HardcodedLayers {
         let cursor = Layer::new(logger.sub("cursor"));
 
         selection.add_sublayer(&selection_text);
-        //selection.set_mask(&selection_mask);
+        selection.add_sublayer(&selection_header);
+        selection_header.add_sublayer(&selection_header_text);
+        selection.set_mask(&selection_mask);
         let mask = Layer::new_with_cam(logger.sub("mask"), main_cam);
         root.set_sublayers(&[
             &viz,
@@ -634,6 +640,8 @@ impl HardcodedLayers {
             above_nodes,
             above_nodes_text,
             selection,
+            selection_header,
+            selection_header_text,
             selection_text,
             selection_mask,
             panel,

@@ -99,6 +99,7 @@ pub struct Label {
     /// separate network for them would be an unnecessary overhead.
     /// Note: Networks extending this field will not outlive [`Label`].
     pub network:    enso_frp::Network,
+    init: enso_frp::Source<()>,
     style_watch:    StyleWatchFrp,
 }
 
@@ -130,7 +131,7 @@ impl Label {
             eval size ((size) label.set_position_y(size/2.0));
         }
         init.emit(());
-        Self { display_object, label, text, max_width_px, network, style_watch }
+        Self { display_object, init, label, text, max_width_px, network, style_watch }
     }
 
     fn update_label_content(&self) {
