@@ -271,8 +271,8 @@ impl Entry {
                     default()
                 }
             },
-            Kind::Module => self.module.segments().collect(),
-            _ => chain_iter_with_entry_name(self.module.segments(), self).collect(),
+            Kind::Module => self.module.into_iter().collect(),
+            _ => chain_iter_with_entry_name(&self.module, self).collect(),
         }
     }
 }
