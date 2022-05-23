@@ -944,6 +944,9 @@ mod test {
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
 
+    /// Test the [`QualifiedNameToIdMap::replace_value_and_traverse_back_pruning_empty_subtrees`]
+    /// method when called repeatedly with different [`entry::Id`] values. The test is done with a
+    /// simple path (one segment) and on a more complex path (two segments).
     #[test]
     fn replace_value_and_traverse_back_pruning_empty_subtrees() {
         let paths = vec!["A", "A.B"];
@@ -953,8 +956,8 @@ mod test {
             let expected_result = RefCell::new(None);
             let replace_and_verify_result = |value| {
                 let mut map = qn_to_id_map.borrow_mut();
-                let result =
-                    map.replace_value_and_traverse_back_pruning_empty_subtrees(&qualified_name, value);
+                let result = map
+                    .replace_value_and_traverse_back_pruning_empty_subtrees(&qualified_name, value);
                 assert_eq!(result, *expected_result.borrow());
                 *expected_result.borrow_mut() = value;
             };
@@ -970,12 +973,11 @@ mod test {
         }
     }
 
+    /// Test the [`QualifiedNameToIdMap::replace_value_and_traverse_back_pruning_empty_subtrees`]
+    /// method on paths sharing a common prefix. Verify that replacing an id at a path does not
+    /// interfere with id values stored at other paths, even if the paths share a common prefix.
     #[test]
-    fn replace_value_and_traverse_back_pruning_empty_leaf_for_overlapping_paths() {
-        // type TestTree = HashMapTree<i32, Option<i32>>;
-        // fn get_and_flatten(tree: &mut TestTree, path: &[i32]) -> Option<i32> {
-        //     tree.get(path.iter().copied()).and_then(|v| *v)
-        // }
+    fn replace_value_and_traverse_back_pruning_empty_subtrees_for_overlapping_paths() {
         let mut map: QualifiedNameToIdMap = default();
         let paths = &["A.B", "A.B.C", "A", "A.X.Y", "A.X"];
         let values = &[1, 2, 3, 4, 5].map(Some);
