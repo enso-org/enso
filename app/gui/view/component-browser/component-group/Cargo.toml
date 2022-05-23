@@ -17,4 +17,3 @@ ensogl-list-view = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/c
 ensogl-text = { version = "0.1.0", path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-label = { path = "../../../../../lib/rust/ensogl/component/label/" }
 failure = { version = "0.1.6" }
-
