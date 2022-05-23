@@ -424,6 +424,8 @@ where E::Model: Default
 
             // === Selected Entry ===
 
+            eval frp.source.focused([frp](f) if !f { frp.deselect_entries.emit(()) } );
+
             frp.source.selected_entry <+ frp.select_entry;
             frp.source.selected_entry <+ frp.output.chosen_entry;
 
@@ -626,7 +628,7 @@ impl<E: Entry> application::View for ListView<E> {
             (Press, "enter", "chose_selected_entry"),
         ])
             .iter()
-            .map(|(a, b, c)| Self::self_shortcut(*a, *b, *c))
+            .map(|(a, b, c)| Self::self_shortcut_when(*a, *b, *c, "focused"))
             .collect()
     }
 }

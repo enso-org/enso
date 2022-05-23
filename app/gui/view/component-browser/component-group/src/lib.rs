@@ -52,6 +52,7 @@ use ensogl_text as text;
 // ==============
 
 pub mod entry;
+pub mod multi;
 pub mod wide;
 
 pub use entry::View as Entry;
@@ -320,6 +321,10 @@ impl component::Frp<Model> for Frp {
 
         let overlay_events = &model.header_overlay.events;
         frp::extend! { network
+            model.entries.focus <+ input.focus;
+            model.entries.defocus <+ input.defocus;
+            model.entries.set_focus <+ input.set_focus;
+
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
@@ -399,6 +404,7 @@ impl Layers {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
+    app:               Application,
     display_object:    display::object::Instance,
     header:            text::Area,
     header_background: header_background::View,
@@ -431,7 +437,7 @@ impl component::Model for Model {
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
-        entries.hide_selection();
+        //entries.hide_selection();
         display_object.add_child(&background);
         display_object.add_child(&header_background);
         display_object.add_child(&header);
@@ -439,6 +445,7 @@ impl component::Model for Model {
         display_object.add_child(&entries);
 
         Model {
+            app: app.clone_ref(),
             display_object,
             header_overlay,
             header,
@@ -461,6 +468,13 @@ impl Model {
         layers.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.header_text);
     }
+
+    /// Whether the `point` (screen-space coordinates) is inside the component group shape.
+    pub fn is_inside(&self, point: Vector2<f32>) -> bool {
+        let size = self.background.size.get();
+        is_point_inside(point, size)
+    }
+
 
     fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
         // === Background ===
@@ -553,6 +567,20 @@ impl Model {
 /// To learn more about Component Groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type View = component::ComponentView<Model, Frp>;
+
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+/// Whether the point is inside the rectangle of `size`. The center of the rectangle is at
+/// coordinates (0, 0).
+fn is_point_inside(point: Vector2<f32>, size: Vector2) -> bool {
+    let x_range = (-size.x / 2.0)..=(size.x / 2.0);
+    let y_range = (-size.y / 2.0)..=(size.y / 2.0);
+    x_range.contains(&point.x) && y_range.contains(&point.y)
+}
 
 
 

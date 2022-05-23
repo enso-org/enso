@@ -323,6 +323,7 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
 /// The Model of the [`View`] component. Consists of `COLUMNS` columns.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model<const COLUMNS: usize> {
+    app:            Application,
     display_object: display::object::Instance,
     background:     background::View,
     columns:        Rc<Vec<Column<COLUMNS>>>,
@@ -347,7 +348,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);
         for column in columns.iter() {
-            column.hide_selection();
+            //column.hide_selection();
             column.set_background_color(Rgba::transparent());
             column.show_background_shadow(false);
             column.set_background_corners_radius(0.0);
@@ -355,7 +356,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         }
         let no_items_label = Label::new(app);
 
-        Model { no_items_label, display_object, background, columns }
+        Model { app: app.clone_ref(), no_items_label, display_object, background, columns }
     }
 }
 
@@ -400,6 +401,12 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         } else {
             MINIMAL_HEIGHT
         }
+    }
+
+    /// Whether the `point` (screen-space coordinates) is inside the component group shape.
+    pub fn is_inside(&self, point: Vector2<f32>) -> bool {
+        let size = self.background.size.get();
+        crate::is_point_inside(point, size)
     }
 }
 
