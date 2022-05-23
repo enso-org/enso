@@ -899,6 +899,10 @@ mod test {
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
     }
 
+    /// Initialize a [`SuggestionDatabase`] with a sample entry, then apply an update removing that
+    /// entry and another update adding a different entry at the same [`entry::Id`]. Test that the
+    /// [`SuggestionDatabase::lookup_by_fully_qualified_name`] method returns correct results after
+    /// this scenario is finished.
     #[test]
     fn lookup_by_fully_qualified_name_after_db_update_reuses_id() {
         // Initialize a suggestion database with a sample entry.
