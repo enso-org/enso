@@ -551,10 +551,9 @@ mod test {
             expected_code: &str,
             expected_imports: &[&module::QualifiedName],
         ) {
-            let CodeToInsert { code, imports } =
-                entry.code_to_insert(current_module, generate_this);
-            assert_eq!(code, expected_code);
-            assert_eq!(imports.iter().collect_vec().as_slice(), expected_imports);
+            let code_to_insert = entry.code_to_insert(current_module, generate_this);
+            assert_eq!(code_to_insert.code, expected_code);
+            assert_eq!(code_to_insert.imports.iter().collect_vec().as_slice(), expected_imports);
         }
         let main_module = module::QualifiedName::from_text("local.Project.Main").unwrap();
         let another_module =
