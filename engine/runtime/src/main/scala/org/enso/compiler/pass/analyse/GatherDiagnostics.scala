@@ -75,33 +75,12 @@ case object GatherDiagnostics extends IRPass {
 
     /** Equals is based on type of diagnostic, its location and its diagnostic keys.
       */
-    override def equals(any: Any): Boolean = {
-      any match {
-        case other: DiagnosticKeys => {
-          if (diagnostic.getClass() != other.diagnostic.getClass()) {
-            return false
-          }
-
-          if (diagnostic.location != other.diagnostic.location) {
-            return false
-          }
-
-          val myKeys    = diagnostic.diagnosticKeys()
-          val otherKeys = other.diagnostic.diagnosticKeys()
-
-          if (myKeys.length != otherKeys.length) {
-            return false;
-          }
-
-          for (i <- myKeys.indices) {
-            if (myKeys(i) != otherKeys(i)) {
-              return false;
-            }
-          }
-          return true
-        }
-        case _ => false
-      }
+    override def equals(any: Any): Boolean = any match {
+      case other: DiagnosticKeys =>
+        diagnostic.getClass == other.diagnostic.getClass &&
+        diagnostic.location == other.diagnostic.location &&
+        java.util.Arrays.equals(diagnostic.diagnosticKeys(), other.diagnostic.diagnosticKeys())
+      case _ => false
     }
 
     /** Hascode computed from location and provided diagnostic keys */
