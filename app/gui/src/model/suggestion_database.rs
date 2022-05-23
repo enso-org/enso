@@ -44,7 +44,7 @@ struct QualifiedNameToIdMap {
 }
 
 impl QualifiedNameToIdMap {
-    /// Gets the [`entry::Id`] at the specified path or [`None`] if not found.
+    /// Gets the [`entry::Id`] at `path` or [`None`] if not found.
     pub fn get<P, I>(&self, path: P) -> Option<entry::Id>
     where
         P: IntoIterator<Item = I>,
