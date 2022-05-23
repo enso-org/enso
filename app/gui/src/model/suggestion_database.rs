@@ -33,9 +33,8 @@ pub use example::Example;
 // === QualifiedNameToIdMap ===
 // ============================
 
-/// A map from fully qualified names (encoded as [`entry::QualifiedName`]) to
-/// [`entry::Id`]s. The methods of the type provide semantics of a map, while the internal
-/// representation is based on a [`HashMapTree`].
+/// A map from [`entry::QualifiedName`]s to [`entry::Id`]s. The methods of the type provide
+/// semantics of a map, while the internal representation is based on a [`HashMapTree`].
 ///
 /// The internal representation conserves memory when storing many paths sharing a common prefix of
 /// segments.
