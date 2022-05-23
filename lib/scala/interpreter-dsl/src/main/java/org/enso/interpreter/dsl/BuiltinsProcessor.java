@@ -4,6 +4,7 @@ import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.util.Pair;
 
+import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -74,7 +75,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
   public void handleClassElement(Element element, RoundEnvironment roundEnv) throws IOException {
     TypeElement elt = (TypeElement) element;
     Builtin annotation = element.getAnnotation(Builtin.class);
-    String clazzName = element.getSimpleName().toString();
+    String clazzName = annotation.name().isEmpty() ? element.getSimpleName().toString() : annotation.name();
     String builtinPkg =
             annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
     ClassName builtinType =  new ClassName(builtinPkg, clazzName);
@@ -108,8 +109,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
     if (owner.getKind() == ElementKind.CLASS) {
       Builtin ownerAnnotation = owner.getAnnotation(Builtin.class);
-      TypeElement tpeElement = (TypeElement) owner;
-      PackageElement pkgElement = (PackageElement) tpeElement.getEnclosingElement();
+      TypeElement ownerTpeElement = (TypeElement) owner;
+      String ownerName = ownerAnnotation.name().isEmpty() ? ownerTpeElement.getSimpleName().toString() : ownerAnnotation.name();
+      PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
@@ -119,47 +121,56 @@ public class BuiltinsProcessor extends AbstractProcessor {
               wrapExceptionsExtractor.extract(element);
       Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
 
+
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0) throw new RuntimeException("Invalid varargs value in @Builtin annotation. Must be positive");
         if (!annotation.name().isEmpty()) throw new RuntimeException("Name cannot be non-empty when varargs are used");
 
         IntStream.rangeClosed(1, annotation.expandVarargs()).forEach(i -> {
           String methodName = (isConstructor ? "new" : method.getSimpleName().toString()) + "_" + i;
-          String noUnderscoresMethodName = methodName.replaceAll("_", "");
-          String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
+          String clazzName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, methodName);
+          String optConstrSuffix = isConstructor ? ownerName : "";
           ClassName builtinMethodNode =
                   new ClassName(
                           builtinPkg,
-                          noUnderscoresMethodName.substring(0, 1).toUpperCase() + noUnderscoresMethodName.substring(1) + optConstrSuffix + "Node");
+                          clazzName + optConstrSuffix + "Node");
           ClassName ownerClass =
-                  new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
+                  new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
+          ClassName stdLibOwnerClass =
+                  new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
           try {
             JavaFileObject gen =
                     processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
             MethodGenerator methodGen = new MethodGenerator(method, i, wrapExceptions);
             generateBuiltinMethodNode(
-                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
+                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass,  parameterCounts);
           } catch (IOException ioe) {
             throw new RuntimeException(ioe);
           }
         });
       } else {
-        String methodName =
+        String builtinMethodName =
                 !annotation.name().isEmpty() ? annotation.name() :
                         isConstructor ? "new" : method.getSimpleName().toString();
+        String builtinMethodNameClass =
+                !annotation.name().isEmpty() ? CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, annotation.name()) :
+                        isConstructor ? "new" : method.getSimpleName().toString();
 
-        String optConstrSuffix = isConstructor ? tpeElement.getSimpleName().toString() : "";
+
+        String optConstrSuffix = isConstructor ? ownerName : "";
         ClassName builtinMethodNode =
                 new ClassName(
                         builtinPkg,
-                        methodName.substring(0, 1).toUpperCase() + methodName.substring(1) + optConstrSuffix + "Node");
+                        CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, builtinMethodNameClass) + optConstrSuffix + "Node");
         ClassName ownerClass =
-                new ClassName(pkgElement.getQualifiedName(), tpeElement.getSimpleName());
+                new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
+        ClassName stdLibOwnerClass =
+                new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
         JavaFileObject gen =
                 processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
         MethodGenerator methodGen = new MethodGenerator(method, 0, wrapExceptions);
         generateBuiltinMethodNode(
-                gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, parameterCounts);
+                gen, methodGen, builtinMethodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
       }
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
@@ -207,7 +218,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
    *
    * @param gen processor's generator
    * @param mgen generator for `execute` method
-   * @param methodName target name of the BuiltingMethod (Snake-case)
+   * @param methodName target name of the BuiltinMethod (lower camel case)
    * @param ownerMethodName the name of the annotated method
    * @param description short description for the node
    * @param builtinNode class name of the target node
@@ -223,9 +234,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
       String description,
       ClassName builtinNode,
       ClassName ownerClazz,
+      ClassName stdlibOwner,
       Map<String, Integer> builtinTypesParamCount)
       throws IOException {
-    String ensoMethodName = methodName.replaceAll("([^_A-Z])([A-Z])", "$1_$2").toLowerCase();
+
+    String ensoMethodName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, methodName);
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinNode.pkg() + ";");
       out.println();
@@ -236,7 +249,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println();
       out.println(
           "@BuiltinMethod(type = \""
-              + ownerClazz.name()
+              + stdlibOwner.name()
               + "\", name = \""
               + ensoMethodName
               + "\", description = \""
@@ -290,7 +303,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
       this(method, method.getParameters(), expandedVarargs, exceptionWrappers);
     }
 
-    private MethodGenerator(ExecutableElement method, List<? extends VariableElement> params, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
+    private MethodGenerator(
+            ExecutableElement method,
+            List<? extends VariableElement> params,
+            int expandedVarargs,
+            SafeWrapException[] exceptionWrappers) {
       this(
           method.getReturnType().toString(),
           IntStream.range(0, method.getParameters().size()).mapToObj(i ->
@@ -346,21 +363,29 @@ public class BuiltinsProcessor extends AbstractProcessor {
             StringUtils.join(params.stream().flatMap(x -> x.names(expandVararg(x.index))).toArray(), ", ");
       }
       String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
-      String targetReturnTpe = isConstructor ? "Object" : returnTpe;
-      String body;
+      boolean isVoid = returnTpe.equals("void");
+      String targetReturnTpe = isConstructor || isVoid ? "Object" : returnTpe;
+      String[] body;
       if (isConstructor) {
-        body = "  return new " + owner + "(" + paramsApplied + ");";
+        body = new String[]{"  return new " + owner + "(" + paramsApplied + ");"};
+      } else if (isVoid) {
+        String returnStatement = "  return Context.get(this).getBuiltins().nothing().newInstance();";
+        body = isStatic
+                ? new String[]{"  " + owner + "." + name + "(" + paramsApplied + ");", returnStatement}
+                : new String[]{"  _this." + name + "(" + paramsApplied + ");", returnStatement};
       } else {
         body = isStatic
-                ? "  return " + owner + "." + name + "(" + paramsApplied + ");"
-                : "  return _this." + name + "(" + paramsApplied + ");";
+                ? new String[]{"  return " + owner + "." + name + "(" + paramsApplied + ");"}
+                : new String[]{"  return _this." + name + "(" + paramsApplied + ");"};
       }
       boolean wrapsExceptions = exceptionWrappers.length != 0;
       if (wrapsExceptions) {
         List<String> wrappedBody = new ArrayList<>();
         wrappedBody.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
         wrappedBody.add("  try {");
-        wrappedBody.add("  " + body);
+        for (String statement: body) {
+          wrappedBody.add("  " + statement);
+        }
         for (int i=0; i < exceptionWrappers.length; i++) {
           wrappedBody.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
         }
@@ -368,11 +393,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
         wrappedBody.add("}");
         return wrappedBody;
       } else {
-        return List.of(
-                targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {",
-                body,
-                "}"
-        );
+        List<String> fullmethodDef = new ArrayList<>();
+        fullmethodDef.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
+        fullmethodDef.addAll(List.of(body));
+        fullmethodDef.add("}");
+        return fullmethodDef;
       }
     }
 
@@ -380,10 +405,6 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
 
   private record ClassName(String pkg, String name) {
-    private ClassName(Name pkgName, Name nameSeq) {
-      this(pkgName.toString(), nameSeq.toString());
-    }
-
     public String fullyQualifiedName() {
       return pkg + "." + name;
     }

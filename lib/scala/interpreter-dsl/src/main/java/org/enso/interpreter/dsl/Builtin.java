@@ -12,6 +12,8 @@ public @interface Builtin {
   /** @return A fully qualified name of the corresponding Enso type in standard library. */
   String stdlibName() default "";
 
+  String name() default "";
+
   @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
   @interface Method {
     /**

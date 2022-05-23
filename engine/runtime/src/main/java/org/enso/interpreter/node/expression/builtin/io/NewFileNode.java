@@ -8,26 +8,35 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(
-    type = "File",
-    name = "get_file",
-    description =
-        "Takes the text representation of a path and returns a TruffleFile corresponding to it.")
-public abstract class GetFileNode extends Node {
-  static GetFileNode build() {
-    return GetFileNodeGen.create();
+@BuiltinMethod(type = "File", name = "new", description = "Creates a new File")
+public abstract class NewFileNode extends Node {
+  static NewFileNode build() {
+    return NewFileNodeGen.create();
   }
 
   abstract Object execute(Object _this, Object path);
 
   @Specialization
-  Object doGetFile(
-      Object _this, Object path, @Cached("build()") ExpectStringNode expectStringNode) {
-    String pathStr = expectStringNode.execute(path);
+  Object doString(Object _this, String path) {
+    var context = Context.get(this);
+    TruffleFile file = context.getEnvironment().getPublicTruffleFile(path);
+    EnsoFile ensoFile = new EnsoFile(file);
+    return ensoFile;
+  }
+
+  @Specialization
+  Object doText(Object _this, Text path) {
+    String pathStr = (String) path.getContents();
     var context = Context.get(this);
     TruffleFile file = context.getEnvironment().getPublicTruffleFile(pathStr);
     EnsoFile ensoFile = new EnsoFile(file);
     return ensoFile;
+  }
+
+  @Specialization
+  Object doFile(Object _this, EnsoFile f) {
+    return f;
   }
 }

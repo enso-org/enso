@@ -23,6 +23,6 @@ public abstract class GetCwdNode extends Node {
     Context context = Context.get(this);
     TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
     EnsoFile ensoFile = new EnsoFile(file);
-    return context.getEnvironment().asGuestValue(ensoFile);
+    return ensoFile;
   }
 }
