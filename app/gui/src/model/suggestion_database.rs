@@ -272,7 +272,11 @@ impl SuggestionDatabase {
                             qn_to_id_map.warn_if_absent_and_remove(&qualified_name);
                         }
                         None => {
-                            error!(self.logger, "Received Remove event for nonexistent id: {id}");
+                            let msg = format!(
+                                "Received a suggestion database update event with the 'Remove' \
+                                kind for a nonexistent entry id: {id}."
+                            );
+                            error!(self.logger, "{msg}");
                         }
                     }
                 }
