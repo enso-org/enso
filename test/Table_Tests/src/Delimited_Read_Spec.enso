@@ -247,7 +247,7 @@ spec =
             t.at "Flag" . to_vector . should_equal [True, False, True, True]
             t.at "Value" . to_vector . should_equal [38.76109, -66.77495, 88.65713, 0.86658]
             t.at "ValueWithNothing" . to_vector . should_equal [63.13, 31.0, -68.71, Nothing]
-            t.at "TextWithNothing" . to_vector . should_equal ["pq6igd2wyd", "2pr4102wc4", "", Nothing]
+            t.at "TextWithNothing" . to_vector . should_equal ["pq6igd2wyd", "  2pr4102wc4  ", "", Nothing]
             t.at "Hexadecimal" . to_vector . should_equal ["4DD4675B", Nothing, "01896EAB", "F32E1EFE"]
             t.at "Leading0s" . to_vector . should_equal ["001", "002", "123", Nothing]
             t.at "QuotedNumbers" . to_vector . should_equal ["1", "2", Nothing, "34"]

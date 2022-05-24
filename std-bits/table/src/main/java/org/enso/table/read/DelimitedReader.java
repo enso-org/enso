@@ -52,7 +52,6 @@ public class DelimitedReader {
   private final DatatypeParser valueParser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
-  private final QuoteHelper quoteHelper;
 
   private static final char noQuoteCharacter = '\0';
 
@@ -144,7 +143,6 @@ public class DelimitedReader {
 
     this.valueParser = valueParser;
     parser = setupCsvParser(input);
-    quoteHelper = new QuoteHelper(unused -> reportMismatchedQuote(), quoteCharacter);
   }
 
   /** Creates a {@code CsvParser} according to the settings specified at construction. */
@@ -169,7 +167,7 @@ public class DelimitedReader {
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
     if (cell == null) return COLUMN_NAME;
-    return quoteHelper.stripQuotes(cell);
+    return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
   private void reportMismatchedQuote() {

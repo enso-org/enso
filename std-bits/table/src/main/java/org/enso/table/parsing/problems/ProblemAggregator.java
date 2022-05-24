@@ -14,10 +14,10 @@ public class ProblemAggregator {
   private final List<String> invalidFormatCells = new ArrayList<>();
   private final List<String> leadingZerosCells = new ArrayList<>();
   private int mismatchedQuotes = 0;
-  private final String relatedColumn;
+  private final String relatedColumnName;
 
-  public ProblemAggregator(String relatedColumn) {
-    this.relatedColumn = relatedColumn;
+  public ProblemAggregator(String relatedColumnName) {
+    this.relatedColumnName = relatedColumnName;
   }
 
   /**
@@ -53,11 +53,11 @@ public class ProblemAggregator {
     List<ParsingProblem> problems = new ArrayList<>();
 
     if (!invalidFormatCells.isEmpty()) {
-      problems.add(new InvalidFormat(relatedColumn, invalidFormatCells));
+      problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
     }
 
     if (!leadingZerosCells.isEmpty()) {
-      problems.add(new LeadingZeros(relatedColumn, leadingZerosCells));
+      problems.add(new LeadingZeros(relatedColumnName, leadingZerosCells));
     }
 
     for (int i = 0; i < mismatchedQuotes; ++i) {
