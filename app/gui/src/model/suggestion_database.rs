@@ -54,7 +54,7 @@ impl QualifiedNameToIdMap {
 
     /// Sets the `id` at `path`. Emits a warning if an `id` was set at this `path` before the
     /// operation.
-    pub fn warn_if_exists_and_set(&mut self, path: &entry::QualifiedName, id: entry::Id) {
+    pub fn set_and_warn_if_existed(&mut self, path: &entry::QualifiedName, id: entry::Id) {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
@@ -64,7 +64,7 @@ impl QualifiedNameToIdMap {
 
     /// Removes the [`entry::Id`] stored at `path`. Emits a warning if there was no [`entry::Id`]
     /// stored at `path` before the operation.
-    pub fn warn_if_absent_and_remove(&mut self, path: &entry::QualifiedName) {
+    pub fn remove_and_warn_if_did_not_exist(&mut self, path: &entry::QualifiedName) {
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
@@ -216,7 +216,7 @@ impl SuggestionDatabase {
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
                     let qualified_name = entry.qualified_name();
-                    qualified_name_to_id_map.warn_if_exists_and_set(&qualified_name, id);
+                    qualified_name_to_id_map.set_and_warn_if_existed(&qualified_name, id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -256,7 +256,7 @@ impl SuggestionDatabase {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
                         let qualified_name = Entry::qualified_name(&entry);
-                        qn_to_id_map.warn_if_exists_and_set(&qualified_name, id);
+                        qn_to_id_map.set_and_warn_if_existed(&qualified_name, id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -268,7 +268,7 @@ impl SuggestionDatabase {
                     match removed {
                         Some(entry) => {
                             let qualified_name = entry.qualified_name();
-                            qn_to_id_map.warn_if_absent_and_remove(&qualified_name);
+                            qn_to_id_map.remove_and_warn_if_did_not_exist(&qualified_name);
                         }
                         None => {
                             let msg = format!(
@@ -283,10 +283,10 @@ impl SuggestionDatabase {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
                         let old_qualified_name = entry.qualified_name();
-                        qn_to_id_map.warn_if_absent_and_remove(&old_qualified_name);
+                        qn_to_id_map.remove_and_warn_if_did_not_exist(&old_qualified_name);
                         let errors = entry.apply_modifications(*modification);
                         let new_qualified_name = entry.qualified_name();
-                        qn_to_id_map.warn_if_exists_and_set(&new_qualified_name, id);
+                        qn_to_id_map.set_and_warn_if_existed(&new_qualified_name, id);
                         for error in errors {
                             error!(
                                 self.logger,
