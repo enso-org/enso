@@ -222,15 +222,22 @@ branches:
           - "license/cla"
 
           # GUI jobs
-          - "Build Info (macOS-latest)"
-          - "Assertions (macOS-latest)"
-          - "Linter (Linux, linter)"
-          - "Native Tests (Linux, test_native)"
-          - "WASM Tests (Linux, test_wasm)"
-          - "Build WASM (Linux, build_wasm)"
-          - "Build package (macOS-latest)"
-          - "Build package (windows-latest)"
-          - "Build package (Linux, package)"
+          # macOS is not required because it is slow and not as reliable as other checks.
+          # - "Build Project Manager (macos)"
+          # - "Build GUI (WASM) (macos)"
+          # - "Package IDE (macos)"
+          - "Native GUI tests (linux)"
+          - "Cancel Previous Runs"
+          - "Build GUI (WASM) (linux)"
+          - "Lint (linux)"
+          - "Build GUI (WASM) (windows)"
+          - "Build Project Manager (windows)"
+          - "Assert if CHANGELOG.md was updated (on pull request)"
+          - "WASM GUI tests (linux)"
+          - "Build Project Manager (linux)"
+          - "Package IDE (windows)"
+          - "Package IDE (linux)"
+          - "IDE integration tests (linux)"
       enforce_admins: null
       restrictions: null
   - name: "release/*.x"
