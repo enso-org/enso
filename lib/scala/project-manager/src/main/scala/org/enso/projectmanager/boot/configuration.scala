@@ -3,6 +3,7 @@ package org.enso.projectmanager.boot
 import org.enso.loggingservice.LogLevel
 
 import java.io.File
+import java.nio.file.Path
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -12,11 +13,15 @@ object configuration {
     *  main project manager process.
     *
     *  @param logLevel the logging level
-    *  @param profilingEnabled if the profiling is enabled
+    *  @param profilingEventsLogPath the path to the runtime events log file
+    *  @param profilingPath the path to the profiling out file
+    *  @param profilingTime the time limiting the profiling duration
     */
   case class MainProcessConfig(
     logLevel: LogLevel,
-    profilingEnabled: Boolean
+    profilingEventsLogPath: Option[Path],
+    profilingPath: Option[Path],
+    profilingTime: Option[FiniteDuration]
   )
 
   /** A configuration object for properties of the Project Manager.

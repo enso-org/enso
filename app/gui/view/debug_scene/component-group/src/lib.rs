@@ -16,16 +16,21 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
+use enso_text::Bytes;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
+use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_selector as selector;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ide_view_component_group as component_group;
+use ide_view_component_group::entry;
+use ide_view_component_group::icon;
+use ide_view_component_group::Entry;
 use list_view::entry::AnyModelProvider;
 
 
@@ -50,15 +55,15 @@ pub fn main() {
 // === Mock Entries ===
 // ====================
 
-const PREPARED_ITEMS: &[&str; 8] = &[
-    "long sample entry with text overflowing the width",
-    "convert",
-    "table input",
-    "text input",
-    "number input",
-    "table output",
-    "data output",
-    "data input",
+const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
+    ("long sample entry with text overflowing the width", icon::Id::Star),
+    ("convert", icon::Id::Convert),
+    ("table input", icon::Id::DataInput),
+    ("text input", icon::Id::TextInput),
+    ("number input", icon::Id::NumberInput),
+    ("table output", icon::Id::TableEdit),
+    ("dataframe clean", icon::Id::DataframeClean),
+    ("data input", icon::Id::DataInput),
 ];
 
 #[derive(Debug)]
@@ -69,23 +74,40 @@ struct MockEntries {
 
 impl MockEntries {
     fn new(count: usize) -> Rc<Self> {
+        const HIGHLIGHTED_ENTRY_NAME: &str = "convert";
+        const HIGHLIGHTED_RANGE: Range<Bytes> = Bytes(0)..Bytes(3);
         Rc::new(Self {
-            entries: PREPARED_ITEMS.iter().cycle().take(count).map(|&label| label.into()).collect(),
+            entries: PREPARED_ITEMS
+                .iter()
+                .cycle()
+                .take(count)
+                .map(|&(label, icon)| entry::Model {
+                    icon,
+                    highlighted_text: GlyphHighlightedLabelModel {
+                        label:       label.to_owned(),
+                        highlighted: if label == HIGHLIGHTED_ENTRY_NAME {
+                            vec![HIGHLIGHTED_RANGE.into()]
+                        } else {
+                            default()
+                        },
+                    },
+                })
+                .collect(),
             count:   Cell::new(count),
         })
     }
 
-    fn get_entry(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get_entry(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.entries.get(id).cloned()
     }
 }
 
-impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
+impl list_view::entry::ModelProvider<Entry> for MockEntries {
     fn entry_count(&self) -> usize {
         self.count.get()
     }
 
-    fn get(&self, id: list_view::entry::Id) -> Option<component_group::entry::Model> {
+    fn get(&self, id: list_view::entry::Id) -> Option<entry::Model> {
         self.get_entry(id)
     }
 }
@@ -162,6 +184,7 @@ fn create_component_group(
     component_group
 }
 
+
 fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
     app.display.add_child(&slider);
@@ -196,7 +219,6 @@ fn init(app: &Application) {
     theme::builtin::light::enable(&app);
 
     let network = frp::Network::new("Component Group Debug Scene");
-
     let scroll_area = ScrollArea::new(app);
     scroll_area.set_position_xy(Vector2(0.0, 100.0));
     scroll_area.resize(Vector2(170.0, 400.0));

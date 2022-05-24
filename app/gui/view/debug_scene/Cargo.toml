@@ -9,5 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 debug-scene-component-group = { path = "component-group" }
+debug-scene-icons = { path = "icons" }
 debug-scene-interface = { path = "interface" }
 debug-scene-visualization = { path = "visualization" }

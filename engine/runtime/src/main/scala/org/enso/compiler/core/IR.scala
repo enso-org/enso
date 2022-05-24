@@ -277,6 +277,9 @@ object IR {
       "Empty IR: Please report this as a compiler bug."
 
     /** @inheritdoc */
+    override def diagnosticKeys(): Array[Any] = Array()
+
+    /** @inheritdoc */
     override def showCode(indent: Int): String = "IR.Empty"
   }
 
@@ -6357,6 +6360,10 @@ object IR {
 
     /** The location at which the diagnostic occurs. */
     val location: Option[IdentifiedLocation]
+
+    /** The important keys identifying identity of the diagnostic
+      */
+    def diagnosticKeys(): Array[Any]
   }
   object Diagnostic {
 
@@ -6396,6 +6403,8 @@ object IR {
           extends Unused {
         override def message: String = s"Unused function argument ${name.name}."
 
+        override def diagnosticKeys(): Array[Any] = Array(name.name)
+
         override def toString: String = s"Unused.FunctionArgument(${name.name})"
 
         override val location: Option[IdentifiedLocation] = name.location
@@ -6403,6 +6412,8 @@ object IR {
 
       sealed case class PatternBinding(override val name: Name) extends Unused {
         override def message: String = s"Unused pattern binding ${name.name}."
+
+        override def diagnosticKeys(): Array[Any] = Array(name.name)
 
         override def toString: String = s"Unused.PatternBinding(${name.name})"
 
@@ -6415,6 +6426,8 @@ object IR {
         */
       sealed case class Binding(override val name: Name) extends Unused {
         override def message: String = s"Unused variable ${name.name}."
+
+        override def diagnosticKeys(): Array[Any] = Array(name.name)
 
         override def toString: String = s"Unused.Binding(${name.name})"
 
@@ -6440,6 +6453,8 @@ object IR {
           else                    { ""                              }
 
         override def message: String = s"Unreachable case branches$atLocation."
+
+        override def diagnosticKeys(): Array[Any] = Array(atLocation)
       }
     }
 
@@ -6451,6 +6466,8 @@ object IR {
         extends Warning {
       override def message: String =
         "A @Tail_Call annotation was placed in a non-tail-call position."
+
+      override def diagnosticKeys(): Array[Any] = Array()
     }
 
     /** A warning about a `@Builtin_Method` annotation placed in a method
@@ -6462,6 +6479,8 @@ object IR {
     ) extends Warning {
       override def message: String =
         "A @Builtin_Method annotation allows only the name of the builtin node in the body."
+
+      override def diagnosticKeys(): Array[Any] = Array()
     }
 
     /** Warnings about shadowing names. */
@@ -6486,6 +6505,9 @@ object IR {
       ) extends Shadowed {
         override def message: String =
           s"The argument $shadowedName is shadowed by $shadower."
+
+        override def diagnosticKeys(): Array[Any] =
+          Array(shadowedName, shadower)
       }
 
       /** A warning that a later-defined pattern variable shadows an
@@ -6502,6 +6524,9 @@ object IR {
       ) extends Shadowed {
         override def message: String =
           s"The pattern field $shadowedName is shadowed by $shadower."
+
+        override def diagnosticKeys(): Array[Any] =
+          Array(shadowedName, shadower)
       }
     }
 
@@ -6518,6 +6543,8 @@ object IR {
       override val location: Option[IdentifiedLocation] = ir.location
       override def message: String =
         s"The expression ${ir.showCode()} could not be parallelised: $reason."
+
+      override def diagnosticKeys(): Array[Any] = Array(ir.showCode(), reason)
     }
   }
 
@@ -6629,6 +6656,8 @@ object IR {
 
       /** @inheritdoc */
       override def message: String = reason.explain
+
+      override def diagnosticKeys(): Array[Any] = Array(reason.explain)
 
       /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = storedIr.location
@@ -6756,6 +6785,8 @@ object IR {
 
       /** @inheritdoc */
       override def message: String = reason.explain(originalName)
+
+      override def diagnosticKeys(): Array[Any] = Array(reason)
 
       /** @inheritdoc */
       override val location: Option[IdentifiedLocation] = originalName.location
@@ -6924,6 +6955,8 @@ object IR {
 
       override def message: String = reason.explain
 
+      override def diagnosticKeys(): Array[Any] = Array(reason)
+
       override val location: Option[IdentifiedLocation] =
         originalPattern.location
 
@@ -7045,6 +7078,8 @@ object IR {
 
       /** @inheritdoc */
       override def message: String = reason.explanation
+
+      override def diagnosticKeys(): Array[Any] = Array(reason)
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = "Syntax_Error"
@@ -7260,6 +7295,8 @@ object IR {
       override def message: String =
         "InvalidIR: Please report this as a compiler bug."
 
+      override def diagnosticKeys(): Array[Any] = Array()
+
       /** @inheritdoc */
       override def showCode(indent: Int): String = "Invalid_Ir"
     }
@@ -7349,6 +7386,8 @@ object IR {
         override def message: String =
           "Methods must have only one definition of the `this` argument, and " +
           "it must be the first."
+
+        override def diagnosticKeys(): Array[Any] = Array()
 
         /** @inheritdoc */
         override def children: List[IR] = List()
@@ -7446,6 +7485,9 @@ object IR {
         override def message: String =
           s"Method overloads are not supported: ${targetType.name}.from " +
           s"${sourceType.showCode()} is defined multiple times in this module."
+
+        override def diagnosticKeys(): Array[Any] =
+          Array(targetType.name, sourceType.showCode())
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Conversion =
@@ -7556,6 +7598,9 @@ object IR {
         override def message: String =
           s"Method overloads are not supported: ${atomName.name}." +
           s"${methodName.name} is defined multiple times in this module."
+
+        override def diagnosticKeys(): Array[Any] =
+          Array(atomName.name, methodName.name)
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Method = this
@@ -7674,6 +7719,9 @@ object IR {
           s"Method definitions with the same name as atoms are not supported. " +
           s"Method ${methodName.name} clashes with the atom ${atomName.name} in this module."
 
+        override def diagnosticKeys(): Array[Any] =
+          Array(methodName.name, atomName.name)
+
         /** @inheritdoc */
         override def mapExpressions(
           fn: Expression => Expression
@@ -7774,6 +7822,8 @@ object IR {
         override def message: String =
           s"Redefining atoms is not supported: ${atomName.name} is " +
           s"defined multiple times in this module."
+
+        override def diagnosticKeys(): Array[Any] = Array(atomName.name)
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Atom = this
@@ -7889,6 +7939,10 @@ object IR {
         override def message: String =
           s"Variable ${invalidBinding.name.name} is being redefined."
 
+        override def diagnosticKeys(): Array[Any] = Array(
+          invalidBinding.name.name
+        )
+
         /** @inheritdoc */
         override def showCode(indent: Int): String =
           s"(Redefined (Binding $invalidBinding))"
@@ -7908,6 +7962,9 @@ object IR {
 
       /** @inheritdoc */
       override def message: String = s"Unexpected $entity."
+
+      /** @inheritdoc */
+      override def diagnosticKeys(): Array[Any] = Array(entity)
 
       /** @inheritdoc */
       override def mapExpressions(fn: Expression => Expression): Unexpected
@@ -8129,6 +8186,8 @@ object IR {
 
       /** @inheritdoc */
       override def message: String = reason.message
+
+      override def diagnosticKeys(): Array[Any] = Array(reason)
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = "Import_Export_Error"

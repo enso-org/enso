@@ -872,7 +872,7 @@ impl<Host, T: Object<Host>> Object<Host> for &T {
 // === ObjectOps ===
 // =================
 
-impl<Host, T: Object<Host>> ObjectOps<Host> for T {}
+impl<Host, T: Object<Host> + ?Sized> ObjectOps<Host> for T {}
 
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
@@ -894,7 +894,7 @@ pub trait ObjectOps<Host = Scene>: Object<Host> {
 
     /// Add another display object as a child to this display object. Children will inherit all
     /// transformations of their parents.
-    fn add_child<T: Object<Host>>(&self, child: &T) {
+    fn add_child<T: Object<Host> + ?Sized>(&self, child: &T) {
         self.display_object()._add_child(child.display_object());
     }
 

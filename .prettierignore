@@ -20,4 +20,12 @@ THIRD-PARTY
 **/package-lock.json
 **/msdfgen_wasm.js
 
+# Generated files
+app/ide-desktop/build.json
+app/ide-desktop/lib/client/electron-builder-config.json
 Cargo.lock
+
+# Engine Builds can leave these nested working copies.
+# TODO [mwu]: Adjust Engine build to not leave them.
+ci-build/
+enso/
