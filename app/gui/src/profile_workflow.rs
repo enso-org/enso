@@ -38,18 +38,28 @@ pub async fn entry_point_profile() {
 
 
 
+// ================
+// === Metadata ===
+// ================
+
+enso_profiler::metadata_logger!("ProfileRegion", end_profile_region(()));
+
+
+
 // ============================
 // === Workflow definitions ===
 // ============================
 
 async fn profile_create_node() {
     let test = Fixture::create_project().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
     test.create_node("1").await;
 }
 
 async fn profile_collapse_nodes() {
     let test = Fixture::create_project().await;
     test.graph_editor().select_all_nodes();
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
     test.collapse_selected_nodes().await;
 }
 
@@ -58,10 +68,12 @@ async fn profile_enter_collapsed_node() {
     test.graph_editor().select_all_nodes();
     let id = test.collapse_selected_nodes().await;
     test.graph_editor().select_node(id);
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
     test.enter_selected_node().await;
 }
 
 async fn profile_new_project() {
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
     let _ = Fixture::create_project().await;
 }
 
@@ -70,5 +82,6 @@ async fn profile_open_visualization() {
     let graph_editor = test.graph_editor();
     let node = InitialNodes::obtain_from_graph_editor(&graph_editor).below.0;
     graph_editor.select_node(node);
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
     test.visualize_selected_nodes().await;
 }
