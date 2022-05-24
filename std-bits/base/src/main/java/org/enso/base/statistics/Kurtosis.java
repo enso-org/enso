@@ -23,6 +23,7 @@ public class Kurtosis implements MomentStatistic {
     double scale = n * (n + 1) / ((n - 1) * (n - 2) * (n - 3) * var * var);
     double shift = 3.0 * (n - 1.0) * (n - 1.0) / ((n - 2.0) * (n - 3.0));
     return (sums[3] - 4 * avg * sums[2] + 6 * avg * avg * sums[1] - 3 * avg * avg * avg * sums[0])
-        * scale - shift;
+            * scale
+        - shift;
   }
 }

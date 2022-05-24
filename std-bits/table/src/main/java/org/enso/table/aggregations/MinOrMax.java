@@ -7,8 +7,9 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 import java.util.Comparator;
 import java.util.List;
 
-/***
- * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a group.
+/**
+ * * Aggregate Column finding the minimum (minOrMax = -1) or maximum (minOrMax = 1) entry in a
+ * group.
  */
 public class MinOrMax extends Aggregator {
   private final Storage storage;
@@ -36,7 +37,8 @@ public class MinOrMax extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         try {
-          if (current == null || Integer.signum(objectComparator.compare(value, current)) == minOrMax) {
+          if (current == null
+              || Integer.signum(objectComparator.compare(value, current)) == minOrMax) {
             current = value;
           }
         } catch (ClassCastException e) {
