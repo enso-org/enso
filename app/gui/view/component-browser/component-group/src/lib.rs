@@ -17,6 +17,8 @@
 //! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
 #![recursion_limit = "512"]
+// === Features ===
+#![feature(option_result_contains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -29,22 +31,22 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-use ensogl_core::application::traits::*;
-use ensogl_core::display::shape::*;
-use ensogl_core::prelude::*;
+use crate::prelude::*;
+use ensogl::application::traits::*;
+
+use crate::display::scene::layer;
 
 use enso_frp as frp;
-use ensogl_core::application::shortcut::Shortcut;
-use ensogl_core::application::Application;
-use ensogl_core::data::color;
-use ensogl_core::display;
-use ensogl_core::display::camera::Camera2d;
-use ensogl_core::display::scene::layer;
+use ensogl::application::shortcut::Shortcut;
+use ensogl::application::Application;
+use ensogl::data::color;
+use ensogl::data::text;
+use ensogl::display;
+use ensogl::display::camera::Camera2d;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
 use ensogl_shadow as shadow;
-use ensogl_text as text;
 
 
 // ==============
@@ -52,11 +54,19 @@ use ensogl_text as text;
 // ==============
 
 pub mod entry;
+pub mod icon;
 pub mod wide;
 
 pub use entry::View as Entry;
 
 
+
+/// A module containing common imports.
+pub mod prelude {
+    pub use ensogl::application::traits::*;
+    pub use ensogl::display::shape::*;
+    pub use ensogl::prelude::*;
+}
 
 // =================
 // === Constants ===
@@ -86,7 +96,7 @@ const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
@@ -103,7 +113,7 @@ pub mod background {
 pub mod header_background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         above = [background, list_view::background];
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
@@ -133,9 +143,9 @@ pub mod header_background {
 pub mod header_overlay {
     use super::*;
 
-    use ensogl_core::display::shape::constants::HOVER_COLOR;
+    use ensogl::display::shape::constants::HOVER_COLOR;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         above = [background];
         () {
             let bg_color = HOVER_COLOR;
@@ -182,11 +192,75 @@ impl HeaderGeometry {
 
 
 
+// ==============
+// === Colors ===
+// ==============
+
+/// Colors used in the Component Group View.
+///
+/// This structure, used in both [`ide_component_group::View`] and
+/// [`ide_component_group::wide::View`] can be created from single "main color" input. Each of
+/// these colors will be computed by mixing "main color" with application background - for details,
+/// see [`Colors::from_main_color`].
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct Colors {
+    // Note: The FRP nodes below must be samplers, otherwise their values set during initialization
+    // (by emitting `init` event in `Colors::from_main_color) will be lost - the FRP system does
+    // not keep value of nodes if they are not connected to anything, and those nodes won't be
+    // before returning from `from_main_color`.
+    pub icon_strong: frp::Sampler<color::Rgba>,
+    pub icon_weak:   frp::Sampler<color::Rgba>,
+    pub header_text: frp::Sampler<color::Rgba>,
+    pub entry_text:  frp::Sampler<color::Rgba>,
+    pub background:  frp::Sampler<color::Rgba>,
+}
+
+impl Colors {
+    /// Constructs [`Colors`] structure, where each variant is based on the "main" `color`
+    /// parameter.
+    pub fn from_main_color(
+        network: &frp::Network,
+        style: &StyleWatchFrp,
+        color: &frp::Stream<color::Rgba>,
+        is_dimmed: &frp::Stream<bool>,
+    ) -> Self {
+        fn mix((c1, c2): &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
+            color::mix(*c1, *c2, *coefficient)
+        }
+        let app_bg = style.get_color(ensogl_hardcoded_theme::application::background);
+        let header_intensity = style.get_number(theme::header::text::color_intensity);
+        let bg_intensity = style.get_number(theme::background_color_intensity);
+        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
+        let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
+        let entry_text_ = style.get_color(theme::entry_list::text::color);
+        frp::extend! { network
+            init <- source_();
+            one <- init.constant(1.0);
+            let is_dimmed = is_dimmed.clone_ref();
+            intensity <- is_dimmed.switch(&one, &dimmed_intensity);
+            app_bg <- all(&app_bg, &init)._0();
+            app_bg_and_input <- all(&app_bg, color);
+            main <- app_bg_and_input.all_with(&intensity, mix);
+            app_bg_and_main <- all(&app_bg, &main);
+            header_text <- app_bg_and_main.all_with(&header_intensity, mix).sampler();
+            bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
+            app_bg_and_entry_text <- all(&app_bg, &entry_text_);
+            entry_text <- app_bg_and_entry_text.all_with(&intensity, mix).sampler();
+            icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
+            icon_strong <- main.sampler();
+        }
+        init.emit(());
+        Self { icon_weak, icon_strong, header_text, entry_text, background: bg }
+    }
+}
+
+
 // ===========
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints_2! {
+ensogl::define_endpoints_2! {
     Input {
         /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
         /// described in
@@ -225,19 +299,24 @@ impl component::Frp<Model> for Frp {
         let out = &api.output;
         let header_text_font = style.get_text(theme::header::text::font);
         let header_text_size = style.get_number(theme::header::text::size);
+        let entry_list_padding = style.get_number(theme::entry_list::padding);
 
 
         // === Geometry ===
 
         frp::extend! { network
             let header_geometry = HeaderGeometry::from_style(style, network);
-            height <- all_with(&input.set_entries, &header_geometry, |entries, header_geom| {
-                entries.entry_count() as f32 * list_view::entry::HEIGHT + header_geom.height
-            });
+            height <- all_with3(&input.set_entries, &header_geometry, &entry_list_padding,
+                |entries, header_geom, padding| {
+                    let entries_height = entries.entry_count() as f32 * list_view::entry::HEIGHT;
+                    entries_height + header_geom.height + padding
+                }
+            );
             out.size <+ all_with(&input.set_width, &height, |w, h| Vector2(*w, *h));
             size_and_header_geometry <- all3(&out.size, &header_geometry, &input.set_header_pos);
-            eval size_and_header_geometry(((size, hdr_geom, hdr_pos))
-                model.resize(*size, *hdr_geom, *hdr_pos)
+            size_and_header_geom_and_padding <- all(&size_and_header_geometry, &entry_list_padding);
+            eval size_and_header_geom_and_padding((((size, hdr_geom, hdr_pos), padding))
+                model.resize(*size, *hdr_geom, *hdr_pos, *padding)
             );
 
 
@@ -249,36 +328,15 @@ impl component::Frp<Model> for Frp {
 
 
         // === Colors ===
-
-        fn mix(colors: &(color::Rgba, color::Rgba), coefficient: &f32) -> color::Rgba {
-            color::mix(colors.0, colors.1, *coefficient)
-        }
-        let app_bg_color = style.get_color(ensogl_hardcoded_theme::application::background);
-        let header_intensity = style.get_number(theme::header::text::color_intensity);
-        let bg_intensity = style.get_number(theme::background_color_intensity);
-        let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
-        let entry_text_color = style.get_color(theme::entries::text::color);
-        frp::extend! { network
-            init <- source_();
-            one <- init.constant(1.0);
-            intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
-            app_bg_color <- all(&app_bg_color, &init)._0();
-            app_bg_and_input_color <- all(&app_bg_color, &input.set_color);
-            main_color <- app_bg_and_input_color.all_with(&intensity, mix);
-            app_bg_and_main_color <- all(&app_bg_color, &main_color);
-            header_color <- app_bg_and_main_color.all_with(&header_intensity, mix);
-            bg_color <- app_bg_and_main_color.all_with(&bg_intensity, mix);
-            app_bg_and_entry_text_color <- all(&app_bg_color, &entry_text_color);
-            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
-            entry_color_sampler <- entry_color_with_intensity.sampler();
-        }
-        let params = entry::Params { color: entry_color_sampler };
+        let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
+        let params = entry::Params { colors: colors.clone_ref() };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
         // === Header ===
 
         frp::extend! { network
+            init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
@@ -289,9 +347,9 @@ impl component::Frp<Model> for Frp {
                     model.update_header_width(*size, *hdr_geom);
                 })
             );
-            model.header.set_default_color <+ header_color;
-            eval bg_color((c) model.background.color.set(c.into()));
-            eval bg_color((c) model.header_background.color.set(c.into()));
+            model.header.set_default_color <+ colors.header_text;
+            eval colors.background((c) model.background.color.set(c.into()));
+            eval colors.background((c) model.header_background.color.set(c.into()));
         }
 
 
@@ -330,12 +388,11 @@ impl component::Frp<Model> for Frp {
             out.is_header_selected <+ bool(&deselect_header, &select_header);
             model.entries.select_entry <+ select_header.constant(None);
 
-            out.selection_position_target <+ all_with4(
+            out.selection_position_target <+ all_with3(
                 &out.is_header_selected,
                 &out.size,
-                &header_geometry,
                 &model.entries.selection_position_target,
-                f!((h_sel, size, h, esp) model.selection_position(*h_sel, *size, *h, *esp))
+                f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
             );
         }
 
@@ -343,7 +400,7 @@ impl component::Frp<Model> for Frp {
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
-        use ensogl_core::application::shortcut::ActionType::*;
+        use ensogl::application::shortcut::ActionType::*;
         (&[(Press, "tab", "accept_suggestion")])
             .iter()
             .map(|(a, b, c)| View::self_shortcut(*a, *b, *c))
@@ -462,7 +519,13 @@ impl Model {
         self.header.add_to_scene_layer(&layers.header_text);
     }
 
-    fn resize(&self, size: Vector2, header_geometry: HeaderGeometry, header_pos: f32) {
+    fn resize(
+        &self,
+        size: Vector2,
+        header_geometry: HeaderGeometry,
+        header_pos: f32,
+        entry_list_padding: f32,
+    ) {
         // === Background ===
 
         self.background.size.set(size);
@@ -511,8 +574,8 @@ impl Model {
 
         // === Entries ===
 
-        self.entries.resize(size - Vector2(0.0, header_height));
-        self.entries.set_position_y(-header_height / 2.0);
+        self.entries.resize(size - Vector2(0.0, header_height - entry_list_padding));
+        self.entries.set_position_y(-header_height / 2.0 + entry_list_padding / 2.0);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
@@ -526,11 +589,10 @@ impl Model {
         &self,
         is_header_selected: bool,
         size: Vector2,
-        header_geometry: HeaderGeometry,
         entries_selection_position: Vector2,
     ) -> Vector2 {
         if is_header_selected {
-            Vector2(0.0, size.y / 2.0 - header_geometry.height / 2.0)
+            Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0)
         } else {
             self.entries.position().xy() + entries_selection_position
         }
@@ -564,7 +626,7 @@ pub type View = component::ComponentView<Model, Frp>;
 mod tests {
     use super::*;
     use enso_frp::future::EventOutputExt;
-    use ensogl_core::control::io::mouse;
+    use ensogl::control::io::mouse;
     use ensogl_list_view::entry::AnyModelProvider;
 
     macro_rules! expect_entry_selected {
