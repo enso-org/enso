@@ -179,7 +179,7 @@ fn profile_to_graph(profile: &Profile<Metadata>, app: &Application) -> flame_gra
 // Create marks for metadata. This will skip `RenderStats` as they are added separately as blocks.
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
-        .iter_metadata()
+        .metadata()
         .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
             Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
@@ -197,7 +197,7 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    let render_stats = profile.iter_metadata().filter_map(|metadata| match metadata.data {
+    let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
         Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
         _ => None,
     });

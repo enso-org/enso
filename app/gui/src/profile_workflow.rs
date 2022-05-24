@@ -44,13 +44,15 @@ pub async fn entry_point_profile() {
 
 async fn profile_create_node() {
     let test = Fixture::create_project().await;
-    test.create_node("1").await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.create_node("1"), _profiler);
 }
 
 async fn profile_collapse_nodes() {
     let test = Fixture::create_project().await;
     test.graph_editor().select_all_nodes();
-    test.collapse_selected_nodes().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.collapse_selected_nodes(), _profiler);
 }
 
 async fn profile_enter_collapsed_node() {
@@ -58,11 +60,13 @@ async fn profile_enter_collapsed_node() {
     test.graph_editor().select_all_nodes();
     let id = test.collapse_selected_nodes().await;
     test.graph_editor().select_node(id);
-    test.enter_selected_node().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.enter_selected_node(), _profiler);
 }
 
 async fn profile_new_project() {
-    let _ = Fixture::create_project().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    let _ = profiler::await_!(Fixture::create_project(), _profiler);
 }
 
 async fn profile_open_visualization() {
@@ -70,5 +74,6 @@ async fn profile_open_visualization() {
     let graph_editor = test.graph_editor();
     let node = InitialNodes::obtain_from_graph_editor(&graph_editor).below.0;
     graph_editor.select_node(node);
-    test.visualize_selected_nodes().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.visualize_selected_nodes(), _profiler);
 }

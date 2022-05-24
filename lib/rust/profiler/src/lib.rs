@@ -203,9 +203,9 @@ pub trait Parent<T: Profiler + Copy> {
 
 
 
-// ===============
-// === await_! ===
-// ===============
+// ===============================================
+// === Wrappers instrumenting async operations ===
+// ===============================================
 
 /// Await a future, logging appropriate await events for the given profiler.
 #[macro_export]
@@ -217,6 +217,11 @@ macro_rules! await_ {
         profiler::internal::Profiler::resume($profiler.0);
         result
     }};
+}
+
+/// Await two futures concurrently, like [`futures::join`], but with more accurate profiling.
+pub async fn join<T: futures::Future, U: futures::Future>(t: T, u: U) -> (T::Output, U::Output) {
+    futures::join!(t, u)
 }
 
 

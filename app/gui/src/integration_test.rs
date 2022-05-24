@@ -123,7 +123,7 @@ impl Fixture {
     pub async fn create_node(&self, expression: &str) {
         let graph_editor = self.graph_editor();
         add_node_with_add_node_button(&graph_editor, expression).await;
-        futures::join!(self.compile_new_shaders(), self.backend_execution());
+        profiler::join(self.compile_new_shaders(), self.backend_execution()).await;
     }
 
     /// Collapse the selected nodes; doesn't complete until the action is completed and the graph
@@ -132,7 +132,7 @@ impl Fixture {
     pub async fn collapse_selected_nodes(&self) -> crate::view::graph_editor::NodeId {
         let expect_node_added = self.graph_editor().node_added.next_event();
         self.graph_editor().collapse_selected_nodes();
-        futures::join!(self.compile_new_shaders(), self.backend_execution());
+        profiler::join(self.compile_new_shaders(), self.backend_execution()).await;
         expect_node_added.expect().0
     }
 
@@ -141,7 +141,7 @@ impl Fixture {
     #[profile(Objective)]
     pub async fn enter_selected_node(&self) {
         self.graph_editor().enter_selected_node();
-        futures::join!(self.compile_new_shaders(), self.backend_execution());
+        profiler::join(self.compile_new_shaders(), self.backend_execution()).await;
     }
 
     /// Enable the visualizations for the selected nodes; doesn't complete until the visualizations
