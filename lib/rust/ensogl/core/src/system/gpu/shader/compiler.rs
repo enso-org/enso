@@ -14,12 +14,26 @@
 //!
 //! The compiler handles [context loss](https://www.khronos.org/webgl/wiki/HandlingContextLost) and
 //! does not report compilation errors when the context is not available.
+//!
+//! # `Compiler` and `Controller`
+///
+/// In order to handle WebGL context loss, we divide the responsibilities of compiler management
+/// between two objects: a `Compiler`, and a `Controller`.
+///
+/// The [`Compiler`] acts as an extension of the context; its state will be lost if the context is
+/// lost. It is therefore responsible for keeping track of such information as the currently-running
+/// jobs, which will no longer be relevant if context loss occurs.
+///
+/// The [`Controller`] is not bound to a context; it holds state that is independent of any particular
+/// context object, and uses this state to drive `Compiler` operation.
 
 use crate::prelude::*;
 use crate::system::gpu::context::native::traits::*;
 use crate::system::web::traits::*;
 
 use crate::animation;
+use crate::control::callback;
+use crate::control::callback::traits::*;
 use crate::display::ToGlEnum;
 use crate::system::gpu::context::extension::KhrParallelShaderCompile;
 use crate::system::gpu::context::native;
@@ -32,8 +46,6 @@ use crate::system::web;
 use crate::types::unit2::Duration;
 
 use web_sys::WebGl2RenderingContext;
-
-use profiler::internal::Profiler;
 
 
 
@@ -220,9 +232,14 @@ impl Compiler {
         !self.cell.borrow().dirty
     }
 
-    /// Do a time-limited amount of work.
+    /// Do a time-limited amount of work. Return true if new shaders are available.
     fn run(&self, time: animation::TimeInfo) -> bool {
-        self.cell.borrow_mut().run(time)
+        let mut compiler = self.cell.borrow_mut();
+        let mut new_shaders_available = false;
+        if compiler.dirty {
+            new_shaders_available = compiler.run(time);
+        }
+        new_shaders_available
     }
 }
 
@@ -251,36 +268,34 @@ impl CompilerData {
         strong_handler
     }
 
+    #[profile(Debug)]
     fn run(&mut self, time: animation::TimeInfo) -> bool {
         let mut any_new_shaders_ready = false;
-        if self.dirty {
-            let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "shader::Compiler::run");
-            self.run_khr_completion_check_jobs();
-            while self.dirty {
-                match self.run_step() {
-                    Ok(progress) => {
-                        match progress {
-                            None => break,
-                            Some(Progress::NewShaderReady) => any_new_shaders_ready = true,
-                            Some(Progress::StepProgress) => {}
-                        }
-                        let now = (self.performance.now() as f32).ms();
-                        let deadline = time.frame_start() + FRAME_TIME_THRESHOLD;
-                        if now > deadline {
-                            let msg1 =
-                                "Shaders compilation takes more than the available frame time.";
-                            let msg2 = "To be continued in the next frame.";
-                            debug!(self.logger, "{msg1} {msg2}");
-                            break;
-                        }
+        self.run_khr_completion_check_jobs();
+        while self.dirty {
+            match self.run_step() {
+                Ok(progress) => {
+                    match progress {
+                        None => break,
+                        Some(Progress::NewShaderReady) => any_new_shaders_ready = true,
+                        Some(Progress::StepProgress) => {}
                     }
-                    Err(err) => {
-                        if self.context.is_context_lost() {
-                            break;
-                        }
-                        let err_msg = err.blocking_report(&self.context);
-                        error!(self.logger, "{err_msg}");
+                    let now = (self.performance.now() as f32).ms();
+                    let deadline = time.frame_start() + FRAME_TIME_THRESHOLD;
+                    if now > deadline {
+                        let msg1 =
+                            "Shaders compilation takes more than the available frame time.";
+                        let msg2 = "To be continued in the next frame.";
+                        debug!(self.logger, "{msg1} {msg2}");
+                        break;
                     }
+                }
+                Err(err) => {
+                    if self.context.is_context_lost() {
+                        break;
+                    }
+                    let err_msg = err.blocking_report(&self.context);
+                    error!(self.logger, "{err_msg}");
                 }
             }
         }
@@ -506,18 +521,21 @@ impl Error {
 // === Controller ===
 // ==================
 
-/// Controls the shader compiler. While the shader compiler will be thrown away if context is lost,
-/// the controller's state is persistent.
+/// Controls the shader compiler.
+///
+/// While the shader compiler will be thrown away if context is lost, the controller's state is
+/// persistent.
+///
+/// See [`mod`] docs for an explanation of the division of responsibilities between this and
+/// [`Compiler`].
 #[derive(Debug, Clone, CloneRef, Default)]
 pub struct Controller {
     rc: Rc<RefCell<ControllerData>>,
 }
 
-#[derive(Default, Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Default)]
 struct ControllerData {
-    #[derivative(Debug = "ignore")]
-    on_idle: Vec<Weak<Callback>>,
+    on_idle: callback::registry::MutNoArgs,
 }
 
 impl Controller {
@@ -529,7 +547,7 @@ impl Controller {
 
     /// Add a callback to be run when the compiler goes from busy to idle. The callback will remain
     /// installed until the handle returned here is dropped.
-    pub fn on_idle(&self, f: impl FnMut() + 'static) -> CallbackHandle {
+    pub fn on_idle(&self, f: impl FnMut() + 'static) -> callback::Handle {
         self.rc.borrow_mut().on_idle(f)
     }
 }
@@ -540,34 +558,12 @@ impl ControllerData {
         let result = context.shader_compiler.run(time);
         let now_idle = context.shader_compiler.idle();
         if was_busy && now_idle {
-            self.on_idle.retain_mut(|f| match f.upgrade() {
-                Some(f) => {
-                    (f.borrow_mut())();
-                    true
-                }
-                None => false,
-            });
+            self.on_idle.run_all();
         }
         result
     }
 
-    fn on_idle(&mut self, f: impl FnMut() + 'static) -> CallbackHandle {
-        let f = Rc::new(RefCell::new(f));
-        self.on_idle.push(f.downgrade());
-        CallbackHandle(f)
-    }
-}
-
-
-// === Callback ===
-
-type Callback = RefCell<dyn FnMut()>;
-
-/// Controls the lifetime of a callback: When this object is dropped, the callback will be dropped.
-pub struct CallbackHandle(Rc<Callback>);
-
-impl Debug for CallbackHandle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "CallbackHandle")
+    fn on_idle(&mut self, f: impl FnMut() + 'static) -> callback::Handle {
+        self.on_idle.add(f)
     }
 }

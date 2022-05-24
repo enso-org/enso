@@ -319,7 +319,6 @@ impl Notification {
 
     /// Return a profiler to be attached to a new [`Notification`].
     fn profiler() -> profiler::Debug {
-        use profiler::internal::Profiler;
         let label = profiler::internal::Label("Notification");
         let parent = profiler::internal::EventId::implicit();
         let now = Some(profiler::internal::Timestamp::now());

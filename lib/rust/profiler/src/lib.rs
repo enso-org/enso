@@ -163,6 +163,7 @@ use internal::*;
 /// Widely-used exports.
 pub mod prelude {
     pub use crate::profile;
+    pub use crate::internal::Profiler;
 }
 
 
