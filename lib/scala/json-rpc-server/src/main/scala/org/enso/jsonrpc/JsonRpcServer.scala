@@ -1,7 +1,6 @@
 package org.enso.jsonrpc
 
 import java.util.UUID
-
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
@@ -10,6 +9,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,7 +31,7 @@ class JsonRpcServer(
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
-) {
+) extends LazyLogging {
 
   implicit val ec: ExecutionContext = system.dispatcher
 
@@ -55,6 +55,9 @@ class JsonRpcServer(
           _.toStrict(config.lazyMessageTimeout)
             .map(msg => MessageHandler.WebMessage(msg.text))
         )
+        .wireTap { webMessage =>
+          logger.trace(s"Received text message: ${webMessage.message}.")
+        }
         .to(
           Sink.actorRef[MessageHandler.WebMessage](
             messageHandler,
@@ -78,6 +81,9 @@ class JsonRpcServer(
           NotUsed
         }
         .map((outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message))
+        .wireTap { textMessage =>
+          logger.trace(s"Sent text message ${textMessage.text}.")
+        }
 
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }

@@ -71,7 +71,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   val debugLogs: Boolean = false
 
   /** Enables the application profiling. */
-  val profilingEnabled: Boolean = false
+  val profilingPath: Option[Path] = None
 
   /** Tests can override this to allow child process output to be displayed. */
   val debugChildLogs: Boolean = false
@@ -87,8 +87,10 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   val processConfig: MainProcessConfig =
     MainProcessConfig(
-      logLevel         = if (debugLogs) LogLevel.Trace else LogLevel.Off,
-      profilingEnabled = profilingEnabled
+      logLevel               = if (debugLogs) LogLevel.Trace else LogLevel.Off,
+      profilingPath          = profilingPath,
+      profilingTime          = None,
+      profilingEventsLogPath = None
     )
 
   val testClock =

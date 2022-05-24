@@ -6,6 +6,7 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,
@@ -45,7 +46,8 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
-    ProjectDirectoriesConfig.initialize(testContentRoot.file)
+    ProjectDirectoriesConfig.initialize(testContentRoot.file),
+    ProfilingConfig()
   )
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
