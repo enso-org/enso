@@ -13,6 +13,12 @@ public class ProblemAggregator {
 
   private final List<String> invalidFormatCells = new ArrayList<>();
   private final List<String> leadingZerosCells = new ArrayList<>();
+  private int mismatchedQuotes = 0;
+  private final String relatedColumnName;
+
+  public ProblemAggregator(String relatedColumnName) {
+    this.relatedColumnName = relatedColumnName;
+  }
 
   /**
    * Reports a cell with an invalid format.
@@ -28,6 +34,10 @@ public class ProblemAggregator {
     leadingZerosCells.add(cell);
   }
 
+  public void reportMismatchedQuote() {
+    mismatchedQuotes++;
+  }
+
   /**
    * Checks if there are any problems already reported.
    *
@@ -35,7 +45,7 @@ public class ProblemAggregator {
    * non-empty list.
    */
   public boolean hasProblems() {
-    return !invalidFormatCells.isEmpty() || !leadingZerosCells.isEmpty();
+    return !invalidFormatCells.isEmpty() || !leadingZerosCells.isEmpty() || mismatchedQuotes > 0;
   }
 
   /** Return an aggregated summary of problems that have been reported. */
@@ -43,11 +53,15 @@ public class ProblemAggregator {
     List<ParsingProblem> problems = new ArrayList<>();
 
     if (!invalidFormatCells.isEmpty()) {
-      problems.add(new InvalidFormat(invalidFormatCells));
+      problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
     }
 
     if (!leadingZerosCells.isEmpty()) {
-      problems.add(new LeadingZeros(leadingZerosCells));
+      problems.add(new LeadingZeros(relatedColumnName, leadingZerosCells));
+    }
+
+    for (int i = 0; i < mismatchedQuotes; ++i) {
+      problems.add(new MismatchedQuote());
     }
 
     assert problems.isEmpty() == !hasProblems();

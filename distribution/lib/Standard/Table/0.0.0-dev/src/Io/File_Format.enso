@@ -7,6 +7,7 @@ from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Delimited_Reader
 
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Io.Excel as Excel_Module
 
 ## This type needs to be here to allow for the usage of Standard.Table
@@ -89,13 +90,11 @@ type Delimited
          headers are present on the first row (`Infer` is not implemented yet).
          If the column names are not unique, numeric suffixes will be appended
          to disambiguate them.
-       - parse_values: The output columns are parsed using the default `Parser`
-         if 'True'. If more control over parsing is needed, the
-         `Table.parse_values` method allows full specifications of the parser
-         options.
        - skip_rows: The number of rows to skip from the top of the file.
        - row_limit: The maximum number of rows to read from the file. This count
          does not include the header row (if applicable).
+       - value_formatter: Formatter to parse text values into numbers, dates,
+         times, etc. If `Nothing` values are left as Text.
        - keep_invalid_rows: Specifies whether rows that contain less or more
          columns than expected should be kept (setting the missing columns to
          `Nothing` or dropping the excess columns) or dropped.
@@ -104,12 +103,7 @@ type Delimited
        because `Infer` is not supported. It should be changed to be the default
        value once the corrresponding task is implemented:
        https://www.pivotaltracker.com/story/show/181986831
-
-       TODO [RW] The default for `parse_values` is temporarily changed to
-       `False`, because this feature is not yet implemented. It should be
-       changed to `True` once the related task is implemented:
-       https://www.pivotaltracker.com/story/show/181824146
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (headers:True|False|Infer=False) (parse_values:Boolean=False) (skip_rows:Integer|Nothing=Nothing) (row_limit:Integer|Nothing=Nothing) (keep_invalid_rows:Boolean=True)
+    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (headers:True|False|Infer=False) (skip_rows:Integer|Nothing=Nothing) (row_limit:Integer|Nothing=Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any

@@ -39,9 +39,9 @@ public abstract class IncrementalDatatypeParser implements DatatypeParser {
   protected abstract Builder makeBuilderWithCapacity(long capacity);
 
   @Override
-  public WithProblems<Storage> parseColumn(StringStorage sourceStorage) {
+  public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
-    var aggregator = new ProblemAggregator();
+    var aggregator = new ProblemAggregator(columnName);
 
     for (int i = 0; i < sourceStorage.size(); ++i) {
       String cell = sourceStorage.getItem(i);
