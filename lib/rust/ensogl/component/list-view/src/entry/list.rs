@@ -7,7 +7,8 @@ use crate::entry::Entry;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
-use ensogl_core::display::scene::layer::LayerId;
+use ensogl_core::display::scene::layer::Layer;
+use ensogl_core::display::scene::layer::WeakLayer;
 use ensogl_core::display::style;
 
 
@@ -19,8 +20,8 @@ use ensogl_core::display::style;
 /// A displayed entry in select component.
 ///
 /// The Display Object position of this component is docked to the middle of left entry's boundary.
-/// It differs from usual behaviour of EnsoGL components, but makes the entries alignment much
-/// simpler: In vast majority of cases we want to align list elements to the left.
+/// It differs from usual behaviour of EnsoGL components, but makes the entries' alignment much
+/// simpler: In the vast majority of cases we want to align list elements to the left.
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 #[clone_ref(bound = "E:CloneRef")]
@@ -72,7 +73,7 @@ pub struct ListData<E, P> {
     entries_range:  Rc<CloneCell<Range<entry::Id>>>,
     entry_params:   Rc<RefCell<P>>,
     provider:       Rc<CloneRefCell<entry::AnyModelProvider<E>>>,
-    label_layer:    Rc<Cell<LayerId>>,
+    label_layer:    Rc<RefCell<WeakLayer>>,
 }
 
 impl<E, P: Default> ListData<E, P> {
@@ -85,7 +86,7 @@ impl<E, P: Default> ListData<E, P> {
         let entry_params = default();
         let display_object = display::object::Instance::new(&logger);
         let provider = default();
-        let label_layer = Rc::new(Cell::new(app.display.default_scene.layers.label.id()));
+        let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
         Self {
             logger,
             app,
@@ -148,20 +149,11 @@ impl<E, P> ListData<E, P> {
 
 impl<E: Entry, P> ListData<E, P> {
     /// Sets the scene layer where the labels will be placed.
-    pub fn set_label_layer(&self, label_layer: LayerId) {
-        let layers = &self.app.display.default_scene.layers;
-        if let Some(layer) = layers.get_sublayer(self.label_layer.get()) {
-            for entry in &*self.entries.borrow() {
-                entry.entry.set_label_layer(&layer);
-            }
-        } else {
-            error!(
-                self.logger,
-                "Cannot set layer {label_layer:?} for labels: the layer does not \
-                exist in the scene"
-            );
+    pub fn set_label_layer(&self, label_layer: &Layer) {
+        for entry in &*self.entries.borrow() {
+            entry.entry.set_label_layer(label_layer);
         }
-        self.label_layer.set(label_layer);
+        self.label_layer.replace(label_layer.downgrade());
     }
 }
 
@@ -173,7 +165,7 @@ impl<E: Entry> ListData<E, E::Params> {
         &self,
         mut range: Range<entry::Id>,
         max_width_px: f32,
-        style_prefix: style::Path,
+        style_prefix: &style::Path,
     ) {
         range.end = range.end.min(self.provider.get().entry_count());
         if range != self.entries_range.get() {
@@ -181,7 +173,7 @@ impl<E: Entry> ListData<E, E::Params> {
             let provider = self.provider.get();
             let current_entries: HashSet<entry::Id> =
                 with(self.entries.borrow_mut(), |mut entries| {
-                    entries.resize_with(range.len(), || self.create_new_entry(&style_prefix));
+                    entries.resize_with(range.len(), || self.create_new_entry(style_prefix));
                     entries.iter().filter_map(|entry| entry.id.get()).collect()
                 });
             let missing = range.clone().filter(|id| !current_entries.contains(id));
@@ -268,7 +260,7 @@ impl<E: Entry> ListData<E, E::Params> {
 
     fn create_new_entry(&self, style_prefix: &style::Path) -> DisplayedEntry<E> {
         let layers = &self.app.display.default_scene.layers;
-        let layer = layers.get_sublayer(self.label_layer.get()).unwrap_or_else(|| {
+        let layer = self.label_layer.borrow().upgrade().unwrap_or_else(|| {
             error!(
                 self.logger,
                 "Cannot set layer {self.label_layer:?} for labels: the layer does \
@@ -279,7 +271,6 @@ impl<E: Entry> ListData<E, E::Params> {
         let entry = E::new(&self.app, style_prefix, &self.entry_params.borrow());
         let entry = DisplayedEntry { id: default(), entry };
         entry.entry.set_label_layer(&layer);
-        entry.entry.set_position_x(entry::PADDING);
         self.add_child(&entry.entry);
         entry
     }

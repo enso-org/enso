@@ -1,18 +1,15 @@
 [package]
-name    = "enso-prelude"
+name = "enso-prelude"
 version = "0.2.6"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2021"
-
-description  = "An augmented standard library in the vein of Haskell's prelude."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso"
-repository   = "https://github.com/enso-org/enso"
+description = "An augmented standard library in the vein of Haskell's prelude."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
-
 keywords = ["prelude", "standard-library"]
 categories = ["algorithms"]
-
 publish = true
 
 [lib]
@@ -20,7 +17,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-shapely = { version = "^0.2.0", path = "../shapely" }
-
 anyhow = "1.0.37"
 backtrace = "0.3.53"
 boolinator = "2.4.0"
@@ -44,12 +40,12 @@ smallvec = "1.0.0"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 tracing-wasm = "0.2"
-wasm-bindgen = { version = "0.2.78" , features = ["nightly"], optional = true }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"], optional = true }
 weak-table = "0.3.0"
 nalgebra = { version = "0.26.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2.78" , features = ["nightly"] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 
 [dependencies.web-sys]
 version = "0.3.4"

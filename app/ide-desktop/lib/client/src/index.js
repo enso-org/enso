@@ -1,18 +1,16 @@
 'use strict'
 
-import cfg from '../../../config'
-import * as assert from 'assert'
-import * as buildCfg from '../../../../../dist/build.json'
-import * as Electron from 'electron'
-import * as isDev from 'electron-is-dev'
-import * as path from 'path'
-import * as pkg from '../package.json'
-import * as rootCfg from '../../../package.json'
+import { defaultLogServerHost } from '../../../config'
+import assert from 'assert'
+import buildCfg from '../../../build.json'
+import Electron from 'electron'
+import isDev from 'electron-is-dev'
+import path from 'path'
 import * as Server from 'enso-studio-common/src/server'
-import * as util from 'util'
-import * as yargs from 'yargs'
+import util from 'util'
+import yargs from 'yargs'
 
-import paths from '../../../../../build/paths'
+import { project_manager_bundle } from '../paths.mjs'
 
 const child_process = require('child_process')
 const fss = require('fs')
@@ -23,6 +21,11 @@ const fss = require('fs')
 
 const root = Electron.app.getAppPath()
 const resources = path.join(root, '..')
+const project_manager_executable = path.join(
+    resources,
+    project_manager_bundle,
+    PROJECT_MANAGER_IN_BUNDLE_PATH
+)
 
 // FIXME default options parsed wrong
 // https://github.com/yargs/yargs/issues/1590
@@ -60,9 +63,9 @@ const trustedHosts = [
 // =====================
 
 let usage = `
-${pkg.build.productName} ${rootCfg.version} command line interface.
+${buildCfg.name} ${buildCfg.version} command line interface.
 
-Usage: ${pkg.build.productName} [options] [--] [backend args]...
+Usage: ${buildCfg.name} [options] [--] [backend args]...
 `
 
 let epilogue = `
@@ -213,13 +216,19 @@ optParser.options('crash-report-host', {
         'The address of the server that will receive crash reports. ' +
         'Consists of a hostname, optionally followed by a ":" and a port number',
     requiresArg: true,
-    default: cfg.defaultLogServerHost,
+    default: defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {
     describe: 'Enable the sharing of any usage data',
     type: 'boolean',
     default: true,
+})
+
+optParser.options('preferred-engine-version', {
+    describe: 'The Engine version that IDE will try to use for newly created projects',
+    type: 'string',
+    default: BUNDLED_ENGINE_VERSION,
 })
 
 // === Parsing ===
@@ -260,8 +269,8 @@ if (args.windowSize) {
 // ==================
 
 let versionInfo = {
-    version: rootCfg.version,
-    build: buildCfg.buildVersion,
+    version: buildCfg.version,
+    build: buildCfg.commit,
     electron: process.versions.electron,
     chrome: process.versions.chrome,
 }
@@ -372,15 +381,11 @@ Electron.app.on('web-contents-created', (event, contents) => {
 // =======================
 
 function projectManagerPath() {
-    let binPath = args['backend-path']
-    if (!binPath) {
-        binPath = paths.get_project_manager_path(resources)
-    }
+    let binPath = args['backend-path'] ?? project_manager_executable
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
     return binPath
 }
-
 /**
  * Executes the Project Manager with given arguments.
  *
@@ -530,6 +535,7 @@ function createWindow() {
         high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
         crash_report_host: args.crashReportHost,
         data_gathering: args.dataGathering,
+        preferred_engine_version: args.preferredEngineVersion,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }
@@ -650,9 +656,9 @@ Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) =
         let ctrl_q = !meta && control && !alt && !shift && code === 'KeyQ'
         let alt_f4 = !meta && !control && alt && !shift && code === 'F4'
         let ctrl_w = !meta && control && !alt && !shift && code === 'KeyW'
-        let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
-        let quit_on_win = process.platform == 'win32' && (alt_f4 || ctrl_w)
-        let quit_on_lin = process.platform == 'linux' && (alt_f4 || ctrl_q || ctrl_w)
+        let quit_on_mac = process.platform === 'darwin' && (cmd_q || alt_f4)
+        let quit_on_win = process.platform === 'win32' && (alt_f4 || ctrl_w)
+        let quit_on_lin = process.platform === 'linux' && (alt_f4 || ctrl_q || ctrl_w)
         let quit = quit_on_mac || quit_on_win || quit_on_lin
         if (quit) {
             Electron.app.quit()

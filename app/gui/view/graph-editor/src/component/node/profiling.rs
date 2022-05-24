@@ -231,7 +231,6 @@ impl ProfilingLabel {
                     |&status,&min,&max,&theme| status.display_color(min,max,theme)
                 );
             label.set_default_color <+ color.value.map(|c| c.into());
-            label.set_color_all     <+ color.value.map(|c| c.into());
 
 
             // === Position ===

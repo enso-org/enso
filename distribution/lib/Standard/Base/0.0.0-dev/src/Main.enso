@@ -13,7 +13,6 @@ import project.Data.Ordering
 import project.Data.Ordering.Sort_Order
 import project.Data.Pair
 import project.Data.Range
-import project.Data.Ref
 import project.Data.Text
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
@@ -43,7 +42,6 @@ export project.Data.Map
 export project.Data.Maybe
 export project.Data.Ordering
 export project.Data.Ordering.Sort_Order
-export project.Data.Ref
 export project.Data.Vector
 export project.IO
 export project.Math

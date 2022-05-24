@@ -259,8 +259,10 @@ ensogl_core::define_endpoints! {
         paste_string          (String),
         insert                (String),
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
+        /// Explicitly set the color of all text.
         set_color_all         (color::Rgba),
         set_sdf_bold          (buffer::Range<Bytes>,style::SdfBold),
+        /// Sets the color for all text that has no explicit color set.
         set_default_color     (color::Rgba),
         set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
@@ -286,6 +288,7 @@ ensogl_core::define_endpoints! {
         content         (Text),
         hovered         (bool),
         selection_color (color::Rgb),
+        /// Color that is used for all text that does not explicitly have a color set.
         default_color   (color::Rgba),
     }
 }
@@ -498,7 +501,10 @@ impl Area {
 
             // === Colors ===
 
-            eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            eval input.set_default_color ((t)
+                m.buffer.frp.set_default_color(*t);
+                m.redraw(false) ;
+            );
             self.frp.source.default_color <+ self.frp.set_default_color;
 
             eval input.set_default_text_size ((t) {

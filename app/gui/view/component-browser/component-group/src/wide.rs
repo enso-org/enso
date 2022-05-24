@@ -11,19 +11,17 @@
 //!
 //! [Component Group]: crate::component_group::View
 
-use ensogl_core::application::traits::*;
-use ensogl_core::display::shape::*;
-use ensogl_core::prelude::*;
+use crate::prelude::*;
 
 use crate::entry;
+use crate::Colors;
 
 use enso_frp as frp;
-use ensogl_core::application::shortcut::Shortcut;
-use ensogl_core::application::Application;
-use ensogl_core::data::color::Rgba;
-use ensogl_core::display;
+use ensogl::application::shortcut::Shortcut;
+use ensogl::application::Application;
+use ensogl::data::color::Rgba;
+use ensogl::display;
 use ensogl_gui_component::component;
-use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
 use list_view::entry::AnyModelProvider;
@@ -63,7 +61,7 @@ newtype_prim! {
 pub mod background {
     use super::*;
 
-    ensogl_core::define_shape_system! {
+    ensogl::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
             let color = Var::<Rgba>::from(color);
@@ -118,7 +116,7 @@ impl<const COLUMNS: usize> list_view::entry::ModelProvider<Entry> for ModelProvi
 // === FRP ===
 // ===========
 
-ensogl_core::define_endpoints_2! {
+ensogl::define_endpoints_2! {
     Input {
         /// Accept the currently selected suggestion. Should be bound to "Suggestion Acceptance Key"
         /// described in
@@ -126,7 +124,8 @@ ensogl_core::define_endpoints_2! {
         accept_suggestion(),
         select_entry(ColumnId, entry::Id),
         set_entries(AnyModelProvider<Entry>),
-        set_background_color(Rgba),
+        set_color(Rgba),
+        set_dimmed(bool),
         set_width(f32),
         set_no_items_label_text(String),
     }
@@ -154,13 +153,11 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         let network = &api.network;
         let input = &api.input;
         let out = &api.output;
-        let entry_text_color = style.get_color(theme::entries::text::color);
+        let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
         frp::extend! { network
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
-            entry_text_color <- all(&entry_text_color, &init)._0();
-            entry_color_sampler <- entry_text_color.sampler();
 
             selected_column_and_entry <- any(...);
             update_selected_entry <- selected_column_and_entry.sample(&out.size);
@@ -173,7 +170,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 }
             });
 
-            eval input.set_background_color((c) model.background.color.set(c.into()));
+            eval colors.background((c) model.background.color.set(c.into()));
 
             eval input.set_no_items_label_text((text) model.set_no_items_label_text(text));
 
@@ -231,13 +228,13 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
             }
-            let params = entry::Params { color: entry_color_sampler.clone() };
+            let params = entry::Params { colors: colors.clone_ref() };
             column.list_view.set_entry_params_and_recreate_entries(params);
         }
     }
 
     fn default_shortcuts() -> Vec<Shortcut> {
-        use ensogl_core::application::shortcut::ActionType::*;
+        use ensogl::application::shortcut::ActionType::*;
         (&[(Press, "tab", "accept_suggestion")])
             .iter()
             .map(|(a, b, c)| View::<COLUMNS>::self_shortcut(*a, *b, *c))
