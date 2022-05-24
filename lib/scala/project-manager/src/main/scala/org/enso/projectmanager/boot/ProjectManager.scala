@@ -23,7 +23,7 @@ import zio.console._
 import zio.interop.catz.core._
 
 import java.io.IOException
-import java.nio.file.{FileAlreadyExistsException, Files, Paths}
+import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
@@ -205,8 +205,9 @@ object ProjectManager extends App with LazyLogging {
       val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
       logger.info("Starting Project Manager...")
       for {
-        opts     <- parseOpts(options)
-        logLevel <- setupLogging(verbosity, logMasking)
+        opts <- parseOpts(options)
+        profilingLog = opts.profilingPath.map(getSiblingFile(_, ".log"))
+        logLevel <- setupLogging(verbosity, logMasking, profilingLog)
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingRuntimeEventsLog,
@@ -226,7 +227,8 @@ object ProjectManager extends App with LazyLogging {
 
   private def setupLogging(
     verbosityLevel: Int,
-    logMasking: Boolean
+    logMasking: Boolean,
+    profilingLog: Option[Path]
   ): ZIO[Console, IOException, LogLevel] = {
     val level = verbosityLevel match {
       case 0 => LogLevel.Info
@@ -240,7 +242,7 @@ object ProjectManager extends App with LazyLogging {
 
     ZIO
       .effect {
-        Logging.setup(Some(level), None, colorMode, logMasking)
+        Logging.setup(Some(level), None, colorMode, logMasking, profilingLog)
       }
       .catchAll { exception =>
         putStrLnErr(s"Failed to setup the logger: $exception")
@@ -279,4 +281,12 @@ object ProjectManager extends App with LazyLogging {
       )
     }
 
+  private def getSiblingFile(file: Path, ext: String): Path = {
+    val fileName       = file.getFileName.toString
+    val extensionIndex = fileName.lastIndexOf(".")
+    val newName =
+      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
+      else fileName + ext
+    file.getParent.resolve(newName)
+  }
 }

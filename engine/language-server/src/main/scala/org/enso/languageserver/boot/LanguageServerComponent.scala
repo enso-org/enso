@@ -14,7 +14,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
+import org.enso.loggingservice.LogLevel
 import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
 
 import scala.concurrent.duration._
@@ -71,9 +71,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        val s = new FileSampler(path.toFile)
-        JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
-        s
+        new FileSampler(path.toFile)
       case None =>
         NoopSampler()
     }
