@@ -125,6 +125,7 @@
 - [Promote with, take, finalize to be methods of Managed_Resource
   instance][3460]
 - [Implemented automatic type detection for `Table.parse_values`.][3462]
+- [Integrated value parsing with the `Delimited` file reader.][3463]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -194,6 +195,7 @@
 [3455]: https://github.com/enso-org/enso/pull/3455
 [3460]: https://github.com/enso-org/enso/pull/3460
 [3462]: https://github.com/enso-org/enso/pull/3462
+[3463]: https://github.com/enso-org/enso/pull/3463
 
 #### Enso Compiler
 
