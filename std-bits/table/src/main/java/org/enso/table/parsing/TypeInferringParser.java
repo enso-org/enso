@@ -28,9 +28,8 @@ public class TypeInferringParser extends DatatypeParser {
 
   @Override
   public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
-    SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
     for (IncrementalDatatypeParser parser : baseParsers) {
-      internal.reset();
+      SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
       Object result = parser.parseSingleValue(text, internal);
       if (!internal.hasProblems()) {
         return result;

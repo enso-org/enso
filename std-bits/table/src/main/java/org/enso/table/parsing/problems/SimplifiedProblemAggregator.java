@@ -26,10 +26,6 @@ public class SimplifiedProblemAggregator implements ProblemAggregator {
     return hasProblems;
   }
 
-  public void reset() {
-    hasProblems = false;
-  }
-
   @Override
   public List<ParsingProblem> getAggregatedProblems() {
     throw new IllegalStateException("Problem aggregation is not available in this implementation.");
