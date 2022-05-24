@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "author": {
+    "name": "Enso Team",
+    "email": "contact@enso.org"
+  },
+  "homepage": "https://github.com/enso-org/ide",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:enso-org/ide.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enso-org/ide/issues"
+  },
+  "name": "enso-studio-common",
+  "dependencies": {
+    "mime-types": "^2.1.35",
+    "portfinder": "^1.0.28"
+  }
+}

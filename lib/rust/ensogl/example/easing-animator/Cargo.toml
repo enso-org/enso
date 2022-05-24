@@ -7,10 +7,9 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-
 [dependencies]
 ensogl-core = { path = "../../core" }
-wasm-bindgen = { version = "0.2.78", features = [ "nightly" ] }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 web-sys = { version = "0.3.4" }

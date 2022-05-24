@@ -1,18 +1,15 @@
 [package]
-name    = "enso-data-structures"
+name = "enso-data-structures"
 version = "0.2.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2021"
-
-description  = "A collection of useful data structures."
-readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/data"
-repository   = "https://github.com/enso-org/enso"
+description = "A collection of useful data structures."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/data"
+repository = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
-
 keywords = []
 categories = ["data-structures"]
-
 publish = true
 
 [lib]
@@ -20,9 +17,9 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-prelude = { version = "^0.2.1", path = "../prelude" }
-serde        = { version = "1.0"  , features = ["derive"] }
-typenum      = { version = "1.11.2" }
-rustversion  = { version = "1.0"                        }
+serde = { version = "1.0", features = ["derive"] }
+typenum = { version = "1.11.2" }
+rustversion = { version = "1.0" }
 failure = { version = "0.1.6" }
 
 [dev-dependencies]
