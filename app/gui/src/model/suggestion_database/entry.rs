@@ -273,12 +273,6 @@ impl Entry {
 
     /// Get the full qualified name of the entry.
     pub fn qualified_name(&self) -> QualifiedName {
-        fn chain_iter_and_entry_name<'a>(
-            iter: impl IntoIterator<Item = &'a str>,
-            entry: &'a Entry,
-        ) -> impl Iterator<Item = &'a str> {
-            iter.into_iter().chain(iter::once(entry.name.as_str()))
-        }
         match self.kind {
             Kind::Method => match &self.self_type {
                 Some(t) => chain_iter_and_entry_name(t, self).collect(),
@@ -540,6 +534,13 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
     }
 }
 
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+
 // === SpanTree helpers ===
 
 /// Converts the information about function parameter from suggestion database into the form used
@@ -550,6 +551,16 @@ pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
         name: Some(param_info.name.clone()),
         tp:   Some(param_info.repr_type.clone()),
     }
+}
+
+
+// === Entry helpers ===
+
+fn chain_iter_and_entry_name<'a>(
+    iter: impl IntoIterator<Item = &'a str>,
+    entry: &'a Entry,
+) -> impl Iterator<Item = &'a str> {
+    iter.into_iter().chain(iter::once(entry.name.as_str()))
 }
 
 
