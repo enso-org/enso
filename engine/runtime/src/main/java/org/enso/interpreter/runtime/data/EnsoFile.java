@@ -4,18 +4,19 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.OpenOption;
 
@@ -42,6 +43,20 @@ public class EnsoFile implements TruffleObject {
 
   public TruffleFile resolveUnderlying(EnsoFile subPath) {
     return this.truffleFile.resolve(subPath.truffleFile.getPath());
+  }
+
+  @Builtin.Method
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public OutputStream outputStream(OpenOption[] opts) throws IOException {
+    return this.withTruffleFile(f -> f.newOutputStream(opts));
+  }
+
+  @Builtin.Method
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
+  @Builtin.ReturningGuestObject
+  public InputStream inputStream(OpenOption[] opts) throws IOException {
+    return this.withTruffleFile(f -> f.newInputStream(opts));
   }
 
   // TODO
@@ -95,8 +110,8 @@ public class EnsoFile implements TruffleObject {
     }
   }
 
-  // TODO
-  // @Builtin.Method
+  @Builtin.Method(name = "list_immediate_children")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public EnsoFile[] list() throws IOException {
     return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
   }
@@ -126,8 +141,8 @@ public class EnsoFile implements TruffleObject {
     return new EnsoFile(truffleFile.normalize());
   }
 
-  // TODO
-  // @Builtin.Method(name = "delete_builtin")
+  @Builtin.Method(name = "delete_builtin")
+  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public void delete() throws IOException {
     truffleFile.delete();
   }

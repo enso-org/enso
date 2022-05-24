@@ -113,6 +113,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
       String ownerName = ownerAnnotation.name().isEmpty() ? ownerTpeElement.getSimpleName().toString() : ownerAnnotation.name();
       PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
+      boolean guestValueConversion = element.getAnnotation(Builtin.ReturningGuestObject.class) != null;
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
               ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
@@ -141,7 +142,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
           try {
             JavaFileObject gen =
                     processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-            MethodGenerator methodGen = new MethodGenerator(method, i, wrapExceptions);
+            MethodGenerator methodGen = new MethodGenerator(method, guestValueConversion, i, wrapExceptions);
             generateBuiltinMethodNode(
                     gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass,  parameterCounts);
           } catch (IOException ioe) {
@@ -168,7 +169,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
         JavaFileObject gen =
                 processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-        MethodGenerator methodGen = new MethodGenerator(method, 0, wrapExceptions);
+        MethodGenerator methodGen = new MethodGenerator(method, guestValueConversion, 0, wrapExceptions);
         generateBuiltinMethodNode(
                 gen, methodGen, builtinMethodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
       }
@@ -274,8 +275,9 @@ public class BuiltinsProcessor extends AbstractProcessor {
       Arrays.asList(
               "com.oracle.truffle.api.nodes.Node",
               "org.enso.interpreter.dsl.BuiltinMethod",
-              "org.enso.interpreter.runtime.builtin.Builtins",
               "org.enso.interpreter.runtime.Context",
+              "org.enso.interpreter.runtime.builtin.Builtins",
+              "org.enso.interpreter.runtime.data.Array",
               "org.enso.interpreter.runtime.error.PanicException");
 
   /**
@@ -291,21 +293,23 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
   /** Method generator encapsulates the generation of the `execute` method. */
   private class MethodGenerator {
-    private final String returnTpe;
+    private final TypeWithKind returnTpe;
     private final List<MethodParameter> params;
     private final boolean isStatic;
     private final boolean isConstructor;
+    private final boolean convertToGuestValue;
     private final int varargExpansion;
     private final boolean needsVarargExpansion;
     private final SafeWrapException[] exceptionWrappers;
 
-    public MethodGenerator(ExecutableElement method, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
-      this(method, method.getParameters(), expandedVarargs, exceptionWrappers);
+    public MethodGenerator(ExecutableElement method, boolean convertToGuestValue, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
+      this(method, method.getParameters(), convertToGuestValue, expandedVarargs, exceptionWrappers);
     }
 
     private MethodGenerator(
             ExecutableElement method,
             List<? extends VariableElement> params,
+            boolean convertToGuestValue,
             int expandedVarargs,
             SafeWrapException[] exceptionWrappers) {
       this(
@@ -314,6 +318,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   fromVariableElementToMethodParameter(i, params.get(i))).collect(Collectors.toList()),
           method.getModifiers().contains(Modifier.STATIC),
           method.getKind() == ElementKind.CONSTRUCTOR,
+          convertToGuestValue,
           expandedVarargs,
           method.isVarArgs(),
           exceptionWrappers);
@@ -324,13 +329,15 @@ public class BuiltinsProcessor extends AbstractProcessor {
             List<MethodParameter> params,
             boolean isStatic,
             boolean isConstructor,
+            boolean convertToGuestValue,
             int expandedVarargs,
             boolean isVarargs,
             SafeWrapException[] exceptionWrappers) {
-      this.returnTpe = returnTpe;
+      this.returnTpe = TypeWithKind.createFromTpe(returnTpe);
       this.params = params;
       this.isStatic = isStatic;
       this.isConstructor = isConstructor;
+      this.convertToGuestValue = convertToGuestValue;
       this.varargExpansion = expandedVarargs;
       this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
       this.exceptionWrappers = exceptionWrappers;
@@ -349,60 +356,201 @@ public class BuiltinsProcessor extends AbstractProcessor {
       }
     }
 
-    public List<String> generateMethod(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
-      String paramsDef;
-      String paramsApplied;
-      if (params.isEmpty()) {
-        paramsDef = "";
-        paramsApplied = "";
-      } else {
-        paramsDef =
-            ", "
-                + StringUtils.join(params.stream().flatMap(x -> x.declaredParameters(expandVararg(x.index))).toArray(), ", ");
-        paramsApplied =
-            StringUtils.join(params.stream().flatMap(x -> x.names(expandVararg(x.index))).toArray(), ", ");
-      }
-      String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
-      boolean isVoid = returnTpe.equals("void");
-      String targetReturnTpe = isConstructor || isVoid ? "Object" : returnTpe;
-      String[] body;
-      if (isConstructor) {
-        body = new String[]{"  return new " + owner + "(" + paramsApplied + ");"};
-      } else if (isVoid) {
-        String returnStatement = "  return Context.get(this).getBuiltins().nothing().newInstance();";
-        body = isStatic
-                ? new String[]{"  " + owner + "." + name + "(" + paramsApplied + ");", returnStatement}
-                : new String[]{"  _this." + name + "(" + paramsApplied + ");", returnStatement};
-      } else {
-        body = isStatic
-                ? new String[]{"  return " + owner + "." + name + "(" + paramsApplied + ");"}
-                : new String[]{"  return _this." + name + "(" + paramsApplied + ");"};
-      }
-      boolean wrapsExceptions = exceptionWrappers.length != 0;
-      if (wrapsExceptions) {
-        List<String> wrappedBody = new ArrayList<>();
-        wrappedBody.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
-        wrappedBody.add("  try {");
-        for (String statement: body) {
-          wrappedBody.add("  " + statement);
+    /**
+     * Infers the correct return type from the method signature
+     * @return String representation of the type to use
+     */
+    private String targetReturnType() {
+      if (isConstructor) return "Object";
+      else {
+        switch (returnTpe.kind()) {
+          case OBJECT:
+            if (returnTpe.isValidGuestType()) {
+              return returnTpe.baseType();
+            } else {
+              if (!convertToGuestValue) {
+                throw new RuntimeException(
+                        "If intended, automatic conversion of value of type " + returnTpe.baseType
+                                + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
+              }
+              return "Object";
+            }
+          default:
+            return "Object";
         }
-        for (int i=0; i < exceptionWrappers.length; i++) {
-          wrappedBody.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
-        }
-        wrappedBody.add("  }");
-        wrappedBody.add("}");
-        return wrappedBody;
-      } else {
-        List<String> fullmethodDef = new ArrayList<>();
-        fullmethodDef.add(targetReturnTpe + " execute(" + thisParamTpe + " _this" + paramsDef + ") {");
-        fullmethodDef.addAll(List.of(body));
-        fullmethodDef.add("}");
-        return fullmethodDef;
       }
     }
 
+    private String[] preBody(MethodParameter param) {
+      if (param.needsToHostTranslation()) {
+        TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(param.tpe);
+        String hostParam = param.hostVarName();
+        String tmpObject = "itemsOf" + param.capitalizedName();
+        return new String[] {
+                "Object[] " + tmpObject + " = " + param.name + ".getItems();",
+                tpeWithKind.baseType() + "[] "+ hostParam + " = new " + tpeWithKind.baseType() + "[" + tmpObject + ".length];",
+                "for (int i=0; i < " + hostParam + ".length; i++) {",
+                "  " + hostParam + "[i] = (" + tpeWithKind.baseType() + ") context.getEnvironment().asHostObject(" + tmpObject + "[i]);",
+                "}"
+        };
+      } else {
+        return new String[0];
+      }
+    }
+
+    private String[] bodyBase(String name, String owner) {
+      String paramsApplied;
+      if (params.isEmpty()) {
+        paramsApplied = "";
+      } else {
+        paramsApplied =
+                StringUtils.join(params.stream().flatMap(x -> x.paramUseNames(expandVararg(x.index))).toArray(), ", ");
+      }
+      if (isConstructor) {
+        return new String[]{"  return new " + owner + "(" + paramsApplied + ");"};
+      } else {
+        String qual = isStatic ? owner : "_this";
+        switch (returnTpe.kind()) {
+          case VOID:
+            return new String[] {
+                    "  " + qual + "." + name + "(" + paramsApplied + ");",
+                    "  return Context.get(this).getBuiltins().nothing().newInstance();"
+            };
+          case ARRAY:
+            return new String[]{"  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));"};
+          default:
+            if (returnTpe.isValidGuestType()) {
+              return new String[]{"  return " + qual + "." + name + "(" + paramsApplied + ");"};
+            } else {
+              return new String[]{
+                      "  return context",
+                      "      .getEnvironment()",
+                      "      .asGuestValue(" + qual + "." + name + "(" + paramsApplied + "));"};
+            }
+        }
+      }
+    }
+
+    /**
+     * Generate node's `execute` method definition (return type and necessary parameters).
+     * '
+     * @param owner owner of the method
+     * @return string representation of the `execute` method's definition
+     */
+    private String methodSigDef(String owner) {
+      String paramsDef;
+      if (params.isEmpty()) {
+        paramsDef = "";
+      } else {
+        paramsDef =
+                ", "
+                        + StringUtils.join(params.stream().flatMap(x -> x.declaredParameters(expandVararg(x.index))).toArray(), ", ");
+      }
+      String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
+      return targetReturnType() + " execute(" + thisParamTpe + " _this" + paramsDef + ")";
+    }
+
+    private boolean needsContext() {
+      boolean result = false;
+      // Does the return value need to be translated to a guest value?
+      if (!isConstructor && (returnTpe.kind() == TpeKind.OBJECT)) {
+        if (returnTpe.isValidGuestType()) {
+          result = true;
+        }
+      }
+      // Do any of params need to be translated to a host object?
+      return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
+    }
+
+    public List<String> generateMethod(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
+      boolean wrapsExceptions = exceptionWrappers.length != 0;
+      String[] body = bodyBase(name, owner);
+
+      List<String> method = new ArrayList<>();
+      method.add(methodSigDef(owner) + " {");
+      if (needsContext()) {
+        method.add("  Context context = Context.get(this);");
+      }
+      if (wrapsExceptions) {;
+        method.add("  try {");
+        params.stream().forEach(p -> {
+          for (String s: preBody(p)) {
+            method.add("    " + s);
+          }
+        });
+        for (String statement: body) {
+          method.add("  " + statement);
+        }
+        for (int i=0; i < exceptionWrappers.length; i++) {
+          method.addAll(exceptionWrappers[i].toCatchClause(params, builtinTypesParameterCounts));
+        }
+        method.add("  }");
+        method.add("}");
+      } else {
+        params.stream().forEach(p -> {
+          for (String s: preBody(p)) {
+            method.add("    " + s);
+          }
+        });
+        method.addAll(List.of(body));
+        method.add("}");
+      }
+      return method;
+    }
   }
 
+  private enum TpeKind {
+    VOID,
+    ARRAY,
+    OBJECT
+  }
+
+  /**
+   * TypeWithKind provides a convenience wrapper for the types that can be encountered
+   * in builtins construction.
+   *
+   * For example:
+   * - Java's `Foo[]` type is of kind `Array` and base type `Foo`
+   * - `void` return type is of kind `Void` and base type `Nothing`
+   * - all other accepted types are of kind `Object`
+   */
+  private record TypeWithKind(String baseType, TpeKind kind) {
+    static TypeWithKind createFromTpe(String tpeName) {
+      if (tpeName.equals("void")) {
+        return new TypeWithKind("Nothing", TpeKind.VOID);
+      } else if (tpeName.endsWith("[]")) {
+        int idx = tpeName.indexOf("[");
+        return new TypeWithKind(tpeName.substring(0, idx), TpeKind.ARRAY);
+      } else {
+        return new TypeWithKind(tpeName, TpeKind.OBJECT);
+      }
+    }
+
+    boolean isValidGuestType() {
+      return validGuestTypes.contains(baseType);
+    }
+
+    /**
+     * A list of hard-coded types that can be used in the parameter or return type position
+     * that are valid host types and.
+     */
+    private static List<String> validGuestTypes =
+            List.of("java.lang.Object",
+                    "boolean",
+                    "java.lang.Boolean",
+                    "long",
+                    "java.lang.Long",
+                    "double",
+                    "java.lang.Double",
+                    "float",
+                    "java.lang.Float",
+                    "java.lang.String",
+                    "org.enso.interpreter.runtime.data.Ref",
+                    "org.enso.interpreter.runtime.data.ManagedReosurce",
+                    "org.enso.interpreter.runtime.data.Text",
+                    "org.enso.interpreter.runtime.data.EnsoFile");
+
+  }
 
   private record ClassName(String pkg, String name) {
     public String fullyQualifiedName() {
@@ -416,40 +564,114 @@ public class BuiltinsProcessor extends AbstractProcessor {
    */
   private record MethodParameter(int index, String name, String tpe, List<String> annotations) {
     /**
-     * Returns a parameter's declaration.
-     * If the parameter represents a vararg, the declaration is repeated. Otherwise return a single
-     * element Stream of declarations.
+     * Returns a parameter's declaration, consisting of its type and name.
+     * If the parameter represents a vararg, the declaration is repeated. Otherwise the method
+     * returns a single element Stream of the parameter declaration for the method.
      *
      * @param expand For a non-empty value n, the parameter must be repeated n-times.
      * @return A string representation of the parameter, potentially repeated for varargs
      */
     public Stream<String> declaredParameters(Optional<Integer> expand) {
       // If the parameter is the expanded vararg we must get rid of the `[]` suffix
-      String parameterTpe = expand.isEmpty() ? tpe : tpe.substring(0, tpe.length() - 2);
-      String copiedAnnotations = annotations.isEmpty() ? "" : (StringUtils.joinWith(" ", annotations.toArray()) + " ");
-      return names(expand).map(n -> copiedAnnotations + parameterTpe + " " + n);
+      TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(tpe);
+      String paramTpe;
+
+      switch (tpeWithKind.kind()) {
+        case ARRAY:
+          // Expanded varargs are no longer represented as Arrays but as individual elements
+          if (expand.isEmpty()) {
+            paramTpe = "Array";
+          } else {
+            paramTpe = "Object";
+          }
+          break;
+        case OBJECT:
+          paramTpe = tpeWithKind.baseType();
+          break;
+        default:
+          throw new RuntimeException("Invalid type for parameter " + name);
+      }
+      String paramAnnotations = annotations.isEmpty() ? "" : (StringUtils.joinWith(" ", annotations.toArray()) + " ");
+      return names(expand).map(n -> paramAnnotations + paramTpe + " " + n);
     }
 
     /**
-     * Returns a parameter's name..
+     * Parameter's name, capitalized.
+     *
+     * @return Capitalized parameter's name.
+     */
+    public String capitalizedName() {
+      return this.name.substring(0,1).toUpperCase() + this.name.substring(1);
+    }
+
+    /**
+     * Determines if the parameter guest object needs to be translated to host representation.
+     *
+     * @return true, if it needs, false otherwise.
+     */
+    public boolean needsToHostTranslation() {
+      TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(tpe);
+      switch (tpeWithKind.kind()) {
+        case ARRAY:
+          return !tpeWithKind.isValidGuestType();
+        default:
+          return false;
+      }
+    }
+
+    /**
+     * Name of the variable to store host representation of polyglot object coming from the parameter.
+     * See {@link MethodParameter#needsToHostTranslation()}.
+     *
+     * @return name of the variable that stores host representation of the polyglot object.
+     */
+    public String hostVarName() {
+      return "host" + capitalizedName();
+    }
+
+    /**
+     * Returns a parameter's name.
      * If the parameter represents a vararg, the name is repeated. Otherwise return a single
      * element Stream of declarations.
      *
      * @param expand For a non-empty value n, the parameter must be repeated n-times.
-     * @return A string representation of the parameter, potentially repeated for varargs
+     * @return A string representation of the parameter variable, potentially repeated for varargs
      */
     public Stream<String> names(Optional<Integer> expand) {
       return expand.map(e->
         IntStream.range(0, e).mapToObj(i-> name + "_" + (i+1))
       ).orElse(Stream.of(name));
     }
+
+    /**
+     * Returns a parameter's name when used in the body of the method.
+     * Compared to {@link MethodParameter#names} it will take into account potential
+     * translation to Java host representation.
+     *
+     * @param expand For a non-empty value n, the parameter must be repeated n-times.
+     * @return A string representation of the parameter variable, potetnially repeated for varargs
+     */
+    public Stream<String> paramUseNames(Optional<Integer> expand) {
+      if (needsToHostTranslation()) {
+        return Stream.of(hostVarName());
+      } else {
+        return expand.map(e->
+                IntStream.range(0, e).mapToObj(i-> name + "_" + (i+1))
+        ).orElse(Stream.of(name));
+      }
+    }
+
   }
 
   /**
    * Wrapper around {@link Builtin.WrapException} annotation with all elements of Class type resolved.
    * extracted
    */
-  private record SafeWrapException(Attribute.Class from, Attribute.Class to) {
+  private record SafeWrapException(Attribute.Class from, Attribute.Class to, Boolean passException) {
+
+    public SafeWrapException(Attribute.Class from, Attribute.Class to, Attribute.Constant propagate) {
+      this(from, to, propagate != null ? (Boolean) propagate.getValue() : false);
+    }
 
     /**
      * Generate a catch-clause that catches `from`, wraps it into `to` Enso type and rethrows the latter
@@ -458,34 +680,46 @@ public class BuiltinsProcessor extends AbstractProcessor {
      * @return Lines representing the (unclosed) catch-clause catching the runtime `from` exception
      */
     List<String> toCatchClause(List<MethodParameter> methodParameters, Map<String, Integer> builtinTypesParameterCounts) {
-      String from = fromAttributeToClassName(from());
-      String to = fromAttributeToClassName(to());
-      int toParamCount = errorParametersCount(to(), builtinTypesParameterCounts);
-      List<String> errorParameters =
-              methodParameters
-                      .stream()
-                      .limit(toParamCount - 1)
-                      .flatMap(x -> x.names(Optional.empty()))
-                      .collect(Collectors.toList());
-      String errorParameterCode = errorParameters.isEmpty() ? "" : ", " + StringUtils.join(errorParameters, ", ");
-      return List.of(
-              "  } catch (" + from + " exception) {",
-              "    Builtins builtins = Context.get(this).getBuiltins();",
-              "    throw new PanicException(builtins.error().make" + to + "(_this" + errorParameterCode + "), this);"
-      );
+      String from = fromAttributeToClassName(from(), true);
+      String to = fromAttributeToClassName(to(), false);
+      if (passException) {
+        return List.of(
+                "  } catch (" + from + " e) {",
+                "    Builtins builtins = Context.get(this).getBuiltins();",
+                "    throw new PanicException(builtins.error().make" + to + "(e), this);"
+        );
+      } else {
+        int toParamCount = errorParametersCount(to(), builtinTypesParameterCounts);
+        List<String> errorParameters =
+                methodParameters
+                        .stream()
+                        .limit(toParamCount - 1)
+                        .flatMap(x -> x.names(Optional.empty()))
+                        .collect(Collectors.toList());
+        String errorParameterCode = errorParameters.isEmpty() ? "" : ", " + StringUtils.join(errorParameters, ", ");
+        return List.of(
+                "  } catch (" + from + " e) {",
+                "    Builtins builtins = Context.get(this).getBuiltins();",
+                "    throw new PanicException(builtins.error().make" + to + "(_this" + errorParameterCode + "), this);"
+        );
+      }
     }
 
-    private String fromAttributeToClassName(Attribute.Class clazz) {
-      String[] clazzElements = clazz.classType.baseType().toString().split("\\.");
-      if (clazzElements.length == 0) {
-        return clazz.classType.baseType().toString();
-      } else {
-        return clazzElements[clazzElements.length - 1];
+    private String fromAttributeToClassName(Attribute.Class clazz, Boolean fullName) {
+      String baseType = clazz.classType.baseType().toString();
+      if (fullName) return baseType;
+      else {
+        String[] clazzElements = baseType.split("\\.");
+        if (clazzElements.length == 0) {
+          return baseType;
+        } else {
+          return clazzElements[clazzElements.length - 1];
+        }
       }
     }
 
     private int errorParametersCount(Attribute.Class clazz, Map<String, Integer> builtinTypesParameterCounts) {
-      String clazzSimple = fromAttributeToClassName(clazz);
+      String clazzSimple = fromAttributeToClassName(clazz, false);
       // `this` counts as 1
       return builtinTypesParameterCounts.getOrDefault(clazzSimple, 1);
     }
@@ -507,6 +741,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
     private static final String FromElementName = "from";
     private static final String ToElementName = "to";
+    private static final String PropagateElementName = "propagate";
     private static final String ValueElementName = "value";
 
     private Class<? extends Annotation> wrapExceptionAnnotationClass;
@@ -547,15 +782,19 @@ public class BuiltinsProcessor extends AbstractProcessor {
         if (am.getAnnotationType().equals(builtinType)) {
           Attribute.Class valueFrom = null;
           Attribute.Class valueTo = null;
+          Attribute.Constant valuePropagate = null;
           for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet() ) {
-            if (FromElementName.equals(entry.getKey().getSimpleName().toString())) {
+            Name key = entry.getKey().getSimpleName();
+            if (key.toString().equals(FromElementName)) {
               valueFrom = (Attribute.Class)(entry.getValue());
-            } else if (ToElementName.equals(entry.getKey().getSimpleName().toString())) {
+            } else if (key.toString().equals(ToElementName)) {
               valueTo = (Attribute.Class)(entry.getValue());
+            } else if (key.toString().equals(PropagateElementName)) {
+              valuePropagate = (Attribute.Constant)(entry.getValue());
             }
           }
           if (valueFrom != null && valueTo != null) {
-            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo));
+            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo, valuePropagate));
           }
         }
       }
@@ -578,16 +817,21 @@ public class BuiltinsProcessor extends AbstractProcessor {
               for (int i = 0; i<wrapExceptions.values.length; i++) {
                 Attribute.Class valueFrom = null;
                 Attribute.Class valueTo = null;
+                Attribute.Constant valuePropagate = null;
                 Attribute.Compound attr = (Attribute.Compound)wrapExceptions.values[i];
                 for (Pair<Symbol.MethodSymbol, Attribute> p: attr.values) {
-                  if (p.fst.getSimpleName().contentEquals(FromElementName)) {
+                  Name key = p.fst.getSimpleName();
+                  if (key.contentEquals(FromElementName)) {
                     valueFrom = (Attribute.Class)p.snd;
-                  } else if (p.fst.getSimpleName().contentEquals(ToElementName)) {
+                  } else if (key.contentEquals(ToElementName)) {
                     valueTo = (Attribute.Class)p.snd;
+                  } else if (key.contentEquals(PropagateElementName)) {
+                    valuePropagate = (Attribute.Constant)p.snd;
                   }
                 }
                 if (valueFrom != null && valueTo != null) {
-                  wrappedExceptions.add(new SafeWrapException(valueFrom, valueTo));
+                  SafeWrapException converted = new SafeWrapException(valueFrom, valueTo, valuePropagate);
+                  wrappedExceptions.add(converted);
                 }
               }
               break;

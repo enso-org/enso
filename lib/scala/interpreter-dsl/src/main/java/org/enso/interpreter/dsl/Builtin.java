@@ -44,10 +44,22 @@ public @interface Builtin {
     Class<? extends Exception> from();
     /** @return Class of Enso's builtin (error) type */
     Class<?> to();
+
+    /**
+     * @return true, if only the original exception should be wrapped. Otherwise we pass provided
+     *     method params.
+     */
+    boolean propagate() default false;
   }
 
   /** Container for {@link WrapException} annotations */
   @interface WrapExceptions {
     WrapException[] value() default {};
   }
+
+  /**
+   * Annotation accepting `env.asGUestValue` translation done on the return object. The conversion
+   * is generated automatically. The annotation only ensures that it is intentianal.
+   */
+  @interface ReturningGuestObject {}
 }

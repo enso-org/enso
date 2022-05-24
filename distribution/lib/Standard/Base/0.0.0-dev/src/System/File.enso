@@ -668,7 +668,7 @@ type File
     list name_filter=Nothing recursive=False =
         all_files = case recursive of
             True -> here.list_descendants this
-            False -> here.list_immediate_children this
+            False -> Vector.Vector (this.list_immediate_children)
         filtered = case name_filter of
             Nothing -> all_files
             _ ->
@@ -690,6 +690,13 @@ type File
        Transforms `child` to a relative path with respect to `this`.
     relativize : File -> Boolean
     relativize child = @Builtin_Method "File.relativize"
+
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children : File -> Array File
+    list_immediate_children directory = @Builtin_Method "File.list_immediate_children"
 
     to_text : Text
     to_text = this.absolute . path
@@ -928,16 +935,6 @@ type File_Error
         Io_Error file msg -> msg.to_text + " (" + file.path + ")."
 
 
-## PRIVATE
-
-   Utility function that lists immediate children of a directory.
-list_immediate_children : File -> Vector.Vector File
-list_immediate_children directory =
-    arr = directory.list_immediate
-    Vector.Vector arr
-
-list_immediate : File -> Array
-list_immediate directory = @Builtin_Method "File.list_immediate"
 
 ## PRIVATE
 
@@ -951,7 +948,7 @@ list_descendants file =
         builder.append file
         case file.is_directory of
             True ->
-                children = here.list_immediate_children file
+                children = Vector.Vector (file.list_immediate_children)
                 children.each go
             False -> Nothing
     go file
