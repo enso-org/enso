@@ -373,9 +373,9 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 
 // === QualifiedNameToIdMap helpers ===
 
-/// Replaces the value at `path` in `node` with `value` (sets `value` to `None` if there
-/// was no node at `path`). Then visits nodes on the `path` in reverse order and removes every
-/// visited empty leaf node from its parent.
+/// Swaps the value at `path` in `node` with `value` (sets `value` to `None` if there was no node
+/// at `path`). Then visits nodes on the `path` in reverse order and removes every visited empty
+/// leaf node from its parent.
 ///
 /// In this function, a node is defined as empty when it contains a `None` value. A node is a leaf
 /// when its [`is_leaf`] method returns `true`.
