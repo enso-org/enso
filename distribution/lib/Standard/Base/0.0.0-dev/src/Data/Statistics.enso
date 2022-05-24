@@ -75,6 +75,23 @@ type Statistic
     type R_Squared (predicted:Vector)
 
 
+type Rank_Method
+    ## Use the mean of all ranks for equal values.
+    type Average
+
+    ## Use the lowest of all ranks for equal values.
+    type Minimum
+
+    ## Use the highest of all ranks for equal values.
+    type Maximum
+
+    ## Use same rank value for equal values and next group is
+    type Dense
+
+    ## Equal values are assigned the next rank in order that they occur.
+    type Ordinal
+
+
 ## Compute a single statistic on a vector like object.
 
    Arguments:
@@ -159,6 +176,21 @@ correlation_stats data =
     stats_array = handle_unsupported <| handle_illegal <| CorrelationStats.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
+## Assigns a rank to each value of data, dealing with equal values according to the method.
+
+   Arguments:
+   - data: Input data to rank.
+   - method: Method used to deal with equal values.
+rank_data : Vector -> Rank_Method -> Vector
+rank_data input method=Rank_Method.Average =
+    java_method = case method of
+        Rank_Method.Minimum -> Rank.Method.MINIMUM
+        Rank_Method.Maximum -> Rank.Method.MAXIMUM
+        Rank_Method.Average -> Rank.Method.AVERAGE
+        Rank_Method.Ordinal -> Rank.Method.ORDINAL
+        Rank_Method.Dense -> Rank.Method.DENSE
+    java_ranks = Rank.rank input.to_array Comparator.new java_method
+    Vector.Vector java_ranks
 
 ## Compute a single statistic on the vector.
 
@@ -176,7 +208,3 @@ Vector.Vector.compute statistic=Count =
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
     here.compute_bulk this statistics
-
-test : Any
-test =
-    Vector.from_array (Rank.rank)
