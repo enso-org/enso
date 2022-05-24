@@ -2,9 +2,7 @@ package org.enso.loggingservice
 
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 
-import java.io.{File, FileWriter, Writer}
-import java.nio.charset.StandardCharsets
-import java.util.logging.{Handler, Level, LogRecord, XMLFormatter}
+import java.util.logging.{Handler, Level, LogRecord}
 
 /** A [[Handler]] implementation that allows to use the logging service as a
   * backend for [[java.util.logging]].
@@ -27,12 +25,6 @@ class JavaLoggingLogHandler(
         exception = Option(record.getThrown)
       )
       connection.send(message)
-      val w = JavaLoggingLogHandler.log;
-      if (w != null) {
-        val f   = new XMLFormatter()
-        val out = f.format(record)
-        w.write(out);
-      }
     }
   }
 
@@ -81,17 +73,4 @@ object JavaLoggingLogHandler {
       case LogLevel.Debug   => Level.FINE
       case LogLevel.Trace   => Level.ALL
     }
-
-  var log: Writer = null
-  def registerLogFile(file: File): Unit = {
-    if (this.log != null) {
-      this.log.close()
-    }
-    val w = new FileWriter(file, StandardCharsets.UTF_8, false)
-    w.write(
-      "<?xml version='1.0' encoding='UTF-8'?><uigestures version='1.0'>\n"
-    )
-    this.log = w
-  }
-
 }

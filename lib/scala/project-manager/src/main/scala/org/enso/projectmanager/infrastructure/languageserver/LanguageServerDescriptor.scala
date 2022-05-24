@@ -1,14 +1,16 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.util.UUID
-
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
 
+import java.nio.file.Path
+import java.util.UUID
+
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 /** A descriptor specifying options related to starting a Language Server.
   *
@@ -23,7 +25,9 @@ import scala.concurrent.Future
   * @param jvmSettings settings to use for the JVM that will host the engine
   * @param discardOutput specifies if the process output should be discarded or
   *                      printed to parent's streams
-  * @param profilingEnabled enables the language server profiling
+  * @param profilingEventsLogPath the path to the runtime events log file
+  * @param profilingPath the language server profiling file path
+  * @param profilingTime the time limiting the profiling duration
   * @param deferredLoggingServiceEndpoint a future that is completed once the
   *                                       logging service has been fully set-up;
   *                                       if the child component should connect
@@ -39,6 +43,8 @@ case class LanguageServerDescriptor(
   engineVersion: SemVer,
   jvmSettings: JVMSettings,
   discardOutput: Boolean,
-  profilingEnabled: Boolean,
+  profilingEventsLogPath: Option[Path],
+  profilingPath: Option[Path],
+  profilingTime: Option[FiniteDuration],
   deferredLoggingServiceEndpoint: Future[Option[Uri]]
 )

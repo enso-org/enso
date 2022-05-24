@@ -2,7 +2,7 @@ package org.enso.profiling
 
 import java.util.concurrent.Executor
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** Sampler gathers the application performance statistics. */
 trait MethodsSampler {
@@ -19,5 +19,5 @@ trait MethodsSampler {
     * @param delay the duration to wait before stopping
     * @param ec the execution context
     */
-  def stop(delay: Duration)(implicit ec: Executor): Unit
+  def stop(delay: FiniteDuration)(implicit ec: Executor): Unit
 }
