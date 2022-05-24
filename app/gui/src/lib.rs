@@ -57,6 +57,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use prelude::*;
 use wasm_bindgen::prelude::*;
 
 
@@ -130,10 +131,11 @@ mod examples {
 use examples::*;
 mod profile_workflow;
 
-use prelude::init_tracing;
-use prelude::profiler;
-use prelude::profiler::prelude::*;
-use prelude::WARN;
+
+
+// ===================
+// === Entry Point ===
+// ===================
 
 /// IDE startup function.
 #[profile(Objective)]
