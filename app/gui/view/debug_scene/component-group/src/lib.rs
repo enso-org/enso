@@ -214,12 +214,10 @@ fn init(app: &Application) {
     scroll_area.set_content_height(2000.0);
     app.display.add_child(&scroll_area);
 
-    let camera = &scroll_area.content_layer().camera();
-    let normal_parent_layer = scroll_area.content_layer();
+    let normal_parent_layer = &scroll_area.content_layer();
     let selected_parent_layer = &app.display.default_scene.layers.selection;
     let layers = component_group::Layers::new(
         &app.logger,
-        camera,
         normal_parent_layer,
         selected_parent_layer,
     );
@@ -240,13 +238,6 @@ fn init(app: &Application) {
     transparent_circle.set_position_xy(Vector2(200.0, -150.0));
     scroll_area.content().add_child(&transparent_circle);
     std::mem::forget(transparent_circle);
-
-    let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(0.0, 100.0));
-    scroll_area.resize(Vector2(170.0, 400.0));
-    scroll_area.set_content_width(150.0);
-    scroll_area.set_content_height(2000.0);
-    app.display.add_child(&scroll_area);
 
     let selection = selection_box::View::new(&app.logger);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));

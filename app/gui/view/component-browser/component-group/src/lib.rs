@@ -89,7 +89,7 @@ pub mod background {
     ensogl_core::define_shape_system! {
         below = [list_view::background];
         (style:Style, color:Vector4) {
-            let color = Var::<color::Rgba>::from(color::Rgba::transparent());
+            let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
         }
     }
@@ -374,21 +374,21 @@ pub struct Layers {
 }
 
 impl Layers {
+    /// Constructor.
     pub fn new(
         logger: &Logger,
-        camera: &Camera2d,
         normal_parent_layer: &layer::Layer,
         selected_parent_layer: &layer::Layer,
     ) -> Self {
-        let normal = LayersInner::new(logger, camera, normal_parent_layer);
-        let selected = LayersInner::new(logger, camera, selected_parent_layer);
+        let normal = LayersInner::new(logger, normal_parent_layer);
+        let selected = LayersInner::new(logger, selected_parent_layer);
 
         Self { normal, selected }
     }
 }
 
 #[derive(Debug, Clone, CloneRef)]
-pub struct LayersInner {
+struct LayersInner {
     background:  layer::Layer,
     text:        layer::Layer,
     header:      layer::Layer,
@@ -398,13 +398,14 @@ pub struct LayersInner {
 impl LayersInner {
     /// Constructor.
     ///
-    /// A `camera` will be used to render all layers. Layers will be attached to a `parent_layer` as
-    /// sublayers.
-    pub fn new(logger: &Logger, camera: &Camera2d, parent_layer: &layer::Layer) -> Self {
-        let background = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let header = layer::Layer::new_with_cam(logger.clone_ref(), camera);
-        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), camera);
+    /// Layers will be attached to a `parent_layer` as
+    /// sublayers. TODO: say about camera.
+    pub fn new(logger: &Logger, parent_layer: &layer::Layer) -> Self {
+        let camera = parent_layer.camera();
+        let background = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
 
         background.add_sublayer(&text);
         background.add_sublayer(&header);
@@ -454,10 +455,11 @@ impl component::Model for Model {
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
         let selected_background = background::View::new(&logger);
-        selected_background.color.set(color::Rgba(0.8, 0.7, 0.6, 1.0).into());
+        let selected_color = color::Rgba(0.8, 0.7, 0.6, 1.0);
+        selected_background.color.set(selected_color.into());
         let header_background = header_background::View::new(&logger);
         let selected_header_background = header_background::View::new(&logger);
-        selected_header_background.color.set(color::Rgba::red().into());
+        selected_header_background.color.set(selected_color.into());
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
@@ -468,7 +470,7 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         selected_entries.set_style_prefix(entry::STYLE_PATH);
-        selected_entries.set_background_color(color::Rgba::red());
+        selected_entries.set_background_color(HOVER_COLOR);
         selected_entries.show_background_shadow(false);
         selected_entries.set_background_corners_radius(0.0);
         selected_entries.hide_selection();

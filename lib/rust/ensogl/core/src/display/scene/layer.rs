@@ -955,7 +955,7 @@ impl Masked {
     pub fn new(logger: &Logger, camera: &Camera2d) -> Self {
         let masked_layer = Layer::new_with_cam(logger.sub("MaskedLayer"), camera);
         let mask_layer = Layer::new_with_cam(logger.sub("MaskLayer"), camera);
-        //masked_layer.set_mask(&mask_layer);
+        masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }
 }
