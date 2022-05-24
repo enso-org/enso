@@ -58,7 +58,7 @@ impl QualifiedNameToIdMap {
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
-            event!(WARN, "An existing suggestion entry id at {path:?} was overwritten with {id}.");
+            event!(WARN, "An existing suggestion entry id at {path} was overwritten with {id}.");
         }
     }
 
@@ -68,7 +68,7 @@ impl QualifiedNameToIdMap {
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, None);
         if old_value.is_none() {
             let msg = format!(
-                "Could not remove a suggestion entry id at {path:?} because it does not exist."
+                "Could not remove a suggestion entry id at {path} because it does not exist."
             );
             event!(WARN, "{msg}");
         }
