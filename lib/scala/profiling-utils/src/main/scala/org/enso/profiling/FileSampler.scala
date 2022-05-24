@@ -18,16 +18,6 @@ final class FileSampler(output: File) extends MethodsSampler {
   private val sampler: Sampler         = Sampler.createSampler(getClass.getSimpleName)
   private var samplingStarted: Boolean = false
 
-  def getSiblingFile(ext: String): File = {
-    val fileName       = output.getName
-    val extensionIndex = fileName.lastIndexOf(".")
-    val newName =
-      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
-      else fileName + ext
-
-    new File(output.getParent, newName)
-  }
-
   /** @inheritdoc */
   def start(): Unit =
     this.synchronized {
