@@ -21,5 +21,6 @@
 // ==============
 
 pub use debug_scene_component_group as component_group;
+pub use debug_scene_icons as icons;
 pub use debug_scene_interface as interface;
 pub use debug_scene_visualization as visualization;
