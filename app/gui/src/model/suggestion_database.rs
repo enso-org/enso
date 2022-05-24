@@ -731,7 +731,7 @@ mod test {
     fn lookup_and_verify_result_name(db: &SuggestionDatabase, fully_qualified_name: &str) {
         let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
         assert!(lookup.is_some());
-        let name = fully_qualified_name.rsplit('.').next().unwrap();
+        let name = fully_qualified_name.rsplit(ACCESS).next().unwrap();
         assert_eq!(lookup.unwrap().name, name);
     }
 
