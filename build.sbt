@@ -273,7 +273,12 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     syntax.jvm,
-    testkit
+    testkit,
+    `std-base`,
+    `std-database`,
+    `std-google-api`,
+    `std-image`,
+    `std-table`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
