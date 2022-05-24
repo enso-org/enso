@@ -44,7 +44,6 @@
 #![feature(assert_matches)]
 #![feature(cell_filter_map)]
 #![feature(hash_drain_filter)]
-#![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -83,7 +83,7 @@ impl<'a> FromIterator<&'a str> for QualifiedName {
 
 impl<'a> IntoIterator for &'a QualifiedName {
     type Item = &'a QualifiedNameSegment;
-    type IntoIter = impl Iterator<Item = Self::Item>;
+    type IntoIter = std::slice::Iter<'a, QualifiedNameSegment>;
     fn into_iter(self) -> Self::IntoIter {
         self.segments.iter()
     }
