@@ -114,11 +114,8 @@
 //!
 //! ```
 //! # use enso_profiler as profiler;
-//! fn root_objective_that_starts_at_time_origin() {
-//!     let _profiler = profiler::objective_with_same_start!(
-//!         profiler::APP_LIFETIME,
-//!         "root_objective_that_starts_at_time_origin"
-//!     );
+//! fn root_objective() {
+//!     let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "root_objective");
 //!     // ...
 //! }
 //! ```
@@ -127,12 +124,6 @@
 //!
 //! The profiler constructor macros require a parent. To create a *root profiler*, specify the
 //! special value [`APP_LIFETIME`] as the parent.
-//!
-//! ### Inheriting a start time
-//!
-//! Sometimes, multiple measurements need to start at the same time. To support this, an alternate
-//! set of constructors create profilers that inherit their start time from the specified parent,
-//! e.g. [`objective_with_same_start!`] in the example above.
 
 // === Features ===
 #![feature(test)]
