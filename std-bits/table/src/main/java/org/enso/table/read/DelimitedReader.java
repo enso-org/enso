@@ -19,29 +19,16 @@ import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
+import org.enso.table.parsing.problems.NoOpProblemAggregator;
 import org.enso.table.parsing.problems.ParsingProblem;
-import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
-  /** Specifies how to set the headers for the returned table. */
-  public enum HeaderBehavior {
-    /** Tries to infer if the headers are present in the file. */
-    INFER,
-
-    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
-    USE_FIRST_ROW_AS_HEADERS,
-
-    /**
-     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
-     */
-    GENERATE_HEADERS
-  }
-
   private static final String COLUMN_NAME = "Column";
-
+  private static final char noQuoteCharacter = '\0';
+  private static final long invalidRowsLimit = 10;
   private final char delimiter;
   private final char quoteCharacter;
   private final char quoteEscapeCharacter;
@@ -55,8 +42,12 @@ public class DelimitedReader {
   private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
-
-  private static final char noQuoteCharacter = '\0';
+  private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
+  private long invalidRowsCount = 0;
+  private long targetTableIndex = 0;
+  /** The line number of the start of the current row in the input file. */
+  private long currentLine = 0;
+  private StringStorageBuilder[] builders = null;
 
   /**
    * Creates a new reader.
@@ -181,9 +172,6 @@ public class DelimitedReader {
     reportProblem(new MismatchedQuote());
   }
 
-  private long invalidRowsCount = 0;
-  private static final long invalidRowsLimit = 10;
-
   private void reportInvalidRow(long source_row, Long table_index, String[] row) {
     if (invalidRowsCount < invalidRowsLimit) {
       reportProblem(new InvalidRow(source_row, table_index, row));
@@ -209,13 +197,6 @@ public class DelimitedReader {
       warnings.add(problem);
     }
   }
-
-  private long targetTableIndex = 0;
-
-  /** The line number of the start of the current row in the input file. */
-  private long currentLine = 0;
-
-  private StringStorageBuilder[] builders = null;
 
   /**
    * Reads the next row and updates the current line accordingly.
@@ -281,10 +262,14 @@ public class DelimitedReader {
     return headerNames;
   }
 
-  /** Checks if the given cell contains just plain text that is not null and is not convertible to any more specific type according to the {@code cellTypeGuesser}. This is used for checking the types when inferring the headers. */
+  /**
+   * Checks if the given cell contains just plain text that is not null and is not convertible to
+   * any more specific type according to the {@code cellTypeGuesser}. This is used for checking the
+   * types when inferring the headers.
+   */
   private boolean isPlainText(String cell) {
     if (cell == null) return false;
-    Object parsed = cellTypeGuesser.parseSingleValue(cell, new ProblemAggregator(null));
+    Object parsed = cellTypeGuesser.parseSingleValue(cell, noOpProblemAggregator);
     return parsed instanceof String;
   }
 
@@ -372,5 +357,19 @@ public class DelimitedReader {
     for (int i = 0; i < count; i++) {
       builders[i] = new StringStorageBuilder();
     }
+  }
+
+  /** Specifies how to set the headers for the returned table. */
+  public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
+    INFER,
+
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
+    USE_FIRST_ROW_AS_HEADERS,
+
+    /**
+     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
+     */
+    GENERATE_HEADERS
   }
 }

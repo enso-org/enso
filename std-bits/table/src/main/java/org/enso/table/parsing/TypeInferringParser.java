@@ -4,6 +4,8 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregatorImpl;
+import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
 import org.enso.table.read.WithProblems;
 
 /**
@@ -26,8 +28,9 @@ public class TypeInferringParser extends DatatypeParser {
 
   @Override
   public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
     for (IncrementalDatatypeParser parser : baseParsers) {
-      ProblemAggregator internal = new ProblemAggregator(null);
+      internal.reset();
       Object result = parser.parseSingleValue(text, internal);
       if (!internal.hasProblems()) {
         return result;
@@ -42,7 +45,7 @@ public class TypeInferringParser extends DatatypeParser {
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
-      var aggregator = new ProblemAggregator(columnName);
+      var aggregator = new ProblemAggregatorImpl(columnName);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
         String cell = sourceStorage.getItem(i);
