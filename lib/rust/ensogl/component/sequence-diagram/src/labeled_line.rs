@@ -58,7 +58,7 @@ impl component::Frp<Model> for Frp {
     fn init(api: &Self::Private, app: &Application, model: &Model, _style: &StyleWatchFrp) {
         let network = &api.network;
         let line = &model.line.events;
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             eval api.input.set_size((size) model.set_size(*size));
             eval api.input.set_color((color) model.set_color(*color));
             eval api.input.set_cap((direction) model.set_cap(*direction));

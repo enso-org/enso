@@ -1467,12 +1467,23 @@ name = "debug-scene-component-group"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
+ "enso-text",
  "ensogl-core",
  "ensogl-hardcoded-theme",
  "ensogl-list-view",
  "ensogl-scroll-area",
  "ensogl-selector",
  "ensogl-text-msdf-sys",
+ "ide-view-component-group",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-icons"
+version = "0.1.0"
+dependencies = [
+ "ensogl",
+ "ensogl-hardcoded-theme",
  "ide-view-component-group",
  "wasm-bindgen",
 ]
@@ -1811,6 +1822,7 @@ name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
  "debug-scene-component-group",
+ "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-visualization",
 ]
@@ -3620,13 +3632,14 @@ name = "ide-view-component-group"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "ensogl-core",
+ "ensogl",
  "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-label",
  "ensogl-list-view",
  "ensogl-shadow",
  "ensogl-text",
+ "failure",
 ]
 
 [[package]]
