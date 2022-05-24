@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../../../lib/rust/frp" }
+enso-text = { path = "../../../../../lib/rust/text" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
