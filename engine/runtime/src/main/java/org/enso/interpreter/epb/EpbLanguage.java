@@ -1,7 +1,6 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 import org.enso.interpreter.epb.node.ForeignEvalNode;
@@ -52,8 +51,8 @@ public class EpbLanguage extends TruffleLanguage<EpbContext> {
   @Override
   protected CallTarget parse(ParsingRequest request) {
     EpbParser.Result code = EpbParser.parse(request.getSource());
-    return Truffle.getRuntime()
-        .createCallTarget(ForeignEvalNode.build(this, code, request.getArgumentNames()));
+    final ForeignEvalNode rootNode = ForeignEvalNode.build(this, code, request.getArgumentNames());
+    return rootNode.getCallTarget();
   }
 
   @Override

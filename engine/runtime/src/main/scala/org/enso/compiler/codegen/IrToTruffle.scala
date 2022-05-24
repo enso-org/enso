@@ -1,6 +1,5 @@
 package org.enso.compiler.codegen
 
-import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
@@ -329,7 +328,7 @@ class IrToTruffle(
               cons,
               methodDef.methodName.name
             )
-            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
             Right(
               Some(
@@ -401,7 +400,7 @@ class IrToTruffle(
               toType,
               methodDef.methodName.name
             )
-            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+            val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
             new RuntimeFunction(
               callTarget,
@@ -513,9 +512,7 @@ class IrToTruffle(
   private def generateEnsoProjectMethod(): Unit = {
     val name = BindingsMap.Generated.ensoProjectMethodName
     val pkg  = context.getPackageOf(moduleScope.getModule.getSourceFile)
-    val body = Truffle.getRuntime.createCallTarget(
-      new EnsoProjectNode(language, context, pkg)
-    )
+    val body = new EnsoProjectNode(language, context, pkg).getCallTarget
     val schema = new FunctionSchema(
       new ArgumentDefinition(
         0,
@@ -530,9 +527,7 @@ class IrToTruffle(
   private def generateReExportBindings(module: IR.Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
       new RuntimeFunction(
-        Truffle.getRuntime.createCallTarget(
-          new QualifiedAccessorNode(language, constructor)
-        ),
+        new QualifiedAccessorNode(language, constructor).getCallTarget,
         null,
         new FunctionSchema(
           new ArgumentDefinition(
@@ -716,7 +711,7 @@ class IrToTruffle(
           currentVarName
         )
 
-        val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
+        val callTarget = defaultRootNode.getCallTarget
         setLocation(CreateThunkNode.build(callTarget), block.location)
       } else {
         val statementExprs = block.expressions.map(this.run).toArray
@@ -1339,7 +1334,7 @@ class IrToTruffle(
         makeSection(location),
         scopeName
       )
-      val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
+      val callTarget = fnRootNode.getCallTarget
 
       val expr = CreateFunctionNode.build(callTarget, bodyBuilder.args())
 
@@ -1507,16 +1502,17 @@ class IrToTruffle(
               .map(loc => source.createSection(loc.start, loc.length))
               .orNull
 
-            val callTarget = Truffle.getRuntime.createCallTarget(
-              ClosureRootNode.build(
-                language,
-                childScope,
-                moduleScope,
-                argumentExpression,
-                section,
-                displayName
-              )
-            )
+            val callTarget =
+              ClosureRootNode
+                .build(
+                  language,
+                  childScope,
+                  moduleScope,
+                  argumentExpression,
+                  section,
+                  displayName
+                )
+                .getCallTarget
 
             CreateThunkNode.build(callTarget)
           }
@@ -1594,7 +1590,7 @@ class IrToTruffle(
             )
 
             CreateThunkNode.build(
-              Truffle.getRuntime.createCallTarget(defaultRootNode)
+              defaultRootNode.getCallTarget
             )
           } else {
             defaultExpression

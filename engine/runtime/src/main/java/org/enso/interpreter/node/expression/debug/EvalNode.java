@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.debug;
 
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -76,7 +75,7 @@ public abstract class EvalNode extends BaseNode {
     }
     ClosureRootNode framedNode =
         ClosureRootNode.build(context.getLanguage(), localScope, moduleScope, expr, null, "<eval>");
-    return Truffle.getRuntime().createCallTarget(framedNode);
+    return framedNode.getCallTarget();
   }
 
   @Specialization(
