@@ -214,6 +214,7 @@
   signatures][3444]
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
+- [Avoid needless concatenations of warning/error messages][3465]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -234,6 +235,7 @@
 [3444]: https://github.com/enso-org/enso/pull/3444
 [3453]: https://github.com/enso-org/enso/pull/3453
 [3454]: https://github.com/enso-org/enso/pull/3454
+[3465]: https://github.com/enso-org/enso/pull/3465
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
