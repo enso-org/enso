@@ -73,9 +73,11 @@ pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
 }
 
-impl<'a> FromIterator<&'a str> for QualifiedName {
-    fn from_iter<T>(iter: T) -> Self
-    where T: IntoIterator<Item = &'a str> {
+impl<T> FromIterator<T> for QualifiedName
+where T: Into<QualifiedNameSegment>
+{
+    fn from_iter<I>(iter: I) -> Self
+    where I: IntoIterator<Item = T> {
         let segments = iter.into_iter().map(|s| s.into()).collect();
         Self { segments }
     }
