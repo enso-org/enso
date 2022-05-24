@@ -64,13 +64,29 @@ im_string_newtype! {
 }
 
 /// A fully qualified name of an [`Entry`].
-///
-/// A string representation of a fully qualified name can be built by joining the
-/// [`QualifiedName::segments`] using an [`ast::opr::predefined::ACCESS`] character.
 #[derive(Debug, Default, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
+}
+
+impl From<QualifiedName> for String {
+    fn from(name: QualifiedName) -> Self {
+        String::from(&name)
+    }
+}
+
+impl From<&QualifiedName> for String {
+    fn from(name: &QualifiedName) -> Self {
+        name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
+    }
+}
+
+impl Display for QualifiedName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = String::from(self);
+        Display::fmt(&text, f)
+    }
 }
 
 impl<T> FromIterator<T> for QualifiedName
@@ -721,7 +737,7 @@ mod test {
     /// different values of [`Entry::kind`]. The entries are constructed from mock Language Server
     /// responses.
     #[test]
-    fn qualified_name() {
+    fn qualified_name_of_entry() {
         fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
             let entry = Entry::from_ls_entry(ls_entry).unwrap();
             let entry_qualified_name = entry.qualified_name();
@@ -773,5 +789,13 @@ mod test {
             external_id: None,
         };
         expect(function, "NewProject.NewModule.testFunction1");
+    }
+
+    /// Test the results of converting a [`QualifiedName`] to a string using various methods.
+    #[test]
+    fn qualified_name_to_string() {
+        let qualified_name = QualifiedName::from_iter(&["Foo", "Bar"]);
+        assert_eq!(qualified_name.to_string(), "Foo.Bar".to_string());
+        assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
     }
 }
