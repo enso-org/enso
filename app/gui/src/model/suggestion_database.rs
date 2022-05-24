@@ -269,8 +269,8 @@ impl SuggestionDatabase {
                         }
                         None => {
                             let msg = format!(
-                                "Received a suggestion database update event with the 'Remove' \
-                                kind for a nonexistent entry id: {id}."
+                                "Received a suggestion database 'Remove' event for a nonexistent \
+                                entry id: {id}."
                             );
                             error!(self.logger, "{msg}");
                         }
