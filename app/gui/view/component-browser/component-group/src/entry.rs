@@ -119,6 +119,7 @@ struct CurrentIcon {
 /// A visual representation of a [`Model`].
 #[derive(Clone, CloneRef, Debug)]
 pub struct View {
+    network:           frp::Network,
     logger:            Logger,
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
@@ -133,13 +134,13 @@ impl list_view::Entry for View {
     type Params = Params;
 
     fn new(app: &Application, style_prefix: &style::Path, Params { colors }: &Params) -> Self {
-        let logger = Logger::new("component-group::Entry");
+        let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         display_object.add_child(&label);
 
-        let network = &label.inner.network;
+        let network = frp::Network::new("component_group::Entry");
         let style = &label.inner.style_watch;
         let icon_text_gap = style.get_number(theme::icon_text_gap);
         frp::extend! { network
@@ -168,6 +169,7 @@ impl list_view::Entry for View {
         init.emit(());
         Self {
             logger,
+            network,
             display_object,
             icon,
             max_width_px,
