@@ -215,8 +215,7 @@ impl SuggestionDatabase {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
                 Ok(entry) => {
-                    let qualified_name = entry.qualified_name();
-                    qualified_name_to_id_map.set_and_warn_if_existed(&qualified_name, id);
+                    qualified_name_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
                     entries.insert(id, Rc::new(entry));
                 }
                 Err(err) => {
@@ -255,8 +254,7 @@ impl SuggestionDatabase {
             match update {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
-                        let qualified_name = Entry::qualified_name(&entry);
-                        qn_to_id_map.set_and_warn_if_existed(&qualified_name, id);
+                        qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -267,8 +265,7 @@ impl SuggestionDatabase {
                     let removed = entries.remove(&id);
                     match removed {
                         Some(entry) => {
-                            let qualified_name = entry.qualified_name();
-                            qn_to_id_map.remove_and_warn_if_did_not_exist(&qualified_name);
+                            qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
                         }
                         None => {
                             let msg = format!(
@@ -282,11 +279,9 @@ impl SuggestionDatabase {
                 entry::Update::Modify { id, modification, .. } => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry = Rc::make_mut(old_entry);
-                        let old_qualified_name = entry.qualified_name();
-                        qn_to_id_map.remove_and_warn_if_did_not_exist(&old_qualified_name);
+                        qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
                         let errors = entry.apply_modifications(*modification);
-                        let new_qualified_name = entry.qualified_name();
-                        qn_to_id_map.set_and_warn_if_existed(&new_qualified_name, id);
+                        qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);
                         for error in errors {
                             error!(
                                 self.logger,
