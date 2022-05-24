@@ -10,5 +10,5 @@ public interface DatatypeParser {
    * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
    * containing the parsed elements.
    */
-  WithProblems<Storage> parseColumn(StringStorage sourceStorage);
+  WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage);
 }

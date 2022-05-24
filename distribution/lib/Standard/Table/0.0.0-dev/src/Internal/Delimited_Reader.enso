@@ -6,6 +6,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Table.Error as Table_Errors import Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.ParsingFailedException
@@ -17,6 +18,10 @@ polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
+
+polyglot java import org.enso.table.parsing.IdentityParser
+polyglot java import org.enso.table.parsing.TypeInferringParser
+polyglot java import org.enso.table.read.QuoteStrippingParser
 
 ## Reads a delimited file according to the provided format.
 
@@ -69,34 +74,39 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
         Nothing -> -1
         Integer -> format.row_limit
         _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
-    if format.parse_values then Errors.unimplemented "Parsing values is not implemented yet." else
-        translate_parsing_problem java_problem =
-            if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
-                if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
-                    if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
-                        java_problem
 
-        translate_illegal_argument caught_panic =
-            Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-        handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
+    translate_parsing_problem java_problem =
+        if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
+            if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
+                if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
+                    java_problem
 
-        translate_parsing_failure caught_panic =
-            Error.throw (translate_parsing_problem caught_panic.payload.cause.problem)
-        handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
+    translate_illegal_argument caught_panic =
+        Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
 
-        translate_parsing_exception caught_panic =
-            cause = caught_panic.payload.cause.getCause
-            if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
-                Error.throw (Parser_Error caught_panic.payload)
-        handle_parsing_exception = Panic.catch TextParsingException handler=translate_parsing_exception
+    translate_parsing_failure caught_panic =
+        Error.throw (translate_parsing_problem caught_panic.payload.cause.problem)
+    handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
 
-        java_charset = format.encoding.to_java_charset
-        handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
-            Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
-                warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-                reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns format.keep_invalid_rows warnings_as_errors
-                result = Table.Table reader.read
-                decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-                parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
-                problems = decoding_problems + parsing_problems
-                on_problems.attach_problems_after result problems
+    translate_parsing_exception caught_panic =
+        cause = caught_panic.payload.cause.getCause
+        if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
+            Error.throw (Parser_Error caught_panic.payload)
+    handle_parsing_exception = Panic.catch TextParsingException handler=translate_parsing_exception
+
+    java_charset = format.encoding.to_java_charset
+    handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
+        Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+            warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+            base_parser = if format.quote.is_nothing then IdentityParser.new else
+                QuoteStrippingParser.new format.quote
+            value_parser = if format.value_formatter.is_nothing then base_parser else
+                wrapped = format.value_formatter.wrap_base_parser base_parser
+                TypeInferringParser.new format.value_formatter.get_parsers.to_array wrapped
+            reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser format.keep_invalid_rows warnings_as_errors
+            result = Table.Table reader.read
+            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
+            parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
+            problems = decoding_problems + parsing_problems
+            on_problems.attach_problems_after result problems
