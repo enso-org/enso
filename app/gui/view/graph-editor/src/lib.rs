@@ -3938,6 +3938,8 @@ pub mod automation {
     // =====================
 
     // FIXME: This functionality overlaps with the [`tests::add_node_by`] functions above.
+    //  I[KW] cannot currently refactor it, because integration tests aren't working on my machine.
+    //  (See: https://www.pivotaltracker.com/story/show/182278293)
 
     /// Set up a new node created by the given function.
     pub async fn add_node(
