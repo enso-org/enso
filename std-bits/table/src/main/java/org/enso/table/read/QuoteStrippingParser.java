@@ -29,12 +29,12 @@ public class QuoteStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     return QuoteHelper.stripQuotes(quoteCharacter, problemAggregator::reportMismatchedQuote, text);
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return new StringBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return new StringBuilder(capacity);
   }
 }

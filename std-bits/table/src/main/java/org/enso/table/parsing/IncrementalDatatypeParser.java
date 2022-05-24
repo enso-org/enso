@@ -12,20 +12,7 @@ import org.enso.table.read.WithProblems;
  * <p>It specifies the strategy for parsing text cells into some target type, reporting issues and
  * building the resulting table column.
  */
-public abstract class IncrementalDatatypeParser implements DatatypeParser {
-
-  /**
-   * Parses a single cell.
-   *
-   * @param text the text contents to parse, it will never be null in the default implementation -
-   *     null values are just passed as-is without any parsing attempts by default
-   * @param problemAggregator an instance of the problem aggregator, used for reporting parsing
-   *     problems
-   * @return the parsed value or null if the value could not be parsed or could be parsed but should
-   *     be treated as missing value
-   */
-  public abstract Object parseSingleValue(String text, ProblemAggregator problemAggregator);
-
+public abstract class IncrementalDatatypeParser extends DatatypeParser {
   /**
    * Creates a new column builder expecting the specific datatype, with a specified capacity.
    *
@@ -36,9 +23,12 @@ public abstract class IncrementalDatatypeParser implements DatatypeParser {
    * builder returned here expects - it should never return a value that cannot be accepted by the
    * builder.
    */
-  protected abstract Builder makeBuilderWithCapacity(long capacity);
+  protected abstract Builder makeBuilderWithCapacity(int capacity);
 
-  @Override
+  /**
+   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * containing the parsed elements.
+   */
   public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
     Builder builder = makeBuilderWithCapacity(sourceStorage.size());
     var aggregator = new ProblemAggregator(columnName);

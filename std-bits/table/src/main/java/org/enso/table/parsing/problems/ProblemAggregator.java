@@ -14,7 +14,7 @@ public class ProblemAggregator {
   private final List<String> invalidFormatCells = new ArrayList<>();
   private final List<String> leadingZerosCells = new ArrayList<>();
   private int mismatchedQuotes = 0;
-  private final String relatedColumnName;
+  public final String relatedColumnName;
 
   public ProblemAggregator(String relatedColumnName) {
     this.relatedColumnName = relatedColumnName;

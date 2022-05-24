@@ -22,7 +22,6 @@ polyglot java import java.io.InputStream
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.QuoteStrippingParser
-polyglot java import org.enso.table.read.CellTypeGuesser
 
 ## Reads a delimited file according to the provided format.
 
@@ -107,7 +106,7 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
                 TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
             cell_type_guesser = if format.headers != Infer then Nothing else
                 formatter = format.value_formatter.if_nothing Data_Formatter
-                CellTypeGuesser.new formatter.get_specific_type_parsers.to_array
+                TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
             reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
             result = Table.Table reader.read
             decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error

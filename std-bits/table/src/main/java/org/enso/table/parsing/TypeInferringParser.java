@@ -13,7 +13,7 @@ import org.enso.table.read.WithProblems;
  * <p>If all parsers from the set reported problems, the fallback parser is used and its result is
  * returned regardless of any problems.
  */
-public class TypeInferringParser implements DatatypeParser {
+public class TypeInferringParser extends DatatypeParser {
 
   private final IncrementalDatatypeParser[] baseParsers;
   private final DatatypeParser fallbackParser;
@@ -22,6 +22,19 @@ public class TypeInferringParser implements DatatypeParser {
       IncrementalDatatypeParser[] baseParsers, DatatypeParser fallbackParser) {
     this.baseParsers = baseParsers;
     this.fallbackParser = fallbackParser;
+  }
+
+  @Override
+  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    for (IncrementalDatatypeParser parser : baseParsers) {
+      ProblemAggregator internal = new ProblemAggregator(null);
+      Object result = parser.parseSingleValue(text, internal);
+      if (!internal.hasProblems()) {
+        return result;
+      }
+    }
+
+    return fallbackParser.parseSingleValue(text, problemAggregator);
   }
 
   @Override

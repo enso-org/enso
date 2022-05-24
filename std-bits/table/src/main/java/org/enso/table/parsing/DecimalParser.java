@@ -38,7 +38,7 @@ public class DecimalParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     if (thousandsSeparator != null
         && (text.startsWith(thousandsSeparator) || text.endsWith(thousandsSeparator))) {
       problemAggregator.reportInvalidFormat(text);
@@ -84,7 +84,7 @@ public class DecimalParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return NumericBuilder.createDoubleBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return NumericBuilder.createDoubleBuilder(capacity);
   }
 }

@@ -15,10 +15,12 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.parsing.DatatypeParser;
+import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.ParsingProblem;
+import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 
 /** A helper for reading delimited (CSV-like) files. */
@@ -50,7 +52,7 @@ public class DelimitedReader {
   private final List<ParsingProblem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final DatatypeParser valueParser;
-  private final CellTypeGuesser cellTypeGuesser;
+  private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
 
@@ -92,7 +94,7 @@ public class DelimitedReader {
       long rowLimit,
       int maxColumns,
       DatatypeParser valueParser,
-      CellTypeGuesser cellTypeGuesser,
+      TypeInferringParser cellTypeGuesser,
       boolean keepInvalidRows,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
@@ -279,6 +281,13 @@ public class DelimitedReader {
     return headerNames;
   }
 
+  /** Checks if the given cell contains just plain text that is not null and is not convertible to any more specific type according to the {@code cellTypeGuesser}. This is used for checking the types when inferring the headers. */
+  private boolean isPlainText(String cell) {
+    if (cell == null) return false;
+    Object parsed = cellTypeGuesser.parseSingleValue(cell, new ProblemAggregator(null));
+    return parsed instanceof String;
+  }
+
   /** Reads the input stream and returns a Table. */
   public Table read() {
     List<String> headerNames;
@@ -309,8 +318,8 @@ public class DelimitedReader {
           currentRow = null;
         } else {
           assert cellTypeGuesser != null;
-          boolean firstAllText = Arrays.stream(firstRow).allMatch(cellTypeGuesser::isPlainText);
-          boolean secondAllText = Arrays.stream(secondRow).allMatch(cellTypeGuesser::isPlainText);
+          boolean firstAllText = Arrays.stream(firstRow).allMatch(this::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow).allMatch(this ::isPlainText);
           boolean useFirstRowAsHeader = firstAllText && !secondAllText;
           if (useFirstRowAsHeader) {
             headerNames = headersFromRow(firstRow);
