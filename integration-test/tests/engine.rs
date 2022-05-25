@@ -1,13 +1,13 @@
-use engine_protocol::language_server;
 use engine_protocol::language_server::ExplicitCall;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::StackItem;
 use enso_gui::controller::project::MAIN_DEFINITION_NAME;
 use enso_gui::executor::web::EventLoopExecutor;
 use enso_gui::initializer::setup_global_executor;
-use enso_integration_test::prelude::*;
+use enso_gui::integration_test::prelude::*;
 use enso_web::sleep;
 use std::time::Duration;
+use wasm_bindgen_test::wasm_bindgen_test;
 
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
