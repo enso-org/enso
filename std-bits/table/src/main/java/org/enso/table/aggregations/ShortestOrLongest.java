@@ -7,7 +7,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/** * Aggregate Column finding the longest or shortest string in a group. */
+/** Aggregate Column finding the longest or shortest string in a group. */
 public class ShortestOrLongest extends Aggregator {
   private final Storage storage;
   private final int minOrMax;

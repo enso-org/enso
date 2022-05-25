@@ -6,7 +6,7 @@ import org.enso.table.data.table.Column;
 import java.util.List;
 
 /**
- * * Aggregate Column counting the number of (not-)null entries in a group. If `isNothing` is true,
+ * Aggregate Column counting the number of (not-)null entries in a group. If `isNothing` is true,
  * counts null entries. If `isNothing` is false, counts non-null entries.
  */
 public class CountNothing extends Aggregator {

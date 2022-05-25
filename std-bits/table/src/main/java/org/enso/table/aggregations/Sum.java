@@ -6,7 +6,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/** * Aggregate Column computing the total value in a group. */
+/** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
   private final Storage storage;
 

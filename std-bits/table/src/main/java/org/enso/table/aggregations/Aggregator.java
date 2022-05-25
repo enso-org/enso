@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** * Interface used to define aggregate columns. */
+/** Interface used to define aggregate columns. */
 public abstract class Aggregator {
   private final String name;
   private final int type;
@@ -20,7 +20,7 @@ public abstract class Aggregator {
   }
 
   /**
-   * *
+   * Return name of the new column
    *
    * @return Name of the new column.
    */
@@ -29,7 +29,7 @@ public abstract class Aggregator {
   }
 
   /**
-   * *
+   * Return type of the column
    *
    * @return The type of the new column.
    */
@@ -42,7 +42,7 @@ public abstract class Aggregator {
   }
 
   /**
-   * * Compute the value for a set of rows
+   * Compute the value for a set of rows
    *
    * @param indexes - indexes to the rows in the source table to aggregate on
    * @return aggregated value
@@ -52,7 +52,7 @@ public abstract class Aggregator {
   }
 
   /**
-   * * Compute the value for a set of rows
+   * Compute the value for a set of rows
    *
    * @param indexes - indexes to the rows in the source table to aggregate on
    * @return aggregated value

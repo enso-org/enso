@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
+ * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
  * does count when all items are null.
  */
 public class CountDistinct extends Aggregator {

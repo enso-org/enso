@@ -6,7 +6,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/** * Aggregate Column computing the mean value in a group. */
+/** Aggregate Column computing the mean value in a group. */
 public class Mean extends Aggregator {
   private static class Calculation {
     public long count;
