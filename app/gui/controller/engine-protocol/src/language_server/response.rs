@@ -1,11 +1,13 @@
 //! Helper structures wrapping RPC method result types.
-use crate::prelude::*;
 
 use crate::language_server::types::*;
+use crate::prelude::*;
+
 use crate::types::Sha3_224;
 
 use serde::Deserialize;
 use serde::Serialize;
+
 
 
 /// Response of `init_protocol_connection` method.
