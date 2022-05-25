@@ -234,9 +234,8 @@ impl SuggestionDatabase {
                 entry::Update::Remove { id } => {
                     let removed = entries.remove(&id);
                     match removed {
-                        Some(entry) => {
-                            qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name());
-                        }
+                        Some(entry) =>
+                            qn_to_id_map.remove_and_warn_if_did_not_exist(&entry.qualified_name()),
                         None => {
                             let msg = format!(
                                 "Received a suggestion database 'Remove' event for a nonexistent \
