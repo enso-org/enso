@@ -17,12 +17,20 @@ public class Rank {
   }
 
   public static double[] rank(Object[] input, Comparator<Object> comparator, Method method)
+      throws NullPointerException, ClassCastException
   {
     Comparator<ValueWithIndex> tupleComparator = (a, b) -> {
       int c = comparator.compare(a.value, b.value);
-      return c == 0 ? Integer.compare(a.index, b.index) : c;
+      return c == 0 ? Integer.compare(a.index, b.index) : -c;
     };
-    ValueWithIndex[] tuples = IntStream.range(0, input.length).mapToObj(i -> new ValueWithIndex(input[i], i)).toArray(ValueWithIndex[]::new);
+
+    ValueWithIndex[] tuples = new ValueWithIndex[input.length];
+    for(int i = 0; i < input.length; i++) {
+      if (input[i] == null) {
+        throw new NullPointerException("Value is Nothing at index " + i);
+      }
+      tuples[i] = new ValueWithIndex(input[i], i);
+    }
     Arrays.sort(tuples, tupleComparator);
 
     double[] output = new double[input.length];

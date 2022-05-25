@@ -3,11 +3,16 @@ from Standard.Base.Data.Vector import Empty_Error
 
 import Standard.Base.Data.Ordering.Comparator
 
+import Standard.Base.Data.Statistics.Rank_Method
+
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.CountMinMax
 polyglot java import org.enso.base.statistics.CorrelationStats
 polyglot java import org.enso.base.statistics.Rank
+
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.ClassCastException
+polyglot java import java.lang.NullPointerException
 
 type Statistic
     ## PRIVATE
@@ -73,23 +78,6 @@ type Statistic
        Arguments:
        - predicted: the series to compute the r_squared with.
     type R_Squared (predicted:Vector)
-
-
-type Rank_Method
-    ## Use the mean of all ranks for equal values.
-    type Average
-
-    ## Use the lowest of all ranks for equal values.
-    type Minimum
-
-    ## Use the highest of all ranks for equal values.
-    type Maximum
-
-    ## Use same rank value for equal values and next group is
-    type Dense
-
-    ## Equal values are assigned the next rank in order that they occur.
-    type Ordinal
 
 
 ## Compute a single statistic on a vector like object.
@@ -176,21 +164,6 @@ correlation_stats data =
     stats_array = handle_unsupported <| handle_illegal <| CorrelationStats.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
-## Assigns a rank to each value of data, dealing with equal values according to the method.
-
-   Arguments:
-   - data: Input data to rank.
-   - method: Method used to deal with equal values.
-rank_data : Vector -> Rank_Method -> Vector
-rank_data input method=Rank_Method.Average =
-    java_method = case method of
-        Rank_Method.Minimum -> Rank.Method.MINIMUM
-        Rank_Method.Maximum -> Rank.Method.MAXIMUM
-        Rank_Method.Average -> Rank.Method.AVERAGE
-        Rank_Method.Ordinal -> Rank.Method.ORDINAL
-        Rank_Method.Dense -> Rank.Method.DENSE
-    java_ranks = Rank.rank input.to_array Comparator.new java_method
-    Vector.Vector java_ranks
 
 ## Compute a single statistic on the vector.
 
@@ -208,3 +181,26 @@ Vector.Vector.compute statistic=Count =
 Vector.Vector.compute_bulk : [Statistic] -> [Any]
 Vector.Vector.compute_bulk statistics=[Count, Sum] =
     here.compute_bulk this statistics
+
+
+## Assigns a rank to each value of data, dealing with equal values according to the method.
+
+   Arguments:
+   - data: Input data to rank.
+   - method: Method used to deal with equal values.
+rank_data : Vector -> Rank_Method -> Vector
+rank_data input method=Rank_Method.Average =
+    java_method = case method of
+        Rank_Method.Minimum -> Rank.Method.MINIMUM
+        Rank_Method.Maximum -> Rank.Method.MAXIMUM
+        Rank_Method.Average -> Rank.Method.AVERAGE
+        Rank_Method.Ordinal -> Rank.Method.ORDINAL
+        Rank_Method.Dense -> Rank.Method.DENSE
+
+    report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
+    handle_classcast = Panic.catch ClassCastException handler=(Error.throw Vector.Incomparable_Values_Error)
+
+    handle_classcast <| handle_nullpointer <|
+        java_ranks = Rank.rank input.to_array Comparator.new java_method
+        Vector.Vector java_ranks
