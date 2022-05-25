@@ -59,8 +59,8 @@ spec =
 
     Test.group 'XLSX writing' <|
         out = Enso_Project.data / 'out.xlsx'
-        table = Enso_Project.data/'varied_column.csv' . read_csv has_header=False
-        clothes = Enso_Project.data/'clothes.csv' . read_csv
+        table = Enso_Project.data/'varied_column.csv' . read
+        clothes = Enso_Project.data/'clothes.csv' . read
 
         Test.specify 'should write tables to non-existent XLSX files' <|
             out.delete_if_exists

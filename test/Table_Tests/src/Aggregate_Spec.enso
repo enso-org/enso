@@ -18,7 +18,7 @@ all_tests = Test_Selection True True True True True True True True True True
 
 spec =
     file_contents = (Enso_Project.data / "data.csv") . read_text
-    table = Table.from_csv file_contents
+    table = Table.Table.from file_contents
     empty_table = Table.new <| table.columns.map c->[c.name, []]
     materialize = x->x
     here.aggregate_spec "[In-Memory] " table empty_table Table.new materialize is_database=False
