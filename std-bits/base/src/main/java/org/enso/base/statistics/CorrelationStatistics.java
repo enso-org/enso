@@ -3,7 +3,7 @@ package org.enso.base.statistics;
 /**
  * Class to compute covariance and correlations between series.
  */
-public class CorrelationStats {
+public class CorrelationStatistics {
   private long count = 0;
   private double totalX = 0.0;
   private double totalXX = 0.0;
@@ -53,19 +53,19 @@ public class CorrelationStats {
    * @param y Array of Y values
    * @return CorrelationStats object for the 2 series.
    */
-  public static CorrelationStats compute(Double[] x, Double[] y) {
+  public static CorrelationStatistics compute(Double[] x, Double[] y) {
     if (x.length != y.length) {
       throw new IllegalArgumentException("Left and right lengths are not the same.");
     }
 
-    CorrelationStats output = new CorrelationStats();
+    CorrelationStatistics output = new CorrelationStatistics();
     for (int i = 0; i < x.length; i++) {
       output.append(x[i], y[i]);
     }
     return output;
   }
 
-  public static CorrelationStats[][] computeMatrix(Double[][] data) {
+  public static CorrelationStatistics[][] computeMatrix(Double[][] data) {
     int len = data[0].length;
 
     for (int i = 1; i < data.length; i++) {
@@ -74,9 +74,9 @@ public class CorrelationStats {
       }
     }
 
-    CorrelationStats[][] output = new CorrelationStats[data.length][];
+    CorrelationStatistics[][] output = new CorrelationStatistics[data.length][];
     for (int i = 0; i < data.length; i++) {
-      output[i] = new CorrelationStats[data.length];
+      output[i] = new CorrelationStatistics[data.length];
       for (int j = 0; j < data.length; j++) {
         if (j < i) {
           output[i][j] = output[j][i];

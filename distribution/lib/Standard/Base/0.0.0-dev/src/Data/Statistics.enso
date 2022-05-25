@@ -7,7 +7,7 @@ import Standard.Base.Data.Statistics.Rank_Method
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.CountMinMax
-polyglot java import org.enso.base.statistics.CorrelationStats
+polyglot java import org.enso.base.statistics.CorrelationStatistics
 polyglot java import org.enso.base.statistics.Rank
 
 polyglot java import java.lang.IllegalArgumentException
@@ -125,6 +125,9 @@ compute_bulk data statistics=[Count, Sum] =
             Maximum ->
                 if count_min_max_values.comparatorError then (Error.throw Vector.Incomparable_Values_Error) else
                     count_min_max_values.maximum
+            Covariance s -> here.calculate_correlation_statistics data s . covariance
+            Pearson s -> here.calculate_correlation_statistics data s . pearsonCorrelation
+            R_Squared s -> here.calculate_correlation_statistics data s . rSquared
             _ -> stats_array.at i
 
 
@@ -134,7 +137,7 @@ compute_bulk data statistics=[Count, Sum] =
    - data: The input data sets
 covariance_matrix : [Vector] -> [Vector]
 covariance_matrix data =
-    stats_vectors = here.correlation_stats data
+    stats_vectors = here.calculate_correlation_statistics_matrix data
     stats_vectors.map v->(v.map .covariance)
 
 
@@ -144,14 +147,27 @@ covariance_matrix data =
    - data: The input data sets
 pearson_correlation : [Vector] -> [Vector]
 pearson_correlation data =
-    stats_vectors = here.correlation_stats data
+    stats_vectors = here.calculate_correlation_statistics_matrix data
     stats_vectors.map v->(v.map .pearsonCorrelation)
 
 
 ## PRIVATE
-   Given a set of series get CorrelationStats objects
-correlation_stats : [Vector] -> [CorrelationStats]
-correlation_stats data =
+   Given a set of series get CorrelationStatistics objects
+calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
+calculate_correlation_statistics x_data y_data =
+    report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
+    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
+
+    report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
+    handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
+
+    handle_unsupported <| handle_illegal <| CorrelationStatistics.compute x_data.to_array y_data.to_array
+
+
+## PRIVATE
+   Given a set of series get CorrelationStatistics objects
+calculate_correlation_statistics_matrix : [Vector] -> [CorrelationStatistics]
+calculate_correlation_statistics_matrix data =
     data_array = Array.new data.length
     0.up_to data.length . each i->(data_array.set_at i (data.at i).to_array)
 
@@ -161,7 +177,7 @@ correlation_stats data =
     report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
     handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
 
-    stats_array = handle_unsupported <| handle_illegal <| CorrelationStats.computeMatrix data_array
+    stats_array = handle_unsupported <| handle_illegal <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
 
