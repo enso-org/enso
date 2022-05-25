@@ -365,7 +365,7 @@ impl LayerModel {
         let on_mut = on_depth_order_dirty(&parents);
         let depth_order_dirty = dirty::SharedBool::new(logger_dirty, on_mut);
         let global_element_depth_order = default();
-        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"));
+        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"), &depth_order_dirty);
         let mask = default();
         let scissor_box = default();
         let mem_mark = default();
@@ -851,11 +851,22 @@ impl LayerDynamicShapeInstance {
 // === Sublayers ===
 // =================
 
+/// Unboxed callback.
+pub type OnElementDepthOrderDirty = impl Fn();
+fn on_element_depth_order_dirty(
+    parent_depth_order_dirty: &dirty::SharedBool<OnDepthOrderDirty>,
+) -> OnElementDepthOrderDirty {
+    let parent_depth_order_dirty = parent_depth_order_dirty.clone_ref();
+    move || {
+        parent_depth_order_dirty.set();
+    }
+}
+
 /// Abstraction for layer sublayers.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Sublayers {
     model:                     Rc<RefCell<SublayersModel>>,
-    element_depth_order_dirty: dirty::SharedBool,
+    element_depth_order_dirty: dirty::SharedBool<OnElementDepthOrderDirty>,
 }
 
 impl Deref for Sublayers {
@@ -874,10 +885,14 @@ impl PartialEq for Sublayers {
 
 impl Sublayers {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
+    pub fn new(
+        logger: impl AnyLogger,
+        parent_depth_order_dirty: &dirty::SharedBool<OnDepthOrderDirty>,
+    ) -> Self {
         let element_dirty_logger = Logger::new_sub(&logger, "dirty");
         let model = default();
-        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, ());
+        let dirty_on_mut = on_element_depth_order_dirty(parent_depth_order_dirty);
+        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, dirty_on_mut);
         Self { model, element_depth_order_dirty }
     }
 }
