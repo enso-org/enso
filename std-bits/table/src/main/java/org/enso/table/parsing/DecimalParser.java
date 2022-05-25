@@ -84,7 +84,7 @@ public class DecimalParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return NumericBuilder.createDoubleBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return NumericBuilder.createDoubleBuilder(capacity);
   }
 }

@@ -15,31 +15,20 @@ import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.parsing.DatatypeParser;
+import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
+import org.enso.table.parsing.problems.NoOpProblemAggregator;
 import org.enso.table.parsing.problems.ParsingProblem;
 import org.enso.table.util.NameDeduplicator;
 
 /** A helper for reading delimited (CSV-like) files. */
 public class DelimitedReader {
 
-  /** Specifies how to set the headers for the returned table. */
-  public enum HeaderBehavior {
-    /** Tries to infer if the headers are present in the file. */
-    INFER,
-
-    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
-    USE_FIRST_ROW_AS_HEADERS,
-
-    /**
-     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
-     */
-    GENERATE_HEADERS
-  }
-
   private static final String COLUMN_NAME = "Column";
-
+  private static final char noQuoteCharacter = '\0';
+  private static final long invalidRowsLimit = 10;
   private final char delimiter;
   private final char quoteCharacter;
   private final char quoteEscapeCharacter;
@@ -50,10 +39,15 @@ public class DelimitedReader {
   private final List<ParsingProblem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final DatatypeParser valueParser;
+  private final TypeInferringParser cellTypeGuesser;
   private final boolean keepInvalidRows;
   private final boolean warningsAsErrors;
-
-  private static final char noQuoteCharacter = '\0';
+  private final NoOpProblemAggregator noOpProblemAggregator = new NoOpProblemAggregator();
+  private long invalidRowsCount = 0;
+  private long targetTableIndex = 0;
+  /** The line number of the start of the current row in the input file. */
+  private long currentLine = 0;
+  private StringStorageBuilder[] builders = null;
 
   /**
    * Creates a new reader.
@@ -74,6 +68,8 @@ public class DelimitedReader {
    * @param maxColumns specifies how many columns can be expected at most
    * @param valueParser an optional parser that is applied to each column to convert it to more
    *     specific datatype
+   * @param cellTypeGuesser a helper used to guess cell types, used for the purpose of inferring the
+   *     headers, it must not be null if {@code headerBehavior} is set to {@code INFER}.
    * @param keepInvalidRows specifies whether to keep rows that had an unexpected number of columns
    * @param warningsAsErrors specifies if the first warning should be immediately raised as an error
    *     (used as a fast-path for the error-reporting mode to avoid computing a value that is going
@@ -89,6 +85,7 @@ public class DelimitedReader {
       long rowLimit,
       int maxColumns,
       DatatypeParser valueParser,
+      TypeInferringParser cellTypeGuesser,
       boolean keepInvalidRows,
       boolean warningsAsErrors) {
     if (delimiter.isEmpty()) {
@@ -142,6 +139,7 @@ public class DelimitedReader {
     this.warningsAsErrors = warningsAsErrors;
 
     this.valueParser = valueParser;
+    this.cellTypeGuesser = cellTypeGuesser;
     parser = setupCsvParser(input);
   }
 
@@ -174,9 +172,6 @@ public class DelimitedReader {
     reportProblem(new MismatchedQuote());
   }
 
-  private long invalidRowsCount = 0;
-  private static final long invalidRowsLimit = 10;
-
   private void reportInvalidRow(long source_row, Long table_index, String[] row) {
     if (invalidRowsCount < invalidRowsLimit) {
       reportProblem(new InvalidRow(source_row, table_index, row));
@@ -203,29 +198,89 @@ public class DelimitedReader {
     }
   }
 
-  private long target_table_index = 0;
-
-  /** The line number of the start of the current row in the input file. */
-  private long current_line = 0;
-
   /**
    * Reads the next row and updates the current line accordingly.
    *
    * <p>Will return {@code null} if no more rows are available.
    */
-  private String[] nextRow() {
-    current_line = parser.getContext().currentLine() + 1;
+  private String[] readNextRow() {
+    currentLine = parser.getContext().currentLine() + 1;
     return parser.parseNext();
+  }
+
+  private void appendRow(String[] row) {
+    assert builders != null;
+    assert canFitMoreRows();
+
+    if (row.length != builders.length) {
+      reportInvalidRow(currentLine, keepInvalidRows ? targetTableIndex : null, row);
+
+      if (keepInvalidRows) {
+        for (int i = 0; i < builders.length && i < row.length; i++) {
+          builders[i] = builders[i].parseAndAppend(row[i]);
+        }
+
+        // If the current row had less columns than expected, nulls are inserted for the missing
+        // values.
+        // If it had more columns, the excess columns are discarded.
+        for (int i = row.length; i < builders.length; i++) {
+          builders[i] = builders[i].parseAndAppend(null);
+        }
+
+        targetTableIndex++;
+      }
+    } else {
+      for (int i = 0; i < builders.length; i++) {
+        builders[i] = builders[i].parseAndAppend(row[i]);
+      }
+
+      targetTableIndex++;
+    }
+  }
+
+  private boolean canFitMoreRows() {
+    return rowLimit < 0 || targetTableIndex < rowLimit;
+  }
+
+  private void appendRowIfLimitPermits(String[] row) {
+    if (canFitMoreRows()) {
+      appendRow(row);
+    }
+  }
+
+  private List<String> headersFromRow(String[] row) {
+    List<String> preprocessedHeaders =
+        Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
+    return NameDeduplicator.deduplicate(preprocessedHeaders, "_");
+  }
+
+  private List<String> generateDefaultHeaders(int columnCount) {
+    ArrayList<String> headerNames = new ArrayList<>(columnCount);
+    for (int i = 0; i < columnCount; ++i) {
+      headerNames.add(COLUMN_NAME + "_" + (i + 1));
+    }
+    return headerNames;
+  }
+
+  /**
+   * Checks if the given cell contains just plain text that is not null and is not convertible to
+   * any more specific type according to the {@code cellTypeGuesser}. This is used for checking the
+   * types when inferring the headers.
+   */
+  private boolean isPlainText(String cell) {
+    if (cell == null) return false;
+    Object parsed = cellTypeGuesser.parseSingleValue(cell, noOpProblemAggregator);
+    return parsed instanceof String;
   }
 
   /** Reads the input stream and returns a Table. */
   public Table read() {
     List<String> headerNames;
-    String[] currentRow = nextRow();
+    String[] currentRow = readNextRow();
 
     // Skip the first N rows.
     for (long i = 0; currentRow != null && i < skipRows; ++i) {
-      currentRow = nextRow();
+      currentRow = readNextRow();
     }
 
     // If there are no rows to even infer the headers, we return an empty table.
@@ -233,55 +288,50 @@ public class DelimitedReader {
       return new Table(new Column[0]);
     }
 
+    int expectedColumnCount = currentRow.length;
+    initBuilders(expectedColumnCount);
+
+    assert currentRow != null;
     switch (headerBehavior) {
-      case INFER:
-        throw new IllegalStateException("Inferring headers is not yet implemented");
-      case USE_FIRST_ROW_AS_HEADERS:
-        List<String> preprocessedHeaders =
-            Arrays.stream(currentRow).map(this::parseHeader).collect(Collectors.toList());
-        headerNames = NameDeduplicator.deduplicate(preprocessedHeaders, "_");
-        // We have 'used up' the first row, so we load a next one.
-        currentRow = nextRow();
-        break;
-      case GENERATE_HEADERS:
-        headerNames = new ArrayList<>(currentRow.length);
-        for (int i = 0; i < currentRow.length; ++i) {
-          headerNames.add(COLUMN_NAME + "_" + (i + 1));
+      case INFER -> {
+        String[] firstRow = currentRow;
+        String[] secondRow = readNextRow();
+        if (secondRow == null) {
+          // If there is only one row in the file, we generate the headers and stop further processing (as nothing more to process).
+          headerNames = generateDefaultHeaders(expectedColumnCount);
+          appendRowIfLimitPermits(firstRow);
+          currentRow = null;
+        } else {
+          assert cellTypeGuesser != null;
+          boolean firstAllText = Arrays.stream(firstRow).allMatch(this::isPlainText);
+          boolean secondAllText = Arrays.stream(secondRow).allMatch(this ::isPlainText);
+          boolean useFirstRowAsHeader = firstAllText && !secondAllText;
+          if (useFirstRowAsHeader) {
+            headerNames = headersFromRow(firstRow);
+            appendRowIfLimitPermits(secondRow);
+          } else {
+            headerNames = generateDefaultHeaders(expectedColumnCount);
+            appendRowIfLimitPermits(firstRow);
+            appendRowIfLimitPermits(secondRow);
+          }
+
+          currentRow = readNextRow();
         }
-        break;
-      default:
-        throw new IllegalStateException("Impossible branch.");
+      }
+      case USE_FIRST_ROW_AS_HEADERS -> {
+        headerNames = headersFromRow(currentRow);
+        // We have 'used up' the first row, so we load a next one.
+        currentRow = readNextRow();
+      }
+      case GENERATE_HEADERS -> {
+        headerNames = generateDefaultHeaders(expectedColumnCount);
+      }
+      default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    StringStorageBuilder[] builders = initBuilders(headerNames.size());
-
-    while (currentRow != null && (rowLimit < 0 || target_table_index < rowLimit)) {
-      if (currentRow.length != builders.length) {
-        reportInvalidRow(current_line, keepInvalidRows ? target_table_index : null, currentRow);
-
-        if (keepInvalidRows) {
-          for (int i = 0; i < builders.length && i < currentRow.length; i++) {
-            builders[i] = builders[i].parseAndAppend(currentRow[i]);
-          }
-
-          // If the current row had less columns than expected, nulls are inserted for the missing
-          // values.
-          // If it had more columns, the excess columns are discarded.
-          for (int i = currentRow.length; i < builders.length; i++) {
-            builders[i] = builders[i].parseAndAppend(null);
-          }
-
-          target_table_index++;
-        }
-      } else {
-        for (int i = 0; i < builders.length; i++) {
-          builders[i] = builders[i].parseAndAppend(currentRow[i]);
-        }
-
-        target_table_index++;
-      }
-
-      currentRow = nextRow();
+    while (currentRow != null && canFitMoreRows()) {
+      appendRow(currentRow);
+      currentRow = readNextRow();
     }
 
     parser.stopParsing();
@@ -302,11 +352,24 @@ public class DelimitedReader {
     return new Table(columns);
   }
 
-  private StringStorageBuilder[] initBuilders(int count) {
-    StringStorageBuilder[] res = new StringStorageBuilder[count];
+  private void initBuilders(int count) {
+    builders = new StringStorageBuilder[count];
     for (int i = 0; i < count; i++) {
-      res[i] = new StringStorageBuilder();
+      builders[i] = new StringStorageBuilder();
     }
-    return res;
+  }
+
+  /** Specifies how to set the headers for the returned table. */
+  public enum HeaderBehavior {
+    /** Tries to infer if the headers are present in the file. */
+    INFER,
+
+    /** Uses the first row in the file as headers. Duplicate names will be appended suffixes. */
+    USE_FIRST_ROW_AS_HEADERS,
+
+    /**
+     * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
+     */
+    GENERATE_HEADERS
   }
 }

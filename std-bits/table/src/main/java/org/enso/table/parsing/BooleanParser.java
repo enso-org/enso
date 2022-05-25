@@ -33,7 +33,7 @@ public class BooleanParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return new BoolBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return new BoolBuilder(capacity);
   }
 }
