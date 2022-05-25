@@ -32,9 +32,7 @@ public class StringStorage extends ObjectStorage {
     return (String) super.getItem(idx);
   }
 
-  /**
-   * @inheritDoc
-   */
+  /** @inheritDoc */
   @Override
   public long getType() {
     return Type.STRING;

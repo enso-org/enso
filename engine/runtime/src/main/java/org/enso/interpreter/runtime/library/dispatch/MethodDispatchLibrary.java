@@ -78,7 +78,7 @@ public abstract class MethodDispatchLibrary extends Library {
     throw new NoSuchMethodException();
   }
 
-  /* * Conversions */
+  /** Conversions */
 
   /** An exception thrown when the library cannot lookup the conversion definition. */
   public static class NoSuchConversionException extends Exception {}

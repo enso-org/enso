@@ -39,8 +39,8 @@ public class AggregatedProblems {
   public void add(Problem problem) {
     if (problem instanceof ColumnAggregatedProblems) {
       for (Problem p : problems) {
-        if (p instanceof ColumnAggregatedProblems &&
-            ((ColumnAggregatedProblems) p).merge((ColumnAggregatedProblems)problem)) {
+        if (p instanceof ColumnAggregatedProblems
+            && ((ColumnAggregatedProblems) p).merge((ColumnAggregatedProblems) problem)) {
           return;
         }
       }

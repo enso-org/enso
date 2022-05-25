@@ -31,7 +31,9 @@ public class MultiValueIndex {
       int size = keyColumns[0].getSize();
       for (int i = 0; i < size; i++) {
         int finalI = i;
-        MultiValueKey key = new MultiValueKey(Arrays.stream(keyColumns).map(c -> c.getStorage().getItemBoxed(finalI)).toArray());
+        MultiValueKey key =
+            new MultiValueKey(
+                Arrays.stream(keyColumns).map(c -> c.getStorage().getItemBoxed(finalI)).toArray());
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -41,7 +43,9 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      this.locs.put(new MultiValueKey(new Object[0]), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(
+          new MultiValueKey(new Object[0]),
+          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -50,9 +54,10 @@ public class MultiValueIndex {
     final int size = locs.size();
 
     boolean emptyScenario = size == 0 & keyColumnsLength == 0;
-    Builder[] storage = Arrays.stream(columns)
-        .map(c -> getBuilderForType(c.getType(), emptyScenario ? 1 : size))
-        .toArray(Builder[]::new);
+    Builder[] storage =
+        Arrays.stream(columns)
+            .map(c -> getBuilderForType(c.getType(), emptyScenario ? 1 : size))
+            .toArray(Builder[]::new);
 
     if (emptyScenario) {
       // No grouping and no data
@@ -72,7 +77,7 @@ public class MultiValueIndex {
     // Merge Problems
     AggregatedProblems[] problems = new AggregatedProblems[1 + length];
     problems[0] = this.problems;
-    IntStream.range(0, length).forEach(i -> problems[i+1] = columns[i].getProblems());
+    IntStream.range(0, length).forEach(i -> problems[i + 1] = columns[i].getProblems());
     AggregatedProblems merged = AggregatedProblems.merge(problems);
 
     return new Table(
@@ -84,11 +89,16 @@ public class MultiValueIndex {
 
   private static Builder getBuilderForType(int type, int size) {
     switch (type) {
-      case Storage.Type.BOOL: return new BoolBuilder();
-      case Storage.Type.DOUBLE: return NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.LONG: return NumericBuilder.createLongBuilder(size);
-      case Storage.Type.STRING: return new StringBuilder(size);
-      case Storage.Type.OBJECT: return new ObjectBuilder(size);
+      case Storage.Type.BOOL:
+        return new BoolBuilder();
+      case Storage.Type.DOUBLE:
+        return NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.LONG:
+        return NumericBuilder.createLongBuilder(size);
+      case Storage.Type.STRING:
+        return new StringBuilder(size);
+      case Storage.Type.OBJECT:
+        return new ObjectBuilder(size);
     }
     return new InferredBuilder(size);
   }
