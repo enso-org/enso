@@ -6,16 +6,15 @@
 //!
 //! See [`Wrapper`] docs.
 
-
 use ensogl::prelude::*;
-
-use enso_frp as frp;
-use ensogl::data::OptVec;
-use ensogl::display::scene::Scene;
 
 use crate::entry;
 use crate::wide;
 use crate::View;
+
+use enso_frp as frp;
+use ensogl::data::OptVec;
+use ensogl::display::scene::Scene;
 
 
 
@@ -106,6 +105,7 @@ macro_rules! propagated_events {
 
         impl $ident {
             /// Constructor.
+            #[allow(clippy::new_without_default)]
             pub fn new() -> Self {
                 let network = frp::Network::new(stringify!($ident));
                 frp::extend! { network
@@ -174,7 +174,7 @@ type Groups = Rc<RefCell<OptVec<(Group, PropagatedEvents), GroupId>>>;
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Wrapper {
     groups: Groups,
-    scene: Scene,
+    scene:  Scene,
     #[deref]
     events: PropagatedEvents,
 }
@@ -192,15 +192,11 @@ impl Wrapper {
                 groups.borrow().iter_enumerate().for_each(|(idx, (g, _))| {
                     if idx != *group_id { g.defocus(); }
                 });
-                groups.borrow().safe_index(*group_id).map(|(g, _)| g.focus());
+                if let Some((g, _)) = groups.borrow().safe_index(*group_id) { g.focus(); }
             });
         }
 
-        Self {
-            groups,
-            scene,
-            events,
-        }
+        Self { groups, scene, events }
     }
 
     /// Start managing a new group. Returned [`GroupId`] is non-unique, it might be reused by new

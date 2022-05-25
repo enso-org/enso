@@ -188,8 +188,11 @@ impl<T, I: Index> OptVec<T, I> {
     }
 
     /// Iterator with indexes.
-    pub fn iter_enumerate(&self) -> impl Iterator<Item=(I, &T)> {
-        self.items.iter().enumerate().filter_map(|(idx, item)| item.as_ref().map(|i| (idx.into(), i)))
+    pub fn iter_enumerate(&self) -> impl Iterator<Item = (I, &T)> {
+        self.items
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, item)| item.as_ref().map(|i| (idx.into(), i)))
     }
 
     /// Mutable iterator.

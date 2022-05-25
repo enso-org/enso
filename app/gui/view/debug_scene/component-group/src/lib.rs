@@ -39,7 +39,6 @@ use list_view::entry::AnyModelProvider;
 // === Constants ===
 // =================
 
-const WIDE_COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.9, 0.91, 0.89, 1.0);
 const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
 
 
@@ -197,7 +196,6 @@ fn create_wide_component_group(app: &Application) -> component_group::wide::View
     let component_group = app.new_view::<component_group::wide::View>();
     component_group.set_width(450.0);
     component_group.set_position_x(-200.0);
-    component_group.set_color(COMPONENT_GROUP_COLOR);
     component_group
 }
 
@@ -310,6 +308,7 @@ fn init(app: &Application) {
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
         second_component_group.set_color <+ color;
+        wide_component_group.set_color <+ color;
     }
     init.emit(());
 

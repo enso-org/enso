@@ -39,11 +39,11 @@ use crate::display::scene::layer;
 use enso_frp as frp;
 use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
-use ensogl::Animation;
 use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
+use ensogl::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
 use ensogl_list_view as list_view;
@@ -55,8 +55,8 @@ use ensogl_shadow as shadow;
 // ==============
 
 pub mod entry;
-pub mod multi;
 pub mod icon;
+pub mod multi;
 pub mod wide;
 
 pub use entry::View as Entry;
@@ -236,7 +236,7 @@ impl Colors {
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
         let entry_text_ = style.get_color(theme::entry_list::text::color);
-        let intensity = Animation::new(&network);
+        let intensity = Animation::new(network);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
