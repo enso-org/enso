@@ -35,9 +35,9 @@ impl TestOnNewProjectControllersOnly {
     }
 }
 
-
+// This test requires 2022.1.1-nightly.2022-04-26 or later version of Engine.
 #[wasm_bindgen_test]
-async fn communication_with_language_server() {
+async fn getting_component_groups() {
     let test = TestOnNewProjectControllersOnly::set_up().await;
     let ls_json_connection = test.project.json_rpc();
     let main_module = test.project.main_module().to_string();
