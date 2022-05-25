@@ -44,7 +44,10 @@ public class Range {
   private static int[] parseRange(String range) throws IllegalArgumentException {
     for (Pattern pattern : new Pattern[] {RANGE_A1, RANGE_COL, RANGE_ROW, RANGE_RC}) {
       Optional<int[]> parsed =
-          parseRange(range, pattern, pattern == RANGE_RC ? Range::parseR1C1StyleAddress : Range::parseA1StyleAddress);
+          parseRange(
+              range,
+              pattern,
+              pattern == RANGE_RC ? Range::parseR1C1StyleAddress : Range::parseA1StyleAddress);
 
       if (parsed.isPresent()) {
         return parsed.get();
@@ -142,13 +145,9 @@ public class Range {
   }
 
   private static class ParsedInteger {
-    /**
-     * Index to the next character after the parsed value
-     */
+    /** Index to the next character after the parsed value */
     public final int index;
-    /**
-     * Parsed integer value or 0 if not valid
-     */
+    /** Parsed integer value or 0 if not valid */
     public final int value;
 
     public ParsedInteger(int index, int value) {

@@ -2,7 +2,7 @@ package org.enso.profiling
 
 import java.util.concurrent.Executor
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** Sampler that does nothing. */
 final class NoopSampler extends MethodsSampler {
@@ -14,7 +14,7 @@ final class NoopSampler extends MethodsSampler {
   override def stop(): Unit = ()
 
   /** @inheritdoc */
-  override def stop(delay: Duration)(implicit ec: Executor): Unit = ()
+  override def stop(delay: FiniteDuration)(implicit ec: Executor): Unit = ()
 }
 object NoopSampler {
 

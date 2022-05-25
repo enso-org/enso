@@ -59,8 +59,8 @@ public class Regex_Utils {
    *
    * <p>This should behave exactly the same as `Regex.compile regex . find text` in Enso, it is here
    * only as a temporary workaround, because the Enso function gives wrong results on examples like
-   * `Regex.compile "([0-9]+|[^0-9]+)" . find "1a2c"` where it returns `[1, a, 2]` instead of
-   * `[1, a, 2, c]`.
+   * `Regex.compile "([0-9]+|[^0-9]+)" . find "1a2c"` where it returns `[1, a, 2]` instead of `[1,
+   * a, 2, c]`.
    */
   public static String[] find_all_matches(String regex, String text) {
     var allMatches = new ArrayList<String>();

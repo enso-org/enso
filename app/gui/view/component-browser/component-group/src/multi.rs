@@ -7,11 +7,11 @@
 //! See [`Wrapper`] docs.
 
 
-use ensogl_core::prelude::*;
+use ensogl::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::data::OptVec;
-use ensogl_core::display::scene::Scene;
+use ensogl::data::OptVec;
+use ensogl::display::scene::Scene;
 
 use crate::entry;
 use crate::wide;

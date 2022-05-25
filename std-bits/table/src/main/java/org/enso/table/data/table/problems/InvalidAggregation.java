@@ -9,13 +9,15 @@ public class InvalidAggregation extends ColumnAggregatedProblems {
   }
 
   @Override
-  public String getMessage() { return message; }
+  public String getMessage() {
+    return message;
+  }
 
   @Override
   public boolean merge(ColumnAggregatedProblems another) {
-    if (another instanceof InvalidAggregation &&
-        this.getColumnName().equals(another.getColumnName()) &&
-        this.message.equals(((InvalidAggregation) another).message)) {
+    if (another instanceof InvalidAggregation
+        && this.getColumnName().equals(another.getColumnName())
+        && this.message.equals(((InvalidAggregation) another).message)) {
       this.rows.addAll(another.rows);
       return true;
     }

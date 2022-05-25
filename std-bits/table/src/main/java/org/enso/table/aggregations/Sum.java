@@ -6,9 +6,7 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/***
- * Aggregate Column computing the total value in a group.
- */
+/** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
   private final Storage storage;
 
@@ -20,7 +18,7 @@ public class Sum extends Aggregator {
   @Override
   public Object aggregate(List<Integer> indexes) {
     Object current = null;
-    for (int row: indexes) {
+    for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         if (current == null) {
@@ -37,7 +35,8 @@ public class Sum extends Aggregator {
           if (dCurrent != null && dValue != null) {
             current = dCurrent + dValue;
           } else {
-            this.addProblem(new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
+            this.addProblem(
+                new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
             return null;
           }
         }

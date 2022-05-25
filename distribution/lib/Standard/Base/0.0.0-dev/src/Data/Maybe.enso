@@ -48,18 +48,4 @@ type Maybe
 
              example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
-    is_some = case this of
-        Nothing -> False
-        Some _ -> True
-
-    ## Check if the maybe value is `Nothing`.
-
-       > Example
-         Check if `Nothing` is `Nothing`.
-
-             import Standard.Base.Data.Maybe
-
-             example_is_nothing = Maybe.Some "yes!" . is_nothing
-    is_nothing : Boolean
-    is_nothing = this.is_some.not
-
+    is_some = this.is_nothing.not

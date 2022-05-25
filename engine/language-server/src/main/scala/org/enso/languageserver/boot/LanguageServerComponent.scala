@@ -15,9 +15,10 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   ShutDownRuntime
 }
 import org.enso.loggingservice.LogLevel
+import org.enso.profiling.{FileSampler, MethodsSampler, NoopSampler}
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 /** A lifecycle component used to start and stop a Language Server.
   *
@@ -31,11 +32,14 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
   @volatile
   private var maybeServerCtx: Option[ServerContext] = None
 
-  implicit private val ec = config.computeExecutionContext
+  implicit private val ec: ExecutionContextExecutor =
+    config.computeExecutionContext
 
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
+    val sampler = startSampling(config)
+    logger.debug(s"Started ${sampler.getClass.getName}.")
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
@@ -51,7 +55,8 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
       jsonBinding   <- bindJsonServer
       binaryBinding <- bindBinaryServer
       _ <- Future {
-        maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
+        maybeServerCtx =
+          Some(ServerContext(sampler, module, jsonBinding, binaryBinding))
       }
       _ <- Future {
         logger.info(
@@ -62,20 +67,38 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
     } yield ComponentStarted
   }
 
+  /** Start the application sampling. */
+  private def startSampling(config: LanguageServerConfig): MethodsSampler = {
+    val sampler = config.profilingConfig.profilingPath match {
+      case Some(path) =>
+        new FileSampler(path.toFile)
+      case None =>
+        NoopSampler()
+    }
+    sampler.start()
+    config.profilingConfig.profilingTime.foreach(sampler.stop(_))
+
+    sampler
+  }
+
   /** @inheritdoc */
   override def stop(): Future[ComponentStopped.type] =
     maybeServerCtx match {
       case None =>
-        Future.failed(new Exception("Server isn't running"))
+        Future.successful(ComponentStopped)
 
       case Some(serverContext) =>
         for {
+          _ <- stopSampling(serverContext)
           _ <- terminateTruffle(serverContext)
           _ <- terminateAkka(serverContext)
           _ <- releaseResources(serverContext)
           _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
+
+  private def stopSampling(serverContext: ServerContext): Future[Unit] =
+    Future(serverContext.sampler.stop()).recover(logError)
 
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
@@ -101,7 +124,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: LogLevel)
   }
 
   private def terminateTruffle(serverContext: ServerContext): Future[Unit] = {
-    implicit val askTimeout = Timeout(12.seconds)
+    implicit val askTimeout: Timeout = Timeout(12.seconds)
     val killFiber =
       (serverContext.mainModule.runtimeKiller ? ShutDownRuntime)
         .mapTo[RuntimeShutdownResult]
@@ -129,11 +152,13 @@ object LanguageServerComponent {
 
   /** A running server context.
     *
+    * @param sampler a sampler gathering the application performance statistics
     * @param mainModule a main module containing all components of the server
     * @param jsonBinding a http binding for rpc protocol
     * @param binaryBinding a http binding for data protocol
     */
   case class ServerContext(
+    sampler: MethodsSampler,
     mainModule: MainModule,
     jsonBinding: Http.ServerBinding,
     binaryBinding: Http.ServerBinding

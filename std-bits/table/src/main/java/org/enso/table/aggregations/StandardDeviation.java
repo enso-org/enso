@@ -5,9 +5,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 
-/***
- * Aggregate Column computing the standard deviation of a group.
- */
+/** Aggregate Column computing the standard deviation of a group. */
 public class StandardDeviation extends Aggregator {
   private static class Calculation {
     public long count;

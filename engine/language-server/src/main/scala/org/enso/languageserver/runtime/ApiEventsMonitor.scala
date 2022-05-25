@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, StandardOpenOption}
 import java.time.Clock
 
+import scala.util.Try
+
 /** Gather messages between the language server and the runtime and write them
   * to the provided file in CSV format.
   *
@@ -61,12 +63,16 @@ final class ApiEventsMonitor(path: Path, clock: Clock) extends EventsMonitor {
 }
 object ApiEventsMonitor {
 
-  /** Create default instance of [[ApiEventsMonitor]]. */
-  def apply(): ApiEventsMonitor =
-    new ApiEventsMonitor(
-      Files.createTempFile("enso-api-events-", ".csv"),
-      Clock.systemUTC()
-    )
+  /** Create default instance of [[ApiEventsMonitor]].
+    *
+    * @param path the path to the events log file
+    * @return an instance of [[ApiEventsMonitor]]
+    */
+  def apply(path: Path): Try[ApiEventsMonitor] = Try {
+    Files.deleteIfExists(path)
+    Files.createFile(path)
+    new ApiEventsMonitor(path, Clock.systemUTC())
+  }
 
   /** Direction of the message. */
   sealed trait Direction

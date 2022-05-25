@@ -79,7 +79,9 @@ class LanguageServerController(
       engineVersion                  = engineVersion,
       jvmSettings                    = distributionConfiguration.defaultJVMSettings,
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
-      profilingEnabled               = processConfig.profilingEnabled,
+      profilingEventsLogPath         = processConfig.profilingEventsLogPath,
+      profilingPath                  = processConfig.profilingPath,
+      profilingTime                  = processConfig.profilingTime,
       deferredLoggingServiceEndpoint = loggingServiceDescriptor.getEndpoint
     )
 

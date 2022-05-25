@@ -189,7 +189,7 @@ define_themes! { [light:0, dark:1]
                     }
                     height = 27.0, 27.0;
                     padding {
-                        left   = 16.5, 16.5;
+                        left   = 11.0, 11.0;
                         right  = 2.5, 2.5;
                         bottom = 5.0, 5.0;
                     }
@@ -203,26 +203,33 @@ define_themes! { [light:0, dark:1]
                         offset_y = shadow::offset_y , shadow::offset_y;
                     }
                 }
-                entries {
+                background_color_intensity = 0.2, 0.2;
+                dimmed_color_intensity = 0.5, 0.5;
+                entry_list {
                     text {
                         font = "DejaVuSans", "DejaVuSans";
                         size = 12.0, 12.0;
                         color = Rgba(0.4,0.4,0.4,1.0), Rgba(0.4,0.4,0.4,1.0);
+                        highlight_bold = 0.02, 0.02;
+                    }
+                    icon_text_gap = 5.0, 5.0;
+                    icon {
+                        size = 16.0, 16.0;
+                        weak_color_intensity = 0.5, 0.5;
+                    }
+                    padding = 4.0, 4.0;
+                    entry {
+                        padding = 7.0, 7.0;
+                    }
+                    highlight {
+                        height = 30.0, 30.0
                     }
                 }
-                background_color_intensity = 0.2, 0.2;
-                dimmed_color_intensity = 0.5, 0.5;
             }
         }
         searcher {
             action_list_gap = 10.0, 10.0;
             padding         = 5.0, 5.0;
-            selection {
-                padding {
-                    horizontal = 2.0, 2.0;
-                    vertical   = 2.0, 2.0
-                }
-            }
             icons {
                 favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
                 io {
@@ -557,14 +564,19 @@ define_themes! { [light:0, dark:1]
             highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
                 font      = "DejaVuSansMono", "DejaVuSansMono";
                 size      = 12.0, 12.0;
+                highlight_bold = 0.02, 0.02;
+            }
+            entry {
+                padding = 10.0, 10.0;
             }
             highlight {
+                height = 24.0, 24.0;
                 corner_radius = 12.0, 12.0;
             }
+            padding = 5.0, 5.0;
         }
     }
     colors {

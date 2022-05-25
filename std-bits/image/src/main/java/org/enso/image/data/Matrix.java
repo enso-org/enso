@@ -106,7 +106,7 @@ public class Matrix {
    */
   public static double[] get(Mat mat, int row, int column) {
     double[] data = new double[mat.channels()];
-    int[] idx = new int[] { row, column };
+    int[] idx = new int[] {row, column};
 
     mat.get(idx, data);
     return data;
@@ -147,6 +147,7 @@ public class Matrix {
 
   /**
    * Subtract the scalar from each element of the matrix.
+   *
    * @param mat the matrix.
    * @param scalar the scalar to subtract.
    * @param dst the matrix holding the result of the operation.
@@ -168,6 +169,7 @@ public class Matrix {
 
   /**
    * Multiply the scalar with each element of the matrix.
+   *
    * @param mat the matrix.
    * @param scalar the scalar to multiply with.
    * @param dst the matrix holding the result of the operation.
