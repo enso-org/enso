@@ -18,7 +18,7 @@ jobs:
     steps:
       - id: changed_files
         run: "list=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
-      - run: "if [[ ${ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') } == false ]]; then exit 1; fi"
+      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
         if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
   ide-ci-actions-workflow-definition-job-build-project-manager-linux:
     name: Build Project Manager (linux)
