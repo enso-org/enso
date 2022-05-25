@@ -9,8 +9,19 @@ name: GUI CI
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  ide-ci-actions-workflow-definition-job-native-test-linux:
-    name: Native GUI tests (linux)
+  ide-ci-actions-workflow-definition-job-assert-changelog-linux:
+    name: Assert if CHANGELOG.md was updated (on pull request)
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - id: changed_files
+        run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
+      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
+        if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
+  ide-ci-actions-workflow-definition-job-build-project-manager-linux:
+    name: Build Project Manager (linux)
     runs-on:
       - self-hosted
       - Linux
@@ -37,13 +48,38 @@ jobs:
           clean: false
       - run: "./run.sh --help"
         shell: bash
-      - run: "./run.sh wasm test --no-wasm"
+      - run: "./run.sh project-manager"
         shell: bash
-  ide-ci-actions-workflow-definition-job-package-ide-windows:
-    name: Package IDE (windows)
-    needs:
-      - ide-ci-actions-workflow-definition-job-build-wasm-windows
-      - ide-ci-actions-workflow-definition-job-build-project-manager-windows
+  ide-ci-actions-workflow-definition-job-build-project-manager-macos:
+    name: Build Project Manager (macos)
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh --help"
+        shell: bash
+      - run: "./run.sh project-manager"
+        shell: bash
+  ide-ci-actions-workflow-definition-job-build-project-manager-windows:
+    name: Build Project Manager (windows)
     runs-on:
       - self-hosted
       - Windows
@@ -70,50 +106,8 @@ jobs:
           clean: false
       - run: ".\\run.cmd --help"
         shell: cmd
-      - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+      - run: ".\\run.cmd project-manager"
         shell: cmd
-  ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
-    name: Cancel Previous Runs
-    runs-on:
-      - X64
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.1
-        with:
-          access_token: "${{ github.token }}"
-  ide-ci-actions-workflow-definition-job-package-ide-linux:
-    name: Package IDE (linux)
-    needs:
-      - ide-ci-actions-workflow-definition-job-build-wasm-linux
-      - ide-ci-actions-workflow-definition-job-build-project-manager-linux
-    runs-on:
-      - self-hosted
-      - Linux
-      - engine
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: "./run.sh --help"
-        shell: bash
-      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
-        shell: bash
   ide-ci-actions-workflow-definition-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
@@ -144,6 +138,73 @@ jobs:
         shell: bash
       - run: "./run.sh wasm build"
         shell: bash
+  ide-ci-actions-workflow-definition-job-build-wasm-macos:
+    name: Build GUI (WASM) (macos)
+    runs-on:
+      - macos-latest
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh --help"
+        shell: bash
+      - run: "./run.sh wasm build"
+        shell: bash
+  ide-ci-actions-workflow-definition-job-build-wasm-windows:
+    name: Build GUI (WASM) (windows)
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd --help"
+        shell: cmd
+      - run: ".\\run.cmd wasm build"
+        shell: cmd
+  ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
+    name: Cancel Previous Runs
+    runs-on:
+      - X64
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: "${{ github.token }}"
   ide-ci-actions-workflow-definition-job-integration-test-linux:
     name: IDE integration tests (linux)
     needs:
@@ -206,131 +267,69 @@ jobs:
         shell: bash
       - run: "./run.sh lint"
         shell: bash
-  ide-ci-actions-workflow-definition-job-build-project-manager-macos:
-    name: Build Project Manager (macos)
-    runs-on:
-      - macos-latest
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: "./run.sh --help"
-        shell: bash
-      - run: "./run.sh project-manager"
-        shell: bash
-  ide-ci-actions-workflow-definition-job-build-wasm-windows:
-    name: Build GUI (WASM) (windows)
-    runs-on:
-      - self-hosted
-      - Windows
-      - engine
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: ".\\run.cmd --help"
-        shell: cmd
-      - run: ".\\run.cmd wasm build"
-        shell: cmd
-  ide-ci-actions-workflow-definition-job-build-wasm-macos:
-    name: Build GUI (WASM) (macos)
-    runs-on:
-      - macos-latest
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: "./run.sh --help"
-        shell: bash
-      - run: "./run.sh wasm build"
-        shell: bash
-  ide-ci-actions-workflow-definition-job-build-project-manager-windows:
-    name: Build Project Manager (windows)
-    runs-on:
-      - self-hosted
-      - Windows
-      - engine
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: ".\\run.cmd --help"
-        shell: cmd
-      - run: ".\\run.cmd project-manager"
-        shell: cmd
-  ide-ci-actions-workflow-definition-job-assert-changelog-linux:
-    name: Assert if CHANGELOG.md was updated (on pull request)
+  ide-ci-actions-workflow-definition-job-native-test-linux:
+    name: Native GUI tests (linux)
     runs-on:
       - self-hosted
       - Linux
       - engine
     steps:
-      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
-        if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh --help"
+        shell: bash
+      - run: "./run.sh wasm test --no-wasm"
+        shell: bash
+  ide-ci-actions-workflow-definition-job-package-ide-linux:
+    name: Package IDE (linux)
+    needs:
+      - ide-ci-actions-workflow-definition-job-build-wasm-linux
+      - ide-ci-actions-workflow-definition-job-build-project-manager-linux
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run.sh --help"
+        shell: bash
+      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        shell: bash
   ide-ci-actions-workflow-definition-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
@@ -362,6 +361,39 @@ jobs:
         shell: bash
       - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
         shell: bash
+  ide-ci-actions-workflow-definition-job-package-ide-windows:
+    name: Package IDE (windows)
+    needs:
+      - ide-ci-actions-workflow-definition-job-build-wasm-windows
+      - ide-ci-actions-workflow-definition-job-build-project-manager-windows
+    runs-on:
+      - self-hosted
+      - Windows
+      - engine
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: latest
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: ".\\run.cmd --help"
+        shell: cmd
+      - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        shell: cmd
   ide-ci-actions-workflow-definition-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
@@ -391,34 +423,4 @@ jobs:
       - run: "./run.sh --help"
         shell: bash
       - run: "./run.sh wasm test --no-native"
-        shell: bash
-  ide-ci-actions-workflow-definition-job-build-project-manager-linux:
-    name: Build Project Manager (linux)
-    runs-on:
-      - self-hosted
-      - Linux
-      - engine
-    steps:
-      - name: Setup conda (GH runners only)
-        uses: s-weigand/setup-conda@v1.0.5
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          update-conda: false
-          conda-channels: "anaconda, conda-forge"
-      - name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.3.0
-        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
-        with:
-          version: latest
-      - name: Setup the Artifact API environment
-        uses: actions/github-script@v6
-        with:
-          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
-      - name: Checking out the repository
-        uses: actions/checkout@v3
-        with:
-          clean: false
-      - run: "./run.sh --help"
-        shell: bash
-      - run: "./run.sh project-manager"
         shell: bash
