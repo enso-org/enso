@@ -55,7 +55,7 @@ public class IntegerParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return NumericBuilder.createLongBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return NumericBuilder.createLongBuilder(capacity);
   }
 }

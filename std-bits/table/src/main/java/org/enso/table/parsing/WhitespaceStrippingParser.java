@@ -21,7 +21,7 @@ public class WhitespaceStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(int capacity) {
     return innerParser.makeBuilderWithCapacity(capacity);
   }
 }

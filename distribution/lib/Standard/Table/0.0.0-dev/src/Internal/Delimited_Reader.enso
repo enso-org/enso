@@ -64,7 +64,7 @@ read_stream : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> 
 read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
-        Infer -> Errors.unimplemented "Inferring headers is not implemented yet."
+        Infer -> DelimitedReader.HeaderBehavior.INFER
         False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
     skip_rows = case format.skip_rows of
         Nothing -> 0
@@ -103,8 +103,11 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
                 QuoteStrippingParser.new format.quote
             value_parser = if format.value_formatter.is_nothing then base_parser else
                 wrapped = format.value_formatter.wrap_base_parser base_parser
-                TypeInferringParser.new format.value_formatter.get_parsers.to_array wrapped
-            reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser format.keep_invalid_rows warnings_as_errors
+                TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
+            cell_type_guesser = if format.headers != Infer then Nothing else
+                formatter = format.value_formatter.if_nothing Data_Formatter
+                TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
+            reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
             result = Table.Table reader.read
             decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
             parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
