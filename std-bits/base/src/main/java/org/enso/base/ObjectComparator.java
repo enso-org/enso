@@ -9,13 +9,14 @@ import java.util.function.BiFunction;
 public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
 
-  /***
+  /**
    * A singleton instance of an ObjectComparator
-   * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be passed to allow calling back from Java.
+   *
+   * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be
+   *     passed to allow calling back from Java.
    * @return Comparator object
    */
-  public static ObjectComparator getInstance(
-      BiFunction<Object, Object, Long> fallbackComparator) {
+  public static ObjectComparator getInstance(BiFunction<Object, Object, Long> fallbackComparator) {
     if (INSTANCE == null) {
       INSTANCE = new ObjectComparator((l, r) -> fallbackComparator.apply(l, r).intValue());
     }

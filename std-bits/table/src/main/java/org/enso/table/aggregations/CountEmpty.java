@@ -6,10 +6,9 @@ import org.enso.table.data.table.problems.InvalidAggregation;
 
 import java.util.List;
 
-/***
- * Aggregate Column counting the number of (non-)empty entries in a group.
- * If `isEmpty` is true, counts null or empty entries.
- * If `isEmpty` is false, counts non-empty entries.
+/**
+ * Aggregate Column counting the number of (non-)empty entries in a group. If `isEmpty` is true,
+ * counts null or empty entries. If `isEmpty` is false, counts non-empty entries.
  */
 public class CountEmpty extends Aggregator {
   private final Storage storage;
@@ -17,6 +16,7 @@ public class CountEmpty extends Aggregator {
 
   /**
    * Constructs a CountNothing Aggregator
+   *
    * @param name output column name
    * @param column input column
    * @param isEmpty true to count nulls or empty, false to count non-empty

@@ -46,7 +46,11 @@ public class Table {
 
   private Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
-    this.index = index == null ? (new DefaultIndex((columns == null || columns.length == 0) ? 0 : columns[0].getSize())) : index;
+    this.index =
+        index == null
+            ? (new DefaultIndex(
+                (columns == null || columns.length == 0) ? 0 : columns[0].getSize()))
+            : index;
     this.problems = problems;
   }
 
@@ -64,9 +68,7 @@ public class Table {
     return columns;
   }
 
-  /**
-   * @return Attached set of any problems from the Java side
-   */
+  /** @return Attached set of any problems from the Java side */
   public AggregatedProblems getProblems() {
     return problems;
   }

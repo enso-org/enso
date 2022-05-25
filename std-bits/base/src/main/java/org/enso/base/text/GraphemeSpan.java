@@ -15,9 +15,11 @@ public class GraphemeSpan extends Utf16Span {
 
   /**
    * Constructs a span of characters (understood as extended grapheme clusters).
-   *  @param grapheme_start index of the first extended grapheme cluster contained within the span (or
-   *     location of the span if it is empty)
-   * @param grapheme_end index of the first extended grapheme cluster after start that is not contained
+   *
+   * @param grapheme_start index of the first extended grapheme cluster contained within the span
+   *     (or location of the span if it is empty)
+   * @param grapheme_end index of the first extended grapheme cluster after start that is not
+   *     contained
    * @param codeunit_start code unit index of {@code grapheme_start}
    * @param codeunit_end code unit index of {@code grapheme_end}
    */

@@ -10,9 +10,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/***
- * Aggregate Column counting the number of distinct items in a group.
- * If `ignoreAllNull` is true, does count when all items are null.
+/**
+ * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
+ * does count when all items are null.
  */
 public class CountDistinct extends Aggregator {
   private final Storage[] storage;
@@ -20,6 +20,7 @@ public class CountDistinct extends Aggregator {
 
   /**
    * Constructs a CountDistinct Aggregator
+   *
    * @param name output column name
    * @param columns input columns
    * @param ignoreAllNull if true ignore then all values are null
@@ -33,8 +34,9 @@ public class CountDistinct extends Aggregator {
   @Override
   public Object aggregate(List<Integer> indexes) {
     Set<MultiValueKey> set = new HashSet<>();
-    for (int row: indexes) {
-      MultiValueKey key = new MultiValueKey(Arrays.stream(storage).map(s->s.getItemBoxed(row)).toArray());
+    for (int row : indexes) {
+      MultiValueKey key =
+          new MultiValueKey(Arrays.stream(storage).map(s -> s.getItemBoxed(row)).toArray());
       if (key.hasFloatValues()) {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));
       }

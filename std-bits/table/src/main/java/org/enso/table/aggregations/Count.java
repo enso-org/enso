@@ -4,9 +4,7 @@ import org.enso.table.data.column.storage.Storage;
 
 import java.util.List;
 
-/***
- * Aggregate Column counting the number of entries in a group.
- */
+/** Aggregate Column counting the number of entries in a group. */
 public class Count extends Aggregator {
   public Count(String name) {
     super(name, Storage.Type.LONG);
