@@ -381,6 +381,12 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 ///
 /// The function is optimized to not create new empty nodes if they would be deleted by the
 /// function before it returns.
+///
+/// This function is a helper of the
+/// [`QualifiedNameToIdMap::replace_value_and_traverse_back_pruning_empty_subtrees`] method. It
+/// performs the same operation but the replaced value is swapped with `value` instead of being
+/// returned, and the `path` iterator is mutable. This allows the function to call itself
+/// recursively.
 fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
     node: &mut HashMapTree<entry::QualifiedNameSegment, Option<entry::Id>>,
     mut path: P,
