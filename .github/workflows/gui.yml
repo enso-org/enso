@@ -16,6 +16,10 @@ jobs:
       - Linux
       - engine
     steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
       - id: changed_files
         run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
       - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
