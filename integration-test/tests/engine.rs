@@ -15,9 +15,9 @@ use wasm_bindgen_test::wasm_bindgen_test;
 wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 struct TestOnNewProjectControllersOnly {
-    ide:      controller::Ide,
-    project:  model::Project,
-    executor: EventLoopExecutor,
+    _ide:      controller::Ide,
+    project:   model::Project,
+    _executor: EventLoopExecutor,
 }
 
 impl TestOnNewProjectControllersOnly {
@@ -31,7 +31,7 @@ impl TestOnNewProjectControllersOnly {
         let ide = initializer.initialize_ide_controller().await.expect(error_msg);
         ide.manage_projects().unwrap().create_new_project(None).await.unwrap();
         let project = ide.current_project().unwrap();
-        Self { ide, project, executor }
+        Self { _ide: ide, project, _executor: executor }
     }
 }
 
