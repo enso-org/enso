@@ -591,7 +591,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 3
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 2 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [0, 2]
+            idx = find_row [False, 6] materialized [0, 2]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "Count"
             materialized.columns.at 1 . at idx . should_equal 127
@@ -603,7 +603,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 6
             materialized.columns.at 4 . name . should_equal "Flag"
             materialized.columns.at 2 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [4, 2]
+            idx = find_row [False, 6] materialized [4, 2]
             idx.is_nothing . should_be_false
             materialized.columns.at 0 . name . should_equal "Count Nothing Hexadecimal"
             materialized.columns.at 0 . at idx . should_equal 8
@@ -621,7 +621,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 5
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 4 . name . should_equal "Flag"
-            idx = find_row ["False", 6] materialized [4, 0]
+            idx = find_row [False, 6] materialized [4, 0]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "Count Distinct Code"
             materialized.columns.at 1 . at idx . should_equal 127
@@ -637,7 +637,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 2 . name . should_equal "Flag"
-            idx = find_row ["False", 6] materialized [2, 0]
+            idx = find_row [False, 6] materialized [2, 0]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "Count Distinct Index Flag"
             materialized.columns.at 1 . at idx . should_equal 1
@@ -649,7 +649,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 6
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 5 . name . should_equal "Flag"
-            idx = find_row ["False", 6] materialized [5, 0]
+            idx = find_row [False, 6] materialized [5, 0]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "Sum Value"
             materialized.columns.at 1 . at idx . should_equal -103.050170 epsilon=0.000001
@@ -667,7 +667,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 6
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
-            idx = find_row ["False", 6] materialized [1, 0]
+            idx = find_row [False, 6] materialized [1, 0]
             idx.is_nothing . should_be_false
             materialized.columns.at 2 . name . should_equal "Standard Deviation Value"
             materialized.columns.at 2 . at idx . should_equal 58.979275 epsilon=0.000001
@@ -685,7 +685,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 8
             materialized.columns.at 5 . name . should_equal "Flag"
             materialized.columns.at 4 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [5, 4]
+            idx = find_row [False, 6] materialized [5, 4]
             idx.is_nothing . should_be_false
             materialized.columns.at 0 . name . should_equal "Median Index"
             materialized.columns.at 0 . at idx . should_equal 6 epsilon=0.000001
@@ -707,7 +707,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 3 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [0, 3]
+            idx = find_row [False, 6] materialized [0, 3]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "First TextWithNothing"
             materialized.columns.at 1 . at idx . should_equal "v78nbv8fr1"
@@ -721,7 +721,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 4
             materialized.columns.at 0 . name . should_equal "Flag"
             materialized.columns.at 3 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [0, 3]
+            idx = find_row [False, 6] materialized [0, 3]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "First TextWithNothing"
             materialized.columns.at 1 . at idx . should_equal "kmqxqkl6qx"
@@ -735,7 +735,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 6
             materialized.columns.at 3 . name . should_equal "Flag"
             materialized.columns.at 0 . name . should_equal "Index"
-            idx = find_row ["False", 6] materialized [3, 0]
+            idx = find_row [False, 6] materialized [3, 0]
             idx.is_nothing . should_be_false
             materialized.columns.at 1 . name . should_equal "Minimum Value"
             materialized.columns.at 1 . at idx . should_equal -99.605880 epsilon=0.000001
@@ -753,7 +753,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 4
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
-            idx = find_row [1, "False"] materialized
+            idx = find_row [1, False] materialized
             idx.is_nothing . should_be_false
             materialized.columns.at 2 . name . should_equal "Shortest TextWithNothing"
             materialized.columns.at 2 . at idx . should_equal "f5"
@@ -767,7 +767,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.length . should_equal 3
             materialized.columns.at 0 . name . should_equal "Index"
             materialized.columns.at 1 . name . should_equal "Flag"
-            idx = find_row [6, "False"] materialized
+            idx = find_row [6, False] materialized
             idx.is_nothing . should_be_false
             materialized.columns.at 2 . name . should_equal "Concatenate Code"
             materialized.columns.at 2 . at idx . length . should_equal 381
