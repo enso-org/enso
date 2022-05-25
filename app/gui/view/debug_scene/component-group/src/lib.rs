@@ -30,6 +30,15 @@ use list_view::entry::AnyModelProvider;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const WIDE_COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.9, 0.91, 0.89, 1.0);
+const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+
+
+
 // ===================
 // === Entry Point ===
 // ===================
@@ -166,8 +175,7 @@ fn create_wide_component_group(app: &Application) -> component_group::wide::View
     let component_group = app.new_view::<component_group::wide::View>();
     component_group.set_width(450.0);
     component_group.set_position_x(-200.0);
-    let background_color = color::Rgba(0.9, 0.91, 0.89, 1.0);
-    component_group.set_background_color(background_color);
+    component_group.set_background_color(WIDE_COMPONENT_GROUP_COLOR);
     component_group
 }
 
@@ -268,7 +276,7 @@ fn init(app: &Application) {
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
-    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    let default_color = COMPONENT_GROUP_COLOR;
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
@@ -284,13 +292,16 @@ fn init(app: &Application) {
     }
     init.emit(());
 
-    let groups = Rc::new(vec![
+    let groups: Rc<Vec<component_group::multi::Group>> = Rc::new(vec![
         first_component_group.clone_ref().into(),
         second_component_group.clone_ref().into(),
         wide_component_group.clone_ref().into(),
     ]);
     let scene = &app.display.default_scene;
-    let multiview = component_group::multi::Wrapper::new(scene, &network, groups.iter().cloned());
+    let multiview = component_group::multi::Wrapper::new(scene);
+    for group in groups.iter() {
+        multiview.add(group.clone_ref());
+    }
 
     frp::extend! { network
         selected_entry <- multiview.selected_entry.on_change();
@@ -303,7 +314,7 @@ fn init(app: &Application) {
 
         eval multiview.focused([groups]((g, f)) {
             match &groups[usize::from(g)] {
-                component_group::multi::Group::Regular(group) => group.set_dimmed(!f),
+                component_group::multi::Group::OneColumn(group) => group.set_dimmed(!f),
                 component_group::multi::Group::Wide(_) => {}, // Does not support dimming.
             }
         });
@@ -317,6 +328,7 @@ fn init(app: &Application) {
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
     std::mem::forget(network);
+    std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
     std::mem::forget(wide_component_group);

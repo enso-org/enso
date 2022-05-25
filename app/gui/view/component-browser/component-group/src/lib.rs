@@ -36,6 +36,7 @@ use ensogl_core::prelude::*;
 use enso_frp as frp;
 use ensogl_core::application::shortcut::Shortcut;
 use ensogl_core::application::Application;
+use ensogl_core::Animation;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::camera::Camera2d;
@@ -259,18 +260,19 @@ impl component::Frp<Model> for Frp {
         let bg_intensity = style.get_number(theme::background_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let entry_text_color = style.get_color(theme::entries::text::color);
+        let intensity = Animation::new(&network);
         frp::extend! { network
             init <- source_();
             one <- init.constant(1.0);
-            intensity <- input.set_dimmed.switch(&one, &dimmed_intensity);
+            intensity.target <+ input.set_dimmed.switch(&one, &dimmed_intensity);
             app_bg_color <- all(&app_bg_color, &init)._0();
             app_bg_and_input_color <- all(&app_bg_color, &input.set_color);
-            main_color <- app_bg_and_input_color.all_with(&intensity, mix);
+            main_color <- app_bg_and_input_color.all_with(&intensity.value, mix);
             app_bg_and_main_color <- all(&app_bg_color, &main_color);
             header_color <- app_bg_and_main_color.all_with(&header_intensity, mix);
             bg_color <- app_bg_and_main_color.all_with(&bg_intensity, mix);
             app_bg_and_entry_text_color <- all(&app_bg_color, &entry_text_color);
-            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity, mix);
+            entry_color_with_intensity <- app_bg_and_entry_text_color.all_with(&intensity.value, mix);
             entry_color_sampler <- entry_color_with_intensity.sampler();
         }
         let params = entry::Params { color: entry_color_sampler };
@@ -436,7 +438,9 @@ impl component::Model for Model {
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
-        // FIXME(#182194574): Hide selection again once we have a proper selection box.
+        // FIXME(https://www.pivotaltracker.com/story/show/182194574):
+        // Uncommend the next line once a better selection box for component groups is implemented.
+        // Now we're using the ListView's built-in selection which is ugly.
         //entries.hide_selection();
         display_object.add_child(&background);
         display_object.add_child(&header_background);
@@ -468,7 +472,7 @@ impl Model {
         self.header.add_to_scene_layer(&layers.header_text);
     }
 
-    /// Whether the `point` (object-space coordinates) is inside the component group shape.
+    /// Test whether the `point` (object-space coordinates) is inside the component group shape.
     pub fn is_inside(&self, point: Vector2<f32>) -> bool {
         let size = self.background.size.get();
         is_point_inside(point, size)
@@ -573,7 +577,7 @@ pub type View = component::ComponentView<Model, Frp>;
 // === Helpers ===
 // ===============
 
-/// Whether the point is inside the rectangle of `size`. The center of the rectangle is at
+/// Test whether the point is inside the rectangle of `size`. The center of the rectangle is at
 /// coordinates (0, 0).
 fn is_point_inside(point: Vector2<f32>, size: Vector2) -> bool {
     let x_range = (-size.x / 2.0)..=(size.x / 2.0);

@@ -347,7 +347,9 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);
         for column in columns.iter() {
-            // FIXME(#182194574): Hide selection again once we have a proper selection box.
+            // FIXME(https://www.pivotaltracker.com/story/show/182194574):
+            // Uncommend the next line once a better selection box for component groups is implemented.
+            // Now we're using the ListView's built-in selection which is ugly.
             //column.hide_selection();
             column.set_background_color(Rgba::transparent());
             column.show_background_shadow(false);
@@ -403,7 +405,7 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         }
     }
 
-    /// Whether the `point` (object-space coordinates) is inside the component group shape.
+    /// Test whether the `point` (object-space coordinates) is inside the component group shape.
     pub fn is_inside(&self, point: Vector2<f32>) -> bool {
         let size = self.background.size.get();
         crate::is_point_inside(point, size)
