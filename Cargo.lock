@@ -1867,6 +1867,7 @@ name = "enso-gui"
 version = "0.1.0"
 dependencies = [
  "analytics",
+ "assert_approx_eq",
  "ast",
  "bimap",
  "console_error_panic_hook",

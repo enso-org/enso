@@ -287,6 +287,15 @@ impl Drop for ExecutionContext {
     }
 }
 
+// /// ```
+// /// # use assert_approx_eq::assert_approx_eq;
+// /// let color = from_hex("#C047AB".to_string());
+// /// assert!(color.is_some());
+// /// const PRECISION: f32 = 0.001;
+// /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
+// /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
+// /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
+// /// ```
 // FIXME: move to lib/rust/ensogl/core/src/data/color/space/def.rs
 fn from_hex(color_string: &str) -> Option<color::Rgb> {
     // see: https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
@@ -300,8 +309,8 @@ fn from_hex(color_string: &str) -> Option<color::Rgb> {
         Some(parsed[0])
     };
     let (red, green, blue) = match color_string.len() {
-        3 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
-        6 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
+        4 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
+        7 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
         _ => return None,
     };
     Some(color::Rgb::from_base_255(red, green, blue))
@@ -322,6 +331,7 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
+    use assert_approx_eq::assert_approx_eq;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
@@ -595,6 +605,15 @@ pub mod test {
         });
         test.run_task(async move {
             context.load_component_groups().await.unwrap();
+            let groups = context.model.virtual_component_groups.borrow();
+            assert_eq!(groups.len(), 2);
+            let local_group = &groups[0];
+            assert_eq!(local_group.name, "Test Group 1".to_string());
+            assert!(local_group.color.is_some());
+            const PRECISION: f32 = 0.001;
+            assert_approx_eq!(local_group.color.unwrap().red, 0.753, PRECISION);
+            assert_approx_eq!(local_group.color.unwrap().green, 0.278, PRECISION);
+            assert_approx_eq!(local_group.color.unwrap().blue, 0.671, PRECISION);
         });
     }
 }

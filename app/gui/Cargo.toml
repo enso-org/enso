@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 analytics = { version = "0.1.0", path = "analytics" }
+assert_approx_eq = { version = "1.1.0" }
 double-representation = { version = "0.1.0", path = "controller/double-representation" }
 enso-config = { path = "config" }
 enso-callback = { path = "../../lib/rust/callback" }
