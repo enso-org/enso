@@ -1,16 +1,11 @@
 package org.enso.loggingservice
 
-import java.nio.file.Path
-
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import org.enso.logger.masking.Masking
-import org.enso.loggingservice.printers.{
-  FileOutputPrinter,
-  Printer,
-  StderrPrinter,
-  StderrPrinterWithColors
-}
+import org.enso.loggingservice.printers._
+
+import java.nio.file.Path
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
@@ -54,7 +49,8 @@ abstract class LoggingServiceSetupHelper(implicit
     logLevel: Option[LogLevel],
     connectToExternalLogger: Option[Uri],
     colorMode: ColorMode,
-    logMasking: Boolean
+    logMasking: Boolean,
+    profilingLog: Option[Path]
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
     Masking.setup(logMasking)
@@ -62,7 +58,7 @@ abstract class LoggingServiceSetupHelper(implicit
       case Some(uri) =>
         setupLoggingConnection(uri, actualLogLevel)
       case None =>
-        setupLoggingServer(actualLogLevel, colorMode)
+        setupLoggingServer(actualLogLevel, colorMode, profilingLog)
     }
   }
 
@@ -114,7 +110,8 @@ abstract class LoggingServiceSetupHelper(implicit
 
   private def setupLoggingServer(
     logLevel: LogLevel,
-    colorMode: ColorMode
+    colorMode: ColorMode,
+    profilingLog: Option[Path]
   ): Unit = {
     val printExceptionsInStderr =
       implicitly[Ordering[LogLevel]].compare(logLevel, LogLevel.Debug) >= 0
@@ -132,10 +129,11 @@ abstract class LoggingServiceSetupHelper(implicit
             suffix          = logFileSuffix,
             printExceptions = true
           )
+        val profilingPrinterOpt = profilingLog.map(new FileXmlPrinter(_))
         Seq(
           stderrPrinter(colorMode, printExceptionsInStderr),
           filePrinter
-        )
+        ) ++ profilingPrinterOpt
       } catch {
         case NonFatal(error) =>
           logger.error(

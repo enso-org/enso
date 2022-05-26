@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
 import org.enso.docs.generator.DocsGenerator
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -1107,7 +1108,8 @@ class SuggestionsHandlerSpec
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig.initialize(root.file)
+      ProjectDirectoriesConfig.initialize(root.file),
+      ProfilingConfig()
     )
   }
 

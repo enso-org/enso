@@ -14,7 +14,7 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     this(values, null);
   }
 
-  public MultiValueKey(Object[] values, Comparator<Object> objectComparator){
+  public MultiValueKey(Object[] values, Comparator<Object> objectComparator) {
     this.values = values;
     this.objectComparator = objectComparator;
 
@@ -23,7 +23,7 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
 
     // Precompute HashCode - using Apache.Commons.Collections.Map.MultiKeyMap.hash algorithm
     int h = 0;
-    for (Object value: this.values) {
+    for (Object value : this.values) {
       if (value != null) {
         Object folded = foldObject(value);
         floatValue = floatValue || (folded instanceof Double);
@@ -57,21 +57,23 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     return allNull;
   }
 
-  public boolean hasFloatValues() { return floatValue; }
+  public boolean hasFloatValues() {
+    return floatValue;
+  }
 
   protected static Object foldObject(Object value) {
     if (value instanceof Long) {
       return value;
     } else if (value instanceof Integer) {
-      return ((Integer)value).longValue();
+      return ((Integer) value).longValue();
     } else if (value instanceof Byte) {
-      return ((Byte)value).longValue();
-    } else if (value instanceof Float && ((Float)value) % 1 == 0) {
-      return ((Float)value).longValue();
-    } else if (value instanceof Double && ((Double)value) % 1 == 0) {
-      return ((Double)value).longValue();
+      return ((Byte) value).longValue();
+    } else if (value instanceof Float && ((Float) value) % 1 == 0) {
+      return ((Float) value).longValue();
+    } else if (value instanceof Double && ((Double) value) % 1 == 0) {
+      return ((Double) value).longValue();
     } else if (value instanceof Float) {
-      return ((Float)value).doubleValue();
+      return ((Float) value).doubleValue();
     } else if (value instanceof Double) {
       return value;
     }

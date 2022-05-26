@@ -40,7 +40,7 @@ public @interface Builtin {
   @interface WrapException {
     /** @return Class of the potential exception to be caught during the execution of the method */
     Class<? extends Exception> from();
-    /** @return Class of Enso's builtin (error) type * */
+    /** @return Class of Enso's builtin (error) type */
     Class<?> to();
   }
 

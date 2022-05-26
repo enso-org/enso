@@ -79,7 +79,10 @@ case object GatherDiagnostics extends IRPass {
       case other: DiagnosticKeys =>
         diagnostic.getClass == other.diagnostic.getClass &&
         diagnostic.location == other.diagnostic.location &&
-        java.util.Arrays.equals(diagnostic.diagnosticKeys(), other.diagnostic.diagnosticKeys())
+        java.util.Arrays.equals(
+          diagnostic.diagnosticKeys(),
+          other.diagnostic.diagnosticKeys()
+        )
       case _ => false
     }
 

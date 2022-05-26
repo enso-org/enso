@@ -3,6 +3,7 @@ package org.enso.languageserver.boot.resource
 import akka.actor.ActorSystem
 import akka.testkit._
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
@@ -20,6 +21,7 @@ import org.sqlite.SQLiteException
 
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.UUID
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -210,7 +212,8 @@ class RepoInitializationSpec
       FileManagerConfig(timeout = 3.seconds.dilated),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
-      ProjectDirectoriesConfig.initialize(root.file)
+      ProjectDirectoriesConfig.initialize(root.file),
+      ProfilingConfig()
     )
   }
 

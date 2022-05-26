@@ -273,7 +273,12 @@ lazy val enso = (project in file("."))
     `library-manager-test`,
     `connected-lock-manager`,
     syntax.jvm,
-    testkit
+    testkit,
+    `std-base`,
+    `std-database`,
+    `std-google-api`,
+    `std-image`,
+    `std-table`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -905,9 +910,10 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= akka ++ akkaTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-      "io.circe"      %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest" %% "scalatest"     % scalatestVersion % Test
+      "io.circe"                   %% "circe-literal" % circeVersion,
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      akkaTestkit                   % Test,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
 

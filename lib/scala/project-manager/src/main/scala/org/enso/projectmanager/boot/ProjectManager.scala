@@ -23,6 +23,7 @@ import zio.console._
 import zio.interop.catz.core._
 
 import java.io.IOException
+import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import scala.concurrent.duration._
@@ -120,23 +121,99 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
+  /** Parses and validates the command line arguments.
+    *
+    * @param options the command line arguments
+    */
+  def parseOpts(
+    options: CommandLine
+  ): ZIO[ZEnv, Throwable, ProjectManagerOptions] = {
+    val parseProfilingPath = ZIO
+      .effect {
+        Option(options.getOptionValue(Cli.PROFILING_PATH))
+          .map(Paths.get(_).toAbsolutePath)
+      }
+      .flatMap {
+        case pathOpt @ Some(path) =>
+          ZIO.ifM(ZIO.effect(Files.isDirectory(path)))(
+            onTrue = putStrLnErr(
+              s"Error: ${Cli.PROFILING_PATH} is a directory: $path"
+            ) *>
+              ZIO.fail(new FileAlreadyExistsException(path.toString)),
+            onFalse = ZIO.succeed(pathOpt)
+          )
+        case None =>
+          ZIO.succeed(None)
+      }
+      .catchAll { err =>
+        putStrLnErr(s"Invalid ${Cli.PROFILING_PATH} argument.") *> ZIO.fail(err)
+      }
+
+    val parseProfilingTime = ZIO
+      .effect {
+        Option(options.getOptionValue(Cli.PROFILING_TIME))
+          .map(_.toInt.seconds)
+      }
+      .catchAll { err =>
+        putStrLnErr(s"Invalid ${Cli.PROFILING_TIME} argument.") *> ZIO.fail(err)
+      }
+
+    val parseProfilingEventsLogPath = ZIO
+      .effect {
+        Option(options.getOptionValue(Cli.PROFILING_EVENTS_LOG_PATH))
+          .map(Paths.get(_).toAbsolutePath)
+      }
+      .flatMap {
+        case pathOpt @ Some(path) =>
+          ZIO.ifM(ZIO.effect(Files.isDirectory(path)))(
+            onTrue = putStrLnErr(
+              s"Error: ${Cli.PROFILING_EVENTS_LOG_PATH} is a directory: $path"
+            ) *>
+              ZIO.fail(new FileAlreadyExistsException(path.toString)),
+            onFalse = ZIO.succeed(pathOpt)
+          )
+        case None =>
+          ZIO.succeed(None)
+      }
+      .catchAll { err =>
+        putStrLnErr(s"Invalid ${Cli.PROFILING_EVENTS_LOG_PATH} argument.") *>
+        ZIO.fail(err)
+      }
+
+    for {
+      profilingEventsLogPath <- parseProfilingEventsLogPath
+      profilingPath          <- parseProfilingPath
+      profilingTime          <- parseProfilingTime
+    } yield ProjectManagerOptions(
+      profilingEventsLogPath,
+      profilingPath,
+      profilingTime
+    )
+  }
+
   /** The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, IOException, ExitCode] = {
+  def runOpts(options: CommandLine): ZIO[ZEnv, Throwable, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
       ZIO.effectTotal(Cli.printHelp()) *>
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else {
-      val verbosity        = options.getOptions.count(_ == Cli.option.verbose)
-      val logMasking       = !options.hasOption(Cli.NO_LOG_MASKING)
-      val profilingEnabled = options.hasOption(Cli.ENABLE_PROFILING)
+      val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
+      val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
       logger.info("Starting Project Manager...")
       for {
-        logLevel <- setupLogging(verbosity, logMasking)
-        procConf = MainProcessConfig(logLevel, profilingEnabled)
+        opts <- parseOpts(options)
+        profilingLog = opts.profilingPath.map(getSiblingFile(_, ".log"))
+        logLevel <- setupLogging(verbosity, logMasking, profilingLog)
+        procConf = MainProcessConfig(
+          logLevel,
+          opts.profilingRuntimeEventsLog,
+          opts.profilingPath,
+          opts.profilingTime
+        )
         exitCode <- mainProcess(procConf).fold(
           th => {
             logger.error("Main process execution failed.", th)
@@ -150,7 +227,8 @@ object ProjectManager extends App with LazyLogging {
 
   private def setupLogging(
     verbosityLevel: Int,
-    logMasking: Boolean
+    logMasking: Boolean,
+    profilingLog: Option[Path]
   ): ZIO[Console, IOException, LogLevel] = {
     val level = verbosityLevel match {
       case 0 => LogLevel.Info
@@ -164,7 +242,7 @@ object ProjectManager extends App with LazyLogging {
 
     ZIO
       .effect {
-        Logging.setup(Some(level), None, colorMode, logMasking)
+        Logging.setup(Some(level), None, colorMode, logMasking, profilingLog)
       }
       .catchAll { exception =>
         putStrLnErr(s"Failed to setup the logger: $exception")
@@ -203,4 +281,12 @@ object ProjectManager extends App with LazyLogging {
       )
     }
 
+  private def getSiblingFile(file: Path, ext: String): Path = {
+    val fileName       = file.getFileName.toString
+    val extensionIndex = fileName.lastIndexOf(".")
+    val newName =
+      if (extensionIndex > 0) fileName.substring(0, extensionIndex) + ext
+      else fileName + ext
+    file.getParent.resolve(newName)
+  }
 }

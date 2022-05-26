@@ -44,7 +44,6 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
-import org.enso.profiling.{NoopSampler, TempFileSampler}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
@@ -56,6 +55,7 @@ import java.net.URI
 import java.time.Clock
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -83,7 +83,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
-    directoriesConfig
+    directoriesConfig,
+    serverConfig.profilingConfig
   )
   log.trace("Created Language Server config [{}].", languageServerConfig)
 
@@ -148,8 +149,20 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
 
   val runtimeEventsMonitor =
-    if (logLevel == LogLevel.Trace) ApiEventsMonitor()
-    else new NoopEventsMonitor
+    languageServerConfig.profiling.runtimeEventsLogPath match {
+      case Some(path) =>
+        ApiEventsMonitor(path) match {
+          case Success(monitor) =>
+            monitor
+          case Failure(exception) =>
+            log.error(
+              s"Failed to create runtime events monitor for $path ($exception)."
+            )
+            new NoopEventsMonitor
+        }
+      case None =>
+        new NoopEventsMonitor
+    }
   log.trace(
     s"Started runtime events monitor ${runtimeEventsMonitor.getClass.getName}."
   )
@@ -228,12 +241,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           languageServerConfig,
           RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
-          sessionRouter,
-          if (serverConfig.isProfilingEnabled) {
-            val s = TempFileSampler("context-registry")
-            JavaLoggingLogHandler.registerLogFile(s.getSiblingFile(".log"))
-            s
-          } else NoopSampler()
+          sessionRouter
         ),
       "context-registry"
     )
