@@ -1,3 +1,5 @@
+/// The test suite of IDE-engine communication. The view is not instantiated, and controllers
+/// may be used for convenience.
 use enso_gui::integration_test::prelude::*;
 
 use engine_protocol::language_server::ExplicitCall;
@@ -12,7 +14,9 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 
 
-wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+// =======================================
+// === TestOnNewProjectControllersOnly ===
+// =======================================
 
 struct TestOnNewProjectControllersOnly {
     _ide:      controller::Ide,
@@ -34,6 +38,14 @@ impl TestOnNewProjectControllersOnly {
         Self { _ide: ide, project, _executor: executor }
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 // This test requires 2022.1.1-nightly.2022-04-26 or later version of Engine.
 #[wasm_bindgen_test]
