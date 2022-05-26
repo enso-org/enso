@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use ast::constants::keywords;
+use ast::opr::predefined::ACCESS;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -70,6 +71,18 @@ pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
 }
 
+impl From<&str> for QualifiedName {
+    fn from(name: &str) -> Self {
+        name.split(ACCESS).collect()
+    }
+}
+
+impl From<String> for QualifiedName {
+    fn from(name: String) -> Self {
+        name.as_str().into()
+    }
+}
+
 impl From<QualifiedName> for String {
     fn from(name: QualifiedName) -> Self {
         String::from(&name)
@@ -78,7 +91,7 @@ impl From<QualifiedName> for String {
 
 impl From<&QualifiedName> for String {
     fn from(name: &QualifiedName) -> Self {
-        name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
+        name.into_iter().map(|s| s.deref()).join(ACCESS)
     }
 }
 

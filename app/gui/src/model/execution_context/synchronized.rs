@@ -609,10 +609,8 @@ pub mod test {
             assert_approx_eq!(local_group.color.unwrap().red, 0.753, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().green, 0.278, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().blue, 0.671, PRECISION);
-            let expected_exports = vec![
-                ImString::from("Standard.Base.System.File.new"),
-                ImString::from("local.Unnamed_10.Main.main"),
-            ];
+            let expected_exports =
+                vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
             assert_eq!(local_group.exports, expected_exports);
 
             // Check the contents of the second group.
@@ -620,8 +618,8 @@ pub mod test {
                 name:    "Input".into(),
                 color:   None,
                 exports: vec![
-                    ImString::from("Standard.Base.System.File.new"),
-                    ImString::from("Standard.Base.System.File.read_text"),
+                    "Standard.Base.System.File.new".into(),
+                    "Standard.Base.System.File.read_text".into(),
                 ],
             });
         });

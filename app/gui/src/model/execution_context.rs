@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::module::QualifiedName as ModuleQualifiedName;
+use crate::model::suggestion_database::entry::QualifiedName as SuggestionQualifiedName;
 use crate::notification::Publisher;
 
 use engine_protocol::language_server;
@@ -280,7 +281,7 @@ pub struct AttachedVisualization {
 pub struct VirtualComponentGroup {
     pub name:    ImString,
     pub color:   Option<color::Rgb>,
-    pub exports: Vec<ImString>,
+    pub exports: Vec<SuggestionQualifiedName>,
 }
 
 
