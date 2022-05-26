@@ -588,13 +588,6 @@ pub mod test {
                     exports: vec![
                         library_component("Standard.Base.System.File.new"),
                         library_component("Standard.Base.System.File.read_text"),
-                        library_component("Standard.Database.Connection.Database.connect"),
-                        library_component("Standard.Table.Data.Table.new"),
-                        library_component("Standard.Table.Data.Table.from_rows"),
-                        library_component("Standard.Table.Data.Column.from_vector"),
-                        library_component("Standard.Table.Io.Csv.from_csv"),
-                        library_component("Standard.Table.Io.Spreadsheet.from_xlsx"),
-                        library_component("Standard.Table.Io.Spreadsheet.from_xls"),
                     ],
                 },
             ],
@@ -607,6 +600,8 @@ pub mod test {
             context.load_component_groups().await.unwrap();
             let groups = context.model.virtual_component_groups.borrow();
             assert_eq!(groups.len(), 2);
+
+            // Check the contents of the first, local group.
             let local_group = &groups[0];
             assert_eq!(local_group.name, "Test Group 1".to_string());
             assert!(local_group.color.is_some());
@@ -614,6 +609,21 @@ pub mod test {
             assert_approx_eq!(local_group.color.unwrap().red, 0.753, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().green, 0.278, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().blue, 0.671, PRECISION);
+            let expected_exports = vec![
+                ImString::from("Standard.Base.System.File.new"),
+                ImString::from("local.Unnamed_10.Main.main"),
+            ];
+            assert_eq!(local_group.exports, expected_exports);
+
+            // Check the contents of the second group.
+            assert_eq!(groups[1], VirtualComponentGroup {
+                name:    "Input".into(),
+                color:   None,
+                exports: vec![
+                    ImString::from("Standard.Base.System.File.new"),
+                    ImString::from("Standard.Base.System.File.read_text"),
+                ],
+            });
         });
     }
 }

@@ -276,7 +276,7 @@ pub struct AttachedVisualization {
 // === VirtualComponentGroup ===
 // =============================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct VirtualComponentGroup {
     pub name:    ImString,
     pub color:   Option<color::Rgb>,
