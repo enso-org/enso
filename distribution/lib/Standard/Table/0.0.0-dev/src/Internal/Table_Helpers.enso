@@ -155,7 +155,7 @@ rename_columns internal_columns mapping on_problems =
         new_names
 
     mapped = case mapping of
-        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher.new case_sensitive=True)
+        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
         Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Mapping.By_Index map ->
             good_indices = here.validate_indices col_count map.keys problem_builder
@@ -243,7 +243,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
                 here.select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names (Text_Matcher.new case_sensitive=True)
+        new_selector = By_Name column_names (Text_Matcher case_sensitive=True)
         here.select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
