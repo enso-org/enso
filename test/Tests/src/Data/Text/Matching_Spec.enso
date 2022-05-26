@@ -28,15 +28,15 @@ spec = Test.group 'Matching Helper' <|
         Regex_Matcher.new.match_single_criterion "foo" "F.*" . should_be_false
 
     Test.specify 'should support case-insensitive matching' <|
-        (Regex_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "F.*" . should_be_true
-        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foO" "FOo" . should_be_true
+        (Regex_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "foo" "F.*" . should_be_true
+        (Text_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "foO" "FOo" . should_be_true
 
-        (Regex_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "fF.*" . should_be_false
-        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "foo" "Foos" . should_be_false
+        (Regex_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "foo" "fF.*" . should_be_false
+        (Text_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "foo" "Foos" . should_be_false
 
         # Small beta is equal to capital 'beta' which looks the same as capital 'b' but is a different symbol.
-        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "β" "Β" . should_be_true
-        (Text_Matcher.new case_sensitive=Case_Insensitive.new).match_single_criterion "β" "B" . should_be_false
+        (Text_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "β" "Β" . should_be_true
+        (Text_Matcher.new case_sensitive=Case_Insensitive).match_single_criterion "β" "B" . should_be_false
 
     Test.specify 'should match a list of names with a list of criteria, correctly handling reordering' <|
         Text_Matcher.new.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=True . should_equal ["baz", "foo"]

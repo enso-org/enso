@@ -41,7 +41,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
     Test.group prefix+"Table.select_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["foo", "bar"] <| table.select_columns (By_Name.new ["bar", "foo"])
-            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2"] <| table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive))
             expect_column_names ["abcd123", "foo", "bar"] <| table.select_columns (By_Index [-1, 0, 1]) reorder=True
 
             column1 = table.at "foo_1"
@@ -71,7 +71,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
+                expect_column_names ["bar", "Bar"] <| table.select_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["foo", "bar", "foo_1", "foo_2"] <| table.select_columns (By_Name ["b.*", "f.+"] Regex_Matcher.new)
@@ -155,7 +155,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
     Test.group prefix+"Table.remove_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Name.new ["bar", "foo"])
-            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+            expect_column_names ["foo", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive))
             expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123"] <| table.remove_columns (By_Index [-1, 0, 1])
 
             column1 = table.at "foo_1"
@@ -181,7 +181,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
+                expect_column_names ["foo"] <| table.remove_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["Baz", "ab.+123", "abcd123"] <| table.remove_columns (By_Name ["b.*", "f.+"] Regex_Matcher.new)
@@ -264,7 +264,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
     Test.group prefix+"Table.reorder_columns" pending=pending <|
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Name.new ["foo"]) position=After_Other_Columns
-            expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+            expect_column_names ["foo_1", "foo_2", "bar", "Baz", "foo", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive))
             expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] <| table.reorder_columns (By_Index [1, 0]) position=Before_Other_Columns
             expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] <| table.reorder_columns (By_Index [0]) position=After_Other_Columns
 
@@ -290,7 +290,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
                     col2 = ["bar", [4,5,6]]
                     col3 = ["Bar", [7,8,9]]
                     table_builder [col1, col2, col3]
-                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive.new))
+                expect_column_names ["bar", "Bar", "foo"] <| table.reorder_columns (By_Name ["bar"] (Text_Matcher Case_Insensitive))
 
         Test.specify "should correctly handle regexes matching multiple names" <|
             expect_column_names ["bar", "foo", "foo_1", "foo_2", "Baz", "ab.+123", "abcd123"] <| table.reorder_columns (By_Name ["b.*", "f.+"] Regex_Matcher.new)
@@ -415,7 +415,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
         Test.specify "should work by name case-insensitively" <|
             map = Map.from_vector [["ALPHA", "FirstColumn"], ["DELTA", "Another"]]
             expect_column_names ["FirstColumn", "beta", "gamma", "Another"] <|
-                table.rename_columns (Column_Mapping.By_Name map (Text_Matcher Case_Insensitive.new))
+                table.rename_columns (Column_Mapping.By_Name map (Text_Matcher Case_Insensitive))
 
         Test.specify "should work by name using regex" <|
             map = Map.from_vector [["a.*", "FirstColumn"]]

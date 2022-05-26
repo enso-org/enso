@@ -69,22 +69,6 @@ Regex_Matcher.compile pattern =
     compiled_pattern
 
 ## UNSTABLE
-   Represents case-insensitive comparison mode.
-
-   Arguments:
-   - locale: The locale used for the comparison.
-
-   A temporary workaround to allow the `Case_Insensitive` constructor to work
-   with default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Case_Insensitive.new : Locale -> Case_Insensitive
-Case_Insensitive.new locale=Locale.default = Case_Insensitive locale
-
-## UNSTABLE
    Represents exact text matching mode.
 
    Arguments:
@@ -169,7 +153,7 @@ Text_Matcher.match_single_criterion name criterion =
    > Example
      Check if the provided name matches a regular expression.
 
-         Regex_Matcher.new case_sensitive=Case_Insensitive.new . match_single_criterion "Foobar" "f.*" == True
+         Regex_Matcher.new case_sensitive=Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
 Regex_Matcher.match_single_criterion : Text -> Text -> Boolean
 Regex_Matcher.match_single_criterion name criterion =
     this.compile criterion . matches name

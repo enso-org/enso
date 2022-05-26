@@ -882,7 +882,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
          "Hello!".starts_with "Hello" == True
          "Hello!".starts_with "hello" == False
-         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) == True
+         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
          "Hello!".starts_with "[a-z]" Regex_Matcher.new == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher.new == True
 Text.starts_with : Text -> Matcher -> Boolean
@@ -920,7 +920,7 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
 
          "Hello World".ends_with "World" == True
          "Hello World".ends_with "world" == False
-         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) == True
+         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new == True
 Text.ends_with : Text -> Matcher -> Boolean
 Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
@@ -980,7 +980,7 @@ Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
    > Example
      See if the text "Hello!" contains the text 'LO', ignoring case.
 
-         "Hello!".contains "LO" (Text_Matcher Case_Insensitive.new)
+         "Hello!".contains "LO" (Text_Matcher Case_Insensitive)
 
    > Example
      See if the text "Hello!" contains any lowercase letters, using a regex.
@@ -1306,7 +1306,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+         match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
          term.length == 6
          match.length == 7
 
@@ -1327,11 +1327,11 @@ Text.trim where=Location.Both what=_.is_whitespace =
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
-         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
          term_2.length == 6
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
@@ -1431,7 +1431,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
-         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
          term.length == 7
          match . map .length == [7, 6]
 
@@ -1451,9 +1451,9 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
 
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
-         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
          match_1 . map .length == [2, 3]
-         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
 Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
