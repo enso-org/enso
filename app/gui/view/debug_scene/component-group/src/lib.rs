@@ -313,15 +313,15 @@ fn init(app: &Application) {
     init.emit(());
 
 
-    // === Multi components group wrapper ===
+    // === Components groups set ===
 
-    let groups: Rc<Vec<component_group::multi::Group>> = Rc::new(vec![
+    let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
         first_component_group.clone_ref().into(),
         second_component_group.clone_ref().into(),
         wide_component_group.clone_ref().into(),
     ]);
     let scene = &app.display.default_scene;
-    let multiview = component_group::multi::Wrapper::new(scene);
+    let multiview = component_group::set::Wrapper::new(scene);
     for group in groups.iter() {
         multiview.add(group.clone_ref());
     }
@@ -337,8 +337,8 @@ fn init(app: &Application) {
 
         eval multiview.focused([groups]((g, f)) {
             match &groups[usize::from(g)] {
-                component_group::multi::Group::OneColumn(group) => group.set_dimmed(!f),
-                component_group::multi::Group::Wide(group) => group.set_dimmed(!f),
+                component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
+                component_group::set::Group::Wide(group) => group.set_dimmed(!f),
             }
         });
     }

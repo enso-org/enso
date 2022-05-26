@@ -56,7 +56,7 @@ use ensogl_shadow as shadow;
 
 pub mod entry;
 pub mod icon;
-pub mod multi;
+pub mod set;
 pub mod wide;
 
 pub use entry::View as Entry;
