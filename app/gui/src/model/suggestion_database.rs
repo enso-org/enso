@@ -812,14 +812,21 @@ mod test {
             scope:       (default()..=default()).into(),
             external_id: None,
         };
-        let empty_entry = SuggestionEntry::Atom {
+        let entry_with_empty_name = SuggestionEntry::Atom {
             name:               "".to_string(),
-            module:             "Project.Module".to_string(),
+            module:             "Empty.Entry".to_string(),
             arguments:          vec![],
             return_type:        "".to_string(),
             documentation:      None,
             documentation_html: None,
             external_id:        None,
+        };
+        let empty_entry = SuggestionEntry::Local {
+            module:      "".to_string(),
+            name:        "".to_string(),
+            return_type: "".to_string(),
+            external_id: None,
+            scope:       (default()..=default()).into(),
         };
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
@@ -828,7 +835,8 @@ mod test {
                 db_entry(3, entry3),
                 db_entry(4, entry4),
                 db_entry(5, entry5),
-                db_entry(6, empty_entry),
+                db_entry(6, entry_with_empty_name),
+                db_entry(7, empty_entry),
             ],
             current_version: 1,
         };
@@ -843,12 +851,14 @@ mod test {
         lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
         // Technically invalid, but only because we "received" a wrong input from Engine.
         // We only check if we don't panic here for some reason.
-        lookup_and_verify_result_name(&db, "Project.Module.");
+        lookup_and_verify_result_name(&db, "Empty.Entry.");
 
         // Check that looking up names not added to the database does not return entries.
         lookup_and_verify_empty_result(&db, "TestProject.TestModule");
         lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.create_process");
         lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
+        lookup_and_verify_empty_result(&db, "");
+        lookup_and_verify_empty_result(&db, ".");
     }
 
     /// Apply a [`SuggestionDatabaseUpdatesEvent`] to a [`SuggestionDatabase`] initialized with
