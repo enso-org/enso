@@ -812,6 +812,15 @@ mod test {
             scope:       (default()..=default()).into(),
             external_id: None,
         };
+        let empty_entry = SuggestionEntry::Atom {
+            name:               "".to_string(),
+            module:             "Project.Module".to_string(),
+            arguments:          vec![],
+            return_type:        "".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
                 db_entry(1, entry1),
@@ -819,6 +828,7 @@ mod test {
                 db_entry(3, entry3),
                 db_entry(4, entry4),
                 db_entry(5, entry5),
+                db_entry(6, empty_entry),
             ],
             current_version: 1,
         };
@@ -831,6 +841,9 @@ mod test {
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
         lookup_and_verify_result_name(&db, "local.Unnamed_6.Main.operator1");
         lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
+        // Technically invalid, but only because we "received" a wrong input from Engine.
+        // We only check if we don't panic here for some reason.
+        lookup_and_verify_result_name(&db, "Project.Module.");
 
         // Check that looking up names not added to the database does not return entries.
         lookup_and_verify_empty_result(&db, "TestProject.TestModule");
