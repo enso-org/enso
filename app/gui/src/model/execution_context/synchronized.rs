@@ -131,11 +131,10 @@ impl ExecutionContext {
     }
 
     // FIXME: move to API below
-    fn load_component_groups(&self) -> BoxFuture<FallibleResult<response::GetComponentGroups>> {
-        async move {
-            Ok(self.language_server.get_component_groups(&self.id).await?)
-        }
-        .boxed_local()
+    fn load_component_groups(
+        &self,
+    ) -> BoxFuture<FallibleResult<language_server::response::GetComponentGroups>> {
+        async move { Ok(self.language_server.get_component_groups(&self.id).await?) }.boxed_local()
     }
 }
 
@@ -533,6 +532,8 @@ pub mod test {
                     group:   "Test Group 1".to_string(),
                     // FIXME: edit color in package.yaml and see what shows up in Engine response
                     // color: Some(
+                    color:   None,
+                    icon:    None,
                     exports: vec![library_component("Standard.Base.System.File.new")],
                     // TODO: ^- try also adding a sample local component in project's package.yaml
                     //       (use project's `name:` and `namespace:` as set in `package.yaml`) and
@@ -541,6 +542,8 @@ pub mod test {
                 language_server::LibraryComponentGroup {
                     library: "Standard.Base".to_string(),
                     group:   "Input".to_string(),
+                    color:   None,
+                    icon:    None,
                     exports: vec![
                         library_component("Standard.Base.System.File.new"),
                         library_component("Standard.Base.System.File.read_text"),
@@ -559,7 +562,7 @@ pub mod test {
             let id = data.context_id;
             expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
         });
-        test.run_task(async move {
+        f.test.run_task(async move {
             f.context.load_component_groups();
         });
     }
