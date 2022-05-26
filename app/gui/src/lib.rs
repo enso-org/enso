@@ -56,6 +56,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use prelude::*;
 use wasm_bindgen::prelude::*;
 
 
@@ -129,14 +130,18 @@ mod examples {
 use examples::*;
 mod profile_workflow;
 
-use prelude::profiler;
-use prelude::profiler::prelude::*;
+
+
+// ===================
+// === Entry Point ===
+// ===================
 
 /// IDE startup function.
 #[profile(Objective)]
 #[wasm_bindgen]
 #[allow(dead_code)]
 pub fn entry_point_ide() {
+    init_tracing(WARN);
     ensogl_text_msdf_sys::run_once_initialized(|| {
         // Logging of build information.
         #[cfg(debug_assertions)]
