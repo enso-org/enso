@@ -563,7 +563,7 @@ pub mod test {
             expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
         });
         test.run_task(async move {
-            context.load_component_groups();
+            context.load_component_groups().await.unwrap();
         });
     }
 }
