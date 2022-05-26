@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::model::execution_context::AttachedVisualization;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::VirtualComponentGroup;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -59,6 +60,7 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
+    pub virtual_component_groups: Vec<VirtualComponentGroup>,
 }
 
 impl ExecutionContext {
@@ -69,7 +71,8 @@ impl ExecutionContext {
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
-        Self { logger, entry_point, stack, visualizations, computed_value_info_registry, is_ready }
+        let virtual_component_groups = default();
+        Self { logger, entry_point, stack, visualizations, computed_value_info_registry, is_ready, virtual_component_groups }
     }
 
     /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used

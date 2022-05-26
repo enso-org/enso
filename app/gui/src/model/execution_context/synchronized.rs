@@ -4,12 +4,14 @@ use crate::prelude::*;
 
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::VirtualComponentGroup;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 
 use engine_protocol::language_server;
+use ensogl::data::color;
 
 
 
@@ -128,13 +130,6 @@ impl ExecutionContext {
             }
         }
         Ok(())
-    }
-
-    // FIXME: move to API below
-    fn load_component_groups(
-        &self,
-    ) -> BoxFuture<FallibleResult<language_server::response::GetComponentGroups>> {
-        async move { Ok(self.language_server.get_component_groups(&self.id).await?) }.boxed_local()
     }
 }
 
@@ -258,6 +253,18 @@ impl model::execution_context::API for ExecutionContext {
         debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
         self.model.dispatch_visualization_update(visualization_id, data)
     }
+
+    fn load_component_groups(&self) -> FallibleResult {
+        async move {
+            let response = self.language_server.get_component_groups(&self.id).await?;
+            self.model.virtual_component_groups = response.component_groups.iter().map(|group|
+                VirtualComponentGroup {
+                    name: group.group.into(),
+                    color: from_hex(group.color),
+                    exports: group.exports.map(|component| component.name.into()),
+                });
+        }.boxed_local()
+    }
 }
 
 impl Drop for ExecutionContext {
@@ -272,6 +279,31 @@ impl Drop for ExecutionContext {
             }
         });
     }
+}
+
+// FIXME: move to lib/rust/ensogl/core/src/data/color/space/def.rs
+fn from_hex(color_string: &str) -> Option<color::Rgb> {
+    // see: https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
+    // TODO: regexp?
+    if !color_string.starts_with('#') {
+        return None;
+    }
+    let component = |range: Range<usize>, repeat| -> Option<u8> {
+        let hex = color_string[range].repeat(repeat);
+        let parsed = hex::decode(hex).ok()?;
+        Some(parsed[0])
+    };
+    let (red, green, blue) = match color_string.len() {
+        3 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
+        6 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
+        _ => return None,
+    };
+    // let hex_components = match color_string.len() {
+    //     3 => [color_string[0..1].repeat(2), color_string[1..2].repeat(2), color_string[2..3].repeat(2)],
+    //     6 => [color_string[0..2].to_string(), color_string[2..4].to_string(), color_string[4..6].to_string()],
+    //     _ => return None,
+    // };
+    Some(color::Rgb::from_base_255(red, green, blue))
 }
 
 

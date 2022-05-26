@@ -11,6 +11,7 @@ use engine_protocol::language_server::ExpressionUpdatePayload;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::SuggestionId;
 use engine_protocol::language_server::VisualisationConfiguration;
+use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
 use serde::Deserialize;
@@ -271,6 +272,19 @@ pub struct AttachedVisualization {
 
 
 
+// =============================
+// === VirtualComponentGroup ===
+// =============================
+
+#[derive(Clone, Debug)]
+pub struct VirtualComponentGroup {
+    pub name: ImString,
+    pub color: Option<color::Rgb>,
+    pub exports: Vec<ImString>,
+}
+
+
+
 // =============
 // === Model ===
 // =============
@@ -361,6 +375,8 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    fn load_component_groups(&self) -> FallibleResult;
 }
 
 // Note: Needless lifetimes
