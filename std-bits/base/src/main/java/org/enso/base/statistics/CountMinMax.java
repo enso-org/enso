@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 
 public class CountMinMax {
   private static boolean isValid(Object v) {
-    return !(v == null || (v instanceof Double && Double.isNaN((Double)v)));
+    return !(v == null || (v instanceof Double && Double.isNaN((Double) v)));
   }
 
   public static Stream<Object> toObjectStream(Object[] array) {
@@ -34,8 +34,10 @@ public class CountMinMax {
 
       if (!comparatorFailed) {
         try {
-          minimum = minimum == null || objectComparator.compare(minimum, value) > 0 ? value : minimum;
-          maximum = maximum == null || objectComparator.compare(maximum, value) < 0 ? value : maximum;
+          minimum =
+              minimum == null || objectComparator.compare(minimum, value) > 0 ? value : minimum;
+          maximum =
+              maximum == null || objectComparator.compare(maximum, value) < 0 ? value : maximum;
         } catch (ClassCastException e) {
           comparatorFailed = true;
         }

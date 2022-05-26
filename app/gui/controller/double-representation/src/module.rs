@@ -333,6 +333,14 @@ impl From<&QualifiedName> for String {
     }
 }
 
+impl<'a> IntoIterator for &'a QualifiedName {
+    type Item = &'a str;
+    type IntoIter = impl Iterator<Item = &'a str>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.segments()
+    }
+}
+
 impl Display for QualifiedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let text = String::from(self);

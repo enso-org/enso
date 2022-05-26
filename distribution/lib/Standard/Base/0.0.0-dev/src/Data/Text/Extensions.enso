@@ -563,27 +563,6 @@ Text.lines : Boolean -> Vector.Vector Text
 Text.lines keep_endings=False =
     Vector.Vector (Text_Utils.split_on_lines this keep_endings)
 
-## Checks whether `this` is equal to `that`.
-
-   Arguments:
-   - that: The text to compare `this` for equality with.
-
-   ! Unicode Equality
-     The definition of equality includes Unicode canonicalization. I.e. two
-     texts are equal if they are identical after canonical decomposition. This
-     ensures that different ways of expressing the same character in the
-     underlying binary representation are considered equal.
-
-   > Example
-     The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
-     is canonically the same as the string 'e\u0301' (i.e. the letter `e`
-     followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
-
-         ('é' == 'e\u0301') == True
-Text.== : Any -> Boolean
-Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
-    Text_Utils.equals this that
-
 ## Checks whether `this` is equal to `that`, ignoring the case of the texts.
 
    Arguments:

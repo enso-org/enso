@@ -972,38 +972,6 @@ type Integer
     bit_shift_r : Integer -> Integer ! Arithmetic_Error
     bit_shift_r that = @Builtin_Method "Integer.bpit_shift_r"
 
-    ## ALIAS Range
-
-       Creates an increasing right-exclusive range of integers from `this` to `n`.
-
-       Arguments:
-       - n: The end of the range.
-
-       > Example
-         Create a range containing the numbers 0, 1, 2, 3, 4.
-
-             0.up_to 5
-    up_to : Integer -> Range
-    up_to n = case n of
-        Integer -> Range.Range this n
-        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
-
-    ## ALIAS Range
-
-       Creates a decreasing right-exclusive range of integers from `this` to `n`.
-
-       Arguments:
-       - n: The end of the range.
-
-       > Example
-         Create a range containing the numbers 5, 4, 3, 2, 1.
-
-             5.down_to 0
-    down_to : Integer -> Range
-    down_to n = case n of
-        Integer -> Range.Range this n -1
-        _ -> Error.throw (Illegal_Argument_Error "Expected range end to be an Integer.")
-
     ## ALIAS From Text
 
        Parses a textual representation of an integer into an integer number, returning
