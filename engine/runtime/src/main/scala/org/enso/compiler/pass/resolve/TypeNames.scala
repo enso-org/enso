@@ -51,16 +51,31 @@ case object TypeNames extends IRPass {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
     ir.copy(bindings = ir.bindings.map { d =>
-      d.getMetadata(TypeSignatures)
-        .map(s =>
-          d.updateMetadata(
-            TypeSignatures -->> TypeSignatures.Signature(
-              resolveSignature(bindingsMap, s.signature)
-            )
+      val mapped = d.mapExpressions(resolveExpression(bindingsMap, _))
+      doResolveType(bindingsMap, mapped)
+    })
+  }
+
+  private def resolveExpression(
+    bindingsMap: BindingsMap,
+    ir: IR.Expression
+  ): IR.Expression = {
+    def go(ir: IR.Expression): IR.Expression = {
+      doResolveType(bindingsMap, ir.mapExpressions(go))
+    }
+    go(ir)
+  }
+
+  private def doResolveType[T <: IR](bindingsMap: BindingsMap, ir: T): T = {
+    ir.getMetadata(TypeSignatures)
+      .map { s =>
+        ir.updateMetadata(
+          TypeSignatures -->> TypeSignatures.Signature(
+            resolveSignature(bindingsMap, s.signature)
           )
         )
-        .getOrElse(d)
-    })
+      }
+      .getOrElse(ir)
   }
 
   private def resolveSignature(
