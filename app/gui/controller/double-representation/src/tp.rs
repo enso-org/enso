@@ -100,6 +100,11 @@ impl QualifiedName {
     pub fn in_module(&self, module: &module::QualifiedName) -> bool {
         self.project_name == module.project_name && &self.module_segments == module.id.segments()
     }
+
+    pub fn parent_module(&self) -> Option<module::QualifiedName> {
+        let id = module::Id::try_new(&self.module_segments).ok()?;
+        Some(module::QualifiedName::new(self.project_name.clone(), id))
+    }
 }
 
 

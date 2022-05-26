@@ -282,6 +282,23 @@ impl QualifiedName {
             self.id.segments.pop();
         }
     }
+
+    pub fn is_top_module(&self) -> bool {
+        self.id.segments.len() == 1
+    }
+
+    pub fn top_module(&self) -> Self {
+        Self {
+            project_name: self.project_name.clone(),
+            id:           Id { segments: self.id.segments.first().cloned().into_iter().collect() },
+        }
+    }
+
+    pub fn parent_module(&self) -> Option<Self> {
+        let id = Id::try_new(self.id.parent_segments()).ok()?;
+        let project_name = self.project_name.clone();
+        Some(Self { project_name, id })
+    }
 }
 
 impl TryFrom<&str> for QualifiedName {
