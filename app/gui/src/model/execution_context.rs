@@ -278,8 +278,8 @@ pub struct AttachedVisualization {
 
 #[derive(Clone, Debug)]
 pub struct VirtualComponentGroup {
-    pub name: ImString,
-    pub color: Option<color::Rgb>,
+    pub name:    ImString,
+    pub color:   Option<color::Rgb>,
     pub exports: Vec<ImString>,
 }
 

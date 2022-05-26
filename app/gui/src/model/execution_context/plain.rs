@@ -72,7 +72,15 @@ impl ExecutionContext {
         let computed_value_info_registry = default();
         let is_ready = default();
         let virtual_component_groups = default();
-        Self { logger, entry_point, stack, visualizations, computed_value_info_registry, is_ready, virtual_component_groups }
+        Self {
+            logger,
+            entry_point,
+            stack,
+            visualizations,
+            computed_value_info_registry,
+            is_ready,
+            virtual_component_groups,
+        }
     }
 
     /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used

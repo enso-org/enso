@@ -257,15 +257,19 @@ impl model::execution_context::API for ExecutionContext {
     fn load_component_groups(&self) -> BoxFuture<FallibleResult> {
         async move {
             let response = self.language_server.get_component_groups(&self.id).await?;
-            let virtual_component_groups = response.component_groups.into_iter().map(|group|
-                VirtualComponentGroup {
-                    name: group.group.into(),
-                    color: group.color.as_ref().and_then(|c| from_hex(c)),
+            let virtual_component_groups = response
+                .component_groups
+                .into_iter()
+                .map(|group| VirtualComponentGroup {
+                    name:    group.group.into(),
+                    color:   group.color.as_ref().and_then(|c| from_hex(c)),
                     exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
-                }).collect();
+                })
+                .collect();
             *self.model.virtual_component_groups.borrow_mut() = virtual_component_groups;
             Ok(())
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 }
 
@@ -300,11 +304,6 @@ fn from_hex(color_string: &str) -> Option<color::Rgb> {
         6 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
         _ => return None,
     };
-    // let hex_components = match color_string.len() {
-    //     3 => [color_string[0..1].repeat(2), color_string[1..2].repeat(2), color_string[2..3].repeat(2)],
-    //     6 => [color_string[0..2].to_string(), color_string[2..4].to_string(), color_string[4..6].to_string()],
-    //     _ => return None,
-    // };
     Some(color::Rgb::from_base_255(red, green, blue))
 }
 
