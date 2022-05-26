@@ -28,6 +28,7 @@ import java.nio.file.OpenOption;
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
 public class EnsoFile implements TruffleObject {
   private final TruffleFile truffleFile;
+  private static final String home = System.getProperty("user.home");
 
   public EnsoFile(TruffleFile truffleFile) {
     this.truffleFile = truffleFile;
@@ -37,38 +38,30 @@ public class EnsoFile implements TruffleObject {
     return fun.apply(truffleFile);
   }
 
-  public TruffleFile resolveUnderlying(String subPath) {
-    return this.truffleFile.resolve(subPath);
-  }
-
-  public TruffleFile resolveUnderlying(EnsoFile subPath) {
-    return this.truffleFile.resolve(subPath.truffleFile.getPath());
-  }
-
   @Builtin.Method
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
   public OutputStream outputStream(OpenOption[] opts) throws IOException {
-    return this.withTruffleFile(f -> f.newOutputStream(opts));
+    return this.truffleFile.newOutputStream(opts);
   }
 
   @Builtin.Method
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
   public InputStream inputStream(OpenOption[] opts) throws IOException {
-    return this.withTruffleFile(f -> f.newInputStream(opts));
+    return this.truffleFile.newInputStream(opts);
   }
 
-  // TODO
-  // @Builtin.Method
-  abstract class Resolve extends Node {
-    public EnsoFile resolve(EnsoFile _this, String subPath) {
-      return new EnsoFile(_this.resolveUnderlying(subPath));
-    }
+  @Builtin.Method(name = "resolve")
+  @Builtin.Specialize
+  public EnsoFile resolve(String subPath) {
+    return new EnsoFile(this.truffleFile.resolve(subPath));
+  }
 
-    public EnsoFile resolve(EnsoFile _this, EnsoFile subPath) {
-      return new EnsoFile(_this.resolveUnderlying(subPath.truffleFile.getPath()));
-    }
+  @Builtin.Method(name = "resolve")
+  @Builtin.Specialize
+  public EnsoFile resolve(EnsoFile subPath) {
+    return new EnsoFile(this.truffleFile.resolve(subPath.truffleFile.getPath()));
   }
 
   @Builtin.Method
@@ -150,6 +143,31 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method
   public boolean startsWith(EnsoFile parent) {
     return truffleFile.startsWith(parent.truffleFile);
+  }
+
+  @Builtin.Method(
+      name = "get_file",
+      description =
+          "Takes the text representation of a path and returns a TruffleFile corresponding to it.")
+  @Builtin.Specialize
+  public static EnsoFile fromString(Context context, String path) {
+    TruffleFile file = context.getEnvironment().getPublicTruffleFile(path);
+    return new EnsoFile(file);
+  }
+
+  @Builtin.Method(
+      name = "get_cwd",
+      description = "A file corresponding to the current working directory.")
+  @Builtin.Specialize
+  public static EnsoFile currentDirectory(Context context) {
+    TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
+    return new EnsoFile(file);
+  }
+
+  @Builtin.Method(name = "home", description = "Gets the user's system-defined home directory.")
+  @Builtin.Specialize
+  public static EnsoFile userHome(Context context) {
+    return fromString(context, home);
   }
 
   @Override

@@ -39,8 +39,12 @@ import java.util.stream.Stream;
 public class BuiltinsProcessor extends AbstractProcessor {
 
   private static final String BuiltinsPkg = "org.enso.interpreter.node.expression.builtin";
-  private final WrapExceptionExtractor wrapExceptionsExtractor =
+  private static final WrapExceptionExtractor wrapExceptionsExtractor =
           new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
+
+  private record Specialized(String owner, String methodName) {}
+  private Map<Specialized, List<ExecutableElement>> specializedMethods = new HashMap<>();
+
 
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -72,6 +76,12 @@ public class BuiltinsProcessor extends AbstractProcessor {
     return true;
   }
 
+  /**
+   * Generate internal @BuiltinType class used by the compiler.
+   *
+   * @param element class annotated with @Builtin
+   * @param roundEnv meta information about the current round of processing
+   */
   public void handleClassElement(Element element, RoundEnvironment roundEnv) throws IOException {
     TypeElement elt = (TypeElement) element;
     Builtin annotation = element.getAnnotation(Builtin.class);
@@ -103,25 +113,30 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
   }
 
+  /**
+   * Generate m @BuiltinMethod node class
+   *
+   * @param element method annotated with @Builtin.Method which implementation and signature
+   *                will be used to generate the target node class
+   * @param roundEnv meta information about the current round of processing
+   */
   public void handleMethodElement(Element element, RoundEnvironment roundEnv) throws IOException {
     ExecutableElement method = (ExecutableElement) element;
     Element owner = element.getEnclosingElement();
 
     if (owner.getKind() == ElementKind.CLASS) {
       Builtin ownerAnnotation = owner.getAnnotation(Builtin.class);
+      assert(ownerAnnotation != null);
       TypeElement ownerTpeElement = (TypeElement) owner;
       String ownerName = ownerAnnotation.name().isEmpty() ? ownerTpeElement.getSimpleName().toString() : ownerAnnotation.name();
       PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
+
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
-      boolean guestValueConversion = element.getAnnotation(Builtin.ReturningGuestObject.class) != null;
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
               ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
 
-      SafeWrapException[] wrapExceptions =
-              wrapExceptionsExtractor.extract(element);
       Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
-
 
       if (annotation.expandVarargs() != 0) {
         if (annotation.expandVarargs() < 0) throw new RuntimeException("Invalid varargs value in @Builtin annotation. Must be positive");
@@ -139,23 +154,24 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
           ClassName stdLibOwnerClass =
                   new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
+
           try {
-            JavaFileObject gen =
-                    processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-            MethodGenerator methodGen = new MethodGenerator(method, guestValueConversion, i, wrapExceptions);
-            generateBuiltinMethodNode(
-                    gen, methodGen, methodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass,  parameterCounts);
+            MethodNodeClassGenerator classGenerator =
+                    new NoSpecializationClassGenerator(method, builtinMethodNode, ownerClass, stdLibOwnerClass, i, parameterCounts);
+            classGenerator.generate(methodName, annotation.description(), method.getSimpleName().toString());
           } catch (IOException ioe) {
             throw new RuntimeException(ioe);
           }
         });
       } else {
         String builtinMethodName =
-                !annotation.name().isEmpty() ? annotation.name() :
-                        isConstructor ? "new" : method.getSimpleName().toString();
+          !annotation.name().isEmpty() ? annotation.name() :
+                          isConstructor ? "new" : method.getSimpleName().toString();
         String builtinMethodNameClass =
                 !annotation.name().isEmpty() ? CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, annotation.name()) :
                         isConstructor ? "new" : method.getSimpleName().toString();
+        Builtin.Specialize specialize = element.getAnnotation(Builtin.Specialize.class);
+
 
 
         String optConstrSuffix = isConstructor ? ownerName : "";
@@ -167,11 +183,33 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
         ClassName stdLibOwnerClass =
                 new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
-        JavaFileObject gen =
-                processingEnv.getFiler().createSourceFile(builtinMethodNode.fullyQualifiedName());
-        MethodGenerator methodGen = new MethodGenerator(method, guestValueConversion, 0, wrapExceptions);
-        generateBuiltinMethodNode(
-                gen, methodGen, builtinMethodName, method.getSimpleName().toString(), annotation.description(), builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+
+        int expected = specializationsCount(owner, builtinMethodName);
+        if (specialize != null) {
+          Specialized key = new Specialized(ownerName, builtinMethodName);
+          List<ExecutableElement> encountered = specializedMethods.compute(key, (k, v) -> {
+            if (v == null) {
+              List<ExecutableElement> elements = new ArrayList<>();
+              elements.add(method);
+              return elements;
+            } else {
+              v.add(method);
+              return v;
+            }
+          });
+          if (encountered.size() == expected) {
+            MethodNodeClassGenerator classGenerator =
+                    new SpecializationClassGenerator(encountered, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+            classGenerator.generate(builtinMethodName, annotation.description(), method.getSimpleName().toString());
+          } else {
+            return;
+          }
+        } else {
+
+          MethodNodeClassGenerator classGenerator =
+                  new NoSpecializationClassGenerator(method, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+          classGenerator.generate(builtinMethodName, annotation.description(), method.getSimpleName().toString());
+        }
       }
     } else {
       throw new RuntimeException("@Builtin method must be owned by the class");
@@ -179,8 +217,31 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   /**
-   * Returns a map of builtin types and the number of their paramneters.
+   * Count the number of @Specialization or @Fallback annotations for a given method name.
+   *
+   * @param owner @Builtin class
+   * @param builtinMethodName Enso-name of the builtin method that is overloaded
+   * @return number of expected specializations during annotation processing for the given method
+   */
+  private int specializationsCount(Element owner, String builtinMethodName) {
+    return (int) owner.getEnclosedElements().stream().filter(e -> {
+      if (e.getKind() != ElementKind.METHOD &&  e.getKind() != ElementKind.CONSTRUCTOR) return false;
+      Builtin.Method annotation = e.getAnnotation(Builtin.Method.class);
+      Builtin.Specialize specializedAnnot = e.getAnnotation(Builtin.Specialize.class);
+      if (annotation == null || specializedAnnot == null) return false;
+      boolean isConstructor = e.getKind() == ElementKind.CONSTRUCTOR;
+      String name =
+              !annotation.name().isEmpty() ? annotation.name() :
+                      isConstructor ? "new" : e.getSimpleName().toString();
+      return name.equals(builtinMethodName);
+    }).count();
+  }
+
+  /**
+   * Returns a map of builtin types and the number of their parameters.
    * Takes into account the possibility of separate compilation by reading entries from metadate, if any.
+   * The map is used to automatically generate try/catch for the possible exceptions.
+   *
    * @param roundEnv current round environment
    * @return a map from a builtin type name to the number of its parameters
    */
@@ -214,33 +275,61 @@ public class BuiltinsProcessor extends AbstractProcessor {
     return currentRoundEntries;
   }
 
-  /**
-   * Generates a Java class for @BuiltinMethod Node.
-   *
-   * @param gen processor's generator
-   * @param mgen generator for `execute` method
-   * @param methodName target name of the BuiltinMethod (lower camel case)
-   * @param ownerMethodName the name of the annotated method
-   * @param description short description for the node
-   * @param builtinNode class name of the target node
-   * @param ownerClazz class name of the owner of the annotated method
-   * @param builtinTypesParamCount a map from builtin types to their parameters count
-   * @throws IOException throws an exception when we cannot write the new class
-   */
-  private void generateBuiltinMethodNode(
-      JavaFileObject gen,
-      MethodGenerator mgen,
-      String methodName,
-      String ownerMethodName,
-      String description,
-      ClassName builtinNode,
-      ClassName ownerClazz,
-      ClassName stdlibOwner,
-      Map<String, Integer> builtinTypesParamCount)
-      throws IOException {
 
-    String ensoMethodName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, methodName);
-    try (PrintWriter out = new PrintWriter(gen.openWriter())) {
+  private abstract class MethodNodeClassGenerator {
+    ClassName builtinNode;
+    ClassName ownerClazz;
+    ClassName stdlibOwner;
+
+    public MethodNodeClassGenerator(ClassName builtinNode, ClassName ownerClazz, ClassName stdlibOwner) {
+      this.builtinNode = builtinNode;
+      this.ownerClazz = ownerClazz;
+      this.stdlibOwner = stdlibOwner;
+    }
+
+    protected SafeWrapException[] wrapExceptions(Element element) {
+      return wrapExceptionsExtractor.extract(processingEnv, element);
+    }
+
+    /**
+     * Checks if the method has been marked require explicit to guest value translations
+     *
+     * @param origin builtin method
+     * @return true if the annotation exists, false otherwise
+     */
+    protected boolean needsGuestValueConversion(Element origin) {
+      return origin.getAnnotation(Builtin.ReturningGuestObject.class) != null;
+    }
+
+
+    public void generate(String methodName, String description, String ownerMethodName) throws IOException {
+      JavaFileObject gen = processingEnv.getFiler().createSourceFile(builtinNode.fullyQualifiedName());;
+      try (PrintWriter out = new PrintWriter(gen.openWriter())) {
+        generateClassHeader(out, methodName, description);
+        generateClass(out, methodName, ownerMethodName);
+      }
+    }
+
+    /**
+     * Generate full class definition.
+     *
+     * @param out output stream where code will be written to
+     * @param methodName name of the annotated method (lower camel-case)
+     * @param ownerMethodName
+     * @throws IOException
+     */
+    protected abstract void generateClass(PrintWriter out, String methodName, String ownerMethodName) throws IOException;
+
+    /**
+     * Generate package, imports and @BuiltinMethod for a target class
+     *
+     * @param out output stream where code will be written to
+     * @param methodName name of the annotated method (lower camel-case)
+     * @param description description of the builtin method
+     */
+    private void generateClassHeader(PrintWriter out, String methodName, String description){
+      String ensoMethodName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, methodName);
+      String ensoTypeName = stdlibOwner.name().replaceAll("([a-z])([A-Z])", "$1_$2");
       out.println("package " + builtinNode.pkg() + ";");
       out.println();
       for (String importPkg : methodNecessaryImports) {
@@ -249,17 +338,99 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println("import " + ownerClazz.fullyQualifiedName() + ";");
       out.println();
       out.println(
-          "@BuiltinMethod(type = \""
-              + stdlibOwner.name()
-              + "\", name = \""
-              + ensoMethodName
-              + "\", description = \""
-              + description
-              + "\")");
+              "@BuiltinMethod(type = \""
+                      + ensoTypeName
+                      + "\", name = \""
+                      + ensoMethodName
+                      + "\", description = \""
+                      + description
+                      + "\")");
+    }
+
+  }
+
+  /**
+   * Generator for a builtin method with specializations.
+   * The target class will always be abstract and constructed via a static `build` method pattern.
+   * The generator will also infer parameters to specialize on and generate methods for them.
+   */
+  private class SpecializationClassGenerator extends MethodNodeClassGenerator {
+    ClassName builtinNode;
+    ClassName ownerClazz;
+    ClassName stdlibOwner;
+    Map<String, Integer> builtinTypesParamCount;
+    List<ExecutableElement> elements;
+
+    public SpecializationClassGenerator(List<ExecutableElement> methodElements, ClassName builtinNode, ClassName ownerClazz, ClassName stdlibOwner, Map<String, Integer> parameterCounts) {
+      super(builtinNode, ownerClazz, stdlibOwner);
+      this.builtinNode = builtinNode;
+      this.ownerClazz = ownerClazz;
+      this.stdlibOwner = stdlibOwner;
+      this.builtinTypesParamCount = parameterCounts;
+      this.elements = methodElements;
+    }
+
+    @Override
+    public void generateClass(PrintWriter out, String methodName, String ownerMethodName) {
+      MethodGenerator mgen = new SpecializedMethodsGenerator(elements);
+      out.println("public abstract class " + builtinNode.name() + " extends Node {");
+      out.println();
+
+      out.println("  static " + builtinNode.name() + " build() {");
+      out.println("    return " + builtinNode.name() + "Gen.create();");
+      out.println("  }");
+
+      for (String line : mgen.generate(ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
+        out.println("  " + line);
+      }
+
+      out.println();
+      out.println("}");
+    }
+  }
+
+  /**
+   * Generator for builtin method class with no specialization.
+   */
+  private class NoSpecializationClassGenerator extends MethodNodeClassGenerator {
+
+    ClassName builtinNode;
+    ClassName ownerClazz;
+    ExecutableElement origin;
+    Map<String, Integer> builtinTypesParamCount;
+    int varArgExpansion;
+
+    public NoSpecializationClassGenerator(
+            ExecutableElement origin,
+            ClassName builtinNode,
+            ClassName ownerClazz,
+            ClassName stdlibOwner,
+            int varArgExpansion,
+            Map<String, Integer> builtinTypesParamCount) {
+      super(builtinNode, ownerClazz, stdlibOwner);
+      this.builtinNode = builtinNode;
+      this.ownerClazz = ownerClazz;
+      this.origin = origin;
+      this.builtinTypesParamCount = builtinTypesParamCount;
+      this.varArgExpansion = varArgExpansion;
+    }
+
+    public NoSpecializationClassGenerator(
+            ExecutableElement origin,
+            ClassName builtinNode,
+            ClassName ownerClazz,
+            ClassName stdlibOwner,
+            Map<String, Integer> builtinTypesParamCount) {
+      this(origin, builtinNode, ownerClazz, stdlibOwner, 0, builtinTypesParamCount);
+    }
+
+    @Override
+    public void generateClass(PrintWriter out, String methodName, String ownerMethodName) {
+      MethodGenerator mgen = new ExecuteMethodGenerator(origin, needsGuestValueConversion(origin), varArgExpansion, wrapExceptions(origin));;
       out.println("public class " + builtinNode.name() + " extends Node {");
       out.println();
 
-      for (String line : mgen.generateMethod(ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
+      for (String line : mgen.generate(ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
         out.println("  " + line);
       }
 
@@ -273,8 +444,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
                    "org.enso.interpreter.node.expression.builtin.Builtin");
   private final List<String> methodNecessaryImports =
       Arrays.asList(
+              "com.oracle.truffle.api.dsl.Cached",
+              "com.oracle.truffle.api.dsl.Specialization",
               "com.oracle.truffle.api.nodes.Node",
               "org.enso.interpreter.dsl.BuiltinMethod",
+              "org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode",
               "org.enso.interpreter.runtime.Context",
               "org.enso.interpreter.runtime.builtin.Builtins",
               "org.enso.interpreter.runtime.data.Array",
@@ -291,22 +465,383 @@ public class BuiltinsProcessor extends AbstractProcessor {
             v.getAnnotationMirrors().stream().map(am -> am.toString()).collect(Collectors.toList()));
   }
 
-  /** Method generator encapsulates the generation of the `execute` method. */
-  private class MethodGenerator {
-    private final TypeWithKind returnTpe;
-    private final List<MethodParameter> params;
-    private final boolean isStatic;
-    private final boolean isConstructor;
+  private abstract class MethodGenerator {
+    protected final boolean isStatic;
+    protected final boolean isConstructor;
     private final boolean convertToGuestValue;
+    protected final TypeWithKind returnTpe;
+
+    public MethodGenerator(boolean isStatic, boolean isConstructor, boolean convertToGuestValue, TypeWithKind returnTpe) {
+      this.isStatic = isStatic;
+      this.isConstructor = isConstructor;
+      this.convertToGuestValue = convertToGuestValue;
+      this.returnTpe = returnTpe;
+    }
+
+    public abstract List<String> generate(String name, String owner, Map<String, Integer> builtinTypesParameterCounts);
+
+    /**
+     * Generate node's `execute` method definition (return type and necessary parameters).
+     * '
+     * @param owner owner of the method
+     * @return string representation of the `execute` method's definition
+     */
+    protected String methodSigDef(String owner, List<MethodParameter> params, boolean isAbstract) {
+      String paramsDef;
+      if (params.isEmpty()) {
+        paramsDef = "";
+      } else {
+        paramsDef =
+                ", "
+                        + StringUtils.join(params.stream().flatMap(x -> x.declaredParameters(expandVararg(x.index))).toArray(), ", ");
+      }
+      String abstractModifier = isAbstract ? "abstract " : "";
+      String thisParamTpe = isStatic || isConstructor || isAbstract ? "Object" : owner;
+      return abstractModifier + targetReturnType(returnTpe) + " execute(" + thisParamTpe + " _this" + paramsDef + ")" + (isAbstract ? ";" : "");
+    }
+
+    /**
+     * Infers the correct return type from the method signature
+     * @return String representation of the type to use
+     */
+    protected String targetReturnType(TypeWithKind tpe) {
+      if (isConstructor) return "Object";
+      else {
+        switch (tpe.kind()) {
+          case OBJECT:
+            if (tpe.isValidGuestType()) {
+              return tpe.baseType();
+            } else {
+              if (!convertToGuestValue) {
+                throw new RuntimeException(
+                        "If intended, automatic conversion of value of type " + tpe.baseType
+                                + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
+              }
+              return "Object";
+            }
+          default:
+            return "Object";
+        }
+      }
+    }
+
+    protected abstract Optional<Integer> expandVararg(int paramIndex);
+  }
+
+  /**
+   * A method generator for an abstract `execute` and at least a single specialization.
+   */
+  private class SpecializedMethodsGenerator extends MethodGenerator {
+    private List<ExecutableElement> elements;
+
+    public SpecializedMethodsGenerator(List<ExecutableElement> elements) {
+      this(elements, elements.get(0));
+    }
+    private SpecializedMethodsGenerator(List<ExecutableElement> elements, ExecutableElement first) {
+      this(elements,
+              first.getModifiers().contains(Modifier.STATIC),
+              first.getKind() == ElementKind.CONSTRUCTOR,
+              first.getAnnotation(Builtin.ReturningGuestObject.class) != null,
+              TypeWithKind.createFromTpe(first.getReturnType().toString())
+              );
+
+      // Make sure all methods were defined the same way, except for paramters' types
+      assert(allEqual(elements.stream().map(e -> e.getModifiers().contains(Modifier.STATIC))));
+      assert(allEqual(elements.stream().map(e -> e.getKind() == ElementKind.CONSTRUCTOR)));
+      assert(allEqual(elements.stream().map(e -> e.getAnnotation(Builtin.ReturningGuestObject.class) != null)));
+      assert(allEqual(elements.stream().map(e -> TypeWithKind.createFromTpe(e.getReturnType().toString()))));
+    }
+
+    public SpecializedMethodsGenerator(
+            List<ExecutableElement> elements,
+            boolean isStatic,
+            boolean isConstructor,
+            boolean convertToGuestValue,
+            TypeWithKind returnTpe) {
+      super(isStatic, isConstructor, convertToGuestValue, returnTpe);
+      this.elements = elements;
+    }
+
+    private <T> boolean allEqual(Stream<T> stream) {
+      return stream.distinct().count() <= 1;
+    }
+
+    @Override
+    public List<String> generate(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
+      SpecializationMeta meta = inferExecuteParameters();
+      List<String> result = new ArrayList<>();
+
+      result.add(methodSigDef(owner, meta.execParams(), true));
+      result.add("");
+      result.addAll(paramsOfSpecializedMethods(meta.diffParam).flatMap(paramsList ->
+        specialize(owner, name, paramsList, meta.diffParam).stream()
+      ).collect(Collectors.toList()));
+      return result;
+    }
+
+    @Override
+    protected Optional<Integer> expandVararg(int paramIndex) {
+      return Optional.empty();
+    }
+
+    private Stream<List<MethodParameter>> paramsOfSpecializedMethods(Optional<Integer> specializedParamIdx) {
+      Stream<List<MethodParameter>> unsorted = elements.stream().map(method -> {
+        List<? extends VariableElement> params = method.getParameters();
+        return IntStream.range(0, params.size()).mapToObj(i ->
+                fromVariableElementToMethodParameter(i, params.get(i))).collect(Collectors.toList());
+      });
+      if (specializedParamIdx.isEmpty()) {
+        // No need to sort specializations when only dealing with a single one
+        return unsorted;
+      } else {
+        final int specializedParamIdxFinal = specializedParamIdx.get();
+        return unsorted.sorted((a, b) ->
+          isLessSpecific(a.get(specializedParamIdxFinal)) ? 1 :
+                  isLessSpecific(b.get(specializedParamIdxFinal)) ? -1 : 0
+        );
+      }
+    }
+
+    /**
+     * Helper method to ensure that specialized methods are not forced to be defined
+     * in a specific order.
+     *
+     * @param p `execute`'s parameter on which specialization is performed
+     * @return true, if the parameter's type means that the specialization which contains it should be defined later
+     */
+    private boolean isLessSpecific(MethodParameter p) {
+      return p.tpe().equals("java.lang.Object") || p.tpe().equals("java.lang.String");
+    }
+
+    private SpecializationMeta inferExecuteParameters() {
+      Map<Integer, List<MethodParameter>> paramss = elements.stream().flatMap(method -> {
+        List<? extends VariableElement> params = method.getParameters();
+        return IntStream.range(0, params.size()).mapToObj(i ->
+                fromVariableElementToMethodParameter(i, params.get(i)));
+      }).collect(Collectors.groupingBy(p -> p.index));
+
+      List<Integer> diffParams = new ArrayList<>();
+      ArrayList<MethodParameter> execParams = new ArrayList<>();
+      ArrayList<MethodParameter> fallbackExecParams = new ArrayList<>();
+      paramss.forEach((k, v) -> {
+        if (v.size() != elements.size()) {
+          throw new RuntimeException("Restriction: Specialized methods have to have equal number of parameters. Expected " + elements.size() + ", got " + v.size());
+        }
+
+        boolean allParamsEqual = allEqual(v.stream());
+        MethodParameter p = v.get(0);
+        if (!needsToInjectValueOfType(p)) {
+          if (allParamsEqual && (v.size() > 1)) {
+            execParams.add(p);
+
+          } else {
+            // Specialize on the given parameter
+            execParams.add(new MethodParameter(execParams.size() + 1, p.name(), "Object", new ArrayList<>()));
+            diffParams.add(k);
+          }
+          fallbackExecParams.add(p);
+        }
+      });
+
+      if (diffParams.isEmpty()) {
+        if (elements.size() == 1) {
+          return new SpecializationMeta(execParams, Optional.empty());
+        }
+        throw new RuntimeException("Could not infer the parameter to specialize on based on parameters' types");
+      } else if (diffParams.size() > 1) {
+        if (elements.size() == 1) {
+          // Fallback, cannot infer specialization automatically but with a single method
+          // we can confidently just leave params as-is
+          return new SpecializationMeta(fallbackExecParams, Optional.empty());
+        }
+        throw new RuntimeException("Implementation limitation: Builtins DSL infers specialization on a single parameter. Write Node specialization manually instead");
+      }
+      return new SpecializationMeta(execParams, Optional.of(diffParams.get(0)));
+    }
+
+    private boolean needsToInjectValueOfType(MethodParameter p) {
+      return typesToInject.contains(p.tpe());
+    }
+
+    private final List<String> typesToInject = List.of("org.enso.interpreter.runtime.Context");
+
+    private record SpecializationMeta(List<MethodParameter> execParams, Optional<Integer> diffParam) {}
+
+    /**
+     * Generate node's `execute` method definition (return type and necessary parameters).
+     * '
+     * @param owner owner of the method
+     * @return string representation of the `execute` method's definition
+     */
+    protected List<String> specialize(String owner, String name, List<MethodParameter> params, Optional<Integer> specializedParam) {
+      List<SpecializedMethodParameter> params1 = params.stream().map(p -> paramOfSpecializedMethod(p, specializedParam.orElse(-1))).collect(Collectors.toList());
+      String paramsDef = "";
+      if (!params1.isEmpty()) {
+        Object[] allParamDef = params1.stream().flatMap(x -> x.declaredParameter()).toArray();
+        if (allParamDef.length > 0) {
+          paramsDef = ", " + StringUtils.join(allParamDef, ", ");
+        }
+      }
+      String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
+      String suffix = specializedParam.map(idx -> params.get(idx).tpeSimpleName()).orElse("Execute");
+
+      String annotation = "@Specialization";
+      String methodSig = targetReturnType(returnTpe) + " do" + suffix + "(" + thisParamTpe + " _this" + paramsDef + ")";
+      String paramsApplied;
+      if (params1.isEmpty()) {
+        paramsApplied = "";
+      } else {
+        paramsApplied =
+                StringUtils.join(params1.stream().map(x -> x.paramName()).toArray(), ", ");
+      }
+
+      List<String> specializationDeclaration = new ArrayList<>();
+      specializationDeclaration.add(annotation);
+      specializationDeclaration.add(methodSig + " {");
+      specializationDeclaration.addAll(
+              params1
+                      .stream()
+                      .flatMap(p -> p.auxParamDef().stream())
+                      .map(d -> "  " + d)
+                      .collect(Collectors.toList()));
+
+      if (isConstructor) {
+        specializationDeclaration.add("  return new " + owner + "(" + paramsApplied + ");");
+      } else {
+        String qual = isStatic ? owner : "_this";
+        switch (returnTpe.kind()) {
+          case VOID:
+            specializationDeclaration.add("  " + qual + "." + name + "(" + paramsApplied + ");");
+            specializationDeclaration.add("  return Context.get(this).getBuiltins().nothing().newInstance();");
+            break;
+          case ARRAY:
+            specializationDeclaration.add("  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));");
+            break;
+          default:
+            specializationDeclaration.add("  return " + qual + "." + name + "(" + paramsApplied + ");");
+        }
+      }
+      specializationDeclaration.add("}");
+      return specializationDeclaration;
+    }
+
+    abstract class SpecializedMethodParameter {
+      abstract String paramName();
+      abstract Optional<String> auxParamDef();
+      abstract Stream<String> declaredParameter();
+    }
+
+    private class RegularMethodParameter extends SpecializedMethodParameter {
+      public RegularMethodParameter(MethodParameter param) {
+        this.param = param;
+      }
+
+      private final MethodParameter param;
+
+      @Override
+      String paramName() {
+        return param.name;
+      }
+
+      @Override
+      Optional<String> auxParamDef() {
+        return Optional.empty();
+      }
+
+      @Override
+      Stream<String> declaredParameter() {
+        return param.declaredParameters(Optional.empty());
+      }
+    }
+
+
+    private class CachedMethodParameter extends SpecializedMethodParameter {
+      private final MethodParameter param;
+      private final String cachedExpr;
+      private final String cacheNode;
+      private final String cacheNodeParam;
+
+      public CachedMethodParameter(MethodParameter param, String cachedExpr, String cacheNode, String cacheNodeParam) {
+        this.param = param;
+        this.cachedExpr = cachedExpr;
+        this.cacheNode = cacheNode;
+        this.cacheNodeParam = cacheNodeParam;
+      }
+
+      @Override
+      String paramName() {
+        return param.name() + "Cached";
+      }
+
+      @Override
+      public Optional<String> auxParamDef() {
+        return Optional.of(param.tpe() + " " + paramName() + " = " + cacheNodeParam + ".execute(" + param.name() + ");");
+      }
+
+      @Override
+      public Stream<String> declaredParameter() {
+        return Stream.of(
+                "Object " + param.name(),
+                "@Cached(\"" + cachedExpr + "\") " + cacheNode + " " + cacheNodeParam);
+      }
+    }
+
+    private class InjectedMethodParameter extends SpecializedMethodParameter {
+      private final MethodParameter param;
+
+      public InjectedMethodParameter(MethodParameter param) {
+        this.param = param;
+      }
+
+      @Override
+      String paramName() {
+        return param.name();
+      }
+
+      @Override
+      public Optional<String> auxParamDef() {
+        return Optional.of("Context " + param.name() +" = Context.get(this);");
+      }
+
+      @Override
+      public Stream<String> declaredParameter() {
+        return Stream.empty();
+      }
+    }
+
+    SpecializedMethodParameter paramOfSpecializedMethod(MethodParameter param, int specializedOnParam) {
+      if (param.index == specializedOnParam) {
+        if (param.tpe.equals("java.lang.String")) {
+          return new CachedMethodParameter(param, "build()", "ExpectStringNode", "expectStringNode");
+        } else {
+          return new RegularMethodParameter(param);
+        }
+      } else {
+        if (needsToInjectValueOfType(param)) {
+          return new InjectedMethodParameter(param);
+        } else {
+          return new RegularMethodParameter(param);
+        }
+      }
+    }
+
+  }
+
+
+  /**
+   * A method generator for a Node with a single `execute` method.
+   */
+  private class ExecuteMethodGenerator extends MethodGenerator {
+    private final List<MethodParameter> params;
     private final int varargExpansion;
     private final boolean needsVarargExpansion;
     private final SafeWrapException[] exceptionWrappers;
 
-    public MethodGenerator(ExecutableElement method, boolean convertToGuestValue, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
+    public ExecuteMethodGenerator(ExecutableElement method, boolean convertToGuestValue, int expandedVarargs, SafeWrapException[] exceptionWrappers) {
       this(method, method.getParameters(), convertToGuestValue, expandedVarargs, exceptionWrappers);
     }
 
-    private MethodGenerator(
+    private ExecuteMethodGenerator(
             ExecutableElement method,
             List<? extends VariableElement> params,
             boolean convertToGuestValue,
@@ -324,7 +859,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
           exceptionWrappers);
     }
 
-    private MethodGenerator(
+    private ExecuteMethodGenerator(
             String returnTpe,
             List<MethodParameter> params,
             boolean isStatic,
@@ -333,55 +868,20 @@ public class BuiltinsProcessor extends AbstractProcessor {
             int expandedVarargs,
             boolean isVarargs,
             SafeWrapException[] exceptionWrappers) {
-      this.returnTpe = TypeWithKind.createFromTpe(returnTpe);
+      super(isStatic, isConstructor, convertToGuestValue, TypeWithKind.createFromTpe(returnTpe));
       this.params = params;
-      this.isStatic = isStatic;
-      this.isConstructor = isConstructor;
-      this.convertToGuestValue = convertToGuestValue;
       this.varargExpansion = expandedVarargs;
       this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
       this.exceptionWrappers = exceptionWrappers;
     }
 
-    private Optional<Integer> expandVararg(int paramIndex) {
+    @Override
+    protected Optional<Integer> expandVararg(int paramIndex) {
       return needsVarargExpansion && params.size() >= (paramIndex + 1) ? Optional.of(varargExpansion) : Optional.empty();
     }
 
-    private String fromAnnotationValueToClassName(Attribute.Class clazz) {
-      String[] clazzElements = clazz.classType.baseType().toString().split("\\.");
-      if (clazzElements.length == 0) {
-        return clazz.classType.baseType().toString();
-      } else {
-        return clazzElements[clazzElements.length - 1];
-      }
-    }
 
-    /**
-     * Infers the correct return type from the method signature
-     * @return String representation of the type to use
-     */
-    private String targetReturnType() {
-      if (isConstructor) return "Object";
-      else {
-        switch (returnTpe.kind()) {
-          case OBJECT:
-            if (returnTpe.isValidGuestType()) {
-              return returnTpe.baseType();
-            } else {
-              if (!convertToGuestValue) {
-                throw new RuntimeException(
-                        "If intended, automatic conversion of value of type " + returnTpe.baseType
-                                + " to guest value requires explicit '@Builtin.ReturningGuestObject' annotation");
-              }
-              return "Object";
-            }
-          default:
-            return "Object";
-        }
-      }
-    }
-
-    private String[] preBody(MethodParameter param) {
+    private String[] auxToHostConversions(MethodParameter param) {
       if (param.needsToHostTranslation()) {
         TypeWithKind tpeWithKind = TypeWithKind.createFromTpe(param.tpe);
         String hostParam = param.hostVarName();
@@ -431,30 +931,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
       }
     }
 
-    /**
-     * Generate node's `execute` method definition (return type and necessary parameters).
-     * '
-     * @param owner owner of the method
-     * @return string representation of the `execute` method's definition
-     */
-    private String methodSigDef(String owner) {
-      String paramsDef;
-      if (params.isEmpty()) {
-        paramsDef = "";
-      } else {
-        paramsDef =
-                ", "
-                        + StringUtils.join(params.stream().flatMap(x -> x.declaredParameters(expandVararg(x.index))).toArray(), ", ");
-      }
-      String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
-      return targetReturnType() + " execute(" + thisParamTpe + " _this" + paramsDef + ")";
-    }
-
     private boolean needsContext() {
       boolean result = false;
       // Does the return value need to be translated to a guest value?
       if (!isConstructor && (returnTpe.kind() == TpeKind.OBJECT)) {
-        if (returnTpe.isValidGuestType()) {
+        if (!returnTpe.isValidGuestType()) {
           result = true;
         }
       }
@@ -462,19 +943,19 @@ public class BuiltinsProcessor extends AbstractProcessor {
       return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
     }
 
-    public List<String> generateMethod(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
+    public List<String> generate(String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
       boolean wrapsExceptions = exceptionWrappers.length != 0;
       String[] body = bodyBase(name, owner);
 
       List<String> method = new ArrayList<>();
-      method.add(methodSigDef(owner) + " {");
+      method.add(methodSigDef(owner, params, false) + " {");
       if (needsContext()) {
         method.add("  Context context = Context.get(this);");
       }
       if (wrapsExceptions) {;
         method.add("  try {");
         params.stream().forEach(p -> {
-          for (String s: preBody(p)) {
+          for (String s: auxToHostConversions(p)) {
             method.add("    " + s);
           }
         });
@@ -488,7 +969,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
         method.add("}");
       } else {
         params.stream().forEach(p -> {
-          for (String s: preBody(p)) {
+          for (String s: auxToHostConversions(p)) {
             method.add("    " + s);
           }
         });
@@ -526,27 +1007,23 @@ public class BuiltinsProcessor extends AbstractProcessor {
       }
     }
 
+    // Heuristic
     boolean isValidGuestType() {
-      return validGuestTypes.contains(baseType);
+      return baseType.startsWith("java.lang") || primitiveTypes.contains(baseType) || validGuestTypes.contains(baseType);
     }
 
+    private final static List<String> primitiveTypes =
+            List.of(Boolean.TYPE, Long.TYPE, Double.TYPE, Float.TYPE).stream().map(Class::getSimpleName).collect(Collectors.toList());
     /**
      * A list of hard-coded types that can be used in the parameter or return type position
-     * that are valid host types and.
+     * that are valid host types i.e extend TruffleObject.
+     * Cannot go via reflection and check that they implement the interface, unfortunately.
      */
     private static List<String> validGuestTypes =
-            List.of("java.lang.Object",
-                    "boolean",
-                    "java.lang.Boolean",
-                    "long",
-                    "java.lang.Long",
-                    "double",
-                    "java.lang.Double",
-                    "float",
-                    "java.lang.Float",
-                    "java.lang.String",
+            List.of(
+                    "org.enso.interpreter.runtime.data.Array",
                     "org.enso.interpreter.runtime.data.Ref",
-                    "org.enso.interpreter.runtime.data.ManagedReosurce",
+                    "org.enso.interpreter.runtime.data.ManagedResource",
                     "org.enso.interpreter.runtime.data.Text",
                     "org.enso.interpreter.runtime.data.EnsoFile");
 
@@ -661,6 +1138,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
       }
     }
 
+    public String tpeSimpleName() {
+      String[] tpeElements = tpe.split("\\.");
+      return tpeElements[tpeElements.length - 1];
+    }
+
   }
 
   /**
@@ -737,7 +1219,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
    * Refer to <a href="https://area-51.blog/2009/02/13/getting-class-values-from-annotations-in-an-annotationprocessor/">blog</a>
    * for details.
    **/
-  private class WrapExceptionExtractor {
+  private static class WrapExceptionExtractor {
 
     private static final String FromElementName = "from";
     private static final String ToElementName = "to";
@@ -763,17 +1245,17 @@ public class BuiltinsProcessor extends AbstractProcessor {
      * @return An array of safely retrieved (potentially repeated) values of
      *         {@link org.enso.interpreter.dsl.Builtin.WrapException} annotation(s)
      */
-    public SafeWrapException[] extract(Element element) {
+    public SafeWrapException[] extract(ProcessingEnvironment processingEnv, Element element) {
       if (element.getAnnotation(wrapExceptionsAnnotationClass) != null) {
-        return extractClassElementFromAnnotationContainer(element, wrapExceptionsAnnotationClass);
+        return extractClassElementFromAnnotationContainer(processingEnv, element, wrapExceptionsAnnotationClass);
       } else if (element.getAnnotation(wrapExceptionAnnotationClass) != null) {
-        return extractClassElementFromAnnotation(element, wrapExceptionAnnotationClass);
+        return extractClassElementFromAnnotation(processingEnv, element, wrapExceptionAnnotationClass);
       } else {
         return new SafeWrapException[0];
       }
     }
 
-    private SafeWrapException[] extractClassElementFromAnnotation(Element element, Class<?> annotationClass) {
+    private SafeWrapException[] extractClassElementFromAnnotation(ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
       Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
       TypeMirror builtinType = builtinElement.asType();
 
@@ -802,7 +1284,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
 
 
-    private SafeWrapException[] extractClassElementFromAnnotationContainer(Element element, Class<?> annotationClass) {
+    private SafeWrapException[] extractClassElementFromAnnotationContainer(ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
 
       Element builtinElement = processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
       Types tpeUtils = processingEnv.getTypeUtils();

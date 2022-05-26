@@ -32,7 +32,12 @@ polyglot java import java.nio.file.Path
 
          example_new = File.new Examples.csv_path
 new : (Text | File) -> File
-new path = @Builtin_Method "File.new"
+new path =
+  file = case path of
+    Text -> here.get_file path
+    File -> path
+    _    -> Error.throw (Illegal_Argument_Error "new file should be either a File or a Text")
+  file
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -48,10 +53,7 @@ new path = @Builtin_Method "File.new"
          example_read_bytes = File.read_bytes Examples.csv
 read_bytes : (Text | File) -> Vector.Vector ! File_Error
 read_bytes path =
-    file = case path of
-        Text -> (here.new path)
-        File -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_bytes
 
 ## Open and read the file at the provided `path`.
@@ -81,10 +83,7 @@ read_bytes path =
          example_read = File.read_text Examples.csv_path
 read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
 read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
-    file = case path of
-        Text -> (here.new path)
-        File -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.read_text encoding on_problems
 
 ## ALIAS Write Text File
@@ -111,10 +110,7 @@ read_text path (encoding=Encoding.utf_8) (on_problems=Report_Warning) =
          example_read = File.read_text Examples.csv_path
 write_text : (Text | File) -> Text -> Encoding -> Text
 write_text path contents (encoding=Encoding.utf_8) =
-    file = case path of
-        Text -> (here.new path)
-        File -> path
-        _ -> Error.throw (Illegal_Argument_Error "path should be either a File or a Text")
+    file = here.new path
     file.write_text contents encoding
 
 ## ALIAS Current Directory
@@ -141,7 +137,7 @@ current_directory = here.get_cwd
 
          example_home = File.home
 home : File
-home = here.new (here.get_user_home)
+home = @Builtin_Method "File.home"
 
 ## Lists files contained in the provided directory.
 
@@ -969,9 +965,3 @@ get_cwd = @Builtin_Method "File.get_cwd"
    - path: The path to obtain a file at.
 get_file : Text -> File
 get_file path = @Builtin_Method "File.get_file"
-
-## PRIVATE
-
-   Gets the textual path to the user's system-defined home directory.
-user_home : Text
-user_home = @Builtin_Method "File.user_home"

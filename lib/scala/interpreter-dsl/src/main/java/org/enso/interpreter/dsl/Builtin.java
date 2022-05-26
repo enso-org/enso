@@ -62,4 +62,8 @@ public @interface Builtin {
    * is generated automatically. The annotation only ensures that it is intentianal.
    */
   @interface ReturningGuestObject {}
+
+  @interface Specialize {
+    boolean fallback() default false;
+  }
 }
