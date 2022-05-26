@@ -558,12 +558,12 @@ pub mod test {
                 },
             ],
         };
-        let f = Fixture::new_customized(|ls, data| {
+        let Fixture { data, mut test, context } = Fixture::new_customized(|ls, data| {
             let id = data.context_id;
             expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
         });
-        f.test.run_task(async move {
-            f.context.load_component_groups();
+        test.run_task(async move {
+            context.load_component_groups();
         });
     }
 }
