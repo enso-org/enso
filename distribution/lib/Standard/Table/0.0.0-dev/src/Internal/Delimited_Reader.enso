@@ -18,6 +18,7 @@ polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream
+polyglot java import java.io.Reader
 
 polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.TypeInferringParser
@@ -45,9 +46,6 @@ read_file format file on_problems =
 ## PRIVATE
    Reads an input stream according to the provided format.
 
-   The `encoding` parameter is ignored, instead the provided stream should
-   handle any necessary decoding.
-
    Arguments:
    - format: The specification of the delimited file format.
    - java_stream: A Java `InputStream` used as the data source.
@@ -60,8 +58,36 @@ read_file format file on_problems =
      integer.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-read_stream : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> Any
+read_stream : Delimited -> InputStream -> Problem_Behavior -> Integer -> File | Nothing -> Any
 read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
+    handle_io_exception ~action = Panic.catch IOException action caught_panic->
+        Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
+
+    java_charset = format.encoding.to_java_charset
+    handle_io_exception <|
+        Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
+            result = here.read_from_reader format reporting_stream_decoder on_problems max_columns
+            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
+            on_problems.attach_problems_after result decoding_problems
+
+## PRIVATE
+   Reads data from the provided `Reader` according to the provided format.
+
+   The `encoding` parameter is ignored, instead the provided reader should
+   handle any necessary decoding.
+
+   Arguments:
+   - format: The specification of the delimited file format.
+   - java_reader: A Java `Reader` used as the source of decoded characters.
+   - on_problems: Specifies the behavior when a problem occurs during the
+     operation. By default, a warning is issued, but the operation proceeds.
+     If set to `Report_Error`, the operation fails with a dataflow error.
+     If set to `Ignore`, the operation proceeds without errors or warnings.
+   - max_columns: Specifies the limit of columns to read. The limit is set to
+     avoid `OutOfMemory` errors on malformed files. It must be a positive
+     integer.
+read_from_reader : Delimited -> InputStream -> Problem_Behavior -> Integer -> Any
+read_from_reader format java_reader on_problems max_columns=4096 =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
@@ -91,25 +117,21 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
 
     translate_parsing_exception caught_panic =
         cause = caught_panic.payload.cause.getCause
-        if Java.is_instance cause IOException then File.wrap_io_exception related_file cause else
+        if Java.is_instance cause IOException then Panic.throw cause else
             Error.throw (Parser_Error caught_panic.payload)
     handle_parsing_exception = Panic.catch TextParsingException handler=translate_parsing_exception
 
-    java_charset = format.encoding.to_java_charset
     handle_illegal_arguments <| handle_parsing_failure <| handle_parsing_exception <|
-        Encoding_Utils.with_stream_decoder java_stream java_charset reporting_stream_decoder->
-            warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
-            base_parser = if format.quote.is_nothing then IdentityParser.new else
-                QuoteStrippingParser.new format.quote
-            value_parser = if format.value_formatter.is_nothing then base_parser else
-                wrapped = format.value_formatter.wrap_base_parser base_parser
-                TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
-            cell_type_guesser = if format.headers != Infer then Nothing else
-                formatter = format.value_formatter.if_nothing Data_Formatter
-                TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-            reader = DelimitedReader.new reporting_stream_decoder format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
-            result = Table.Table reader.read
-            decoding_problems = Vector.Vector reporting_stream_decoder.getReportedProblems . map Encoding_Error
-            parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
-            problems = decoding_problems + parsing_problems
-            on_problems.attach_problems_after result problems
+        warnings_as_errors = on_problems == Problem_Behavior_Module.Report_Error
+        base_parser = if format.quote.is_nothing then IdentityParser.new else
+            QuoteStrippingParser.new format.quote
+        value_parser = if format.value_formatter.is_nothing then base_parser else
+            wrapped = format.value_formatter.wrap_base_parser base_parser
+            TypeInferringParser.new format.value_formatter.get_specific_type_parsers.to_array wrapped
+        cell_type_guesser = if format.headers != Infer then Nothing else
+            formatter = format.value_formatter.if_nothing Data_Formatter
+            TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
+        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
+        result = Table.Table reader.read
+        parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
+        on_problems.attach_problems_after result parsing_problems
