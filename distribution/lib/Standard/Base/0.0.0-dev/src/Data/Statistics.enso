@@ -1,4 +1,6 @@
-from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types, IO
+import Standard.Base.Runtime.Ref
+
 from Standard.Base.Data.Vector import Empty_Error
 
 import Standard.Base.Data.Ordering.Comparator
@@ -72,6 +74,12 @@ type Statistic
        - series: the series to compute the correlation with.
     type Pearson (series:Vector)
 
+    ## Calculate the Spearman Rank Correlation between data and series.
+
+       Arguments:
+       - series: the series to compute the correlation with.
+    type Spearman (series:Vector)
+
     ## Calculate the coefficient of determination between data and predicted
        series.
 
@@ -127,6 +135,7 @@ compute_bulk data statistics=[Count, Sum] =
                     count_min_max_values.maximum
             Covariance s -> here.calculate_correlation_statistics data s . covariance
             Pearson s -> here.calculate_correlation_statistics data s . pearsonCorrelation
+            Spearman s -> here.calculate_spearman_rank data s
             R_Squared s -> here.calculate_correlation_statistics data s . rSquared
             _ -> stats_array.at i
 
@@ -151,17 +160,51 @@ pearson_correlation data =
     stats_vectors.map v->(v.map .pearsonCorrelation)
 
 
+## Calculate a Spearman Rank correlation matrix between the input series.
+
+   Arguments:
+   - data: The input data sets
+spearman_correlation : [Vector] -> [Vector]
+spearman_correlation data =
+    output_array = Array.new data.length
+    ref_error = Ref.new Nothing
+
+    0.up_to data.length . each i->
+        output_array.set_at i <|
+            Vector.new data.length j->
+                if j == i then 1 else
+                    if j < i then (output_array.at j . at i) else
+                        value = here.calculate_spearman_rank (data.at i) (data.at j)
+                        if value.is_error then ref_error.put value
+                        value
+
+    ref_error.get.if_nothing (Vector.Vector output_array)
+
+
 ## PRIVATE
-   Given a set of series get CorrelationStatistics objects
-calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
-calculate_correlation_statistics x_data y_data =
+wrap_java_call : Any -> Any
+wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
 
     report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
     handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
 
-    handle_unsupported <| handle_illegal <| CorrelationStatistics.compute x_data.to_array y_data.to_array
+    handle_unsupported <| handle_illegal <| function
+
+
+## PRIVATE
+   Given two series, get a computed CorrelationStatistics object
+calculate_correlation_statistics : Vector -> Vector -> CorrelationStatistics
+calculate_correlation_statistics x_data y_data =
+    here.wrap_java_call <| CorrelationStatistics.compute x_data.to_array y_data.to_array
+
+
+## PRIVATE
+   Given two series, get a compute the Spearman Rank correlation
+calculate_spearman_rank : Vector -> Vector -> Decimal
+calculate_spearman_rank x_data y_data =
+    here.wrap_java_call <| CorrelationStatistics.spearmanRankCorrelation x_data.to_array y_data.to_array
 
 
 ## PRIVATE
@@ -171,13 +214,7 @@ calculate_correlation_statistics_matrix data =
     data_array = Array.new data.length
     0.up_to data.length . each i->(data_array.set_at i (data.at i).to_array)
 
-    report_unsupported _ = Error.throw (Illegal_Argument_Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types handler=report_unsupported
-
-    report_illegal caught_panic = Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
-    handle_illegal = Panic.catch IllegalArgumentException handler=report_illegal
-
-    stats_array = handle_unsupported <| handle_illegal <| CorrelationStatistics.computeMatrix data_array
+    stats_array = here.wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
 

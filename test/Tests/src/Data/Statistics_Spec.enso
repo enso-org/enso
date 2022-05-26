@@ -197,6 +197,7 @@ spec =
         Test.specify "can compute Covariance, Correlation and R Squared between a pair of series"
             series_a.compute (Covariance series_b) . should_equal -0.0053554 epsilon=double_error
             series_a.compute (Pearson series_b) . should_equal -0.08263943 epsilon=double_error
+            series_a.compute (Spearman series_b) . should_equal -0.09313725 epsilon=double_error
             series_a.compute (R_Squared series_b) . should_equal 0.006829275 epsilon=double_error
 
         Test.specify "can calculate a covariance matrix" <|
@@ -206,28 +207,39 @@ spec =
             vector_compare (matrix.at 1) [-0.0053554, 0.07707381, -0.00098274]
             vector_compare (matrix.at 2) [-0.02378204, -0.00098274, 0.05837098]
 
-        Test.specify "can calculate a correlation matrix" <|
+        Test.specify "can calculate a pearson correlation matrix" <|
             matrix = Statistics.pearson_correlation series
             matrix.length . should_equal 3
             vector_compare (matrix.at 0) [1, -0.08263943, -0.40469045]
             vector_compare (matrix.at 1) [-0.08263943, 1, -0.01537537]
             vector_compare (matrix.at 2) [-0.40469045, -0.01537537, 1]
 
+        Test.specify "can calculate a spearman rank correlation matrix" <|
+            matrix = Statistics.spearman_correlation series
+            matrix.length . should_equal 3
+            vector_compare (matrix.at 0) [1, -0.09313725, -0.43382353]
+            vector_compare (matrix.at 1) [-0.09313725, 1, 0]
+            vector_compare (matrix.at 2) [-0.43382353, 0, 1]
+
         Test.specify "should fail with Illegal_Argument_Error if different lengths" <|
             data = [[1,2,3,4],[10,20,30]]
             data.first.compute (Covariance data.second) . should_fail_with Illegal_Argument_Error
             data.first.compute (Pearson data.second) . should_fail_with Illegal_Argument_Error
+            data.first.compute (Spearman data.second) . should_fail_with Illegal_Argument_Error
             data.first.compute (R_Squared data.second) . should_fail_with Illegal_Argument_Error
             Statistics.covariance_matrix data . should_fail_with Illegal_Argument_Error
             Statistics.pearson_correlation data . should_fail_with Illegal_Argument_Error
+            Statistics.spearman_correlation data . should_fail_with Illegal_Argument_Error
 
         Test.specify "should fail with Illegal_Argument_Error if not number based" <|
             text = [["A","BC","CD"], ["0", "1", "2"], ["H", "I", "J"]]
             text.first.compute (Covariance text.second) . should_fail_with Illegal_Argument_Error
             text.first.compute (Pearson text.second) . should_fail_with Illegal_Argument_Error
+            text.first.compute (Spearman text.second) . should_fail_with Illegal_Argument_Error
             text.first.compute (R_Squared text.second) . should_fail_with Illegal_Argument_Error
             Statistics.covariance_matrix text . should_fail_with Illegal_Argument_Error
             Statistics.pearson_correlation text . should_fail_with Illegal_Argument_Error
+            Statistics.spearman_correlation text . should_fail_with Illegal_Argument_Error
 
     Test.group "Statistics - invalid input" <|
         Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|

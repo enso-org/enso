@@ -87,4 +87,14 @@ public class CorrelationStatistics {
     }
     return output;
   }
+
+  public static double spearmanRankCorrelation(Double[] x, Double[] y) {
+    double[][] pairedRanks = Rank.pairedRanks(x, y, Rank.Method.AVERAGE);
+
+    CorrelationStatistics computation = new CorrelationStatistics();
+    for (int i = 0; i < pairedRanks[0].length; i++) {
+      computation.append(pairedRanks[0][i], pairedRanks[1][i]);
+    }
+    return computation.pearsonCorrelation();
+  }
 }
