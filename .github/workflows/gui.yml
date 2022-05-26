@@ -22,7 +22,7 @@ jobs:
           clean: false
       - id: changed_files
         run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
-      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
+      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md')) || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') || github.event.pull_request.user.login == 'dependabot' }} == false ]]; then exit 1; fi"
         if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
   ide-ci-actions-workflow-definition-job-build-project-manager-linux:
     name: Build Project Manager (linux)
@@ -50,11 +50,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh project-manager"
+      - run: "./run project-manager"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -82,11 +82,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh project-manager"
+      - run: "./run project-manager"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -150,11 +150,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm build"
+      - run: "./run wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -182,11 +182,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm build"
+      - run: "./run wasm build"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -261,11 +261,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide integration-test --project-manager-source current-ci-run"
+      - run: "./run ide integration-test --project-manager-source current-ci-run"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -295,11 +295,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh lint"
+      - run: "./run lint"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -329,11 +329,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm test --no-wasm"
+      - run: "./run wasm test --no-wasm"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -366,11 +366,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+      - run: "./run ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -401,11 +401,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+      - run: "./run ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
@@ -472,11 +472,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm test --no-native"
+      - run: "./run wasm test --no-native"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
