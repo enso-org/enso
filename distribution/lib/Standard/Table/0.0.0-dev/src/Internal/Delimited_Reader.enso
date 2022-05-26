@@ -58,7 +58,7 @@ read_file format file on_problems =
      integer.
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
-read_stream : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> Any
+read_stream : Delimited -> InputStream -> Problem_Behavior -> Integer -> File | Nothing -> Any
 read_stream format java_stream on_problems max_columns=4096 related_file=Nothing =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
         Error.throw (File.wrap_io_exception related_file caught_panic.payload.cause)
@@ -86,7 +86,7 @@ read_stream format java_stream on_problems max_columns=4096 related_file=Nothing
    - max_columns: Specifies the limit of columns to read. The limit is set to
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
-read_from_reader : Delimited -> InputStream -> Problem_Behavior -> File | Nothing -> Any
+read_from_reader : Delimited -> InputStream -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
     java_headers = case format.headers of
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
