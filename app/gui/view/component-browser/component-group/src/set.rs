@@ -26,7 +26,9 @@ use ensogl::display::scene::Scene;
 #[derive(Debug, Clone, CloneRef, From)]
 #[allow(missing_docs)]
 pub enum Group {
+    /// A one-column component group with a header. See [`View`] docs.
     OneColumn(View),
+    /// A multi-column component group without a header. See [`wide::View`] docs.
     Wide(wide::View),
 }
 
@@ -93,11 +95,11 @@ macro_rules! propagate_frp {
 /// to connect two such structs. See [`PropagatedEvents`] docs.
 macro_rules! propagated_events {
     (
-        $(#[$meta:meta])* struct $ident:ident {
-            $($endpoint:ident : $endpoint_type:ty),*$(,)?
+        $(#$meta:tt)* struct $ident:ident {
+            $($endpoint:ident : $endpoint_type:ty),* $(,)?
         }
     ) => {
-        $(#[$meta])*
+        $(#$meta)*
         pub struct $ident {
             network: frp::Network,
             $(pub $endpoint : frp::Any<$endpoint_type>),*
