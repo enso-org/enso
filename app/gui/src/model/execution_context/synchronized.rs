@@ -254,15 +254,17 @@ impl model::execution_context::API for ExecutionContext {
         self.model.dispatch_visualization_update(visualization_id, data)
     }
 
-    fn load_component_groups(&self) -> FallibleResult {
+    fn load_component_groups(&self) -> BoxFuture<FallibleResult> {
         async move {
             let response = self.language_server.get_component_groups(&self.id).await?;
-            self.model.virtual_component_groups = response.component_groups.iter().map(|group|
+            let virtual_component_groups = response.component_groups.into_iter().map(|group|
                 VirtualComponentGroup {
                     name: group.group.into(),
-                    color: from_hex(group.color),
-                    exports: group.exports.map(|component| component.name.into()),
-                });
+                    color: group.color.as_ref().and_then(|c| from_hex(c)),
+                    exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
+                }).collect();
+            *self.model.virtual_component_groups.borrow_mut() = virtual_component_groups;
+            Ok(())
         }.boxed_local()
     }
 }

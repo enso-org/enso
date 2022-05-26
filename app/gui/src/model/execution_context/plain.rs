@@ -60,7 +60,7 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
-    pub virtual_component_groups: Vec<VirtualComponentGroup>,
+    pub virtual_component_groups: RefCell<Vec<VirtualComponentGroup>>,
 }
 
 impl ExecutionContext {
@@ -239,6 +239,10 @@ impl model::execution_context::API for ExecutionContext {
             );
             Err(InvalidVisualizationId(visualization_id).into())
         }
+    }
+
+    fn load_component_groups(&self) -> BoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
     }
 }
 

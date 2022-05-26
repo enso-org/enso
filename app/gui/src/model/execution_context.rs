@@ -376,7 +376,8 @@ pub trait API: Debug {
         futures::future::join_all(detach_actions).boxed_local()
     }
 
-    fn load_component_groups(&self) -> FallibleResult;
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn load_component_groups<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes
