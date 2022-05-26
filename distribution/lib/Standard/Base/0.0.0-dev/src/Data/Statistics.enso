@@ -1,5 +1,4 @@
-from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types, IO
-import Standard.Base.Runtime.Ref
+from Standard.Base import Boolean, True, False, Nothing, Vector, Number, Any, Error, Array, Panic, Illegal_Argument_Error, Unsupported_Argument_Types
 
 from Standard.Base.Data.Vector import Empty_Error
 
@@ -166,19 +165,18 @@ pearson_correlation data =
    - data: The input data sets
 spearman_correlation : [Vector] -> [Vector]
 spearman_correlation data =
-    output_array = Array.new data.length
-    ref_error = Ref.new Nothing
+    Panic.handle_wrapped_dataflow_error <|
+        output = Vector.new_builder data.length
 
-    0.up_to data.length . each i->
-        output_array.set_at i <|
-            Vector.new data.length j->
-                if j == i then 1 else
-                    if j < i then (output_array.at j . at i) else
-                        value = here.calculate_spearman_rank (data.at i) (data.at j)
-                        if value.is_error then ref_error.put value
-                        value
+        0.up_to data.length . each i->
+            output.append <|
+                Vector.new data.length j->
+                    if j == i then 1 else
+                        if j < i then (output.at j . at i) else
+                            Panic.throw_wrapped_if_error <|
+                                here.calculate_spearman_rank (data.at i) (data.at j)
 
-    ref_error.get.if_nothing (Vector.Vector output_array)
+        output.to_vector
 
 
 ## PRIVATE
@@ -211,9 +209,7 @@ calculate_spearman_rank x_data y_data =
    Given a set of series get CorrelationStatistics objects
 calculate_correlation_statistics_matrix : [Vector] -> [CorrelationStatistics]
 calculate_correlation_statistics_matrix data =
-    data_array = Array.new data.length
-    0.up_to data.length . each i->(data_array.set_at i (data.at i).to_array)
-
+    data_array = Vector.new data.length i->(data.at i).to_array . to_array
     stats_array = here.wrap_java_call <| CorrelationStatistics.computeMatrix data_array
     Vector.new stats_array.length i->(Vector.Vector (stats_array.at i))
 
