@@ -905,9 +905,9 @@ type Vector
        > Example
          Sorting a vector of `Pair`s on the first element, descending.
 
-             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector Any
-    sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
+             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any
+    sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
            intended to be mutable.
@@ -919,7 +919,7 @@ type Vector
            does both.
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
-        compare = if order == Sort_Order.Ascending then comp_ascending else
+        compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
         new_vec_arr.sort compare

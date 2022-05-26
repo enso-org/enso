@@ -263,7 +263,7 @@ type Table
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns (Sort_Method order=Sort_Order.Descending)
+             table.reorder_columns (Sort_Method order=Sort_Direction.Descending)
     sort_columns : Sort_Method -> Table
     sort_columns (sort_method = Sort_Method.new) =
         new_columns = Table_Helpers.sort_columns internal_columns=this.internal_columns sort_method
@@ -475,7 +475,7 @@ type Table
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`,
          placing missing values at the top of the table.
-             table.sort by='Quantity' order=Sort_Order.Descending missing_last=False
+             table.sort by='Quantity' order=Sort_Direction.Descending missing_last=False
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -486,7 +486,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
-             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Order.Descending)]
+             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Direction.Descending)]
 
        > Example
          Sorting `table` in ascending order by the value in an externally
@@ -494,11 +494,11 @@ type Table
          ties.
              quality_ratio = table.at 'Rating' / table.at 'Price'
              table.sort by=[quality_ratio, 'Rating']
-    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover Any <|
+    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
+    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
         order_to_ir = case _ of
-            Sort_Order.Ascending -> IR.Ascending
-            Sort_Order.Descending -> IR.Descending
+            Sort_Direction.Ascending -> IR.Ascending
+            Sort_Direction.Descending -> IR.Descending
         missing_to_ir last = case last of
             True -> IR.Nulls_Last
             False -> IR.Nulls_First

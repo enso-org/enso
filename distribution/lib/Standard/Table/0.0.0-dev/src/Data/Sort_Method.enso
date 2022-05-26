@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Data.Ordering.Sort_Order
+import Standard.Base.Data.Ordering.Sort_Direction
 
 ## Specifies the sort methodology.
 
@@ -8,7 +8,7 @@ import Standard.Base.Data.Ordering.Sort_Order
    - case_sensitive: Case sensitivity - case sensitive by default.
    - natural_order: Whether to use natural ordering. Standard ordering as
      defined by `Text.compare_to` is used by default.
-type Sort_Method (order : Sort_Order = Sort_Order.Ascending) (case_sensitive : (True | Case_Insensitive) = True) (natural_order : Boolean = False)
+type Sort_Method (order : Sort_Direction = Sort_Direction.Ascending) (case_sensitive : (True | Case_Insensitive) = True) (natural_order : Boolean = False)
 
 ## UNSTABLE
    A temporary workaround to allow the `Sort_Method` constructor to work with
@@ -19,6 +19,6 @@ type Sort_Method (order : Sort_Order = Sort_Order.Ascending) (case_sensitive : (
    https://github.com/enso-org/enso/issues/1600
    Once that issue is fixed, it can be removed.
 
-Sort_Method.new : Sort_Order -> (True | Case_Insensitive) -> Boolean -> Sort_Method
-Sort_Method.new order=Sort_Order.Ascending case_sensitive=True natural_order=False =
+Sort_Method.new : Sort_Direction -> (True | Case_Insensitive) -> Boolean -> Sort_Method
+Sort_Method.new order=Sort_Direction.Ascending case_sensitive=True natural_order=False =
     Sort_Method order case_sensitive natural_order
