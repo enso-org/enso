@@ -268,12 +268,14 @@ fn print_h1(
     tokens: &[HeaderToken],
     str: &str,
 ) {
+    use std::fmt::Write;
+
     if tokens.iter().any(|tok| map.contains_key(tok)) {
-        out.push('\n');
-        out.push_str(&format!("// ===={}====\n", "=".repeat(str.len())));
-        out.push_str(&format!("// === {} ===\n", str));
-        out.push_str(&format!("// ===={}====\n", "=".repeat(str.len())));
-        out.push('\n');
+        writeln!(out).unwrap();
+        writeln!(out, "// ===={}====", "=".repeat(str.len())).unwrap();
+        writeln!(out, "// === {} ===", str).unwrap();
+        writeln!(out, "// ===={}====", "=".repeat(str.len())).unwrap();
+        writeln!(out).unwrap();
     }
 }
 
@@ -284,8 +286,10 @@ fn print_h2(
     tokens: &[HeaderToken],
     str: &str,
 ) {
+    use std::fmt::Write;
+
     if tokens.iter().map(|tok| map.contains_key(tok)).any(|t| t) {
-        out.push_str(&format!("// === {} ===\n", str));
+        writeln!(out, "// === {} ===", str).unwrap()
     }
 }
 

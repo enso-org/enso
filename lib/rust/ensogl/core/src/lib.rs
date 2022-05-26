@@ -55,7 +55,6 @@ pub mod system;
 
 pub use animation::Animation;
 pub use animation::DEPRECATED_Animation;
-pub use animation::DEPRECATED_Tween;
 pub use animation::Easing;
 pub use enso_frp as frp;
 pub use enso_types as types;

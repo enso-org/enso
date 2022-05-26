@@ -100,7 +100,7 @@ impl<T> Message<T> {
 pub struct Id(pub i64);
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Version {
     /// JSON-RPC 2.0 specification. The supported version.
     #[serde(rename = "2.0")]
@@ -242,7 +242,7 @@ mod tests {
     use serde_json::Map;
     use serde_json::Value;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
     struct MockRequest {
         number: i64,
     }

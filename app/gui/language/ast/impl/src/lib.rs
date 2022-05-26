@@ -950,7 +950,7 @@ pub struct Modified<T> {
 // === Tokenizer ===
 
 /// An enum of valid Ast tokens.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Token<'a> {
     Off(usize),
     Chr(char),

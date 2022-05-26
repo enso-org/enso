@@ -123,7 +123,7 @@ macro_rules! make_rpc_methods {
 
         $(
             /// Structure transporting method arguments.
-            #[derive(Serialize,Debug,PartialEq)]
+            #[derive(Serialize,Debug,PartialEq, Eq)]
             #[serde(rename_all="camelCase")]
             struct $method_input<'a> {
                 #[serde(skip)]

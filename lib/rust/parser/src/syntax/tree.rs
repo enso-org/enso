@@ -1002,14 +1002,14 @@ impl<'s, 'a> SpanVisitableMut<'s, 'a> for Tree<'s> {
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
+impl<'a, 's, T> SpanVisitable<'s, 'a> for Token<'s, T> {
     fn visit_span<V: SpanVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         let code_length = self.code.length();
         visitor.visit(span::Ref { left_offset: &self.left_offset, code_length });
     }
 }
 
-impl<'a, 't, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
+impl<'a, 's, T> SpanVisitableMut<'s, 'a> for Token<'s, T> {
     fn visit_span_mut<V: SpanVisitorMut<'s>>(&'a mut self, visitor: &mut V) {
         let code_length = self.code.length();
         visitor.visit_mut(span::RefMut { left_offset: &mut self.left_offset, code_length });

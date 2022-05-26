@@ -49,7 +49,7 @@ pub fn parser_url(version: &ParserVersion) -> reqwest::Url {
 // ===================
 
 /// Parser version described as commit hash from `enso` repository.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParserVersion {
     pub commit: String,
 }
