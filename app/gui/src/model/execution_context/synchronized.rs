@@ -530,14 +530,12 @@ pub mod test {
                 language_server::LibraryComponentGroup {
                     library: "local.Unnamed_10".to_string(),
                     group:   "Test Group 1".to_string(),
-                    // FIXME: edit color in package.yaml and see what shows up in Engine response
-                    // color: Some(
-                    color:   None,
+                    color:   Some("#C047AB".to_string()),
                     icon:    None,
-                    exports: vec![library_component("Standard.Base.System.File.new")],
-                    // TODO: ^- try also adding a sample local component in project's package.yaml
-                    //       (use project's `name:` and `namespace:` as set in `package.yaml`) and
-                    //       port here the response from the Engine.
+                    exports: vec![
+                        library_component("Standard.Base.System.File.new"),
+                        library_component("local.Unnamed_10.Main.main"),
+                    ],
                 },
                 language_server::LibraryComponentGroup {
                     library: "Standard.Base".to_string(),
