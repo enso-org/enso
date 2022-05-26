@@ -89,10 +89,10 @@ Data_Formatter.make_datatype_parser datatype = case datatype of
                     Error.throw (Illegal_Argument_Error "Unsupported datatype: "+datatype.to_text)
 
 ## PRIVATE
-Data_Formatter.get_parsers =
+Data_Formatter.get_specific_type_parsers =
     [this.make_integer_parser, this.make_decimal_parser, this.make_datetime_parser, this.make_date_parser, this.make_time_parser, this.make_boolean_parser]
 
 ## PRIVATE
 Data_Formatter.make_auto_parser =
     fallback_parser = this.make_identity_parser
-    TypeInferringParser.new this.get_parsers.to_array fallback_parser
+    TypeInferringParser.new this.get_specific_type_parsers.to_array fallback_parser

@@ -34,7 +34,7 @@ public class QuoteStrippingParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
-    return new StringBuilder((int) capacity);
+  protected Builder makeBuilderWithCapacity(int capacity) {
+    return new StringBuilder(capacity);
   }
 }

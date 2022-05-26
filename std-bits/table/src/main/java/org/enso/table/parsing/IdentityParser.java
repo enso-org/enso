@@ -11,13 +11,13 @@ import org.enso.table.read.WithProblems;
 public class IdentityParser extends IncrementalDatatypeParser {
 
   @Override
-  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+  protected Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
     return text;
   }
 
   @Override
-  public StringBuilder makeBuilderWithCapacity(long capacity) {
-    return new StringBuilder((int) capacity);
+  public StringBuilder makeBuilderWithCapacity(int capacity) {
+    return new StringBuilder(capacity);
   }
 
   @Override

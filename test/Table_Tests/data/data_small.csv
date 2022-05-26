@@ -1,4 +1,4 @@
-Code,Index,Flag,Value,ValueWithNothing,TextWithNothing,Hexadecimal,Leading0s,QuotedNumbers,Mixed
+Code,Index,Flag,Value,ValueWithNothing,TextWithNothing,"Hexadecimal",Leading0s,QuotedNumbers,"Mixed Types"
 gxl,7,True,38.76109,63.13,   pq6igd2wyd  ,4DD4675B,001,"1","33"
 wca,0,False,-66.77495,31,"  2pr4102wc4  ",,002,"2",
 nfw,1,  True ,  88.65713			,-68.71,"",01896EAB,123,,45

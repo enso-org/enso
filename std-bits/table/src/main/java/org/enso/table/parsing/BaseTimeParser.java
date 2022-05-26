@@ -38,9 +38,9 @@ public abstract class BaseTimeParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(long capacity) {
+  protected Builder makeBuilderWithCapacity(int capacity) {
     // Once datetime gets first-class support in our dataframes, a more specific builder type should
     // be used.
-    return new ObjectBuilder((int) capacity);
+    return new ObjectBuilder(capacity);
   }
 }
