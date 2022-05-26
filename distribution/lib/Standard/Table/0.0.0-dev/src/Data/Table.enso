@@ -7,9 +7,11 @@ import Standard.Visualization
 from Standard.Base.Data.Time.Date as Date_Module import Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
 import Standard.Table.Io.Format
+import Standard.Table.Io.File_Format
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Parse_Values_Helper
+import Standard.Table.Internal.Delimited_Reader
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
@@ -28,6 +30,7 @@ polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
+polyglot java import java.io.StringReader
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -1523,3 +1526,7 @@ print_table header rows indices_count format_term =
    - y: The right operand to the comparator.
 comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
 comparator_to_java cmp x y = cmp x y . to_sign
+
+Table.from (that : Text) (format:File_Format.Delimited|File_Format.Fixed_Width = File_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    java_reader = StringReader.new that
+    Delimited_Reader.read_from_reader format java_reader on_problems
