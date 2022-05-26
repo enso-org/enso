@@ -282,7 +282,7 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use engine_protocol::language_server::response::CreateExecutionContext;
+    use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;
     use json_rpc::expect_call;
@@ -317,13 +317,13 @@ pub mod test {
         }
 
         /// What is expected server's response to a successful creation of this context.
-        fn expected_creation_response(data: &MockData) -> CreateExecutionContext {
+        fn expected_creation_response(data: &MockData) -> response::CreateExecutionContext {
             let context_id = data.context_id;
             let can_modify =
                 CapabilityRegistration::create_can_modify_execution_context(context_id);
             let receives_updates =
                 CapabilityRegistration::create_receives_execution_context_updates(context_id);
-            CreateExecutionContext { context_id, can_modify, receives_updates }
+            response::CreateExecutionContext { context_id, can_modify, receives_updates }
         }
 
         /// Sets up mock client expectations for context creation and destruction.
@@ -510,6 +510,49 @@ pub mod test {
             let expression = Some(new_expression.to_owned());
             let module = Some(QualifiedName::from_text(new_module).unwrap());
             context.modify_visualization(vis_id, expression, module).await.unwrap();
+        });
+    }
+
+    #[test]
+    fn loading_virtual_component_groups() {
+        fn library_component(name: &str) -> language_server::LibraryComponent {
+            language_server::LibraryComponent { name: name.to_string(), shortcut: None }
+        }
+        let sample_component_groups = response::GetComponentGroups {
+            component_groups: vec![
+                language_server::LibraryComponentGroup {
+                    library: "local.Unnamed_10".to_string(),
+                    group:   "Test Group 1".to_string(),
+                    // FIXME: edit color in package.yaml and see what shows up in Engine response
+                    // color: Some(
+                    exports: vec![library_component("Standard.Base.System.File.new")],
+                    // TODO: ^- try also adding a sample local component in project's package.yaml
+                    //       (use project's `name:` and `namespace:` as set in `package.yaml`) and
+                    //       port here the response from the Engine.
+                },
+                language_server::LibraryComponentGroup {
+                    library: "Standard.Base".to_string(),
+                    group:   "Input".to_string(),
+                    exports: vec![
+                        library_component("Standard.Base.System.File.new"),
+                        library_component("Standard.Base.System.File.read_text"),
+                        library_component("Standard.Database.Connection.Database.connect"),
+                        library_component("Standard.Table.Data.Table.new"),
+                        library_component("Standard.Table.Data.Table.from_rows"),
+                        library_component("Standard.Table.Data.Column.from_vector"),
+                        library_component("Standard.Table.Io.Csv.from_csv"),
+                        library_component("Standard.Table.Io.Spreadsheet.from_xlsx"),
+                        library_component("Standard.Table.Io.Spreadsheet.from_xls"),
+                    ],
+                },
+            ],
+        };
+        let f = Fixture::new_customized(|ls, data| {
+            let id = data.context_id;
+            expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
+        });
+        test.run_task(async move {
+            f.context.load_component_groups();
         });
     }
 }
