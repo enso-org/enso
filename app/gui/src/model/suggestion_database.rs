@@ -812,6 +812,39 @@ mod test {
             scope:       (default()..=default()).into(),
             external_id: None,
         };
+        let ls_response = language_server::response::GetSuggestionDatabase {
+            entries:         vec![
+                db_entry(1, entry1),
+                db_entry(2, entry2),
+                db_entry(3, entry3),
+                db_entry(4, entry4),
+                db_entry(5, entry5),
+            ],
+            current_version: 1,
+        };
+        let db = SuggestionDatabase::from_ls_response(ls_response);
+
+        // Check that the entries used to initialize the database can be found using the
+        // `lookup_by_fully_qualified_name` method.
+        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextAtom");
+        lookup_and_verify_result_name(&db, "Standard.Builtins.Main.System.create_process");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
+        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main.operator1");
+        lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
+
+        // Check that looking up names not added to the database does not return entries.
+        lookup_and_verify_empty_result(&db, "TestProject.TestModule");
+        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.create_process");
+        lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
+    }
+
+    // Initialize suggestion database with some invalid entries and check if it doesn't break too
+    // badly (for example, panics). It is not clear what is "expected" behavior for such inputs, so
+    // this test can start failing in the future.
+    #[test]
+    fn lookup_by_fully_qualified_name_with_invalid_suggestions_from_engine() {
+        // Prepare some nonsense inputs from the Engine.
+        const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
         let entry_with_empty_name = SuggestionEntry::Atom {
             name:               "".to_string(),
             module:             "Empty.Entry".to_string(),
@@ -828,37 +861,34 @@ mod test {
             external_id: None,
             scope:       (default()..=default()).into(),
         };
+        let gibberish_entry = SuggestionEntry::Module {
+            module:             GIBBERISH_MODULE_NAME.to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
-                db_entry(1, entry1),
-                db_entry(2, entry2),
-                db_entry(3, entry3),
-                db_entry(4, entry4),
-                db_entry(5, entry5),
-                db_entry(6, entry_with_empty_name),
-                db_entry(7, empty_entry),
+                db_entry(1, entry_with_empty_name),
+                db_entry(2, empty_entry),
+                db_entry(3, gibberish_entry),
             ],
             current_version: 1,
         };
         let db = SuggestionDatabase::from_ls_response(ls_response);
 
-        // Check that the entries used to initialize the database can be found using the
-        // `lookup_by_fully_qualified_name` method.
-        lookup_and_verify_result_name(&db, "TestProject.TestModule.TextAtom");
-        lookup_and_verify_result_name(&db, "Standard.Builtins.Main.System.create_process");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main");
-        lookup_and_verify_result_name(&db, "local.Unnamed_6.Main.operator1");
-        lookup_and_verify_result_name(&db, "NewProject.NewModule.testFunction1");
         // Technically invalid, but only because we "received" a wrong input from Engine.
         // We only check if we don't panic here for some reason.
         lookup_and_verify_result_name(&db, "Empty.Entry.");
 
-        // Check that looking up names not added to the database does not return entries.
-        lookup_and_verify_empty_result(&db, "TestProject.TestModule");
-        lookup_and_verify_empty_result(&db, "Standard.Builtins.Main.create_process");
-        lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
-        lookup_and_verify_empty_result(&db, "");
-        lookup_and_verify_empty_result(&db, ".");
+        // `empty_entry` is discarded before being added to the database, so we don't get any
+        // "empty" entries.
+        assert!(db.lookup_by_fully_qualified_name("").is_none());
+        assert!(db.lookup_by_fully_qualified_name(".").is_none());
+
+        // Gibberish module name works normally, until we implement a proper names validation.
+        lookup_and_verify_result_name(&db, GIBBERISH_MODULE_NAME);
     }
 
     /// Apply a [`SuggestionDatabaseUpdatesEvent`] to a [`SuggestionDatabase`] initialized with
