@@ -440,7 +440,7 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-
+    const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
 
     #[test]
     fn initialize_database() {
@@ -838,13 +838,22 @@ mod test {
         lookup_and_verify_empty_result(&db, "local.NoSuchEntry");
     }
 
-    // Initialize suggestion database with some invalid entries and check if it doesn't break too
-    // badly (for example, panics). It is not clear what is "expected" behavior for such inputs, so
-    // this test can start failing in the future.
+    // Check that the suggestion database doesn't panic when quering invalid qualified names.
     #[test]
-    fn lookup_by_fully_qualified_name_with_invalid_suggestions_from_engine() {
+    fn lookup_by_fully_qualified_name_with_invalid_names() {
+        let db = SuggestionDatabase::new_empty(Logger::new("SuggestionDatabase"));
+        let _ = db.lookup_by_fully_qualified_name("");
+        let _ = db.lookup_by_fully_qualified_name(".");
+        let _ = db.lookup_by_fully_qualified_name("..");
+        let _ = db.lookup_by_fully_qualified_name("Empty.Entry.");
+        let _ = db.lookup_by_fully_qualified_name("Empty..Entry");
+        let _ = db.lookup_by_fully_qualified_name(GIBBERISH_MODULE_NAME);
+    }
+
+    // Initialize suggestion database with some invalid entries and check if it doesn't panics.
+    #[test]
+    fn initialize_database_with_invalid_entries() {
         // Prepare some nonsense inputs from the Engine.
-        const GIBBERISH_MODULE_NAME: &str = "local.Gibberish.Модул\u{200f}ь!\0@&$)(*!)\t";
         let entry_with_empty_name = SuggestionEntry::Atom {
             name:               "".to_string(),
             module:             "Empty.Entry".to_string(),
@@ -876,19 +885,7 @@ mod test {
             ],
             current_version: 1,
         };
-        let db = SuggestionDatabase::from_ls_response(ls_response);
-
-        // Technically invalid, but only because we "received" a wrong input from Engine.
-        // We only check if we don't panic here for some reason.
-        lookup_and_verify_result_name(&db, "Empty.Entry.");
-
-        // `empty_entry` is discarded before being added to the database, so we don't get any
-        // "empty" entries.
-        assert!(db.lookup_by_fully_qualified_name("").is_none());
-        assert!(db.lookup_by_fully_qualified_name(".").is_none());
-
-        // Gibberish module name works normally, until we implement a proper names validation.
-        lookup_and_verify_result_name(&db, GIBBERISH_MODULE_NAME);
+        let _ = SuggestionDatabase::from_ls_response(ls_response);
     }
 
     /// Apply a [`SuggestionDatabaseUpdatesEvent`] to a [`SuggestionDatabase`] initialized with
