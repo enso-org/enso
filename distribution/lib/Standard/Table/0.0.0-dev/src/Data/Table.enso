@@ -16,7 +16,7 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 import Standard.Table.Data.Column_Mapping
@@ -408,7 +408,8 @@ type Table
        `Text`.
 
        Arguments:
-       - sort_method: The sort methodology to use.
+       - direction: Whether sorting should be in ascending or descending order.
+       - text_ordering: The sort methodology to use.
 
        > Example
          Sort columns according to the default ordering.
@@ -418,15 +419,15 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
+             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns (Sort_Method order=Sort_Direction.Descending)
-    sort_columns : Sort_Method -> Table
-    sort_columns (sort_method = Sort_Method.new) =
-        new_columns = Table_Helpers.sort_columns internal_columns=this.columns sort_method
+             table.reorder_columns Sort_Direction.Descending
+    sort_columns : Sort_Direction -> Text_Ordering -> Table
+    sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+        new_columns = Table_Helpers.sort_columns internal_columns=this.columns direction text_ordering
         here.new new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping

@@ -6,7 +6,7 @@ import Standard.Base.Error.Problem_Behavior
 import Standard.Table.Data.Column_Mapping
 from Standard.Table.Error as Table_Errors import all
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import all
-from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Table.Data.Position as Position_Module import all
 
 ## A common test suite for shared operations on the Table API.
@@ -373,17 +373,17 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_100", "foo_21", "foo_3"] sorted
             sorted.columns.first.to_vector . should_equal [10,11,12]
 
-            expect_column_names ["bar", "foo_001", "foo_1", "Foo_2", "foo_3", "foo_21", "foo_100"] <| table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
-            expect_column_names ["foo_3", "foo_21", "foo_100", "foo_1", "foo_001", "bar", "Foo_2"] <| table.sort_columns (Sort_Method order=Sort_Direction.Descending)
+            expect_column_names ["bar", "foo_001", "foo_1", "Foo_2", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+            expect_column_names ["foo_3", "foo_21", "foo_100", "foo_1", "foo_001", "bar", "Foo_2"] <| table.sort_columns Sort_Direction.Descending
 
         Test.specify "should correctly handle case-insensitive sorting" <|
-            expect_column_names ["bar", "foo_001", "foo_1", "foo_100", "Foo_2", "foo_21", "foo_3"] <| table.sort_columns (Sort_Method case_sensitive=Case_Insensitive.new)
+            expect_column_names ["bar", "foo_001", "foo_1", "foo_100", "Foo_2", "foo_21", "foo_3"] <| table.sort_columns text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
 
         Test.specify "should correctly handle natural order sorting" <|
-            expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns (Sort_Method natural_order=True)
+            expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True)
 
         Test.specify "should correctly handle various combinations of options" <|
-            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new order=Sort_Direction.Descending)
+            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns direction=Sort_Direction.Descending text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
     Test.group prefix+"Table.rename_columns" pending=pending <|
         table =
