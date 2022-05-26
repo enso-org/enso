@@ -51,8 +51,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-build-project-manager-macos:
     name: Build Project Manager (macos)
@@ -79,8 +83,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-build-project-manager-windows:
     name: Build Project Manager (windows)
@@ -109,8 +117,12 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
   ide-ci-actions-workflow-definition-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
@@ -139,8 +151,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
@@ -167,8 +183,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
@@ -197,8 +217,12 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
   ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
     name: Cancel Previous Runs
@@ -238,8 +262,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh ide integration-test --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-lint-linux:
     name: Lint (linux)
@@ -268,8 +296,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh lint"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-native-test-linux:
     name: Native GUI tests (linux)
@@ -298,8 +330,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh wasm test --no-wasm"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-package-ide-linux:
     name: Package IDE (linux)
@@ -331,8 +367,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-package-ide-macos:
     name: Package IDE (macos)
@@ -362,8 +402,12 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
   ide-ci-actions-workflow-definition-job-package-ide-windows:
     name: Package IDE (windows)
@@ -395,8 +439,12 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
   ide-ci-actions-workflow-definition-job-wasm-test-linux:
     name: WASM GUI tests (linux)
@@ -425,6 +473,10 @@ jobs:
         with:
           clean: false
       - run: "./run.sh --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
       - run: "./run.sh wasm test --no-native"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
