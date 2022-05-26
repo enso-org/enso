@@ -129,6 +129,14 @@ impl ExecutionContext {
         }
         Ok(())
     }
+
+    // FIXME: move to API below
+    fn load_component_groups(&self) -> BoxFuture<FallibleResult<response::GetComponentGroups>> {
+        async move {
+            Ok(self.language_server.get_component_groups(&self.id).await?)
+        }
+        .boxed_local()
+    }
 }
 
 impl model::execution_context::API for ExecutionContext {
