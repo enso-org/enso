@@ -4,6 +4,8 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.parsing.problems.ProblemAggregator;
+import org.enso.table.parsing.problems.ProblemAggregatorImpl;
+import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
 import org.enso.table.read.WithProblems;
 
 /**
@@ -13,7 +15,7 @@ import org.enso.table.read.WithProblems;
  * <p>If all parsers from the set reported problems, the fallback parser is used and its result is
  * returned regardless of any problems.
  */
-public class TypeInferringParser implements DatatypeParser {
+public class TypeInferringParser extends DatatypeParser {
 
   private final IncrementalDatatypeParser[] baseParsers;
   private final DatatypeParser fallbackParser;
@@ -25,11 +27,24 @@ public class TypeInferringParser implements DatatypeParser {
   }
 
   @Override
+  public Object parseSingleValue(String text, ProblemAggregator problemAggregator) {
+    for (IncrementalDatatypeParser parser : baseParsers) {
+      SimplifiedProblemAggregator internal = new SimplifiedProblemAggregator();
+      Object result = parser.parseSingleValue(text, internal);
+      if (!internal.hasProblems()) {
+        return result;
+      }
+    }
+
+    return fallbackParser.parseSingleValue(text, problemAggregator);
+  }
+
+  @Override
   public WithProblems<Storage> parseColumn(String columnName, StringStorage sourceStorage) {
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size());
-      var aggregator = new ProblemAggregator(columnName);
+      var aggregator = new ProblemAggregatorImpl(columnName);
 
       for (int i = 0; i < sourceStorage.size(); ++i) {
         String cell = sourceStorage.getItem(i);

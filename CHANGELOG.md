@@ -126,6 +126,10 @@
   instance][3460]
 - [Implemented automatic type detection for `Table.parse_values`.][3462]
 - [Integrated value parsing with the `Delimited` file reader.][3463]
+- [Implemented the `Infer` setting for headers in the `Delimited` file format
+  and made it the default.][3472]
+- [Implemented a `Table.from Text` conversion allowing to parse strings
+  representing `Delimited` files without storing them on the filesystem.][3478]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -196,6 +200,8 @@
 [3460]: https://github.com/enso-org/enso/pull/3460
 [3462]: https://github.com/enso-org/enso/pull/3462
 [3463]: https://github.com/enso-org/enso/pull/3463
+[3472]: https://github.com/enso-org/enso/pull/3472
+[3478]: https://github.com/enso-org/enso/pull/3478
 
 #### Enso Compiler
 
