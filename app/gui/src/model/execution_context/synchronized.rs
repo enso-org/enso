@@ -560,7 +560,7 @@ pub mod test {
                 },
             ],
         };
-        let Fixture { data, mut test, context } = Fixture::new_customized(|ls, data| {
+        let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let id = data.context_id;
             expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
         });
