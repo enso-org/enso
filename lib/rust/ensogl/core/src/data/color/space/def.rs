@@ -416,9 +416,9 @@ impl Rgb {
     /// assert!(Rgb::from_css_hex("fff").is_none());
     /// assert!(Rgb::from_css_hex("C047AB").is_none());
     /// assert!(Rgb::from_css_hex("red").is_none());
+    /// assert!(Rgb::from_css_hex("yellow").is_none());
     /// assert!(Rgb::from_css_hex("#red").is_none());
     /// assert!(Rgb::from_css_hex("#yellow").is_none());
-    /// assert!(Rgb::from_css_hex("yellow").is_none());
     /// assert!(Rgb::from_css_hex("#").is_none());
     /// assert!(Rgb::from_css_hex("").is_none());
     /// ```
