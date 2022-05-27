@@ -56,6 +56,11 @@ fn main() {
         let FuncTimings { total_duration, self_duration, count } = timings;
         println!("{:>6.1} {:>6.1} {} {}", self_duration, total_duration, count, label);
     }
+    let mut total_duration = 0.0;
+    for Func { timings, .. } in funcs.iter() {
+        total_duration += timings.self_duration;
+    }
+    println!("0.0 {:>6.1} 1 (total_self_duration)", total_duration);
 }
 
 
@@ -68,7 +73,7 @@ fn main() {
 /// it occurs.
 #[derive(Default)]
 struct FuncCollector {
-    funcs: collections::HashMap<Label, FuncTimings>,
+    funcs: HashMap<Label, FuncTimings>,
 }
 
 impl FuncCollector {
