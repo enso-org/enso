@@ -89,6 +89,19 @@ impl Fixture {
         expect_prompt.await;
     }
 
+    /// After returning, the IDE is in a state with the project opened and ready to work
+    /// (after libraries' compilation).
+    pub async fn load_project(&self, name: String) {
+        let project = self.ide.presenter.view().project();
+        let controller = self.ide.presenter.controller();
+        let project_management =
+            controller.manage_projects().expect("Cannot access Managing Project API");
+
+        let expect_prompt = project.show_prompt.next_event();
+        project_management.open_project_by_name(name).await.expect("Failed to open project");
+        expect_prompt.await;
+    }
+
     /// Get the Project View.
     pub fn project_view(&self) -> crate::view::project::View {
         self.ide.presenter.view().project()
@@ -116,6 +129,16 @@ impl Fixture {
         let test = Self::setup_new_project().await;
         test.compile_new_shaders().await;
         test
+    }
+
+    /// Open a project; doesn't complete until the project is ready to render.
+    #[profile(Objective)]
+    pub async fn open_project() -> Self {
+        let template_project = "Orders";
+        let self_ = Self::new(InitialView::Project).await;
+        self_.load_project(template_project.to_owned()).await;
+        self_.compile_new_shaders().await;
+        self_
     }
 
     /// Create a new node; doesn't complete until the new node is ready to render.
