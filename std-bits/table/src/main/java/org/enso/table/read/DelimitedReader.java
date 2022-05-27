@@ -251,7 +251,7 @@ public class DelimitedReader {
   private List<String> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
-    return NameDeduplicator.deduplicate(preprocessedHeaders, "_");
+    return new NameDeduplicator().makeUnique(preprocessedHeaders);
   }
 
   private List<String> generateDefaultHeaders(int columnCount) {
@@ -291,7 +291,6 @@ public class DelimitedReader {
     int expectedColumnCount = currentRow.length;
     initBuilders(expectedColumnCount);
 
-    assert currentRow != null;
     switch (headerBehavior) {
       case INFER -> {
         String[] firstRow = currentRow;
@@ -323,9 +322,7 @@ public class DelimitedReader {
         // We have 'used up' the first row, so we load a next one.
         currentRow = readNextRow();
       }
-      case GENERATE_HEADERS -> {
-        headerNames = generateDefaultHeaders(expectedColumnCount);
-      }
+      case GENERATE_HEADERS -> headerNames = generateDefaultHeaders(expectedColumnCount);
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
