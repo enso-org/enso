@@ -306,7 +306,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     resolvedName: BindingsMap.ResolvedTypeName
   ): TypeArg = resolvedName match {
     case tp: BindingsMap.ResolvedType =>
-      TypeArg.Sum(tp.qualifiedName, tp.getVariants.map(_.qualifiedName))
+      TypeArg.Sum(
+        Some(tp.qualifiedName),
+        tp.getVariants.map(r => TypeArg.Value(r.qualifiedName))
+      )
     case _: BindingsMap.ResolvedName =>
       TypeArg.Value(resolvedName.qualifiedName)
   }
@@ -339,9 +342,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     def go(expr: IR.Expression): TypeArg = expr match {
       case fn: IR.Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
-//      case _: IR.Type.Set.Union =>
-//        println("foun a union!!!!")
-//        ???
+      case union: IR.Type.Set.Union =>
+        TypeArg.Sum(None, union.operands.map(go))
       case app: IR.Application.Prefix =>
         TypeArg.Application(
           go(app.function),
@@ -471,10 +473,16 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
       tagValues = targ match {
-        case TypeArg.Sum(_, variants) => Some(variants.map(_.toString))
-        case _                        => None
+        case s: TypeArg.Sum => Some(pluckVariants(s))
+        case _              => None
       }
     )
+
+  private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
+    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
+    case TypeArg.Value(n)         => Seq(n.toString)
+    case _                        => Seq()
+  }
 
   /** Build the name of type argument.
     *
@@ -499,7 +507,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           val argsList = args.map(go(_, level + 1)).mkString(" ")
           val typeName = s"$funText $argsList"
           if (level > 0) s"($typeName)" else typeName
-        case TypeArg.Sum(n, _) => n.toString
+        case TypeArg.Sum(Some(n), _) => n.toString
+        case TypeArg.Sum(None, variants) =>
+          variants.map(go(_, level + 1)).mkString(" | ")
       }
 
     go(targ, 0)
@@ -594,7 +604,7 @@ object SuggestionBuilder {
       * @param name the qualified name of the type.
       * @param variants the qualified names of constituent atoms.
       */
-    case class Sum(name: QualifiedName, variants: Seq[QualifiedName])
+    case class Sum(name: Option[QualifiedName], variants: Seq[TypeArg])
         extends TypeArg
 
     /** Type with the name, like `A`.
