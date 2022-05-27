@@ -17,10 +17,19 @@ trait TypeMatchers {
       case Fn(args, r) => Fn(that :: args, r)
       case _           => Fn(List(that), this)
     }
+
+    def |(that: Sig): Sig = {
+      def toUnion(sig: Sig): List[Sig] = sig match {
+        case Union(items) => items
+        case other        => List(other)
+      }
+      Union(toUnion(this) ++ toUnion(that))
+    }
   }
   case class Name(name: String)               extends Sig
   case class AnyQualName(name: QualifiedName) extends Sig
   case class Fn(args: List[Sig], result: Sig) extends Sig
+  case class Union(items: List[Sig])          extends Sig
 
   implicit def fromString(str: String): Sig = {
     if (str.contains(".")) {
@@ -71,6 +80,11 @@ trait TypeMatchers {
           .flatMap(findInequalityWitness)
           .headOption
           .orElse(findInequalityWitness(res, t.result))
+      case (Union(items), t: IR.Type.Set.Union) =>
+        if (items.length != t.operands.length) {
+          return Some((sig, expr, "number of items does not match"))
+        }
+        items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
       case _ => Some((sig, expr, "constructors are incompatible"))
     }
 
@@ -176,12 +190,13 @@ class TypeSignaturesTest
     }
 
     "resolve imported names" in {
-      val code   = """
-                   |from my_pkg.My_Lib.Util import all
-                   |
-                   |foo : Util_1 -> Util_2
-                   |foo a = 23
-                   |""".stripMargin
+      val code =
+        """
+          |from my_pkg.My_Lib.Util import all
+          |
+          |foo : Util_1 -> Util_2
+          |foo a = 23
+          |""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
         "my_pkg.My_Lib.Util.Util_1" ->: "my_pkg.My_Lib.Util.Util_2"
@@ -189,15 +204,31 @@ class TypeSignaturesTest
     }
 
     "resolve imported union type names" in {
-      val code   = """
-                     |from my_pkg.My_Lib.Util import all
-                     |
-                     |foo : Util_Sum -> Util_2
-                     |foo a = 23
-                     |""".stripMargin
+      val code =
+        """
+          |from my_pkg.My_Lib.Util import all
+          |
+          |foo : Util_Sum -> Util_2
+          |foo a = 23
+          |""".stripMargin
       val module = code.preprocessModule
       getSignature(module, "foo") should typeAs(
         "my_pkg.My_Lib.Util.Util_Sum" ->: "my_pkg.My_Lib.Util.Util_2"
+      )
+    }
+
+    "resolve anonymous sum types" in {
+      val code =
+        """from my_pkg.My_Lib.Util import all
+          |
+          |type Foo
+          |
+          |baz : Foo | Util_2 | Util_Sum -> Foo
+          |baz a = 123
+          |""".stripMargin
+      val module = code.preprocessModule
+      getSignature(module, "baz") should typeAs(
+        ("Unnamed.Test.Foo" | "my_pkg.My_Lib.Util.Util_2" | "my_pkg.My_Lib.Util.Util_Sum") ->: "Unnamed.Test.Foo"
       )
     }
   }
