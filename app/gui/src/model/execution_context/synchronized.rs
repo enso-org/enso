@@ -531,12 +531,14 @@ pub mod test {
         });
     }
 
+    /// Check that the [`ExecutionContext::load_component_groups`] method correctly parses a mocked
+    /// Language Server response and loads the result into a field of the [`ExecutionContext`].
     #[test]
     fn loading_component_groups() {
         fn library_component(name: &str) -> language_server::LibraryComponent {
             language_server::LibraryComponent { name: name.to_string(), shortcut: None }
         }
-        let sample_component_groups = response::GetComponentGroups {
+        let sample_ls_response = response::GetComponentGroups {
             component_groups: vec![
                 language_server::LibraryComponentGroup {
                     library: "local.Unnamed_10".to_string(),
@@ -553,42 +555,36 @@ pub mod test {
                     group:   "Input".to_string(),
                     color:   None,
                     icon:    None,
-                    exports: vec![
-                        library_component("Standard.Base.System.File.new"),
-                        library_component("Standard.Base.System.File.read_text"),
-                    ],
+                    exports: vec![library_component("Standard.Base.System.File.new")],
                 },
             ],
         };
         let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
             let id = data.context_id;
-            expect_call!(ls.get_component_groups(id) => Ok(sample_component_groups));
+            expect_call!(ls.get_component_groups(id) => Ok(sample_ls_response));
         });
         test.run_task(async move {
             context.load_component_groups().await.unwrap();
             let groups = context.model.available_component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
-            // Check the contents of the first, local group.
-            let local_group = &groups[0];
-            assert_eq!(local_group.name, "Test Group 1".to_string());
-            assert!(local_group.color.is_some());
+            // Verify that the first group was parsed and has expected contents.
+            let first_group = &groups[0];
+            assert_eq!(first_group.name, "Test Group 1".to_string());
+            let color = first_group.color.unwrap();
             const PRECISION: f32 = 0.001;
-            assert_approx_eq!(local_group.color.unwrap().red, 0.753, PRECISION);
-            assert_approx_eq!(local_group.color.unwrap().green, 0.278, PRECISION);
-            assert_approx_eq!(local_group.color.unwrap().blue, 0.671, PRECISION);
+            assert_approx_eq!(color.red, 0.753, PRECISION);
+            assert_approx_eq!(color.green, 0.278, PRECISION);
+            assert_approx_eq!(color.blue, 0.671, PRECISION);
             let expected_components =
                 vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
-            assert_eq!(local_group.components, expected_components);
+            assert_eq!(first_group.components, expected_components);
 
-            // Check the contents of the second group.
+            // Verify that the second group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
                 name:       "Input".into(),
                 color:      None,
-                components: vec![
-                    "Standard.Base.System.File.new".into(),
-                    "Standard.Base.System.File.read_text".into(),
-                ],
+                components: vec!["Standard.Base.System.File.new".into(),],
             });
         });
     }
