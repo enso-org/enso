@@ -63,7 +63,10 @@ public @interface Builtin {
    */
   @interface ReturningGuestObject {}
 
-  @interface Specialize {
-    boolean fallback() default false;
-  }
+  /**
+   * Method marked with @Builtin.Specialize annotation should also generate specializations for
+   * overloaded and non-overloaded methods. The processor infers the parameter on which the
+   * specialization should occur and fails if it cannot make that choice in a deterministic way.
+   */
+  @interface Specialize {}
 }
