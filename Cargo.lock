@@ -1945,7 +1945,6 @@ dependencies = [
  "flo_stream",
  "futures 0.3.21",
  "fuzzly",
- "hex",
  "ide-view",
  "itertools 0.10.3",
  "js-sys",
