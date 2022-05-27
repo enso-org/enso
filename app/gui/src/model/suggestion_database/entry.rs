@@ -236,8 +236,7 @@ impl Entry {
         };
 
         let code = match this_expr {
-            Some(this_expr) =>
-                format!("{}{}{}", this_expr, ast::opr::predefined::ACCESS, self.name),
+            Some(this_expr) => format!("{}{}{}", this_expr, ACCESS, self.name),
             None => self.name.clone(),
         };
 
