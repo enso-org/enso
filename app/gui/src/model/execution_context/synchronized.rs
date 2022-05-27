@@ -262,7 +262,7 @@ impl model::execution_context::API for ExecutionContext {
                 .into_iter()
                 .map(|group| VirtualComponentGroup {
                     name:    group.group.into(),
-                    color:   group.color.as_ref().and_then(|c| from_hex(c)),
+                    color:   group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
                     exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
                 })
                 .collect();
@@ -285,35 +285,6 @@ impl Drop for ExecutionContext {
             }
         });
     }
-}
-
-// /// ```
-// /// # use assert_approx_eq::assert_approx_eq;
-// /// let color = from_hex("#C047AB".to_string());
-// /// assert!(color.is_some());
-// /// const PRECISION: f32 = 0.001;
-// /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
-// /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
-// /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
-// /// ```
-// FIXME: move to lib/rust/ensogl/core/src/data/color/space/def.rs
-fn from_hex(color_string: &str) -> Option<color::Rgb> {
-    // see: https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
-    // TODO: regexp?
-    if !color_string.starts_with('#') {
-        return None;
-    }
-    let component = |range: Range<usize>, repeat| -> Option<u8> {
-        let hex = color_string[range].repeat(repeat);
-        let parsed = hex::decode(hex).ok()?;
-        Some(parsed[0])
-    };
-    let (red, green, blue) = match color_string.len() {
-        4 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
-        7 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
-        _ => return None,
-    };
-    Some(color::Rgb::from_base_255(red, green, blue))
 }
 
 
