@@ -61,6 +61,7 @@ import project.Examples_Spec
 main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
+    Bool_Spec.spec
     Case_Spec.spec
     Conversion_Spec.spec
     Deep_Export_Spec.spec

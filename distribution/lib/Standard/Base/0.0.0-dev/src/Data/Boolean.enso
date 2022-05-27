@@ -35,7 +35,7 @@ type Boolean
 
              False && True
     && : Boolean -> Boolean
-    && that = @Builtin_Method "Boolean.&&"
+    && ~that = @Builtin_Method "Boolean.&&"
 
     ## Computes the logical or (disjunction) of two booleans.
 
@@ -52,7 +52,7 @@ type Boolean
 
              True || False
     || : Boolean -> Boolean
-    || that = @Builtin_Method "Boolean.||"
+    || ~that = @Builtin_Method "Boolean.||"
 
     ## Computes the logical negation of this.
 

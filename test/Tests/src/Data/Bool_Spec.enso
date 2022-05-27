@@ -5,6 +5,11 @@ from Standard.Base.Data.Ordering import Equal, Less, Greater
 
 Boolean.method = this
 
+type My_Error a
+
+crash =
+  Error.throw (My_Error "foo")
+
 spec =
     Test.group "Booleans" <|
         Test.specify "should allow converting Bools to Text values" <|
@@ -20,5 +25,28 @@ spec =
         Test.specify "should allow for extending Bools in a local module" <|
             test = 1 == 2
             test.method . should_equal test
+
+        Test.specify "should short-circuit ||" <|
+            or_test_1 = (1 == 1) || (here.crash)
+            or_test_1 . should_equal True
+            or_test_2 = (1 == 0) || (1 == 1)
+            or_test_2 . should_equal True
+            or_test_3 = (1 == 0) || (here.crash)
+            or_test_3 . should_fail_with My_Error
+
+            Test.expect_panic_with ((1 == 0) || ("foo")) Type_Error
+
+        Test.specify "should short-circuit &&" <|
+            and_test_1 = (1 == 0) && (here.crash)
+            and_test_1 . should_equal False
+            and_test_2 = (1 == 1) && (1 == 0)
+            and_test_2 . should_equal False
+            and_test_3 = (1 == 1) && (1 == 1)
+            and_test_3 . should_equal True
+            and_test_4 = (1 == 1) && (here.crash)
+            and_test_4 . should_fail_with My_Error
+
+            Test.expect_panic_with ((1 == 1) && ("foo")) Type_Error
+
 
 main = Test.Suite.run_main here.spec
