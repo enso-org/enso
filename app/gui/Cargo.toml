@@ -79,3 +79,6 @@ features = [
   'WebSocket',
   'Window',
 ]
+
+[package.metadata.wasm-pack.profile.production]
+wasm-opt = ['-O4']
