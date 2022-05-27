@@ -391,8 +391,8 @@ impl Rgb {
 
     /// Return a color if `css_hex` is a `#RGB` or `#RRGGBB` string, where `R`, `G`, `B` represent
     /// lower- or upper-case hexadecimal digits. The RR, GG, BB color componets are mapped from [00
-    /// - ff] value range into [0.0 - 1.0] (digits in the short `#RGB` format get duplicated, so
-    /// e.g. `#abc` is equivalent to `#aabbcc`).
+    /// - ff] value range into [0.0 - 1.0] (the three-digit notation `#RGB` is equivalent to a
+    /// six-digit string `#RRGGBB` constructed by duplicating the digits).
     ///
     /// The format is adapted from the hexadecimal color notation used in CSS - see:
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
