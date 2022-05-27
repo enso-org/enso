@@ -60,7 +60,8 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
-    /// Component groups available in the scope of the execution context.
+    /// Component groups available in the scope of the execution context. Empty until
+    /// [`load_component_groups`] is called.
     pub available_component_groups: RefCell<Vec<ComponentGroup>>,
 }
 
