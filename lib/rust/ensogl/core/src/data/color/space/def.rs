@@ -395,44 +395,42 @@ impl Rgb {
     /// # use ensogl_core::data::color::Rgb;
     /// # const PRECISION: f32 = 0.001;
     ///
-    /// let color = Rgb::from_hex("#C047AB");
+    /// let color = Rgb::from_css_hex("#C047AB");
     /// assert!(color.is_some());
     /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
     /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
     /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
     ///
-    /// let color = Rgb::from_hex("#fff");
+    /// let color = Rgb::from_css_hex("#fff");
     /// assert!(color.is_some());
     /// assert_approx_eq!(color.unwrap().red, 1.0, PRECISION);
     /// assert_approx_eq!(color.unwrap().green, 1.0, PRECISION);
     /// assert_approx_eq!(color.unwrap().blue, 1.0, PRECISION);
     ///
-    /// assert!(Rgb::from_hex("fff").is_none());
-    /// assert!(Rgb::from_hex("C047AB").is_none());
-    /// assert!(Rgb::from_hex("red").is_none());
-    /// assert!(Rgb::from_hex("#red").is_none());
-    /// assert!(Rgb::from_hex("#yellow").is_none());
-    /// assert!(Rgb::from_hex("yellow").is_none());
+    /// assert!(Rgb::from_css_hex("fff").is_none());
+    /// assert!(Rgb::from_css_hex("C047AB").is_none());
+    /// assert!(Rgb::from_css_hex("red").is_none());
+    /// assert!(Rgb::from_css_hex("#red").is_none());
+    /// assert!(Rgb::from_css_hex("#yellow").is_none());
+    /// assert!(Rgb::from_css_hex("yellow").is_none());
     /// ```
-    pub fn from_hex(s: &str) -> Option<Self> {
-        if !s.starts_with('#') {
+    pub fn from_css_hex(css_hex: &str) -> Option<Self> {
+        if !css_hex.starts_with('#') {
             return None;
         }
-        fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
-            use hex::FromHex;
-            let array = <[u8; 1] as FromHex>::from_hex(s);
-            array.map(|a| a[0]).ok()
-        }
-        let component = |range: Range<usize>, repeat| -> Option<u8> {
-            let hex = s[range].repeat(repeat);
-            let parsed = hex::decode(hex).ok()?;
-            Some(parsed[0])
-        };
-        let (red, green, blue) = match s.len() {
-            4 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
-            7 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
+        let hex_bytes = css_hex[1..].as_bytes();
+        let hex_color_components = match hex_bytes.len() {
+            3 => Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2]),
+            6 => Vector3(
+                *array_from_slice(&hex_bytes[0..2])?,
+                *array_from_slice(&hex_bytes[2..4])?,
+                *array_from_slice(&hex_bytes[4..6])?,
+            ),
             _ => return None,
         };
+        let red = byte_from_hex(&hex_color_components.x)?;
+        let green = byte_from_hex(&hex_color_components.y)?;
+        let blue = byte_from_hex(&hex_color_components.z)?;
         Some(Rgb::from_base_255(red, green, blue))
     }
 
@@ -906,4 +904,13 @@ fn generic_parse(s: &str) -> Result<(String, Vec<f32>), ParseError> {
             }
         },
     }
+}
+
+fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
+    let array = <[u8; 1] as hex::FromHex>::from_hex(s);
+    array.map(|a| a[0]).ok()
+}
+
+fn array_from_slice<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
+    s.try_into().ok()
 }
