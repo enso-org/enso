@@ -393,12 +393,26 @@ impl Rgb {
     /// ```
     /// # use assert_approx_eq::assert_approx_eq;
     /// # use ensogl_core::data::color::Rgb;
+    /// # const PRECISION: f32 = 0.001;
+    ///
     /// let color = Rgb::from_hex("#C047AB");
     /// assert!(color.is_some());
-    /// const PRECISION: f32 = 0.001;
     /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
     /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
     /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
+    ///
+    /// let color = Rgb::from_hex("#fff");
+    /// assert!(color.is_some());
+    /// assert_approx_eq!(color.unwrap().red, 1.0, PRECISION);
+    /// assert_approx_eq!(color.unwrap().green, 1.0, PRECISION);
+    /// assert_approx_eq!(color.unwrap().blue, 1.0, PRECISION);
+    ///
+    /// assert!(Rgb::from_hex("fff").is_none());
+    /// assert!(Rgb::from_hex("C047AB").is_none());
+    /// assert!(Rgb::from_hex("red").is_none());
+    /// assert!(Rgb::from_hex("#red").is_none());
+    /// assert!(Rgb::from_hex("#yellow").is_none());
+    /// assert!(Rgb::from_hex("yellow").is_none());
     /// ```
     pub fn from_hex(s: &str) -> Option<Self> {
         if !s.starts_with('#') {
