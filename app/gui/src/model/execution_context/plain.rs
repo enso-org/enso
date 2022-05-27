@@ -3,9 +3,9 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::AttachedVisualization;
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
-use crate::model::execution_context::VirtualComponentGroup;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -60,7 +60,8 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
-    pub virtual_component_groups: RefCell<Vec<VirtualComponentGroup>>,
+    /// Component groups available in the scope of the execution context.
+    pub available_component_groups: RefCell<Vec<ComponentGroup>>,
 }
 
 impl ExecutionContext {
@@ -71,7 +72,7 @@ impl ExecutionContext {
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
-        let virtual_component_groups = default();
+        let available_component_groups = default();
         Self {
             logger,
             entry_point,
@@ -79,7 +80,7 @@ impl ExecutionContext {
             visualizations,
             computed_value_info_registry,
             is_ready,
-            virtual_component_groups,
+            available_component_groups,
         }
     }
 

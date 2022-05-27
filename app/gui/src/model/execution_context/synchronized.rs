@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
-use crate::model::execution_context::VirtualComponentGroup;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -258,12 +258,12 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             let ls_response = self.language_server.get_component_groups(&self.id).await?;
             let ls_component_groups = ls_response.component_groups.into_iter();
-            let virtual_component_groups = ls_component_groups.map(|group| VirtualComponentGroup {
-                name:    group.group.into(),
-                color:   group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
-                exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
+            let component_groups = ls_component_groups.map(|group| ComponentGroup {
+                name:       group.group.into(),
+                color:      group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
+                components: group.exports.into_iter().map(|e| e.name.into()).collect(),
             });
-            *self.model.virtual_component_groups.borrow_mut() = virtual_component_groups.collect();
+            *self.model.available_component_groups.borrow_mut() = component_groups.collect();
             Ok(())
         }
         .boxed_local()
@@ -532,7 +532,7 @@ pub mod test {
     }
 
     #[test]
-    fn loading_virtual_component_groups() {
+    fn loading_component_groups() {
         fn library_component(name: &str) -> language_server::LibraryComponent {
             language_server::LibraryComponent { name: name.to_string(), shortcut: None }
         }
@@ -566,7 +566,7 @@ pub mod test {
         });
         test.run_task(async move {
             context.load_component_groups().await.unwrap();
-            let groups = context.model.virtual_component_groups.borrow();
+            let groups = context.model.available_component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
             // Check the contents of the first, local group.
@@ -577,15 +577,15 @@ pub mod test {
             assert_approx_eq!(local_group.color.unwrap().red, 0.753, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().green, 0.278, PRECISION);
             assert_approx_eq!(local_group.color.unwrap().blue, 0.671, PRECISION);
-            let expected_exports =
+            let expected_components =
                 vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
-            assert_eq!(local_group.exports, expected_exports);
+            assert_eq!(local_group.components, expected_components);
 
             // Check the contents of the second group.
-            assert_eq!(groups[1], VirtualComponentGroup {
-                name:    "Input".into(),
-                color:   None,
-                exports: vec![
+            assert_eq!(groups[1], ComponentGroup {
+                name:       "Input".into(),
+                color:      None,
+                components: vec![
                     "Standard.Base.System.File.new".into(),
                     "Standard.Base.System.File.read_text".into(),
                 ],

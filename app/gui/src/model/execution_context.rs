@@ -273,15 +273,18 @@ pub struct AttachedVisualization {
 
 
 
-// =============================
-// === VirtualComponentGroup ===
-// =============================
+// ======================
+// === ComponentGroup ===
+// ======================
 
+/// A named group of components.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
-pub struct VirtualComponentGroup {
-    pub name:    ImString,
-    pub color:   Option<color::Rgb>,
-    pub exports: Vec<SuggestionQualifiedName>,
+pub struct ComponentGroup {
+    pub name:       ImString,
+    /// An optional color to use when displaying the component group.
+    pub color:      Option<color::Rgb>,
+    pub components: Vec<SuggestionQualifiedName>,
 }
 
 
