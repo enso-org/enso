@@ -389,6 +389,39 @@ impl Rgb {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
+    // see: https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
+    /// ```
+    /// # use assert_approx_eq::assert_approx_eq;
+    /// # use ensogl_core::data::color::Rgb;
+    /// let color = Rgb::from_hex("#C047AB");
+    /// assert!(color.is_some());
+    /// const PRECISION: f32 = 0.001;
+    /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
+    /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
+    /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
+    /// ```
+    pub fn from_hex(s: &str) -> Option<Self> {
+        if !s.starts_with('#') {
+            return None;
+        }
+        fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
+            use hex::FromHex;
+            let array = <[u8; 1] as FromHex>::from_hex(s);
+            array.map(|a| a[0]).ok()
+        }
+        let component = |range: Range<usize>, repeat| -> Option<u8> {
+            let hex = s[range].repeat(repeat);
+            let parsed = hex::decode(hex).ok()?;
+            Some(parsed[0])
+        };
+        let (red, green, blue) = match s.len() {
+            4 => (component(1..2, 2)?, component(2..3, 2)?, component(3..4, 2)?),
+            7 => (component(1..3, 1)?, component(3..5, 1)?, component(5..7, 1)?),
+            _ => return None,
+        };
+        Some(Rgb::from_base_255(red, green, blue))
+    }
+
     /// Converts the color to `LinearRgb` representation.
     pub fn into_linear(self) -> LinearRgb {
         self.into()
