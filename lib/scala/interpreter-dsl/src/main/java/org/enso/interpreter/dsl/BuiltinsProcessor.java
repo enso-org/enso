@@ -36,15 +36,18 @@ import java.util.stream.Stream;
  * generate a corresponding @BuiltinMethod class which, in turn, will get processed by another
  * processor and deliver a RootNode for the method.
  */
-@SupportedAnnotationTypes({"org.enso.interpreter.dsl.Builtin", "org.enso.interpreter.dsl.Builtin.Method"})
+@SupportedAnnotationTypes({
+  "org.enso.interpreter.dsl.Builtin",
+  "org.enso.interpreter.dsl.Builtin.Method"
+})
 @ServiceProvider(service = Processor.class)
 public class BuiltinsProcessor extends AbstractProcessor {
 
   private static final String BuiltinsPkg = "org.enso.interpreter.node.expression.builtin";
 
   private record Specialized(String owner, String methodName) {}
-  private Map<Specialized, List<ExecutableElement>> specializedMethods = new HashMap<>();
 
+  private Map<Specialized, List<ExecutableElement>> specializedMethods = new HashMap<>();
 
   @Override
   public final boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -85,20 +88,20 @@ public class BuiltinsProcessor extends AbstractProcessor {
   public void handleClassElement(Element element, RoundEnvironment roundEnv) throws IOException {
     TypeElement elt = (TypeElement) element;
     Builtin annotation = element.getAnnotation(Builtin.class);
-    String clazzName = annotation.name().isEmpty() ? element.getSimpleName().toString() : annotation.name();
+    String clazzName =
+        annotation.name().isEmpty() ? element.getSimpleName().toString() : annotation.name();
     String builtinPkg =
-            annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
-    ClassName builtinType =  new ClassName(builtinPkg, clazzName);
+        annotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + annotation.pkg();
+    ClassName builtinType = new ClassName(builtinPkg, clazzName);
     JavaFileObject gen =
-            processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
-    Optional<String> stdLibName = annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
+        processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
+    Optional<String> stdLibName =
+        annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
     generateBuiltinType(gen, builtinType, stdLibName);
   }
 
   private void generateBuiltinType(
-          JavaFileObject gen,
-          ClassName builtinType,
-          Optional<String> stdLibName) throws IOException {
+      JavaFileObject gen, ClassName builtinType, Optional<String> stdLibName) throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + builtinType.pkg() + ";");
       out.println();
@@ -116,8 +119,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
   /**
    * Generate m @BuiltinMethod node class
    *
-   * @param element method annotated with @Builtin.Method which implementation and signature
-   *                will be used to generate the target node class
+   * @param element method annotated with @Builtin.Method which implementation and signature will be
+   *     used to generate the target node class
    * @param roundEnv meta information about the current round of processing
    */
   public void handleMethodElement(Element element, RoundEnvironment roundEnv) throws IOException {
@@ -126,89 +129,126 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
     if (owner.getKind() == ElementKind.CLASS) {
       Builtin ownerAnnotation = owner.getAnnotation(Builtin.class);
-      assert(ownerAnnotation != null);
+      assert (ownerAnnotation != null);
       TypeElement ownerTpeElement = (TypeElement) owner;
-      String ownerName = ownerAnnotation.name().isEmpty() ? ownerTpeElement.getSimpleName().toString() : ownerAnnotation.name();
+      String ownerName =
+          ownerAnnotation.name().isEmpty()
+              ? ownerTpeElement.getSimpleName().toString()
+              : ownerAnnotation.name();
       PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
 
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
       String builtinPkg =
-              ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
+          ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
 
       Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
 
       if (annotation.expandVarargs() != 0) {
-        if (annotation.expandVarargs() < 0) throw new RuntimeException("Invalid varargs value in @Builtin annotation. Must be positive");
-        if (!annotation.name().isEmpty()) throw new RuntimeException("Name cannot be non-empty when varargs are used");
+        if (annotation.expandVarargs() < 0)
+          throw new RuntimeException(
+              "Invalid varargs value in @Builtin annotation. Must be positive");
+        if (!annotation.name().isEmpty())
+          throw new RuntimeException("Name cannot be non-empty when varargs are used");
 
-        IntStream.rangeClosed(1, annotation.expandVarargs()).forEach(i -> {
-          String methodName = (isConstructor ? "new" : method.getSimpleName().toString()) + "_" + i;
-          String clazzName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, methodName);
-          String optConstrSuffix = isConstructor ? ownerName : "";
-          ClassName builtinMethodNode =
-                  new ClassName(
-                          builtinPkg,
-                          clazzName + optConstrSuffix + "Node");
-          ClassName ownerClass =
-                  new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
-          ClassName stdLibOwnerClass =
-                  new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
+        IntStream.rangeClosed(1, annotation.expandVarargs())
+            .forEach(
+                i -> {
+                  String methodName =
+                      (isConstructor ? "new" : method.getSimpleName().toString()) + "_" + i;
+                  String clazzName =
+                      CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, methodName);
+                  String optConstrSuffix = isConstructor ? ownerName : "";
+                  ClassName builtinMethodNode =
+                      new ClassName(builtinPkg, clazzName + optConstrSuffix + "Node");
+                  ClassName ownerClass =
+                      new ClassName(
+                          pkgElement.getQualifiedName().toString(),
+                          ownerTpeElement.getSimpleName().toString());
+                  ClassName stdLibOwnerClass =
+                      new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
 
-          try {
-            MethodNodeClassGenerator classGenerator =
-                    new NoSpecializationClassGenerator(method, builtinMethodNode, ownerClass, stdLibOwnerClass, i, parameterCounts);
-            classGenerator.generate(processingEnv, methodName, annotation.description(), method.getSimpleName().toString());
-          } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-          }
-        });
+                  try {
+                    MethodNodeClassGenerator classGenerator =
+                        new NoSpecializationClassGenerator(
+                            method,
+                            builtinMethodNode,
+                            ownerClass,
+                            stdLibOwnerClass,
+                            i,
+                            parameterCounts);
+                    classGenerator.generate(
+                        processingEnv,
+                        methodName,
+                        annotation.description(),
+                        method.getSimpleName().toString());
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
+                });
       } else {
         String builtinMethodName =
-          !annotation.name().isEmpty() ? annotation.name() :
-                          isConstructor ? "new" : method.getSimpleName().toString();
+            !annotation.name().isEmpty()
+                ? annotation.name()
+                : isConstructor ? "new" : method.getSimpleName().toString();
         String builtinMethodNameClass =
-                !annotation.name().isEmpty() ? CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, annotation.name()) :
-                        isConstructor ? "new" : method.getSimpleName().toString();
+            !annotation.name().isEmpty()
+                ? CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, annotation.name())
+                : isConstructor ? "new" : method.getSimpleName().toString();
         Builtin.Specialize specialize = element.getAnnotation(Builtin.Specialize.class);
-
-
 
         String optConstrSuffix = isConstructor ? ownerName : "";
         ClassName builtinMethodNode =
-                new ClassName(
-                        builtinPkg,
-                        CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, builtinMethodNameClass) + optConstrSuffix + "Node");
+            new ClassName(
+                builtinPkg,
+                CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, builtinMethodNameClass)
+                    + optConstrSuffix
+                    + "Node");
         ClassName ownerClass =
-                new ClassName(pkgElement.getQualifiedName().toString(), ownerTpeElement.getSimpleName().toString());
+            new ClassName(
+                pkgElement.getQualifiedName().toString(),
+                ownerTpeElement.getSimpleName().toString());
         ClassName stdLibOwnerClass =
-                new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
+            new ClassName(pkgElement.getQualifiedName().toString(), ownerName);
 
         int expected = specializationsCount(owner, builtinMethodName);
         if (specialize != null) {
           Specialized key = new Specialized(ownerName, builtinMethodName);
-          List<ExecutableElement> encountered = specializedMethods.compute(key, (k, v) -> {
-            if (v == null) {
-              List<ExecutableElement> elements = new ArrayList<>();
-              elements.add(method);
-              return elements;
-            } else {
-              v.add(method);
-              return v;
-            }
-          });
+          List<ExecutableElement> encountered =
+              specializedMethods.compute(
+                  key,
+                  (k, v) -> {
+                    if (v == null) {
+                      List<ExecutableElement> elements = new ArrayList<>();
+                      elements.add(method);
+                      return elements;
+                    } else {
+                      v.add(method);
+                      return v;
+                    }
+                  });
           if (encountered.size() == expected) {
             MethodNodeClassGenerator classGenerator =
-                    new SpecializationClassGenerator(encountered, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
-            classGenerator.generate(processingEnv, builtinMethodName, annotation.description(), method.getSimpleName().toString());
+                new SpecializationClassGenerator(
+                    encountered, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+            classGenerator.generate(
+                processingEnv,
+                builtinMethodName,
+                annotation.description(),
+                method.getSimpleName().toString());
           } else {
             return;
           }
         } else {
 
           MethodNodeClassGenerator classGenerator =
-                  new NoSpecializationClassGenerator(method, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
-          classGenerator.generate(processingEnv, builtinMethodName, annotation.description(), method.getSimpleName().toString());
+              new NoSpecializationClassGenerator(
+                  method, builtinMethodNode, ownerClass, stdLibOwnerClass, parameterCounts);
+          classGenerator.generate(
+              processingEnv,
+              builtinMethodName,
+              annotation.description(),
+              method.getSimpleName().toString());
         }
       }
     } else {
@@ -224,23 +264,29 @@ public class BuiltinsProcessor extends AbstractProcessor {
    * @return number of expected specializations during annotation processing for the given method
    */
   private int specializationsCount(Element owner, String builtinMethodName) {
-    return (int) owner.getEnclosedElements().stream().filter(e -> {
-      if (e.getKind() != ElementKind.METHOD &&  e.getKind() != ElementKind.CONSTRUCTOR) return false;
-      Builtin.Method annotation = e.getAnnotation(Builtin.Method.class);
-      Builtin.Specialize specializedAnnot = e.getAnnotation(Builtin.Specialize.class);
-      if (annotation == null || specializedAnnot == null) return false;
-      boolean isConstructor = e.getKind() == ElementKind.CONSTRUCTOR;
-      String name =
-              !annotation.name().isEmpty() ? annotation.name() :
-                      isConstructor ? "new" : e.getSimpleName().toString();
-      return name.equals(builtinMethodName);
-    }).count();
+    return (int)
+        owner.getEnclosedElements().stream()
+            .filter(
+                e -> {
+                  if (e.getKind() != ElementKind.METHOD && e.getKind() != ElementKind.CONSTRUCTOR)
+                    return false;
+                  Builtin.Method annotation = e.getAnnotation(Builtin.Method.class);
+                  Builtin.Specialize specializedAnnot = e.getAnnotation(Builtin.Specialize.class);
+                  if (annotation == null || specializedAnnot == null) return false;
+                  boolean isConstructor = e.getKind() == ElementKind.CONSTRUCTOR;
+                  String name =
+                      !annotation.name().isEmpty()
+                          ? annotation.name()
+                          : isConstructor ? "new" : e.getSimpleName().toString();
+                  return name.equals(builtinMethodName);
+                })
+            .count();
   }
 
   /**
-   * Returns a map of builtin types and the number of their parameters.
-   * Takes into account the possibility of separate compilation by reading entries from metadate, if any.
-   * The map is used to automatically generate try/catch for the possible exceptions.
+   * Returns a map of builtin types and the number of their parameters. Takes into account the
+   * possibility of separate compilation by reading entries from metadate, if any. The map is used
+   * to automatically generate try/catch for the possible exceptions.
    *
    * @param roundEnv current round environment
    * @return a map from a builtin type name to the number of its parameters
@@ -250,14 +296,17 @@ public class BuiltinsProcessor extends AbstractProcessor {
     Map<String, Integer> pastEntries;
     try {
       FileObject existingFile =
-              processingEnv.getFiler().getResource(StandardLocation.CLASS_OUTPUT, "", TypeProcessor.META_PATH);
+          processingEnv
+              .getFiler()
+              .getResource(StandardLocation.CLASS_OUTPUT, "", TypeProcessor.META_PATH);
 
       try (InputStream resource = existingFile.openInputStream()) {
         pastEntries =
-                new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
-                        .lines()
-                        .map(l -> TypeProcessor.fromStringToMetadataEntry(l))
-                        .collect(Collectors.toMap(e -> e.key().replaceAll("_", ""), e -> e.paramNames().length));
+            new BufferedReader(new InputStreamReader(resource, StandardCharsets.UTF_8))
+                .lines()
+                .map(l -> TypeProcessor.fromStringToMetadataEntry(l))
+                .collect(
+                    Collectors.toMap(e -> e.key().replaceAll("_", ""), e -> e.paramNames().length));
       }
     } catch (IOException e) {
       // Ignore, this is a clean run
@@ -265,23 +314,21 @@ public class BuiltinsProcessor extends AbstractProcessor {
     }
 
     Map<String, Integer> currentRoundEntries =
-            roundEnv
-            .getElementsAnnotatedWith(BuiltinType.class)
-            .stream()
-            .collect(Collectors.toMap(e -> e.getSimpleName().toString(), e -> e.getAnnotation(BuiltinType.class).params().length));
+        roundEnv.getElementsAnnotatedWith(BuiltinType.class).stream()
+            .collect(
+                Collectors.toMap(
+                    e -> e.getSimpleName().toString(),
+                    e -> e.getAnnotation(BuiltinType.class).params().length));
 
     pastEntries.forEach((k, v) -> currentRoundEntries.merge(k, v, (v1, v2) -> v1));
 
     return currentRoundEntries;
   }
 
-
-
-
   private final List<String> typeNecessaryImports =
-     Arrays.asList("org.enso.interpreter.dsl.BuiltinType",
-                   "org.enso.interpreter.node.expression.builtin.Builtin");
-
+      Arrays.asList(
+          "org.enso.interpreter.dsl.BuiltinType",
+          "org.enso.interpreter.node.expression.builtin.Builtin");
 
   @Override
   public SourceVersion getSupportedSourceVersion() {
