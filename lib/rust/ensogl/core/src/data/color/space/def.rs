@@ -415,23 +415,23 @@ impl Rgb {
     /// assert!(Rgb::from_css_hex("yellow").is_none());
     /// ```
     pub fn from_css_hex(css_hex: &str) -> Option<Self> {
-        if !css_hex.starts_with('#') {
-            return None;
+        if let [b'#', hex_bytes @ ..] = css_hex.as_bytes() {
+            let hex_color_components = match hex_bytes.len() {
+                3 => Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2]),
+                6 => Vector3(
+                    *array_from_slice(&hex_bytes[0..2])?,
+                    *array_from_slice(&hex_bytes[2..4])?,
+                    *array_from_slice(&hex_bytes[4..6])?,
+                ),
+                _ => return None,
+            };
+            let red = byte_from_hex(&hex_color_components.x)?;
+            let green = byte_from_hex(&hex_color_components.y)?;
+            let blue = byte_from_hex(&hex_color_components.z)?;
+            Some(Rgb::from_base_255(red, green, blue))
+        } else {
+            None
         }
-        let hex_bytes = css_hex[1..].as_bytes();
-        let hex_color_components = match hex_bytes.len() {
-            3 => Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2]),
-            6 => Vector3(
-                *array_from_slice(&hex_bytes[0..2])?,
-                *array_from_slice(&hex_bytes[2..4])?,
-                *array_from_slice(&hex_bytes[4..6])?,
-            ),
-            _ => return None,
-        };
-        let red = byte_from_hex(&hex_color_components.x)?;
-        let green = byte_from_hex(&hex_color_components.y)?;
-        let blue = byte_from_hex(&hex_color_components.z)?;
-        Some(Rgb::from_base_255(red, green, blue))
     }
 
     /// Converts the color to `LinearRgb` representation.
