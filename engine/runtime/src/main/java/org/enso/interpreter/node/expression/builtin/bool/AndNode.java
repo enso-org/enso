@@ -18,13 +18,13 @@ import org.enso.interpreter.runtime.state.Stateful;
     description = "Computes the logical conjunction of two booleans")
 public class AndNode extends Node {
 
-  private @Child
-  ThunkExecutorNode rhsThunkExecutorNode = ThunkExecutorNode.build();
+  private @Child ThunkExecutorNode rhsThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
   Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that) {
     if (condProfile.profile(_this)) {
-      return ensureBooleanOrDataflowError(rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT));
+      return ensureBooleanOrDataflowError(
+          rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT));
     } else {
       return new Stateful(state, false);
     }
@@ -34,7 +34,8 @@ public class AndNode extends Node {
     if ((v.getValue() instanceof Boolean) || (v.getValue() instanceof DataflowError)) {
       return v;
     } else {
-      var typeError = Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
+      var typeError =
+          Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
       throw new PanicException(typeError, this);
     }
   }

@@ -20,11 +20,12 @@ public class OrNode extends Node {
   private @Child ThunkExecutorNode rhsThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
-  Stateful execute(@MonadicState Object state,  boolean _this, @Suspend Object that) {
+  Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that) {
     if (condProfile.profile(_this)) {
       return new Stateful(state, true);
     } else {
-      return ensureBooleanOrDataflowError(rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT));
+      return ensureBooleanOrDataflowError(
+          rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT));
     }
   }
 
@@ -32,7 +33,8 @@ public class OrNode extends Node {
     if ((v.getValue() instanceof Boolean) || (v.getValue() instanceof DataflowError)) {
       return v;
     } else {
-      var typeError = Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
+      var typeError =
+          Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
       throw new PanicException(typeError, this);
     }
   }
