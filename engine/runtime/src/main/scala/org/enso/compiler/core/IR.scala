@@ -3827,15 +3827,13 @@ object IR {
 
       /** The typeset union operator `|`.
         *
-        * @param left the left operand
-        * @param right the right operand
+        * @param operands the operands
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Union(
-        left: Expression,
-        right: Expression,
+        operands: List[Expression],
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -3854,14 +3852,13 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          left: Expression                     = left,
-          right: Expression                    = right,
+          operands: List[Expression]           = operands,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Union = {
-          val res = Union(left, right, location, passData, diagnostics)
+          val res = Union(operands, location, passData, diagnostics)
           res.id = id
           res
         }
@@ -3874,17 +3871,13 @@ object IR {
           keepIdentifiers: Boolean = false
         ): Union =
           copy(
-            left = left.duplicate(
-              keepLocations,
-              keepMetadata,
-              keepDiagnostics,
-              keepIdentifiers
-            ),
-            right = right.duplicate(
-              keepLocations,
-              keepMetadata,
-              keepDiagnostics,
-              keepIdentifiers
+            operands = operands.map(
+              _.duplicate(
+                keepLocations,
+                keepMetadata,
+                keepDiagnostics,
+                keepIdentifiers
+              )
             ),
             location = if (keepLocations) location else None,
             passData =
@@ -3900,15 +3893,14 @@ object IR {
 
         /** @inheritdoc */
         override def mapExpressions(fn: Expression => Expression): Union = {
-          copy(left = fn(left), right = fn(right))
+          copy(operands = operands.map(fn))
         }
 
         /** @inheritdoc */
         override def toString: String =
           s"""
           |IR.Type.Set.Union(
-          |left = $left,
-          |right = $right,
+          |operands = $operands,
           |location = $location,
           |passData = ${this.showPassData},
           |diagnostics = $diagnostics,
@@ -3916,11 +3908,11 @@ object IR {
           |""".toSingleLine
 
         /** @inheritdoc */
-        override def children: List[IR] = List(left, right)
+        override def children: List[IR] = operands.toList
 
         /** @inheritdoc */
         override def showCode(indent: Int): String =
-          s"(${left.showCode(indent)} | ${right.showCode(indent)})"
+          operands.map(_.showCode(indent)).toList.mkString(" | ")
       }
       object Union extends Info {
         override val name: String = "|"

@@ -464,19 +464,13 @@ case object DataflowAnalysis extends IRPass {
             right = analyseExpression(right, info)
           )
           .updateMetadata(this -->> info)
-      case union @ IR.Type.Set.Union(left, right, _, _, _) =>
+      case union @ IR.Type.Set.Union(operands, _, _, _) =>
         val unionDep = asStatic(union)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(unionDep))
-        info.dependents.updateAt(rightDep, Set(unionDep))
-        info.dependencies.updateAt(unionDep, Set(leftDep, rightDep))
-
+        val opDeps   = operands.map(asStatic)
+        opDeps.foreach(info.dependents.updateAt(_, Set(unionDep)))
+        info.dependencies.updateAt(unionDep, opDeps.toSet)
         union
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copy(operands = operands.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
       case subsumption @ IR.Type.Set.Subsumption(left, right, _, _, _) =>
         val subDep   = asStatic(subsumption)

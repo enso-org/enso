@@ -339,6 +339,9 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     def go(expr: IR.Expression): TypeArg = expr match {
       case fn: IR.Type.Function =>
         TypeArg.Function(fn.args.map(go).toVector, go(fn.result))
+//      case _: IR.Type.Set.Union =>
+//        println("foun a union!!!!")
+//        ???
       case app: IR.Application.Prefix =>
         TypeArg.Application(
           go(app.function),
