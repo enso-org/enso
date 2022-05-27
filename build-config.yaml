@@ -4,4 +4,5 @@ wasm-size-limit: 4.4MiB
 required-versions:
   node: =16.15.0
   wasm-pack: ^0.10.2
-  flatc: =1.12.0
+#  TODO: Currently checks happen before installing tools, flatc is one we install.
+#  flatc: =1.12.0
