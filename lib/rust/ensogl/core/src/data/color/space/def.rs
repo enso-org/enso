@@ -417,18 +417,20 @@ impl Rgb {
     pub fn from_css_hex(css_hex: &str) -> Option<Self> {
         if let [b'#', hex_bytes @ ..] = css_hex.as_bytes() {
             let hex_color_components = match hex_bytes.len() {
-                3 => Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2]),
-                6 => Vector3(
+                3 => Some(Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2])),
+                6 => Some(Vector3(
                     *array_from_slice(&hex_bytes[0..2])?,
                     *array_from_slice(&hex_bytes[2..4])?,
                     *array_from_slice(&hex_bytes[4..6])?,
-                ),
-                _ => return None,
+                )),
+                _ => None,
             };
-            let red = byte_from_hex(&hex_color_components.x)?;
-            let green = byte_from_hex(&hex_color_components.y)?;
-            let blue = byte_from_hex(&hex_color_components.z)?;
-            Some(Rgb::from_base_255(red, green, blue))
+            hex_color_components.and_then(|components| {
+                let red = byte_from_hex(&components.x)?;
+                let green = byte_from_hex(&components.y)?;
+                let blue = byte_from_hex(&components.z)?;
+                Some(Rgb::from_base_255(red, green, blue))
+            })
         } else {
             None
         }
