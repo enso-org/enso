@@ -1,8 +1,6 @@
 package org.enso.base.statistics;
 
-/**
- * Class to compute covariance and correlations between series.
- */
+/** Class to compute covariance and correlations between series. */
 public class CorrelationStatistics {
   private long count = 0;
   private double totalX = 0.0;
@@ -44,11 +42,12 @@ public class CorrelationStatistics {
 
   public double rSquared() {
     double correl = this.pearsonCorrelation();
-    return  correl * correl;
+    return correl * correl;
   }
 
-  /***
+  /**
    * Create the CorrelationStats between two series
+   *
    * @param x Array of X values
    * @param y Array of Y values
    * @return CorrelationStats object for the 2 series.
