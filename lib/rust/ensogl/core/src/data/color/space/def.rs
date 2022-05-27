@@ -389,24 +389,13 @@ impl Rgb {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
-    /// Parse a CSS-like hexadecimal encoding of an RGB color. Return a color if `css_hex` is
-    /// a CSS-style hexadecimal encoding of an RGB color. The encoding must be a `#RGB` or
-    /// `#RRGGBB` string, where `R`, `G`, `B` must be lower- or upper-case hexadecimal digits.
-    ///
-    /// Return a color if `css_hex` is a `#RGB` or `#RRGGBB` string, where `R`, `G`, `B` represent
-    /// lower- or upper-case hexadecimal digits. The red, green, and blue color componets are
-    /// mapped from [00 - ff] value range into [0.0 - 1.0] for RR, GG, and BB. Digits in the
-    /// shorter color 
-    ///
     /// Return a color if `css_hex` is a `#RGB` or `#RRGGBB` string, where `R`, `G`, `B` represent
     /// lower- or upper-case hexadecimal digits. The RR, GG, BB color componets are mapped from [00
     /// - ff] value range into [0.0 - 1.0] (digits in the short `#RGB` format get duplicated, so
     /// e.g. `#abc` is equivalent to `#aabbcc`).
     ///
-    /// (single-digit components are first duplicated - e.g.
-    /// `#abc` is equivalent to `#aabbcc`).
-    /// 
-    // see: https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
+    /// The format is adapted from the hexadecimal color notation used in CSS - see:
+    /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     /// ```
     /// # use assert_approx_eq::assert_approx_eq;
     /// # use ensogl_core::data::color::Rgb;
