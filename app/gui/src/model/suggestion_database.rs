@@ -6,6 +6,7 @@ use crate::model::module::MethodId;
 use crate::model::suggestion_database::entry::Kind;
 use crate::notification;
 
+use ast::opr::predefined::ACCESS;
 use double_representation::module::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
@@ -281,11 +282,10 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
-    /// Search the database for an entry at `fully_qualified_name`.
-    pub fn lookup_by_fully_qualified_name<T>(&self, fully_qualified_name: T) -> Option<Rc<Entry>>
-    where T: Into<entry::QualifiedName> {
-        let qualified_name = fully_qualified_name.into();
-        let id = self.qualified_name_to_id_map.borrow().get(&qualified_name);
+    /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
+    /// composed of segments separated by the [`ACCESS`] character.
+    pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
+        let id = self.qualified_name_to_id_map.borrow().get(fully_qualified_name.split(ACCESS));
         id.and_then(|id| self.lookup(id).ok())
     }
 
@@ -427,7 +427,6 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::suggestion_database::entry::Scope;
 
-    use ast::opr::predefined::ACCESS;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::Position;
     use engine_protocol::language_server::SuggestionArgumentUpdate;
