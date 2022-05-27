@@ -2,7 +2,6 @@ from Standard.Base import Any, Vector, Text, Nothing
 
 polyglot java import org.enso.table.util.NameDeduplicator
 
-
 ## Creates a new Unique_Name_Strategy instance.
 
    This is a mutable data structure, that allows for creating a collection
@@ -16,54 +15,54 @@ polyglot java import org.enso.table.util.NameDeduplicator
          unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
          duplicates = unique_name_strategy.renames
          invalid = unique_name_strategy.invalid_names
-Unique_Name_Strategy.new : Unique_Name_Strategy
-Unique_Name_Strategy.new = Unique_Name_Strategy NameDeduplicator.new
+new : Unique_Name_Strategy
+new = Unique_Name_Strategy NameDeduplicator.new
+
+type Unique_Name_Strategy
+    ## PRIVATE
+       Creates a Unique_Name_Strategy
+
+       Arguments:
+       - deduplicator: Name deduplicator
+    type Unique_Name_Strategy deduplicator
 
 
-## PRIVATE
-   Creates a Unique_Name_Strategy
-
-   Arguments:
-   - deduplicator: Name deduplicator
-type Unique_Name_Strategy deduplicator
+    ## Vector of any duplicates renamed
+    renames : Vector
+    renames = Vector.Vector this.deduplicator.getDuplicatedNames
 
 
-## Vector of any duplicates renamed
-Unique_Name_Strategy.renames : Vector
-Unique_Name_Strategy.renames = Vector.Vector this.getDuplicatedNames
+    ## Vector of any invalid names
+    invalid_names : Vector
+    invalid_names = Vector.Vector this.deduplicator.getInvalidNames
 
 
-## Vector of any invalid names
-Unique_Name_Strategy.invalid_names : Vector
-Unique_Name_Strategy.invalid_names = Vector.Vector this.getInvalidNames
+    ## Takes a value and converts to a valid (but not necessarily unique) name
+
+       Arguments:
+       - name: The column name to make valid.
+
+       > Example
+             strategy = Unique_Name_Strategy.new
+             strategy.make_valid_name "" # returns "Column"
+             strategy.make_valid_name 1 # returns "1"
+             strategy.make_valid_name "Hello" # returns "Hello"
+    make_valid_name : Any -> Text
+    make_valid_name input =
+        case input of
+            Text -> this.deduplicator.makeValid input
+            Nothing -> this.make_valid_name ""
+            _ -> this.make_valid_name input.to_text
 
 
-## Takes a value and converts to a valid (but not necessarily unique) name
+    ## Takes a name and gets a unique version
 
-   Arguments:
-   - name: The column name to make valid.
+       Arguments:
+       - name: The column name to make unique.
 
-   > Example
-         strategy = Unique_Name_Strategy.new
-         strategy.make_valid_name "" # returns "Column"
-         strategy.make_valid_name 1 # returns "1"
-         strategy.make_valid_name "Hello" # returns "Hello"
-Unique_Name_Strategy.make_valid_name : Any -> Text
-Unique_Name_Strategy.make_valid_name input =
-    case input of
-        Text -> this.deduplicator.makeValid input
-        Nothing -> this.make_valid_name ""
-        _ -> this.make_valid_name input.to_text
-
-
-## Takes a name and gets a unique version
-
-   Arguments:
-   - name: The column name to make unique.
-
-   > Example
-         strategy = Unique_Name_Strategy.new
-         strategy.make_unique "A" # returns "A"
-         strategy.make_unique "A" # returns "A_1"
-Unique_Name_Strategy.make_unique : Text -> Text
-Unique_Name_Strategy.make_unique name = this.deduplicator.makeUnique name
+       > Example
+             strategy = Unique_Name_Strategy.new
+             strategy.make_unique "A" # returns "A"
+             strategy.make_unique "A" # returns "A_1"
+    make_unique : Text -> Text
+    make_unique name = this.deduplicator.makeUnique name
