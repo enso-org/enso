@@ -419,6 +419,8 @@ impl Rgb {
     /// assert!(Rgb::from_css_hex("#red").is_none());
     /// assert!(Rgb::from_css_hex("#yellow").is_none());
     /// assert!(Rgb::from_css_hex("yellow").is_none());
+    /// assert!(Rgb::from_css_hex("#").is_none());
+    /// assert!(Rgb::from_css_hex("").is_none());
     /// ```
     pub fn from_css_hex(css_hex: &str) -> Option<Self> {
         if let [b'#', hex_bytes @ ..] = css_hex.as_bytes() {
