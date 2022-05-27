@@ -256,17 +256,14 @@ impl model::execution_context::API for ExecutionContext {
 
     fn load_component_groups(&self) -> BoxFuture<FallibleResult> {
         async move {
-            let response = self.language_server.get_component_groups(&self.id).await?;
-            let virtual_component_groups = response
-                .component_groups
-                .into_iter()
-                .map(|group| VirtualComponentGroup {
-                    name:    group.group.into(),
-                    color:   group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
-                    exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
-                })
-                .collect();
-            *self.model.virtual_component_groups.borrow_mut() = virtual_component_groups;
+            let ls_response = self.language_server.get_component_groups(&self.id).await?;
+            let ls_component_groups = ls_response.component_groups.into_iter();
+            let virtual_component_groups = ls_component_groups.map(|group| VirtualComponentGroup {
+                name:    group.group.into(),
+                color:   group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
+                exports: group.exports.into_iter().map(|e| e.name.into()).collect(),
+            });
+            *self.model.virtual_component_groups.borrow_mut() = virtual_component_groups.collect();
             Ok(())
         }
         .boxed_local()
