@@ -34,10 +34,6 @@ public class EnsoFile implements TruffleObject {
     this.truffleFile = truffleFile;
   }
 
-  public <T> T withTruffleFile(FunctionThrowingIOException<TruffleFile, T> fun) throws IOException {
-    return fun.apply(truffleFile);
-  }
-
   @Builtin.Method
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   @Builtin.ReturningGuestObject
@@ -126,7 +122,10 @@ public class EnsoFile implements TruffleObject {
 
   @Builtin.Method
   public boolean isEqual(EnsoFile that) {
-    return this.truffleFile.equals(that.truffleFile);
+    // It seems that fsContext is not equal in files coming from stacktraces.
+    // Once a solution to that is found replace it with a simple
+    // return this.truffleFile.equals(that.truffleFile);
+    return this.getPath().equals(that.getPath());
   }
 
   @Builtin.Method
