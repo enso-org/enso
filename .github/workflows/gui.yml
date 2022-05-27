@@ -41,7 +41,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -73,7 +73,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -107,7 +107,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -141,7 +141,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -173,7 +173,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -207,7 +207,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -252,7 +252,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -286,7 +286,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -320,7 +320,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -357,7 +357,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -392,7 +392,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -429,7 +429,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -463,7 +463,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: 0.10.2
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
