@@ -260,7 +260,7 @@ impl model::execution_context::API for ExecutionContext {
             let ls_component_groups = ls_response.component_groups.into_iter();
             let component_groups = ls_component_groups.map(|group| ComponentGroup {
                 name:       group.group.into(),
-                color:      group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(&c)),
+                color:      group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c)),
                 components: group.exports.into_iter().map(|e| e.name.into()).collect(),
             });
             *self.model.available_component_groups.borrow_mut() = component_groups.collect();
