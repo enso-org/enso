@@ -34,6 +34,8 @@ spec =
             or_test_3 = (1 == 0) || (here.crash)
             or_test_3 . should_fail_with My_Error
 
+            or_test_4 = (1 == 1) || ("foo")
+            or_test_4 . should_equal True
             Test.expect_panic_with ((1 == 0) || ("foo")) Type_Error
 
         Test.specify "should short-circuit &&" <|
@@ -46,6 +48,8 @@ spec =
             and_test_4 = (1 == 1) && (here.crash)
             and_test_4 . should_fail_with My_Error
 
+            or_test_5 = (1 == 0) && ("foo")
+            or_test_5 . should_equal False
             Test.expect_panic_with ((1 == 1) && ("foo")) Type_Error
 
 

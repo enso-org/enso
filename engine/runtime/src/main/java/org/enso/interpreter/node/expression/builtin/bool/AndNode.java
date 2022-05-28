@@ -1,7 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -16,27 +17,56 @@ import org.enso.interpreter.runtime.state.Stateful;
     type = "Boolean",
     name = "&&",
     description = "Computes the logical conjunction of two booleans")
-public class AndNode extends Node {
+public abstract class AndNode extends Node {
 
-  private @Child ThunkExecutorNode rhsThunkExecutorNode = ThunkExecutorNode.build();
-  private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
-
-  Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that) {
-    if (condProfile.profile(_this)) {
-      return ensureBooleanOrDataflowError(
-          rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT));
-    } else {
-      return new Stateful(state, false);
-    }
+  public static AndNode build() {
+    return AndNodeGen.create();
   }
 
-  private Stateful ensureBooleanOrDataflowError(Stateful v) {
-    if ((v.getValue() instanceof Boolean) || (v.getValue() instanceof DataflowError)) {
-      return v;
-    } else {
-      var typeError =
-          Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
-      throw new PanicException(typeError, this);
+  abstract Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that);
+
+  @Specialization(guards = {"!_this"})
+  Stateful executeLhs(@MonadicState Object state, boolean _this, @Suspend Object that) {
+    return new Stateful(state, false);
+  }
+
+  @Specialization(guards = {"_this"}, rewriteOn = ClassCastException.class)
+  Stateful executeBool(
+      @MonadicState Object state,
+      boolean _this,
+      @Suspend Object that,
+      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+    Stateful result =
+        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    if (result.getValue() instanceof Boolean) {
+      return result;
     }
+    throw new ClassCastException("expected Boolean");
+  }
+
+  @Specialization(guards = {"_this"}, rewriteOn = ClassCastException.class)
+  Stateful executeDataflowError(
+      @MonadicState Object state,
+      boolean _this,
+      @Suspend Object that,
+      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+    Stateful result =
+        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    if (result.getValue() instanceof DataflowError) {
+      return result;
+    }
+    throw new ClassCastException("expected DataflowError");
+  }
+
+  @Specialization(guards = {"_this"})
+  Stateful executePanic(
+      @MonadicState Object state,
+      boolean _this,
+      @Suspend Object that,
+      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+    Stateful v = rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    var typeError =
+        Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
+    throw new PanicException(typeError, this);
   }
 }
