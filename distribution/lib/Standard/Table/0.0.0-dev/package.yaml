@@ -15,7 +15,7 @@ component-groups:
           - Standard.Table.Data.Table.new
           - Standard.Table.Data.Table.from_rows
           - Standard.Table.Data.Column.from_vector
-          - Standard.Table.Io.Csv.from_csv
+          - Standard.Base.System.File.read
           - Standard.Table.Io.Spreadsheet.from_xlsx
           - Standard.Table.Io.Spreadsheet.from_xls
     - Standard.Base.Select:
