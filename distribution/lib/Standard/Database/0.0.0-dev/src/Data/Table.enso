@@ -443,6 +443,10 @@ type Table
         if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
 
+    order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
+    order_by columns=(Sort_Column_Selector.By_Name [(Sort_Column.Name (this.Columns.at 0 . name))]) text_order=Text_Ordering on_problems=Problem_Behavior.Report_Warning =
+        ???
+
     ## UNSTABLE
 
        Sorts the table according to the specified rules.
