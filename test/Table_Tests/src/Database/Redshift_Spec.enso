@@ -55,7 +55,7 @@ run_tests connection pending=Nothing =
     Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=True pending=pending
 
     selection = Aggregate_Spec.Test_Selection text_concat=False text_shortest_longest=False first_last=False first_last_row_order=False multi_distinct=False aggregation_problems=False
-    agg_in_memory_table = (Enso_Project.data / "data.csv") . read_csv
+    agg_in_memory_table = (Enso_Project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     tables.append agg_table.name
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
