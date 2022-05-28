@@ -618,10 +618,10 @@ spec =
                documenting here what is the current behaviour.
             ## This shows what regex is doing by default and we cannot easily fix
                that.
-            's\u{301}' . contains 's' (Regex_Matcher) . should_be_true
-            'ś' . contains 's' (Regex_Matcher) . should_be_false
-            's\u{301}' . contains 'ś' (Regex_Matcher) . should_be_true
-            'ś' . contains 's\u{301}' (Regex_Matcher) . should_be_true
+            's\u{301}' . contains 's' Regex_Matcher . should_be_true
+            'ś' . contains 's' Regex_Matcher . should_be_false
+            's\u{301}' . contains 'ś' Regex_Matcher . should_be_true
+            'ś' . contains 's\u{301}' Regex_Matcher . should_be_true
 
             "Cześć" . contains "ś" Regex_Matcher . should_be_true
             "Cześć" . contains 's\u{301}' Regex_Matcher . should_be_true
@@ -701,13 +701,13 @@ spec =
             'ś' . starts_with 's\u{301}' == True
 
             # These two behave as expected.
-            's\u{301}' . starts_with 'ś' (Regex_Matcher) == True
-            'ś' . starts_with 's\u{301}' (Regex_Matcher) == True
+            's\u{301}' . starts_with 'ś' Regex_Matcher == True
+            'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
             ## These two are included to document the current behaviour
                (even though ideally, we would want them to return False).
-            'ś' . starts_with 's' (Regex_Matcher) == True
-            's\u{301}' . starts_with 's' (Regex_Matcher) == True
+            'ś' . starts_with 's' Regex_Matcher == True
+            's\u{301}' . starts_with 's' Regex_Matcher == True
 
             "ściana" . starts_with "ś" Regex_Matcher . should_be_true
             "ściana" . starts_with 's\u{301}' Regex_Matcher . should_be_true

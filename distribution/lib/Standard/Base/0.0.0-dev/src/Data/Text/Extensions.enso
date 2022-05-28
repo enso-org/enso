@@ -872,10 +872,10 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          's\u{301}' . starts_with 'ś' == True
          'ś' . starts_with 's\u{301}' == True
 
-         'ś' . starts_with 's' (Regex_Matcher) == True
-         's\u{301}' . starts_with 's' (Regex_Matcher) == True
-         's\u{301}' . starts_with 'ś' (Regex_Matcher) == True
-         'ś' . starts_with 's\u{301}' (Regex_Matcher) == True
+         'ś' . starts_with 's' Regex_Matcher == True
+         's\u{301}' . starts_with 's' Regex_Matcher == True
+         's\u{301}' . starts_with 'ś' Regex_Matcher == True
+         'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello!" starts with the specified prefix.
@@ -962,10 +962,10 @@ Text.ends_with suffix matcher=Text_Matcher = case matcher of
          's\u{301}' . contains 'ś' == True
          'ś' . contains 's\u{301}' == True
 
-         'ś' . contains 's' (Regex_Matcher) == True
-         's\u{301}' . contains 's' (Regex_Matcher) == True
-         's\u{301}' . contains 'ś' (Regex_Matcher) == True
-         'ś' . contains 's\u{301}' (Regex_Matcher) == True
+         'ś' . contains 's' Regex_Matcher == True
+         's\u{301}' . contains 's' Regex_Matcher == True
+         's\u{301}' . contains 'ś' Regex_Matcher == True
+         'ś' . contains 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello" contains the text "ell".
