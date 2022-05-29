@@ -29,7 +29,9 @@ public abstract class OrNode extends Node {
     return new Stateful(state, true);
   }
 
-  @Specialization(guards = {"!_this"}, rewriteOn = ClassCastException.class)
+  @Specialization(
+      guards = {"!_this"},
+      rewriteOn = ClassCastException.class)
   Stateful executeBool(
       @MonadicState Object state,
       boolean _this,
@@ -43,7 +45,9 @@ public abstract class OrNode extends Node {
     throw new ClassCastException("expected Boolean");
   }
 
-  @Specialization(guards = {"!_this"}, rewriteOn = ClassCastException.class)
+  @Specialization(
+      guards = {"!_this"},
+      rewriteOn = ClassCastException.class)
   Stateful executeDataflowError(
       @MonadicState Object state,
       boolean _this,
