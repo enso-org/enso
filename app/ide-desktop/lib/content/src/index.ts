@@ -532,15 +532,14 @@ async function fetchApplicationConfig(url: string) {
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
 async function checkMinSupportedVersion(config: Config) {
-    console.log(config)
-    if (config.skip_min_version_check === true || Versions.isDevVersion()) {
+    if (config.skip_min_version_check === true) {
         return true
     }
     try {
-        // const appConfig: any = await fetchApplicationConfig(config.application_config_url)
-        // const clientVersion = Versions.ideVersion
-        // const minSupportedVersion = appConfig.minimumSupportedVersion
-        const comparator = new Comparator('>=2.0.0-alpha.6')
+        const appConfig: any = await fetchApplicationConfig(config.application_config_url)
+        const clientVersion = Versions.ideVersion
+        const minSupportedVersion = appConfig.minimumSupportedVersion
+        const comparator = new Comparator(`>=${minSupportedVersion}`)
         return comparator.test(Versions.ideVersion)
     } catch (e) {
         console.error('Minimum version check failed.', e)
@@ -789,8 +788,8 @@ class Config {
         config.entry = null
         config.authentication_enabled = !Versions.isDevVersion()
         config.application_config_url =
-            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json' // FIXME
-        config.skip_min_version_check = false
+            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
+        config.skip_min_version_check = Versions.isDevVersion()
         config.preferred_engine_version = Versions.ideVersion
         return config
     }
