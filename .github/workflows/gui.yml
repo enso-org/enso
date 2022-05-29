@@ -58,6 +58,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-project-manager-macos:
     name: Build Project Manager (macos)
     runs-on:
@@ -90,6 +93,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-project-manager-windows:
     name: Build Project Manager (windows)
     runs-on:
@@ -124,6 +130,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
@@ -158,6 +167,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
     runs-on:
@@ -190,6 +202,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
     runs-on:
@@ -224,6 +239,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
@@ -269,6 +287,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-lint-linux:
     name: Lint (linux)
     runs-on:
@@ -303,6 +324,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-native-test-linux:
     name: Native GUI tests (linux)
     runs-on:
@@ -337,6 +361,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-linux:
     name: Package IDE (linux)
     needs:
@@ -374,6 +401,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
@@ -409,6 +439,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
@@ -446,6 +479,9 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
@@ -480,3 +516,6 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
