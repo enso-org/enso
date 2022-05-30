@@ -160,29 +160,29 @@ spec =
 
     Test.group "Masking Tables" <|
         Test.specify "should allow selecting table rows based on a boolean column" <|
-            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            df = (Enso_Project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [True, False, False, True])
-            r.at "a" . to_vector . should_equal [1, 10]
+            r.at "a" . to_vector . should_equal ["1", "10"]
             r.at "b" . to_vector . should_equal [2, 11]
             r.at "c" . to_vector . should_equal [Nothing, 12]
         Test.specify "should treat NA values in the mask as false and extend the mask with NAs" <|
-            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            df = (Enso_Project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [Nothing, True, False])
-            r.at "a" . to_vector . should_equal [4]
+            r.at "a" . to_vector . should_equal ["4"]
             r.at "b" . to_vector . should_equal [Nothing]
             r.at "c" . to_vector . should_equal [6]
         Test.specify "should work correctly if a mask is bigger than the table itself" <|
-            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            df = (Enso_Project.data / "simple_empty.csv").read
             r = df.where (Column.from_vector 'x' [True, False, False, False, True])
-            r.at "a" . to_vector . should_equal [1]
+            r.at "a" . to_vector . should_equal ["1"]
             r.at "b" . to_vector . should_equal [2]
             r.at "c" . to_vector . should_equal [Nothing]
 
     Test.group "Masking Columns" <|
         Test.specify "should allow selecting column rows based on a boolean column" <|
-            df = (Enso_Project.data / "simple_empty.csv").read_csv
+            df = (Enso_Project.data / "simple_empty.csv").read
             mask = Column.from_vector 'x' [True, False, False, True]
-            df.at "a" . where mask . to_vector . should_equal [1, 10]
+            df.at "a" . where mask . to_vector . should_equal ["1", "10"]
             df.at "c" . where mask . to_vector . should_equal [Nothing, 12]
 
         Test.specify "should work correctly if a mask is bigger than the column itself" <|
@@ -350,7 +350,7 @@ spec =
             price.mean.should_equal 26.9
 
     Test.group "Sorting Tables" <|
-        df = (Enso_Project.data / "clothes.csv").read_csv
+        df = (Enso_Project.data / "clothes.csv").read
 
         Test.specify "should allow sorting by a single column name" <|
             r_1 = df.sort by="Quantity"

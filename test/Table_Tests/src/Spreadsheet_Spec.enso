@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Test
 import Standard.Table
+import Standard.Table.Io.File_Format
+from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Examples
 import project.Util
 
@@ -58,9 +60,14 @@ spec =
     here.spec_fmt 'XLS reading' Examples.xls .read_xls
 
     Test.group 'XLSX writing' <|
+        ## We disable parsing dates, because date support is not advanced enough
+           for these tests. This should ideally be re-enabled with the
+           completion of the following story:
+           https://www.pivotaltracker.com/story/show/181755990
+        no_dates = File_Format.Delimited "," value_formatter=(Data_Formatter date_formats=[] time_formats=[] datetime_formats=[])
         out = Enso_Project.data / 'out.xlsx'
-        table = Enso_Project.data/'varied_column.csv' . read_csv has_header=False
-        clothes = Enso_Project.data/'clothes.csv' . read_csv
+        table = Enso_Project.data/'varied_column.csv' . read (format = no_dates)
+        clothes = Enso_Project.data/'clothes.csv' . read (format = no_dates)
 
         Test.specify 'should write tables to non-existent XLSX files' <|
             out.delete_if_exists
@@ -114,3 +121,4 @@ spec =
             out_1.delete_if_exists
             out_2.delete_if_exists
 
+main = Test.Suite.run_main here.spec
