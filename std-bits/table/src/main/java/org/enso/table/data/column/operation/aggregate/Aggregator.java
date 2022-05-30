@@ -6,9 +6,9 @@ import java.util.stream.IntStream;
 
 /**
  * Represents a fold-like operation on a storage. An aggregator is usually created for a given
- * storage, then {@link #nextGroup(IntStream)} is repeatedly called and the aggregator is responsible for
- * collecting the results of such calls. After that, {@link #seal()} is called to obtain a storage
- * containing all the results.
+ * storage, then {@link #nextGroup(IntStream)} is repeatedly called and the aggregator is
+ * responsible for collecting the results of such calls. After that, {@link #seal()} is called to
+ * obtain a storage containing all the results.
  */
 public abstract class Aggregator {
   /**

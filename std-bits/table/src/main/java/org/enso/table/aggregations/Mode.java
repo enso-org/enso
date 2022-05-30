@@ -8,9 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/***
- * Aggregate Column computing the most common value in a group (ignoring Nothing).
- */
+/** Aggregate Column computing the most common value in a group (ignoring Nothing). */
 public class Mode extends Aggregator {
   private final Storage storage;
 
@@ -24,7 +22,7 @@ public class Mode extends Aggregator {
     Object current = null;
     int count = 0;
     Map<Object, Integer> currentMap = null;
-    for (int row: indexes) {
+    for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         // Merge all numbers onto a Long if possible or a Double if needed

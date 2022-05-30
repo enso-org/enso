@@ -806,7 +806,7 @@ fn on_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnDepthOrderDi
     move || {
         for parent in &*parents.borrow() {
             // It's safe to do it having parents borrowed, because the only possible callback called
-            // OnElementDepthOrderDirty, which don't borrow_mut at any point.
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
             parent.element_depth_order_dirty.set()
         }
     }
@@ -859,7 +859,7 @@ fn on_element_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnElem
     move || {
         for sublayers in parents.borrow().iter() {
             // It's safe to do it having parents borrowed, because the only possible callback called
-            // OnElementDepthOrderDirty, which don't borrow_mut at any point.
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
             sublayers.element_depth_order_dirty.set()
         }
     }

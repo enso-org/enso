@@ -237,7 +237,9 @@ branches:
           - "Build Project Manager (linux)"
           - "Package IDE (windows)"
           - "Package IDE (linux)"
-          - "IDE integration tests (linux)"
+          # Integration tests are currently not reliable.
+          # TODO [mwu]: Restore once https://www.pivotaltracker.com/story/show/182278293 is fixed.
+          # - "IDE integration tests (linux)"
       enforce_admins: null
       restrictions: null
   - name: "release/*.x"
