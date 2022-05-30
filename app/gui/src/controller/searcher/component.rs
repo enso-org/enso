@@ -72,6 +72,7 @@ pub struct List {
     pub top_modules:           group::List,
     pub top_modules_flattened: group::List,
     pub module_groups:         HashMap<suggestion_database::entry::Id, ModuleGroups>,
+    pub favorites:             group::List,
     pub filtered:              Cell<bool>,
 }
 
