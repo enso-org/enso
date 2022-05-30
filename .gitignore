@@ -144,3 +144,5 @@ test/Database_Tests/data/redshift_credentials.json
 
 *.ir
 *.meta
+
+test-results

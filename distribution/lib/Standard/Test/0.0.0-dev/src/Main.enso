@@ -1,6 +1,10 @@
-from Standard.Base import all
+from Standard.Base import Any, Nothing, Environment, Nil, Cons, Panic, Meta, IO, True, False, Number, Text, Error, Decimal, Boolean, Runtime, Source_Location
+import Standard.Base.Data.Time
 import Standard.Base.Runtime.State
 import Standard.Base.System
+
+polyglot java import java.lang.NullPointerException
+polyglot java import java.lang.StringBuilder
 
 ## Creates a new test group, describing properties of the object
    described by `this`.
@@ -21,13 +25,53 @@ import Standard.Base.System
                      2*3 . should_equal 6
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
-    r = this.run specs here.config_from_env
+    config = here.config_from_env
+    r = here.wrap_junit_testsuites config <|
+        this.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
 
+
+## PRIVATE
+test_results_path : File -> File
+test_results_path caller =
+    handler _ = Nothing
+    Panic.catch NullPointerException handler=handler <|
+        parent = caller.parent
+        if parent.name == "test" then parent.parent / "test-results" / caller.name else
+            @Tail_Call here.test_results_path parent
+
+
+## PRIVATE
+find_caller_script : [Stack_Trace_Element] -> File
+find_caller_script stack =
+    find_main idx =
+        if stack.at idx . name == "Suite.run_main" then idx else
+            @Tail_Call find_main (idx + 1)
+    main_index = find_main 0
+
+    find_caller idx =
+        source = stack.at idx . source_location
+        if source.is_a Source_Location then stack.at idx . source_location . file else
+            @Tail_Call find_caller (idx + 1)
+
+    find_caller (main_index + 1)
+
+
+## PRIVATE
+   Creates an Suite_Config based off environment and caller location
+config_from_env : Suite_Config
 config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
-    Suite_Config only_group_regexp
+
+    output_format = Environment.get "TEST_OUTPUT_FORMAT"
+    caller = here.find_caller_script Runtime.get_stack_trace
+    results_path = here.test_results_path caller
+    if results_path.is_nothing && output_format.is_nothing.not then
+        IO.println "Unable to determine test-results path."
+
+    Suite_Config only_group_regexp output_format results_path
+
 
 ## Creates a new test group, describing properties of the object
    described by `this`.
@@ -46,7 +90,7 @@ config_from_env =
                      2+3 . should_equal 5
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
-Suite.run : Any -> Suite_Config -> Any
+Suite.run : Any -> Suite_Config -> StringBuilder -> Any
 Suite.run ~specs config =
     r = State.run Suite (Suite config Nil) <|
         specs
@@ -78,13 +122,12 @@ group name ~behaviors pending=Nothing =
                 r = State.run Spec (Spec name  Nil) <|
                     behaviors
                     State.get Spec
-                r.print_report
+                r.print_report config
                 suite = State.get Suite
                 new_suite = Suite suite.config (Cons r suite.specs)
                 State.put Suite new_suite
             reason ->
-                IO.print_err ("[PENDING] " + name)
-                IO.print_err ("    Reason: " + reason)
+                here.report_pending_group name reason config
 
 ## Specifies a single behavior, described by `this`.
 
@@ -513,32 +556,19 @@ type Verbs
             msg = subject.to_text + " did not contain " + argument.to_text + "."
             here.fail msg
 
-## PRIVATE
-
-   Prints a report on the tests to standard output.
-Spec.print_report : Nothing
-Spec.print_report =
-    IO.print_err (this.name + ":")
-    this.behaviors.reverse.each behavior->
-        case behavior.result of
-            Success ->
-                IO.print_err ("    - " + behavior.name)
-            Failure msg ->
-                IO.print_err ("    - [FAILED] " + behavior.name)
-                IO.print_err ("        Reason: " + msg)
-            Pending reason ->
-                IO.print_err ("    - [PENDING] " + behavior.name)
-                IO.print_err ("        Reason: " + reason)
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config only_group_regexp
+    type Suite_Config only_group_regexp output_format results_path builder=StringBuilder.new
 
     should_run_group name =
         regexp = this.only_group_regexp
         case regexp of
             Text -> name.matches regexp . catch (_->True)
             _ -> True
+
+    should_output_junit =
+        this.output_format == "JUNIT"
 
 
 ## PRIVATE
@@ -658,3 +688,62 @@ fail_match_on_unexpected_error error frames_to_skip =
     loc = Meta.get_source_location 1+frames_to_skip
     msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
     here.fail msg
+
+
+## PRIVATE
+   Write the JUnit XML header.
+wrap_junit_testsuites : Suite_Config -> Any -> Nothing
+wrap_junit_testsuites config ~function =
+    if config.should_output_junit then
+        config.builder.append '<?xml version="1.0" encoding="UTF-8"?>'
+        config.builder.append '<testsuites>'
+
+    result = function
+
+    if config.should_output_junit then
+        config.builder.append '</testsuites>'
+        config.results_path.create_directory
+        config.results_path/"JUnit.xml" . write_text config.builder.toString
+
+    result
+
+
+## PRIVATE
+   Record JUnit PENDING group.
+report_pending_group : Text -> Text -> Suite_Config -> Nothing
+report_pending_group name reason config =
+    if config.should_output_junit then
+        config.builder.append ('<testsuite name="' + name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">')
+        config.builder.append ('<testcase name="' + name + '"><skipped message="' + (reason.replace '"' '&quot;') + '" /></testcase>')
+        config.builder.append '</testsuite>'
+
+    IO.println ("[PENDING] " + name)
+    IO.println ("    Reason: " + reason)
+
+
+## PRIVATE
+   Prints a report on the tests to standard output.
+Spec.print_report : Suite_Config -> Nothing
+Spec.print_report config =
+    if config.should_output_junit then
+        config.builder.append ('<testsuite name="' + this.name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">')
+        this.behaviors.reverse.each behavior->
+            config.builder.append ('<testcase name="' + behavior.name + '">')
+            case behavior.result of
+                Success -> Nothing
+                Failure msg -> config.builder.append ('<error message="' + (msg.replace '"' '&quot;') + '"/>')
+                Pending msg -> config.builder.append ('<skipped message="' + (msg.replace '"' '&quot;') + '"/>')
+            config.builder.append '</testcase>'
+        config.builder.append '</testsuite>'
+
+    IO.println (this.name + ":")
+    this.behaviors.reverse.each behavior->
+        case behavior.result of
+            Success ->
+                IO.println ("    - " + behavior.name)
+            Failure msg ->
+                IO.println ("    - [FAILED] " + behavior.name)
+                IO.println ("        Reason: " + msg)
+            Pending reason ->
+                IO.println ("    - [PENDING] " + behavior.name)
+                IO.println ("        Reason: " + reason)
