@@ -315,7 +315,13 @@ pub mod test {
         fn new_customized(
             ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
         ) -> Fixture {
-            let data = MockData::new();
+            Self::new_customized_with_data(MockData::new(), ls_setup)
+        }
+
+        fn new_customized_with_data(
+            data: MockData,
+            ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
+        ) -> Fixture {
             let mut ls_client = language_server::MockClient::default();
             Self::mock_create_push_destroy_calls(&data, &mut ls_client);
             ls_setup(&mut ls_client, &data);
