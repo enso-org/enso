@@ -200,9 +200,5 @@ impl Drop for ShaderData {
 
 /// Create a profiler to track shader recompilation.
 fn new_profiler() -> profiler::Debug {
-    let label = profiler::internal::Label("compile_shader (?:?)");
-    let parent = profiler::internal::EventId::implicit();
-    let now = Some(profiler::internal::Timestamp::now());
-    let paused = profiler::internal::StartState::Paused;
-    profiler::Debug::start(parent, label, now, paused)
+    profiler::create_debug!("compile_shader")
 }

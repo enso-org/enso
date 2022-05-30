@@ -313,17 +313,8 @@ pub struct Notification {
 impl Notification {
     /// Create a new notification.
     pub fn new(new_file: SourceFile, kind: NotificationKind) -> Self {
-        let profiler = Self::profiler();
+        let profiler = profiler::create_debug!("Notification");
         Self { new_file, kind, profiler }
-    }
-
-    /// Return a profiler to be attached to a new [`Notification`].
-    fn profiler() -> profiler::Debug {
-        let label = profiler::internal::Label("Notification");
-        let parent = profiler::internal::EventId::implicit();
-        let now = Some(profiler::internal::Timestamp::now());
-        let paused = profiler::internal::StartState::Paused;
-        profiler::Debug::start(parent, label, now, paused)
     }
 }
 
