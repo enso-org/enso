@@ -197,10 +197,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             let col_id = column.id.clone_ref();
             frp::extend! { network
                 // === Focus propagation ===
-
-                column.set_focus <+ input.set_focus;
-                column.focus <+ input.focus;
-                column.defocus <+ input.defocus;
+                
+                eval_ input.defocus(model.defocus_columns());
 
                 // === Accepting suggestions ===
 
@@ -220,6 +218,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 selected_column_and_entry <+ entry_selected.map(f!([column](e) (col_id, column.reverse_index(*e))));
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
                 eval_ on_column_selected(model.on_column_selected(col_id));
+                eval_ on_column_selected(column.focus());
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
                 out.selection_position_target <+ selection_pos.map(f!((pos) column.selection_position(*pos)));
 
@@ -385,12 +384,20 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         columns_to_the_right.find(|col| col.len() > 0)
     }
 
+    /// Send `defocus()` event to each column.
+    fn defocus_columns(&self) {
+        for column in self.columns.iter() {
+            column.defocus();
+        }
+    }
+
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that
     /// at all times only a single entry across all columns is selected.
     fn on_column_selected(&self, column_id: ColumnId) {
         let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != *column_id);
         for (_, column) in other_columns {
             column.deselect_entries();
+            column.defocus();
         }
     }
 

@@ -369,14 +369,6 @@ impl component::Frp<Model> for Frp {
         }
 
 
-        // === Entries ===
-
-        frp::extend! { network
-            model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry;
-        }
-
-
         // === Selection ===
 
         let overlay_events = &model.header_overlay.events;
@@ -389,10 +381,10 @@ impl component::Frp<Model> for Frp {
             is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
+            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            deselect_header <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ bool(&deselect_header, &select_header);
+            out.is_header_selected <+ bool(&mouse_moved_beyond_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with3(
@@ -401,6 +393,14 @@ impl component::Frp<Model> for Frp {
                 &model.entries.selection_position_target,
                 f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
             );
+        }
+
+
+        // === Entries ===
+
+        frp::extend! { network
+            model.entries.set_entries <+ input.set_entries;
+            out.selected_entry <+ model.entries.selected_entry.gate_not(&out.is_header_selected);
         }
 
         init.emit(());
