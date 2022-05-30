@@ -67,14 +67,11 @@ public class CorrelationStatistics {
   public static CorrelationStatistics[][] computeMatrix(Double[][] data) {
     int len = data[0].length;
 
-    for (int i = 1; i < data.length; i++) {
+    CorrelationStatistics[][] output = new CorrelationStatistics[data.length][];
+    for (int i = 0; i < data.length; i++) {
       if (data[i].length != len) {
         throw new IllegalArgumentException("Data lengths are not consistent.");
       }
-    }
-
-    CorrelationStatistics[][] output = new CorrelationStatistics[data.length][];
-    for (int i = 0; i < data.length; i++) {
       output[i] = new CorrelationStatistics[data.length];
       for (int j = 0; j < data.length; j++) {
         if (j < i) {

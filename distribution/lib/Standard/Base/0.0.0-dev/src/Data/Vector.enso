@@ -62,7 +62,7 @@ fill length ~item =
      Construct a vector using a builder that contains the items 1 to 10.
 
          example_new_builder =
-              builder = Vector.new_builder
+              builder = Vector.new_builder 10
               do_build start stop =
                   builder.append start
                   if start >= stop then Nothing else
