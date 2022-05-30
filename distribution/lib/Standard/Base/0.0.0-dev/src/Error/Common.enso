@@ -386,7 +386,7 @@ type Panic
                 True -> caught_panic.convert_to_dataflow_error
                 False -> Panic.throw caught_panic
 
-    ## If a dataflow error had occurred, promote to a Panic and wrap in a Wrapped_Dataflow_Error
+    ## If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
 
        Arguments:
        - value: value to return if not an error, or rethrow as a Panic.
