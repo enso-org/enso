@@ -22,7 +22,6 @@ use smallvec::alloc::collections::BTreeSet;
 use std::any::TypeId;
 
 
-
 // =============
 // === Layer ===
 // =============
@@ -365,7 +364,7 @@ impl LayerModel {
         let on_mut = on_depth_order_dirty(&parents);
         let depth_order_dirty = dirty::SharedBool::new(logger_dirty, on_mut);
         let global_element_depth_order = default();
-        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"));
+        let sublayers = Sublayers::new(Logger::new_sub(&logger, "registry"), &parents);
         let mask = default();
         let scissor_box = default();
         let mem_mark = default();
@@ -800,12 +799,14 @@ impl LayerModel {
     }
 }
 
-/// Unboxed callback.
+/// The callback setting `element_depth_order_dirty` in parents.
 pub type OnDepthOrderDirty = impl Fn();
 fn on_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnDepthOrderDirty {
     let parents = parents.clone();
     move || {
         for parent in &*parents.borrow() {
+            // It's safe to do it having parents borrowed, because the only possible callback called
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
             parent.element_depth_order_dirty.set()
         }
     }
@@ -851,11 +852,24 @@ impl LayerDynamicShapeInstance {
 // === Sublayers ===
 // =================
 
+/// The callback propagating `element_depth_order_dirty` flag to parents.
+pub type OnElementDepthOrderDirty = impl Fn();
+fn on_element_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnElementDepthOrderDirty {
+    let parents = parents.clone_ref();
+    move || {
+        for sublayers in parents.borrow().iter() {
+            // It's safe to do it having parents borrowed, because the only possible callback called
+            // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
+            sublayers.element_depth_order_dirty.set()
+        }
+    }
+}
+
 /// Abstraction for layer sublayers.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Sublayers {
     model:                     Rc<RefCell<SublayersModel>>,
-    element_depth_order_dirty: dirty::SharedBool,
+    element_depth_order_dirty: dirty::SharedBool<OnElementDepthOrderDirty>,
 }
 
 impl Deref for Sublayers {
@@ -874,10 +888,11 @@ impl PartialEq for Sublayers {
 
 impl Sublayers {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger) -> Self {
+    pub fn new(logger: impl AnyLogger, parents: &Rc<RefCell<Vec<Sublayers>>>) -> Self {
         let element_dirty_logger = Logger::new_sub(&logger, "dirty");
         let model = default();
-        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, ());
+        let dirty_on_mut = on_element_depth_order_dirty(parents);
+        let element_depth_order_dirty = dirty::SharedBool::new(element_dirty_logger, dirty_on_mut);
         Self { model, element_depth_order_dirty }
     }
 }
