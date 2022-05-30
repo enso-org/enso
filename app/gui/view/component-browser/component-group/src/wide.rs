@@ -196,6 +196,12 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         for column in model.columns.iter() {
             let col_id = column.id.clone_ref();
             frp::extend! { network
+                // === Focus propagation ===
+
+                column.set_focus <+ input.set_focus;
+                column.focus <+ input.focus;
+                column.defocus <+ input.defocus;
+
                 // === Accepting suggestions ===
 
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion).filter_map(|e| *e);

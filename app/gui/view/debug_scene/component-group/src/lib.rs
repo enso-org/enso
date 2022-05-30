@@ -331,7 +331,7 @@ fn init(app: &Application) {
         eval selected_entry([](e) if let Some(e) = e {  DEBUG!("Entry {e.1} from group {e.0} selected") });
         eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g}"));
         eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g}"));
-        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None }).on_change();
+        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
         eval header_selected([](g) DEBUG!("Header selected in group {g}"));
         eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g}"));
 
