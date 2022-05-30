@@ -1,14 +1,14 @@
 from Standard.Base import all
 
-## A descriptor for a sort ordering.
-type Sort_Order
+## Specifies the direction of ordering.
+type Sort_Direction
 
     ## Elements should be sorted in ascending order.
 
        > Example
          Create an ascending order.
 
-             Sort_Order.Ascending
+             Sort_Direction.Ascending
     type Ascending
 
     ## Elements should be sorted in descending order.
@@ -16,6 +16,6 @@ type Sort_Order
        > Example
          Create a descending order.
 
-             Sort_Order.Descending
+             Sort_Direction.Descending
     type Descending
 

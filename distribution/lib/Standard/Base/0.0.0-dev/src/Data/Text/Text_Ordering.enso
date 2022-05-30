@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+## Specifies an ordering of text values.
+
+   Arguments:
+   - sort_digits_as_numbers: Sort digits in the text as numbers. Setting this to
+     `True` results in a "Natural" ordering.
+   - case_sensitive: Specifies if the ordering should be case case sensitive.
+type Text_Ordering (sort_digits_as_numbers:Bool=False) (case_sensitive:(True|Case_Insensitive)=True)

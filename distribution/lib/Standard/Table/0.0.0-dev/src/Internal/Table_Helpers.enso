@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Base.Warning
 import Standard.Base.Data.Text.Matching
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Name, By_Index, By_Column
-from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 import Standard.Table.Data.Position
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
@@ -155,7 +155,7 @@ rename_columns internal_columns mapping on_problems =
         new_names
 
     mapped = case mapping of
-        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher.new case_sensitive=True)
+        Column_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) (Text_Matcher case_sensitive=True)
         Column_Mapping.By_Name map ms -> name_mapper map.to_vector ms
         Column_Mapping.By_Index map ->
             good_indices = here.validate_indices col_count map.keys problem_builder
@@ -199,17 +199,18 @@ rename_columns internal_columns mapping on_problems =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - sort_method: The sort methodology to use.
-sort_columns : Vector -> Sort_Method -> Vector
-sort_columns internal_columns sort_method =
-    mapper = case sort_method.case_sensitive of
+   - direction: Whether sorting should be in ascending or descending order.
+   - text_ordering: The sort methodology to use.
+sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
+sort_columns internal_columns direction text_ordering =
+    mapper = case text_ordering.case_sensitive of
         True -> _.name
         Case_Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale
-    comparator = case sort_method.natural_order of
+    comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
-        False -> _.compare_to _
-    internal_columns.sort on=mapper by=comparator order=sort_method.order
+        False -> .compare_to
+    internal_columns.sort on=mapper by=comparator order=direction
 
 ## PRIVATE
    A helper function which selects columns from the table based on the provided
@@ -242,7 +243,7 @@ select_columns_helper internal_columns selector reorder problem_builder = case s
                 here.select_indices_preserving_order internal_columns good_indices
     By_Column columns ->
         column_names = columns.map .name
-        new_selector = By_Name column_names (Text_Matcher.new case_sensitive=True)
+        new_selector = By_Name column_names (Text_Matcher case_sensitive=True)
         here.select_columns_helper internal_columns new_selector reorder=reorder problem_builder=problem_builder
 
 ## PRIVATE
