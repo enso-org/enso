@@ -28,6 +28,7 @@ use parser::Parser;
 // ==============
 
 pub mod action;
+pub mod component;
 
 pub use action::Action;
 
