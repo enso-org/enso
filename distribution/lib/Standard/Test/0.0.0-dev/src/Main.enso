@@ -33,13 +33,13 @@ Suite.run_main ~specs =
 
 
 ## PRIVATE
-test_results_path : File -> File
-test_results_path caller =
-    handler _ = Nothing
-    Panic.catch NullPointerException handler=handler <|
-        parent = caller.parent
-        if parent.name == "test" then parent.parent / "test-results" / caller.name else
-            @Tail_Call here.test_results_path parent
+find_project_root : File -> File
+find_project_root path =
+    if path = Nothing then Nothing else
+        handler _ = Nothing
+        Panic.catch NullPointerException handler=handler <|
+            if path.name == "src" then path.parent else
+                @Tail_Call here.find_project_root parent
 
 
 ## PRIVATE
@@ -65,12 +65,18 @@ config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
 
     junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
-    caller = here.find_caller_script Runtime.get_stack_trace
-    results_path = here.test_results_path caller
-    if results_path.is_nothing && output_format.is_nothing.not then
-        IO.println "Unable to determine test-results path."
+    results_path = if junit_folder.is_nothing then Nothing else
+        caller_script = here.find_caller_script Runtime.get_stack_trace
+        project_root = here.find_project_root caller_script
+        case project_root.is_nothing of
+            True ->
+                IO.println "Unable to determine root project path. JUnit output disabled."
+                Nothing
+            False ->
+                (File.new junit_folder) / project_root.name / "JUnit.xml"
 
-    Suite_Config only_group_regexp output_format results_path
+    IO.println results_path
+    Suite_Config only_group_regexp results_path
 
 
 ## Creates a new test group, describing properties of the object
@@ -559,7 +565,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config only_group_regexp output_format results_path builder=StringBuilder.new
+    type Suite_Config only_group_regexp output_path builder=StringBuilder.new
 
     should_run_group name =
         regexp = this.only_group_regexp
@@ -568,7 +574,7 @@ type Suite_Config
             _ -> True
 
     should_output_junit =
-        this.output_format == "JUNIT"
+        this.output_path.is_nothing.not
 
 
 ## PRIVATE
@@ -702,8 +708,8 @@ wrap_junit_testsuites config ~function =
 
     if config.should_output_junit then
         config.builder.append '</testsuites>'
-        config.results_path.create_directory
-        config.results_path/"JUnit.xml" . write_text config.builder.toString
+        config.output_path.parent.create_directory
+        config.output_path.write_text config.builder.toString
 
     result
 
