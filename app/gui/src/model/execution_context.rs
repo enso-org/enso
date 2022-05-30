@@ -287,6 +287,22 @@ pub struct ComponentGroup {
     pub components: Vec<SuggestionQualifiedName>,
 }
 
+impl ComponentGroup {
+    /// Construct from a Language Server type representing a component group.
+    pub fn from_language_server(group: language_server::LibraryComponentGroup) -> Self {
+        let name = group.group.into();
+        let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
+        let components = group.exports.into_iter().map(|e| e.name.into()).collect();
+        ComponentGroup { name, color, components }
+    }
+}
+
+impl From<language_server::LibraryComponentGroup> for ComponentGroup {
+    fn from(group: language_server::LibraryComponentGroup) -> Self {
+        Self::from_language_server(group)
+    }
+}
+
 
 
 // =============

@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -11,7 +10,6 @@ use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 
 use engine_protocol::language_server;
-use ensogl::data::color;
 
 
 
@@ -258,11 +256,7 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             let ls_response = self.language_server.get_component_groups(&self.id).await?;
             let ls_component_groups = ls_response.component_groups.into_iter();
-            let component_groups = ls_component_groups.map(|group| ComponentGroup {
-                name:       group.group.into(),
-                color:      group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c)),
-                components: group.exports.into_iter().map(|e| e.name.into()).collect(),
-            });
+            let component_groups = ls_component_groups.map(|group| group.into());
             *self.model.available_component_groups.borrow_mut() = component_groups.collect();
             Ok(())
         }
@@ -296,6 +290,7 @@ pub mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::execution_context::plain::test::MockData;
+    use crate::model::execution_context::ComponentGroup;
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
