@@ -21,6 +21,7 @@ use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color::Rgba;
 use ensogl::display;
+use ensogl_core::display::scene::Layer;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
@@ -397,6 +398,12 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         } else {
             MINIMAL_HEIGHT
         }
+    }
+
+    /// Set the layer for the component and its sub-components.
+    pub fn set_layer(&self, layer: &Layer) {
+        layer.add_exclusive(&self.background);
+        self.columns.iter().for_each(|column| column.list_view.set_label_layer(layer));
     }
 }
 

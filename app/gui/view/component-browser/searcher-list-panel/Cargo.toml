@@ -1,0 +1,19 @@
+[package]
+name = "searcher-list-panel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enso-frp = { path = "../../../../../lib/rust/frp" }
+ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
+ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui/" }
+ensogl-scroll-area= { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-shadow = { path = "../../../../../lib/rust/ensogl/component/shadow" }
+ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
+ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
+ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
+ide-view-component-group = { path = "../component-group" }
+
+[dev-dependencies]
+approx = "0.5.1"
