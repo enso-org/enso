@@ -30,7 +30,7 @@ class InstrumentTestContext {
 
   def receiveNIgnoreStdLib(
     n: Int,
-    timeoutSeconds: Long = 30
+    timeoutSeconds: Long = 60
   ): List[Api.Response] = {
     var count: Int                     = n
     var lastSeen: Option[Api.Response] = None
