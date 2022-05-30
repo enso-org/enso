@@ -428,11 +428,7 @@ impl Rgb {
                 3 => Some(Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2])),
                 6 => {
                     let (chunks, _) = hex_bytes.as_chunks::<2>();
-                    Some(Vector3(
-                        *array_from_slice(&chunks[0])?,
-                        *array_from_slice(&chunks[1])?,
-                        *array_from_slice(&chunks[2])?,
-                    ))
+                    Some(Vector3(chunks[0], chunks[1], chunks[2]))
                 }
                 _ => None,
             };
@@ -922,8 +918,4 @@ fn generic_parse(s: &str) -> Result<(String, Vec<f32>), ParseError> {
 fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
     let array = <[u8; 1] as hex::FromHex>::from_hex(s);
     array.map(|a| a[0]).ok()
-}
-
-fn array_from_slice<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
-    s.try_into().ok()
 }
