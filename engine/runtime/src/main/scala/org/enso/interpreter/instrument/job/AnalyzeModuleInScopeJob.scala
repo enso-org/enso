@@ -38,6 +38,9 @@ final class AnalyzeModuleInScopeJob(
       // suggestions are enabled as well.
       if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
         modules.foreach(analyzeModuleInScope)
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.AnalyzeModuleInScopeJobFinished())
+        )
       } else {
         // When the global suggestions are disabled, we will skip indexing
         // of external libraries, but still want to index the modules that
@@ -47,7 +50,7 @@ final class AnalyzeModuleInScopeJob(
             case Some(name) =>
               modules.filter(m => rootName(m.getName) == rootName(name))
             case None =>
-              modules
+              Seq()
           }
         projectModules.foreach(analyzeModuleInScope)
       }
@@ -55,7 +58,7 @@ final class AnalyzeModuleInScopeJob(
   }
 
   override def toString: String =
-    s"${getClass.getSimpleName}($moduleName, ...)"
+    s"${getClass.getSimpleName}($moduleName, ${modules.map(_.getName)})"
 
   private def analyzeModuleInScope(module: Module)(implicit
     ctx: RuntimeContext

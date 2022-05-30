@@ -118,7 +118,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     val notIndexedModulesInScope = modulesInScope.filter(!_.isIndexed)
     val (modulesToAnalyze, compilationStatuses) =
       notIndexedModulesInScope.foldLeft(
-        (Vector.newBuilder[Module], Vector.newBuilder[CompilationStatus])
+        (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
       ) { case ((modules, statuses), module) =>
         compile(module) match {
           case Left(err) =>
@@ -131,9 +131,12 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
               )
             )
             (modules, statuses += CompilationStatus.Failure)
-          case Right(_) =>
+          case Right(compilerResult) =>
             val status = runCompilationDiagnostics(module)
-            (modules.addOne(module), statuses += status)
+            (
+              modules.addAll(compilerResult.compiledModules).addOne(module),
+              statuses += status
+            )
         }
       }
     ctx.jobProcessor.runBackground(

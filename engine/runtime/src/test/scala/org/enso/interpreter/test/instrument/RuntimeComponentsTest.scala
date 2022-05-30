@@ -99,7 +99,10 @@ class RuntimeComponentsTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+        .option(
+          RuntimeOptions.DISABLE_IR_CACHES,
+          InstrumentTestContext.DISABLE_IR_CACHE
+        )
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -148,15 +151,27 @@ class RuntimeComponentsTest
     }
 
     def receiveAllUntil(
-      msg: Api.Response,
+      msgs: Seq[Api.Response],
       timeout: Long
     ): List[Api.Response] = {
+      val toSee                          = collection.mutable.ArrayBuffer.from(msgs)
+      var lastSeen: Option[Api.Response] = None
       val receivedUntil = Iterator
         .continually(receive(timeout))
-        .takeWhile(received => received.isDefined && !received.contains(msg))
+        .takeWhile {
+          case Some(received) =>
+            val found = msgs.contains(received)
+            if (found) {
+              lastSeen = Some(received)
+              toSee.subtractOne(received)
+            }
+            !(found && toSee.isEmpty)
+          case None =>
+            false
+        }
         .flatten
         .toList
-      receivedUntil :+ msg
+      receivedUntil :++ lastSeen
     }
 
     def consumeOut: List[String] = {
@@ -167,6 +182,9 @@ class RuntimeComponentsTest
 
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
+
+    def analyzeJobFinished: Api.Response =
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
 
   }
 
@@ -216,13 +234,18 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        context.executionComplete(contextId),
-        timeout = 120
+        Seq(
+          context.executionComplete(contextId),
+          context.analyzeJobFinished,
+          context.analyzeJobFinished
+        ),
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      context.analyzeJobFinished
     )
 
     // check LibraryLoaded notifications
@@ -315,13 +338,18 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        context.executionComplete(contextId),
-        timeout = 120
+        Seq(
+          context.executionComplete(contextId),
+          context.analyzeJobFinished,
+          context.analyzeJobFinished
+        ),
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      context.analyzeJobFinished
     )
 
     // check the registered component groups
