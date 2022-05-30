@@ -149,7 +149,7 @@ spec =
             r1 = t1.sort by="A" . at "B"
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST', []]
 
-            r2 = t1.sort by="B" missing_last=False order=Sort_Order.Descending . at "A"
+            r2 = t1.sort by="B" missing_last=False order=Sort_Direction.Descending . at "A"
             r2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" ORDER BY "T1"."B" DESC NULLS FIRST', []]
 
         Test.specify 'should allow sorting by multiple column names' <|
@@ -162,7 +162,7 @@ spec =
             r1.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY ("T1"."A" + "T1"."B") ASC NULLS LAST', []]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Order.Descending)]
+            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Direction.Descending)]
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST, "T1"."B" DESC NULLS LAST', []]
 
         Test.specify 'should return dataflow error when passed a non-existent column' <|
