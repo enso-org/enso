@@ -1,4 +1,5 @@
 
+## Specifies how to handle ranking of equal values.
 type Rank_Method
     ## Use the mean of all ranks for equal values.
     type Average
@@ -9,7 +10,8 @@ type Rank_Method
     ## Use the highest of all ranks for equal values.
     type Maximum
 
-    ## Use same rank value for equal values and next group is
+    ## Use same rank value for equal values and next group is the immediate
+       following ranking number.
     type Dense
 
     ## Equal values are assigned the next rank in order that they occur.
