@@ -560,7 +560,6 @@ function createWindow() {
     const profiles = Promise.all(profilePromises)
     Electron.ipcMain.on('load-profiles', event => {
         profiles.then(profiles => {
-            const n = profiles.length
             event.reply('profiles-loaded', profiles)
         })
     })

@@ -27,7 +27,7 @@ pub async fn entry_point_profile() {
         "create_node" => profile_create_node().await,
         "enter_collapsed_node" => profile_enter_collapsed_node().await,
         "new_project" => profile_new_project().await,
-        "open_project" => profile_open_project().await,
+        "open_project_orders" => profile_open_project_orders().await,
         "open_visualization" => profile_open_visualization().await,
         _ => panic!("Unknown workflow: {selected}. Must be one of: {options:?}."),
     });
@@ -70,9 +70,9 @@ async fn profile_new_project() {
     let _ = profiler::await_!(Fixture::create_project(), _profiler);
 }
 
-async fn profile_open_project() {
+async fn profile_open_project_orders() {
     let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
-    let _ = profiler::await_!(Fixture::open_project(), _profiler);
+    let _ = profiler::await_!(Fixture::open_project_orders(), _profiler);
 }
 
 async fn profile_open_visualization() {

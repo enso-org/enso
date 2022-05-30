@@ -95,13 +95,13 @@ fn categorize_subtree(
     measurement_process: &mut HashMap<MeasurementId, Process>,
     profile: &Profile<OpaqueMetadata>,
     process_by_label: &HashMap<String, Process>,
-    m: MeasurementId,
+    measurement_id: MeasurementId,
     current: Option<Process>,
 ) {
-    let measurement = &profile[m];
+    let measurement = &profile[measurement_id];
     let new = process_by_label.get(&measurement.label.name).cloned();
     if let Some(process) = new {
-        measurement_process.insert(m, process);
+        measurement_process.insert(measurement_id, process);
     }
     let current = new.or(current);
     for &child in &measurement.children {
@@ -138,10 +138,10 @@ fn gather_ends(
     ends: &mut HashMap<Process, Timestamp>,
     profile: &Profile<OpaqueMetadata>,
     measurement_process: &HashMap<MeasurementId, Process>,
-    m: MeasurementId,
+    measurement_id: MeasurementId,
 ) {
-    let measurement = &profile[m];
-    if let Some(process) = measurement_process.get(&m) {
+    let measurement = &profile[measurement_id];
+    if let Some(process) = measurement_process.get(&measurement_id) {
         let last_interval = measurement.intervals.last();
         let end = last_interval.and_then(|&i| profile[i].interval.end);
         if let Some(new_end) = end {

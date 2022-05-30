@@ -131,9 +131,9 @@ impl Fixture {
         test
     }
 
-    /// Open a project; doesn't complete until the project is ready to render.
+    /// Open the "Orders" project; doesn't complete until the project is ready to render.
     #[profile(Objective)]
-    pub async fn open_project() -> Self {
+    pub async fn open_project_orders() -> Self {
         let template_project = "Orders";
         let self_ = Self::new(InitialView::Project).await;
         self_.load_project(template_project.to_owned()).await;
