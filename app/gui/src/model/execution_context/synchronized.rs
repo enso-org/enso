@@ -97,6 +97,7 @@ impl ExecutionContext {
         result.map(|res| res.map_err(|err| err.into()))
     }
 
+    /// Load the component groups available in the execution context.
     async fn load_component_groups(&self) -> FallibleResult {
         let ls_response = self.language_server.get_component_groups(&self.id).await?;
         let ls_component_groups = ls_response.component_groups.into_iter();
