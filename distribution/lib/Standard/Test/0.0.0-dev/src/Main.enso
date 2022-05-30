@@ -1,4 +1,4 @@
-from Standard.Base import Any, Nothing, Environment, Nil, Cons, Panic, Meta, IO, True, False, Number, Text, Error, Decimal, Boolean, Runtime, Source_Location
+from Standard.Base import Any, Nothing, Environment, Nil, Cons, Panic, Meta, IO, True, False, Number, Text, Error, Decimal, Boolean, Runtime, Source_Location, File
 import Standard.Base.Data.Time
 import Standard.Base.Runtime.State
 import Standard.Base.System
@@ -35,11 +35,11 @@ Suite.run_main ~specs =
 ## PRIVATE
 find_project_root : File -> File
 find_project_root path =
-    if path = Nothing then Nothing else
+    if path.is_nothing then Nothing else
         handler _ = Nothing
         Panic.catch NullPointerException handler=handler <|
             if path.name == "src" then path.parent else
-                @Tail_Call here.find_project_root parent
+                @Tail_Call here.find_project_root path.parent
 
 
 ## PRIVATE
@@ -75,7 +75,6 @@ config_from_env =
             False ->
                 (File.new junit_folder) / project_root.name / "JUnit.xml"
 
-    IO.println results_path
     Suite_Config only_group_regexp results_path
 
 
