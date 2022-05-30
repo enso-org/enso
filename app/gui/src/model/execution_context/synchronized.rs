@@ -323,7 +323,7 @@ pub mod test {
             ls_setup: impl FnOnce(&mut language_server::MockClient, &MockData),
         ) -> Fixture {
             let mut ls_client = language_server::MockClient::default();
-            Self::mock_create_push_destroy_calls(&data, &mut ls_client);
+            Self::mock_default_calls(&data, &mut ls_client);
             ls_setup(&mut ls_client, &data);
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
@@ -353,12 +353,9 @@ pub mod test {
             expect_call!(ls.destroy_execution_context(id) => Ok(()));
         }
 
-        /// Sets up mock client expectations for context creation, initial frame push
-        /// and destruction.
-        pub fn mock_create_push_destroy_calls(
-            data: &MockData,
-            ls: &mut language_server::MockClient,
-        ) {
+        /// Sets up mock client expectations for all the calls issued by default by the
+        /// [`ExecutionContext::create`] and [`ExecutionContext::drop`] methods.
+        pub fn mock_default_calls(data: &MockData, ls: &mut language_server::MockClient) {
             Self::mock_create_destroy_calls(data, ls);
             let id = data.context_id;
             let root_frame = language_server::ExplicitCall {
