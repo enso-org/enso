@@ -76,6 +76,8 @@ impl ExecutionContext {
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
+            this.load_component_groups().await?;
+            info!(this.logger, "Loaded the component groups.");
             Ok(this)
         }
     }
@@ -93,6 +95,14 @@ impl ExecutionContext {
         let frame = language_server::StackItem::ExplicitCall(call);
         let result = self.language_server.push_to_execution_context(&self.id, &frame);
         result.map(|res| res.map_err(|err| err.into()))
+    }
+
+    async fn load_component_groups(&self) -> FallibleResult {
+        let ls_response = self.language_server.get_component_groups(&self.id).await?;
+        let ls_component_groups = ls_response.component_groups.into_iter();
+        let component_groups = ls_component_groups.map(|group| group.into());
+        *self.model.available_component_groups.borrow_mut() = component_groups.collect();
+        Ok(())
     }
 
     /// Detach visualization from current execution context.
@@ -250,17 +260,6 @@ impl model::execution_context::API for ExecutionContext {
     ) -> FallibleResult {
         debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
         self.model.dispatch_visualization_update(visualization_id, data)
-    }
-
-    fn load_component_groups(&self) -> BoxFuture<FallibleResult> {
-        async move {
-            let ls_response = self.language_server.get_component_groups(&self.id).await?;
-            let ls_component_groups = ls_response.component_groups.into_iter();
-            let component_groups = ls_component_groups.map(|group| group.into());
-            *self.model.available_component_groups.borrow_mut() = component_groups.collect();
-            Ok(())
-        }
-        .boxed_local()
     }
 }
 
@@ -562,7 +561,6 @@ pub mod test {
             expect_call!(ls.get_component_groups(id) => Ok(sample_ls_response));
         });
         test.run_task(async move {
-            context.load_component_groups().await.unwrap();
             let groups = context.model.available_component_groups.borrow();
             assert_eq!(groups.len(), 2);
 

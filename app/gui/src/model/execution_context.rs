@@ -395,10 +395,6 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
-
-    /// Load the component groups available in the execution context.
-    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
-    fn load_component_groups<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes
