@@ -64,7 +64,7 @@ config_from_env : Suite_Config
 config_from_env =
     only_group_regexp = Environment.get "TEST_ONLY_GROUP"
 
-    output_format = Environment.get "TEST_OUTPUT_FORMAT"
+    junit_folder = Environment.get "ENSO_TEST_JUNIT_DIR"
     caller = here.find_caller_script Runtime.get_stack_trace
     results_path = here.test_results_path caller
     if results_path.is_nothing && output_format.is_nothing.not then
