@@ -55,19 +55,22 @@ fill length ~item =
    A vector allows to store an arbitrary number of elements in linear memory. It
    is the recommended data structure for most applications.
 
+   Arguments:
+   - capacity: Initial capacity of the Vector.Builder
+
    > Example
      Construct a vector using a builder that contains the items 1 to 10.
 
          example_new_builder =
-              builder = Vector.new_builder
+              builder = Vector.new_builder 10
               do_build start stop =
                   builder.append start
                   if start >= stop then Nothing else
                       @Tail_Call do_build start+1 stop
               do_build 1 10
               builder.to_vector
-new_builder : Builder
-new_builder = Builder.new
+new_builder : Integer -> Builder
+new_builder (capacity=1) = Builder.new capacity
 
 ## ADVANCED
 
@@ -141,13 +144,7 @@ type Vector
     at : Integer -> Any ! Index_Out_Of_Bounds_Error
     at index =
         actual_index = if index < 0 then this.length + index else index
-        ## TODO [RW] Ideally we do not want an additional check here, but we
-           should catch a Invalid_Array_Index_Error panic. However, such a catch
-           should still properly forward any other panics or dataflow errors
-           which is not fully possible until the approach to handling Panics is
-           improved, as described in the following Pivotal ticket:
-           https://www.pivotaltracker.com/n/projects/2539304/stories/181029230
-        if actual_index>=0 && actual_index<this.length then this.unsafe_at actual_index else
+        Panic.catch Invalid_Array_Index_Error (this.unsafe_at actual_index) _->
             Error.throw (Index_Out_Of_Bounds_Error index this.length)
 
     ## ADVANCED
@@ -1015,12 +1012,15 @@ type Builder
 
     ## Creates a new builder.
 
+       Arguments:
+       - capacity: Initial capacity of the Vector.Builder
+
        > Example
          Make a new builder
 
              Vector.new_builder
-    new : Builder
-    new = Builder (Array.new 1) 0
+    new : Integer->Builder
+    new (capacity=1) = Builder (Array.new capacity) 0
 
     ## Returns the current capacity (i.e. the size of the underlying storage)
        of this builder.
@@ -1087,6 +1087,18 @@ type Builder
             Unsafe.set_atom_field this 0 new_array
             this.append item
             Nothing
+
+    ## Gets an element from the vector at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
+    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at index =
+        actual_index = if index < 0 then this.length + index else index
+        Panic.catch Invalid_Array_Index_Error (this.to_array.at actual_index) _->
+            Error.throw (Index_Out_Of_Bounds_Error index this.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
