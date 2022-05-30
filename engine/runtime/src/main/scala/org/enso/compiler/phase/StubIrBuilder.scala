@@ -3,10 +3,10 @@ package org.enso.compiler.phase
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.{ModuleReference, ResolvedConstructor, ResolvedMethod}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
+import scala.collection.immutable.ArraySeq
 import scala.jdk.CollectionConverters._
 
 /** Builds an IR stub. This is useful for source-less modules (such as
@@ -31,7 +31,7 @@ object StubIrBuilder {
           cons.getArity,
           allFieldsDefaulted = false,
           builtinType = false,
-          variants = cons.getVariants.map(_.getName)
+          variants = ArraySeq.unsafeWrapArray(cons.getVariants).map(_.getName)
         );
       }
     val moduleMethods = Option(scope.getMethods.get(scope.getAssociatedType))
@@ -47,16 +47,16 @@ object StubIrBuilder {
     val exportedBindings = definedConstructors.map(c =>
       (
         c.name.toLowerCase,
-        List(ResolvedConstructor(ModuleReference.Concrete(module), c))
+        List(BindingsMap.ResolvedConstructor(BindingsMap.ModuleReference.Concrete(module), c))
       )
     ) ++ moduleMethods.map(m =>
-      (m.name, List(ResolvedMethod(ModuleReference.Concrete(module), m)))
+      (m.name, List(BindingsMap.ResolvedMethod(BindingsMap.ModuleReference.Concrete(module), m)))
     )
     val meta = BindingsMap(
       definedConstructors,
       polyglot,
       moduleMethods,
-      ModuleReference.Concrete(module)
+      BindingsMap.ModuleReference.Concrete(module)
     )
     meta.exportedSymbols = exportedBindings.toMap
     ir.updateMetadata(BindingAnalysis -->> meta)

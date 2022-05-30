@@ -42,7 +42,7 @@ class RuntimeStubsGenerator(builtins: Builtins) {
     // link parents to variants and vice versa
     constructors.foreach { case (tp,tcons) =>
       val variants = tp.variants.map(scope.getConstructor(_).get()).toList;
-      tcons.setVariants(variants);
+      tcons.setVariants(variants.toArray);
       variants.foreach(_.setParentType(tcons));
     }
   }

@@ -45,7 +45,7 @@ public final class AtomConstructor implements TruffleObject {
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
   private @CompilerDirectives.CompilationFinal AtomConstructor parentType;
-  private @CompilerDirectives.CompilationFinal scala.collection.immutable.List<AtomConstructor> variants;
+  private @CompilerDirectives.CompilationFinal(dimensions = 1) AtomConstructor[] variants;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
@@ -257,21 +257,34 @@ public final class AtomConstructor implements TruffleObject {
    *
    * @return the parent of this atom constructor if it is a variant in a sum type, null otherwise
    */
-  public AtomConstructor getParentType() { return parentType; }
+  public AtomConstructor getParentType() {
+    return parentType;
+  }
 
   public void setParentType(AtomConstructor parent) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    if (parentType != null) throw new IllegalStateException("parent type already initialized");
     parentType = parent;
   }
 
   /**
-   * Gets the list of all variants of this constructor if this is a variant in a sum type.
+   * Gets the array of all variants of this constructor if this is a variant in a sum type.
    *
-   * @return
+   * @return the array of variants
    */
-  public List<AtomConstructor> getVariants() { return variants; }
+  public AtomConstructor[] getVariants() {
+    if (variants == null) throw new IllegalStateException("variants not initialized");
+    return variants.clone();
+  }
 
-  public void setVariants(List<AtomConstructor> variantConstructors) {
-    variants = variantConstructors;
+  /**
+   * Sets the array of all variants of this constructor when used as a sum type.
+   */
+
+  public void setVariants(AtomConstructor[] variantConstructors) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    if (variants != null) throw new IllegalStateException("variants already initialized");
+    variants = variantConstructors.clone();
   }
 
   /**
