@@ -426,11 +426,14 @@ impl Rgb {
         if let [b'#', hex_bytes @ ..] = css_hex.as_bytes() {
             let hex_color_components = match hex_bytes.len() {
                 3 => Some(Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2])),
-                6 => Some(Vector3(
-                    *array_from_slice(&hex_bytes[0..2])?,
-                    *array_from_slice(&hex_bytes[2..4])?,
-                    *array_from_slice(&hex_bytes[4..6])?,
-                )),
+                6 => {
+                    let (chunks, _) = hex_bytes.as_chunks::<2>();
+                    Some(Vector3(
+                        *array_from_slice(&chunks[0])?,
+                        *array_from_slice(&chunks[1])?,
+                        *array_from_slice(&chunks[2])?,
+                    ))
+                },
                 _ => None,
             };
             hex_color_components.and_then(|components| {
