@@ -277,14 +277,11 @@ pub struct AttachedVisualization {
 // === ComponentGroup ===
 // ======================
 
-/// A named group of components.
+/// A named group of components (language elements displayed by the Component Browser).
 ///
-/// Components are language elements displayed by the Component Browser. The components are
-/// displayed in groups, and some of the groups are defined by libraries imported into the current
-/// execution context. loaded from the 
-/// Availability and content
-/// of component groups depends on libraries imported into the current execution context. To learn
-/// more about component groups, see the [Component Browser Design
+/// Components are displayed in the Commponent Browser in groups, and such groups can be defined by
+/// libraries imported into the current execution context. To learn more about component groups,
+/// see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
