@@ -216,6 +216,7 @@ mod transparent_circle {
 mod selection_box {
     use super::*;
     ensogl_core::define_shape_system! {
+        pointer_events = false;
         (style:Style) {
             Rect((150.0.px(), list_view::entry::HEIGHT.px())).corners_radius(5.0.px()).fill(color::Rgba::red()).into()
         }

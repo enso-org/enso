@@ -16,7 +16,7 @@
 //! we gradually reduce the size of the shadow so that it will never be rendered outside the
 //! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
-#![recursion_limit = "512"]
+#![recursion_limit = "1024"]
 // === Features ===
 #![feature(option_result_contains)]
 // === Standard Linter Configuration ===
@@ -98,6 +98,7 @@ pub mod background {
 
     ensogl::define_shape_system! {
         below = [list_view::background];
+        pointer_events = false;
         (style:Style, color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
@@ -105,6 +106,18 @@ pub mod background {
     }
 }
 
+pub mod selected_background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        below = [list_view::background];
+        pointer_events = false;
+        (style:Style, color:Vector4) {
+            let color = Var::<color::Rgba>::from(color);
+            Plane().fill(color).into()
+        }
+    }
+}
 
 // === Header Background ===
 
@@ -115,6 +128,34 @@ pub mod header_background {
 
     ensogl::define_shape_system! {
         above = [background, list_view::background];
+        pointer_events = false;
+        (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
+            let color = Var::<color::Rgba>::from(color);
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = height.into();
+            let bg = Rect((width.clone(), height.clone())).fill(color);
+            // We use wider and shorter rect for the shadow because of the visual artifacts that
+            // will appear otherwise:
+            // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
+            //    it we keep the shadow sharp and flat for the whole width of the header.
+            // 2. Visual glitching similar to z-fighting occurs on the border of the elements
+            //    when the shadow rect has the exact same size as the background. We shrink the
+            //    height by 1 pixel to avoid it.
+            let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
+            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
+            shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
+            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
+            (shadow + bg).into()
+        }
+    }
+}
+
+pub mod selected_header_background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        above = [background, list_view::background];
+        pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
@@ -149,7 +190,7 @@ pub mod header_overlay {
         above = [background];
         () {
             let bg_color = HOVER_COLOR;
-            Plane().fill(bg_color).into()
+            Plane().fill(color::Rgba(1.0, 0.0, 0.0, 0.5)).into()
         }
     }
 }
@@ -384,10 +425,11 @@ impl component::Frp<Model> for Frp {
             is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
+            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            deselect_header <- model.entries.selected_entry.filter_map(|entry| *entry);
-            out.is_header_selected <+ bool(&deselect_header, &select_header);
+            out.is_header_selected <+ bool(&mouse_moved_beyond_header, &select_header).on_change();
+            trace out.is_header_selected;
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with4(
@@ -484,11 +526,11 @@ pub struct Model {
     header:                     text::Area,
     selected_header:            text::Area,
     header_background:          header_background::View,
-    selected_header_background: header_background::View,
+    selected_header_background: selected_header_background::View,
     header_text:                Rc<RefCell<String>>,
     header_overlay:             header_overlay::View,
     background:                 background::View,
-    selected_background:        background::View,
+    selected_background:        selected_background::View,
     selected_entries:           list_view::ListView<Entry>,
     entries:                    list_view::ListView<Entry>,
 }
@@ -509,11 +551,11 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
-        let selected_background = background::View::new(&logger);
+        let selected_background = selected_background::View::new(&logger);
         let selected_color = color::Rgba(0.8, 0.7, 0.6, 1.0);
         selected_background.color.set(selected_color.into());
         let header_background = header_background::View::new(&logger);
-        let selected_header_background = header_background::View::new(&logger);
+        let selected_header_background = selected_header_background::View::new(&logger);
         selected_header_background.color.set(selected_color.into());
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
@@ -659,7 +701,9 @@ impl Model {
         if is_header_selected {
             Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0 - header_pos)
         } else {
-            self.entries.position().xy() + entries_selection_position
+            let sel_y = entries_selection_position.y.min(size.y / 2.0 - list_view::entry::HEIGHT - header_pos);
+            let selection_pos = self.entries.position().xy() + Vector2(entries_selection_position.x, sel_y);
+            selection_pos
         }
     }
 }
