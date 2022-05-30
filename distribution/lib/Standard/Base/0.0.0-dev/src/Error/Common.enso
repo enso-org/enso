@@ -394,7 +394,7 @@ type Panic
     throw_wrapped_if_error ~value =
         if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
 
-    ## Catch any Wrapped_Dataflow_Error Panic and rethrow as a dataflow error
+    ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
 
        Arguments:
        - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
