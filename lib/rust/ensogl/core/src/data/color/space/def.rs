@@ -433,7 +433,7 @@ impl Rgb {
                         *array_from_slice(&chunks[1])?,
                         *array_from_slice(&chunks[2])?,
                     ))
-                },
+                }
                 _ => None,
             };
             hex_color_components.and_then(|components| {
