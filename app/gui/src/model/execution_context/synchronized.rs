@@ -364,6 +364,10 @@ pub mod test {
             };
             let stack_item = language_server::StackItem::ExplicitCall(root_frame);
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
+            let component_groups = language_server::response::GetComponentGroups {
+                component_groups: data.ls_component_groups.clone(),
+            };
+            expect_call!(ls.get_component_groups(id) => Ok(component_groups));
         }
 
         /// Generates a mock update for a random expression id.
@@ -535,31 +539,29 @@ pub mod test {
         fn library_component(name: &str) -> language_server::LibraryComponent {
             language_server::LibraryComponent { name: name.to_string(), shortcut: None }
         }
-        let sample_ls_response = response::GetComponentGroups {
-            component_groups: vec![
-                language_server::LibraryComponentGroup {
-                    library: "local.Unnamed_10".to_string(),
-                    group:   "Test Group 1".to_string(),
-                    color:   Some("#C047AB".to_string()),
-                    icon:    None,
-                    exports: vec![
-                        library_component("Standard.Base.System.File.new"),
-                        library_component("local.Unnamed_10.Main.main"),
-                    ],
-                },
-                language_server::LibraryComponentGroup {
-                    library: "Standard.Base".to_string(),
-                    group:   "Input".to_string(),
-                    color:   None,
-                    icon:    None,
-                    exports: vec![library_component("Standard.Base.System.File.new")],
-                },
-            ],
-        };
-        let Fixture { mut test, context, .. } = Fixture::new_customized(|ls, data| {
-            let id = data.context_id;
-            expect_call!(ls.get_component_groups(id) => Ok(sample_ls_response));
-        });
+        let sample_ls_component_groups = vec![
+            language_server::LibraryComponentGroup {
+                library: "local.Unnamed_10".to_string(),
+                group:   "Test Group 1".to_string(),
+                color:   Some("#C047AB".to_string()),
+                icon:    None,
+                exports: vec![
+                    library_component("Standard.Base.System.File.new"),
+                    library_component("local.Unnamed_10.Main.main"),
+                ],
+            },
+            language_server::LibraryComponentGroup {
+                library: "Standard.Base".to_string(),
+                group:   "Input".to_string(),
+                color:   None,
+                icon:    None,
+                exports: vec![library_component("Standard.Base.System.File.new")],
+            },
+        ];
+        let mut mock_data = MockData::new();
+        mock_data.ls_component_groups = sample_ls_component_groups;
+        let fixture = Fixture::new_customized_with_data(mock_data, |_, _| {});
+        let Fixture { mut test, context, .. } = fixture;
         test.run_task(async move {
             let groups = context.model.available_component_groups.borrow();
             assert_eq!(groups.len(), 2);

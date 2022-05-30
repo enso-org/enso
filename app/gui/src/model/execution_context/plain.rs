@@ -259,15 +259,17 @@ pub mod test {
 
     use double_representation::definition::DefinitionName;
     use double_representation::project;
+    use engine_protocol::language_server;
 
     #[derive(Clone, Derivative)]
     #[derivative(Debug)]
     pub struct MockData {
-        pub module_path:     model::module::Path,
-        pub context_id:      model::execution_context::Id,
-        pub root_definition: DefinitionName,
-        pub namespace:       String,
-        pub project_name:    String,
+        pub module_path:         model::module::Path,
+        pub context_id:          model::execution_context::Id,
+        pub root_definition:     DefinitionName,
+        pub namespace:           String,
+        pub project_name:        String,
+        pub ls_component_groups: Vec<language_server::LibraryComponentGroup>,
     }
 
     impl Default for MockData {
@@ -279,11 +281,12 @@ pub mod test {
     impl MockData {
         pub fn new() -> MockData {
             MockData {
-                context_id:      model::execution_context::Id::new_v4(),
-                module_path:     crate::test::mock::data::module_path(),
-                root_definition: crate::test::mock::data::definition_name(),
-                namespace:       crate::test::mock::data::NAMESPACE_NAME.to_owned(),
-                project_name:    crate::test::mock::data::PROJECT_NAME.to_owned(),
+                context_id:          model::execution_context::Id::new_v4(),
+                module_path:         crate::test::mock::data::module_path(),
+                root_definition:     crate::test::mock::data::definition_name(),
+                namespace:           crate::test::mock::data::NAMESPACE_NAME.to_owned(),
+                project_name:        crate::test::mock::data::PROJECT_NAME.to_owned(),
+                ls_component_groups: vec![],
             }
         }
 
