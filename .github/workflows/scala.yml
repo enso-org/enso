@@ -352,10 +352,12 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso.bat --ir-caches --run test/Image_Tests
 
       - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: dorny/test-reporter@v1
         if: always()
         with:
-          files: "test-results/**/*.xml"
+          name: Enso Tests
+          path: "test-results/**/*.xml"
+          reporter: java-junit
 
       # Publish
       - name: Compress the built artifacts for upload
