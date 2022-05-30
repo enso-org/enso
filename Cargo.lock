@@ -1970,6 +1970,7 @@ name = "enso-integration-test"
 version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
+ "engine-protocol",
  "enso-frp",
  "enso-gui",
  "enso-prelude",
