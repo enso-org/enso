@@ -21,14 +21,14 @@ make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 make_partially_sorted_vec : Integer -> Base.Vector.Vector
 make_partially_sorted_vec n =
     random_gen = Random.new n
-    direction = Ref.new Sort_Order.Ascending
+    direction = Ref.new Sort_Direction.Ascending
     last_num = Ref.new 0
     run_length = Ref.new 0
     Base.Vector.fill n <|
         case (run_length.get) == 0 of
             True ->
-                new_direction = if random_gen.nextDouble > 0 then Sort_Order.Ascending else
-                    Sort_Order.Descending
+                new_direction = if random_gen.nextDouble > 0 then Sort_Direction.Ascending else
+                    Sort_Direction.Descending
                 direction.put new_direction
                 run_length.put ((random_gen.nextLong % (n / 10).floor) - 1)
                 num = random_gen.nextInt
@@ -37,11 +37,11 @@ make_partially_sorted_vec n =
             False ->
                 change = random_gen.nextInt.abs % n
                 num = case direction.get of
-                    Sort_Order.Ascending ->
+                    Sort_Direction.Ascending ->
                         num = last_num.get + change
                         last_num.put num
                         num
-                    Sort_Order.Descending ->
+                    Sort_Direction.Descending ->
                         num = (last_num.get) - change
                         last_num.put num
                         num
@@ -59,10 +59,10 @@ main =
     comparator = l -> r -> r.compare_to l
 
     Bench.measure (sorted_vec.sort) "Already Sorted" here.iter_size here.num_iterations
-    Bench.measure (sorted_vec.sort order=Sort_Order.Descending) "Sorted in Opposite Order" here.iter_size here.num_iterations
+    Bench.measure (sorted_vec.sort order=Sort_Direction.Descending) "Sorted in Opposite Order" here.iter_size here.num_iterations
     Bench.measure (partially_sorted_vec.sort) "Sorted Runs Ascending" here.iter_size here.num_iterations
-    Bench.measure (partially_sorted_vec.sort order=Sort_Order.Descending) "Sorted Runs Descending" here.iter_size here.num_iterations
+    Bench.measure (partially_sorted_vec.sort order=Sort_Direction.Descending) "Sorted Runs Descending" here.iter_size here.num_iterations
     Bench.measure (random_vec.sort) "Random Elements Ascending" here.iter_size here.num_iterations
-    Bench.measure (random_vec.sort order=Sort_Order.Descending) "Random Elements Descending" here.iter_size here.num_iterations
+    Bench.measure (random_vec.sort order=Sort_Direction.Descending) "Random Elements Descending" here.iter_size here.num_iterations
     Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" here.iter_size here.num_iterations
     Bench.measure (random_vec.sort by=comparator) "Sorting with a Custom Comparison" here.iter_size here.num_iterations
