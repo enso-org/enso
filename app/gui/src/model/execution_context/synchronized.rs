@@ -77,7 +77,7 @@ impl ExecutionContext {
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
             this.load_component_groups().await?;
-            info!(this.logger, "Loaded the component groups.");
+            info!(this.logger, "Loaded component groups.");
             Ok(this)
         }
     }
