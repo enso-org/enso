@@ -248,8 +248,8 @@ fn init(app: &Application) {
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
-    let second_component_group = create_component_group(app, group_name, &layers);
-    second_component_group.set_dimmed(true);
+    //let second_component_group = create_component_group(app, group_name, &layers);
+    //second_component_group.set_dimmed(true);
 
     scroll_area.content().add_child(&first_component_group);
     //scroll_area.content().add_child(&second_component_group);
@@ -268,7 +268,6 @@ fn init(app: &Application) {
     first_component_group.add_child(&selection);
 
     let selection_animation = Animation::<Vector2>::new(&network);
-
     frp::extend! { network
         selection_animation.target <+ first_component_group.selection_position_target;
         eval selection_animation.value ((pos) selection.set_position_xy(*pos));
@@ -316,7 +315,7 @@ fn init(app: &Application) {
         color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
-        second_component_group.set_color <+ color;
+        //second_component_group.set_color <+ color;
     }
     init.emit(());
 
@@ -330,6 +329,6 @@ fn init(app: &Application) {
     std::mem::forget(selection);
     std::mem::forget(network);
     std::mem::forget(first_component_group);
-    std::mem::forget(second_component_group);
+    //std::mem::forget(second_component_group);
     std::mem::forget(layers);
 }

@@ -322,6 +322,7 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
+        visible_entries(Range<entry::Id>),
         selected_entry(Option<entry::Id>),
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
@@ -632,6 +633,8 @@ where E::Model: Default
             _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries, (view, _, _, style))
                 model.set_entries(entries.clone_ref(), view, style.into())
             ));
+            frp.source.visible_entries <+ all_with(&view_info, &frp.set_entries, f!([](view, provider) Model::<E>::visible_entries(view, provider.entry_count())));
+            //trace frp.source.visible_entries;
 
             frp.source.selection_position_target <+ all_with4(
                 &selection_y.target,

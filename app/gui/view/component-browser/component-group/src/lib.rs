@@ -414,6 +414,11 @@ impl component::Frp<Model> for Frp {
             model.entries.set_entries <+ input.set_entries;
             model.selected_entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
+            eval model.entries.visible_entries([model](range) {
+                if model.entries.selected_entry.value().map_or(false, |e| e <= range.start) {
+                    model.entries.select_entry(range.start + 1);
+                }
+            });
         }
 
 
@@ -567,7 +572,7 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         selected_entries.set_style_prefix(entry::STYLE_PATH);
-        selected_entries.set_background_color(HOVER_COLOR);
+        selected_entries.set_background_color(color::Rgba::transparent());
         selected_entries.show_background_shadow(false);
         selected_entries.set_background_corners_radius(0.0);
         selected_entries.hide_selection();
