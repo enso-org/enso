@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::module::QualifiedName as ModuleQualifiedName;
-use crate::model::suggestion_database::entry::QualifiedName as SuggestionQualifiedName;
+use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use engine_protocol::language_server;
@@ -289,7 +289,7 @@ pub struct ComponentGroup {
     pub name:       ImString,
     /// An optional color to use when displaying the component group.
     pub color:      Option<color::Rgb>,
-    pub components: Vec<SuggestionQualifiedName>,
+    pub components: Vec<suggestion::QualifiedName>,
 }
 
 impl ComponentGroup {
