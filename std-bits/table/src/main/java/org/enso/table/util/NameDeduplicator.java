@@ -25,9 +25,7 @@ public class NameDeduplicator {
   }
 
   public List<String> makeUnique(List<String> names) {
-    return names.stream()
-        .map(this::makeUnique)
-        .collect(Collectors.toList());
+    return names.stream().map(this::makeUnique).collect(Collectors.toList());
   }
 
   public String makeUnique(String name) {

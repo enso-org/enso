@@ -107,8 +107,8 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
             if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
                 if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
-                    if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names java_problem.duplicatedNames else
-                        if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names java_problem.invalidNames else
+                    if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames) else
+                        if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames) else
                             java_problem
 
     translate_illegal_argument caught_panic =

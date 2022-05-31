@@ -166,7 +166,7 @@ public class DelimitedReader {
 
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
-    if (cell == null) return COLUMN_NAME;
+    if (cell == null) return null;
     return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
