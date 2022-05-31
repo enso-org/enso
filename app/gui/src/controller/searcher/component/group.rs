@@ -1,4 +1,5 @@
 use crate::controller::searcher::component::Component;
+use crate::model::execution_context;
 use crate::model::suggestion_database;
 use crate::prelude::*;
 
@@ -35,10 +36,11 @@ impl Group {
         group: execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Self {
-        let entries = group.components.filter_map(|qualified_name| {
+        let components = group.components.iter().filter_map(|qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
             Some(Component { suggestion_id: Immutable(id), suggestion, match_info: default() })
         });
+        let entries = RefCell::new(components.collect());
         let data = Data { name: group.name, visible: Cell::new(true), entries };
         Self { data: Rc::new(data) }
     }

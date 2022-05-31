@@ -189,7 +189,7 @@ impl ListBuilder {
         let suggestion_db = &self.suggestion_db;
         let favorites = groups
             .into_iter()
-            .filter_map(|g| component::Group::from_execution_context_component_group(g));
+            .map(|g| Group::from_execution_context_component_group(g, suggestion_db));
         self.favorites.extend(favorites);
     }
 
@@ -310,7 +310,7 @@ mod tests {
         let logger = Logger::new("tests::favorites_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let mut builder = ListBuilder::new(suggestion_db);
-        builder.add_favorites(&[
+        builder.add_favorites([
             execution_context::ComponentGroup {
                 name:       "Test Group 1".into(),
                 color:      color::Rgb::from_css_hex("#aabbcc"),
