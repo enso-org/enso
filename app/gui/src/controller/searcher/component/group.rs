@@ -5,6 +5,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct Data {
     pub name:    ImString,
+    // FIXME[mc]: add color
     pub entries: RefCell<Vec<Component>>,
     pub visible: Cell<bool>,
 }
