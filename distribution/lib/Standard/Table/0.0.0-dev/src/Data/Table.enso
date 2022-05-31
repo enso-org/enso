@@ -16,7 +16,7 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
-from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
 import Standard.Table.Data.Column_Mapping
@@ -283,7 +283,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -332,7 +332,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -381,7 +381,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Swap the first two columns.
@@ -408,7 +408,8 @@ type Table
        `Text`.
 
        Arguments:
-       - sort_method: The sort methodology to use.
+       - direction: Whether sorting should be in ascending or descending order.
+       - text_ordering: The sort methodology to use.
 
        > Example
          Sort columns according to the default ordering.
@@ -418,15 +419,15 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
+             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns (Sort_Method order=Sort_Order.Descending)
-    sort_columns : Sort_Method -> Table
-    sort_columns (sort_method = Sort_Method.new) =
-        new_columns = Table_Helpers.sort_columns internal_columns=this.columns sort_method
+             table.reorder_columns Sort_Direction.Descending
+    sort_columns : Sort_Direction -> Text_Ordering -> Table
+    sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+        new_columns = Table_Helpers.sort_columns internal_columns=this.columns direction text_ordering
         here.new new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
@@ -898,7 +899,7 @@ type Table
 
              example_sort =
                 table = Examples.inventory_table
-                table.sort by="price" order=Sort_Order.Descending missing_last=false
+                table.sort by="price" order=Sort_Direction.Descending missing_last=false
 
        > Example
          Sort the shop inventory based on the total stock, using the number sold
@@ -908,7 +909,7 @@ type Table
 
              example_sort =
                  table = Examples.inventory_table
-                 table.sort by=["total_stock", "sold_stock"] order=Sort_Order.Descending
+                 table.sort by=["total_stock", "sold_stock"] order=Sort_Direction.Descending
 
        > Example
          Sort the shop inventory in ascending order by the total stock, using
@@ -919,7 +920,7 @@ type Table
 
              example_sort =
                  table = Examples.inventory_table
-                 sold_stock_rule = Table.Order_Rule "sold_stock" order=Sort_Order.Descending
+                 sold_stock_rule = Table.Order_Rule "sold_stock" order=Sort_Direction.Descending
                  table.sort by=["total_stock", sold_stock_rule]
 
        > Example
@@ -933,7 +934,7 @@ type Table
              example_sort =
                  table = Examples.inventory_table.join Examples.popularity_table
                  percentage_sold = table.at "sold_stock" / table.at "total_stock"
-                 table.sort by=[percentage_sold, "popularity"] order=Sort_Order.Descending
+                 table.sort by=[percentage_sold, "popularity"] order=Sort_Direction.Descending
 
        > Example
          Sort the inventory by the price using a custom comparator function.
@@ -946,8 +947,8 @@ type Table
                  comparator a b = a.compare_to b*2
                  price_rule = Table.Order_Rule "price" comparator=comparator
                  table.sort by=price_rule
-    sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover Any <|
+    sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
+    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
         rules = this.build_java_order_rules by order missing_last
         fallback_cmp = here.comparator_to_java .compare_to
         mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp
@@ -962,7 +963,7 @@ type Table
        - rules: The rule(s) to convert.
        - order: The sorting order.
        - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rules : (Text | Column.Column. | Order_Rule | Vector (Text | Column.Column | Order_Rule)) -> Sort_Order -> Boolean -> Vector
+    build_java_order_rules : (Text | Column.Column. | Order_Rule | Vector (Text | Column.Column | Order_Rule)) -> Sort_Direction -> Boolean -> Vector
     build_java_order_rules rules order missing_last = case rules of
         Text -> [this.build_java_order_rule rules order missing_last]
         Column.Column _ -> [this.build_java_order_rule rules order missing_last]
@@ -977,11 +978,11 @@ type Table
        - rule: The rule to convert.
        - order: The sort order.
        - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rule : (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> OrderRule
+    build_java_order_rule : (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> OrderRule
     build_java_order_rule rule order missing_last =
         order_bool = case order of
-            Sort_Order.Ascending -> True
-            Sort_Order.Descending -> False
+            Sort_Direction.Ascending -> True
+            Sort_Direction.Descending -> False
         case rule of
             Text ->
                 column = Panic.rethrow (this.at rule)
@@ -994,8 +995,8 @@ type Table
                     Column.Column c -> c
                 o = case rule_order of
                     Nothing -> order_bool
-                    Sort_Order.Ascending -> True
-                    Sort_Order.Descending -> False
+                    Sort_Direction.Ascending -> True
+                    Sort_Direction.Descending -> False
                 nulls = case rule_nulls_last of
                     Nothing -> missing_last
                     _ -> rule_nulls_last

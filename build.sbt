@@ -987,6 +987,10 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
     frgaalJavaCompilerSetting,
+    Compile / javacOptions := ((Compile / javacOptions).value ++
+      // Only run ServiceProvider processor and ignore those defined in META-INF, thus
+      // fixing incremental compilation setup
+      Seq("-processor", "org.netbeans.modules.openide.util.ServiceProviderProcessor")),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3"           % commonsLangVersion,
       "org.netbeans.api"   % "org-openide-util-lookup" % "RELEASE130"
