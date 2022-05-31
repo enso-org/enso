@@ -33,7 +33,6 @@ bit_field = { version = "0.10.0" }
 console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }
 failure = { version = "0.1.5" }
-hex = { version = "0.4.2" }
 Inflector = { version = "0.11.4" }
 itertools = { version = "0.10.0" }
 js-sys = { version = "0.3.28" }

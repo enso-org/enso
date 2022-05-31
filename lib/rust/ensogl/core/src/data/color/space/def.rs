@@ -457,6 +457,27 @@ impl Rgb {
     }
 }
 
+
+// === Rgb Helpers ===
+
+fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
+    let first_digit_value = hex_digit_value(s[0])?;
+    let second_digit_value = hex_digit_value(s[1])?;
+    Some(first_digit_value << 4 | second_digit_value)
+}
+
+fn hex_digit_value(digit: u8) -> Option<u8> {
+    match digit {
+        b'A'..=b'F' => Some(digit - b'A' + 10),
+        b'a'..=b'f' => Some(digit - b'a' + 10),
+        b'0'..=b'9' => Some(digit - b'0'),
+        _ => None,
+    }
+}
+
+
+// === Rgba ===
+
 impl Rgba {
     /// Constructor.
     pub fn black() -> Self {
@@ -913,9 +934,4 @@ fn generic_parse(s: &str) -> Result<(String, Vec<f32>), ParseError> {
             }
         },
     }
-}
-
-fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
-    let array = <[u8; 1] as hex::FromHex>::from_hex(s);
-    array.map(|a| a[0]).ok()
 }

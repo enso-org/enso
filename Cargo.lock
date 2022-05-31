@@ -2279,7 +2279,6 @@ dependencies = [
  "ensogl-text-msdf-sys",
  "enum_dispatch",
  "failure",
- "hex",
  "itertools 0.10.3",
  "js-sys",
  "nalgebra 0.26.2",
