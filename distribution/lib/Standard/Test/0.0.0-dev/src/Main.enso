@@ -1,4 +1,4 @@
-from Standard.Base import Any, Nothing, Environment, Nil, Cons, Panic, Meta, IO, True, False, Number, Text, Error, Decimal, Boolean, Runtime, Source_Location, File
+from Standard.Base import all
 import Standard.Base.Data.Time
 import Standard.Base.Runtime.State
 import Standard.Base.System
@@ -53,7 +53,8 @@ find_caller_script stack =
     find_caller idx =
         source = stack.at idx . source_location
         if source.is_a Source_Location then stack.at idx . source_location . file else
-            @Tail_Call find_caller (idx + 1)
+            if (idx + 1 == stack.length) then Nothing else
+                @Tail_Call find_caller (idx + 1)
 
     find_caller (main_index + 1)
 
@@ -700,13 +701,13 @@ fail_match_on_unexpected_error error frames_to_skip =
 wrap_junit_testsuites : Suite_Config -> Any -> Nothing
 wrap_junit_testsuites config ~action =
     if config.should_output_junit then
-        config.builder.append '<?xml version="1.0" encoding="UTF-8"?>'
-        config.builder.append '<testsuites>'
+        config.builder.append '<?xml version="1.0" encoding="UTF-8"?>\n'
+        config.builder.append '<testsuites>\n'
 
-    result = function
+    result = action
 
     if config.should_output_junit then
-        config.builder.append '</testsuites>'
+        config.builder.append '</testsuites>\n'
         config.output_path.parent.create_directory
         config.output_path.write_text config.builder.toString
 
@@ -718,9 +719,9 @@ wrap_junit_testsuites config ~action =
 report_pending_group : Text -> Text -> Suite_Config -> Nothing
 report_pending_group name reason config =
     if config.should_output_junit then
-        config.builder.append ('<testsuite name="' + name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">')
-        config.builder.append ('<testcase name="' + name + '"><skipped message="' + (reason.replace '"' '&quot;') + '" /></testcase>')
-        config.builder.append '</testsuite>'
+        config.builder.append ('    <testsuite name="' + (here.escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        config.builder.append ('        <testcase name="' + (here.escape_xml name) + '"><skipped message="' + (here.escape_xml reason) + '" /></testcase>\n')
+        config.builder.append '    </testsuite>\n'
 
     IO.println ("[PENDING] " + name)
     IO.println ("    Reason: " + reason)
@@ -731,20 +732,20 @@ report_pending_group name reason config =
 Spec.print_report : Suite_Config -> Nothing
 Spec.print_report config =
     if config.should_output_junit then
-        config.builder.append ('<testsuite name="' + this.name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        config.builder.append ('    <testsuite name="' + (here.escape_xml this.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         config.builder.append (' tests="' + this.behaviors.length.to_text + '"')
         config.builder.append (' disabled="' + this.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
         config.builder.append (' errors="' + this.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
-        config.builder.append ('>')
+        config.builder.append ('>\n')
 
         this.behaviors.reverse.each behavior->
-            config.builder.append ('<testcase name="' + behavior.name + '">')
+            config.builder.append ('        <testcase name="' + (here.escape_xml behavior.name) + '">')
             case behavior.result of
                 Success -> Nothing
-                Failure msg -> config.builder.append ('<error message="' + (msg.replace '"' '&quot;') + '"/>')
-                Pending msg -> config.builder.append ('<skipped message="' + (msg.replace '"' '&quot;') + '"/>')
-            config.builder.append '</testcase>'
-        config.builder.append '</testsuite>'
+                Failure msg -> config.builder.append ('\n            <error message="' + (here.escape_xml msg) + '"/>\n        ')
+                Pending msg -> config.builder.append ('\n            <skipped message="' + (here.escape_xml msg) + '"/>\n        ')
+            config.builder.append '</testcase>\n'
+        config.builder.append '    </testsuite>\n'
 
     IO.println (this.name + ":")
     this.behaviors.reverse.each behavior->
@@ -757,3 +758,10 @@ Spec.print_report config =
             Pending reason ->
                 IO.println ("    - [PENDING] " + behavior.name)
                 IO.println ("        Reason: " + reason)
+
+
+## PRIVATE
+   Escape Text for XML
+escape_xml : Text -> Text
+escape_xml input =
+    input.replace '&' '&amp;' . replace '"' '&quot;' . replace "'" '&apos;' . replace '<' '&lt;' . replace '>' '&gt;'
