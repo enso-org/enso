@@ -76,8 +76,10 @@ impl ExecutionContext {
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
-            this.load_component_groups().await?;
-            info!(this.logger, "Loaded component groups.");
+            match this.load_component_groups().await {
+                Ok(_) => info!(this.logger, "Loaded component groups."),
+                Err(err) => error!(this.logger, "Failed to load component groups: {err}"),
+            }
             Ok(this)
         }
     }
