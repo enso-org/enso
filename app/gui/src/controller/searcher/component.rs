@@ -11,6 +11,8 @@ use engine_protocol::language_server::SuggestionId;
 use js_sys::Atomics::sub;
 use std::collections::hash_map::Entry;
 
+pub type Id = suggestion_database::entry::Id;
+
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
@@ -27,9 +29,9 @@ impl Default for MatchInfo {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
-    pub suggestion_id: Immutable<suggestion_database::entry::Id>,
-    pub suggestion:    Rc<suggestion_database::Entry>,
-    pub match_info:    Rc<RefCell<MatchInfo>>,
+    pub id:         Immutable<Id>,
+    pub suggestion: Rc<suggestion_database::Entry>,
+    pub match_info: Rc<RefCell<MatchInfo>>,
 }
 
 impl Component {
@@ -71,7 +73,7 @@ pub struct List {
     pub all_components:        Vec<Component>,
     pub top_modules:           group::List,
     pub top_modules_flattened: group::List,
-    pub module_groups:         HashMap<suggestion_database::entry::Id, ModuleGroups>,
+    pub module_groups:         HashMap<Id, ModuleGroups>,
     pub filtered:              Cell<bool>,
 }
 
@@ -84,8 +86,8 @@ impl List {
         }
     }
 
-    pub fn submodules_of(&self, component: &Component) -> Option<&group::List> {
-        self.module_groups.get(&*component.suggestion_id).map(|mg| &mg.subgroups)
+    pub fn submodules_of(&self, component: Id) -> Option<&group::List> {
+        self.module_groups.get(&component).map(|mg| &mg.subgroups)
     }
 
     pub fn update_filtering(&self, pattern: impl Str) {
@@ -114,15 +116,15 @@ pub struct ModuleGroupsBuilder {
 }
 
 impl ModuleGroupsBuilder {
-    fn new(module: &suggestion_database::Entry) -> Self {
+    fn new(component_id: Id, entry: &suggestion_database::Entry) -> Self {
         Self {
-            group:           Group::from_entry(module),
-            flattened_group: module
+            group:           Group::from_entry(component_id, entry),
+            flattened_group: entry
                 .module
                 .is_top_module()
-                .as_some_from(|| Group::from_entry(module)),
+                .as_some_from(|| Group::from_entry(component_id, entry)),
             subgroups:       default(),
-            is_top_module:   module.module.is_top_module(),
+            is_top_module:   entry.module.is_top_module(),
         }
     }
 
@@ -135,7 +137,7 @@ impl ModuleGroupsBuilder {
 pub struct ListBuilder {
     pub suggestion_db:  Rc<model::SuggestionDatabase>,
     pub all_components: Vec<Component>,
-    pub module_groups:  HashMap<suggestion_database::entry::Id, ModuleGroupsBuilder>,
+    pub module_groups:  HashMap<Id, ModuleGroupsBuilder>,
 }
 
 impl ListBuilder {
@@ -143,17 +145,17 @@ impl ListBuilder {
         Self { suggestion_db, all_components: default(), module_groups: default() }
     }
 
-    pub fn extend(&mut self, entries: impl IntoIterator<Item = suggestion_database::entry::Id>) {
+    pub fn extend(&mut self, entries: impl IntoIterator<Item = Id>) {
         let suggestion_db = self.suggestion_db.clone_ref();
         let components = entries.into_iter().filter_map(|id| {
             Some(Component {
-                suggestion_id: Immutable(id),
-                suggestion:    suggestion_db.lookup(id).ok()?,
-                match_info:    default(),
+                id:         Immutable(id),
+                suggestion: suggestion_db.lookup(id).ok()?,
+                match_info: default(),
             })
         });
         for component in components {
-            DEBUG!("Putting component {component.suggestion_id:?}");
+            DEBUG!("Putting component {component.id:?}");
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
                 DEBUG!("Found parent module: {parent_module:?}");
@@ -188,9 +190,12 @@ impl ListBuilder {
         if self.module_groups.contains_key(&module_id) {
             self.module_groups.get_mut(&module_id)
         } else {
-            let groups = ModuleGroupsBuilder::new(&*db_entry);
+            DEBUG!("Creating new ModuleGroupsBuilder for {module} ({module_id})");
+            let groups = ModuleGroupsBuilder::new(module_id, &*db_entry);
             if let Some(module) = module.parent_module() {
+                DEBUG!("The parent module is {module}");
                 if let Some(parent_groups) = self.lookup_module_group(&module) {
+                    DEBUG!("Found Parent Groups");
                     parent_groups.subgroups.push(groups.group.clone_ref())
                 }
             }
@@ -260,11 +265,13 @@ mod tests {
         let top_module_2 = mock_module("test.Test.TopModule2");
         let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
         let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
-        let sub_module_3 = mock_module("test.Test.TopModule2.SubModule3");
+        let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
         let fun1 = mock_function(&top_module_1.module, "fun1");
         let fun2 = mock_function(&top_module_1.module, "fun2");
-        let fun3 = mock_function(&sub_module_1.module, "fun3");
-        let fun4 = mock_function(&sub_module_2.module, "fun4");
+        let fun3 = mock_function(&top_module_2.module, "fun3");
+        let fun4 = mock_function(&sub_module_1.module, "fun4");
+        let fun5 = mock_function(&sub_module_2.module, "fun5");
+        let fun6 = mock_function(&sub_module_3.module, "fun6");
         let all_entries = [
             top_module_1,
             top_module_2,
@@ -275,6 +282,8 @@ mod tests {
             fun2,
             fun3,
             fun4,
+            fun5,
+            fun6,
         ];
 
         let suggestion_db = model::SuggestionDatabase::new_empty(logger);
@@ -289,16 +298,36 @@ mod tests {
         let logger = Logger::new("tests::module_groups_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let mut builder = ListBuilder::new(suggestion_db);
-        let first_part = (0..3).chain(6..9);
+        let first_part = (0..3).chain(6..11);
         let second_part = 3..6;
         builder.extend(first_part);
         builder.extend(second_part);
         let list = builder.build();
         let top_modules = list.top_modules();
-        assert_eq!(top_modules.len(), 2);
-        assert_eq!(top_modules[0].name, "test.Test.TopModule1");
-        assert_eq!(top_modules[1].name, "test.Test.TopModule2");
+        let top_module_names = top_modules.iter().map(|m| m.name.as_str()).collect_vec();
+        let expected_top_modules = vec!["test.Test.TopModule1", "test.Test.TopModule2"];
+        assert_eq!(top_module_names, expected_top_modules);
 
-        assert_eq!(top_modules[0].entries.borrow()[0].suggestion.name, "foo1");
+        let top_mod1_entries = top_modules[0].entries.borrow();
+        let top_mod1_entries_names =
+            top_mod1_entries.iter().map(|e| e.suggestion.name.as_str()).collect_vec();
+        let expected_top_mod1_entries_names = vec!["SubModule1", "fun2", "SubModule2", "fun1"];
+        assert_eq!(top_mod1_entries_names, expected_top_mod1_entries_names);
+
+        let top_mod1_id =
+            top_modules[0].component_id.expect("TopModule1 should have assigned component id.");
+        let top_mod1_submodules = list.submodules_of(top_mod1_id).expect("Expected submodules.");
+        let top_mod1_submodules_names =
+            top_mod1_submodules.iter().map(|g| g.name.as_str()).collect_vec();
+        let expected_top_mod1_submodules_names = vec!["SubModule1", "SubModule2"];
+        assert_eq!(top_mod1_submodules_names, expected_top_mod1_submodules_names);
+
+        let submod1_submodules =
+            list.submodules_of(*top_mod1_entries[2].id).expect("Expected submodules");
+        let submod1_submodules_names =
+            submod1_submodules.iter().map(|g| g.name.as_str()).collect_vec();
+        let expected_submod1_submodules_names = vec!["SubModule3"];
+        assert_eq!(submod1_submodules_names, expected_submod1_submodules_names);
+        let submod1_submodules_entries = submod1_submodules.iter().flat_map(|g| g.entries)
     }
 }

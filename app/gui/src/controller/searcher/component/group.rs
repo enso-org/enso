@@ -1,17 +1,19 @@
+use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::model::suggestion_database;
 use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Data {
-    pub name:    ImString,
-    pub entries: RefCell<Vec<Component>>,
-    pub visible: Cell<bool>,
+    pub name:         ImString,
+    pub component_id: Option<component::Id>,
+    pub entries:      RefCell<Vec<Component>>,
+    pub visible:      Cell<bool>,
 }
 
 impl Data {
-    fn new_empty_visible(name: impl Into<ImString>) -> Self {
-        Data { name: name.into(), entries: default(), visible: Cell::new(true) }
+    fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+        Data { name: name.into(), component_id, entries: default(), visible: Cell::new(true) }
     }
 }
 
@@ -21,13 +23,13 @@ pub struct Group {
 }
 
 impl Group {
-    pub fn from_entry(entry: &suggestion_database::Entry) -> Self {
+    pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
             (&entry.module).into()
         } else {
             entry.module.name().into()
         };
-        Self { data: Rc::new(Data::new_empty_visible(name)) }
+        Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
     }
 
     pub fn check_visibility(&self) {
