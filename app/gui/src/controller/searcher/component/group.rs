@@ -31,6 +31,18 @@ impl Group {
         Self { data: Rc::new(Data::new_empty_visible(name)) }
     }
 
+    pub fn from_execution_context_component_group(
+        group: execution_context::ComponentGroup,
+        suggestion_db: &model::SuggestionDatabase,
+    ) -> Self {
+        let entries = group.components.filter_map(|qualified_name| {
+            let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
+            Some(Component { suggestion_id: Immutable(id), suggestion, match_info: default() })
+        });
+        let data = Data { name: group.name, visible: Cell::new(true), entries };
+        Self { data: Rc::new(data) }
+    }
+
     pub fn check_visibility(&self) {
         let entries = self.entries.borrow();
         let filtered_out = entries.iter().filter(|c| c.is_filtered_out());
@@ -45,6 +57,10 @@ pub struct List {
 }
 
 impl List {
+    pub fn new_unsorted(groups: Vec<Group>) -> Self {
+        Self { groups: Rc::new(groups) }
+    }
+
     fn iter_visible(&self) -> impl Iterator<Item = &Group> {
         self.groups.iter().filter(|g| g.visible.get())
     }
