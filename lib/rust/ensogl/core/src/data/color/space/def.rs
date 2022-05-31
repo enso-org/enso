@@ -389,12 +389,13 @@ impl Rgb {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
-    /// Return a color if `css_hex` is a `#RGB` or `#RRGGBB` string, where `R`, `G`, `B` represent
-    /// lower- or upper-case hexadecimal digits. The RR, GG, BB color componets are mapped from [00
-    /// - ff] value range into [0.0 - 1.0] (a three-digit string `#RGB` is equivalent to a
-    /// six-digit string `#RRGGBB` constructed by duplicating the digits).
+    /// Return a color if the argument is a string matching a `#RGB` or `#RRGGBB` format, where
+    /// `R`, `G`, `B` represent lower- or upper-case hexadecimal digits. The `RR`, `GG`, `BB` color
+    /// componets are mapped from `[00 - ff]` value range into `[0.0 - 1.0]` (a three-digit string
+    /// matching a `#RGB` format is equivalent to a six-digit string matching a `#RRGGBB` format,
+    /// constructed by duplicating the digits).
     ///
-    /// The format is adapted from the hexadecimal color notation used in CSS - see:
+    /// The format is the hexadecimal color notation used in CSS - see:
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     /// ```
     /// # use assert_approx_eq::assert_approx_eq;
