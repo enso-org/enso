@@ -163,10 +163,10 @@ impl list_view::Entry for View {
                     shape.weak_color.set(color.into());
                 }
             );
-            icon_strong_color <- colors.icon_strong.sampler();
-            icon_weak_color <- colors.icon_weak.sampler();
         }
         init.emit(());
+        let icon_strong_color = colors.icon_strong.clone_ref();
+        let icon_weak_color = colors.icon_weak.clone_ref();
         Self {
             logger,
             network,
