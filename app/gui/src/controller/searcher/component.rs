@@ -2,6 +2,7 @@ pub mod group;
 
 pub use group::Group;
 
+use crate::model::execution_context;
 use crate::model::module;
 use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::Kind;
@@ -137,11 +138,17 @@ pub struct ListBuilder {
     pub suggestion_db:  Rc<model::SuggestionDatabase>,
     pub all_components: Vec<Component>,
     pub module_groups:  HashMap<suggestion_database::entry::Id, ModuleGroupsBuilder>,
+    pub favorites:      Vec<Group>,
 }
 
 impl ListBuilder {
     pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self { suggestion_db, all_components: default(), module_groups: default() }
+        Self {
+            suggestion_db,
+            all_components: default(),
+            module_groups: default(),
+            favorites: default(),
+        }
     }
 
     pub fn extend(&mut self, entries: impl IntoIterator<Item = suggestion_database::entry::Id>) {
@@ -173,6 +180,12 @@ impl ListBuilder {
                 self.all_components.push(component);
             }
         }
+    }
+
+    pub fn add_favorites(
+        &mut self,
+        groups: impl Iterator<Item = execution_context::ComponentGroup>,
+    ) {
     }
 
     fn lookup_module_group(
@@ -215,6 +228,7 @@ impl ListBuilder {
                 .into_iter()
                 .map(|(id, group)| (id, group.build()))
                 .collect(),
+            favorites:             default(),
             filtered:              default(),
         }
     }
