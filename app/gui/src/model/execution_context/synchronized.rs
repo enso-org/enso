@@ -366,7 +366,7 @@ pub mod test {
             let stack_item = language_server::StackItem::ExplicitCall(root_frame);
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
             let component_groups = language_server::response::GetComponentGroups {
-                component_groups: data.ls_component_groups.clone(),
+                component_groups: data.component_groups.clone(),
             };
             expect_call!(ls.get_component_groups(id) => Ok(component_groups));
         }
@@ -560,7 +560,7 @@ pub mod test {
             },
         ];
         let mut mock_data = MockData::new();
-        mock_data.ls_component_groups = sample_ls_component_groups;
+        mock_data.component_groups = sample_ls_component_groups;
         let fixture = Fixture::new_customized_with_data(mock_data, |_, _| {});
         let Fixture { mut test, context, .. } = fixture;
         test.run_task(async move {
