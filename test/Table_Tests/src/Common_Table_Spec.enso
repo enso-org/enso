@@ -472,7 +472,7 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             map = Column_Mapping.By_Position ["alpha", Nothing]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|

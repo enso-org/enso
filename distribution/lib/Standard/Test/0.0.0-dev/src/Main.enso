@@ -731,7 +731,12 @@ report_pending_group name reason config =
 Spec.print_report : Suite_Config -> Nothing
 Spec.print_report config =
     if config.should_output_junit then
-        config.builder.append ('<testsuite name="' + this.name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">')
+        config.builder.append ('<testsuite name="' + this.name + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        config.builder.append (' tests="' + this.behaviors.length.to_text + '"')
+        config.builder.append (' disabled="' + this.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
+        config.builder.append (' errors="' + this.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
+        config.builder.append ('>')
+
         this.behaviors.reverse.each behavior->
             config.builder.append ('<testcase name="' + behavior.name + '">')
             case behavior.result of

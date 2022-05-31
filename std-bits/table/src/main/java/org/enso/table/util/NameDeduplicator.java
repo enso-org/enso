@@ -1,5 +1,9 @@
 package org.enso.table.util;
 
+import org.enso.table.problems.Problem;
+import org.enso.table.util.problems.DuplicateNames;
+import org.enso.table.util.problems.InvalidNames;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +18,7 @@ public class NameDeduplicator {
   public String makeValid(String input) {
     if (input == null || input.isEmpty()) {
       this.invalidNames.add(input);
-    return "Column";
+      return "Column";
     }
 
     return input;
@@ -56,5 +60,16 @@ public class NameDeduplicator {
 
   public String[] getDuplicatedNames() {
     return this.duplicatedNames.toArray(String[]::new);
+  }
+
+  public List<Problem> getProblems() {
+    List<Problem> output = new ArrayList<>(2);
+    if (!this.invalidNames.isEmpty()) {
+      output.add(new InvalidNames(this.getInvalidNames()));
+    }
+    if (!this.duplicatedNames.isEmpty()) {
+      output.add(new DuplicateNames(this.getDuplicatedNames()));
+    }
+    return output;
   }
 }

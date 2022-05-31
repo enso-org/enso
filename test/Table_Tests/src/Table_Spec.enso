@@ -665,7 +665,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "Column_1"]
-            problems = [Invalid_Output_Column_Names [""]]
+            problems = [Invalid_Output_Column_Names [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|

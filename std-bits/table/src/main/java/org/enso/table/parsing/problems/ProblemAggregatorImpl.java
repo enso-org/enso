@@ -1,5 +1,7 @@
 package org.enso.table.parsing.problems;
 
+import org.enso.table.problems.Problem;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,8 +36,8 @@ public class ProblemAggregatorImpl implements ProblemAggregator {
   }
 
   @Override
-  public List<ParsingProblem> getAggregatedProblems() {
-    List<ParsingProblem> problems = new ArrayList<>();
+  public List<Problem> getAggregatedProblems() {
+    List<Problem> problems = new ArrayList<>();
 
     if (!invalidFormatCells.isEmpty()) {
       problems.add(new InvalidFormat(relatedColumnName, invalidFormatCells));
