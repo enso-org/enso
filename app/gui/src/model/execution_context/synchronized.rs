@@ -539,10 +539,13 @@ pub mod test {
     /// Language Server response and loads the result into a field of the [`ExecutionContext`].
     #[test]
     fn loading_component_groups() {
+        // Prepare sample component groups to be returned by a mock Language Server client.
         fn library_component(name: &str) -> language_server::LibraryComponent {
             language_server::LibraryComponent { name: name.to_string(), shortcut: None }
         }
         let sample_ls_component_groups = vec![
+            // A sample component group in local namespace, with non-empty color, and with exports
+            // from the local namespace as well as from the standard library.
             language_server::LibraryComponentGroup {
                 library: "local.Unnamed_10".to_string(),
                 group:   "Test Group 1".to_string(),
@@ -553,6 +556,7 @@ pub mod test {
                     library_component("local.Unnamed_10.Main.main"),
                 ],
             },
+            // A sample component group from the standard library, without a predefined color.
             language_server::LibraryComponentGroup {
                 library: "Standard.Base".to_string(),
                 group:   "Input".to_string(),
@@ -561,15 +565,20 @@ pub mod test {
                 exports: vec![library_component("Standard.Base.System.File.new")],
             },
         ];
+
+        // Create a test fixture based on the sample data.
         let mut mock_data = MockData::new();
         mock_data.component_groups = sample_ls_component_groups;
         let fixture = Fixture::new_customized_with_data(mock_data, |_, _| {});
         let Fixture { mut test, context, .. } = fixture;
+
+        // Run a test and verify that the sample component groups were parsed correctly and have
+        // expected contents.
         test.run_task(async move {
             let groups = context.model.available_component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
-            // Verify that the first group was parsed and has expected contents.
+            // Verify that the first component group was parsed and has expected contents.
             let first_group = &groups[0];
             assert_eq!(first_group.name, "Test Group 1".to_string());
             let color = first_group.color.unwrap();
@@ -581,7 +590,7 @@ pub mod test {
                 vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
             assert_eq!(first_group.components, expected_components);
 
-            // Verify that the second group was parsed and has expected contents.
+            // Verify that the second component group was parsed and has expected contents.
             assert_eq!(groups[1], ComponentGroup {
                 name:       "Input".into(),
                 color:      None,
