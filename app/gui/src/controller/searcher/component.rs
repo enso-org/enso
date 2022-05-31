@@ -241,6 +241,7 @@ mod tests {
     use super::*;
     use crate::model::suggestion_database::entry::QualifiedName;
     use engine_protocol::language_server;
+    use ensogl::data::color;
 
     use crate::test::mock;
 
@@ -297,6 +298,32 @@ mod tests {
             suggestion_db.put_entry(id, entry)
         }
         suggestion_db
+    }
+
+    #[test]
+    fn favorites_in_component_list() {
+        let logger = Logger::new("tests::favorites_in_component_list");
+        let suggestion_db = Rc::new(mock_suggestion_db(logger));
+        let mut builder = ListBuilder::new(suggestion_db);
+        builder.add_favorites(
+            [
+                execution_context::ComponentGroup {
+                    name:       "Test Group 1".into(),
+                    color:      color::Rgb::from_css_hex("#aabbcc"),
+                    components: vec![
+                        "Standard.Base.System.File.new".into(),
+                        "local.Unnamed_10.Main.main".into(),
+                    ],
+                },
+                execution_context::ComponentGroup {
+                    name:       "Input".into(),
+                    color:      None,
+                    components: vec!["Standard.Base.System.File.new".into()],
+                },
+            ]
+            .into_iter(),
+        );
+        let list = builder.build();
     }
 
     #[test]
