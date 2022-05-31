@@ -105,6 +105,13 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
             problems = [Duplicate_Column_Selectors ["foo"]]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            action = table.select_columns selector on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = By_Name.new ["foo", "hmm", weird_name]
@@ -209,6 +216,13 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name.new ["foo", "foo"]
+            action = table.remove_columns selector on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             problems = [Duplicate_Column_Selectors ["foo"]]
