@@ -408,9 +408,11 @@ impl FragmentAddedByPickingSuggestion {
 #[derive(Clone, Debug, Default)]
 pub struct Data {
     /// The current searcher's input.
-    pub input: ParsedInput,
+    pub input:   ParsedInput,
     /// The action list which should be displayed.
     pub actions: Actions,
+
+    // pub components:                 component::List,
     /// All fragments of input which were added by picking suggestions. If the fragment will be
     /// changed by user, it will be removed from this list.
     pub fragments_added_by_picking: Vec<FragmentAddedByPickingSuggestion>,
