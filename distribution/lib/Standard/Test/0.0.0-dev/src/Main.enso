@@ -698,7 +698,7 @@ fail_match_on_unexpected_error error frames_to_skip =
 ## PRIVATE
    Write the JUnit XML header.
 wrap_junit_testsuites : Suite_Config -> Any -> Nothing
-wrap_junit_testsuites config ~function =
+wrap_junit_testsuites config ~action =
     if config.should_output_junit then
         config.builder.append '<?xml version="1.0" encoding="UTF-8"?>'
         config.builder.append '<testsuites>'
