@@ -1,10 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
-const remote = require('electron').remote
+const remote = require('@electron/remote')
 
-let win
-if (remote !== undefined) {
-    win = remote.getCurrentWindow()
-}
+const win = remote?.getCurrentWindow()
 
 if (win === undefined) {
     console.warn('Could not get current window object for window startup animation.')
