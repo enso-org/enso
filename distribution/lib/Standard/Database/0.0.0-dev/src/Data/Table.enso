@@ -22,6 +22,8 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 polyglot java import java.sql.JDBCType
 
@@ -444,8 +446,8 @@ type Table
             if len == 1 then ixes.at 0 else ixes
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by columns=(Sort_Column_Selector.By_Name [(Sort_Column.Name (this.Columns.at 0 . name))]) text_order=Text_Ordering on_problems=Problem_Behavior.Report_Warning =
-        ???
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Problem_Behavior.Report_Warning =
+        Error.throw "TODO"
 
     ## UNSTABLE
 
