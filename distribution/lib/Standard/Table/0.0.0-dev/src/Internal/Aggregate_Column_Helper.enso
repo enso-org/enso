@@ -74,9 +74,9 @@ prepare_aggregate_columns aggregates table =
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
 
     Validated_Aggregate_Columns unique_key_columns renamed_columns problem_builder.build_problemset
 

@@ -983,7 +983,7 @@ type Column
              import Standard.Examples
 
              example_sort =
-                 Examples.integer_column.sort order=Sort_Order.Descending missing_last=False
+                 Examples.integer_column.sort order=Sort_Direction.Descending missing_last=False
 
        > Example
          Sorting `column` in ascending order, using a custom comparator
@@ -994,11 +994,11 @@ type Column
              example_sort =
                  my_comparator a b = a.abs.compare_to b.abs
                  Examples.decimal_column.sort comparator=my_comparator
-    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort order=Sort_Order.Ascending missing_last=True comparator=Nothing =
+    sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
         order_bool = case order of
-            Sort_Order.Ascending -> True
-            Sort_Order.Descending -> False
+            Sort_Direction.Ascending -> True
+            Sort_Direction.Descending -> False
         java_cmp = case comparator of
             Nothing -> Nothing
             cmp -> Table.comparator_to_java cmp

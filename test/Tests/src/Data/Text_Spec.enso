@@ -589,25 +589,25 @@ spec =
             "Hello!".contains "Lo" . should_be_false
 
         Test.specify "should allow for case-insensitive contains checks" <|
-            "Hello!".contains 'LO' (Text_Matcher Case_Insensitive.new) . should_be_true
-            "FoObar" . contains "foo" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Foo" . contains "bar" (Text_Matcher Case_Insensitive.new) . should_be_false
-            "Ściana" . contains "ś" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Ściana" . contains "s" (Text_Matcher Case_Insensitive.new) . should_be_false
+            "Hello!".contains 'LO' (Text_Matcher Case_Insensitive) . should_be_true
+            "FoObar" . contains "foo" (Text_Matcher Case_Insensitive) . should_be_true
+            "aaaIAAA" . contains "i" (Text_Matcher Case_Insensitive) . should_be_true
+            "Foo" . contains "bar" (Text_Matcher Case_Insensitive) . should_be_false
+            "Ściana" . contains "ś" (Text_Matcher Case_Insensitive) . should_be_true
+            "Ściana" . contains "s" (Text_Matcher Case_Insensitive) . should_be_false
 
             "Straße" . contains "ss" . should_be_false
             "Strasse" . contains "ß" . should_be_false
-            "Straße" . contains "ss" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Strasse" . contains "ß" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Straße" . contains "ss" (Text_Matcher Case_Insensitive) . should_be_true
+            "Strasse" . contains "ß" (Text_Matcher Case_Insensitive) . should_be_true
 
         Test.specify "should allow for Regex contains checks" <|
-            "Hello!".contains "[a-z]" Regex_Matcher.new . should_be_true
-            "foobar" . contains "b.." Regex_Matcher.new . should_be_true
-            "foob" . contains "b.." Regex_Matcher.new . should_be_false
+            "Hello!".contains "[a-z]" Regex_Matcher . should_be_true
+            "foobar" . contains "b.." Regex_Matcher . should_be_true
+            "foob" . contains "b.." Regex_Matcher . should_be_false
 
-            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher.new . should_be_true
-            "foo" . contains "[0-9]+" Regex_Matcher.new . should_be_false
+            "123 meters and 4 centimeters" . contains "[0-9]+" Regex_Matcher . should_be_true
+            "foo" . contains "[0-9]+" Regex_Matcher . should_be_false
 
             'ś' . contains 's' . should_be_false
             's\u{301}' . contains 's' . should_be_false
@@ -618,28 +618,28 @@ spec =
                documenting here what is the current behaviour.
             ## This shows what regex is doing by default and we cannot easily fix
                that.
-            's\u{301}' . contains 's' (Regex_Matcher.new) . should_be_true
-            'ś' . contains 's' (Regex_Matcher.new) . should_be_false
-            's\u{301}' . contains 'ś' (Regex_Matcher.new) . should_be_true
-            'ś' . contains 's\u{301}' (Regex_Matcher.new) . should_be_true
+            's\u{301}' . contains 's' Regex_Matcher . should_be_true
+            'ś' . contains 's' Regex_Matcher . should_be_false
+            's\u{301}' . contains 'ś' Regex_Matcher . should_be_true
+            'ś' . contains 's\u{301}' Regex_Matcher . should_be_true
 
-            "Cześć" . contains "ś" Regex_Matcher.new . should_be_true
-            "Cześć" . contains 's\u{301}' Regex_Matcher.new . should_be_true
-            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher.new . should_be_true
-            'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher.new . should_be_true
+            "Cześć" . contains "ś" Regex_Matcher . should_be_true
+            "Cześć" . contains 's\u{301}' Regex_Matcher . should_be_true
+            'Czes\u{301}c\u{301}' . contains 's\u{301}' Regex_Matcher . should_be_true
+            'Czes\u{301}c\u{301}' . contains 'ś' Regex_Matcher . should_be_true
             ## These two tests below are disabled due to how regex is handling
                letters with accents. See the tests above for explanation.
-            #"Cześć" . contains "s" Regex_Matcher.new . should_be_false
-            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher.new . should_be_false
+            #"Cześć" . contains "s" Regex_Matcher . should_be_false
+            #'Czes\u{301}c\u{301}' . contains 's' Regex_Matcher . should_be_false
 
-            "fooBar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
-            "foar" . contains "b.." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+            "fooBar" . contains "b.." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
+            "foar" . contains "b.." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
 
             long_text = """
                 Hello from a long text. EOL
                 SOL Hmm...
-            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
-            long_text . contains "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+            long_text . contains "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
+            long_text . contains "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
@@ -663,36 +663,36 @@ spec =
         Test.specify "starts_with should work as shown in the examples" <|
             "Hello!".starts_with "Hello" . should_be_true
             "Hello!".starts_with "hello" . should_be_false
-            "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Hello!".starts_with "[a-z]" Regex_Matcher.new . should_be_false
-            "Hello!".starts_with "[A-Z]" Regex_Matcher.new . should_be_true
+            "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) . should_be_true
+            "Hello!".starts_with "[a-z]" Regex_Matcher . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher . should_be_true
 
         Test.specify "should allow for case-insensitive starts_with checks" <|
-            "Hello".starts_with "he" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello".starts_with "he" (Text_Matcher Case_Insensitive) . should_be_true
 
-            "Ściana".starts_with 's\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Ściana".starts_with 's' (Text_Matcher Case_Insensitive.new) . should_be_false
-            'S\u{301}ciana'.starts_with 'ś' (Text_Matcher Case_Insensitive.new) . should_be_true
-            'S\u{301}ciana'.starts_with 's\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
-            'S\u{301}ciana'.starts_with 's' (Text_Matcher Case_Insensitive.new) . should_be_false
+            "Ściana".starts_with 's\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
+            "Ściana".starts_with 's' (Text_Matcher Case_Insensitive) . should_be_false
+            'S\u{301}ciana'.starts_with 'ś' (Text_Matcher Case_Insensitive) . should_be_true
+            'S\u{301}ciana'.starts_with 's\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
+            'S\u{301}ciana'.starts_with 's' (Text_Matcher Case_Insensitive) . should_be_false
 
-            "ABC" . starts_with "A" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "ABC" . starts_with "a" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "ABC" . starts_with "C" (Text_Matcher Case_Insensitive.new) . should_be_false
-            "" . starts_with "foo" (Text_Matcher Case_Insensitive.new) . should_be_false
-            "abc" . starts_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "" . starts_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "fOo FOO foo" . starts_with "FoO" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . starts_with "A" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . starts_with "a" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . starts_with "C" (Text_Matcher Case_Insensitive) . should_be_false
+            "" . starts_with "foo" (Text_Matcher Case_Insensitive) . should_be_false
+            "abc" . starts_with "" (Text_Matcher Case_Insensitive) . should_be_true
+            "" . starts_with "" (Text_Matcher Case_Insensitive) . should_be_true
+            "fOo FOO foo" . starts_with "FoO" (Text_Matcher Case_Insensitive) . should_be_true
 
-            "Hello!".starts_with "he" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello!".starts_with "he" (Text_Matcher Case_Insensitive) . should_be_true
 
         Test.specify "should allow for Regex starts_with checks" <|
-            "Hello!".starts_with "[A-Z]" Regex_Matcher.new . should_be_true
-            "foobar" . starts_with ".o." Regex_Matcher.new . should_be_true
-            "foob" . starts_with ".f." Regex_Matcher.new . should_be_false
+            "Hello!".starts_with "[A-Z]" Regex_Matcher . should_be_true
+            "foobar" . starts_with ".o." Regex_Matcher . should_be_true
+            "foob" . starts_with ".f." Regex_Matcher . should_be_false
 
-            "123 meters and 4 centimeters" . starts_with "[0-9]+" Regex_Matcher.new . should_be_true
-            "foo 123" . starts_with "[0-9]+" Regex_Matcher.new . should_be_false
+            "123 meters and 4 centimeters" . starts_with "[0-9]+" Regex_Matcher . should_be_true
+            "foo 123" . starts_with "[0-9]+" Regex_Matcher . should_be_false
 
             # Correct non-regex behaviour for reference.
             'ś' . starts_with 's' == False
@@ -701,44 +701,44 @@ spec =
             'ś' . starts_with 's\u{301}' == True
 
             # These two behave as expected.
-            's\u{301}' . starts_with 'ś' (Regex_Matcher.new) == True
-            'ś' . starts_with 's\u{301}' (Regex_Matcher.new) == True
+            's\u{301}' . starts_with 'ś' Regex_Matcher == True
+            'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
             ## These two are included to document the current behaviour
                (even though ideally, we would want them to return False).
-            'ś' . starts_with 's' (Regex_Matcher.new) == True
-            's\u{301}' . starts_with 's' (Regex_Matcher.new) == True
+            'ś' . starts_with 's' Regex_Matcher == True
+            's\u{301}' . starts_with 's' Regex_Matcher == True
 
-            "ściana" . starts_with "ś" Regex_Matcher.new . should_be_true
-            "ściana" . starts_with 's\u{301}' Regex_Matcher.new . should_be_true
-            's\u{301}ciana' . starts_with 's\u{301}' Regex_Matcher.new . should_be_true
-            's\u{301}ciana' . starts_with 'ś' Regex_Matcher.new . should_be_true
+            "ściana" . starts_with "ś" Regex_Matcher . should_be_true
+            "ściana" . starts_with 's\u{301}' Regex_Matcher . should_be_true
+            's\u{301}ciana' . starts_with 's\u{301}' Regex_Matcher . should_be_true
+            's\u{301}ciana' . starts_with 'ś' Regex_Matcher . should_be_true
 
             ## These two tests below are disabled due to how regex is handling
                letters with accents. See the tests above for explanation.
-            #"ściana" . starts_with "s" Regex_Matcher.new . should_be_false
-            # 's\u{301}ciana' . starts_with 's' Regex_Matcher.new . should_be_false
+            #"ściana" . starts_with "s" Regex_Matcher . should_be_false
+            # 's\u{301}ciana' . starts_with 's' Regex_Matcher . should_be_false
 
-            "fOOBar" . starts_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
-            "faaaar" . starts_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+            "fOOBar" . starts_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
+            "faaaar" . starts_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
 
             long_text = """
                 EOL
                 SOL Hmm...
-            long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
-            long_text . starts_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+            long_text . starts_with "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
+            long_text . starts_with "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
 
-            "aaazzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
-            "bbbzzz" . starts_with "a|b" Regex_Matcher.new . should_be_true
-            "zzzaaa" . starts_with "a|b" Regex_Matcher.new . should_be_false
-            "zzzbbb" . starts_with "a|b" Regex_Matcher.new . should_be_false
-            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
-            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_true
-            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher.new . should_be_false
-            "ABC" . starts_with "\AA" Regex_Matcher.new . should_be_true
-            "ABC" . starts_with "\AA\z" Regex_Matcher.new . should_be_false
-            "foobar" . starts_with "" Regex_Matcher.new . should_be_true
-            "" . starts_with "" Regex_Matcher.new . should_be_true
+            "aaazzz" . starts_with "a|b" Regex_Matcher . should_be_true
+            "bbbzzz" . starts_with "a|b" Regex_Matcher . should_be_true
+            "zzzaaa" . starts_with "a|b" Regex_Matcher . should_be_false
+            "zzzbbb" . starts_with "a|b" Regex_Matcher . should_be_false
+            "aaazzz" . starts_with "(a|b){2}" Regex_Matcher . should_be_true
+            "bbbzzz" . starts_with "(a|b){2}" Regex_Matcher . should_be_true
+            "zzzaaa" . starts_with "(a|b){2}" Regex_Matcher . should_be_false
+            "ABC" . starts_with "\AA" Regex_Matcher . should_be_true
+            "ABC" . starts_with "\AA\z" Regex_Matcher . should_be_false
+            "foobar" . starts_with "" Regex_Matcher . should_be_true
+            "" . starts_with "" Regex_Matcher . should_be_true
 
         Test.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
@@ -761,64 +761,64 @@ spec =
         Test.specify "ends_with should work as shown in the examples" <|
             "Hello World".ends_with "World" . should_be_true
             "Hello World".ends_with "world" . should_be_false
-            "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new . should_be_true
+            "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) . should_be_true
+            "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher . should_be_true
 
         Test.specify "should allow for case-insensitive ends_with checks" <|
-            "Hello".ends_with "LO" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "Hello".ends_with "LO" (Text_Matcher Case_Insensitive) . should_be_true
 
-            "rzeczywistość".ends_with 'C\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
-            "rzeczywistość".ends_with 'C' (Text_Matcher Case_Insensitive.new) . should_be_false
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'Ć' (Text_Matcher Case_Insensitive.new) . should_be_true
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'C\u{301}' (Text_Matcher Case_Insensitive.new) . should_be_true
-            'rzeczywistos\u{301}c\u{301}'.ends_with 'C' (Text_Matcher Case_Insensitive.new) . should_be_false
+            "rzeczywistość".ends_with 'C\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
+            "rzeczywistość".ends_with 'C' (Text_Matcher Case_Insensitive) . should_be_false
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'Ć' (Text_Matcher Case_Insensitive) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C\u{301}' (Text_Matcher Case_Insensitive) . should_be_true
+            'rzeczywistos\u{301}c\u{301}'.ends_with 'C' (Text_Matcher Case_Insensitive) . should_be_false
 
-            "ABC" . ends_with "C" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "ABC" . ends_with "c" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "ABC" . ends_with "A" (Text_Matcher Case_Insensitive.new) . should_be_false
-            "" . ends_with "foo" (Text_Matcher Case_Insensitive.new) . should_be_false
-            "abc" . ends_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "" . ends_with "" (Text_Matcher Case_Insensitive.new) . should_be_true
-            "fOo FOO fOo" . ends_with "FoO" (Text_Matcher Case_Insensitive.new) . should_be_true
+            "ABC" . ends_with "C" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . ends_with "c" (Text_Matcher Case_Insensitive) . should_be_true
+            "ABC" . ends_with "A" (Text_Matcher Case_Insensitive) . should_be_false
+            "" . ends_with "foo" (Text_Matcher Case_Insensitive) . should_be_false
+            "abc" . ends_with "" (Text_Matcher Case_Insensitive) . should_be_true
+            "" . ends_with "" (Text_Matcher Case_Insensitive) . should_be_true
+            "fOo FOO fOo" . ends_with "FoO" (Text_Matcher Case_Insensitive) . should_be_true
 
         Test.specify "should allow for Regex ends_with checks" <|
-            "Hello".ends_with "[a-z]" Regex_Matcher.new . should_be_true
-            "Hello!".ends_with "[a-z]" Regex_Matcher.new . should_be_false
+            "Hello".ends_with "[a-z]" Regex_Matcher . should_be_true
+            "Hello!".ends_with "[a-z]" Regex_Matcher . should_be_false
 
-            "foobar" . ends_with ".o." Regex_Matcher.new . should_be_false
-            "foobar" . ends_with ".a." Regex_Matcher.new . should_be_true
+            "foobar" . ends_with ".o." Regex_Matcher . should_be_false
+            "foobar" . ends_with ".a." Regex_Matcher . should_be_true
 
-            "123 meters and 4 centimeters" . ends_with "[0-9]+" Regex_Matcher.new . should_be_false
-            "foo 123" . ends_with "[0-9]+" Regex_Matcher.new . should_be_true
+            "123 meters and 4 centimeters" . ends_with "[0-9]+" Regex_Matcher . should_be_false
+            "foo 123" . ends_with "[0-9]+" Regex_Matcher . should_be_true
 
-            "rzeczywistość" . ends_with "ć" Regex_Matcher.new . should_be_true
-            "rzeczywistość" . ends_with 'c\u{301}' Regex_Matcher.new . should_be_true
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'c\u{301}' Regex_Matcher.new . should_be_true
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'ć' Regex_Matcher.new . should_be_true
-            "rzeczywistość" . ends_with "c" Regex_Matcher.new . should_be_false
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'c' Regex_Matcher.new . should_be_false
+            "rzeczywistość" . ends_with "ć" Regex_Matcher . should_be_true
+            "rzeczywistość" . ends_with 'c\u{301}' Regex_Matcher . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c\u{301}' Regex_Matcher . should_be_true
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'ć' Regex_Matcher . should_be_true
+            "rzeczywistość" . ends_with "c" Regex_Matcher . should_be_false
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'c' Regex_Matcher . should_be_false
 
-            'rzeczywistos\u{301}c\u{301}' . ends_with 'Ć' (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
-            "fOOBar" . ends_with ".A." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_true
-            "faaaar" . ends_with ".o." (Regex_Matcher.new case_sensitive=Case_Insensitive.new) . should_be_false
+            'rzeczywistos\u{301}c\u{301}' . ends_with 'Ć' (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
+            "fOOBar" . ends_with ".A." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_true
+            "faaaar" . ends_with ".o." (Regex_Matcher case_sensitive=Case_Insensitive) . should_be_false
 
             long_text = """
                 Hnnnn EOL
                 SOL
-            long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=True) . should_be_true
-            long_text . ends_with "EOL.SOL" (Regex_Matcher.new dot_matches_newline=False) . should_be_false
+            long_text . ends_with "EOL.SOL" (Regex_Matcher dot_matches_newline=True) . should_be_true
+            long_text . ends_with "EOL.SOL" (Regex_Matcher dot_matches_newline=False) . should_be_false
 
-            "zzzaaa" . ends_with "a|b" Regex_Matcher.new . should_be_true
-            "zzzbbb" . ends_with "a|b" Regex_Matcher.new . should_be_true
-            "aaazzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
-            "bbbzzz" . ends_with "a|b" Regex_Matcher.new . should_be_false
-            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
-            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_true
-            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher.new . should_be_false
-            "ABC" . ends_with "C\z" Regex_Matcher.new . should_be_true
-            "ABC" . ends_with "\AC\z" Regex_Matcher.new . should_be_false
-            "foobar" . ends_with "" Regex_Matcher.new . should_be_true
-            "" . ends_with "" Regex_Matcher.new . should_be_true
+            "zzzaaa" . ends_with "a|b" Regex_Matcher . should_be_true
+            "zzzbbb" . ends_with "a|b" Regex_Matcher . should_be_true
+            "aaazzz" . ends_with "a|b" Regex_Matcher . should_be_false
+            "bbbzzz" . ends_with "a|b" Regex_Matcher . should_be_false
+            "zzzaaa" . ends_with "(a|b){2}" Regex_Matcher . should_be_true
+            "zzzbbb" . ends_with "(a|b){2}" Regex_Matcher . should_be_true
+            "aaazzz" . ends_with "(a|b){2}" Regex_Matcher . should_be_false
+            "ABC" . ends_with "C\z" Regex_Matcher . should_be_true
+            "ABC" . ends_with "\AC\z" Regex_Matcher . should_be_false
+            "foobar" . ends_with "" Regex_Matcher . should_be_true
+            "" . ends_with "" Regex_Matcher . should_be_true
 
         Test.specify "should allow to pad a text" <|
             "Hello World!".pad 15 . should_equal "Hello World!   "
@@ -927,7 +927,7 @@ spec =
             example_2 =
                 term = "straße"
                 text = "MONUMENTENSTRASSE 42"
-                match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+                match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
                 term.length . should_equal 6
                 match.length . should_equal 7
 
@@ -935,11 +935,11 @@ spec =
                 ligatures = "ﬃﬄ"
                 ligatures.length . should_equal 2
                 term_1 = "IFF"
-                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+                match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
                 term_1.length . should_equal 3
                 match_1.length . should_equal 2
                 term_2 = "ffiffl"
-                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+                match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
                 term_2.length . should_equal 6
                 match_2.length . should_equal 2
                 match_1 . should_equal match_2
@@ -951,16 +951,16 @@ spec =
             example_5 =
                 term = "strasse"
                 text = "MONUMENTENSTRASSE ist eine große Straße."
-                match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+                match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
                 term.length . should_equal 7
                 match . map .length . should_equal [7, 6]
 
             example_6 =
                 ligatures = "ﬃﬄFFIFF"
                 ligatures.length . should_equal 7
-                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+                match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
                 match_1 . map .length . should_equal [2, 3]
-                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+                match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
                 match_2 . map .length . should_equal [2, 5]
 
             # Put them in blocks to avoid name clashes.
@@ -991,7 +991,7 @@ spec =
 
         Test.specify "should allow case-insensitive matching in location_of" <|
             hello = "Hello WORLD!"
-            case_insensitive = Text_Matcher Case_Insensitive.new
+            case_insensitive = Text_Matcher Case_Insensitive
             hello.location_of "world" . should_equal Nothing
             hello.location_of "world" matcher=case_insensitive . should_equal (Span (Range 6 11) hello)
 
@@ -1042,8 +1042,8 @@ spec =
 
         Test.specify "should allow regexes in location_of" <|
             hello = "Hello World!"
-            regex = Regex_Matcher.new
-            regex_insensitive = Regex_Matcher.new case_sensitive=Case_Insensitive.new
+            regex = Regex_Matcher
+            regex_insensitive = Regex_Matcher case_sensitive=Case_Insensitive
             hello.location_of ".o" Matching_Mode.First matcher=regex . should_equal (Span (Range 3 5) hello)
             hello.location_of ".o" Matching_Mode.Last matcher=regex . should_equal (Span (Range 6 8) hello)
             hello.location_of_all ".o" matcher=regex . map .start . should_equal [3, 6]
@@ -1057,7 +1057,7 @@ spec =
             accents = 'a\u{301}e\u{301}o\u{301}'
             accents.location_of accent_1 Mode.First matcher=regex . should_equal (Span (Range 1 2) accents)
         Test.specify "should correctly handle regex edge cases in location_of" pending="Figure out how to make Regex correctly handle empty patterns." <|
-            regex = Regex_Matcher.new
+            regex = Regex_Matcher
             "".location_of "foo" matcher=regex . should_equal Nothing
             "".location_of "foo" matcher=regex mode=Matching_Mode.Last . should_equal Nothing
             "".location_of_all "foo" matcher=regex . should_equal []

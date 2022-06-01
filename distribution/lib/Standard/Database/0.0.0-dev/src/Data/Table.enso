@@ -16,7 +16,7 @@ from Standard.Database.Data.Internal.IR import Internal_Column
 from Standard.Table.Data.Table import No_Such_Column_Error
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
-from Standard.Table.Data.Sort_Method as Sort_Method_Module import Sort_Method
+from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
@@ -124,7 +124,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.select_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -173,7 +173,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.remove_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -222,7 +222,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.new case_sensitive=Case_Insensitive.new))
+             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher case_sensitive=Case_Insensitive))
 
        > Example
          Swap the first two columns.
@@ -248,7 +248,8 @@ type Table
        case-sensitive ascending order based on the `Text.compare_to` operator.
 
        Arguments:
-       - sort_method: The sort methodology to use.
+       - direction: Whether sorting should be in ascending or descending order.
+       - text_ordering: The sort methodology to use.
 
        > Example
          Sort columns according to the default ordering.
@@ -258,15 +259,15 @@ type Table
        > Example
          Sort columns according to the natural case-insensitive ordering.
 
-             table.sort_columns (Sort_Method natural_order=True case_sensitive=Case_Insensitive.new)
+             table.sort_columns text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
 
        > Example
          Sort columns in descending order.
 
-             table.reorder_columns (Sort_Method order=Sort_Order.Descending)
-    sort_columns : Sort_Method -> Table
-    sort_columns (sort_method = Sort_Method.new) =
-        new_columns = Table_Helpers.sort_columns internal_columns=this.internal_columns sort_method
+             table.reorder_columns Sort_Direction.Descending
+    sort_columns : Sort_Direction -> Text_Ordering -> Table
+    sort_columns direction=Sort_Direction.Ascending text_ordering=Text_Ordering =
+        new_columns = Table_Helpers.sort_columns internal_columns=this.internal_columns direction text_ordering
         this.updated_columns new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
@@ -475,7 +476,7 @@ type Table
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`,
          placing missing values at the top of the table.
-             table.sort by='Quantity' order=Sort_Order.Descending missing_last=False
+             table.sort by='Quantity' order=Sort_Direction.Descending missing_last=False
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -486,7 +487,7 @@ type Table
          Sorting `table` in ascending order by the value in column `'Quantity'`,
          using the value in column `'Rating'` in descending order for breaking
          ties.
-             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Order.Descending)]
+             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Direction.Descending)]
 
        > Example
          Sorting `table` in ascending order by the value in an externally
@@ -494,11 +495,11 @@ type Table
          ties.
              quality_ratio = table.at 'Rating' / table.at 'Price'
              table.sort by=[quality_ratio, 'Rating']
-    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover Any <|
+    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
+    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
         order_to_ir = case _ of
-            Sort_Order.Ascending -> IR.Ascending
-            Sort_Order.Descending -> IR.Descending
+            Sort_Direction.Ascending -> IR.Ascending
+            Sort_Direction.Descending -> IR.Descending
         missing_to_ir last = case last of
             True -> IR.Nulls_Last
             False -> IR.Nulls_First

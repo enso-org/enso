@@ -69,77 +69,6 @@ Regex_Matcher.compile pattern =
     compiled_pattern
 
 ## UNSTABLE
-   Represents case-insensitive comparison mode.
-
-   Arguments:
-   - locale: The locale used for the comparison.
-
-   A temporary workaround to allow the `Case_Insensitive` constructor to work
-   with default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Case_Insensitive.new : Locale -> Case_Insensitive
-Case_Insensitive.new locale=Locale.default = Case_Insensitive locale
-
-## UNSTABLE
-   Represents exact text matching mode.
-
-   Arguments:
-   - case_sensitive: Case Sensitive if True. Otherwise, the comparison is case
-     insensitive using the specified locale.
-
-   A temporary workaround to allow the `Text_Matcher` constructor to work with
-   default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Text_Matcher.new : (True | Case_Insensitive) -> Text_Matcher
-Text_Matcher.new case_sensitive=True = Text_Matcher case_sensitive
-
-## UNSTABLE
-   Represents regex matching mode.
-
-   Arguments:
-   - case_sensitive: Enables or disables case-insensitive matching. Case
-     insensitive matching behaves as if it normalizes the case of all input text
-     before matching on it.
-   - multiline: Enables or disables the multiline option. Multiline specifies
-     that the `^` and `$` pattern characters match the start and end of lines,
-     as to well as the start and end of the input, respectively.
-   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
-     know your data only contains ASCII, you can enable this for a performance
-     boost on some regex engines.
-   - dot_matches_newline: Enables or disables the dot matches newline option.
-     This specifies that the `.` special character should match everything
-     _including_ newline characters. Without this flag, it matches all
-     characters _except_ newlines.
-   - comments: Enables or disables the comments mode for the regular expression.
-     In comments mode, the following changes apply:
-     - Whitespace within the pattern is ignored, except when within a character
-       class or when preceded by an unescaped backslash, or within grouping
-       constructs (e.g. `(?...)`).
-     - When a line contains a `#` that is not in a character class and is not
-       preceded by an unescaped backslash, all characters from the leftmost such
-       `#` to the end of the line are ignored. That is to say; they act as
-       'comments' in the regex.
-
-   A temporary workaround to allow the `Regex_Matcher` constructor to work with
-   default arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Regex_Matcher.new : (True | Case_Insensitive) -> Boolean -> Boolean -> Boolean -> Boolean -> Regex_Matcher
-Regex_Matcher.new case_sensitive=True multiline=False match_ascii=False dot_matches_newline=False comments=False =
-    Regex_Matcher case_sensitive multiline match_ascii dot_matches_newline comments
-
-## UNSTABLE
    Checks if a name matches the provided criterion according to the specified
    matching strategy.
 
@@ -150,7 +79,7 @@ Regex_Matcher.new case_sensitive=True multiline=False match_ascii=False dot_matc
    > Example
      Check if the provided name matches a regular expression.
 
-         Text_Matcher.new.match_single_criterion "Foobar" "foo" == False
+         Text_Matcher.match_single_criterion "Foobar" "foo" == False
 Text_Matcher.match_single_criterion : Text -> Text -> Boolean
 Text_Matcher.match_single_criterion name criterion =
     case this.case_sensitive of
@@ -169,7 +98,7 @@ Text_Matcher.match_single_criterion name criterion =
    > Example
      Check if the provided name matches a regular expression.
 
-         Regex_Matcher.new case_sensitive=Case_Insensitive.new . match_single_criterion "Foobar" "f.*" == True
+         Regex_Matcher case_sensitive=Case_Insensitive . match_single_criterion "Foobar" "f.*" == True
 Regex_Matcher.match_single_criterion : Text -> Text -> Boolean
 Regex_Matcher.match_single_criterion name criterion =
     this.compile criterion . matches name
@@ -205,13 +134,13 @@ Regex_Matcher.match_single_criterion name criterion =
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
 
-         Regex_Matcher.new case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+         Regex_Matcher case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
    > Example
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Text_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Text_Matcher.match_criteria = here.match_criteria_implementation this
 
@@ -246,13 +175,13 @@ Text_Matcher.match_criteria = here.match_criteria_implementation this
    > Example
      Selects objects matching one of the provided patterns, preserving the input order.
 
-         Regex_Matcher.new case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+         Regex_Matcher case_sensitive=True . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
    > Example
      Selects pairs matching their first element with the provided criteria and
      ordering the result according to the order of criteria that matched them.
 
-         Text_Matcher.new.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
+         Text_Matcher.match_criteria [Pair "foo" 42, Pair "bar" 33, Pair "baz" 10, Pair "foo" 0, Pair 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair "bar" 33, Pair "foo" 42, Pair "foo" 0]
 Regex_Matcher.match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
 Regex_Matcher.match_criteria = here.match_criteria_implementation this
 

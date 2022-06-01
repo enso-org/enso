@@ -14,12 +14,13 @@ const bundled_engine_version = process.env['ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSIO
 export default {
     entry: {
         index: path.resolve(thisPath, 'src', 'index.js'),
+        preload: path.resolve(thisPath, 'src', 'preload.cjs'),
     },
     mode: 'production',
     target: 'electron-main',
     output: {
         path: dist,
-        filename: '[name].js',
+        filename: '[name].cjs',
     },
     plugins: [
         new CopyPlugin({
@@ -27,10 +28,6 @@ export default {
                 {
                     from: path.resolve(thisPath, 'package.json'),
                     to: path.join(dist, 'package.json'),
-                },
-                {
-                    from: path.resolve(thisPath, 'src', 'preload.js'),
-                    to: path.join(dist, 'preload.js'),
                 },
             ],
             options: {},

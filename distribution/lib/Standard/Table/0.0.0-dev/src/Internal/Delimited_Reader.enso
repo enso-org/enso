@@ -3,7 +3,7 @@ import Standard.Table
 
 import Standard.Base.Error.Common as Errors
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior
-from Standard.Table.Error as Table_Errors import Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from Standard.Table.Error as Table_Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding, Encoding_Error
 from Standard.Table.Io.File_Format import Infer
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -13,6 +13,8 @@ polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
+polyglot java import org.enso.table.util.problems.DuplicateNames
+polyglot java import org.enso.table.util.problems.InvalidNames
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.io.IOException
 polyglot java import com.univocity.parsers.common.TextParsingException
@@ -101,18 +103,12 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         Integer -> format.row_limit
         _ -> Error.throw (Illegal_Argument_Error "`row_limit` should be Integer or Nothing.")
 
-    translate_parsing_problem java_problem =
-        if Java.is_instance java_problem InvalidRow then Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row) else
-            if Java.is_instance java_problem MismatchedQuote then Mismatched_Quote else
-                if Java.is_instance java_problem AdditionalInvalidRows then Additional_Invalid_Rows java_problem.count else
-                    java_problem
-
     translate_illegal_argument caught_panic =
         Error.throw (Illegal_Argument_Error caught_panic.payload.cause.getMessage)
     handle_illegal_arguments = Panic.catch IllegalArgumentException handler=translate_illegal_argument
 
     translate_parsing_failure caught_panic =
-        Error.throw (translate_parsing_problem caught_panic.payload.cause.problem)
+        Error.throw (here.translate_reader_problem caught_panic.payload.cause.problem)
     handle_parsing_failure = Panic.catch ParsingFailedException handler=translate_parsing_failure
 
     translate_parsing_exception caught_panic =
@@ -132,6 +128,18 @@ read_from_reader format java_reader on_problems max_columns=4096 =
             formatter = format.value_formatter.if_nothing Data_Formatter
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
         reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
-        result = Table.Table reader.read
-        parsing_problems = Vector.Vector reader.getReportedProblems . map translate_parsing_problem
-        on_problems.attach_problems_after result parsing_problems
+        result_with_problems = reader.read
+        parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
+        on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems
+
+translate_reader_problem problem =
+    invalid_row = [InvalidRow, (java_problem-> Invalid_Row java_problem.source_row java_problem.table_index (Vector.Vector java_problem.row))]
+    additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows java_problem.count)]
+    mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
+    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names (Vector.Vector java_problem.duplicatedNames))]
+    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names (Vector.Vector java_problem.invalidNames))]
+
+    translations = [invalid_row, additional_invalid_rows, mismatched_quote, duplicate_names, invalid_names]
+    found = translations.find t-> Java.is_instance problem t.first
+    if found.is_error then problem else
+        found.second problem

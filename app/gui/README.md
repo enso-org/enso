@@ -49,10 +49,10 @@ more.
 ### Building
 
 The project builds on macOS, Linux, and Windows. Build functionality is provided
-by our build script, that are accessible through `run.sh` (Linux and macOS) or
+by our build script, that are accessible through `run` (Linux and macOS) or
 `run.cmd` (Windows) wrappers.
 
-To build the project, simply run `./run.sh ide build` (on Linux or macOS) or
+To build the project, simply run `./run ide build` (on Linux or macOS) or
 `.\run.cmd ide build` (Windows) to build IDE. To learn more about other
 available commands use `--help` argument. Read the detailed
 [development guide](docs/CONTRIBUTING.md) to learn more.

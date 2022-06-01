@@ -125,15 +125,27 @@ class RuntimeStdlibTest
     }
 
     def receiveAllUntil(
-      msg: Api.Response,
+      msgs: Seq[Api.Response],
       timeout: Long
     ): List[Api.Response] = {
+      val toSee                          = collection.mutable.ArrayBuffer.from(msgs)
+      var lastSeen: Option[Api.Response] = None
       val receivedUntil = Iterator
         .continually(receive(timeout))
-        .takeWhile(received => received.isDefined && !received.contains(msg))
+        .takeWhile {
+          case Some(received) =>
+            val found = msgs.contains(received)
+            if (found) {
+              lastSeen = Some(received)
+              toSee.subtractOne(received)
+            }
+            !(found && toSee.isEmpty)
+          case None =>
+            false
+        }
         .flatten
         .toList
-      receivedUntil :+ msg
+      receivedUntil :++ lastSeen
     }
 
     def consumeOut: List[String] = {
@@ -144,6 +156,9 @@ class RuntimeStdlibTest
 
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
+
+    def analyzeJobFinished: Api.Response =
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
 
   }
 
@@ -202,13 +217,18 @@ class RuntimeStdlibTest
     )
     val responses =
       context.receiveAllUntil(
-        context.executionComplete(contextId),
+        Seq(
+          context.executionComplete(contextId),
+          context.analyzeJobFinished,
+          context.analyzeJobFinished
+        ),
         timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      context.analyzeJobFinished,
     )
 
     // check that the suggestion notifications are received

@@ -23,8 +23,12 @@ spec =
         The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server
 
     Test.group "Http" pending=pending <|
-        url_get = base_url + "/get"
-        url_post = base_url + "/post"
+        # httpbin is picky about slashes in URL path. We need exactly one at the
+        # beginning of path. Otherwise, POST request with double slash would
+        # fail with error 405. 
+        base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
+        url_get = base_url_with_slash + "get"
+        url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
             http = Http.new (timeout = 30.seconds)
             http.timeout.should_equal 30.seconds
