@@ -36,14 +36,13 @@ impl ModuleGroups {
     ///
     /// The existence of flattened content is decided during construction.
     pub fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
+        let is_top_module = entry.module.is_top_module();
+        let mk_group = || component::Group::from_entry(component_id, entry);
         Self {
-            content:           component::Group::from_entry(component_id, entry),
-            flattened_content: entry
-                .module
-                .is_top_module()
-                .as_some_from(|| component::Group::from_entry(component_id, entry)),
-            submodules:        default(),
-            is_top_module:     entry.module.is_top_module(),
+            content: mk_group(),
+            flattened_content: is_top_module.as_some_from(mk_group),
+            submodules: default(),
+            is_top_module,
         }
     }
 
@@ -90,10 +89,8 @@ impl List {
             })
         });
         for component in components {
-            DEBUG!("Putting component {component.id:?}");
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
-                DEBUG!("Found parent module: {parent_module:?}");
                 if let Some(parent_group) = self.lookup_module_group(&parent_module) {
                     parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
@@ -122,12 +119,9 @@ impl List {
         if self.module_groups.contains_key(&module_id) {
             self.module_groups.get_mut(&module_id)
         } else {
-            DEBUG!("Creating new ModuleGroupsBuilder for {module} ({module_id})");
             let groups = ModuleGroups::new(module_id, &*db_entry);
             if let Some(module) = module.parent_module() {
-                DEBUG!("The parent module is {module}");
                 if let Some(parent_groups) = self.lookup_module_group(&module) {
-                    DEBUG!("Found Parent Groups");
                     parent_groups.submodules.push(groups.content.clone_ref())
                 }
             }
@@ -271,6 +265,22 @@ mod tests {
             },
         ];
         assert_eq!(top_modules, expected);
+
+        let flattened_top_modules: Vec<ComparableGroupData> =
+            list.top_modules_flattened.iter().map(Into::into).collect();
+        let expected = vec![
+            ComparableGroupData {
+                name:         "test.Test.TopModule1",
+                component_id: Some(0),
+                entries:      vec![2, 6, 8, 9, 10, 3, 4, 5],
+            },
+            ComparableGroupData {
+                name:         "test.Test.TopModule2",
+                component_id: Some(1),
+                entries:      vec![7],
+            },
+        ];
+        assert_eq!(flattened_top_modules, expected);
 
         let module_groups: BTreeMap<component::Id, ComparableGroupData> = list
             .module_groups

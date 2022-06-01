@@ -40,9 +40,17 @@ impl Data {
 // =============
 
 /// A group of [`Component`]s.
-#[derive(Clone, CloneRef, Debug, AsRef, Deref)]
+#[derive(Clone, CloneRef, Debug)]
 pub struct Group {
     data: Rc<Data>,
+}
+
+impl Deref for Group {
+    type Target = Data;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.data
+    }
 }
 
 impl Group {
@@ -72,9 +80,23 @@ impl Group {
 // ============
 
 /// An immutable [`Group`] list, keeping the groups in alphabetical order.
-#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     groups: Rc<Vec<Group>>,
+}
+
+impl Deref for List {
+    type Target = [Group];
+
+    fn deref(&self) -> &Self::Target {
+        self.groups.as_slice()
+    }
+}
+
+impl AsRef<[Group]> for List {
+    fn as_ref(&self) -> &[Group] {
+        self.groups.as_slice()
+    }
 }
 
 

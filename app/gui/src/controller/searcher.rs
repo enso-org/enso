@@ -566,6 +566,11 @@ impl Searcher {
         self.data.borrow().actions.clone_ref()
     }
 
+    /// Get the current component list.
+    pub fn components(&self) -> component::List {
+        self.data.borrow().components.clone_ref()
+    }
+
     /// Set the Searcher Input.
     ///
     /// This function should be called each time user modifies Searcher input in view. It may result
@@ -1227,6 +1232,7 @@ pub mod test {
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
     use json_rpc::expect_call;
+    use std::assert_matches::assert_matches;
 
 
 
@@ -1297,6 +1303,9 @@ pub mod test {
         entry2:   Rc<model::suggestion_database::Entry>,
         entry3:   Rc<model::suggestion_database::Entry>,
         entry4:   Rc<model::suggestion_database::Entry>,
+        // The 5th entry is put into database, but not read in any test yet.
+        #[allow(dead_code)]
+        entry5:   Rc<model::suggestion_database::Entry>,
         entry9:   Rc<model::suggestion_database::Entry>,
         entry10:  Rc<model::suggestion_database::Entry>,
     }
@@ -1404,6 +1413,16 @@ pub mod test {
                 ],
                 ..entry3.clone()
             };
+            let entry5 = model::suggestion_database::Entry {
+                kind:               Kind::Module,
+                module:             entry1.module.clone(),
+                name:               MODULE_NAME.to_owned(),
+                arguments:          default(),
+                return_type:        entry1.module.to_string(),
+                documentation_html: None,
+                self_type:          None,
+                scope:              Scope::Everywhere,
+            };
             let entry9 = model::suggestion_database::Entry {
                 name: "testFunction2".to_string(),
                 arguments: vec![
@@ -1439,11 +1458,24 @@ pub mod test {
             let entry3 = searcher.database.lookup(3).unwrap();
             searcher.database.put_entry(4, entry4);
             let entry4 = searcher.database.lookup(4).unwrap();
+            searcher.database.put_entry(5, entry5);
+            let entry5 = searcher.database.lookup(5).unwrap();
             searcher.database.put_entry(9, entry9);
             let entry9 = searcher.database.lookup(9).unwrap();
             searcher.database.put_entry(10, entry10);
             let entry10 = searcher.database.lookup(10).unwrap();
-            Fixture { data, test, searcher, entry1, entry2, entry3, entry4, entry9, entry10 }
+            Fixture {
+                data,
+                test,
+                searcher,
+                entry1,
+                entry2,
+                entry3,
+                entry4,
+                entry5,
+                entry9,
+                entry10,
+            }
         }
 
         fn new() -> Self {
@@ -1633,12 +1665,32 @@ pub mod test {
         test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
         // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
-        // and all of these are repeasted in "All Search Result" category.
+        // and all of these are repeated in "All Search Result" category.
         assert_eq!(list.len(), 8);
         assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
         assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(entry9)));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
+    }
+
+    #[wasm_bindgen_test]
+    fn loading_components() {
+        let Fixture { mut test, searcher, entry1, entry9, .. } =
+            Fixture::new_custom(|data, client| {
+                // Entry with id 99999 does not exist, so only two actions from suggestions db
+                // should be displayed in searcher.
+                data.expect_completion(client, None, None, &[1, 99999, 9]);
+            });
+        searcher.reload_list();
+        test.run_until_stalled();
+        let components = searcher.components();
+        if let [module_group] = &components.top_modules()[..] {
+            assert_eq!(module_group.name, entry1.module.to_string());
+            let entries = module_group.entries.borrow();
+            assert_matches!(entries.as_slice(), [e1, e2] if e1.suggestion.name == entry1.name && e2.suggestion.name == entry9.name);
+        } else {
+            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+        }
     }
 
     #[wasm_bindgen_test]

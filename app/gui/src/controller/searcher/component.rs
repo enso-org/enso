@@ -133,7 +133,7 @@ pub struct ModuleGroups {
 /// The components and their structure are immutable, only the filtering may change in created List.
 /// If there is need to change/extend the component list, a new one should be created using
 /// [`builder::List`].
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     all_components:        Rc<Vec<Component>>,
     top_modules:           group::List,
