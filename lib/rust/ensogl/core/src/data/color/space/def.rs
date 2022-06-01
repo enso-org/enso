@@ -391,7 +391,7 @@ impl Rgb {
 
     /// Return a color if the argument is a string matching a `#RGB` or `#RRGGBB` format, where
     /// `R`, `G`, `B` represent lower- or upper-case hexadecimal digits. The `RR`, `GG`, `BB` color
-    /// componets are mapped from `[00 - ff]` value range into `[0.0 - 1.0]` (a three-digit string
+    /// components are mapped from `[00 - ff]` value range into `[0.0 - 1.0]` (a three-digit string
     /// matching a `#RGB` format is equivalent to a six-digit string matching a `#RRGGBB` format,
     /// constructed by duplicating the digits).
     ///
