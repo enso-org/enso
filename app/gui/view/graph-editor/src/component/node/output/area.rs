@@ -101,6 +101,7 @@ impl Debug for Expression {
 // === Conversions ===
 
 impl From<node::Expression> for Expression {
+    #[profile(Debug)]
     fn from(expr: node::Expression) -> Self {
         let code = expr.pattern.clone();
         let whole_expr_type = expr.input_span_tree.root.tp().map(|t| t.to_owned().into());

@@ -1,19 +1,21 @@
 'use strict'
 
-import { defaultLogServerHost } from '../../../config'
+import { defaultLogServerHost } from '../../../config.js'
 import assert from 'assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'path'
-import * as Server from 'enso-studio-common/src/server'
+import * as Server from 'enso-studio-common/src/server.js'
 import util from 'util'
 import yargs from 'yargs'
+import remoteMain from '@electron/remote/main/index.js'
 
 import { project_manager_bundle } from '../paths.mjs'
 
-const child_process = require('child_process')
-const fss = require('fs')
+import child_process from 'child_process'
+import fss from 'fs'
+import fsp from 'fs/promises'
 
 // =============
 // === Paths ===
@@ -151,6 +153,14 @@ optParser.options('devtron', {
     describe: 'Install the Devtron Developer Tools extension',
 })
 
+optParser.options('load-profile', {
+    group: debugOptionsGroup,
+    describe:
+        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    requiresArg: true,
+    type: `array`,
+})
+
 optParser.options('save-profile', {
     group: debugOptionsGroup,
     describe: 'Record a performance profile and write to a file.',
@@ -229,6 +239,11 @@ optParser.options('preferred-engine-version', {
     describe: 'The Engine version that IDE will try to use for newly created projects',
     type: 'string',
     default: BUNDLED_ENGINE_VERSION,
+})
+
+optParser.options('skip-min-version-check', {
+    describe: 'Disables the check whether this IDE version is still supported',
+    type: 'boolean',
 })
 
 // === Parsing ===
@@ -328,10 +343,7 @@ function secureWebPreferences(webPreferences) {
     delete webPreferences.experimentalFeatures
     delete webPreferences.enableBlinkFeatures
     delete webPreferences.allowpopups
-    // TODO[WD]: We may want to enable it and use IPC to communicate with preload script.
-    //           https://stackoverflow.com/questions/38335004/how-to-pass-parameters-from-main-process-to-render-processes-in-electron
-    // webPreferences.contextIsolation = true
-    webPreferences.enableRemoteModule = true
+    delete webPreferences.contextIsolation
     return webPreferences
 }
 
@@ -489,7 +501,7 @@ function urlParamsFromObject(obj) {
 
 function createWindow() {
     let webPreferences = secureWebPreferences()
-    webPreferences.preload = path.join(root, 'preload.js')
+    webPreferences.preload = path.join(root, 'preload.cjs')
 
     let windowPreferences = {
         webPreferences: webPreferences,
@@ -519,8 +531,9 @@ function createWindow() {
         windowPreferences.vibrancy = 'fullscreen-ui'
     }
 
+    remoteMain.initialize()
     const window = new Electron.BrowserWindow(windowPreferences)
-
+    remoteMain.enable(window.webContents)
     window.setMenuBarVisibility(false)
 
     if (args.dev) {
@@ -539,14 +552,29 @@ function createWindow() {
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }
+
     Electron.ipcMain.on('error', (event, data) => console.error(data))
 
+    // We want to pass this argument only if explicitly passed. Otherwise we allow contents to select default behavior.
+    if (typeof args.skipMinVersionCheck !== 'undefined') {
+        urlCfg.skip_min_version_check = args.skipMinVersionCheck
+    }
     if (args.project) {
         urlCfg.project = args.project
     }
     if (args.entryPoint) {
         urlCfg.entry = args.entryPoint
     }
+    let profilePromises = []
+    if (args.loadProfile) {
+        profilePromises = args.loadProfile.map(path => fsp.readFile(path, 'utf8'))
+    }
+    const profiles = Promise.all(profilePromises)
+    Electron.ipcMain.on('load-profiles', event => {
+        profiles.then(profiles => {
+            event.reply('profiles-loaded', profiles)
+        })
+    })
     if (args.saveProfile) {
         Electron.ipcMain.on('save-profile', (event, data) => {
             fss.writeFileSync(args.saveProfile, data)

@@ -319,6 +319,7 @@ impl Deref for Area {
 
 impl Area {
     /// Constructor.
+    #[profile(Debug)]
     pub fn new(app: &Application) -> Self {
         let frp = Rc::new(Frp::new());
         let data = Rc::new(AreaModel::new(app, &frp.output));
@@ -1020,7 +1021,6 @@ impl AreaModel {
 
     #[cfg(target_arch = "wasm32")]
     #[profile(Debug)]
-    #[cfg(target_arch = "wasm32")]
     fn set_font(&self, font_name: &str) {
         let app = &self.app;
         let scene = &app.display.default_scene;

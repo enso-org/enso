@@ -93,7 +93,6 @@ export default {
         rules: [
             {
                 test: /\.ya?ml$/,
-                type: 'json',
                 use: 'yaml-loader',
             },
             {

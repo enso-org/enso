@@ -125,6 +125,7 @@ impl ExprConversion {
 impl From<node::Expression> for Expression {
     /// Traverses the `SpanTree` and constructs `viz_code` based on `code` and the `SpanTree`
     /// structure. It also computes `port::Model` values in the `viz_code` representation.
+    #[profile(Debug)]
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
         let mut shift = 0.bytes();
