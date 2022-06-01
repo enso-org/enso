@@ -34,8 +34,8 @@ spec_fmt header file read_method =
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
             t = read_method file sheet="Duplicate Columns"
-            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
-            t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
+            t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price_1']
+            t.at 'Price_1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
         Test.specify "should allow reading with cell range specified" <|
             t_1 = read_method file sheet="Simple" cell_range="B:C"
