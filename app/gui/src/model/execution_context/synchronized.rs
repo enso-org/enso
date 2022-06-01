@@ -549,7 +549,7 @@ pub mod test {
             // from the local namespace as well as from the standard library.
             language_server::LibraryComponentGroup {
                 library: "local.Unnamed_10".to_string(),
-                group:   "Test Group 1".to_string(),
+                name:    "Test Group 1".to_string(),
                 color:   Some("#C047AB".to_string()),
                 icon:    None,
                 exports: vec![
@@ -560,7 +560,7 @@ pub mod test {
             // A sample component group from the standard library, without a predefined color.
             language_server::LibraryComponentGroup {
                 library: "Standard.Base".to_string(),
-                group:   "Input".to_string(),
+                name:    "Input".to_string(),
                 color:   None,
                 icon:    None,
                 exports: vec![library_component("Standard.Base.System.File.new")],

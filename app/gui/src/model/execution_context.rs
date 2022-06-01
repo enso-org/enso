@@ -297,7 +297,7 @@ impl ComponentGroup {
     pub fn from_language_server_library_component_group(
         group: language_server::LibraryComponentGroup,
     ) -> Self {
-        let name = group.group.into();
+        let name = group.name.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
         let components = group.exports.into_iter().map(|e| e.name.into()).collect();
         ComponentGroup { name, color, components }

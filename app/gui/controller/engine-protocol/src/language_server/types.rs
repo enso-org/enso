@@ -1049,8 +1049,8 @@ pub struct LibraryComponentGroup {
     /// separated by the dot <namespace>.<library name>, i.e. `Standard.Base`
     pub library: String,
     /// The group name without the library name prefix. E.g. given the `Standard.Base.Group 1`
-    /// group reference, the `group` field contains `Group 1`.
-    pub group:   String,
+    /// group reference, the `name` field contains `Group 1`.
+    pub name:    String,
     pub color:   Option<String>,
     pub icon:    Option<String>,
     /// The list of components provided by this component group.
