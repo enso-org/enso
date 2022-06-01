@@ -209,11 +209,11 @@ learn details on setting your system up. Quick summary:
 ```bash
 enso$ rustup toolchain install stable                  # Stable toolchain required for the following tools.
 enso$ cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
-enso$ cargo +stable install cargo-watch                # To enable `./run.sh wasm watch` utility
+enso$ cargo +stable install cargo-watch                # To enable `./run wasm watch` utility
 ```
 
 The previous three steps shall be enough to build the IDE via
-`./run.sh wasm build run wasm build --wasm-profile dev`.
+`./run wasm build run wasm build --wasm-profile dev`.
 
 ### Getting Set Up (JVM)
 
@@ -498,7 +498,7 @@ in our issue tracker and we will get back to you as soon as possible.
 ### Testing Enso
 
 Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `./run.sh wasm test`.
+`sbt / test`. To test the Rust components you can run `./run wasm test`.
 
 #### Testing Enso Libraries
 
@@ -613,11 +613,11 @@ manager from one of the latest releases on
 [GitHub](https://github.com/enso-org/enso/releases), or build one using SBT
 `buildProjectManagerDistribution` command.
 
-Running development version of the IDE is possible via the `./run.sh` script in
-the root of the repository:
+Running development version of the IDE is possible via the `./run` script in the
+root of the repository:
 
 ```bash
-$ ./run.sh ide start --wasm-profile dev --external-backend
+$ ./run ide start --wasm-profile dev --external-backend
 ```
 
 ##### Bash
