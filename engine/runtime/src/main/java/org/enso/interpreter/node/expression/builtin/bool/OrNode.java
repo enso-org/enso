@@ -29,14 +29,15 @@ public abstract class OrNode extends Node {
     return new Stateful(state, true);
   }
 
-  @Specialization(
-      guards = {"!_this"},
-      rewriteOn = ClassCastException.class)
+  @Specialization(rewriteOn = ClassCastException.class)
   Stateful executeBool(
       @MonadicState Object state,
       boolean _this,
       @Suspend Object that,
       @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+    if (_this) {
+      return new Stateful(state, true);
+    }
     Stateful result =
         rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
     if (result.getValue() instanceof Boolean) {
