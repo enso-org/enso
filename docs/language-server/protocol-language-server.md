@@ -1538,9 +1538,9 @@ interface LibraryComponentGroup {
 
   /** The group name without the library name prefix.
    *  E.g. given the `Standard.Base.Group 1` group reference,
-   * the `group` field contains `Group 1`.
+   * the `name` field contains `Group 1`.
    */
-  group: string;
+  name: string;
 
   color?: string;
 
