@@ -52,20 +52,20 @@ public class TypeProcessor extends BuiltinsMetadataProcessor<TypeProcessor.TypeM
   @Override
   protected boolean handleProcess(
       Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    if (jfo == null) {
+      // Create generator for Java source file once(!) so that it can be used at the last
+      // round of processing. Otherwise, javac complains that the generated file won't be
+      // used in further processing. That's fine, we know it won't.
+      try {
+        jfo = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
+      } catch (IOException e) {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+        return false;
+      }
+    }
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
       for (Element elt : annotatedElements) {
-        if (jfo == null) {
-          // Create generator for Java source file once(!) so that it can be used at the last
-          // round of processing. Otherwise, javac complains that the generated file won't be
-          // used in further processing. That's fine, we know it won't.
-          try {
-            jfo = processingEnv.getFiler().createSourceFile(ConstantsGenFullClassname);
-          } catch (IOException e) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
-            return false;
-          }
-        }
         TypeElement element = (TypeElement) elt;
         BuiltinType builtinTypeAnnotation = element.getAnnotation(BuiltinType.class);
         String pkgName =
