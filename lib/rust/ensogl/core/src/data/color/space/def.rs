@@ -461,6 +461,12 @@ impl Rgb {
 
 // === Rgb Helpers ===
 
+/// Decode an 8-bit number from its big-endian hexadecimal encoding in ASCII. Return `None` if any
+/// of the bytes stored in the argument array is not an upper- or lower-case hexadecimal digit in ASCII.character 8-bit ASCII characters stored in the argument is not a lower- or upper-case hexadecimal
+/// digit.
+/// Return an 8-bit number decoded from 
+/// Decode an 8-bit number from two upper- or lower-case ASCII-encoded hexadecimal digits stored in
+/// an array. Return `None` if any of the ASCII characters is not a hexadecimal digit.
 fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
     let first_digit = (s[0] as char).to_digit(16)? as u8;
     let second_digit = (s[1] as char).to_digit(16)? as u8;
