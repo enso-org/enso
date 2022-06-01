@@ -28,8 +28,27 @@ class InstrumentTestContext {
       .toList
   }
 
-  def receiveNIgnoreStdLib(n: Int): List[Api.Response] = {
-    receiveN(n + 1, 60).filter(excludeLibraryLoadingPayload)
+  def receiveNIgnoreStdLib(
+    n: Int,
+    timeoutSeconds: Long = 60
+  ): List[Api.Response] = {
+    var count: Int                     = n
+    var lastSeen: Option[Api.Response] = None
+    Iterator
+      .continually(receiveWithTimeout(timeoutSeconds))
+      .takeWhile {
+        case Some(Api.Response(None, Api.LibraryLoaded(_, _, _, _))) =>
+          count > 0
+        case msg @ Some(_) =>
+          count -= 1
+          lastSeen = msg
+          count > 0
+        case None =>
+          false
+      }
+      .flatten
+      .filter(excludeLibraryLoadingPayload)
+      .toList ++ lastSeen
   }
 
   private def excludeLibraryLoadingPayload(response: Api.Response): Boolean =
