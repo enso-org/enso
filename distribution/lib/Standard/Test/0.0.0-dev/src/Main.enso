@@ -26,8 +26,7 @@ polyglot java import java.lang.StringBuilder
 Suite.run_main : Any -> Nothing
 Suite.run_main ~specs =
     config = here.config_from_env
-    r = here.wrap_junit_testsuites config <|
-        this.run specs config
+    r = this.run specs config
     code = if r.is_fail then 1 else 0
     System.exit code
 
@@ -96,12 +95,17 @@ config_from_env =
                      2+3 . should_equal 5
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
-Suite.run : Any -> Suite_Config -> StringBuilder -> Any
+Suite.run : Any -> Suite_Config -> Any
 Suite.run ~specs config =
-    r = State.run Suite (Suite config Nil) <|
+    builder = if config.should_output_junit then StringBuilder.new else Nothing
+
+    r = State.run Suite (Suite config Nil builder) <|
         specs
         State.get Suite
-    r
+
+    here.wrap_junit_testsuites config builder <|
+        r
+
 
 ## Creates a new test group, describing properties of the object
    described by `this`.
@@ -121,19 +125,19 @@ Suite.run ~specs config =
              Test.group "Number" <| Nothing
 group : Text -> Any -> (Text | Nothing) -> Nothing
 group name ~behaviors pending=Nothing =
-    config = State.get Suite . config
+    suite = State.get Suite
+    config = suite.config
     if config.should_run_group name then
         case pending of
             Nothing ->
                 r = State.run Spec (Spec name  Nil) <|
                     behaviors
                     State.get Spec
-                r.print_report config
-                suite = State.get Suite
-                new_suite = Suite suite.config (Cons r suite.specs)
+                r.print_report config suite.builder
+                new_suite = Suite suite.config (Cons r suite.specs) suite.builder
                 State.put Suite new_suite
             reason ->
-                here.report_pending_group name reason config
+                here.report_pending_group name reason config suite.builder
 
 ## Specifies a single behavior, described by `this`.
 
@@ -565,7 +569,7 @@ type Verbs
 
 ## PRVATE
 type Suite_Config
-    type Suite_Config only_group_regexp output_path builder=StringBuilder.new
+    type Suite_Config only_group_regexp output_path
 
     should_run_group name =
         regexp = this.only_group_regexp
@@ -582,8 +586,10 @@ type Suite_Config
    The top-level entry point for a test suite.
 
    Arguments:
+   - config: Suite_Config controlloing the test run.
    - specs: The specs contained within the test suite.
-type Suite config specs
+   - builder: StringBuilder for JUnit output.
+type Suite config specs builder
 
 ## PRIVATE
 
@@ -698,30 +704,30 @@ fail_match_on_unexpected_error error frames_to_skip =
 
 ## PRIVATE
    Write the JUnit XML header.
-wrap_junit_testsuites : Suite_Config -> Any -> Nothing
-wrap_junit_testsuites config ~action =
+wrap_junit_testsuites : Suite_Config -> (StringBuilder|Nothing) -> Any -> Nothing
+wrap_junit_testsuites config builder ~action =
     if config.should_output_junit then
-        config.builder.append '<?xml version="1.0" encoding="UTF-8"?>\n'
-        config.builder.append '<testsuites>\n'
+        builder.append '<?xml version="1.0" encoding="UTF-8"?>\n'
+        builder.append '<testsuites>\n'
 
     result = action
 
     if config.should_output_junit then
-        config.builder.append '</testsuites>\n'
+        builder.append '</testsuites>\n'
         config.output_path.parent.create_directory
-        config.output_path.write_text config.builder.toString
+        config.output_path.write_text builder.toString
 
     result
 
 
 ## PRIVATE
    Record JUnit PENDING group.
-report_pending_group : Text -> Text -> Suite_Config -> Nothing
-report_pending_group name reason config =
+report_pending_group : Text -> Text -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
+report_pending_group name reason config builder =
     if config.should_output_junit then
-        config.builder.append ('    <testsuite name="' + (here.escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
-        config.builder.append ('        <testcase name="' + (here.escape_xml name) + '"><skipped message="' + (here.escape_xml reason) + '" /></testcase>\n')
-        config.builder.append '    </testsuite>\n'
+        builder.append ('    <testsuite name="' + (here.escape_xml name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '">\n')
+        builder.append ('        <testcase name="' + (here.escape_xml name) + '"><skipped message="' + (here.escape_xml reason) + '" /></testcase>\n')
+        builder.append '    </testsuite>\n'
 
     IO.println ("[PENDING] " + name)
     IO.println ("    Reason: " + reason)
@@ -729,23 +735,23 @@ report_pending_group name reason config =
 
 ## PRIVATE
    Prints a report on the tests to standard output.
-Spec.print_report : Suite_Config -> Nothing
-Spec.print_report config =
+Spec.print_report : Suite_Config -> (StringBuilder|Nothing) -> Nothing
+Spec.print_report config builder =
     if config.should_output_junit then
-        config.builder.append ('    <testsuite name="' + (here.escape_xml this.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
-        config.builder.append (' tests="' + this.behaviors.length.to_text + '"')
-        config.builder.append (' disabled="' + this.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
-        config.builder.append (' errors="' + this.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
-        config.builder.append ('>\n')
+        builder.append ('    <testsuite name="' + (here.escape_xml this.name) + '" timestamp="' + (Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
+        builder.append (' tests="' + this.behaviors.length.to_text + '"')
+        builder.append (' disabled="' + this.behaviors.filter (x->(x.is_a Pending)) . length . to_text + '"')
+        builder.append (' errors="' + this.behaviors.filter (x->(x.is_a Failure)) . length . to_text + '"')
+        builder.append ('>\n')
 
         this.behaviors.reverse.each behavior->
-            config.builder.append ('        <testcase name="' + (here.escape_xml behavior.name) + '">')
+            builder.append ('        <testcase name="' + (here.escape_xml behavior.name) + '">')
             case behavior.result of
                 Success -> Nothing
-                Failure msg -> config.builder.append ('\n            <error message="' + (here.escape_xml msg) + '"/>\n        ')
-                Pending msg -> config.builder.append ('\n            <skipped message="' + (here.escape_xml msg) + '"/>\n        ')
-            config.builder.append '</testcase>\n'
-        config.builder.append '    </testsuite>\n'
+                Failure msg -> builder.append ('\n            <error message="' + (here.escape_xml msg) + '"/>\n        ')
+                Pending msg -> builder.append ('\n            <skipped message="' + (here.escape_xml msg) + '"/>\n        ')
+            builder.append '</testcase>\n'
+        builder.append '    </testsuite>\n'
 
     IO.println (this.name + ":")
     this.behaviors.reverse.each behavior->
