@@ -446,8 +446,13 @@ type Table
             if len == 1 then ixes.at 0 else ixes
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Problem_Behavior.Report_Warning =
-        Error.throw "TODO"
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Report_Warning =
+        transform_elements = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
+        new_columns = transform_elements.map element-> case element.associated_selector of
+            Nothing -> element.column
+            selector ->
+                IO.println "WIP: would sort "+element.column.name+" in "+selector.direction.to_text+" direction."
+                element.column
 
     ## UNSTABLE
 

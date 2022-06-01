@@ -11,6 +11,7 @@ import Standard.Table.Data.Column_Mapping
 import Standard.Table.Internal.Unique_Name_Strategy
 import Standard.Table.Internal.Problem_Builder
 import Standard.Base.Data.Ordering.Natural_Order
+import Standard.Table.Data.Sort_Column_Selector
 
 polyglot java import java.util.HashSet
 
@@ -344,24 +345,47 @@ validate_unique vector problem_callback on=(x->x) =
 
 ## PRIVATE
    A helper type used by transform helpers.
-type Column_Transform_Element column is_selected:Boolean metadata:Any=Nothing
+type Column_Transform_Element column associated_selector
 
 ## PRIVATE
-   A helper function which can be used by methods that transform a subset of columns based on some selection criteria
-   while keeping the unselected columns unaffected and not changing the ordering of the columns.
+prepare_order_by : Vector -> Problem_Behavior -> Vector Column_Transform_Element
+prepare_order_by internal_columns column_selectors on_problems =
+    problem_builder = Problem_Builder.new
+    transform_elements = case column_selectors of
+        Sort_Column_Selector.By_Name name_selectors matcher ->
+            here.transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
+        Sort_Column_Selector.By_Index index_selectors ->
+            Error.throw "TODO"
+        Sort_Column_Selector.By_Column column_selectors ->
+            Error.throw "TODO"
+    problem_builder.attach_problems_after on_problems transform_elements
 
-   It returns `internal_columns` transformed in the following way: each entry is a `Column_Transform_Element` which
-   contains the original internal column, a field specifying if the column has been selected for the transformation and
-   any metadata which were associated with it extracted from the selector.
+## PRIVATE
+   A helper function which can be used by methods that transform a subset of
+   columns based on some selection criteria while keeping the unselected columns
+   unaffected and not changing the ordering of the columns.
+
+   It returns `internal_columns` transformed in the following way: each entry
+   becomes a `Column_Transform_Element` which contains the original internal
+   column and the chosen associated selector (which may contain some additional
+   metadata needed to perform the transformation) or `Nothing` if the column was
+   not selected for transformation.
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - name_selectors: A vector of selectors which contain a column name and optionally some metadata.
+   - name_selectors: A vector of selectors which contain a column name and
+     optionally some metadata.
    - matcher: Specifies the strategy of matching names.
    - problem_builder: Encapsulates the aggregation of encountered problems.
    - name_extractor: A function which extracts the column name from the selector.
-   - metadata_extractor: A function which extracts metadata from the selector.
 transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> (Any -> Any) -> Vector
-transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor metadata_extractor=(_->Nothing) =
-    valid_names = here.validate_unique name_selectors problem_builder.report_duplicate_column_selectors
-    Matching.match_criteria_callback matcher internal_columns valid_names reorder=True name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
+transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
+    match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
+    problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
+    internal_columns.map_with_index i-> column->
+        matching_selectors = match_matrix.criteria_matching_object i
+        associated_selector = if matching_selectors.is_empty then Nothing else
+            if matching_selectors.length > 1 then
+                problem_builder.report_duplicate_column_selectors matching_selectors.tail
+            matching_selectors.first
+        Column_Transform_Element column associated_selector

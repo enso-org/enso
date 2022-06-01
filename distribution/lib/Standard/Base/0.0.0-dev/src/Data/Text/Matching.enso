@@ -228,17 +228,23 @@ type Match_Matrix
             Pair has_matches criterion
         checked_criteria.filter (p -> p.first.not) . map .second
 
+    ## PRIVATE
+       Returns the list of criteria that match the ith object.
+    criteria_matching_object : Integer -> Vector
+    criteria_matching_object i =
+        this.criteria.filter_with_index j-> _->
+            this.matrix . at i . at j
+
 ## PRIVATE
    Generates a matrix specifying which criteria match which object.
 
    The returned `match_matrix` satisfies the following condition:
    `match_matrix . at i . at j` is `True` if and only if `objects.at i` matches
    `criteria.at j`.
-make_match_matrix matcher objects criteria object_name_mapper=(x->x) =
+make_match_matrix matcher objects criteria object_name_mapper=(x->x) criterion_mapper=(x->x) =
     matrix = objects.map obj->
         criteria.map criterion->
-            name = object_name_mapper obj
-            matcher.match_single_criterion name criterion
+            matcher.match_single_criterion (object_name_mapper obj) (criterion_mapper criterion)
     Match_Matrix matrix criteria objects
 
 ## PRIVATE
