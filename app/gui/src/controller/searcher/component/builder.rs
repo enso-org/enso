@@ -112,14 +112,13 @@ impl List {
         }
     }
 
-    fn build(self) -> component::List {
+    pub fn build(self) -> component::List {
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::ListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.group.clone_ref()));
         let mut top_mdl_flat_bld = component::group::ListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_group.clone()));
         component::List {
-            logger:                Logger::new("searcher::component::List"),
             all_components:        self.all_components,
             top_modules:           top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),

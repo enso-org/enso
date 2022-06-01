@@ -357,6 +357,10 @@ impl SuggestionDatabase {
         indices.filter_map(move |i| self.examples.borrow().get(i).cloned())
     }
 
+    pub fn keys(&self) -> Vec<entry::Id> {
+        self.entries.borrow().keys().cloned().collect()
+    }
+
     /// Put the entry to the database. Using this function likely breaks the synchronization between
     /// Language Server and IDE, and should be used only in tests.
     #[cfg(test)]

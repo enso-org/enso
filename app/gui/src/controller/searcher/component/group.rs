@@ -3,6 +3,12 @@ use crate::controller::searcher::component::Component;
 use crate::model::suggestion_database;
 use crate::prelude::*;
 
+
+
+// ============
+// === Data ===
+// ============
+
 #[derive(Clone, Debug)]
 pub struct Data {
     pub name:         ImString,
@@ -16,6 +22,12 @@ impl Data {
         Data { name: name.into(), component_id, entries: default(), visible: Cell::new(true) }
     }
 }
+
+
+
+// =============
+// === Group ===
+// =============
 
 #[derive(Clone, CloneRef, Debug, AsRef, Deref)]
 pub struct Group {
@@ -40,6 +52,12 @@ impl Group {
     }
 }
 
+
+
+// ============
+// === List ===
+// ============
+
 #[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
 pub struct List {
     groups: Rc<Vec<Group>>,
@@ -50,6 +68,9 @@ impl List {
         self.groups.iter().filter(|g| g.visible.get())
     }
 }
+
+
+// === ListBuilder ===
 
 #[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
 pub struct ListBuilder {

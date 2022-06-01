@@ -12,7 +12,19 @@ use engine_protocol::language_server::SuggestionId;
 use js_sys::Atomics::sub;
 use std::collections::hash_map::Entry;
 
+
+
+// ====================
+// === Type Aliases ===
+// ====================
+
 pub type Id = suggestion_database::entry::Id;
+
+
+
+// =================
+// === MatchInfo ===
+// =================
 
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
@@ -27,6 +39,12 @@ impl Default for MatchInfo {
         MatchInfo::Matches { subsequence: default() }
     }
 }
+
+
+
+// =================
+// === Component ===
+// =================
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
@@ -62,15 +80,25 @@ impl Component {
     }
 }
 
+
+
+// ============
+// === List ===
+// ============
+
+// === ModuleGroups ===
+
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
     pub group:     Group,
     pub subgroups: group::List,
 }
 
-#[derive(Clone, Debug)]
+
+// === List ===
+
+#[derive(Clone, Debug, Default)]
 pub struct List {
-    pub logger:                Logger,
     pub all_components:        Vec<Component>,
     pub top_modules:           group::List,
     pub top_modules_flattened: group::List,
@@ -79,6 +107,13 @@ pub struct List {
 }
 
 impl List {
+    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>) -> List {
+        let mut builder = builder::List::new(suggestion_db.clone_ref());
+        builder.extend(suggestion_db.keys());
+        builder.build()
+    }
+
+
     pub fn top_modules(&self) -> &group::List {
         if self.filtered.get() {
             &self.top_modules_flattened
