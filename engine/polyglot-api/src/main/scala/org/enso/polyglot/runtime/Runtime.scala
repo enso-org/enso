@@ -194,6 +194,10 @@ object Runtime {
         name  = "suggestionsDatabaseModuleUpdateNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.AnalyzeModuleInScopeJobFinished],
+        name  = "analyzeModuleInScopeJobFinished"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.InvalidateModulesIndexRequest],
         name  = "invalidateModulesIndexRequest"
       ),
@@ -1374,6 +1378,9 @@ object Runtime {
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
         ")"
     }
+
+    /** A notification about the finished background analyze job. */
+    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
     final case class InvalidateModulesIndexRequest() extends ApiRequest
