@@ -1,16 +1,12 @@
 package org.enso.base;
 
-import org.graalvm.collections.Equivalence;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 
-public class ObjectComparator extends Equivalence implements Comparator<Object> {
+public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
 
   /**
@@ -35,53 +31,6 @@ public class ObjectComparator extends Equivalence implements Comparator<Object> 
         (a, b) -> {
           throw new ClassCastException("Incomparable keys.");
         });
-  }
-
-  @Override
-  public boolean equals(Object a, Object b) {
-    return this.compare(a, b) == 0;
-  }
-
-  @Override
-  public int hashCode(Object o) {
-    int typeHash;
-    int valueHash;
-
-    if (o instanceof Double dblValue && dblValue.longValue() == dblValue) {
-      Long lngValue = dblValue.longValue();
-      typeHash = lngValue.getClass().hashCode();
-      valueHash = lngValue.hashCode();
-    } else if (o instanceof String string) {
-      String normal = Text_Utils.normalize(string);
-      typeHash = normal.getClass().hashCode();
-      valueHash = normal.hashCode();
-    } else if (o instanceof Map m) {
-      // Polyglot Scenarios - Handle Vector specially otherwise map over !null keys
-      if (m.containsKey("to_array") && m.get("to_array") instanceof List l) {
-        typeHash = l.getClass().hashCode();
-        valueHash = 1;
-        for (Object v : l) {
-          if (v != null) {
-            valueHash = (((valueHash << 5) + valueHash) + this.hashCode(v));
-          }
-        }
-      } else {
-        typeHash = o.getClass().hashCode();
-        valueHash = 1;
-        for (Object k : m.keySet()) {
-          Object v = m.get(k);
-          if (v != null) {
-            int entryHash = k.hashCode() ^ this.hashCode(v);
-            valueHash = (((valueHash << 5) + valueHash) + entryHash);
-          }
-        }
-      }
-    } else {
-      typeHash = o.getClass().hashCode();
-      valueHash = o.hashCode();
-    }
-
-    return (((typeHash << 5) + typeHash) ^ valueHash);
   }
 
   public ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator) {
