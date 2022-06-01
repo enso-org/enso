@@ -755,6 +755,7 @@ impl Handle {
     }
 
     /// Updates the AST of the definition of this graph.
+    #[profile(Debug)]
     pub fn update_definition_ast<F>(&self, f: F) -> FallibleResult
     where F: FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo> {
         let ast_so_far = self.module.ast();
@@ -834,6 +835,7 @@ impl Handle {
     }
 
     /// Sets the given's node expression.
+    #[profile(Debug)]
     pub fn set_expression(&self, id: ast::Id, expression_text: impl Str) -> FallibleResult {
         info!(self.logger, "Setting node {id} expression to `{expression_text.as_ref()}`");
         let new_expression_ast = self.parse_node_expression(expression_text)?;
@@ -870,6 +872,7 @@ impl Handle {
     /// Collapses the selected nodes.
     ///
     /// Lines corresponding to the selection will be extracted to a new method definition.
+    #[profile(Task)]
     pub fn collapse(
         &self,
         nodes: impl IntoIterator<Item = node::Id>,

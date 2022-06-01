@@ -1,42 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron')
-const remote = require('@electron/remote')
-
-const win = remote?.getCurrentWindow()
-
-if (win === undefined) {
-    console.warn('Could not get current window object for window startup animation.')
-}
-
-// =============================
-// === Window Show Animation ===
-// =============================
-
-function ease_in_out_quad(t) {
-    return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
-}
-
-function animate_show(target) {
-    return new Promise(function (resolve, reject) {
-        let opacity = 0
-        function show_step(timestamp) {
-            opacity += 0.02
-            if (opacity > 1) {
-                opacity = 1
-            }
-            target.setOpacity(ease_in_out_quad(opacity))
-            if (opacity < 1) {
-                window.requestAnimationFrame(show_step)
-            } else {
-                resolve()
-            }
-        }
-        window.requestAnimationFrame(show_step)
-    })
-}
-
-if (win !== undefined) {
-    window.showAnimation = animate_show(win)
-}
 
 // ===================
 // === Debug Tools ===
@@ -60,10 +22,28 @@ contextBridge.exposeInMainWorld('enso_lifecycle', {
     quit: data => ipcRenderer.send('quit-ide'),
 })
 
-// Used for capturing profiling data.
+// Save and load profile data.
+let onProfiles = []
+let profilesLoaded
+ipcRenderer.on('profiles-loaded', (event, profiles) => {
+    for (const callback of onProfiles) {
+        callback(profiles)
+    }
+    onProfiles = []
+    profilesLoaded = profiles
+})
 contextBridge.exposeInMainWorld('enso_profiling_data', {
     // Delivers profiling log.
     saveProfile: data => ipcRenderer.send('save-profile', data),
+    // Requests any loaded profiling logs.
+    loadProfiles: callback => {
+        if (profilesLoaded === undefined) {
+            ipcRenderer.send('load-profiles')
+            onProfiles.push(callback)
+        } else {
+            callback(profilesLoaded)
+        }
+    },
 })
 
 // Access to the system console that Electron was run from.

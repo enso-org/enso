@@ -22,6 +22,7 @@ pub struct Screen {
 
 impl Screen {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(scene: &Scene, surface_material: Material) -> Self {
         let sprite_system = SpriteSystem::new(scene);
         sprite_system.set_geometry_material(Self::geometry_material());

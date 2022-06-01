@@ -15,6 +15,7 @@
 #![warn(missing_debug_implementations)]
 
 use derivative::Derivative;
+use futures::prelude::*;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
@@ -56,6 +57,7 @@ impl LifecycleController {
 
 /// Emit profile data.
 pub fn save_profile(profile: &str) {
+    static PROFILE_SAVED: AtomicBool = AtomicBool::new(false);
     let already_saved = PROFILE_SAVED.swap(true, Ordering::Relaxed);
     if !already_saved {
         match profiling_data_api() {
@@ -65,7 +67,26 @@ pub fn save_profile(profile: &str) {
     }
 }
 
-static PROFILE_SAVED: AtomicBool = AtomicBool::new(false);
+/// Get profile data loaded from files, if the Electron API is available.
+pub fn load_profiles() -> Option<impl Future<Output = Vec<String>>> {
+    let api = profiling_data_api()?;
+    let (sender, receiver) = futures::channel::oneshot::channel();
+    let handler = wasm_bindgen::prelude::Closure::once(|profiles: Vec<wasm_bindgen::JsValue>| {
+        let context = "Parsing profile file as UTF-8 String";
+        let profiles: Vec<String> =
+            profiles.into_iter().map(|value| value.as_string().expect(context)).collect();
+        // This only fails if the receiver was dropped; in that case the data is no longer needed.
+        let _result = sender.send(profiles);
+    });
+    api.load_profiles(&handler);
+    Some(async move {
+        let result = receiver.await;
+        drop(handler);
+        // The error case (Cancelled) cannot occur, because the handler owns the sender, and we
+        // ensure the handler isn't dropped until after we have received the data.
+        result.unwrap()
+    })
+}
 
 
 
@@ -100,6 +121,10 @@ pub mod js {
             #[wasm_bindgen(method, js_name = saveProfile)]
             #[allow(unsafe_code)]
             pub fn save_profile(this: &ProfilingData, data: &str);
+
+            #[wasm_bindgen(method, js_name = loadProfiles)]
+            #[allow(unsafe_code)]
+            pub fn load_profiles(this: &ProfilingData, callback: &Closure<dyn FnMut(Vec<JsValue>)>);
         }
     }
 
