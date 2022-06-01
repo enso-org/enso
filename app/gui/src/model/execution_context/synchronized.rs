@@ -104,7 +104,7 @@ impl ExecutionContext {
         let ls_response = self.language_server.get_component_groups(&self.id).await?;
         let ls_component_groups = ls_response.component_groups.into_iter();
         let component_groups = ls_component_groups.map(|group| group.into());
-        *self.model.imported_component_groups.borrow_mut() = component_groups.collect();
+        *self.model.component_groups.borrow_mut() = component_groups.collect();
         Ok(())
     }
 
@@ -535,8 +535,9 @@ pub mod test {
         });
     }
 
-    /// Check that the [`ExecutionContext::load_component_groups`] method correctly parses a mocked
-    /// Language Server response and loads the result into a field of the [`ExecutionContext`].
+    /// Check that the [`ExecutionContext::load_component_groups`] method correctly parses
+    /// a mocked Language Server response and loads the result into a field of the
+    /// [`ExecutionContext`].
     #[test]
     fn loading_component_groups() {
         // Prepare sample component groups to be returned by a mock Language Server client.
@@ -575,7 +576,7 @@ pub mod test {
         // Run a test and verify that the sample component groups were parsed correctly and have
         // expected contents.
         test.run_task(async move {
-            let groups = context.model.imported_component_groups.borrow();
+            let groups = context.model.component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
             // Verify that the first component group was parsed and has expected contents.

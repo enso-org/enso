@@ -61,7 +61,7 @@ pub struct ExecutionContext {
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
     /// Component groups from libraries imported into the execution context.
-    pub imported_component_groups: RefCell<Vec<ComponentGroup>>,
+    pub component_groups: RefCell<Vec<ComponentGroup>>,
 }
 
 impl ExecutionContext {
@@ -72,7 +72,7 @@ impl ExecutionContext {
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
-        let imported_component_groups = default();
+        let component_groups = default();
         Self {
             logger,
             entry_point,
@@ -80,7 +80,7 @@ impl ExecutionContext {
             visualizations,
             computed_value_info_registry,
             is_ready,
-            imported_component_groups,
+            component_groups,
         }
     }
 
