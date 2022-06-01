@@ -277,11 +277,11 @@ pub struct AttachedVisualization {
 // === ComponentGroup ===
 // ======================
 
-/// A named group of components (language elements displayed by the Component Browser).
+/// A named group of components which is defined in a library imported into an execution context.
 ///
-/// Components are displayed in the Commponent Browser in groups, and such groups can be defined by
-/// libraries imported into the current execution context. To learn more about component groups,
-/// see the [Component Browser Design
+/// Components are language elements displayed by the Component Browser. The Component Browser
+/// displays them in groups defined in libraries imported into an execution context.
+/// To learn more about component groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
@@ -293,8 +293,10 @@ pub struct ComponentGroup {
 }
 
 impl ComponentGroup {
-    /// Construct from a Language Server type representing a component group.
-    pub fn from_language_server(group: language_server::LibraryComponentGroup) -> Self {
+    /// Construct from a [`language_server::LibraryComponentGroup`].
+    pub fn from_language_server_library_component_group(
+        group: language_server::LibraryComponentGroup,
+    ) -> Self {
         let name = group.group.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
         let components = group.exports.into_iter().map(|e| e.name.into()).collect();
@@ -304,7 +306,7 @@ impl ComponentGroup {
 
 impl From<language_server::LibraryComponentGroup> for ComponentGroup {
     fn from(group: language_server::LibraryComponentGroup) -> Self {
-        Self::from_language_server(group)
+        Self::from_language_server_library_component_group(group)
     }
 }
 

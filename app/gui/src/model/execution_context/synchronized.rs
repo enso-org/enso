@@ -99,12 +99,12 @@ impl ExecutionContext {
         result.map(|res| res.map_err(|err| err.into()))
     }
 
-    /// Load the component groups available in the execution context.
+    /// Load the component groups from libraries imported into the execution context.
     async fn load_component_groups(&self) -> FallibleResult {
         let ls_response = self.language_server.get_component_groups(&self.id).await?;
         let ls_component_groups = ls_response.component_groups.into_iter();
         let component_groups = ls_component_groups.map(|group| group.into());
-        *self.model.available_component_groups.borrow_mut() = component_groups.collect();
+        *self.model.imported_component_groups.borrow_mut() = component_groups.collect();
         Ok(())
     }
 
@@ -575,7 +575,7 @@ pub mod test {
         // Run a test and verify that the sample component groups were parsed correctly and have
         // expected contents.
         test.run_task(async move {
-            let groups = context.model.available_component_groups.borrow();
+            let groups = context.model.imported_component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
             // Verify that the first component group was parsed and has expected contents.
