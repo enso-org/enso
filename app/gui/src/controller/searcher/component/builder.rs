@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::model::suggestion_database;

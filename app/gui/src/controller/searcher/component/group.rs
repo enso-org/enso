@@ -1,10 +1,11 @@
 //! A module containing definition of [`component::Group`], the list of those and related
 //! structures.
 
+use crate::prelude::*;
+
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::model::suggestion_database;
-use crate::prelude::*;
 
 
 

@@ -2,14 +2,19 @@
 //!
 //! Component is a language entity displayed in the Component Browser.
 
+use crate::prelude::*;
+
+use crate::model::suggestion_database;
+
+
+// ==============
+// === Export ===
+// ==============
+
 pub mod builder;
 pub mod group;
 
 pub use group::Group;
-
-use crate::prelude::*;
-
-use crate::model::suggestion_database;
 
 
 
