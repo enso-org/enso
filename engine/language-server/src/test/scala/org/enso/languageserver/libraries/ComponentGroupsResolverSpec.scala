@@ -301,14 +301,14 @@ object ComponentGroupsResolverSpec {
 
   /** Create a new library component group. */
   def libraryComponentGroup(
-    namespace: String,
-    name: String,
-    group: String,
+    libraryNamespace: String,
+    libraryName: String,
+    groupName: String,
     exports: String*
   ): LibraryComponentGroup =
     LibraryComponentGroup(
-      library = LibraryName(namespace, name),
-      group   = GroupName(group),
+      library = LibraryName(libraryNamespace, libraryName),
+      name    = GroupName(groupName),
       color   = None,
       icon    = None,
       exports = exports.map(LibraryComponent(_, None))
