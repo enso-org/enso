@@ -313,6 +313,8 @@ impl Entry {
         }
     }
 
+    /// Get the fully qualified name of the parent module of this entry. Returns [`None`] if
+    /// the entry represents a top-level module.
     pub fn parent_module(&self) -> Option<module::QualifiedName> {
         match self.kind {
             Kind::Module => self.module.parent_module(),

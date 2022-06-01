@@ -1,3 +1,5 @@
+//! A module with entities used for building proper [`component::List`].
+
 use crate::prelude::*;
 
 
@@ -13,29 +15,42 @@ use double_representation::module;
 // === ModuleGroups ===
 // ====================
 
+/// Module Groups Builder.
+///
+/// The builder allow extending the groups with module content, and add new submodules.
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct ModuleGroups {
-    pub group:           component::Group,
-    pub flattened_group: Option<component::Group>,
-    pub subgroups:       component::group::ListBuilder,
-    pub is_top_module:   bool,
+    pub content:           component::Group,
+    /// The flattened content contains the content af module and all its submodules. Is set to
+    /// `Some` only when such flattened content is needed (decided during construction).
+    ///
+    /// For example when the module is a top module, so need its flattened content to fill the
+    /// `top_module_flattened` field of [`component::List`].
+    pub flattened_content: Option<component::Group>,
+    pub submodules:        component::group::ListBuilder,
+    pub is_top_module:     bool,
 }
 
 impl ModuleGroups {
-    fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
+    /// Construct the builder without content nor submodules.
+    ///
+    /// The existence of flattened content is decided during construction.
+    pub fn new(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         Self {
-            group:           component::Group::from_entry(component_id, entry),
-            flattened_group: entry
+            content:           component::Group::from_entry(component_id, entry),
+            flattened_content: entry
                 .module
                 .is_top_module()
                 .as_some_from(|| component::Group::from_entry(component_id, entry)),
-            subgroups:       default(),
-            is_top_module:   entry.module.is_top_module(),
+            submodules:        default(),
+            is_top_module:     entry.module.is_top_module(),
         }
     }
 
-    fn build(self) -> component::ModuleGroups {
-        component::ModuleGroups { group: self.group, subgroups: self.subgroups.build() }
+    /// Build [`component::ModuleGroups`] structure with appropriately sorted submodules.
+    pub fn build(self) -> component::ModuleGroups {
+        component::ModuleGroups { content: self.content, submodules: self.submodules.build() }
     }
 }
 
@@ -45,18 +60,27 @@ impl ModuleGroups {
 // === List ===
 // ============
 
+/// A [`component::List`] builder.
+///
+/// The builder allow extending the list with new entries, and build a list with properly sorted
+/// groups.
 #[derive(Clone, Debug)]
 pub struct List {
-    pub suggestion_db:  Rc<model::SuggestionDatabase>,
-    pub all_components: Vec<Component>,
-    pub module_groups:  HashMap<component::Id, ModuleGroups>,
+    suggestion_db:  Rc<model::SuggestionDatabase>,
+    all_components: Vec<Component>,
+    module_groups:  HashMap<component::Id, ModuleGroups>,
 }
 
 impl List {
+    /// Construct List builder without content.
+    ///
+    /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
+    /// method takes ids as argument).
     pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
         Self { suggestion_db, all_components: default(), module_groups: default() }
     }
 
+    /// Extend the list with new entries.
     pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
         let suggestion_db = self.suggestion_db.clone_ref();
         let components = entries.into_iter().filter_map(|id| {
@@ -72,11 +96,11 @@ impl List {
             if let Some(parent_module) = component.suggestion.parent_module() {
                 DEBUG!("Found parent module: {parent_module:?}");
                 if let Some(parent_group) = self.lookup_module_group(&parent_module) {
-                    parent_group.group.entries.borrow_mut().push(component.clone_ref());
+                    parent_group.content.entries.borrow_mut().push(component.clone_ref());
                     component_inserted_somewhere = true;
                 }
                 if let Some(top_group) = self.lookup_module_group(&parent_module.top_module()) {
-                    if let Some(flatten_group) = &mut top_group.flattened_group {
+                    if let Some(flatten_group) = &mut top_group.flattened_content {
                         flatten_group.entries.borrow_mut().push(component.clone_ref());
                         component_inserted_somewhere = true;
                     }
@@ -105,28 +129,27 @@ impl List {
                 DEBUG!("The parent module is {module}");
                 if let Some(parent_groups) = self.lookup_module_group(&module) {
                     DEBUG!("Found Parent Groups");
-                    parent_groups.subgroups.push(groups.group.clone_ref())
+                    parent_groups.submodules.push(groups.content.clone_ref())
                 }
             }
             Some(self.module_groups.entry(module_id).or_insert(groups))
         }
     }
 
+    /// Build the list, sorting all group lists appropriately.
     pub fn build(self) -> component::List {
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::ListBuilder::default();
-        top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.group.clone_ref()));
+        top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
         let mut top_mdl_flat_bld = component::group::ListBuilder::default();
-        top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_group.clone()));
+        top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         component::List {
-            all_components:        self.all_components,
+            all_components:        Rc::new(self.all_components),
             top_modules:           top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),
-            module_groups:         self
-                .module_groups
-                .into_iter()
-                .map(|(id, group)| (id, group.build()))
-                .collect(),
+            module_groups:         Rc::new(
+                self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
+            ),
             filtered:              default(),
         }
     }
@@ -141,11 +164,10 @@ impl List {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::suggestion_database::entry::Kind;
-    use crate::model::suggestion_database::entry::QualifiedName;
-    use engine_protocol::language_server;
 
-    use crate::test::mock;
+    use crate::model::suggestion_database::entry::Kind;
+
+    use engine_protocol::language_server;
 
 
     fn mock_module(name: &str) -> model::suggestion_database::Entry {
@@ -254,7 +276,7 @@ mod tests {
         let module_groups: BTreeMap<component::Id, ComparableGroupData> = list
             .module_groups
             .iter()
-            .map(|(id, m_groups)| (*id, (&m_groups.group).into()))
+            .map(|(id, m_groups)| (*id, (&m_groups.content).into()))
             .collect();
         let expected: BTreeMap<component::Id, ComparableGroupData> = [
             (0, ComparableGroupData {
@@ -291,7 +313,7 @@ mod tests {
             .module_groups
             .iter()
             .map(|(id, m_group)| {
-                (*id, m_group.subgroups.iter().map(|sg| sg.name.as_str()).collect())
+                (*id, m_group.submodules.iter().map(|sg| sg.name.as_str()).collect())
             })
             .collect();
         let expected: BTreeMap<component::Id, Vec<&str>> = [

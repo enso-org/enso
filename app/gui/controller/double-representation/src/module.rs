@@ -283,10 +283,13 @@ impl QualifiedName {
         }
     }
 
+    /// Check if the name refers to some Library's top module.
     pub fn is_top_module(&self) -> bool {
         self.id.segments.len() == 1
     }
 
+    /// Get the top module containing the module referred by this name. Return self if it is already
+    /// a top module.
     pub fn top_module(&self) -> Self {
         Self {
             project_name: self.project_name.clone(),
@@ -294,6 +297,8 @@ impl QualifiedName {
         }
     }
 
+    /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
+    /// module.
     pub fn parent_module(&self) -> Option<Self> {
         let id = Id::try_new(self.id.parent_segments()).ok()?;
         let project_name = self.project_name.clone();

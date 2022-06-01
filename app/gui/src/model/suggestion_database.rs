@@ -289,6 +289,8 @@ impl SuggestionDatabase {
         Some(entry)
     }
 
+    /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
+    /// [`model::QualifiedName`].
     pub fn lookup_by_qualified_name<P, I>(&self, name: P) -> Option<(SuggestionId, Rc<Entry>)>
     where
         P: IntoIterator<Item = I>,
@@ -357,6 +359,7 @@ impl SuggestionDatabase {
         indices.filter_map(move |i| self.examples.borrow().get(i).cloned())
     }
 
+    /// Get vector of all ids of available entries.
     pub fn keys(&self) -> Vec<entry::Id> {
         self.entries.borrow().keys().cloned().collect()
     }

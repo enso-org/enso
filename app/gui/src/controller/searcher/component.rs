@@ -1,16 +1,15 @@
+//! A module containing definition of [`Component`] and its [`List`]
+//!
+//! Component is a language entity displayed in the Component Browser.
+
 pub mod builder;
 pub mod group;
 
 pub use group::Group;
 
-use crate::model::module;
-use crate::model::suggestion_database;
-use crate::model::suggestion_database::entry::Kind;
-use crate::model::SuggestionDatabase;
 use crate::prelude::*;
-use engine_protocol::language_server::SuggestionId;
-use js_sys::Atomics::sub;
-use std::collections::hash_map::Entry;
+
+use crate::model::suggestion_database;
 
 
 
@@ -18,6 +17,7 @@ use std::collections::hash_map::Entry;
 // === Type Aliases ===
 // ====================
 
+/// A component identifier.
 pub type Id = suggestion_database::entry::Id;
 
 
@@ -26,7 +26,7 @@ pub type Id = suggestion_database::entry::Id;
 // === MatchInfo ===
 // =================
 
-/// Information how the list entry matches the filtering pattern.
+/// Information how the component matches the filtering pattern.
 #[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub enum MatchInfo {
@@ -46,6 +46,15 @@ impl Default for MatchInfo {
 // === Component ===
 // =================
 
+/// A structure describing a language entity which may be picked in the Component Browser panel to
+/// create a new node or change existing one.
+///
+/// The components are usually stored in [`List`], which may be filtered; the single component keeps
+/// then information how it matches the current filtering pattern.
+///
+/// The component corresponds to some Suggestion Database Entry, and the entry will be used to
+/// properly insert code into the program.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Component {
     pub id:         Immutable<Id>,
@@ -54,18 +63,27 @@ pub struct Component {
 }
 
 impl Component {
+    /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> &str {
         &self.suggestion.name
     }
 
+    /// Checks if component is filtered out.
     pub fn is_filtered_out(&self) -> bool {
         matches!(*self.match_info.borrow(), MatchInfo::DoesNotMatch)
     }
 
+    /// Checks if the component can be entered in Component Browser.
+    ///
+    /// Currently, only modules can be entered, and then the Browser should display content and
+    /// submodules of the entered module.
     pub fn can_be_entered(&self) -> bool {
         self.suggestion.kind == suggestion_database::entry::Kind::Module
     }
 
+    /// Update matching info.
+    ///
+    /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         let label = self.label();
         let matches = fuzzly::matches(label, pattern.as_ref());
@@ -88,32 +106,48 @@ impl Component {
 
 // === ModuleGroups ===
 
+/// The Component groups associated with a module: the group containing the module's content, and
+/// groups with direct submodules' content.
+#[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
-    pub group:     Group,
-    pub subgroups: group::List,
+    pub content:    Group,
+    pub submodules: group::List,
 }
 
 
 // === List ===
 
+/// The Component List.
+///
+/// The List is used to provide information to Component Browser Panel View: thus the components
+/// are arranged in appropriate groups, and the groups are ordered accordingly. You may check the
+/// [design doc](https://github.com/enso-org/design/blob/main/epics/component-browser/design.md#overview)
+/// for information how the Component Browser works.
+///
+/// The components and their structure are immutable, only the filtering may change in created List.
+/// If there is need to change/extend the component list, a new one should be created using
+/// [`builder::List`].
 #[derive(Clone, Debug, Default)]
 pub struct List {
-    pub all_components:        Vec<Component>,
-    pub top_modules:           group::List,
-    pub top_modules_flattened: group::List,
-    pub module_groups:         HashMap<Id, ModuleGroups>,
-    pub filtered:              Cell<bool>,
+    all_components:        Rc<Vec<Component>>,
+    top_modules:           group::List,
+    top_modules_flattened: group::List,
+    module_groups:         Rc<HashMap<Id, ModuleGroups>>,
+    filtered:              Rc<Cell<bool>>,
 }
 
 impl List {
+    /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
     pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>) -> List {
         let mut builder = builder::List::new(suggestion_db.clone_ref());
         builder.extend(suggestion_db.keys());
         builder.build()
     }
 
-
+    /// Return the list of top modules, which should be displayed in Component Browser.
+    ///
+    /// If the list is filtered, all top modules will be flattened.
     pub fn top_modules(&self) -> &group::List {
         if self.filtered.get() {
             &self.top_modules_flattened
@@ -122,12 +156,15 @@ impl List {
         }
     }
 
+    /// Get the list of given component submodules. Returns [`None`] if given component is not
+    /// a module.
     pub fn submodules_of(&self, component: Id) -> Option<&group::List> {
-        self.module_groups.get(&component).map(|mg| &mg.subgroups)
+        self.module_groups.get(&component).map(|mg| &mg.submodules)
     }
 
+    /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl Str) {
-        for component in &self.all_components {
+        for component in &*self.all_components {
             component.update_matching_info(pattern.as_ref())
         }
         for group in self.all_groups() {
@@ -137,7 +174,7 @@ impl List {
     }
 
     fn all_groups(&self) -> impl Iterator<Item = &Group> {
-        let normal = self.module_groups.values().map(|mg| &mg.group);
+        let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
         normal.chain(flattened)
     }
