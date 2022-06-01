@@ -310,17 +310,27 @@ is_index_valid length ix =
     actual_ix>=0 && actual_ix<length
 
 ## PRIVATE
-   Validates a Vector of indices returning a pair of `good_indices` and `problems`
-validate_indices : Integer -> Vector -> Problem_Builder -> Vector
-validate_indices length indices problem_builder =
-    partitioned_indices = indices.partition (here.is_index_valid length)
+   Validates a Vector of indices returning `good_indices` and reporting any
+   encountered problems.
+
+   Arguments:
+   - length:
+   - indices:
+   - problem_builder:
+   - on: a mapping from a possibly complex index selector into an integer index
+     associated with it. Used if the selector contains additional metadata. The
+     default one is an identity mapping for when the selector is just an
+     integer.
+validate_indices : Integer -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
+validate_indices length indices problem_builder on=(x->x) =
+    partitioned_indices = indices.partition (here.is_index_valid length << on)
     inbound_indices = partitioned_indices.first
     oob_indices = partitioned_indices.second
-    problem_builder.report_oob_indices oob_indices
+    problem_builder.report_oob_indices (oob_indices.map on)
 
-    uniques = here.validate_unique inbound_indices problem_builder.report_duplicate_column_selectors
+    uniques = here.validate_unique inbound_indices problem_builder.report_duplicate_column_selectors on=on
 
-    resolver = ix->(here.resolve_index length ix)
+    resolver = ix->(here.resolve_index length (on ix))
     alias_uniques = here.validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
     good_indices = alias_uniques.map i->[resolver i, i]
     good_indices
@@ -355,9 +365,9 @@ prepare_order_by internal_columns column_selectors on_problems =
         Sort_Column_Selector.By_Name name_selectors matcher ->
             here.transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
-            Error.throw "TODO"
+            here.transform_columns_by_index internal_columns index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
-            Error.throw "TODO"
+            here.transform_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor=(_.column)
     problem_builder.attach_problems_after on_problems transform_elements
 
 ## PRIVATE
@@ -378,7 +388,7 @@ prepare_order_by internal_columns column_selectors on_problems =
    - matcher: Specifies the strategy of matching names.
    - problem_builder: Encapsulates the aggregation of encountered problems.
    - name_extractor: A function which extracts the column name from the selector.
-transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> (Any -> Any) -> Vector
+transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Vector
 transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
     match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
     problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
@@ -389,3 +399,51 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
                 problem_builder.report_duplicate_column_selectors matching_selectors.tail
             matching_selectors.first
         Column_Transform_Element column associated_selector
+
+## PRIVATE
+   A helper function which can be used by methods that transform a subset of
+   columns based on some selection criteria while keeping the unselected columns
+   unaffected and not changing the ordering of the columns.
+
+   It returns `internal_columns` transformed in the following way: each entry
+   becomes a `Column_Transform_Element` which contains the original internal
+   column and the chosen associated selector (which may contain some additional
+   metadata needed to perform the transformation) or `Nothing` if the column was
+   not selected for transformation.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - index_selectors: A vector of selectors which contain a column index and
+     optionally some metadata.
+   - problem_builder: Encapsulates the aggregation of encountered problems.
+transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
+transform_columns_by_index internal_columns index_selectors problem_builder index_extractor =
+    good_indices = here.validate_indices internal_columns.length index_selectors problem_builder index_extractor
+    selectors_map = Map.from_vector good_indices
+    internal_columns.map_with_index i-> column->
+        associated_selector = selectors_map.get_or_else i Nothing
+        Column_Transform_Element column associated_selector
+
+## PRIVATE
+   A helper function which can be used by methods that transform a subset of
+   columns based on some selection criteria while keeping the unselected columns
+   unaffected and not changing the ordering of the columns.
+
+   It returns `internal_columns` transformed in the following way: each entry
+   becomes a `Column_Transform_Element` which contains the original internal
+   column and the chosen associated selector (which may contain some additional
+   metadata needed to perform the transformation) or `Nothing` if the column was
+   not selected for transformation.
+
+   Arguments:
+   - internal_columns: A list of all columns in a table.
+   - column_selectors: A vector of column selectors which contain a column whose
+     name should be used as a reference to select the corresponding column in
+     the given table. The selectors may also optionally contain some metadata.
+   - problem_builder: Encapsulates the aggregation of encountered problems.
+transform_columns_by_column_reference : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
+transform_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor =
+    name_extractor = selector->
+        column = column_extractor selector
+        column.name
+    here.transform_columns_by_name internal_columns column_selectors (Text_Matcher case_sensitive=True) problem_builder name_extractor

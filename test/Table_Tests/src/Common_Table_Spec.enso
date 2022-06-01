@@ -515,3 +515,5 @@ spec prefix table_builder supports_case_sensitive_columns pending=Nothing =
 
         Test.specify "TODO" <|
             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha", Sort_Column.Name "beta" Sort_Direction.Descending])
+            table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 0, Sort_Column.Index -1 Sort_Direction.Descending])
+            table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column (table.at "alpha"), Sort_Column.Column (table.at "gamma") Sort_Direction.Descending])
