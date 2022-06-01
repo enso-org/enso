@@ -16,6 +16,10 @@ import project.Data.Range
 import project.Data.Text
 import project.Data.Text.Extensions
 import project.Data.Text.Matching
+import project.Data.Time
+import project.Data.Time.Date
+import project.Data.Time.Duration
+import project.Data.Time.Time_Of_Day
 import project.Data.Vector
 import project.Error.Common
 import project.Function

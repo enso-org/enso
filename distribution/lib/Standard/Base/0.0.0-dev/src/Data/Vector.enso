@@ -968,6 +968,14 @@ type Vector
         json = this.take_start 100 . to_json
         json.to_text
 
+    ## UNSTABLE
+       Experimental Hash Code
+    hash_code : Integer
+    hash_code =
+        this.fold 0 val->item->
+            val.bit_shift 5 . bit_xor val + item.hash_code
+
+
 ## PRIVATE
 type Wrapped_Error error
 
