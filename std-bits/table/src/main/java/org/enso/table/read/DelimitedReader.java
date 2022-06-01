@@ -6,6 +6,7 @@ import com.univocity.parsers.csv.CsvParserSettings;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
@@ -14,13 +15,14 @@ import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.problems.WithProblems;
 import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
 import org.enso.table.parsing.problems.InvalidRow;
 import org.enso.table.parsing.problems.MismatchedQuote;
 import org.enso.table.parsing.problems.NoOpProblemAggregator;
-import org.enso.table.parsing.problems.ParsingProblem;
+import org.enso.table.problems.Problem;
 import org.enso.table.util.NameDeduplicator;
 
 /** A helper for reading delimited (CSV-like) files. */
@@ -36,7 +38,7 @@ public class DelimitedReader {
   private final long skipRows;
   private final long rowLimit;
   private final int maxColumns;
-  private final List<ParsingProblem> warnings = new ArrayList<>();
+  private final List<Problem> warnings = new ArrayList<>();
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
@@ -164,7 +166,7 @@ public class DelimitedReader {
 
   /** Parses a header cell, removing surrounding quotes (if applicable). */
   private String parseHeader(String cell) {
-    if (cell == null) return COLUMN_NAME;
+    if (cell == null) return null;
     return QuoteHelper.stripQuotes(quoteCharacter, this::reportMismatchedQuote, cell);
   }
 
@@ -181,8 +183,10 @@ public class DelimitedReader {
   }
 
   /** Returns a list of currently reported problems encountered when parsing the input. */
-  public List<ParsingProblem> getReportedProblems() {
-    List<ParsingProblem> result = new ArrayList<>(warnings);
+  private List<Problem> getReportedProblems(List<Problem> nameProblems) {
+    List<Problem> result = new ArrayList<>(nameProblems.size() + warnings.size() + 1);
+    result.addAll(nameProblems);
+    result.addAll(warnings);
     if (invalidRowsCount > invalidRowsLimit) {
       long additionalInvalidRows = invalidRowsCount - invalidRowsLimit;
       result.add(new AdditionalInvalidRows(additionalInvalidRows));
@@ -190,7 +194,7 @@ public class DelimitedReader {
     return result;
   }
 
-  private void reportProblem(ParsingProblem problem) {
+  private void reportProblem(Problem problem) {
     if (warningsAsErrors) {
       throw new ParsingFailedException(problem);
     } else {
@@ -220,7 +224,7 @@ public class DelimitedReader {
           builders[i] = builders[i].parseAndAppend(row[i]);
         }
 
-        // If the current row had less columns than expected, nulls are inserted for the missing
+        // If the current row had fewer columns than expected, nulls are inserted for the missing
         // values.
         // If it had more columns, the excess columns are discarded.
         for (int i = row.length; i < builders.length; i++) {
@@ -248,18 +252,21 @@ public class DelimitedReader {
     }
   }
 
-  private List<String> headersFromRow(String[] row) {
+  private WithProblems<List<String>> headersFromRow(String[] row) {
     List<String> preprocessedHeaders =
         Arrays.stream(row).map(this::parseHeader).collect(Collectors.toList());
-    return NameDeduplicator.deduplicate(preprocessedHeaders, "_");
+
+    NameDeduplicator deduplicator = new NameDeduplicator();
+    List<String> names = deduplicator.makeUnique(preprocessedHeaders);
+    return new WithProblems<>(names, deduplicator.getProblems());
   }
 
-  private List<String> generateDefaultHeaders(int columnCount) {
-    ArrayList<String> headerNames = new ArrayList<>(columnCount);
+  private WithProblems<List<String>> generateDefaultHeaders(int columnCount) {
+    List<String> headerNames = new ArrayList<>(columnCount);
     for (int i = 0; i < columnCount; ++i) {
       headerNames.add(COLUMN_NAME + "_" + (i + 1));
     }
-    return headerNames;
+    return new WithProblems<>(headerNames, Collections.emptyList());
   }
 
   /**
@@ -274,8 +281,8 @@ public class DelimitedReader {
   }
 
   /** Reads the input stream and returns a Table. */
-  public Table read() {
-    List<String> headerNames;
+  public WithProblems<Table> read() {
+    WithProblems<List<String>> headerNames;
     String[] currentRow = readNextRow();
 
     // Skip the first N rows.
@@ -285,13 +292,12 @@ public class DelimitedReader {
 
     // If there are no rows to even infer the headers, we return an empty table.
     if (currentRow == null) {
-      return new Table(new Column[0]);
+      return new WithProblems<>(new Table(new Column[0]), Collections.emptyList());
     }
 
     int expectedColumnCount = currentRow.length;
     initBuilders(expectedColumnCount);
 
-    assert currentRow != null;
     switch (headerBehavior) {
       case INFER -> {
         String[] firstRow = currentRow;
@@ -323,9 +329,7 @@ public class DelimitedReader {
         // We have 'used up' the first row, so we load a next one.
         currentRow = readNextRow();
       }
-      case GENERATE_HEADERS -> {
-        headerNames = generateDefaultHeaders(expectedColumnCount);
-      }
+      case GENERATE_HEADERS -> headerNames = generateDefaultHeaders(expectedColumnCount);
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
@@ -338,7 +342,7 @@ public class DelimitedReader {
 
     Column[] columns = new Column[builders.length];
     for (int i = 0; i < builders.length; i++) {
-      String columnName = headerNames.get(i);
+      String columnName = headerNames.value().get(i);
       StringStorage col = builders[i].seal();
 
       WithProblems<Storage> parseResult = valueParser.parseColumn(columnName, col);
@@ -349,7 +353,7 @@ public class DelimitedReader {
 
       columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
     }
-    return new Table(columns);
+    return new WithProblems<>(new Table(columns), getReportedProblems(headerNames.problems()));
   }
 
   private void initBuilders(int count) {

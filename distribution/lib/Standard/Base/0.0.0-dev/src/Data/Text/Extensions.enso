@@ -872,21 +872,21 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          's\u{301}' . starts_with 'ś' == True
          'ś' . starts_with 's\u{301}' == True
 
-         'ś' . starts_with 's' (Regex_Matcher.new) == True
-         's\u{301}' . starts_with 's' (Regex_Matcher.new) == True
-         's\u{301}' . starts_with 'ś' (Regex_Matcher.new) == True
-         'ś' . starts_with 's\u{301}' (Regex_Matcher.new) == True
+         'ś' . starts_with 's' Regex_Matcher == True
+         's\u{301}' . starts_with 's' Regex_Matcher == True
+         's\u{301}' . starts_with 'ś' Regex_Matcher == True
+         'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello!" starts with the specified prefix.
 
          "Hello!".starts_with "Hello" == True
          "Hello!".starts_with "hello" == False
-         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive.new) == True
-         "Hello!".starts_with "[a-z]" Regex_Matcher.new == False
-         "Hello!".starts_with "[A-Z]" Regex_Matcher.new == True
+         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
+         "Hello!".starts_with "[a-z]" Regex_Matcher == False
+         "Hello!".starts_with "[A-Z]" Regex_Matcher == True
 Text.starts_with : Text -> Matcher -> Boolean
-Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
+Text.starts_with prefix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
             this.take (Text_Sub_Range.First prefix.length) == prefix
@@ -920,10 +920,10 @@ Text.starts_with prefix matcher=Text_Matcher.new = case matcher of
 
          "Hello World".ends_with "World" == True
          "Hello World".ends_with "world" == False
-         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive.new) == True
-         "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher.new == True
+         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
+         "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
 Text.ends_with : Text -> Matcher -> Boolean
-Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
+Text.ends_with suffix matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True ->
             this.take (Text_Sub_Range.Last suffix.length) == suffix
@@ -962,10 +962,10 @@ Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
          's\u{301}' . contains 'ś' == True
          'ś' . contains 's\u{301}' == True
 
-         'ś' . contains 's' (Regex_Matcher.new) == True
-         's\u{301}' . contains 's' (Regex_Matcher.new) == True
-         's\u{301}' . contains 'ś' (Regex_Matcher.new) == True
-         'ś' . contains 's\u{301}' (Regex_Matcher.new) == True
+         'ś' . contains 's' Regex_Matcher == True
+         's\u{301}' . contains 's' Regex_Matcher == True
+         's\u{301}' . contains 'ś' Regex_Matcher == True
+         'ś' . contains 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello" contains the text "ell".
@@ -980,14 +980,14 @@ Text.ends_with suffix matcher=Text_Matcher.new = case matcher of
    > Example
      See if the text "Hello!" contains the text 'LO', ignoring case.
 
-         "Hello!".contains "LO" (Text_Matcher Case_Insensitive.new)
+         "Hello!".contains "LO" (Text_Matcher Case_Insensitive)
 
    > Example
      See if the text "Hello!" contains any lowercase letters, using a regex.
 
-         "Hello!".contains "[a-z]" Regex_Matcher.new
+         "Hello!".contains "[a-z]" Regex_Matcher
 Text.contains : Text -> Matcher -> Boolean
-Text.contains term="" matcher=Text_Matcher.new = case matcher of
+Text.contains term="" matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitivity -> case case_sensitivity of
         True -> Text_Utils.contains this term
         Case_Insensitive locale ->
@@ -1306,7 +1306,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
 
          term = "straße"
          text = "MONUMENTENSTRASSE 42"
-         match = text . location_of term matcher=(Text_Matcher Case_Insensitive.new)
+         match = text . location_of term matcher=(Text_Matcher Case_Insensitive)
          term.length == 6
          match.length == 7
 
@@ -1327,11 +1327,11 @@ Text.trim where=Location.Both what=_.is_whitespace =
          ligatures = "ﬃﬄ"
          ligatures.length == 2
          term_1 = "IFF"
-         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive.new)
+         match_1 = ligatures . location_of term_1 matcher=(Text_Matcher Case_Insensitive)
          term_1.length == 3
          match_1.length == 2
          term_2 = "ffiffl"
-         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive.new)
+         match_2 = ligatures . location_of term_2 matcher=(Text_Matcher Case_Insensitive)
          term_2.length == 6
          match_2.length == 2
          # After being extended to full grapheme clusters, both terms "IFF" and "ffiffl" match the same span of grapheme clusters.
@@ -1353,7 +1353,7 @@ Text.trim where=Location.Both what=_.is_whitespace =
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".location_of "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
 Text.location_of : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
-Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = case matcher of
+Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitive -> case case_sensitive of
         True ->
             codepoint_span = case mode of
@@ -1431,7 +1431,7 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
 
          term = "strasse"
          text = "MONUMENTENSTRASSE ist eine große Straße."
-         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive.new)
+         match = text . location_of_all term matcher=(Text_Matcher Case_Insensitive)
          term.length == 7
          match . map .length == [7, 6]
 
@@ -1451,12 +1451,12 @@ Text.location_of term="" mode=Matching_Mode.First matcher=Text_Matcher.new = cas
 
          ligatures = "ﬃﬄFFIFF"
          ligatures.length == 7
-         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive.new)
+         match_1 = ligatures . location_of_all "IFF" matcher=(Text_Matcher Case_Insensitive)
          match_1 . map .length == [2, 3]
-         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive.new)
+         match_2 = ligatures . location_of_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
 Text.location_of_all : Text -> Matcher -> [Span]
-Text.location_of_all term="" matcher=Text_Matcher.new = case matcher of
+Text.location_of_all term="" matcher=Text_Matcher = case matcher of
     Text_Matcher case_sensitive -> if term.is_empty then Vector.new (this.length + 1) (ix -> Span (Range ix ix) this) else case case_sensitive of
         True ->
             codepoint_spans = Vector.Vector <| Text_Utils.span_of_all this term
