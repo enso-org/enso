@@ -41,11 +41,11 @@ public class NameDeduplicator {
   /**
    * Makes a name unique.
    *
-   * If a name has been used, it will suffixed with `_n` where n is the first
-   * integer greater than 1 such that the name is unique.
+   * <p>If a name has been used, it will suffixed with `_n` where n is the first integer greater
+   * than 1 such that the name is unique.
    *
-   * An invalid name will be replaced with {@code invalidNameReplacement}. The
-   * suffix will always be added to invalid names. For example: Column_1.
+   * <p>An invalid name will be replaced with {@code invalidNameReplacement}. The suffix will always
+   * be added to invalid names. For example: Column_1.
    *
    * @param name input name to make unique.
    * @return unique name following above rules.
