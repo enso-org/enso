@@ -954,10 +954,8 @@ impl Searcher {
                     data.components = this.make_component_list(responses.iter());
                 }
                 Err(err) => {
-                    error!(
-                        this.logger,
-                        "Request for completions to the Language Server returned error: {err}"
-                    );
+                    let msg = "Request for completions to the Language Server returned error";
+                    error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =
