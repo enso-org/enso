@@ -62,7 +62,7 @@ final class ComponentGroupsResolver {
         .groupByKeepFirst(newLibraryComponentGroups) { libraryComponentGroup =>
           GroupReference(
             libraryComponentGroup.library,
-            libraryComponentGroup.group
+            libraryComponentGroup.name
           )
         }
 

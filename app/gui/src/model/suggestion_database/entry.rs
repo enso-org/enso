@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::model::module::MethodId;
 
 use ast::constants::keywords;
-use ast::opr::predefined::ACCESS;
 use double_representation::module;
 use double_representation::tp;
 use engine_protocol::language_server;
@@ -73,7 +72,7 @@ pub struct QualifiedName {
 
 impl From<&str> for QualifiedName {
     fn from(name: &str) -> Self {
-        name.split(ACCESS).collect()
+        name.split(ast::opr::predefined::ACCESS).collect()
     }
 }
 
@@ -91,7 +90,7 @@ impl From<QualifiedName> for String {
 
 impl From<&QualifiedName> for String {
     fn from(name: &QualifiedName) -> Self {
-        name.into_iter().map(|s| s.deref()).join(ACCESS)
+        name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
     }
 }
 
@@ -242,7 +241,8 @@ impl Entry {
         };
 
         let code = match this_expr {
-            Some(this_expr) => format!("{}{}{}", this_expr, ACCESS, self.name),
+            Some(this_expr) =>
+                format!("{}{}{}", this_expr, ast::opr::predefined::ACCESS, self.name),
             None => self.name.clone(),
         };
 

@@ -389,32 +389,26 @@ impl Rgb {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
-    /// Return a color if `css_hex` is a `#RGB` or `#RRGGBB` string, where `R`, `G`, `B` represent
-    /// lower- or upper-case hexadecimal digits. The RR, GG, BB color componets are mapped from [00
-    /// - ff] value range into [0.0 - 1.0] (a three-digit string `#RGB` is equivalent to a
-    /// six-digit string `#RRGGBB` constructed by duplicating the digits).
+    /// Return a color if the argument is a string matching one of the formats: `#RGB`, `#RRGGBB`,
+    /// `RGB`, or `RRGGBB`, where `R`, `G`, `B` represent lower- or upper-case hexadecimal digits.
+    /// The `RR`, `GG`, `BB` color components are mapped from `[00 - ff]` value range into `[0.0 -
+    /// 1.0]` (a three-digit string matching a `#RGB` or `RGB` format is equivalent to a six-digit
+    /// string matching a `#RRGGBB` format, constructed by duplicating the digits).
     ///
-    /// The format is adapted from the hexadecimal color notation used in CSS - see:
-    /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
+    /// The format is based on the hexadecimal color notation used in CSS (see:
+    /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color), with the following changes:
+    /// - the `#` character is optional,
+    /// - formats containing an alpha color component are not supported.
     /// ```
-    /// # use assert_approx_eq::assert_approx_eq;
     /// # use ensogl_core::data::color::Rgb;
-    /// # const PRECISION: f32 = 0.001;
+    /// fn color_to_u8_tuple(c: Rgb) -> (u8, u8, u8) {
+    ///     ((c.red * 255.0) as u8, (c.green * 255.0) as u8, (c.blue * 255.0) as u8)
+    /// }
     ///
-    /// let color = Rgb::from_css_hex("#C047AB");
-    /// assert!(color.is_some());
-    /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION);
-    /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION);
-    /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION);
-    ///
-    /// let color = Rgb::from_css_hex("#fff");
-    /// assert!(color.is_some());
-    /// assert_approx_eq!(color.unwrap().red, 1.0, PRECISION);
-    /// assert_approx_eq!(color.unwrap().green, 1.0, PRECISION);
-    /// assert_approx_eq!(color.unwrap().blue, 1.0, PRECISION);
-    ///
-    /// assert!(Rgb::from_css_hex("fff").is_none());
-    /// assert!(Rgb::from_css_hex("C047AB").is_none());
+    /// assert_eq!(Rgb::from_css_hex("#C047AB").map(color_to_u8_tuple), Some((0xC0, 0x47, 0xAB)));
+    /// assert_eq!(Rgb::from_css_hex("#fff").map(color_to_u8_tuple), Some((0xff, 0xff, 0xff)));
+    /// assert_eq!(Rgb::from_css_hex("fff").map(color_to_u8_tuple), Some((0xff, 0xff, 0xff)));
+    /// assert_eq!(Rgb::from_css_hex("C047AB").map(color_to_u8_tuple), Some((0xC0, 0x47, 0xAB)));
     /// assert!(Rgb::from_css_hex("red").is_none());
     /// assert!(Rgb::from_css_hex("yellow").is_none());
     /// assert!(Rgb::from_css_hex("#red").is_none());
@@ -423,25 +417,21 @@ impl Rgb {
     /// assert!(Rgb::from_css_hex("").is_none());
     /// ```
     pub fn from_css_hex(css_hex: &str) -> Option<Self> {
-        if let [b'#', hex_bytes @ ..] = css_hex.as_bytes() {
-            let hex_color_components = match hex_bytes.len() {
-                3 => Some(Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2])),
-                6 => Some(Vector3(
-                    *array_from_slice(&hex_bytes[0..2])?,
-                    *array_from_slice(&hex_bytes[2..4])?,
-                    *array_from_slice(&hex_bytes[4..6])?,
-                )),
-                _ => None,
-            };
-            hex_color_components.and_then(|components| {
-                let red = byte_from_hex(&components.x)?;
-                let green = byte_from_hex(&components.y)?;
-                let blue = byte_from_hex(&components.z)?;
-                Some(Rgb::from_base_255(red, green, blue))
-            })
-        } else {
-            None
-        }
+        let hex_bytes = css_hex.strip_prefix('#').unwrap_or(css_hex).as_bytes();
+        let hex_color_components = match hex_bytes.len() {
+            3 => Some(Vector3([hex_bytes[0]; 2], [hex_bytes[1]; 2], [hex_bytes[2]; 2])),
+            6 => {
+                let (chunks, _) = hex_bytes.as_chunks::<2>();
+                Some(Vector3(chunks[0], chunks[1], chunks[2]))
+            }
+            _ => None,
+        };
+        hex_color_components.and_then(|components| {
+            let red = byte_from_hex(components.x)?;
+            let green = byte_from_hex(components.y)?;
+            let blue = byte_from_hex(components.z)?;
+            Some(Rgb::from_base_255(red, green, blue))
+        })
     }
 
     /// Converts the color to `LinearRgb` representation.
@@ -457,6 +447,21 @@ impl Rgb {
         format!("rgb({},{},{})", red, green, blue)
     }
 }
+
+
+// === Rgb Helpers ===
+
+/// Decode an 8-bit number from its big-endian hexadecimal encoding in ASCII. Return `None` if any
+/// of the bytes stored in the argument array is not an upper- or lower-case hexadecimal digit in
+/// ASCII.
+fn byte_from_hex(s: [u8; 2]) -> Option<u8> {
+    let first_digit = (s[0] as char).to_digit(16)? as u8;
+    let second_digit = (s[1] as char).to_digit(16)? as u8;
+    Some(first_digit << 4 | second_digit)
+}
+
+
+// === Rgba ===
 
 impl Rgba {
     /// Constructor.
@@ -914,13 +919,4 @@ fn generic_parse(s: &str) -> Result<(String, Vec<f32>), ParseError> {
             }
         },
     }
-}
-
-fn byte_from_hex(s: &[u8; 2]) -> Option<u8> {
-    let array = <[u8; 1] as hex::FromHex>::from_hex(s);
-    array.map(|a| a[0]).ok()
-}
-
-fn array_from_slice<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
-    s.try_into().ok()
 }
