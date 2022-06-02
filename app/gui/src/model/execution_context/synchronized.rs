@@ -78,7 +78,11 @@ impl ExecutionContext {
             info!(this.logger, "Pushed root frame.");
             match this.load_component_groups().await {
                 Ok(_) => info!(this.logger, "Loaded component groups."),
-                Err(err) => error!(this.logger, "Failed to load component groups: {err}"),
+                Err(err) => {
+                    let msg = iformat!("Failed to load component groups. No groups will appear \
+                        in the Favorites section of the Component Browser. Error: {err}");
+                    error!(this.logger, "{msg}");
+                },
             }
             Ok(this)
         }
