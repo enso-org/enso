@@ -132,7 +132,7 @@ public class IncrementalUpdatesTest {
         )
       )
     );
-    assertSameElements(context.receiveN(1, 10),
+    assertSameElements(context.receiveN(1, 10000),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne("5"), context.consumeOut());

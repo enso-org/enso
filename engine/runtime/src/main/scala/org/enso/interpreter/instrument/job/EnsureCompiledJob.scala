@@ -91,6 +91,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): CompilationStatus = {
     compile(module)
     val changeset = applyEdits(new File(module.getPath))
+
+    if (changeset.simpleChange != null) {
+      System.out.println("Found simple change: " + changeset.simpleChange)
+      // return CompilationStatus.Success
+    }
     compile(module)
       .map { compilerResult =>
         val cacheInvalidationCommands =

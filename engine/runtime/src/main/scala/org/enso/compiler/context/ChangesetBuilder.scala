@@ -22,6 +22,7 @@ import scala.collection.mutable
 case class Changeset[A](
   source: A,
   ir: IR,
+  simpleChange: (IR.Literal.Number, TextEdit),
   invalidated: Set[IR.ExternalId]
 )
 
@@ -42,8 +43,33 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     * @return the computed changeset
     */
   @throws[CompilerError]
-  def build(edits: Seq[TextEdit]): Changeset[A] =
-    Changeset(source, ir, compute(edits))
+  def build(edits: Seq[TextEdit]): Changeset[A] = {
+
+    def findSimpleChange(): (IR.Literal.Number, TextEdit) = {
+      if (edits.size != 1) return null
+      val edit = edits.head
+
+      if (edit.range.start.line != edit.range.end.line) return null
+
+      val len = edit.range.end.character - edit.range.start.character
+      if (len != edit.text.length()) {
+        return null
+      }
+
+      val directlyAffected = invalidated(edits)
+      if (directlyAffected.size != 1) return null;
+
+      val directlyAffectedId = directlyAffected.head.externalId
+      val literals = ir.preorder.filter(_.getExternalId == directlyAffectedId)
+
+      (literals.head match {
+        case node : IR.Literal.Number => return (node, edit)
+        case _ => return null
+      })
+    }
+
+    Changeset(source, ir, findSimpleChange(), compute(edits))
+  }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
     * using the [[DataflowAnalysis]] information.
@@ -90,8 +116,8 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         )
       }
 
-    val direct =
-      invalidated(edits).flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val nodeIds = invalidated(edits)
+    val direct = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
     val transitive =
       go(
         mutable.Queue().addAll(direct),
