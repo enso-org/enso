@@ -294,7 +294,7 @@ pub struct ComponentGroup {
 
 impl ComponentGroup {
     /// Construct from a [`language_server::LibraryComponentGroup`].
-    pub fn from_language_server_library_component_group(
+    pub fn from_language_server_protocol_struct(
         group: language_server::LibraryComponentGroup,
     ) -> Self {
         let name = group.name.into();
@@ -306,7 +306,7 @@ impl ComponentGroup {
 
 impl From<language_server::LibraryComponentGroup> for ComponentGroup {
     fn from(group: language_server::LibraryComponentGroup) -> Self {
-        Self::from_language_server_library_component_group(group)
+        Self::from_language_server_protocol_struct(group)
     }
 }
 
