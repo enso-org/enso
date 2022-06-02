@@ -392,8 +392,8 @@ impl Rgb {
     /// Return a color if the argument is a string matching one of the formats: `#RGB`, `#RRGGBB`,
     /// `RGB`, or `RRGGBB`, where `R`, `G`, `B` represent lower- or upper-case hexadecimal digits.
     /// The `RR`, `GG`, `BB` color components are mapped from `[00 - ff]` value range into `[0.0 -
-    /// 1.0]` (a three-digit string matching a `#RGB` format is equivalent to a six-digit string
-    /// matching a `#RRGGBB` format, constructed by duplicating the digits).
+    /// 1.0]` (a three-digit string matching a `#RGB` or `RGB` format is equivalent to a six-digit
+    /// string matching a `#RRGGBB` format, constructed by duplicating the digits).
     ///
     /// The format is based on the hexadecimal color notation used in CSS (see:
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color), with the following changes:
