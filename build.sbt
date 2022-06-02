@@ -1648,8 +1648,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"         % "icu4j"             % icuVersion,
-      "org.graalvm.truffle" % "truffle-api"       % graalVersion % "provided"
+      "com.ibm.icu" % "icu4j" % icuVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
