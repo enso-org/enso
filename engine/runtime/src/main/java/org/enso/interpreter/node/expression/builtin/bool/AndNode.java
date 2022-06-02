@@ -31,9 +31,9 @@ public abstract class AndNode extends Node {
 
   @Specialization
   Stateful executeBool(
-      @MonadicState Object state,
+      Object state,
       boolean _this,
-      @Suspend Object that,
+      Object that,
       @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode) {
     if (conditionProfile.profile(!_this)) {
       return new Stateful(state, false);
