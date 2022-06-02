@@ -12,7 +12,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -293,7 +292,7 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public ChangesetBuilder<Rope> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public ChangesetBuilder<Rope> modifyModuleSources(File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
       throw new ModuleNotFoundForFileException(path);

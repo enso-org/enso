@@ -334,7 +334,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     try {
       val edits = ctx.state.pendingEdits.dequeue(file)
       val suggestionBuilder = ctx.executionService
-        .modifyModuleSources(file, edits.asJava)
+        .modifyModuleSources(file, edits)
       suggestionBuilder.build(edits)
     } finally {
       ctx.locking.releaseReadCompilationLock()
