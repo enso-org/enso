@@ -1,14 +1,14 @@
 package org.enso.interpreter.instrument.execution
 
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.Executors
-import java.util.logging.Level
-
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.Job
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.text.Sha3_224VersionCalculator
+
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.{ExecutorService, Executors}
+import java.util.logging.Level
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
@@ -31,6 +31,9 @@ class JobExecutionEngine(
   private val runningJobsRef =
     new AtomicReference[Vector[RunningJob]](Vector.empty)
 
+  private val backgroundJobsRef =
+    new AtomicReference[Vector[RunningJob]](Vector.empty)
+
   private val context = interpreterContext.executionService.getContext
 
   private val jobParallelism =
@@ -38,10 +41,16 @@ class JobExecutionEngine(
       .get(RuntimeServerInfo.JOB_PARALLELISM_KEY)
       .intValue()
 
-  val jobExecutor = Executors.newFixedThreadPool(
-    jobParallelism,
-    new TruffleThreadFactory(context, "job-pool")
-  )
+  val jobExecutor: ExecutorService =
+    Executors.newFixedThreadPool(
+      jobParallelism,
+      new TruffleThreadFactory(context, "job-pool")
+    )
+
+  val backgroundJobExecutor: ExecutorService =
+    Executors.newSingleThreadExecutor(
+      new TruffleThreadFactory(context, "background-job-pool")
+    )
 
   private val runtimeContext =
     RuntimeContext(
@@ -57,12 +66,23 @@ class JobExecutionEngine(
     )
 
   /** @inheritdoc */
-  override def run[A](job: Job[A]): Future[A] = {
+  override def runBackground[A](job: Job[A]): Future[A] =
+    runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+
+  /** @inheritdoc */
+  override def run[A](job: Job[A]): Future[A] =
+    runInternal(job, jobExecutor, runningJobsRef)
+
+  private def runInternal[A](
+    job: Job[A],
+    executorService: ExecutorService,
+    runningJobsRef: AtomicReference[Vector[RunningJob]]
+  ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
     val logger  = runtimeContext.executionService.getLogger
     logger.log(Level.FINE, s"Submitting job: $job...")
-    val future = jobExecutor.submit(() => {
+    val future = executorService.submit(() => {
       logger.log(Level.FINE, s"Executing job: $job...")
       val before = System.currentTimeMillis()
       try {

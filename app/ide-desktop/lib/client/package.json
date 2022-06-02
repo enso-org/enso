@@ -1,5 +1,6 @@
 {
   "version": "0.0.0-dev",
+  "type": "module",
   "author": {
     "name": "Enso Team",
     "email": "contact@enso.org"
@@ -14,10 +15,11 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "index.js",
+  "main": "index.cjs",
   "dependencies": {
     "create-servers": "^3.1.0",
-    "electron-is-dev": "^1.1.0",
+    "@electron/remote": "^2.0.8",
+    "electron-is-dev": "^1.2.0",
     "yargs": "^15.3.0"
   },
   "devDependencies": {
@@ -26,8 +28,8 @@
     "electron": "17.1.0",
     "electron-builder": "^23.0.6",
     "crypto-js": "4.1.1",
-    "electron-notarize": "1.1.1",
-    "webpack": "^5.72.0"
+    "electron-notarize": "1.2.1",
+    "webpack": "^5.72.1"
   },
   "scripts": {
     "start": "electron ../../../../dist/content -- ",

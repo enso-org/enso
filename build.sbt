@@ -5,11 +5,8 @@ import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
 import java.io.File
 
@@ -151,6 +148,7 @@ val packageBuilder = new DistributionPackage.Builder(
 )
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+Global / excludeLintKeys += logManager
 
 // ============================================================================
 // === Compiler Options =======================================================
@@ -1186,6 +1184,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
     frgaalJavaCompilerSetting,
+    Compile/logManager :=
+      sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,

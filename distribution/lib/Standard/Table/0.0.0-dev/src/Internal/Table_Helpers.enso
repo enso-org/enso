@@ -182,9 +182,9 @@ rename_columns internal_columns mapping on_problems =
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names.to_vector)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames.to_vector)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names unique.renames)
 
     problem_builder.attach_problems_before on_problems processed
 

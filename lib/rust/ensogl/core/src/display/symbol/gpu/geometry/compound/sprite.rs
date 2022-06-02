@@ -223,6 +223,7 @@ pub struct SpriteSystem {
 
 impl SpriteSystem {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new<'t, S>(scene: S) -> Self
     where S: Into<&'t Scene> {
         let scene = scene.into();
