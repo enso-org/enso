@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -35,43 +36,14 @@ public abstract class AndNode extends Node {
       @MonadicState Object state,
       boolean _this,
       @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+      @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode,
+      @Cached("build()") ToBoolNode ensureBoolNode) {
     if (!_this) {
       return new Stateful(state, false);
     }
     Stateful result =
-        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    if (result.getValue() instanceof Boolean) {
-      return result;
-    }
-    throw new ClassCastException("expected Boolean");
+            rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    return ensureBoolNode.execute(result.getState(), result.getValue());
   }
 
-  @Specialization(
-      guards = {"_this"},
-      rewriteOn = ClassCastException.class)
-  Stateful executeDataflowError(
-      @MonadicState Object state,
-      boolean _this,
-      @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
-    Stateful result =
-        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    if (result.getValue() instanceof DataflowError) {
-      return result;
-    }
-    throw new ClassCastException("expected DataflowError");
-  }
-
-  @Specialization(guards = {"_this"})
-  Stateful executePanic(
-      @MonadicState Object state,
-      boolean _this,
-      @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
-    Stateful v = rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    var typeError =
-        Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
-    throw new PanicException(typeError, this);
-  }
 }

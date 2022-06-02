@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.bool;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -18,6 +19,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     name = "||",
     description = "Computes the logical disjunction of two booleans")
 public abstract class OrNode extends Node {
+
   public static OrNode build() {
     return OrNodeGen.create();
   }
@@ -29,48 +31,18 @@ public abstract class OrNode extends Node {
     return new Stateful(state, true);
   }
 
-  @Specialization(rewriteOn = ClassCastException.class)
+  @Specialization
   Stateful executeBool(
       @MonadicState Object state,
       boolean _this,
       @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
+      @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode,
+      @Cached("build()") ToBoolNode ensureBoolNode) {
     if (_this) {
       return new Stateful(state, true);
     }
     Stateful result =
         rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    if (result.getValue() instanceof Boolean) {
-      return result;
-    }
-    throw new ClassCastException("expected Boolean");
-  }
-
-  @Specialization(
-      guards = {"!_this"},
-      rewriteOn = ClassCastException.class)
-  Stateful executeDataflowError(
-      @MonadicState Object state,
-      boolean _this,
-      @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
-    Stateful result =
-        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    if (result.getValue() instanceof DataflowError) {
-      return result;
-    }
-    throw new ClassCastException("expected DataflowError");
-  }
-
-  @Specialization(guards = {"!_this"})
-  Stateful executePanic(
-      @MonadicState Object state,
-      boolean _this,
-      @Suspend Object that,
-      @Cached ThunkExecutorNode rhsThunkExecutorNode) {
-    Stateful v = rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
-    var typeError =
-        Context.get(this).getBuiltins().error().makeTypeError("Boolean", v.getValue(), "bool");
-    throw new PanicException(typeError, this);
+    return ensureBoolNode.execute(result.getState(), result.getValue());
   }
 }
