@@ -399,18 +399,12 @@ impl Rgb {
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     /// ```
     /// # use ensogl_core::data::color::Rgb;
+    /// fn color_to_u8_tuple(c: Rgb) -> (u8, u8, u8) {
+    ///     ((c.red * 255.0) as u8, (c.green * 255.0) as u8, (c.blue * 255.0) as u8)
+    /// }
     ///
-    /// let color = Rgb::from_css_hex("#C047AB");
-    /// assert!(color.is_some());
-    /// assert_eq!((color.unwrap().red * 255.0) as u32, 0xC0);
-    /// assert_eq!((color.unwrap().green * 255.0) as u32, 0x47);
-    /// assert_eq!((color.unwrap().blue * 255.0) as u32, 0xAB);
-    ///
-    /// let color = Rgb::from_css_hex("#fff");
-    /// assert!(color.is_some());
-    /// assert_eq!((color.unwrap().red * 255.0) as u32, 0xff);
-    /// assert_eq!((color.unwrap().green * 255.0) as u32, 0xff);
-    /// assert_eq!((color.unwrap().blue * 255.0) as u32, 0xff);
+    /// assert_eq!(Rgb::from_css_hex("#C047AB").map(color_to_u8_tuple), Some((0xC0, 0x47, 0xAB)));
+    /// assert_eq!(Rgb::from_css_hex("#fff").map(color_to_u8_tuple), Some((0xff, 0xff, 0xff)));
     ///
     /// assert!(Rgb::from_css_hex("fff").is_none());
     /// assert!(Rgb::from_css_hex("C047AB").is_none());
