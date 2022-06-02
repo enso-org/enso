@@ -27,30 +27,19 @@ spec =
             test.method . should_equal test
 
         Test.specify "should short-circuit ||" <|
-            or_test_1 = (1 == 1) || (here.crash)
-            or_test_1 . should_equal True
-            or_test_2 = (1 == 0) || (1 == 1)
-            or_test_2 . should_equal True
-            or_test_3 = (1 == 0) || (here.crash)
-            or_test_3 . should_fail_with My_Error
-
-            or_test_4 = (1 == 1) || ("foo")
-            or_test_4 . should_equal True
-            Test.expect_panic_with ((1 == 0) || ("foo")) Type_Error
+            (1 == 1) || (here.crash) . should_equal True
+            (1 == 0) || (1 == 1) . should_equal True
+            (1 == 0) || (here.crash) . should_fail_with My_Error
+            (1 == 1) || "foo" . should_equal True
+            (1 == 0) || "foo" . should_equal "foo"
 
         Test.specify "should short-circuit &&" <|
-            and_test_1 = (1 == 0) && (here.crash)
-            and_test_1 . should_equal False
-            and_test_2 = (1 == 1) && (1 == 0)
-            and_test_2 . should_equal False
-            and_test_3 = (1 == 1) && (1 == 1)
-            and_test_3 . should_equal True
-            and_test_4 = (1 == 1) && (here.crash)
-            and_test_4 . should_fail_with My_Error
-
-            or_test_5 = (1 == 0) && ("foo")
-            or_test_5 . should_equal False
-            Test.expect_panic_with ((1 == 1) && ("foo")) Type_Error
+            (1 == 0) && (here.crash) . should_equal False
+            (1 == 1) && (1 == 0) . should_equal False
+            (1 == 1) && (1 == 1) . should_equal True
+            (1 == 1) && (here.crash) . should_fail_with My_Error
+            (1 == 0) && "foo" . should_equal False
+            (1 == 1) && "foo" . should_equal "foo"
 
 
 main = Test.Suite.run_main here.spec
