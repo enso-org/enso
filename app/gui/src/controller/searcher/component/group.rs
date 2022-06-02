@@ -8,6 +8,8 @@ use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
+use ensogl::data::color;
+
 
 
 // ============
@@ -19,7 +21,7 @@ use crate::model::suggestion_database;
 #[derive(Clone, Debug)]
 pub struct Data {
     pub name:         ImString,
-    // FIXME[mc]: add color
+    pub color:        Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
     pub component_id: Option<component::Id>,
@@ -31,7 +33,13 @@ pub struct Data {
 
 impl Data {
     fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
-        Data { name: name.into(), component_id, entries: default(), visible: Cell::new(true) }
+        Data {
+            name: name.into(),
+            color: None,
+            component_id,
+            entries: default(),
+            visible: Cell::new(true),
+        }
     }
 }
 
@@ -75,7 +83,13 @@ impl Group {
             Some(Component { id: Immutable(id), suggestion, match_info: default() })
         });
         let entries = RefCell::new(components.collect());
-        let data = Data { name: group.name, component_id: None, visible: Cell::new(true), entries };
+        let data = Data {
+            name: group.name,
+            color: group.color,
+            component_id: None,
+            visible: Cell::new(true),
+            entries,
+        };
         Self { data: Rc::new(data) }
     }
 
