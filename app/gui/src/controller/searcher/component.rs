@@ -117,7 +117,7 @@ impl Component {
 #[derive(Clone, CloneRef, Debug)]
 pub struct ModuleGroups {
     pub content:    Group,
-    pub submodules: group::List,
+    pub submodules: group::SortedList,
 }
 
 
@@ -136,8 +136,8 @@ pub struct ModuleGroups {
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     all_components:        Rc<Vec<Component>>,
-    top_modules:           group::List,
-    top_modules_flattened: group::List,
+    top_modules:           group::SortedList,
+    top_modules_flattened: group::SortedList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     favorites:             group::List,
     filtered:              Rc<Cell<bool>>,
@@ -154,7 +154,7 @@ impl List {
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> &group::List {
+    pub fn top_modules(&self) -> &group::SortedList {
         if self.filtered.get() {
             &self.top_modules_flattened
         } else {
@@ -164,7 +164,7 @@ impl List {
 
     /// Get the list of given component submodules. Returns [`None`] if given component is not
     /// a module.
-    pub fn submodules_of(&self, component: Id) -> Option<&group::List> {
+    pub fn submodules_of(&self, component: Id) -> Option<&group::SortedList> {
         self.module_groups.get(&component).map(|mg| &mg.submodules)
     }
 

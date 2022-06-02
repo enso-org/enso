@@ -28,7 +28,7 @@ pub struct ModuleGroups {
     /// For example when the module is a top module, so need its flattened content to fill the
     /// `top_module_flattened` field of [`component::List`].
     pub flattened_content: Option<component::Group>,
-    pub submodules:        component::group::ListBuilder,
+    pub submodules:        component::group::SortedListBuilder,
     pub is_top_module:     bool,
 }
 
@@ -150,9 +150,9 @@ impl List {
     /// Build the list, sorting all group lists appropriately.
     pub fn build(self) -> component::List {
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
-        let mut top_mdl_bld = component::group::ListBuilder::default();
+        let mut top_mdl_bld = component::group::SortedListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
-        let mut top_mdl_flat_bld = component::group::ListBuilder::default();
+        let mut top_mdl_flat_bld = component::group::SortedListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         component::List {
             all_components:        Rc::new(self.all_components),
@@ -161,7 +161,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            favorites:             component::group::List::new_unsorted(self.favorites),
+            favorites:             component::group::List::new(self.favorites),
             filtered:              default(),
         }
     }

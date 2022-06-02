@@ -103,18 +103,65 @@ impl Group {
 
 
 
+// ==================
+// === SortedList ===
+// ==================
+
+/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+#[derive(Clone, CloneRef, Debug, Default)]
+pub struct SortedList {
+    groups: Rc<Vec<Group>>,
+}
+
+impl Deref for SortedList {
+    type Target = [Group];
+    fn deref(&self) -> &Self::Target {
+        self.groups.as_slice()
+    }
+}
+
+impl AsRef<[Group]> for SortedList {
+    fn as_ref(&self) -> &[Group] {
+        self.groups.as_slice()
+    }
+}
+
+
+// === SortedListBuilder ===
+
+
+/// The builder of [`SortedList`]. The groups will be sorted in [`Self::build`] method.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
+pub struct SortedListBuilder {
+    pub groups: Vec<Group>,
+}
+
+impl SortedListBuilder {
+    /// Sort the groups and create a [`SortedList`].
+    pub fn build(mut self) -> SortedList {
+        // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
+        // cannot return reference, and we don't want to copy strings here.
+        self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        SortedList { groups: Rc::new(self.groups) }
+    }
+}
+
+
+
 // ============
 // === List ===
 // ============
 
-/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+/// An immutable [`Group`] list, keeping the groups in the order provided in the constructor.
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     groups: Rc<Vec<Group>>,
 }
 
 impl List {
-    pub fn new_unsorted(groups: Vec<Group>) -> Self {
+    /// Constructor.
+    pub fn new(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
     }
 }
@@ -129,26 +176,5 @@ impl Deref for List {
 impl AsRef<[Group]> for List {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
-    }
-}
-
-
-// === ListBuilder ===
-
-
-/// The builder of [`List`]. The groups will be sorted in [`Self::build`] method.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
-pub struct ListBuilder {
-    pub groups: Vec<Group>,
-}
-
-impl ListBuilder {
-    /// Sort the groups and create a [`List`].
-    pub fn build(mut self) -> List {
-        // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference, and we don't want to copy strings here.
-        self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-        List { groups: Rc::new(self.groups) }
     }
 }
