@@ -15,6 +15,7 @@ import { project_manager_bundle } from '../paths.mjs'
 
 import child_process from 'child_process'
 import fss from 'fs'
+import fsp from 'fs/promises'
 
 // =============
 // === Paths ===
@@ -150,6 +151,14 @@ optParser.options('dev', {
 optParser.options('devtron', {
     group: debugOptionsGroup,
     describe: 'Install the Devtron Developer Tools extension',
+})
+
+optParser.options('load-profile', {
+    group: debugOptionsGroup,
+    describe:
+        'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    requiresArg: true,
+    type: `array`,
 })
 
 optParser.options('save-profile', {
@@ -334,9 +343,7 @@ function secureWebPreferences(webPreferences) {
     delete webPreferences.experimentalFeatures
     delete webPreferences.enableBlinkFeatures
     delete webPreferences.allowpopups
-    // TODO[WD]: We may want to enable it and use IPC to communicate with preload script.
-    //           https://stackoverflow.com/questions/38335004/how-to-pass-parameters-from-main-process-to-render-processes-in-electron
-    // webPreferences.contextIsolation = true
+    delete webPreferences.contextIsolation
     return webPreferences
 }
 
@@ -558,6 +565,16 @@ function createWindow() {
     if (args.entryPoint) {
         urlCfg.entry = args.entryPoint
     }
+    let profilePromises = []
+    if (args.loadProfile) {
+        profilePromises = args.loadProfile.map(path => fsp.readFile(path, 'utf8'))
+    }
+    const profiles = Promise.all(profilePromises)
+    Electron.ipcMain.on('load-profiles', event => {
+        profiles.then(profiles => {
+            event.reply('profiles-loaded', profiles)
+        })
+    })
     if (args.saveProfile) {
         Electron.ipcMain.on('save-profile', (event, data) => {
             fss.writeFileSync(args.saveProfile, data)

@@ -97,6 +97,7 @@ impl ComputedValueInfoRegistry {
     }
 
     /// Store the information from the given update received from the Language Server.
+    #[profile(Debug)]
     pub fn apply_updates(&self, updates: Vec<ExpressionUpdate>) {
         let updated_expressions = updates.iter().map(|update| update.expression_id).collect();
         for update in updates {

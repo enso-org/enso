@@ -511,11 +511,7 @@ where
     U: crate::Parent<T> + Profiler + Copy,
     T: Profiler + Copy,
 {
-    fn new_child(&self, label: Label) -> Started<T> {
-        self.0.new_child(label)
-    }
-
-    fn new_child_same_start(&self, label: Label) -> Started<T> {
-        self.0.new_child_same_start(label)
+    fn start_child(&self, label: Label) -> Started<T> {
+        self.0.start_child(label)
     }
 }

@@ -1648,6 +1648,7 @@ dependencies = [
  "enso-data-structures",
  "enso-logger",
  "enso-prelude",
+ "enso-profiler",
  "enso-text",
  "failure",
  "itertools 0.10.3",
@@ -1856,6 +1857,7 @@ name = "enso-debug-api"
 version = "0.1.0"
 dependencies = [
  "derivative",
+ "futures 0.3.21",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
@@ -1971,7 +1973,6 @@ dependencies = [
  "enso-shortcuts",
  "enso-web",
  "ensogl",
- "ordered-float 2.10.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
@@ -2411,6 +2412,7 @@ dependencies = [
 name = "ensogl-example-profiling-run-graph"
 version = "0.1.0"
 dependencies = [
+ "enso-debug-api",
  "enso-frp",
  "enso-profiler",
  "enso-profiler-data",

@@ -61,6 +61,7 @@ impl ExecutionContext {
     ///
     /// NOTE: By itself this execution context will not be able to receive any updates from the
     /// language server.
+    #[profile(Debug)]
     pub fn create(
         parent: impl AnyLogger,
         language_server: Rc<language_server::Connection>,
