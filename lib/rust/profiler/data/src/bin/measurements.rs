@@ -47,15 +47,17 @@ fn print_measurement<Metadata: std::fmt::Display>(
     }
     println!("{}{}", indent, measurement.label);
     print!("{}", indent);
-    let mut metadatas = vec![];
+    print!("  {:.1}", measurement.created.into_ms());
     for active in &measurement.intervals {
         let interval = &profile[*active];
         print!("  {}", fmt_interval(interval.interval));
-        metadatas.extend(&interval.metadata);
     }
     println!();
-    for metadata in metadatas {
-        println!("{}  {}", indent, metadata.data);
+    for active in &measurement.intervals {
+        let interval = &profile[*active];
+        for metadata in &interval.metadata {
+            println!("{}  {}", indent, metadata.data);
+        }
     }
     for child in &measurement.children {
         print_measurement(profile, *child, i + 1);
