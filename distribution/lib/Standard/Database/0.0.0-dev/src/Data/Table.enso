@@ -446,13 +446,18 @@ type Table
             if len == 1 then ixes.at 0 else ixes
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Report_Warning =
-        transform_elements = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
-        new_columns = transform_elements.map element-> case element.associated_selector of
-            Nothing -> element.column
-            selector ->
-                IO.println "WIP: would sort "+element.column.name+" in "+selector.direction.to_text+" direction."
-                element.column
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+        columns_for_ordering = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
+        new_order_descriptors = columns_for_ordering.map selected_column->
+            internal_column = selected_column.column
+            associated_selector = selected_column.associated_selector
+            ## TODO [RW] this is only needed because `Vector.map` does not
+               propagate dataflow errors correctly. See:
+               https://www.pivotaltracker.com/story/show/181057718
+            Panic.throw_wrapped_if_error <|
+                this.connection.dialect.prepare_order_descriptor this.connection internal_column associated_selector.direction text_order
+        new_ctx = this.context.add_orders new_order_descriptors
+        this.updated_context new_ctx
 
     ## UNSTABLE
 
@@ -508,21 +513,18 @@ type Table
              table.sort by=[quality_ratio, 'Rating']
     sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
     sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
-        order_to_ir = case _ of
-            Sort_Direction.Ascending -> IR.Ascending
-            Sort_Direction.Descending -> IR.Descending
         missing_to_ir last = case last of
             True -> IR.Nulls_Last
             False -> IR.Nulls_First
         wrap_elem elem =
-            [this.resolve elem . expression, order_to_ir order, missing_to_ir missing_last]
+            IR.Order_Descriptor (this.resolve elem . expression) order (missing_to_ir missing_last) collation=Nothing
         to_ir elem = case elem of
             Text -> wrap_elem elem
             Column _ _ _ _ _ -> wrap_elem elem
             Order_Rule elem Nothing my_order my_nulls ->
                 chosen_order = my_order.if_nothing order
                 chosen_nulls = my_nulls.if_nothing missing_last
-                [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
+                IR.Order_Descriptor (this.resolve elem . expression) chosen_order (missing_to_ir chosen_nulls) collation=Nothing
             Order_Rule _ _ _ _ ->
                 Error.throw <| Unsupported_Database_Operation_Error "Custom comparators are not supported in Database"
         elems = Helpers.unify_vector_singleton by . map to_ir

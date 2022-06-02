@@ -55,6 +55,16 @@ Duplicate_Column_Selectors.to_display_text : Text
 Duplicate_Column_Selectors.to_display_text =
     "The provided Column_Selector has duplicate entries: "+this.duplicate_selectors.short_display_text+"."
 
+## Indicates that one column has been matched by multiple selectors.
+
+   In case the selectors have differing metadata and the error does not prevent
+   the operation from continuing, the first selector on the list is used.
+type Column_Matched_By_Multiple_Selectors (column_name : Text) (selectors : [Any])
+
+Column_Matched_By_Multiple_Selectors.to_display_text : Text
+Column_Matched_By_Multiple_Selectors.to_display_text =
+    'The column "' + this.column_name + '" is matched by multiple selectors: ' + this.selectors.short_display_text + "."
+
 ## Indicates that the provided indices matched columns already matched by
    others, so they do not introduce any new columns to the input.
 

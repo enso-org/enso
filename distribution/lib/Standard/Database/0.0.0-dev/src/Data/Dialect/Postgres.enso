@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import Standard.Base.Error.Common as Errors
 from Standard.Table.Data.Aggregate_Column import all
 from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
@@ -42,6 +43,16 @@ type Postgresql_Dialect
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+
+    ## PRIVATE
+       Prepares an ordering descriptor.
+
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+    prepare_order_descriptor : Connection -> IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor connection internal_column sort_direction text_ordering =
+        _ = [connection, internal_column, sort_direction, text_ordering]
+        Errors.unimplemented "TODO"
 
 ## PRIVATE
 make_internal_generator_dialect =
