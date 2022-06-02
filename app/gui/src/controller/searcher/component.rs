@@ -24,27 +24,8 @@ pub use group::Group;
 
 /// A component identifier.
 pub type Id = suggestion_database::entry::Id;
-
-
-
-// =================
-// === MatchInfo ===
-// =================
-
 /// Information how the component matches the filtering pattern.
-#[allow(missing_docs)]
-#[derive(Clone, Debug)]
-pub enum MatchInfo {
-    DoesNotMatch,
-    Matches { subsequence: fuzzly::Subsequence },
-}
-
-impl Default for MatchInfo {
-    fn default() -> Self {
-        MatchInfo::Matches { subsequence: default() }
-    }
-}
-
+pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
 // =================
@@ -68,6 +49,13 @@ pub struct Component {
 }
 
 impl Component {
+    /// Construct a new component.
+    ///
+    /// The matching info will be filled for an empty pattern.
+    pub fn new(id: Id, suggestion: Rc<suggestion_database::Entry>) -> Self {
+        Self { id: Immutable(id), suggestion, match_info: default() }
+    }
+
     /// The label which should be displayed in the Component Browser.
     pub fn label(&self) -> &str {
         &self.suggestion.name
@@ -168,19 +156,105 @@ impl List {
     }
 
     /// Update matching info in all components according to the new filtering pattern.
-    pub fn update_filtering(&self, pattern: impl Str) {
+    pub fn update_filtering(&self, pattern: impl AsRef<str>) {
+        let pattern = pattern.as_ref();
         for component in &*self.all_components {
-            component.update_matching_info(pattern.as_ref())
+            component.update_matching_info(pattern)
         }
         for group in self.all_groups() {
-            group.check_visibility();
+            group.update_sorting(pattern);
         }
-        self.filtered.set(!pattern.as_ref().is_empty());
+        self.filtered.set(!pattern.is_empty());
     }
 
     fn all_groups(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
         normal.chain(flattened)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    use crate::model::suggestion_database::entry::Kind;
+
+    use double_representation::module;
+    use engine_protocol::language_server;
+
+
+    // === Helpers ===
+
+    pub fn mock_module(name: &str) -> model::suggestion_database::Entry {
+        let ls_entry = language_server::SuggestionEntry::Module {
+            module:             name.to_owned(),
+            documentation:      default(),
+            documentation_html: default(),
+            reexport:           default(),
+        };
+        model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
+    }
+
+    pub fn mock_function(
+        module: &module::QualifiedName,
+        name: &str,
+    ) -> model::suggestion_database::Entry {
+        model::suggestion_database::Entry {
+            kind:               Kind::Function,
+            module:             module.clone(),
+            name:               name.to_owned(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtin.Integer".to_string(),
+            documentation_html: None,
+            self_type:          None,
+            scope:              model::suggestion_database::entry::Scope::Everywhere,
+        }
+    }
+
+
+    // === Filtering Component List ===
+
+    #[test]
+    fn filtering_component_list() {
+        let logger = Logger::new("test::update_list_after_filtering_pattern_change");
+        let top_module = mock_module("test.Test.TopModule");
+        let sub_module = mock_module("test.Test.TopModule.SubModule");
+        let fun1 = mock_function(&top_module.module, "fun1");
+        let funx2 = mock_function(&sub_module.module, "funx1");
+        let all_entries = [top_module, sub_module, fun1, funx2];
+        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        for (id, entry) in all_entries.into_iter().enumerate() {
+            suggestion_db.put_entry(id, entry)
+        }
+        let mut builder = builder::List::new(Rc::new(suggestion_db));
+        builder.extend(0..4);
+        let list = builder.build();
+        let get_entries_ids =
+            || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
+
+        list.update_filtering("fu");
+        let expected_ids = vec![2, 3, 1];
+        assert_eq!(get_entries_ids(), expected_ids);
+        assert!(list.top_modules()[0].visible.get());
+
+        list.update_filtering("x");
+        let expected_ids = vec![3, 2, 1];
+        assert_eq!(get_entries_ids(), expected_ids);
+        assert!(list.top_modules()[0].visible.get());
+
+        list.update_filtering("Sub");
+        let expected_ids = vec![1, 3, 2];
+        assert_eq!(get_entries_ids(), expected_ids);
+        assert!(list.top_modules()[0].visible.get());
+
+        list.update_filtering("y");
+        assert!(!list.top_modules()[0].visible.get());
     }
 }
