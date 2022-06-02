@@ -14,8 +14,6 @@ use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
 
-use data::opt_vec::OptVec;
-
 
 
 // =============
@@ -36,7 +34,7 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols:            Rc<RefCell<OptVec<Symbol>>>,
+    symbols:            Rc<RefCell<HashMap<SymbolId, Symbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     symbol_dirty:       SymbolDirty,
     logger:             Logger,
@@ -45,6 +43,7 @@ pub struct SymbolRegistry {
     variables:          UniformScope,
     context:            Rc<RefCell<Option<Context>>>,
     stats:              Stats,
+    next_id:            Rc<Cell<u32>>,
 }
 
 impl SymbolRegistry {
@@ -66,6 +65,7 @@ impl SymbolRegistry {
         let context = default();
         let stats = stats.clone_ref();
         let global_id_provider = default();
+        let next_id = default();
         Self {
             symbols,
             global_id_provider,
@@ -76,49 +76,44 @@ impl SymbolRegistry {
             variables,
             context,
             stats,
+            next_id,
         }
     }
 
-    /// Creates a new `Symbol` instance and returns its id.
-    pub fn new_get_id(&self) -> SymbolId {
+    /// Creates a new `Symbol`.
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(&self) -> (SymbolRegistration, Symbol) {
         let symbol_dirty = self.symbol_dirty.clone();
         let stats = &self.stats;
-        let index = self.symbols.borrow_mut().insert_with_ix_(|ix| {
-            let id = SymbolId::new(ix as u32);
-            let on_mut = move || symbol_dirty.set(id);
-            let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
-            symbol.set_context(self.context.borrow().as_ref());
-            symbol
-        });
-        SymbolId::new(index as u32)
+        let id_value = self.next_id.get();
+        self.next_id.set(id_value + 1);
+        let id = SymbolId::new(id_value);
+        let on_mut = move || symbol_dirty.set(id);
+        let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
+        symbol.set_context(self.context.borrow().as_ref());
+        self.symbols.borrow_mut().insert(id, symbol.clone_ref());
+        let symbols = self.symbols.clone();
+        let registration = SymbolRegistration { symbols, id };
+        (registration, symbol)
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         *self.context.borrow_mut() = context.cloned();
-        for symbol in &*self.symbols.borrow() {
+        for symbol in self.symbols.borrow().values() {
             symbol.set_context(context)
         }
-    }
-
-    /// Creates a new `Symbol` instance.
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(&self) -> Symbol {
-        let ix = self.new_get_id();
-        self.index(ix)
-    }
-
-    /// Get symbol by its ID.
-    pub fn index(&self, id: SymbolId) -> Symbol {
-        self.symbols.borrow()[(*id) as usize].clone_ref()
     }
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
         debug!(self.logger, "Updating.", || {
+            let symbols = self.symbols.borrow();
             for id in self.symbol_dirty.take().iter() {
-                self.symbols.borrow()[(**id) as usize].update(&self.variables)
+                if let Some(symbol) = symbols.get(id) {
+                    symbol.update(&self.variables);
+                }
             }
             self.symbol_dirty.unset_all();
         })
@@ -130,18 +125,29 @@ impl SymbolRegistry {
         self.z_zoom_1.set(camera.z_zoom_1());
     }
 
-    /// Rasterize all symbols.
-    pub fn render_all(&self) {
-        for symbol in &*self.symbols.borrow() {
-            symbol.render()
-        }
-    }
-
     /// Rasterize selected symbols.
     pub fn render_by_ids(&self, ids: &[SymbolId]) {
         let symbols = self.symbols.borrow();
         for id in ids {
-            symbols[(**id) as usize].render();
+            if let Some(symbol) = symbols.get(id) {
+                symbol.render();
+            }
         }
+    }
+}
+
+
+// === SymbolRegistration ===
+
+#[derive(Debug)]
+/// Handle that unregisters a `Symbol` from the `SymbolRegistry` when dropped.
+pub struct SymbolRegistration {
+    pub id:  SymbolId,
+    symbols: Rc<RefCell<HashMap<SymbolId, Symbol>>>,
+}
+
+impl Drop for SymbolRegistration {
+    fn drop(&mut self) {
+        self.symbols.borrow_mut().remove(&self.id);
     }
 }
