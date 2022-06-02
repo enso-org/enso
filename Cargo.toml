@@ -37,11 +37,6 @@ incremental = true
 debug = false
 debug-assertions = false
 
-[profile.production]
-inherits = "release"
-lto = "fat"
-codegen-units = 1
-
 [profile.bench]
 opt-level = 3
 lto = true
