@@ -42,8 +42,7 @@ public abstract class AndNode extends Node {
       return new Stateful(state, false);
     }
     Stateful result =
-            rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
+        rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
     return ensureBoolNode.execute(result.getState(), result.getValue());
   }
-
 }
