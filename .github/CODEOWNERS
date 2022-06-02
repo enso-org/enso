@@ -11,7 +11,9 @@ Cargo.lock @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
 Cargo.toml @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
 /lib/rust/ @MichaelMauderer @4e6 @mwu-tow @farmaazon @wdanilo
 /lib/rust/ensogl/ @MichaelMauderer @wdanilo @farmaazon
+/lib/rust/profiler/ @kazcw @MichaelMauderer @wdanilo
 /integration-test/ @MichaelMauderer @wdanilo @farmaazon
+/tools/build-performance/ @kazcw @mwu-tow @wdanilo
 
 # Scala Libraries
 /lib/scala/ @4e6
