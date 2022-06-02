@@ -585,10 +585,9 @@ pub mod test {
             let first_group = &groups[0];
             assert_eq!(first_group.name, "Test Group 1".to_string());
             let color = first_group.color.unwrap();
-            const PRECISION_8_BIT: f32 = 0.001;
-            assert_approx_eq!(color.red, 0.753, PRECISION_8_BIT);
-            assert_approx_eq!(color.green, 0.278, PRECISION_8_BIT);
-            assert_approx_eq!(color.blue, 0.671, PRECISION_8_BIT);
+            assert_eq!((color.red * 255.0) as u8, 0xC0);
+            assert_eq!((color.green * 255.0) as u8, 0x47);
+            assert_eq!((color.blue * 255.0) as u8, 0xAB);
             let expected_components =
                 vec!["Standard.Base.System.File.new".into(), "local.Unnamed_10.Main.main".into()];
             assert_eq!(first_group.components, expected_components);
