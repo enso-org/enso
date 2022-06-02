@@ -50,8 +50,7 @@ type Vector_Builder
        array = Array.new this.length
        go ix elem = case elem of
            Leaf vec ->
-               vec.map_with_index vi-> elem->
-                   array.set_at ix+vi elem
+               Array.copy vec.to_array 0 array ix vec.length
                ix + vec.length
            Append l r _ ->
                ix2 = go ix l

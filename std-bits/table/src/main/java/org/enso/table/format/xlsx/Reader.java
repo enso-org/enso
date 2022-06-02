@@ -165,7 +165,7 @@ public class Reader {
         colNames.add(unnamedColumnPrefix + (i - minCol));
       }
     }
-    var deduplicatedColumnNames = NameDeduplicator.deduplicate(colNames);
+    var deduplicatedColumnNames = new NameDeduplicator().makeUnique(colNames);
 
     List<Builder> builders = new ArrayList<>();
     for (int i = minCol; i < maxCol; i++) {

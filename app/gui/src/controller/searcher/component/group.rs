@@ -1,35 +1,69 @@
+//! A module containing definition of [`component::Group`], the list of those and related
+//! structures.
+
+use crate::prelude::*;
+
+use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
-use crate::prelude::*;
 
+
+
+// ============
+// === Data ===
+// ============
+
+/// The [`Group`] fields, which are shared and available by [`AsRef`] and [`Deref`].
+#[allow(missing_docs)]
 #[derive(Clone, Debug)]
 pub struct Data {
-    pub name:    ImString,
+    pub name:         ImString,
     // FIXME[mc]: add color
-    pub entries: RefCell<Vec<Component>>,
-    pub visible: Cell<bool>,
+    /// A component corresponding to this group, e.g. the module of whose content the group
+    /// contains.
+    pub component_id: Option<component::Id>,
+    pub entries:      RefCell<Vec<Component>>,
+    /// A flag indicating that the group should be displayed in the Component Browser. It may be
+    /// hidden in some scenarios, e.g. when all items are filtered out.
+    pub visible:      Cell<bool>,
 }
 
 impl Data {
-    fn new_empty_visible(name: impl Into<ImString>) -> Self {
-        Data { name: name.into(), entries: default(), visible: Cell::new(true) }
+    fn new_empty_visible(name: impl Into<ImString>, component_id: Option<component::Id>) -> Self {
+        Data { name: name.into(), component_id, entries: default(), visible: Cell::new(true) }
     }
 }
 
-#[derive(Clone, CloneRef, Debug, AsRef, Deref)]
+
+
+// =============
+// === Group ===
+// =============
+
+/// A group of [`Component`]s.
+#[derive(Clone, CloneRef, Debug)]
 pub struct Group {
     data: Rc<Data>,
 }
 
+impl Deref for Group {
+    type Target = Data;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.data
+    }
+}
+
 impl Group {
-    pub fn from_entry(entry: &suggestion_database::Entry) -> Self {
+    /// Create empty group referring to some module component.
+    pub fn from_entry(component_id: component::Id, entry: &suggestion_database::Entry) -> Self {
         let name: String = if entry.module.is_top_module() {
             (&entry.module).into()
         } else {
             entry.module.name().into()
         };
-        Self { data: Rc::new(Data::new_empty_visible(name)) }
+        Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
     }
 
     pub fn from_execution_context_component_group(
@@ -45,6 +79,7 @@ impl Group {
         Self { data: Rc::new(data) }
     }
 
+    /// Check if group should be displayed in Component Browser.
     pub fn check_visibility(&self) {
         let entries = self.entries.borrow();
         let filtered_out = entries.iter().filter(|c| c.is_filtered_out());
@@ -53,7 +88,14 @@ impl Group {
     }
 }
 
-#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
+
+
+// ============
+// === List ===
+// ============
+
+/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+#[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     groups: Rc<Vec<Group>>,
 }
@@ -62,18 +104,35 @@ impl List {
     pub fn new_unsorted(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
     }
+}
 
-    fn iter_visible(&self) -> impl Iterator<Item = &Group> {
-        self.groups.iter().filter(|g| g.visible.get())
+impl Deref for List {
+    type Target = [Group];
+
+    fn deref(&self) -> &Self::Target {
+        self.groups.as_slice()
     }
 }
 
+impl AsRef<[Group]> for List {
+    fn as_ref(&self) -> &[Group] {
+        self.groups.as_slice()
+    }
+}
+
+
+// === ListBuilder ===
+
+
+/// The builder of [`List`]. The groups will be sorted in [`Self::build`] method.
+#[allow(missing_docs)]
 #[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
 pub struct ListBuilder {
     pub groups: Vec<Group>,
 }
 
 impl ListBuilder {
+    /// Sort the groups and create a [`List`].
     pub fn build(mut self) -> List {
         // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
         // cannot return reference, and we don't want to copy strings here.

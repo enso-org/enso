@@ -1,5 +1,6 @@
 //! The test suite of IDE-engine communication. The view is not instantiated, and controllers
 //! may be used for convenience.
+
 use enso_gui::integration_test::prelude::*;
 
 use engine_protocol::language_server::ExplicitCall;
