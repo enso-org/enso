@@ -367,8 +367,8 @@ mod tests {
                 name:       "Test Group 1".into(),
                 color:      color::Rgb::from_css_hex("#aabbcc"),
                 components: vec![
-                    // "Standard.Base.System.File.new".into(),
-                    // "local.Unnamed_10.Main.main".into(),
+                    "test.Test.TopModule1.fun2".into(),
+                    "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
                     "test.Test.TopModule1.fun1".into(),
                 ],
             },
@@ -382,9 +382,14 @@ mod tests {
         assert_eq!(list.favorites.len(), 2);
         let group1 = &list.favorites[0];
         assert_eq!(group1.name, ImString::new("Test Group 1"));
-        let entries = &group1.entries.borrow();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].id, Immutable(5));
-        assert_eq!(entries[0].suggestion.name, "fun1");
+        let group1_entries = group1
+            .entries
+            .borrow()
+            .iter()
+            .map(|e| (*e.id, e.suggestion.name.to_string()))
+            .collect_vec();
+        let expected =
+            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
+        assert_eq!(group1_entries, expected);
     }
 }
