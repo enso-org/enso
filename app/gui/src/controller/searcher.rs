@@ -845,7 +845,7 @@ impl Searcher {
             .drain_filter(|frag| !frag.is_still_unmodified(input, &current_module));
     }
 
-
+    #[profile(Debug)]
     fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments = data_borrowed.fragments_added_by_picking.iter();
@@ -954,10 +954,8 @@ impl Searcher {
                     data.components = this.make_component_list(responses.iter());
                 }
                 Err(err) => {
-                    error!(
-                        this.logger,
-                        "Request for completions to the Language Server returned error: {err}"
-                    );
+                    let msg = "Request for completions to the Language Server returned error";
+                    error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
                     data.components =

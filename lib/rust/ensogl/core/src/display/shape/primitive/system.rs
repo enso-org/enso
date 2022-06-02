@@ -56,6 +56,7 @@ pub struct ShapeSystem {
 
 impl ShapeSystem {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new<'t, S, Sh>(scene: S, shape: Sh, pointer_events: bool) -> Self
     where
         S: Into<&'t Scene>,
@@ -85,6 +86,7 @@ impl ShapeSystem {
     }
 
     /// Replaces the shape definition.
+    #[profile(Detail)]
     pub fn set_shape<S: Into<def::AnyShape>>(&self, shape: S) {
         let shape = shape.into();
         *self.shape.borrow_mut() = shape;
@@ -100,6 +102,7 @@ impl ShapeSystem {
     }
 
     /// Define a new shader input.
+    #[profile(Debug)]
     pub fn add_input<T: material::Input + Storable>(&self, name: &str, t: T) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
         self.material.borrow_mut().add_input(name, t);
@@ -109,6 +112,7 @@ impl ShapeSystem {
     }
 
     /// Regenerate the shader with the current material.
+    #[profile(Detail)]
     fn reload_material(&self) {
         self.sprite_system.set_material(&*self.material.borrow());
     }

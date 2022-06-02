@@ -42,14 +42,11 @@ fn define_profiler(
     enabled: bool,
 ) -> proc_macro::TokenStream {
     let start = quote::format_ident!("start_{}", level);
-    let with_same_start = quote::format_ident!("{}_with_same_start", level);
+    let create = quote::format_ident!("create_{}", level);
     let level_link = format!("[{}-level](index.html#{})", level, level);
     let doc_obj = format!("Identifies a {} profiler.", level_link);
     let doc_start = format!("Start a new {} profiler.", level_link);
-    let doc_with_same_start = format!(
-        "Create a new {} profiler, with the same start as an existing profiler.",
-        level_link,
-    );
+    let doc_create = format!("Create a new {} profiler, in unstarted state.", level_link);
     let ts = if enabled {
         quote::quote! {
             // =================================
@@ -94,21 +91,21 @@ fn define_profiler(
                     let label = profiler::internal::Label(
                         concat!($label, " (", file!(), ":", line!(), ")"));
                     let profiler: profiler::internal::Started<profiler::#obj_ident> =
-                        $parent.new_child(label);
+                        $parent.start_child(label);
                     profiler
                 }}
             }
 
-            #[doc = #doc_with_same_start]
+            #[doc = #doc_create]
             #[macro_export]
-            macro_rules! #with_same_start {
-                ($parent: expr, $label: expr) => {{
-                    use profiler::Parent;
+            macro_rules! #create {
+                ($label: expr) => {{
                     let label = profiler::internal::Label(
                         concat!($label, " (", file!(), ":", line!(), ")"));
-                    let profiler: profiler::internal::Started<profiler::#obj_ident> =
-                        $parent.new_child_same_start(label);
-                    profiler
+                    let parent = profiler::internal::EventId::implicit();
+                    let now = Some(profiler::internal::Timestamp::now());
+                    let paused = profiler::internal::StartState::Paused;
+                    profiler::#obj_ident::start(parent, label, now, paused)
                 }}
             }
         }
@@ -145,16 +142,18 @@ fn define_profiler(
             #[doc = #doc_start]
             #[macro_export]
             macro_rules! #start {
-                ($parent: expr, $label: expr) => {
+                ($parent: expr, $label: expr) => {{
+                    let _unused_at_this_profiling_level = $parent;
                     profiler::internal::Started(profiler::#obj_ident(()))
-                }
+                }}
             }
+
+            #[doc = #doc_create]
             #[macro_export]
-            #[doc = #doc_with_same_start]
-            macro_rules! #with_same_start {
-                ($parent: expr, $label: expr) => {
-                    profiler::internal::Started(profiler::#obj_ident(()))
-                }
+            macro_rules! #create {
+                ($label: expr) => {{
+                    profiler::#obj_ident(())
+                }}
             }
         }
     };
@@ -169,12 +168,9 @@ fn enabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label: Label) -> Started<#child_ident> {
+            fn start_child(&self, label: Label) -> Started<#child_ident> {
                 let start = Some(Timestamp::now());
                 Started(#child_ident::start(self.0, label, start, StartState::Active))
-            }
-            fn new_child_same_start(&self, label: Label) -> Started<#child_ident> {
-                Started(#child_ident::start(self.0, label, None, StartState::Active))
             }
         }
     };
@@ -189,10 +185,7 @@ fn disabled_impl_parent(
 ) -> proc_macro::TokenStream {
     let ts = quote::quote! {
         impl Parent<#child_ident> for #parent_ident {
-            fn new_child(&self, label: Label) -> Started<#child_ident> {
-                self.new_child_same_start(label)
-            }
-            fn new_child_same_start(&self, _label: Label) -> Started<#child_ident> {
+            fn start_child(&self, label: Label) -> Started<#child_ident> {
                 Started(#child_ident(()))
             }
         }

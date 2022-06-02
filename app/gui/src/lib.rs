@@ -142,23 +142,26 @@ mod profile_workflow;
 #[allow(dead_code)]
 pub fn entry_point_ide() {
     init_tracing(WARN);
-    ensogl_text_msdf_sys::run_once_initialized(|| {
-        // Logging of build information.
-        #[cfg(debug_assertions)]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(true),
-        );
-        #[cfg(not(debug_assertions))]
-        analytics::remote_log_value(
-            "debug_mode",
-            "debug_mode_is_active",
-            analytics::AnonymousData(false),
-        );
-
-        let config =
-            crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
-        crate::ide::Initializer::new(config).start_and_forget();
+    // Logging of build information.
+    #[cfg(debug_assertions)]
+    let debug_mode = true;
+    #[cfg(not(debug_assertions))]
+    let debug_mode = false;
+    analytics::remote_log_value(
+        "debug_mode",
+        "debug_mode_is_active",
+        analytics::AnonymousData(debug_mode),
+    );
+    let config =
+        crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
+    let executor = crate::ide::initializer::setup_global_executor();
+    let initializer = crate::ide::initializer::Initializer::new(config);
+    executor::global::spawn(async move {
+        let ide = initializer.start().await;
+        ensogl::system::web::document
+            .get_element_by_id("loader")
+            .map(|t| t.parent_node().map(|p| p.remove_child(&t).unwrap()));
+        std::mem::forget(ide);
     });
+    std::mem::forget(executor);
 }

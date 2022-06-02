@@ -66,14 +66,17 @@ pub struct ShaderData {
     dirty               : Dirty,
     logger              : Logger,
     stats               : Stats,
+    profiler            : Option<profiler::Debug>,
 }
 
 impl {
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
+    #[profile(Debug)]
     pub fn set_context(&mut self, context:Option<&Context>) {
         if context.is_some() {
             self.dirty.set();
+            self.profiler.get_or_insert_with(new_profiler);
         }
         self.context = context.cloned();
     }
@@ -86,14 +89,18 @@ impl {
         self.program.borrow().as_ref().map(|t| t.native.clone())
     }
 
+    #[profile(Detail)]
     pub fn set_geometry_material<M:Into<Material>>(&mut self, material:M) {
         self.geometry_material = material.into();
         self.dirty.set();
+        self.profiler.get_or_insert_with(new_profiler);
     }
 
+    #[profile(Detail)]
     pub fn set_material<M:Into<Material>>(&mut self, material:M) {
         self.surface_material = material.into();
         self.dirty.set();
+        self.profiler.get_or_insert_with(new_profiler);
     }
 
     /// Creates new shader with attached callback.
@@ -107,7 +114,11 @@ impl {
         let dirty_logger = Logger::new_sub(&logger,"dirty");
         let dirty = Dirty::new(dirty_logger,Box::new(on_mut));
         let stats = stats.clone_ref();
-        Self {context,geometry_material,surface_material,program,shader_compiler_job,dirty,logger,stats}
+        let profiler = None;
+        Self {
+            context, geometry_material, surface_material, program, shader_compiler_job, dirty,
+            logger, stats, profiler
+        }
     }
 
     /// Check dirty flags and update the state accordingly.
@@ -155,7 +166,8 @@ impl {
 
                     *self.program.borrow_mut() = None;
                     let program = self.program.clone_ref();
-                    let handler = context.shader_compiler.submit(code, move |p| {
+                    let profiler = self.profiler.take().unwrap_or_else(new_profiler);
+                    let handler = context.shader_compiler.submit(code, profiler, move |p| {
                         on_ready(&bindings,&p);
                         *program.borrow_mut() = Some(p);
                     });
@@ -184,4 +196,9 @@ impl Drop for ShaderData {
     fn drop(&mut self) {
         self.stats.dec_shader_count();
     }
+}
+
+/// Create a profiler to track shader recompilation.
+fn new_profiler() -> profiler::Debug {
+    profiler::create_debug!("compile_shader")
 }

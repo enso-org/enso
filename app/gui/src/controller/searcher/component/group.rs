@@ -57,7 +57,6 @@ pub struct Group {
 
 impl Deref for Group {
     type Target = Data;
-
     fn deref(&self) -> &Self::Target {
         &*self.data
     }
@@ -122,7 +121,6 @@ impl List {
 
 impl Deref for List {
     type Target = [Group];
-
     fn deref(&self) -> &Self::Target {
         self.groups.as_slice()
     }

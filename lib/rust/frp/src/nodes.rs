@@ -22,7 +22,6 @@ use crate::stream::Stream;
 use crate::stream::ValueProvider;
 
 use enso_generics as generics;
-use enso_profiler as profiler;
 
 
 
@@ -1626,7 +1625,6 @@ impl<T: EventOutput> OwnedProfile<T> {
 
 impl<T: EventOutput> stream::EventConsumer<Output<T>> for OwnedProfile<T> {
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
-        use profiler::internal::Profiler;
         use profiler::internal::StartState;
 
         let label = profiler::internal::Label(self.label());
