@@ -398,21 +398,19 @@ impl Rgb {
     /// The format is the hexadecimal color notation used in CSS - see:
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     /// ```
-    /// # use enso::prelude::*;
     /// # use ensogl_core::data::color::Rgb;
-    /// # const PRECISION_8_BIT: f32 = 0.001;
     ///
     /// let color = Rgb::from_css_hex("#C047AB");
     /// assert!(color.is_some());
-    /// assert_approx_eq!(color.unwrap().red, 0.753, PRECISION_8_BIT);
-    /// assert_approx_eq!(color.unwrap().green, 0.278, PRECISION_8_BIT);
-    /// assert_approx_eq!(color.unwrap().blue, 0.671, PRECISION_8_BIT);
+    /// assert_eq!((color.unwrap().red * 255.0) as u32, 0xC0);
+    /// assert_eq!((color.unwrap().green * 255.0) as u32, 0x47);
+    /// assert_eq!((color.unwrap().blue * 255.0) as u32, 0xAB);
     ///
     /// let color = Rgb::from_css_hex("#fff");
     /// assert!(color.is_some());
-    /// assert_approx_eq!(color.unwrap().red, 1.0, PRECISION_8_BIT);
-    /// assert_approx_eq!(color.unwrap().green, 1.0, PRECISION_8_BIT);
-    /// assert_approx_eq!(color.unwrap().blue, 1.0, PRECISION_8_BIT);
+    /// assert_eq!((color.unwrap().red * 255.0) as u32, 0xff);
+    /// assert_eq!((color.unwrap().green * 255.0) as u32, 0xff);
+    /// assert_eq!((color.unwrap().blue * 255.0) as u32, 0xff);
     ///
     /// assert!(Rgb::from_css_hex("fff").is_none());
     /// assert!(Rgb::from_css_hex("C047AB").is_none());
