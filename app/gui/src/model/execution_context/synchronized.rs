@@ -102,9 +102,8 @@ impl ExecutionContext {
     /// Load the component groups defined in libraries imported into the execution context.
     async fn load_component_groups(&self) -> FallibleResult {
         let ls_response = self.language_server.get_component_groups(&self.id).await?;
-        let ls_component_groups = ls_response.component_groups.into_iter();
-        let component_groups = ls_component_groups.map(|group| group.into());
-        *self.model.component_groups.borrow_mut() = component_groups.collect();
+        *self.model.component_groups.borrow_mut() =
+            ls_response.component_groups.into_iter().map(|group| group.into()).collect();
         Ok(())
     }
 
