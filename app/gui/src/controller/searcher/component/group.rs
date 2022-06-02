@@ -103,47 +103,47 @@ impl Group {
 
 
 
-// ==================
-// === SortedList ===
-// ==================
+// ========================
+// === AlphabeticalList ===
+// ========================
 
 /// An immutable [`Group`] list, keeping the groups in alphabetical order.
 #[derive(Clone, CloneRef, Debug, Default)]
-pub struct SortedList {
+pub struct AlphabeticalList {
     groups: Rc<Vec<Group>>,
 }
 
-impl Deref for SortedList {
+impl Deref for AlphabeticalList {
     type Target = [Group];
     fn deref(&self) -> &Self::Target {
         self.groups.as_slice()
     }
 }
 
-impl AsRef<[Group]> for SortedList {
+impl AsRef<[Group]> for AlphabeticalList {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
     }
 }
 
 
-// === SortedListBuilder ===
+// === AlphabeticalListBuilder ===
 
 
-/// The builder of [`SortedList`]. The groups will be sorted in [`Self::build`] method.
+/// The builder of [`AlphabeticalList`]. The groups will be sorted in [`Self::build`] method.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
-pub struct SortedListBuilder {
+pub struct AlphabeticalListBuilder {
     pub groups: Vec<Group>,
 }
 
-impl SortedListBuilder {
-    /// Sort the groups and create a [`SortedList`].
-    pub fn build(mut self) -> SortedList {
+impl AlphabeticalListBuilder {
+    /// Sort the groups and create an [`AlphabeticalList`].
+    pub fn build(mut self) -> AlphabeticalList {
         // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
         // cannot return reference, and we don't want to copy strings here.
         self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-        SortedList { groups: Rc::new(self.groups) }
+        AlphabeticalList { groups: Rc::new(self.groups) }
     }
 }
 
