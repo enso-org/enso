@@ -115,7 +115,7 @@ impl List {
         }
     }
 
-    pub fn add_favorites(
+    pub fn extend_favorites(
         &mut self,
         groups: impl IntoIterator<Item = execution_context::ComponentGroup>,
     ) {
@@ -362,7 +362,7 @@ mod tests {
         let logger = Logger::new("tests::favorites_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let mut builder = List::new(suggestion_db);
-        builder.add_favorites([
+        builder.extend_favorites([
             execution_context::ComponentGroup {
                 name:       "Test Group 1".into(),
                 color:      color::Rgb::from_css_hex("#aabbcc"),
