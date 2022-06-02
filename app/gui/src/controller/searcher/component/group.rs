@@ -72,10 +72,10 @@ impl Group {
     ) -> Self {
         let components = group.components.iter().filter_map(|qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component { suggestion_id: Immutable(id), suggestion, match_info: default() })
+            Some(Component { id: Immutable(id), suggestion, match_info: default() })
         });
         let entries = RefCell::new(components.collect());
-        let data = Data { name: group.name, visible: Cell::new(true), entries };
+        let data = Data { name: group.name, component_id: None, visible: Cell::new(true), entries };
         Self { data: Rc::new(data) }
     }
 

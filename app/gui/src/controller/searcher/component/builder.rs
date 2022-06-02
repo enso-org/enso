@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
@@ -67,6 +68,7 @@ pub struct List {
     suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
+    favorites:      Vec<component::Group>,
 }
 
 impl List {
@@ -75,7 +77,12 @@ impl List {
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument).
     pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self { suggestion_db, all_components: default(), module_groups: default() }
+        Self {
+            suggestion_db,
+            all_components: default(),
+            module_groups: default(),
+            favorites: default(),
+        }
     }
 
     /// Extend the list with new entries.
@@ -115,7 +122,7 @@ impl List {
         let suggestion_db = &self.suggestion_db;
         let favorites = groups
             .into_iter()
-            .map(|g| Group::from_execution_context_component_group(g, suggestion_db));
+            .map(|g| component::Group::from_execution_context_component_group(g, suggestion_db));
         self.favorites.extend(favorites);
     }
 
@@ -154,6 +161,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
+            favorites:             component::group::List::new_unsorted(self.favorites),
             filtered:              default(),
         }
     }
@@ -172,6 +180,7 @@ mod tests {
     use crate::model::suggestion_database::entry::Kind;
 
     use engine_protocol::language_server;
+    use ensogl::data::color;
 
 
     fn mock_module(name: &str) -> model::suggestion_database::Entry {
@@ -352,7 +361,7 @@ mod tests {
     fn favorites_in_component_list() {
         let logger = Logger::new("tests::favorites_in_component_list");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = ListBuilder::new(suggestion_db);
+        let mut builder = List::new(suggestion_db);
         builder.add_favorites([
             execution_context::ComponentGroup {
                 name:       "Test Group 1".into(),
@@ -375,7 +384,7 @@ mod tests {
         assert_eq!(group1.name, ImString::new("Test Group 1"));
         let entries = &group1.entries.borrow();
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].suggestion_id, Immutable(5));
+        assert_eq!(entries[0].id, Immutable(5));
         assert_eq!(entries[0].suggestion.name, "fun1");
     }
 }
