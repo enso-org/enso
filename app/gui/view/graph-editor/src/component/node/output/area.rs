@@ -121,6 +121,8 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
+// FIXME: Update to `define_endpoints_2`. Note that `Model` must not own the `api::Private`,
+// because `api::Private` owns the network, which contains (strong) references to the model.
 ensogl::define_endpoints! {
     Input {
         set_size                  (Vector2),
