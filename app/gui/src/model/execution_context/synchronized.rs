@@ -295,7 +295,6 @@ pub mod test {
     use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
-    use assert_approx_eq::assert_approx_eq;
     use engine_protocol::language_server::response;
     use engine_protocol::language_server::CapabilityRegistration;
     use engine_protocol::language_server::ExpressionUpdates;

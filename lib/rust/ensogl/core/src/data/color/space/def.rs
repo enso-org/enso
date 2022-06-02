@@ -398,7 +398,7 @@ impl Rgb {
     /// The format is the hexadecimal color notation used in CSS - see:
     /// https://developer.mozilla.org/en-US/docs/Web/CSS/hex-color
     /// ```
-    /// # use assert_approx_eq::assert_approx_eq;
+    /// # use enso::prelude::*;
     /// # use ensogl_core::data::color::Rgb;
     /// # const PRECISION_8_BIT: f32 = 0.001;
     ///
