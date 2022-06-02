@@ -27,23 +27,17 @@ public abstract class AndNode extends Node {
     return AndNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState Object state, boolean _this, @Suspend Object that);
-
-  @Specialization(guards = {"!_this"})
-  boolean executeLhs(@MonadicState Object state, boolean _this, @Suspend Object that) {
-    return _this;
-  }
+  abstract Stateful execute(@MonadicState Object state, boolean _this, @Suspend Object that);
 
   @Specialization
-  Object executeBool(
+  Stateful executeBool(
       @MonadicState Object state,
       boolean _this,
       @Suspend Object that,
       @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode) {
     if (conditionProfile.profile(!_this)) {
-      return false;
+      return new Stateful(state, false);
     }
-
-    return rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.NOT_TAIL).getValue();
+    return rhsThunkExecutorNode.executeThunk(that, state, BaseNode.TailStatus.TAIL_DIRECT);
   }
 }
