@@ -80,5 +80,6 @@ features = [
   'Window',
 ]
 
-[package.metadata.wasm-pack.profile.production]
-wasm-opt = ['-O4']
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
