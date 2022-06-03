@@ -1680,9 +1680,9 @@ pub mod test {
         let exported_component =
             language_server::LibraryComponent { name: exported_component_name, shortcut: None };
         let sample_ls_component_group = language_server::LibraryComponentGroup {
-            library: "local.Unnamed_10".to_string(),
+            library: "".to_string(),
             name:    "Test Group 1".to_string(),
-            color:   Some("#C047AB".to_string()),
+            color:   None,
             icon:    None,
             exports: vec![exported_component],
         };
