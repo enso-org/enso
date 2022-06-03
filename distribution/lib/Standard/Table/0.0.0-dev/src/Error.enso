@@ -77,6 +77,15 @@ Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text =
     "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
 
+## Indicates that no input columns were selected for the operation, so the
+   operation will cause no effect.
+type No_Input_Columns_Selected
+
+No_Input_Columns_Selected.to_display_text : Text
+No_Input_Columns_Selected.to_display_text =
+    "No input columns have been selected for the operation."
+
+
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation (column:Text) (rows:[Integer]) (message:Text)
 

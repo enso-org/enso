@@ -445,6 +445,37 @@ type Table
         if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
 
+    ## Sorts the rows of the table according to the specified columns and order.
+
+       Arguments:
+       - columns: The columns and order to sort the table.
+       - text_ordering: The ordering method to use on text values.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default. The following problems can occur:
+         - If a column in `columns` is not present in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If two name matchers match the same column, a
+           `Column_Matched_By_Multiple_Selectors`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If values do not implement an ordering, an
+           `Incomparable_Values_Error`.
+
+       > Example
+         Order the table by the column "alpha" in ascending order.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+
+       > Example
+         Order the table by the second column in ascending order. In case of any
+         ties, break them based on the 7th column from the end of the table in
+         descending order.
+
+             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         columns_for_ordering = Table_Helpers.prepare_order_by this.internal_columns columns on_problems

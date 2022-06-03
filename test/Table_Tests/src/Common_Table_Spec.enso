@@ -619,10 +619,12 @@ spec prefix table_builder test_selection pending=Nothing =
             problems = [Missing_Input_Columns ["weird_column"]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should not do anything if no columns are selected for ordering" <|
-            t2 = table.order_by (Sort_Column_Selector.By_Name [])
-            t2.at "alpha" . to_vector . should_equal (table.at "alpha" . to_vector)
-            Problems.assume_no_problems t2
+        Test.specify "should report a problem if no columns are selected for ordering" <|
+            action = table.order_by (Sort_Column_Selector.By_Name []) on_problems=_
+            tester t2 =
+                t2.at "alpha" . to_vector . should_equal (table.at "alpha" . to_vector)
+            problems = [No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
 
         Test.specify "should stack consecutive ordering operations" <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
