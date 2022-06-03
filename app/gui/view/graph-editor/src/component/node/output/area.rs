@@ -8,13 +8,11 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::tooltip;
 use crate::view;
-use crate::FrpNetworkProvider;
 use crate::Type;
 
 use enso_config::ARGS;
 use enso_frp as frp;
 use enso_frp;
-use enso_frp::stream::ValueProvider;
 use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -123,7 +121,9 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
-ensogl::define_endpoints_2! {
+// FIXME: Update to `define_endpoints_2`. Note that `Model` must not own the `api::Private`,
+// because `api::Private` owns the network, which contains (strong) references to the model.
+ensogl::define_endpoints! {
     Input {
         set_size                  (Vector2),
         set_hover                 (bool),
@@ -164,7 +164,7 @@ pub struct Model {
     port_count:     Cell<usize>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
-    frp:            Rc<api::Private>,
+    frp:            FrpEndpoints,
 }
 
 impl Model {
@@ -181,7 +181,7 @@ impl Model {
         let port_count = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let frp = frp.private.clone_ref();
+        let frp = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
         Self {
@@ -374,19 +374,19 @@ impl Model {
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network
-                    self.frp.output.on_port_hover <+ port_frp.on_hover.map
+                    self.frp.source.on_port_hover <+ port_frp.on_hover.map
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
-                    self.frp.output.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
+                    self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
 
-                    port_frp.set_size_multiplier        <+ self.frp.output.port_size_multiplier;
-                    self.frp.output.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility  <+ self.frp.output.type_label_visibility;
-                    self.frp.output.tooltip             <+ port_frp.tooltip;
-                    port_frp.set_view_mode              <+ self.frp.output.view_mode;
+                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
+                    self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
+                    self.frp.source.tooltip             <+ port_frp.tooltip;
+                    port_frp.set_view_mode              <+ self.frp.view_mode;
                 }
 
-                port_frp.set_type_label_visibility.emit(self.frp.output.type_label_visibility.value());
-                port_frp.set_view_mode.emit(self.frp.output.view_mode.value());
+                port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
+                port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -469,7 +469,7 @@ impl Area {
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(logger, app, &frp));
-        let network = &frp.network();
+        let network = &frp.network;
         let label_color = color::Animation::new(network);
 
         let hysteretic_transition =
@@ -485,10 +485,10 @@ impl Area {
             hysteretic_transition.to_start <+ on_hover_in;
             hysteretic_transition.to_end   <+ on_hover_out;
 
-            frp.private.output.port_size_multiplier <+ hysteretic_transition.value;
+            frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
 
-            frp.private.output.type_label_visibility <+ frp.set_type_label_visibility;
+            frp.source.type_label_visibility <+ frp.set_type_label_visibility;
 
 
             // === Expression ===
@@ -499,12 +499,12 @@ impl Area {
 
             // === Label Color ===
 
-            port_hover                             <- frp.output.on_port_hover.map(|t| t.is_on());
-            frp.private.output.body_hover                  <+ frp.set_hover || port_hover;
+            port_hover                             <- frp.on_port_hover.map(|t| t.is_on());
+            frp.source.body_hover                  <+ frp.set_hover || port_hover;
             expr_vis                               <- frp.body_hover || frp.set_expression_visibility;
             in_normal_mode                         <- frp.set_view_mode.map(|m| m.is_normal());
             expr_vis                               <- expr_vis && in_normal_mode;
-            frp.private.output.expression_label_visibility <+ expr_vis;
+            frp.source.expression_label_visibility <+ expr_vis;
 
             let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));
             let label_vis_alpha = label_vis_color.alpha;
@@ -517,7 +517,7 @@ impl Area {
 
             // === View Mode ===
 
-            frp.private.output.view_mode <+ frp.set_view_mode;
+            frp.source.view_mode <+ frp.set_view_mode;
         }
 
         label_color.target_alpha(0.0);
