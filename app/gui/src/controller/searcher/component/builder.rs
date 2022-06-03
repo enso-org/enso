@@ -115,6 +115,7 @@ impl List {
         }
     }
 
+    /// Extend the list of favorites with new groups.
     pub fn extend_favorites(
         &mut self,
         groups: impl IntoIterator<Item = execution_context::ComponentGroup>,
