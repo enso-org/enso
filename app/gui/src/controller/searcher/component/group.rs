@@ -75,8 +75,7 @@ impl Group {
         } else {
             entries.sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
         }
-        let filtered_out = entries.iter().filter(|c| c.is_filtered_out());
-        let visible = filtered_out.count() < entries.len();
+        let visible = !entries.iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
     }
 }
