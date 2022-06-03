@@ -70,6 +70,18 @@ pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
 }
 
+impl From<&str> for QualifiedName {
+    fn from(name: &str) -> Self {
+        name.split(ast::opr::predefined::ACCESS).collect()
+    }
+}
+
+impl From<String> for QualifiedName {
+    fn from(name: String) -> Self {
+        name.as_str().into()
+    }
+}
+
 impl From<QualifiedName> for String {
     fn from(name: QualifiedName) -> Self {
         String::from(&name)

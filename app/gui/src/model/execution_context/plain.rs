@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::AttachedVisualization;
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -59,6 +60,8 @@ pub struct ExecutionContext {
     pub computed_value_info_registry: Rc<ComputedValueInfoRegistry>,
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
+    /// Component groups defined in libraries imported into the execution context.
+    pub component_groups: RefCell<Vec<ComponentGroup>>,
 }
 
 impl ExecutionContext {
@@ -69,7 +72,16 @@ impl ExecutionContext {
         let visualizations = default();
         let computed_value_info_registry = default();
         let is_ready = default();
-        Self { logger, entry_point, stack, visualizations, computed_value_info_registry, is_ready }
+        let component_groups = default();
+        Self {
+            logger,
+            entry_point,
+            stack,
+            visualizations,
+            computed_value_info_registry,
+            is_ready,
+            component_groups,
+        }
     }
 
     /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used
@@ -247,15 +259,17 @@ pub mod test {
 
     use double_representation::definition::DefinitionName;
     use double_representation::project;
+    use engine_protocol::language_server;
 
     #[derive(Clone, Derivative)]
     #[derivative(Debug)]
     pub struct MockData {
-        pub module_path:     model::module::Path,
-        pub context_id:      model::execution_context::Id,
-        pub root_definition: DefinitionName,
-        pub namespace:       String,
-        pub project_name:    String,
+        pub module_path:      model::module::Path,
+        pub context_id:       model::execution_context::Id,
+        pub root_definition:  DefinitionName,
+        pub namespace:        String,
+        pub project_name:     String,
+        pub component_groups: Vec<language_server::LibraryComponentGroup>,
     }
 
     impl Default for MockData {
@@ -267,11 +281,12 @@ pub mod test {
     impl MockData {
         pub fn new() -> MockData {
             MockData {
-                context_id:      model::execution_context::Id::new_v4(),
-                module_path:     crate::test::mock::data::module_path(),
-                root_definition: crate::test::mock::data::definition_name(),
-                namespace:       crate::test::mock::data::NAMESPACE_NAME.to_owned(),
-                project_name:    crate::test::mock::data::PROJECT_NAME.to_owned(),
+                context_id:       model::execution_context::Id::new_v4(),
+                module_path:      crate::test::mock::data::module_path(),
+                root_definition:  crate::test::mock::data::definition_name(),
+                namespace:        crate::test::mock::data::NAMESPACE_NAME.to_owned(),
+                project_name:     crate::test::mock::data::PROJECT_NAME.to_owned(),
+                component_groups: vec![],
             }
         }
 
