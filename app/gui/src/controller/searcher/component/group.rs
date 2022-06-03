@@ -92,11 +92,19 @@ impl Group {
         Self { data: Rc::new(data) }
     }
 
-    /// Check if group should be displayed in Component Browser.
-    pub fn check_visibility(&self) {
-        let entries = self.entries.borrow();
-        let filtered_out = entries.iter().filter(|c| c.is_filtered_out());
-        let visible = filtered_out.count() < entries.len();
+    /// Update the group sorting according to the current filtering pattern.
+    pub fn update_sorting(&self, pattern: impl AsRef<str>) {
+        let mut entries = self.entries.borrow_mut();
+        // The `sort_by_key` method is not suitable here, because the closure it takes
+        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+        if pattern.as_ref().is_empty() {
+            entries.sort_by(|a, b| {
+                a.can_be_entered().cmp(&b.can_be_entered()).then_with(|| a.label().cmp(b.label()))
+            });
+        } else {
+            entries.sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+        }
+        let visible = !entries.iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
     }
 }

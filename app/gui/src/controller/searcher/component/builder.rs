@@ -88,13 +88,9 @@ impl List {
     /// Extend the list with new entries.
     pub fn extend(&mut self, entries: impl IntoIterator<Item = component::Id>) {
         let suggestion_db = self.suggestion_db.clone_ref();
-        let components = entries.into_iter().filter_map(|id| {
-            Some(Component {
-                id:         Immutable(id),
-                suggestion: suggestion_db.lookup(id).ok()?,
-                match_info: default(),
-            })
-        });
+        let components = entries
+            .into_iter()
+            .filter_map(|id| Some(Component::new(id, suggestion_db.lookup(id).ok()?)));
         for component in components {
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = component.suggestion.parent_module() {
@@ -148,8 +144,14 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists appropriately.
+    /// Build the list, sorting all group lists and groups' contents appropriately.
     pub fn build(self) -> component::List {
+        for group in self.module_groups.values() {
+            group.content.update_sorting("");
+            if let Some(flattened) = &group.flattened_content {
+                flattened.update_sorting("");
+            }
+        }
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
         let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
@@ -178,70 +180,10 @@ impl List {
 mod tests {
     use super::*;
 
-    use crate::model::suggestion_database::entry::Kind;
+    use crate::controller::searcher::component::tests::mock_suggestion_db;
 
-    use engine_protocol::language_server;
     use ensogl::data::color;
 
-
-    fn mock_module(name: &str) -> model::suggestion_database::Entry {
-        let ls_entry = language_server::SuggestionEntry::Module {
-            module:             name.to_owned(),
-            documentation:      default(),
-            documentation_html: default(),
-            reexport:           default(),
-        };
-        model::suggestion_database::Entry::from_ls_entry(ls_entry).unwrap()
-    }
-
-    fn mock_function(
-        module: &module::QualifiedName,
-        name: &str,
-    ) -> model::suggestion_database::Entry {
-        model::suggestion_database::Entry {
-            kind:               Kind::Function,
-            module:             module.clone(),
-            name:               name.to_owned(),
-            arguments:          vec![],
-            return_type:        "Standard.Builtin.Integer".to_string(),
-            documentation_html: None,
-            self_type:          None,
-            scope:              model::suggestion_database::entry::Scope::Everywhere,
-        }
-    }
-
-    fn mock_suggestion_db(logger: impl AnyLogger) -> model::SuggestionDatabase {
-        let top_module_1 = mock_module("test.Test.TopModule1");
-        let top_module_2 = mock_module("test.Test.TopModule2");
-        let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
-        let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
-        let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
-        let fun1 = mock_function(&top_module_1.module, "fun1");
-        let fun2 = mock_function(&top_module_1.module, "fun2");
-        let fun3 = mock_function(&top_module_2.module, "fun3");
-        let fun4 = mock_function(&sub_module_1.module, "fun4");
-        let fun5 = mock_function(&sub_module_2.module, "fun5");
-        let fun6 = mock_function(&sub_module_3.module, "fun6");
-        let all_entries = [
-            top_module_1,
-            top_module_2,
-            sub_module_1,
-            sub_module_2,
-            sub_module_3,
-            fun1,
-            fun2,
-            fun3,
-            fun4,
-            fun5,
-            fun6,
-        ];
-
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
-        for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
-        }
-        suggestion_db
-    }
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct ComparableGroupData<'a> {
@@ -277,7 +219,7 @@ mod tests {
             ComparableGroupData {
                 name:         "test.Test.TopModule1",
                 component_id: Some(0),
-                entries:      vec![2, 6, 3, 5],
+                entries:      vec![5, 6, 2, 3],
             },
             ComparableGroupData {
                 name:         "test.Test.TopModule2",
@@ -293,7 +235,7 @@ mod tests {
             ComparableGroupData {
                 name:         "test.Test.TopModule1",
                 component_id: Some(0),
-                entries:      vec![2, 6, 8, 9, 10, 3, 4, 5],
+                entries:      vec![5, 6, 8, 9, 10, 2, 3, 4],
             },
             ComparableGroupData {
                 name:         "test.Test.TopModule2",
@@ -312,7 +254,7 @@ mod tests {
             (0, ComparableGroupData {
                 name:         "test.Test.TopModule1",
                 component_id: Some(0),
-                entries:      vec![2, 6, 3, 5],
+                entries:      vec![5, 6, 2, 3],
             }),
             (1, ComparableGroupData {
                 name:         "test.Test.TopModule2",
