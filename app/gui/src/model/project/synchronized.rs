@@ -810,7 +810,7 @@ mod test {
         let context_data = execution_context::plain::test::MockData::new();
         let Fixture { mut test, project, json_events_sender, .. } = Fixture::new(
             |mock_json_client| {
-                ExecutionFixture::mock_create_push_destroy_calls(&context_data, mock_json_client);
+                ExecutionFixture::mock_default_calls(&context_data, mock_json_client);
                 mock_json_client.require_all_calls();
             },
             |_| {},

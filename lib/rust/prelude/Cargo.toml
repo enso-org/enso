@@ -18,6 +18,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-shapely = { version = "^0.2.0", path = "../shapely" }
 anyhow = "1.0.37"
+assert_approx_eq = { version = "1.1.0" }
 backtrace = "0.3.53"
 boolinator = "2.4.0"
 cfg-if = "1.0.0"
