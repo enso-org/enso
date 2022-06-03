@@ -299,8 +299,8 @@ mod tests {
     }
 
     #[test]
-    fn favorites_in_component_list() {
-        let logger = Logger::new("tests::favorites_in_component_list");
+    fn building_component_list_with_favorites() {
+        let logger = Logger::new("tests::building_component_list_with_favorites");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let mut builder = List::new(suggestion_db);
         builder.extend_favorites([
@@ -316,21 +316,25 @@ mod tests {
             execution_context::ComponentGroup {
                 name:       "Input".into(),
                 color:      None,
-                components: vec!["Standard.Base.System.File.new".into()],
+                components: vec!["NAME.NOT.FOUND.IN.DB".into()],
             },
         ]);
         let list = builder.build();
-        assert_eq!(list.favorites.len(), 2);
-        let group1 = &list.favorites[0];
-        assert_eq!(group1.name, ImString::new("Test Group 1"));
-        let group1_entries = group1
+        assert_eq!(list.favorites.len(), 1);
+        let favorites_group = &list.favorites[0];
+        assert_eq!(favorites_group.name, ImString::new("Test Group 1"));
+        let favorites_color = favorites_group.color.unwrap();
+        assert_eq!((favorites_color.red * 255.0) as u8, 0xaa);
+        assert_eq!((favorites_color.green * 255.0) as u8, 0xbb);
+        assert_eq!((favorites_color.blue * 255.0) as u8, 0xcc);
+        let favorites_ids_and_names = favorites_group
             .entries
             .borrow()
             .iter()
             .map(|e| (*e.id, e.suggestion.name.to_string()))
             .collect_vec();
-        let expected =
+        let expected_ids_and_names =
             vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
-        assert_eq!(group1_entries, expected);
+        assert_eq!(favorites_ids_and_names, expected_ids_and_names);
     }
 }
