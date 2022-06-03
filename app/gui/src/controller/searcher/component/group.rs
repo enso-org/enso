@@ -73,6 +73,7 @@ impl Group {
         Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
     }
 
+    /// Construct from [`execution_context::ComponentGroup`].
     pub fn from_execution_context_component_group(
         group: execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
@@ -82,14 +83,14 @@ impl Group {
             Some(Component { id: Immutable(id), suggestion, match_info: default() })
         });
         let entries = RefCell::new(components.collect());
-        let data = Data {
+        let group_data = Data {
             name: group.name,
             color: group.color,
             component_id: None,
             visible: Cell::new(true),
             entries,
         };
-        Self { data: Rc::new(data) }
+        Group { data: Rc::new(group_data) }
     }
 
     /// Update the group sorting according to the current filtering pattern.
