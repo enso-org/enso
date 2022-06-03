@@ -1,8 +1,12 @@
 //! Helper structures wrapping RPC method result types.
 
-use super::*;
+use crate::language_server::types::*;
+use crate::prelude::*;
 
-use crate::language_server::SuggestionsDatabaseEntry;
+use crate::types::Sha3_224;
+
+use serde::Deserialize;
+use serde::Serialize;
 
 
 
@@ -93,4 +97,12 @@ pub struct GetSuggestionDatabaseVersion {
 pub struct Completion {
     pub results:         Vec<SuggestionId>,
     pub current_version: SuggestionsDatabaseVersion,
+}
+
+/// Response of `get_component_groups` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct GetComponentGroups {
+    pub component_groups: Vec<LibraryComponentGroup>,
 }

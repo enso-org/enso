@@ -832,7 +832,7 @@ impl Searcher {
             .drain_filter(|frag| !frag.is_still_unmodified(input, &current_module));
     }
 
-
+    #[profile(Debug)]
     fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments = data_borrowed.fragments_added_by_picking.iter();

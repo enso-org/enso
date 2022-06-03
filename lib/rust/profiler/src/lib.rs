@@ -114,11 +114,8 @@
 //!
 //! ```
 //! # use enso_profiler as profiler;
-//! fn root_objective_that_starts_at_time_origin() {
-//!     let _profiler = profiler::objective_with_same_start!(
-//!         profiler::APP_LIFETIME,
-//!         "root_objective_that_starts_at_time_origin"
-//!     );
+//! fn root_objective() {
+//!     let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "root_objective");
 //!     // ...
 //! }
 //! ```
@@ -127,12 +124,6 @@
 //!
 //! The profiler constructor macros require a parent. To create a *root profiler*, specify the
 //! special value [`APP_LIFETIME`] as the parent.
-//!
-//! ### Inheriting a start time
-//!
-//! Sometimes, multiple measurements need to start at the same time. To support this, an alternate
-//! set of constructors create profilers that inherit their start time from the specified parent,
-//! e.g. [`objective_with_same_start!`] in the example above.
 
 // === Features ===
 #![feature(test)]
@@ -171,6 +162,7 @@ use internal::*;
 
 /// Widely-used exports.
 pub mod prelude {
+    pub use crate::internal::Profiler;
     pub use crate::profile;
 }
 
@@ -204,16 +196,14 @@ macro_rules! metadata_logger {
 /// Any object representing a profiler that is a valid parent for a profiler of type T.
 pub trait Parent<T: Profiler + Copy> {
     /// Start a new profiler, with `self` as its parent.
-    fn new_child(&self, label: Label) -> Started<T>;
-    /// Create a new profiler, with `self` as its parent, and the same start time as `self`.
-    fn new_child_same_start(&self, label: Label) -> Started<T>;
+    fn start_child(&self, label: Label) -> Started<T>;
 }
 
 
 
-// ===============
-// === await_! ===
-// ===============
+// ===============================================
+// === Wrappers instrumenting async operations ===
+// ===============================================
 
 /// Await a future, logging appropriate await events for the given profiler.
 #[macro_export]
@@ -225,6 +215,11 @@ macro_rules! await_ {
         profiler::internal::Profiler::resume($profiler.0);
         result
     }};
+}
+
+/// Await two futures concurrently, like [`futures::join`], but with more accurate profiling.
+pub async fn join<T: futures::Future, U: futures::Future>(t: T, u: U) -> (T::Output, U::Output) {
+    futures::join!(t, u)
 }
 
 
@@ -364,29 +359,6 @@ mod log_tests {
                 assert_eq!(id.0, 0);
                 assert!(m0.label.0.starts_with("test "));
                 assert!(*end_time >= m0.start.unwrap());
-            }
-            _ => panic!("log: {:?}", log),
-        }
-    }
-
-    // FIXME[kw]. The with_same_start APIs need to return profilers in a paused state.
-    #[test]
-    #[ignore]
-    fn with_same_start() {
-        {
-            let _profiler0 = start_objective!(profiler::APP_LIFETIME, "test0");
-            let _profiler1 = objective_with_same_start!(_profiler0, "test1");
-        }
-        let log = get_log();
-        use profiler::Event::*;
-        match &log[..] {
-            [Start(m0), Start(m1), End { id: id1, .. }, End { id: id0, .. }] => {
-                // _profiler0 has a start time
-                assert!(m0.start.is_some());
-                // _profiler1 is with_same_start, indicated by None in the log
-                assert_eq!(m1.start, None);
-                assert_eq!(id1.0, 1);
-                assert_eq!(id0.0, 0);
             }
             _ => panic!("log: {:?}", log),
         }

@@ -1025,6 +1025,43 @@ pub struct SuggestionDatabaseUpdatesEvent {
     pub current_version: SuggestionsDatabaseVersion,
 }
 
+
+
+// =============================
+// === LibraryComponentGroup ===
+// =============================
+
+/// A single component of a [`LibraryComponentGroup`].
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct LibraryComponent {
+    name:     String,
+    shortcut: Option<String>,
+}
+
+/// The component group provided by a library.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct LibraryComponentGroup {
+    /// The fully qualified module name. A string consisting of a namespace and a library name
+    /// separated by the dot <namespace>.<library name>, i.e. `Standard.Base`
+    library: String,
+    /// The group name without the library name prefix. E.g. given the `Standard.Base.Group 1`
+    /// group reference, the `group` field contains `Group 1`.
+    group:   String,
+    color:   Option<String>,
+    icon:    Option<String>,
+    /// The list of components provided by this component group.
+    exports: Vec<LibraryComponent>,
+}
+
+
+// ======================
+// === Test Utilities ===
+// ======================
+
 /// Utilities for testing code using the LS types.
 pub mod test {
     use super::*;

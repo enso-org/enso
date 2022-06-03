@@ -54,6 +54,61 @@ pub struct MissingThisOnMethod(pub String);
 
 
 
+// =====================
+// === QualifiedName ===
+// =====================
+
+im_string_newtype! {
+    /// A single segment of a [`QualifiedName`] of an [`Entry`].
+    QualifiedNameSegment
+}
+
+/// A fully qualified name of an [`Entry`].
+#[derive(Debug, Default, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub struct QualifiedName {
+    pub segments: Vec<QualifiedNameSegment>,
+}
+
+impl From<QualifiedName> for String {
+    fn from(name: QualifiedName) -> Self {
+        String::from(&name)
+    }
+}
+
+impl From<&QualifiedName> for String {
+    fn from(name: &QualifiedName) -> Self {
+        name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
+    }
+}
+
+impl Display for QualifiedName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = String::from(self);
+        Display::fmt(&text, f)
+    }
+}
+
+impl<T> FromIterator<T> for QualifiedName
+where T: Into<QualifiedNameSegment>
+{
+    fn from_iter<I>(iter: I) -> Self
+    where I: IntoIterator<Item = T> {
+        let segments = iter.into_iter().map(|s| s.into()).collect();
+        Self { segments }
+    }
+}
+
+impl<'a> IntoIterator for &'a QualifiedName {
+    type Item = &'a QualifiedNameSegment;
+    type IntoIter = std::slice::Iter<'a, QualifiedNameSegment>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.segments.iter()
+    }
+}
+
+
+
 // =============
 // === Entry ===
 // =============
@@ -233,8 +288,23 @@ impl Entry {
     }
 
     /// Get the full qualified name of the entry.
-    pub fn qualified_name(&self) -> tp::QualifiedName {
-        tp::QualifiedName::new_module_member(self.module.clone(), self.name.clone())
+    pub fn qualified_name(&self) -> QualifiedName {
+        match self.kind {
+            Kind::Method => match &self.self_type {
+                Some(t) => chain_iter_and_entry_name(t, self).collect(),
+                None => {
+                    let msg = format!(
+                        "Cannot construct a fully qualified name for the suggestion database \
+                        entry {self:?}. Every entry with the 'Method' kind should have a self \
+                        type set, but this entry is missing the self type."
+                    );
+                    event!(ERROR, "{msg}");
+                    default()
+                }
+            },
+            Kind::Module => self.module.into_iter().collect(),
+            _ => chain_iter_and_entry_name(&self.module, self).collect(),
+        }
     }
 }
 
@@ -480,6 +550,13 @@ impl From<&Entry> for span_tree::generate::context::CalledMethodInfo {
     }
 }
 
+
+
+// ===============
+// === Helpers ===
+// ===============
+
+
 // === SpanTree helpers ===
 
 /// Converts the information about function parameter from suggestion database into the form used
@@ -493,6 +570,16 @@ pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
 }
 
 
+// === Entry helpers ===
+
+fn chain_iter_and_entry_name<'a>(
+    iter: impl IntoIterator<Item = &'a str>,
+    entry: &'a Entry,
+) -> impl Iterator<Item = &'a str> {
+    iter.into_iter().chain(iter::once(entry.name.as_str()))
+}
+
+
 
 // =============
 // === Tests ===
@@ -503,20 +590,19 @@ mod test {
     use super::*;
 
 
-    fn expect(
-        entry: &Entry,
-        current_module: Option<&module::QualifiedName>,
-        generate_this: bool,
-        expected_code: &str,
-        expected_imports: &[&module::QualifiedName],
-    ) {
-        let CodeToInsert { code, imports } = entry.code_to_insert(current_module, generate_this);
-        assert_eq!(code, expected_code);
-        assert_eq!(imports.iter().collect_vec().as_slice(), expected_imports);
-    }
-
     #[test]
     fn code_from_entry() {
+        fn expect(
+            entry: &Entry,
+            current_module: Option<&module::QualifiedName>,
+            generate_this: bool,
+            expected_code: &str,
+            expected_imports: &[&module::QualifiedName],
+        ) {
+            let code_to_insert = entry.code_to_insert(current_module, generate_this);
+            assert_eq!(code_to_insert.code, expected_code);
+            assert_eq!(code_to_insert.imports.iter().collect_vec().as_slice(), expected_imports);
+        }
         let main_module = module::QualifiedName::from_text("local.Project.Main").unwrap();
         let another_module =
             module::QualifiedName::from_text("local.Project.Another_Module").unwrap();
@@ -551,10 +637,12 @@ mod test {
             name: "module_extension".to_string(),
             ..module_method.clone()
         };
+        let atom_module = atom.module.clone();
+        let atom_type = tp::QualifiedName::new_module_member(atom_module, atom.name.clone());
         let atom_extension = Entry {
             module: another_module.clone(),
             name: "atom_extension".to_string(),
-            self_type: Some(atom.qualified_name()),
+            self_type: Some(atom_type),
             ..module_method.clone()
         };
 
@@ -643,5 +731,71 @@ mod test {
         };
         assert_eq!(non_method.method_id(), None);
         assert_eq!(method.method_id(), Some(expected));
+    }
+
+    /// Test the result of the [`Entry::qualified_name`] method when applied to entries with
+    /// different values of [`Entry::kind`]. The entries are constructed from mock Language Server
+    /// responses.
+    #[test]
+    fn qualified_name_of_entry() {
+        fn expect(ls_entry: language_server::SuggestionEntry, qualified_name: &str) {
+            let entry = Entry::from_ls_entry(ls_entry).unwrap();
+            let entry_qualified_name = entry.qualified_name();
+            let expected_qualified_name = qualified_name.split('.').collect();
+            assert_eq!(entry_qualified_name, expected_qualified_name);
+        }
+        let atom = language_server::SuggestionEntry::Atom {
+            name:               "TextAtom".to_string(),
+            module:             "TestProject.TestModule".to_string(),
+            arguments:          vec![],
+            return_type:        "TestAtom".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        expect(atom, "TestProject.TestModule.TextAtom");
+        let method = language_server::SuggestionEntry::Method {
+            name:               "create_process".to_string(),
+            module:             "Standard.Builtins.Main".to_string(),
+            self_type:          "Standard.Builtins.Main.System".to_string(),
+            arguments:          vec![],
+            return_type:        "Standard.Builtins.Main.System_Process_Result".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            external_id:        None,
+        };
+        expect(method, "Standard.Builtins.Main.System.create_process");
+        let module = language_server::SuggestionEntry::Module {
+            module:             "local.Unnamed_6.Main".to_string(),
+            documentation:      None,
+            documentation_html: None,
+            reexport:           None,
+        };
+        expect(module, "local.Unnamed_6.Main");
+        let local = language_server::SuggestionEntry::Local {
+            module:      "local.Unnamed_6.Main".to_string(),
+            name:        "operator1".to_string(),
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id: None,
+            scope:       (default()..=default()).into(),
+        };
+        expect(local, "local.Unnamed_6.Main.operator1");
+        let function = language_server::SuggestionEntry::Function {
+            module:      "NewProject.NewModule".to_string(),
+            name:        "testFunction1".to_string(),
+            arguments:   vec![],
+            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:       (default()..=default()).into(),
+            external_id: None,
+        };
+        expect(function, "NewProject.NewModule.testFunction1");
+    }
+
+    /// Test the results of converting a [`QualifiedName`] to a string using various methods.
+    #[test]
+    fn qualified_name_to_string() {
+        let qualified_name = QualifiedName::from_iter(&["Foo", "Bar"]);
+        assert_eq!(qualified_name.to_string(), "Foo.Bar".to_string());
+        assert_eq!(String::from(qualified_name), "Foo.Bar".to_string());
     }
 }

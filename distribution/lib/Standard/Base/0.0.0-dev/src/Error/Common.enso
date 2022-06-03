@@ -386,6 +386,23 @@ type Panic
                 True -> caught_panic.convert_to_dataflow_error
                 False -> Panic.throw caught_panic
 
+    ## If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
+
+       Arguments:
+       - value: value to return if not an error, or rethrow as a Panic.
+    throw_wrapped_if_error : Any -> Any
+    throw_wrapped_if_error ~value =
+        if value.is_error then Panic.throw (Wrapped_Dataflow_Error value.catch) else value
+
+    ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
+
+       Arguments:
+       - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
+    handle_wrapped_dataflow_error : Any -> Any
+    handle_wrapped_dataflow_error ~action =
+        Panic.catch Wrapped_Dataflow_Error action caught_panic->
+            Error.throw caught_panic.payload.payload
+
 ## The runtime representation of a syntax error.
 
    Arguments:

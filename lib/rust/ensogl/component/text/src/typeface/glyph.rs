@@ -149,6 +149,7 @@ pub struct System {
 
 impl System {
     /// Constructor.
+    #[profile(Detail)]
     pub fn new(scene: impl AsRef<Scene>, font: Font) -> Self {
         let logger = Logger::new("glyph_system");
         let size = font::msdf::Texture::size();

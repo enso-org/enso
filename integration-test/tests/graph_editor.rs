@@ -9,7 +9,6 @@ use enso_frp::future::FutureEvent;
 use enso_frp::io::mouse::PrimaryButton;
 use enso_gui::view::graph_editor::component::node as node_view;
 use enso_gui::view::graph_editor::component::node::test_utils::NodeModelExt;
-use enso_gui::view::graph_editor::component::node::Expression;
 use enso_gui::view::graph_editor::GraphEditor;
 use enso_gui::view::graph_editor::Node;
 use enso_gui::view::graph_editor::NodeId;
@@ -18,7 +17,6 @@ use enso_web::sleep;
 use ensogl::display::navigation::navigator::ZoomEvent;
 use ensogl::display::scene::test_utils::MouseExt;
 use ensogl::display::Scene;
-use ordered_float::OrderedFloat;
 use std::time::Duration;
 use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -261,46 +259,6 @@ async fn new_nodes_placement_with_nodes_selected() {
     );
 }
 
-async fn add_node(
-    graph_editor: &GraphEditor,
-    expression: &str,
-    method: impl Fn(&GraphEditor),
-) -> (NodeId, Option<NodeSource>, Node) {
-    let node_added = graph_editor.node_added.next_event();
-    method(graph_editor);
-    let (node_id, source_node, _) = node_added.expect();
-    let node = graph_editor.nodes().get_cloned_ref(&node_id).expect("Node was not added");
-    node.set_expression(Expression::new_plain(expression));
-    graph_editor.stop_editing();
-    wait_a_frame().await;
-    (node_id, source_node, node)
-}
-
-async fn add_node_with_internal_api(
-    graph_editor: &GraphEditor,
-    expression: &str,
-) -> (NodeId, Option<NodeSource>, Node) {
-    let method = |editor: &GraphEditor| editor.add_node();
-    add_node(graph_editor, expression, method).await
-}
-
-async fn add_node_with_shortcut(
-    graph_editor: &GraphEditor,
-    expression: &str,
-) -> (NodeId, Option<NodeSource>, Node) {
-    let method = |editor: &GraphEditor| editor.start_node_creation();
-    add_node(graph_editor, expression, method).await
-}
-
-async fn add_node_with_add_node_button(
-    graph_editor: &GraphEditor,
-    expression: &str,
-) -> (NodeId, Option<NodeSource>, Node) {
-    let add_node_button = &graph_editor.model.add_node_button;
-    let method = |_: &GraphEditor| add_node_button.click();
-    add_node(graph_editor, expression, method).await
-}
-
 #[wasm_bindgen_test]
 async fn mouse_oriented_node_placement() {
     struct Case {
@@ -385,27 +343,4 @@ async fn mouse_oriented_node_placement() {
         above.position().y - gap_y - node_view::HEIGHT,
     );
     create_case(&above, under_above, under_above_expect).run();
-}
-
-
-
-// ====================
-// === InitialNodes ===
-// ====================
-
-struct InitialNodes {
-    above: (NodeId, Node),
-    below: (NodeId, Node),
-}
-
-impl InitialNodes {
-    fn obtain_from_graph_editor(graph_editor: &GraphEditor) -> Self {
-        let nodes = graph_editor.nodes().all.entries();
-        let mut sorted =
-            nodes.into_iter().sorted_by_key(|(_, node)| OrderedFloat(node.position().y));
-        match (sorted.next(), sorted.next()) {
-            (Some(below), Some(above)) => Self { above, below },
-            _ => panic!("Expected two nodes in initial Graph Editor"),
-        }
-    }
 }

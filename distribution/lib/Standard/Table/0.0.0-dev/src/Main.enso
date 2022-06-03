@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Geo.Geo_Json
-import Standard.Table.Io.Csv
 import Standard.Table.Io.Format
 import Standard.Table.Io.File_Read
 import Standard.Table.Io.Excel
@@ -12,7 +11,6 @@ import Standard.Table.Data.Column
 import Standard.Table.Data.Order_Rule
 import Standard.Table.Model
 
-from Standard.Table.Io.Csv export all hiding Parser
 from Standard.Table.Io.Excel export Excel_Section, Excel_Range, read_excel
 from Standard.Table.Io.Spreadsheet export all hiding Reader
 

@@ -5,8 +5,8 @@ import Standard.Test
 import project.Util
 
 spec = Test.group 'JSON conversion' <|
-    clothes = Enso_Project.data/'clothes.csv' . read_csv
-    simple_empty = Enso_Project.data/'simple_empty.csv' . read_csv
+    clothes = Enso_Project.data/'clothes.csv' . read
+    simple_empty = Enso_Project.data/'simple_empty.csv' . read
 
     Test.specify 'should convert tables to a format compatible with Json.Array.to_table' <|
         clothes_json = clothes.to_json

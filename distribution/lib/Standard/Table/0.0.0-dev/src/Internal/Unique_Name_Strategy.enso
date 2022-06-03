@@ -1,5 +1,6 @@
-from Standard.Base import all
-import Standard.Base.Runtime.Unsafe
+from Standard.Base import Any, Vector, Text, Nothing
+
+polyglot java import org.enso.table.util.NameDeduplicator
 
 ## Creates a new Unique_Name_Strategy instance.
 
@@ -15,26 +16,26 @@ import Standard.Base.Runtime.Unsafe
          duplicates = unique_name_strategy.renames
          invalid = unique_name_strategy.invalid_names
 new : Unique_Name_Strategy
-new = Unique_Name_Strategy.new
+new = Unique_Name_Strategy NameDeduplicator.new
 
 type Unique_Name_Strategy
     ## PRIVATE
        Creates a Unique_Name_Strategy
 
        Arguments:
-       - store: Backing store for used names (must support get_or_else and insert)
-       - renames: Vector builder for any duplicates renamed (must support append)
-       - invalid_names: Vector builder for any invalid names (must support append)
-    type Unique_Name_Strategy store renames invalid_names
+       - deduplicator: Name deduplicator
+    type Unique_Name_Strategy deduplicator
 
-    ## Creates a new strategy object.
 
-       > Example
-         Make a new strategy
+    ## Vector of any duplicates renamed
+    renames : Vector
+    renames = Vector.Vector this.deduplicator.getDuplicatedNames
 
-             Unique_Name_Strategy.new
-    new : Unique_Name_Strategy
-    new = Unique_Name_Strategy Map.empty Vector.new_builder Vector.new_builder
+
+    ## Vector of any invalid names
+    invalid_names : Vector
+    invalid_names = Vector.Vector this.deduplicator.getInvalidNames
+
 
     ## Takes a value and converts to a valid (but not necessarily unique) name
 
@@ -49,12 +50,10 @@ type Unique_Name_Strategy
     make_valid_name : Any -> Text
     make_valid_name input =
         case input of
-            Text ->
-                if input.is_empty.not then input else
-                    this.invalid_names.append ""
-                    "Column"
+            Text -> this.deduplicator.makeValid input
             Nothing -> this.make_valid_name ""
             _ -> this.make_valid_name input.to_text
+
 
     ## Takes a name and gets a unique version
 
@@ -66,25 +65,4 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A"
              strategy.make_unique "A" # returns "A_1"
     make_unique : Text -> Text
-    make_unique name =
-        valid_name = this.make_valid_name name
-        unique = this.internal_unique valid_name 0
-        if valid_name != unique then (this.renames.append name)
-        unique
-
-    ## PRIVATE
-       Follows the strategy to find a valid unique name.
-
-       Arguments:
-       - name: The column name to make unique.
-       - shift: The current index added to the name.
-    internal_unique : Text -> Integer -> Text
-    internal_unique name shift =
-        inner_name = if shift == 0 then name else (name + "_"+ shift.to_text)
-        case this.store.get_or_else inner_name False of
-            False ->
-                new_store = this.store.insert inner_name True
-                Unsafe.set_atom_field this 0 new_store
-                inner_name
-            True ->
-                @Tail_Call this.internal_unique name (shift+1)
+    make_unique name = this.deduplicator.makeUnique name

@@ -5,6 +5,7 @@
 #![feature(drain_filter)]
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
+#![feature(type_alias_impl_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -60,6 +61,8 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 
     #[cfg(test)]
     pub use wasm_bindgen_test::wasm_bindgen_test;

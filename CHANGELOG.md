@@ -55,6 +55,7 @@
 - [You can change font and set letters bold in the <code>text::Area</code>
   component][3385]. Use the <code>set_font</code> and
   <code>set_bold_bytes</code> respectively.
+- [Fixed a text rendering issue in nested sublayer][3486].
 
 #### Enso Standard Library
 
@@ -128,6 +129,9 @@
 - [Integrated value parsing with the `Delimited` file reader.][3463]
 - [Implemented the `Infer` setting for headers in the `Delimited` file format
   and made it the default.][3472]
+- [Implemented a `Table.from Text` conversion allowing to parse strings
+  representing `Delimited` files without storing them on the filesystem.][3478]
+- [Added rank data, correlation and covariance statistics for `Vector`][3484]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -199,6 +203,9 @@
 [3462]: https://github.com/enso-org/enso/pull/3462
 [3463]: https://github.com/enso-org/enso/pull/3463
 [3472]: https://github.com/enso-org/enso/pull/3472
+[3486]: https://github.com/enso-org/enso/pull/3486
+[3478]: https://github.com/enso-org/enso/pull/3478
+[3484]: https://github.com/enso-org/enso/pull/3484
 
 #### Enso Compiler
 
@@ -220,6 +227,7 @@
 - [Generate boilerplate classes related to error handling and varargs in
   builtins from method signatures][3454]
 - [Avoid needless concatenations of warning/error messages][3465]
+- [Lazy evaluation of RHS argument for || and &&][3492]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -242,6 +250,8 @@
 [3454]: https://github.com/enso-org/enso/pull/3454
 [3461]: https://github.com/enso-org/enso/pull/3461
 [3465]: https://github.com/enso-org/enso/pull/3465
+[3492]: https://github.com/enso-org/enso/pull/3492
+[3493]: https://github.com/enso-org/enso/pull/3493
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

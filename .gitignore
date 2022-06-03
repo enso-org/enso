@@ -138,6 +138,9 @@ distribution/lib/*/*/*/manifest.yaml
 test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
 
+# Ignore test output folder
+test-results
+
 #################
 ## Enso-Caches ##
 #################

@@ -20,7 +20,7 @@
          import Standard.Table
          import Standard.Examples
 
-         example_csv_to_table = Examples.csv.read_csv
+         example_csv_to_table = Examples.csv.read
 
    > Example
      Write a table to an XLSX file.
