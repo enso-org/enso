@@ -312,9 +312,16 @@ pub mod test {
             }
         }
 
+        fn component_groups(&self) -> RefCell<Vec<ComponentGroup>> {
+            let groups = self.component_groups.iter().map(|cg| cg.clone().into()).collect();
+            RefCell::new(groups)
+        }
+
         pub fn create(&self) -> ExecutionContext {
             let logger = Logger::new("Mocked Execution Context");
-            ExecutionContext::new(logger, self.main_method_pointer())
+            let mut ec = ExecutionContext::new(logger, self.main_method_pointer());
+            ec.component_groups = self.component_groups();
+            ec
         }
     }
 }

@@ -1674,11 +1674,42 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn loading_components() {
+        // Prepare a sample component group to be returned by a mock Language Server client.
+        fn library_component(name: &str) -> language_server::LibraryComponent {
+            language_server::LibraryComponent { name: name.to_string(), shortcut: None }
+        }
+        let sample_ls_component_groups = vec![
+            // A sample component group in local namespace, with non-empty color, and with exports
+            // from the local namespace as well as from the standard library.
+            language_server::LibraryComponentGroup {
+                library: "local.Unnamed_10".to_string(),
+                name:    "Test Group 1".to_string(),
+                color:   Some("#C047AB".to_string()),
+                icon:    None,
+                exports: vec![
+                    language_server::LibraryComponent { shortcut: None, name: 
+                            crate::test::mock::data::module_qualified_name().to_string() + "testFunction1",
+                    },
+                    library_component("Standard.Base.System.File.new"),
+                    library_component("local.Unnamed_10.Main.main"),
+                ],
+            },
+            // A sample component group from the standard library, without a predefined color.
+            language_server::LibraryComponentGroup {
+                library: "Standard.Base".to_string(),
+                name:    "Input".to_string(),
+                color:   None,
+                icon:    None,
+                exports: vec![library_component("Standard.Base.System.File.new")],
+            },
+        ];
+
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
                 data.expect_completion(client, None, None, &[1, 99999, 9]);
+                data.graph.ctx.component_groups = sample_ls_component_groups;
             });
         searcher.reload_list();
         test.run_until_stalled();
@@ -1690,6 +1721,8 @@ pub mod test {
         } else {
             ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
         }
+        let favorites = &components.favorites;
+        assert_eq!(favorites.len(), 2);
     }
 
     #[wasm_bindgen_test]
