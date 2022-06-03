@@ -396,7 +396,7 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
         matching_selectors = match_matrix.criteria_matching_object i
         associated_selector = if matching_selectors.is_empty then Nothing else
             if matching_selectors.length > 1 then
-                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors.tail
+                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
             matching_selectors.first
         Column_Transform_Element column associated_selector
 
