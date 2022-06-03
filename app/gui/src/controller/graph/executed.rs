@@ -176,6 +176,12 @@ impl Handle {
         self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
     }
 
+    /// Get the component groups defined in libraries imported into the node. See also
+    /// [`model::ExecutionContext::component_groups`].
+    pub fn component_groups(&self) -> Vec<ComponentGroup> {
+        self.execution_ctx.component_groups()
+    }
+
     /// Subscribe to updates about changes in this executed graph.
     ///
     /// The stream of notification contains both notifications from the graph and from the execution
@@ -313,10 +319,6 @@ impl Handle {
     /// Remove the connections from the graph.
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         self.graph.borrow().disconnect(connection, self)
-    }
-
-    pub fn component_groups(&self) -> Vec<ComponentGroup> {
-        self.execution_ctx.component_groups()
     }
 }
 

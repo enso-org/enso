@@ -111,7 +111,7 @@ impl List {
         }
     }
 
-    /// Extend the list of favorites with new groups.
+    /// Extend [`component::List::favorites`] with new groups.
     pub fn extend_favorites<G>(&mut self, groups: G)
     where G: IntoIterator<Item = execution_context::ComponentGroup> {
         let db = &self.suggestion_db;

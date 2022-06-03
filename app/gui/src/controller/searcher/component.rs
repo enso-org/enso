@@ -127,6 +127,8 @@ pub struct List {
     top_modules:           group::AlphabeticalList,
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
+    /// Groups of components to display in the "Favorites Data Science Tools" section of the
+    /// Component Browser.
     pub favorites:         group::List,
     filtered:              Rc<Cell<bool>>,
 }
