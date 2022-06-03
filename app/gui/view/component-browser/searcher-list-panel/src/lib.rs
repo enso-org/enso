@@ -33,6 +33,7 @@ use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_shadow as shadow;
+use ensogl_text as text;
 use ide_view_component_group as component_group;
 
 
@@ -80,14 +81,21 @@ const DIVIDER_HEIGHT: f32 = 1.0 * DPI_SCALE;
 /// Y-position of the Divider within the shape.
 const DIVIDER_Y_POS: f32 = (HEIGHT_INNER / 2.0) - MENU_HEIGHT;
 
+const PADDING_INNER: f32 = 6.0 * DPI_SCALE;
+
+const SECTION_HEADING_SIZE: text::style::Size = text::style::Size::new(16.0);
+
+const SECTION_HEADING_FONT: &str = "Causten-Semibold";
+
 
 // === Color Constants ===
 
 /// Color used for the Divider.
 const DIVIDER_COLOR: color::Rgb = color::Rgb::new(0.7804, 0.7804, 0.7804);
 /// Color used for the panel background.
-const BACKGROUND_COLOR: color::Rgba =
-    color::Rgba::new(252.0 / 256.0, 254.0 / 255.0, 255.0 / 255.0, 1.0);
+const BACKGROUND_COLOR: color::Rgba = color::Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+const FAVOURITES_SECTION_BASE_COLOR: color::Rgba = color::Rgba::new(0.0, 0.42, 0.64, 1.0);
+const FAVOURITES_SECTION_HEADING_LABEL: &str = "Favorite Data Science Tools";
 
 
 // === Shape Definition ===
@@ -121,6 +129,21 @@ mod background {
     }
 }
 
+mod hline {
+    use super::*;
+
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let width            = Var::<Pixels>::from("input_size.x");
+            let height           = Var::<Pixels>::from("input_size.y");
+
+            let rect = Rect((width,height));
+            let rect = rect.fill(color::Rgb::from_hex("888888").unwrap());
+            rect.into()
+        }
+    }
+}
+
 
 
 // =============
@@ -135,6 +158,7 @@ pub struct Model {
     display_object:     display::object::Instance,
     background:         background::View,
     scroll_area:        ScrollArea,
+    favorites_label:    text::Area,
     favourites_section: component_group::wide::View,
 }
 
@@ -149,24 +173,46 @@ impl Model {
         background.bg_color.set(BACKGROUND_COLOR.into());
         background.size.set(Vector2::new(WIDTH, HEIGHT));
         display_object.add_child(&background);
+        app.display.default_scene.layers.below_main.add_exclusive(&background);
 
         let favourites_section = app.new_view::<component_group::wide::View>();
-        favourites_section.set_width(WIDTH_INNER);
+        favourites_section.set_width(WIDTH_INNER - 2.0 * PADDING_INNER);
         favourites_section.set_no_items_label_text("No Favorites.");
+        favourites_section.set_color(FAVOURITES_SECTION_BASE_COLOR);
+
+        let favorites_label = text::Area::new(&app);
+        favorites_label.set_content(FAVOURITES_SECTION_HEADING_LABEL);
+        let section_header_color: color::Rgba = color::Rgb::from_hex("737373").unwrap().into();
+        favorites_label.set_default_color(section_header_color);
+        favorites_label.set_default_text_size(SECTION_HEADING_SIZE);
+        favorites_label.set_font(SECTION_HEADING_FONT.to_string()); // TODO double check the correct font is used.
+        favorites_label.set_position_y(-0.75 * favorites_label.height.value());
+        favorites_label.set_position_x(3.0 + PADDING_INNER);
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
-        scroll_area.resize(Vector2::new(CONTENT_WIDTH, CONTENT_HEIGHT));
+        scroll_area.resize(Vector2::new(CONTENT_WIDTH, CONTENT_HEIGHT - PADDING_INNER));
         scroll_area.set_position_xy(Vector2::new(
             -CONTENT_WIDTH / 2.0,
             CONTENT_HEIGHT / 2.0 - MENU_HEIGHT / 2.0,
         ));
+        scroll_area.set_corner_radius_bottom_right(CORNER_RADIUS);
+
+        let camera = &scroll_area.content_layer().camera();
+        let parent_layer = scroll_area.content_layer();
+        let layers = component_group::Layers::new(&app.logger, camera, parent_layer);
 
         scroll_area.content().add_child(&favourites_section);
-        // Required for correct clipping.
-        favourites_section.model().set_layer(scroll_area.content_layer());
+        scroll_area.content().add_child(&favorites_label);
 
-        Self { app, display_object, background, scroll_area, favourites_section }
+        // Required for correct clipping.
+        favourites_section.model().set_layers(&layers);
+        scroll_area.content_layer().add_exclusive(&favorites_label);
+        favorites_label.add_to_scene_layer(scroll_area.content_layer());
+
+        mem::forget(layers); //FIXME
+
+        Self { app, display_object, background, scroll_area, favourites_section, favorites_label }
     }
 }
 
@@ -183,6 +229,19 @@ impl component::Model for Model {
 
     fn new(app: &Application, _logger: &DefaultWarningLogger) -> Self {
         Self::new(app)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct LayoutData {
+    favourites_section_size: Vector2,
+    favourites_label_height: f32,
+}
+
+impl LayoutData {
+    // Designed to be used in FRP node.
+    fn new(&(favourites_section_size, favourites_label_height): &(Vector2, f32)) -> Self {
+        Self { favourites_section_size, favourites_label_height }
     }
 }
 
@@ -213,11 +272,18 @@ impl component::Frp<Model> for Frp {
         let network = &frp_api.network;
         frp::extend! { network
             model.favourites_section.set_entries <+ frp_api.input.set_favourites_section;
+            layout_data <- all(&model.favourites_section.size,&model.favorites_label.height);
+            layout_data <- layout_data.map(|data| LayoutData::new(data));
+            trace layout_data;
+            eval layout_data([model](layout){
+                let size = layout.favourites_section_size;
+                let label_height =  layout.favourites_label_height;
+                let label_offset = 3.5 * label_height;
 
-            eval model.favourites_section.size ((size) {
-                model.favourites_section.set_position_x(size.x/2.0);
-                model.favourites_section.set_position_y(-size.y/2.0);
-                model.scroll_area.set_content_height(size.y);
+                model.favourites_section.set_position_x(size.x/2.0 + PADDING_INNER);
+                model.favourites_section.set_position_y(-size.y/2.0 - label_offset);
+
+                model.scroll_area.set_content_height(size.y + label_offset);
                 model.scroll_area.set_content_width(size.x);
             });
         }

@@ -389,6 +389,15 @@ impl Rgb {
         Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
     }
 
+    /// Construct RGB color by mapping from hex strings.
+    pub fn from_hex(hex_values: &str) -> Result<Self, std::num::ParseIntError> {
+        let hex_values = hex_values.trim_start_matches('#');
+        let r = i32::from_str_radix(&hex_values[0..2], 16)?;
+        let g = i32::from_str_radix(&hex_values[2..4], 16)?;
+        let b = i32::from_str_radix(&hex_values[4..6], 16)?;
+        Ok(Self::from_base_255(r as f32, g as f32, b as f32))
+    }
+
     /// Converts the color to `LinearRgb` representation.
     pub fn into_linear(self) -> LinearRgb {
         self.into()

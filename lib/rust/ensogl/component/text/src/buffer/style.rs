@@ -24,7 +24,7 @@ macro_rules! def_style_property {
 
         impl $name {
             /// Constructor.
-            pub fn new(raw: $field_type) -> $name {
+            pub const fn new(raw: $field_type) -> $name {
                 $name { raw }
             }
         }

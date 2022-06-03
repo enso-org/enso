@@ -421,10 +421,14 @@ impl component::Frp<Model> for Frp {
 /// bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Layers {
-    background:  layer::Layer,
-    text:        layer::Layer,
-    header:      layer::Layer,
-    header_text: layer::Layer,
+    /// Background layer. Placed below text and headers.
+    pub background:  layer::Layer,
+    /// Text layer. Placed above background, but below headers.
+    pub text:        layer::Layer,
+    /// Header layer. Placed above background.
+    pub header:      layer::Layer,
+    /// Header text layer. Placed above background and header layer.
+    pub header_text: layer::Layer,
 }
 
 impl Layers {
