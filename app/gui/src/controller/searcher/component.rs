@@ -238,20 +238,31 @@ pub(crate) mod tests {
         let list = builder.build();
         let get_entries_ids =
             || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
+        let count_matches_entries = || {
+            list.top_modules()[0]
+                .entries
+                .borrow()
+                .iter()
+                .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+                .count()
+        };
 
         list.update_filtering("fu");
         let expected_ids = vec![2, 3, 1];
         assert_eq!(get_entries_ids(), expected_ids);
+        assert_eq!(count_matches_entries(), 2);
         assert!(list.top_modules()[0].visible.get());
 
         list.update_filtering("x");
         let expected_ids = vec![3, 2, 1];
         assert_eq!(get_entries_ids(), expected_ids);
+        assert_eq!(count_matches_entries(), 1);
         assert!(list.top_modules()[0].visible.get());
 
         list.update_filtering("Sub");
         let expected_ids = vec![1, 3, 2];
         assert_eq!(get_entries_ids(), expected_ids);
+        assert_eq!(count_matches_entries(), 1);
         assert!(list.top_modules()[0].visible.get());
 
         list.update_filtering("y");
