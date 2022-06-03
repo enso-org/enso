@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -312,6 +313,10 @@ impl Handle {
     /// Remove the connections from the graph.
     pub fn disconnect(&self, connection: &Connection) -> FallibleResult {
         self.graph.borrow().disconnect(connection, self)
+    }
+
+    pub fn component_groups(&self) -> Vec<ComponentGroup> {
+        self.execution_ctx.component_groups()
     }
 }
 

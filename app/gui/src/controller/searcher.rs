@@ -1027,6 +1027,7 @@ impl Searcher {
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
+        builder.extend_favorites(self.graph.component_groups());
         builder.build()
     }
 

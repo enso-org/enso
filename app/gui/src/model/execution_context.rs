@@ -339,6 +339,8 @@ pub trait API: Debug {
     /// Returns IDs of all active visualizations.
     fn active_visualizations(&self) -> Vec<VisualizationId>;
 
+    fn component_groups(&self) -> Vec<ComponentGroup>;
+
     /// Get the registry of computed values.
     fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry>;
 

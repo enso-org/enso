@@ -186,6 +186,10 @@ impl model::execution_context::API for ExecutionContext {
         self.visualizations.borrow().keys().copied().collect_vec()
     }
 
+    fn component_groups(&self) -> Vec<ComponentGroup> {
+        self.component_groups.borrow().clone()
+    }
+
     fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry> {
         &self.computed_value_info_registry
     }

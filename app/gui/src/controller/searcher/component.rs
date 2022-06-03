@@ -127,7 +127,7 @@ pub struct List {
     top_modules:           group::AlphabeticalList,
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    favorites:             group::List,
+    pub favorites:         group::List,
     filtered:              Rc<Cell<bool>>,
 }
 

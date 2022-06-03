@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::model::execution_context::ComponentGroup;
 use crate::model::execution_context::ComputedValueInfoRegistry;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
@@ -169,6 +170,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn active_visualizations(&self) -> Vec<VisualizationId> {
         self.model.active_visualizations()
+    }
+
+    fn component_groups(&self) -> Vec<ComponentGroup> {
+        self.model.component_groups()
     }
 
     /// Access the registry of computed values information, like types or called method pointers.
