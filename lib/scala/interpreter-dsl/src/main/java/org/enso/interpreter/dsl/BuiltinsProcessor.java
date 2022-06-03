@@ -125,12 +125,14 @@ public class BuiltinsProcessor extends AbstractProcessor {
       String builtinPkg;
       if (ownerAnnotation != null) {
         ownerName =
-                ownerAnnotation.name().isEmpty()
-                        ? ownerTpeElement.getSimpleName().toString()
-                        : ownerAnnotation.name();
+            ownerAnnotation.name().isEmpty()
+                ? ownerTpeElement.getSimpleName().toString()
+                : ownerAnnotation.name();
 
         builtinPkg =
-                ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
+            ownerAnnotation.pkg().isEmpty()
+                ? BuiltinsPkg
+                : BuiltinsPkg + "." + ownerAnnotation.pkg();
       } else {
         ownerName = ownerTpeElement.getSimpleName().toString();
         builtinPkg = BuiltinsPkg;

@@ -27,7 +27,6 @@ import java.nio.file.OpenOption;
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
 public class EnsoFile implements TruffleObject {
   private final TruffleFile truffleFile;
-  private static final String home = System.getProperty("user.home");
 
   public EnsoFile(TruffleFile truffleFile) {
     this.truffleFile = truffleFile;
@@ -119,7 +118,7 @@ public class EnsoFile implements TruffleObject {
     return this.truffleFile.getName();
   }
 
-  @Builtin.Method
+  @Builtin.Method(name = "==")
   public boolean isEqual(EnsoFile that) {
     // It seems that fsContext is not equal in files coming from stacktraces.
     // Once a solution to that is found replace it with a simple
@@ -165,7 +164,7 @@ public class EnsoFile implements TruffleObject {
   @Builtin.Method(name = "home", description = "Gets the user's system-defined home directory.")
   @Builtin.Specialize
   public static EnsoFile userHome(Context context) {
-    return fromString(context, home);
+    return fromString(context, System.getProperty("user.home"));
   }
 
   @Override

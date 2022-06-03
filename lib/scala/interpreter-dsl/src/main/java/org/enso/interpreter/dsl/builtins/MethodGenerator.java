@@ -25,13 +25,12 @@ public abstract class MethodGenerator {
   protected final TypeWithKind returnTpe;
 
   private static final WrapExceptionExtractor wrapExceptionsExtractor =
-          new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
+      new WrapExceptionExtractor(Builtin.WrapException.class, Builtin.WrapExceptions.class);
 
   protected SafeWrapException[] wrapExceptions(
-          ProcessingEnvironment processingEnv, Element element) {
+      ProcessingEnvironment processingEnv, Element element) {
     return wrapExceptionsExtractor.extract(processingEnv, element);
   }
-
 
   public MethodGenerator(
       boolean isStatic,
@@ -45,10 +44,10 @@ public abstract class MethodGenerator {
   }
 
   public abstract List<String> generate(
-          ProcessingEnvironment processingEnv,
-          String name,
-          String owner,
-          Map<String, Integer> builtinTypesParameterCounts);
+      ProcessingEnvironment processingEnv,
+      String name,
+      String owner,
+      Map<String, Integer> builtinTypesParameterCounts);
 
   /**
    * Generate node's `execute` method definition (return type and necessary parameters). '
@@ -117,7 +116,8 @@ public abstract class MethodGenerator {
    * @return MethodParameter encapsulating the method's parameter info
    */
   protected MethodParameter fromVariableElementToMethodParameter(int i, VariableElement v) {
-    String ensoName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
+    String ensoName =
+        CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, v.getSimpleName().toString());
     return new MethodParameter(
         i,
         ensoName,
@@ -149,8 +149,8 @@ public abstract class MethodGenerator {
     private Class<? extends Annotation> wrapExceptionsAnnotationClass;
 
     public WrapExceptionExtractor(
-            Class<? extends Annotation> wrapExceptionAnnotationClass,
-            Class<? extends Annotation> wrapExceptionsAnnotationClass) {
+        Class<? extends Annotation> wrapExceptionAnnotationClass,
+        Class<? extends Annotation> wrapExceptionsAnnotationClass) {
       this.wrapExceptionAnnotationClass = wrapExceptionAnnotationClass;
       this.wrapExceptionsAnnotationClass = wrapExceptionsAnnotationClass;
     }
@@ -168,19 +168,19 @@ public abstract class MethodGenerator {
     public SafeWrapException[] extract(ProcessingEnvironment processingEnv, Element element) {
       if (element.getAnnotation(wrapExceptionsAnnotationClass) != null) {
         return extractClassElementFromAnnotationContainer(
-                processingEnv, element, wrapExceptionsAnnotationClass);
+            processingEnv, element, wrapExceptionsAnnotationClass);
       } else if (element.getAnnotation(wrapExceptionAnnotationClass) != null) {
         return extractClassElementFromAnnotation(
-                processingEnv, element, wrapExceptionAnnotationClass);
+            processingEnv, element, wrapExceptionAnnotationClass);
       } else {
         return new SafeWrapException[0];
       }
     }
 
     private SafeWrapException[] extractClassElementFromAnnotation(
-            ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
+        ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
       Element builtinElement =
-              processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+          processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
       TypeMirror builtinType = builtinElement.asType();
 
       List<SafeWrapException> exceptionWrappers = new ArrayList<>();
@@ -190,7 +190,7 @@ public abstract class MethodGenerator {
           Attribute.Class valueTo = null;
           Attribute.Constant valuePropagate = null;
           for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
-                  am.getElementValues().entrySet()) {
+              am.getElementValues().entrySet()) {
             Name key = entry.getKey().getSimpleName();
             if (key.toString().equals(FromElementName)) {
               valueFrom = (Attribute.Class) (entry.getValue());
@@ -209,10 +209,10 @@ public abstract class MethodGenerator {
     }
 
     private SafeWrapException[] extractClassElementFromAnnotationContainer(
-            ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
+        ProcessingEnvironment processingEnv, Element element, Class<?> annotationClass) {
 
       Element builtinElement =
-              processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
+          processingEnv.getElementUtils().getTypeElement(annotationClass.getCanonicalName());
       Types tpeUtils = processingEnv.getTypeUtils();
       TypeMirror builtinType = builtinElement.asType();
 
@@ -220,7 +220,7 @@ public abstract class MethodGenerator {
       for (AnnotationMirror am : element.getAnnotationMirrors()) {
         if (tpeUtils.isSameType(am.getAnnotationType(), builtinType)) {
           for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
-                  am.getElementValues().entrySet()) {
+              am.getElementValues().entrySet()) {
             if (ValueElementName.equals(entry.getKey().getSimpleName().toString())) {
               Attribute.Array wrapExceptions = (Attribute.Array) entry.getValue();
               for (int i = 0; i < wrapExceptions.values.length; i++) {
@@ -240,7 +240,7 @@ public abstract class MethodGenerator {
                 }
                 if (valueFrom != null && valueTo != null) {
                   SafeWrapException converted =
-                          new SafeWrapException(valueFrom, valueTo, valuePropagate);
+                      new SafeWrapException(valueFrom, valueTo, valuePropagate);
                   wrappedExceptions.add(converted);
                 }
               }

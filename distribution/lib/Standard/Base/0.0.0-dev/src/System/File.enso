@@ -533,10 +533,7 @@ type File
 
              example_eq = Examples.csv == Examples.scratch_file
     == : File -> Boolean
-    == that = this.is_equal that
-
-    is_equal : File -> Boolean
-    is_equal that = @Builtin_Method "File.is_equal"
+    == that = @Builtin_Method "File.=="
 
     ## Deletes the file.
 

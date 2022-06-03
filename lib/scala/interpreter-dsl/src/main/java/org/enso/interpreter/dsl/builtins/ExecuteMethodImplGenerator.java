@@ -22,9 +22,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   private SafeWrapException[] exceptionWrappers;
 
   public ExecuteMethodImplGenerator(
-      ExecutableElement method,
-      boolean convertToGuestValue,
-      int expandedVarargs) {
+      ExecutableElement method, boolean convertToGuestValue, int expandedVarargs) {
     this(
         method,
         method.getReturnType().toString(),
@@ -139,8 +137,11 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
   }
 
-  public List<String> generate(ProcessingEnvironment processingEnv,
-      String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
+  public List<String> generate(
+      ProcessingEnvironment processingEnv,
+      String name,
+      String owner,
+      Map<String, Integer> builtinTypesParameterCounts) {
 
     SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;

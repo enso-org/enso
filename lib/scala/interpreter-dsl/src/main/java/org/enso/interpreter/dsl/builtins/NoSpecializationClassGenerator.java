@@ -34,9 +34,7 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
   @Override
   protected MethodGenerator methodsGen() {
     return new ExecuteMethodImplGenerator(
-        origin,
-        needsGuestValueConversion(origin),
-        varArgExpansion);
+        origin, needsGuestValueConversion(origin), varArgExpansion);
   }
 
   @Override

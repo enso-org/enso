@@ -2,7 +2,6 @@ package org.enso.interpreter.dsl.builtins;
 
 import com.google.common.base.CaseFormat;
 
-
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.tools.JavaFileObject;
@@ -48,7 +47,7 @@ public abstract class MethodNodeClassGenerator {
       String ownerMethodName)
       throws IOException {
     JavaFileObject gen =
-        processingEnv.getFiler().createSourceFile(builtinNode.fullyQualifiedName());
+        processingEnv.getFiler().createSourceFile(builtinNode.jvmFriendlyFullyQualifiedName());
     ;
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       String ensoMethodName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, methodName);
@@ -69,7 +68,7 @@ public abstract class MethodNodeClassGenerator {
               + description
               + "\")");
       if (isAbstract()) {
-        out.println("public abstract class " + builtinNode.name() + " extends Node {");
+        out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
 
         out.println("  static " + builtinNode.name() + " build() {");
@@ -77,12 +76,13 @@ public abstract class MethodNodeClassGenerator {
         out.println("  }");
         out.println();
       } else {
-        out.println("public class " + builtinNode.name() + " extends Node {");
+        out.println("public class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
       }
       for (String line :
           methodsGen()
-              .generate(processingEnv, ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
+              .generate(
+                  processingEnv, ownerMethodName, ownerClazz.name(), builtinTypesParamCount)) {
         out.println("  " + line);
       }
       out.println();
@@ -144,5 +144,4 @@ public abstract class MethodNodeClassGenerator {
           "org.enso.interpreter.runtime.builtin.Builtins",
           "org.enso.interpreter.runtime.data.Array",
           "org.enso.interpreter.runtime.error.PanicException");
-
 }
