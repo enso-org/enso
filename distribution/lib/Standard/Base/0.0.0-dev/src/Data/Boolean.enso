@@ -26,16 +26,15 @@ type Boolean
        - that: The boolean to compute the conjunction of this with.
 
        ! Short Circuiting
-         This method is not implemented in a short-circuiting manner. This means
-         that even if this is False, it will also evaluate that. This is
-         for performance.
+         This method is implemented in a short-circuiting manner. This means
+         that if this is False, it will no longer evaluate that.
 
        > Example
          Computing the conjunction of False and True (to get False).
 
              False && True
     && : Boolean -> Boolean
-    && that = @Builtin_Method "Boolean.&&"
+    && ~that = @Builtin_Method "Boolean.&&"
 
     ## Computes the logical or (disjunction) of two booleans.
 
@@ -43,16 +42,15 @@ type Boolean
        - that: The boolean to compute the disjunction of this with.
 
        ! Short Circuiting
-         This methid is not implemented in a short-circuiting manner. This means
-         that even if this is True, it will also evaluate that. This is
-         for performance.
+         This method is implemented in a short-circuiting manner. This means
+         that if this is True, it will no longer evaluate that.
 
        > Example
          Computing the disjunction of True and False (to get True).
 
              True || False
     || : Boolean -> Boolean
-    || that = @Builtin_Method "Boolean.||"
+    || ~that = @Builtin_Method "Boolean.||"
 
     ## Computes the logical negation of this.
 

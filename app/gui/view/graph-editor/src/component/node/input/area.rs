@@ -11,12 +11,10 @@ use crate::node;
 use crate::node::input::port;
 use crate::node::profiling;
 use crate::view;
-use crate::FrpNetworkProvider;
 use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
-use enso_frp::stream::ValueProvider;
 use enso_text::text::Text;
 use ensogl::application::Application;
 use ensogl::data::color;
@@ -169,7 +167,7 @@ impl From<node::Expression> for Expression {
 // === Model ===
 // =============
 
-ensogl::define_endpoints_2! {
+ensogl::define_endpoints! {
     Input {
         /// Set the mode in which the cursor will indicate that editing of the node is possible.
         set_edit_ready_mode (bool),
@@ -361,7 +359,7 @@ impl Area {
     pub fn new(logger: impl AnyLogger, app: &Application) -> Self {
         let model = Rc::new(Model::new(logger, app));
         let frp = Frp::new();
-        let network = frp.network();
+        let network = &frp.network;
         let selection_color = Animation::new(network);
 
         frp::extend! { network
@@ -371,12 +369,12 @@ impl Area {
             // learn more about the architecture and the importance of the hover
             // functionality.
 
-            frp.private.output.body_hover <+ frp.set_hover;
+            frp.output.source.body_hover <+ frp.set_hover;
 
 
             // === Cursor setup ===
 
-            eval frp.private.input.set_edit_mode ([model](edit_mode) {
+            eval frp.input.set_edit_mode ([model](edit_mode) {
                 model.label.set_focus(edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
@@ -399,8 +397,8 @@ impl Area {
                 );
 
             port_vis <- all_with(&frp.input.set_ports_active,&edit_mode,|(a,_),b|*a&&(!b));
-            frp.private.output.ports_visible <+ port_vis;
-            frp.private.output.editing       <+ edit_mode;
+            frp.output.source.ports_visible <+ port_vis;
+            frp.output.source.editing       <+ edit_mode;
 
 
             // === Label Hover ===
@@ -422,8 +420,8 @@ impl Area {
             // === Properties ===
 
             width <- model.label.width.map(|t| t + 2.0 * TEXT_OFFSET);
-            frp.private.output.width      <+ width;
-            frp.private.output.expression <+ model.label.content;
+            frp.output.source.width      <+ width;
+            frp.output.source.expression <+ model.label.content;
 
 
             // === Expression Type ===
@@ -433,7 +431,7 @@ impl Area {
 
             // === View Mode ===
 
-            frp.private.output.view_mode <+ frp.set_view_mode;
+            frp.output.source.view_mode <+ frp.set_view_mode;
 
             in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
             finished          <- frp.set_profiling_status.map(|s| s.is_finished());
@@ -641,7 +639,7 @@ impl Area {
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
                 let crumbs = port.crumbs.clone_ref();
                 let port_network = &port.network;
-                let frp = &self.frp.private;
+                let frp = &self.frp.output;
 
                 frp::extend! { port_network
 
@@ -660,7 +658,7 @@ impl Area {
 
                     // Please note, that this is computed first in order to compute `ports_visible`
                     // when needed, and thus it has to be run before the following lines.
-                    self.frp.private.output.body_hover <+ bool(&mouse_out,&mouse_over_raw);
+                    self.frp.output.source.body_hover <+ bool(&mouse_out,&mouse_over_raw);
 
                     // TODO[WD] for FRP3: Consider the following code. Here, we have to first
                     //     handle `bg_down` and then `mouse_down`. Otherwise, `mouse_down` may
@@ -671,21 +669,21 @@ impl Area {
                     //     be solved by solving in the FRP engine all children first, and then their
                     //     children (then both `bg_down` and `mouse_down` will be resolved before
                     //     the `ports_visible` changes).
-                    bg_down    <- mouse_down_raw.gate_not(&frp.output.ports_visible);
-                    mouse_down <- mouse_down_raw.gate(&frp.output.ports_visible);
-                    mouse_over <- mouse_over_raw.gate(&frp.output.ports_visible);
-                    self.frp.private.output.on_background_press <+ bg_down;
+                    bg_down    <- mouse_down_raw.gate_not(&frp.ports_visible);
+                    mouse_down <- mouse_down_raw.gate(&frp.ports_visible);
+                    mouse_over <- mouse_over_raw.gate(&frp.ports_visible);
+                    self.frp.output.source.on_background_press <+ bg_down;
 
 
                     // === Press ===
 
-                    eval_ mouse_down ([crumbs,frp] frp.output.on_port_press.emit(&crumbs));
+                    eval_ mouse_down ([crumbs,frp] frp.source.on_port_press.emit(&crumbs));
 
                     // === Hover ===
 
                     hovered <- bool(&mouse_out,&mouse_over);
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
-                    frp.output.on_port_hover <+ hover;
+                    frp.source.on_port_hover <+ hover;
 
 
                     // === Pointer Style ===
@@ -696,13 +694,13 @@ impl Area {
                     init_color         <- source::<()>();
                     any_type_sel_color <- all_with(&any_type_sel_color,&init_color,
                         |c,_| color::Lcha::from(c));
-                    tp                 <- all_with(&port.tp,&frp.input.set_ports_active,
+                    tp                 <- all_with(&port.tp,&frp.set_ports_active,
                         |tp,(_,edge_tp)| tp.clone().or_else(||edge_tp.clone()));
                     tp_color           <- tp.map(
                         f!([styles](tp) tp.map_ref(|tp| type_coloring::compute(tp,&styles))));
                     tp_color           <- all_with(&tp_color,&any_type_sel_color,
                         |tp_color,any_type_sel_color| tp_color.unwrap_or(*any_type_sel_color));
-                    in_profiling_mode  <- frp.output.view_mode.map(|m| matches!(m,view::Mode::Profiling));
+                    in_profiling_mode  <- frp.view_mode.map(|m| matches!(m,view::Mode::Profiling));
                     pointer_color_over <- in_profiling_mode.switch(&tp_color,&any_type_sel_color);
                     pointer_style_over <- pointer_color_over.map(move |color|
                         cursor::Style::new_highlight(&port_shape_hover,padded_size,Some(color))
@@ -712,10 +710,10 @@ impl Area {
                     pointer_style_hover <- any(pointer_style_over,pointer_style_out);
                     pointer_styles      <- all[pointer_style_hover,self.model.label.pointer_style];
                     pointer_style       <- pointer_styles.fold();
-                    self.frp.private.output.pointer_style <+ pointer_style;
+                    self.frp.output.source.pointer_style <+ pointer_style;
                 }
                 init_color.emit(());
-                frp.output.view_mode.emit(frp.output.view_mode.value());
+                frp.source.view_mode.emit(frp.view_mode.value());
                 port_shape.display_object().clone_ref()
             };
 
@@ -766,7 +764,7 @@ impl Area {
                 );
                 frp.source.tp <+ final_tp;
 
-                self.frp.private.output.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                self.frp.source.on_port_type_change <+ frp.tp.map(move |t|(crumbs.clone(),t.clone()));
             }
 
 
@@ -876,7 +874,7 @@ impl Area {
             Some(frp.tp.clone_ref().into())
         });
 
-        self.frp.private.output.view_mode.emit(self.frp.view_mode.value());
+        self.frp.source.view_mode.emit(self.frp.view_mode.value());
     }
 
     /// This function first assigns the new expression to the model and then emits the definition
