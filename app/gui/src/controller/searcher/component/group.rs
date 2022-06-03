@@ -73,7 +73,15 @@ impl Group {
         Self { data: Rc::new(Data::new_empty_visible(name, Some(component_id))) }
     }
 
-    /// Construct from [`execution_context::ComponentGroup`].
+    /// Construct from [`execution_context::ComponentGroup`]. The group components are looked up in
+    /// the suggestion database by their full qualified name and skipped if not found. Returns
+    /// [`None`] if none of the components were found in the suggestion database.
+    /// Returns a [`Group`] with
+    /// [`Component`]s found in the suggestion database 
+    /// Only the [`Component`]s for which 
+    /// Looks up the qualified names of the
+    /// group components in the suggestion database to retrieve full [`Component`] data skipping . Components
+    /// without 
     pub fn from_execution_context_component_group(
         group: execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
