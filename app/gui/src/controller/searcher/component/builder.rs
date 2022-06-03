@@ -160,41 +160,8 @@ impl List {
 mod tests {
     use super::*;
 
-    use crate::controller::searcher::component::tests::mock_function;
-    use crate::controller::searcher::component::tests::mock_module;
+    use crate::controller::searcher::component::tests::mock_suggestion_db;
 
-    fn mock_suggestion_db(logger: impl AnyLogger) -> model::SuggestionDatabase {
-        let top_module_1 = mock_module("test.Test.TopModule1");
-        let top_module_2 = mock_module("test.Test.TopModule2");
-        let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
-        let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
-        let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
-        let fun1 = mock_function(&top_module_1.module, "fun1");
-        let fun2 = mock_function(&top_module_1.module, "fun2");
-        let fun3 = mock_function(&top_module_2.module, "fun3");
-        let fun4 = mock_function(&sub_module_1.module, "fun4");
-        let fun5 = mock_function(&sub_module_2.module, "fun5");
-        let fun6 = mock_function(&sub_module_3.module, "fun6");
-        let all_entries = [
-            top_module_1,
-            top_module_2,
-            sub_module_1,
-            sub_module_2,
-            sub_module_3,
-            fun1,
-            fun2,
-            fun3,
-            fun4,
-            fun5,
-            fun6,
-        ];
-
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
-        for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
-        }
-        suggestion_db
-    }
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     struct ComparableGroupData<'a> {

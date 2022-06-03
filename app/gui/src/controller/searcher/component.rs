@@ -224,6 +224,39 @@ pub(crate) mod tests {
         }
     }
 
+    pub fn mock_suggestion_db(logger: impl AnyLogger) -> model::SuggestionDatabase {
+        let top_module_1 = mock_module("test.Test.TopModule1");
+        let top_module_2 = mock_module("test.Test.TopModule2");
+        let sub_module_1 = mock_module("test.Test.TopModule1.SubModule1");
+        let sub_module_2 = mock_module("test.Test.TopModule1.SubModule2");
+        let sub_module_3 = mock_module("test.Test.TopModule1.SubModule2.SubModule3");
+        let fun1 = mock_function(&top_module_1.module, "fun1");
+        let fun2 = mock_function(&top_module_1.module, "fun2");
+        let fun3 = mock_function(&top_module_2.module, "fun3");
+        let fun4 = mock_function(&sub_module_1.module, "fun4");
+        let fun5 = mock_function(&sub_module_2.module, "fun5");
+        let fun6 = mock_function(&sub_module_3.module, "fun6");
+        let all_entries = [
+            top_module_1,
+            top_module_2,
+            sub_module_1,
+            sub_module_2,
+            sub_module_3,
+            fun1,
+            fun2,
+            fun3,
+            fun4,
+            fun5,
+            fun6,
+        ];
+
+        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        for (id, entry) in all_entries.into_iter().enumerate() {
+            suggestion_db.put_entry(id, entry)
+        }
+        suggestion_db
+    }
+
 
     // === Filtering Component List ===
 
@@ -280,38 +313,9 @@ pub(crate) mod tests {
 
     #[test]
     fn component_list_modules_tree() {
-        // Prepare sample data for use in the components list.
+        // Create a components list with sample data.
         let logger = Logger::new("test::component_list_modules_tree");
-        let top_module1 = mock_module("test.Test.TopModule1");
-        let top_module2 = mock_module("test.Test.TopModule2");
-        let sub_module1 = mock_module("test.Test.TopModule1.SubModule1");
-        let sub_module2 = mock_module("test.Test.TopModule1.SubModule2");
-        let sub_sub_module = mock_module("test.Test.TopModule1.SubModule1.SubSubModule");
-        let top_fn1 = mock_function(&top_module1.module, "fn1");
-        let top_fn2 = mock_function(&top_module2.module, "fn2");
-        let sub_fn1 = mock_function(&sub_module1.module, "subfn1");
-        let sub_fn2 = mock_function(&sub_module1.module, "subfn2");
-        let sub_sub_fn1 = mock_function(&sub_sub_module.module, "subsubfn1");
-        let sub_sub_fn2 = mock_function(&sub_sub_module.module, "subsubfn2");
-        let all_entries = [
-            top_module1,
-            top_module2,
-            sub_module1,
-            sub_module2,
-            sub_sub_module,
-            top_fn1,
-            top_fn2,
-            sub_fn1,
-            sub_fn2,
-            sub_sub_fn1,
-            sub_sub_fn2,
-        ];
-
-        // Insert the sample data into the suggestion database and into the components list.
-        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
-        for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
-        }
+        let suggestion_db = mock_suggestion_db(logger);
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..11);
         let list = builder.build();
@@ -322,12 +326,12 @@ pub(crate) mod tests {
         assert_eq!(top_modules_ids, expected_top_modules_ids);
 
         // Verify that we can read content and direct submodules of a second-level submodule
-        // ("test.Test.TopModule1.SubModule1").
-        let content = list.get_module_content(2).unwrap();
-        let expected_content_ids = vec![7, 8, 4];
+        // ("test.Test.TopModule1.SubModule2").
+        let content = list.get_module_content(3).unwrap();
+        let expected_content_ids = vec![9, 4];
         let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
-        let direct_submodules = list.submodules_of(2).unwrap();
+        let direct_submodules = list.submodules_of(3).unwrap();
         let expected_direct_submodules_ids = vec![Some(4)];
         let direct_submodules_ids = direct_submodules.iter().map(|m| m.component_id).collect_vec();
         assert_eq!(direct_submodules_ids, expected_direct_submodules_ids);
@@ -335,7 +339,7 @@ pub(crate) mod tests {
         // Verify that we can read content of a third-level submodule
         // ("test.Test.TopModule1.SubModule1.SubSubModule").
         let content = list.get_module_content(4).unwrap();
-        let expected_content_ids = vec![9, 10];
+        let expected_content_ids = vec![10];
         let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
         assert_eq!(content_ids, expected_content_ids);
     }
