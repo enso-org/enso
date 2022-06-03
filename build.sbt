@@ -1268,6 +1268,8 @@ lazy val runtime = (project in file("engine/runtime"))
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
+      case PathList("META-INF", "services", xs @ _*) =>
+        MergeStrategy.concat
       case _ => MergeStrategy.first
     }
   )
