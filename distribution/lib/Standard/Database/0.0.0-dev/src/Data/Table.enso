@@ -446,7 +446,7 @@ type Table
             if len == 1 then ixes.at 0 else ixes
 
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
-    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_order=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         columns_for_ordering = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
         new_order_descriptors = columns_for_ordering.map selected_column->
             internal_column = selected_column.column
@@ -455,7 +455,7 @@ type Table
                propagate dataflow errors correctly. See:
                https://www.pivotaltracker.com/story/show/181057718
             Panic.throw_wrapped_if_error <|
-                this.connection.dialect.prepare_order_descriptor this.connection internal_column associated_selector.direction text_order
+                this.connection.dialect.prepare_order_descriptor this.connection internal_column associated_selector.direction text_ordering
         new_ctx = this.context.add_orders new_order_descriptors
         this.updated_context new_ctx
 
