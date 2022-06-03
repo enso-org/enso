@@ -10,6 +10,7 @@ use crate::display::camera::Camera2d;
 use crate::display::symbol;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
+use crate::display::symbol::WeakSymbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
@@ -34,7 +35,7 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
-    symbols:            Rc<RefCell<HashMap<SymbolId, Symbol>>>,
+    symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     symbol_dirty:       SymbolDirty,
     logger:             Logger,
@@ -82,7 +83,7 @@ impl SymbolRegistry {
 
     /// Creates a new `Symbol`.
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(&self) -> (SymbolRegistration, Symbol) {
+    pub fn new(&self) -> Symbol {
         let symbol_dirty = self.symbol_dirty.clone();
         let stats = &self.stats;
         let id_value = self.next_id.get();
@@ -92,9 +93,7 @@ impl SymbolRegistry {
         let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
         symbol.set_context(self.context.borrow().as_ref());
         self.symbols.borrow_mut().insert(id, symbol.clone_ref());
-        let symbols = self.symbols.clone();
-        let registration = SymbolRegistration { symbols, id };
-        (registration, symbol)
+        symbol
     }
 
     /// Set the GPU context. In most cases, this happens during app initialization or during context
@@ -133,21 +132,5 @@ impl SymbolRegistry {
                 symbol.render();
             }
         }
-    }
-}
-
-
-// === SymbolRegistration ===
-
-#[derive(Debug)]
-/// Handle that unregisters a `Symbol` from the `SymbolRegistry` when dropped.
-pub struct SymbolRegistration {
-    pub id:  SymbolId,
-    symbols: Rc<RefCell<HashMap<SymbolId, Symbol>>>,
-}
-
-impl Drop for SymbolRegistration {
-    fn drop(&mut self) {
-        self.symbols.borrow_mut().remove(&self.id);
     }
 }

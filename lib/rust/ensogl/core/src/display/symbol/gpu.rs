@@ -19,6 +19,7 @@ use crate::system::gpu::data::uniform::AnyUniform;
 use enso_shapely::newtype_prim;
 use enso_shapely::shared2;
 use shader::Shader;
+use shader::WeakShader;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
@@ -286,6 +287,8 @@ pub type GeometryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 /// A dirty flag for the symbols' shader.
 pub type ShaderDirty = dirty::SharedBool<Box<dyn Fn()>>;
+/// A weak-referencing version of `ShaderDirty`.
+pub type WeakShaderDirty = dirty::WeakSharedBool<Box<dyn Fn()>>;
 
 
 // === Bindings ====
@@ -490,6 +493,44 @@ impl display::Object for Symbol {
 impl From<&Symbol> for SymbolId {
     fn from(t: &Symbol) -> Self {
         t.id
+    }
+}
+
+
+// === Weak References ===
+
+/// Weak reference to a [`Symbol`].
+#[derive(Debug, Clone)]
+pub struct WeakSymbol {
+    data:         Weak<SymbolData>,
+    shader_dirty: WeakShaderDirty,
+    shader:       WeakShader,
+}
+
+impl WeakElement for WeakSymbol {
+    type Strong = Symbol;
+
+    fn new(view: &Self::Strong) -> Self {
+        let data = view.data.downgrade();
+        let shader_dirty = view.shader_dirty.downgrade();
+        let shader = view.shader.downgrade();
+        Self { data, shader_dirty, shader }
+    }
+
+    fn view(&self) -> Option<Self::Strong> {
+        let data = self.data.upgrade()?;
+        let shader_dirty = self.shader_dirty.upgrade()?;
+        let shader = self.shader.upgrade()?;
+        Some(Symbol { data, shader_dirty, shader })
+    }
+
+    fn is_expired(&self) -> bool {
+        self.data.is_expired()
+    }
+
+    fn clone(view: &Self::Strong) -> Self::Strong
+    where Self: Sized {
+        view.clone()
     }
 }
 

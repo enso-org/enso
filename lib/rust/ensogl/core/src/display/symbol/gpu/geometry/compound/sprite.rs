@@ -12,7 +12,6 @@ use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
 use crate::display::layout::Alignment;
 use crate::display::scene::Scene;
-use crate::display::scene::SymbolRegistration;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -214,13 +213,12 @@ impl Deref for Sprite {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct SpriteSystem {
-    pub symbol:   Symbol,
-    transform:    Buffer<Matrix4<f32>>,
-    uv:           Buffer<Vector2<f32>>,
-    size:         Buffer<Vector2<f32>>,
-    alignment:    Uniform<Vector2<f32>>,
-    stats:        Stats,
-    registration: Rc<SymbolRegistration>,
+    pub symbol: Symbol,
+    transform:  Buffer<Matrix4<f32>>,
+    uv:         Buffer<Vector2<f32>>,
+    size:       Buffer<Vector2<f32>>,
+    alignment:  Uniform<Vector2<f32>>,
+    stats:      Stats,
 }
 
 impl SpriteSystem {
@@ -230,7 +228,7 @@ impl SpriteSystem {
     where S: Into<&'t Scene> {
         let scene = scene.into();
         let stats = scene.stats.clone_ref();
-        let (registration, symbol) = scene.new_symbol();
+        let symbol = scene.new_symbol();
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
         let instance_scope = mesh.instance_scope();
@@ -242,8 +240,7 @@ impl SpriteSystem {
 
         stats.inc_sprite_system_count();
 
-        let registration = Rc::new(registration);
-        let this = Self { symbol, transform, uv, size, alignment, stats, registration };
+        let this = Self { symbol, transform, uv, size, alignment, stats };
         this.init_attributes();
         this.init_shader();
         this

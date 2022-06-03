@@ -49,7 +49,6 @@ pub mod layer;
 #[warn(missing_docs)]
 pub mod pointer_target;
 
-pub use crate::display::symbol::registry::SymbolRegistration;
 pub use crate::system::web::dom::Shape;
 pub use layer::Layer;
 pub use pointer_target::PointerTarget;
@@ -855,7 +854,7 @@ impl SceneData {
         self.layers.main.camera()
     }
 
-    pub fn new_symbol(&self) -> (SymbolRegistration, Symbol) {
+    pub fn new_symbol(&self) -> Symbol {
         self.symbols.new()
     }
 
