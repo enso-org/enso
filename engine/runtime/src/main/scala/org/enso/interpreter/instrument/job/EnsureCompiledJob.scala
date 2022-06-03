@@ -91,11 +91,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): CompilationStatus = {
     compile(module)
     val changeset = applyEdits(new File(module.getPath))
-
-    if (changeset.simpleChange != null) {
-      System.out.println("Found simple change: " + changeset.simpleChange)
-      // return CompilationStatus.Success
-    }
     compile(module)
       .map { compilerResult =>
         val cacheInvalidationCommands =
@@ -333,9 +328,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ctx.locking.acquireReadCompilationLock()
     try {
       val edits = ctx.state.pendingEdits.dequeue(file)
-      val suggestionBuilder = ctx.executionService
-        .modifyModuleSources(file, edits)
-      suggestionBuilder.build(edits)
+      ctx.executionService.modifyModuleSources(file, edits)
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)

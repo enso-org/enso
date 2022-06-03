@@ -5,11 +5,17 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
+import org.enso.text.editing.model;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope implements TruffleObject {
@@ -294,5 +300,52 @@ public class ModuleScope implements TruffleObject {
     constructors = new HashMap<>();
     conversions = new HashMap<>();
     polyglotSymbols = new HashMap<>();
+  }
+
+  public boolean simpleUpdate(model.TextEdit edit) {
+    boolean f1 = updateFunctionsMap(edit, methods.values());
+    boolean f2 = updateFunctionsMap(edit, conversions.values());
+    return f1 || f2;
+  }
+
+  private boolean updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values) {
+    boolean found = false;
+    for (Map<?, Function> f : values) {
+      found |= updateFunctions(edit, f.values());
+    }
+    return found;
+  }
+
+  private boolean updateFunctions(model.TextEdit edit, Collection<Function> fns) {
+    boolean found = false;
+    for (Function f : fns) {
+      found |= updateFunction(edit, f);
+    }
+    return found;
+  }
+
+  private boolean updateFunction(model.TextEdit edit, Function f) {
+    return updateNode(edit, f.getCallTarget().getRootNode());
+  }
+
+  private boolean updateNode(model.TextEdit edit, Node node) {
+    boolean found = false;
+    if (node instanceof IntegerLiteralNode integerNode) {
+      SourceSection at = node.getSourceSection();
+      if (
+          at != null &&
+          at.getStartLine() - 1 == edit.range().start().line() &&
+          at.getStartColumn() - 1 == edit.range().start().character() &&
+          at.getEndLine() - 1 == edit.range().end().line() &&
+          at.getEndColumn() == edit.range().end().character()
+      ) {
+        found = true;
+        integerNode.updateConstant(edit.text());
+      }
+    }
+    for (Node n : NodeUtil.findNodeChildren(node)) {
+      found |= updateNode(edit, n);
+    }
+    return found;
   }
 }

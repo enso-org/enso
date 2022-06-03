@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.compiler.context.Changeset;
 import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
@@ -292,7 +293,8 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public ChangesetBuilder<Rope> modifyModuleSources(File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
+  public Changeset<Rope> modifyModuleSources(
+      File path, scala.collection.immutable.Seq<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (moduleMay.isEmpty()) {
       throw new ModuleNotFoundForFileException(path);
@@ -309,6 +311,9 @@ public class ExecutionService {
             module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
+
+    Changeset<Rope> result = changesetBuilder.build(edits);
+
     JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits)
         .fold(
             failure -> {
@@ -316,10 +321,15 @@ public class ExecutionService {
                   path, edits, failure, module.getLiteralSource());
             },
             rope -> {
-              module.setLiteralSource(rope);
+              if (result.simpleChange() == null) {
+                module.setLiteralSource(rope, null, null);
+              } else {
+                module.setLiteralSource(rope, result.simpleChange()._1, result.simpleChange()._2);
+              }
               return new Object();
             });
-    return changesetBuilder;
+
+    return result;
   }
 
   /**
