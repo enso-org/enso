@@ -636,7 +636,7 @@ spec =
             t_3.default_visualization.should_equal Visualization.Id.table
 
     selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False
-    Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new materialize=(x->x) test_selection=selection
+    Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
