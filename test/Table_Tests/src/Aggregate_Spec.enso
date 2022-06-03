@@ -1157,7 +1157,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
         Test.specify "should raise a warning when an invalid output name" <|
             action = table.aggregate [Group_By "Index" ""] on_problems=_
             problems = [Invalid_Output_Column_Names [""]]
-            tester = expect_column_names ["Column"]
+            tester = expect_column_names ["Column_1"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should raise a warning when a duplicate column name" <|

@@ -257,14 +257,14 @@ spec prefix connection pending=Nothing =
             r_2 = df.sort by="rating" missing_last=False
             r_2.at 'id' . to_vector . should_equal [2,6,5,1,4,3]
 
-            r_3 = df.sort by="rating" missing_last=False order=Sort_Order.Descending
+            r_3 = df.sort by="rating" missing_last=False order=Sort_Direction.Descending
             r_3.at 'id' . to_vector . should_equal [2,6,3,1,4,5]
 
         Test.specify 'should allow sorting by multiple column names' <|
             r_1 = df.sort by=['quantity', 'rating']
             r_1.at 'id' . to_vector . should_equal [4,2,1,3,5,6]
 
-            r_2 = df.sort by=['rating', 'quantity'] missing_last=False order=Sort_Order.Descending
+            r_2 = df.sort by=['rating', 'quantity'] missing_last=False order=Sort_Direction.Descending
             r_2.at 'id' . to_vector . should_equal [6,2,3,1,4,5]
 
         Test.specify 'should allow sorting by external columns' <|
@@ -277,7 +277,7 @@ spec prefix connection pending=Nothing =
             r_2.at 'id' . to_vector . should_equal [4,2,1,3,5,6]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = df.sort by=['quantity', (Order_Rule 'price' order=Sort_Order.Descending)]
+            r_1 = df.sort by=['quantity', (Order_Rule 'price' order=Sort_Direction.Descending)]
             r_1.at 'id' . to_vector . should_equal [4,2,3,1,6,5]
 
         Test.specify 'should return dataflow error when passed a non-existent column' <|
@@ -311,10 +311,10 @@ spec prefix connection pending=Nothing =
             r_1 = c.sort
             r_1.to_vector.should_equal [2.2, 3.0, 3.0, 7.3, Nothing, Nothing]
 
-            r_2 = c.sort order=Sort_Order.Descending
+            r_2 = c.sort order=Sort_Direction.Descending
             r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
 
-            r_3 = c.sort order=Sort_Order.Descending missing_last=False
+            r_3 = c.sort order=Sort_Direction.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
     Test.group prefix+"Index" pending=pending <|

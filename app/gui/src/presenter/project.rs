@@ -176,7 +176,8 @@ impl Project {
     ) -> Self {
         let network = frp::Network::new("presenter::Project");
         let model = Model::new(ide_controller, controller, init_result, view, status_bar);
-        Self { network, model: Rc::new(model) }.init()
+        let model = Rc::new(model);
+        Self { network, model }.init()
     }
 
     #[profile(Detail)]
@@ -208,6 +209,7 @@ impl Project {
             values_computed <- source::<()>();
             values_computed_first_time <- values_computed.constant(true).on_change().constant(());
             view.show_prompt <+ values_computed_first_time;
+            view.values_updated <+ values_computed;
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

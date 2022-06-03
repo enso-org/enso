@@ -64,6 +64,8 @@ impl EventLoopExecutor {
     pub fn runner(&self) -> impl FnMut(animation::TimeInfo) {
         let executor = self.executor.clone();
         move |_| {
+            let _profiler =
+                profiler::start_debug!(profiler::APP_LIFETIME, "EventLoopExecutor::runner");
             // Safe, because this is the only place borrowing executor and loop
             // callback shall never be re-entrant.
             let mut executor = executor.borrow_mut();

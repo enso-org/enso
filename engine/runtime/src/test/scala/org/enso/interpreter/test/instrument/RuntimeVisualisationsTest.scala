@@ -1345,8 +1345,7 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val attachVisualisationResponses =
-      context.receiveN(n = 5, timeoutSeconds = 60)
+    val attachVisualisationResponses = context.receiveN(4)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1892,8 +1891,7 @@ class RuntimeVisualisationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses =
-      context.receiveN(n = 5, timeoutSeconds = 90)
+    val pushContextResponses = context.receiveN(4)
     pushContextResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(

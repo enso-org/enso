@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.parsing.problems.ProblemAggregator;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
 import org.enso.table.parsing.problems.SimplifiedProblemAggregator;
-import org.enso.table.read.WithProblems;
+import org.enso.table.problems.WithProblems;
 
 /**
  * The type inferring parser tries to parse the given column using a set of provided parsers. It

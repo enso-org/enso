@@ -22,7 +22,7 @@ jobs:
           clean: false
       - id: changed_files
         run: "git fetch\nlist=`git diff --name-only origin/develop HEAD | tr '\\n' ' '`\necho $list\necho \"::set-output name=list::'$list'\""
-      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') }} == false ]]; then exit 1; fi"
+      - run: "if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'[ci no changelog needed]') || contains(github.event.pull_request.body,'[ci no changelog needed]') || github.event.pull_request.user.login == 'dependabot' }} == false ]]; then exit 1; fi"
         if: "github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'"
   ide-ci-actions-workflow-definition-job-build-project-manager-linux:
     name: Build Project Manager (linux)
@@ -41,7 +41,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -50,10 +50,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh project-manager"
+      - run: "./run project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-project-manager-macos:
     name: Build Project Manager (macos)
     runs-on:
@@ -69,7 +76,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -78,10 +85,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh project-manager"
+      - run: "./run project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-project-manager-windows:
     name: Build Project Manager (windows)
     runs-on:
@@ -99,7 +113,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -109,9 +123,16 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd project-manager"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
@@ -129,7 +150,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -138,10 +159,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm build"
+      - run: "./run wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
     runs-on:
@@ -157,7 +185,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -166,10 +194,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm build"
+      - run: "./run wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
     runs-on:
@@ -187,7 +222,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -197,9 +232,16 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd wasm build"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
@@ -228,7 +270,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -237,10 +279,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide integration-test --project-manager-source current-ci-run"
+      - run: "./run ide integration-test --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-lint-linux:
     name: Lint (linux)
     runs-on:
@@ -258,7 +307,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -267,10 +316,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh lint"
+      - run: "./run lint"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-native-test-linux:
     name: Native GUI tests (linux)
     runs-on:
@@ -288,7 +344,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -297,10 +353,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm test --no-wasm"
+      - run: "./run wasm test --no-wasm"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-linux:
     name: Package IDE (linux)
     needs:
@@ -321,7 +384,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -330,10 +393,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+      - run: "./run ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
@@ -352,7 +422,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -361,10 +431,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+      - run: "./run ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
@@ -385,7 +462,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -395,9 +472,16 @@ jobs:
         with:
           clean: false
       - run: ".\\run.cmd --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
       - run: ".\\run.cmd ide build --wasm-source current-ci-run --project-manager-source current-ci-run"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: cmd
+      - name: List files if failed
+        run: ls -R
+        if: failure()
   ide-ci-actions-workflow-definition-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
@@ -415,7 +499,7 @@ jobs:
         uses: jetli/wasm-pack-action@v0.3.0
         if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
         with:
-          version: latest
+          version: v0.10.2
       - name: Setup the Artifact API environment
         uses: actions/github-script@v6
         with:
@@ -424,7 +508,14 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-      - run: "./run.sh --help"
+      - run: "./run --help"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
-      - run: "./run.sh wasm test --no-native"
+      - run: "./run wasm test --no-native"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
