@@ -38,3 +38,10 @@ test_problem_handling action expected_problems result_checker =
     warnings = Warning.get_all result_warning . map .value
     ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
     warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=1
+
+## UNSTABLE
+   Checks if the provided value does not have any attached problems.
+assume_no_problems result =
+    result.is_error.should_be_false
+    warnings = Warning.get_all result . map .value
+    warnings.should_equal []
