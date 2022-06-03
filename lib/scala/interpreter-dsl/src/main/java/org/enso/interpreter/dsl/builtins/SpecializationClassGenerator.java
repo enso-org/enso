@@ -24,7 +24,7 @@ public class SpecializationClassGenerator extends MethodNodeClassGenerator {
   }
 
   @Override
-  protected MethodGenerator methodsGen(ProcessingEnvironment processingEnv) {
+  protected MethodGenerator methodsGen() {
     return new SpecializedMethodsGenerator(elements);
   }
 

@@ -1,8 +1,10 @@
 package org.enso.interpreter.dsl.builtins;
 
+import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.dsl.Builtin;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
@@ -55,7 +57,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
   }
 
   @Override
-  public List<String> generate(
+  public List<String> generate(ProcessingEnvironment processingEnv,
       String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
     SpecializationMeta meta = inferExecuteParameters();
     List<String> result = new ArrayList<>();
@@ -63,8 +65,8 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     result.add(methodSigDef(owner, meta.execParams(), true));
     result.add("");
     result.addAll(
-        paramsOfSpecializedMethods(meta.diffParam)
-            .flatMap(paramsList -> specialize(owner, name, paramsList, meta.diffParam).stream())
+        paramsOfSpecializedMethods(processingEnv, meta.diffParam)
+            .flatMap(specializeMethod -> specialize(owner, name, specializeMethod, meta.diffParam, builtinTypesParameterCounts).stream())
             .collect(Collectors.toList()));
     return result;
   }
@@ -77,21 +79,23 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
 
   /**
    * Infers the list of parameters for specialized methods.
-   *
+   * @param processingEnv current round processing environment
    * @param specializedParamIdx optional index of parameter on which specialization occurs. Used
    *     optionally for ordering of specialized methods to satisfy @Specialize pre-conditions
-   * @return a stream of parameters
+   * @return a stream of SpecializeMethod records
    */
-  private Stream<List<MethodParameter>> paramsOfSpecializedMethods(
+  private Stream<SpecializeMethodInfo> paramsOfSpecializedMethods(ProcessingEnvironment processingEnv,
       Optional<Integer> specializedParamIdx) {
-    Stream<List<MethodParameter>> unsorted =
+    Stream<SpecializeMethodInfo> unsorted =
         elements.stream()
             .map(
                 method -> {
                   List<? extends VariableElement> params = method.getParameters();
-                  return IntStream.range(0, params.size())
+                  return new SpecializeMethodInfo(method,
+                          IntStream.range(0, params.size())
                       .mapToObj(i -> fromVariableElementToMethodParameter(i, params.get(i)))
-                      .collect(Collectors.toList());
+                      .collect(Collectors.toList()),
+                          wrapExceptions(processingEnv, method));
                 });
     if (specializedParamIdx.isEmpty()) {
       // No need to sort specializations when only dealing with a single one
@@ -100,10 +104,13 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       final int specializedParamIdxFinal = specializedParamIdx.get();
       return unsorted.sorted(
           (a, b) ->
-              isLessSpecific(a.get(specializedParamIdxFinal))
+              isLessSpecific(a.params().get(specializedParamIdxFinal))
                   ? 1
-                  : isLessSpecific(b.get(specializedParamIdxFinal)) ? -1 : 0);
+                  : isLessSpecific(b.params().get(specializedParamIdxFinal)) ? -1 : 0);
     }
+  }
+
+  private record SpecializeMethodInfo(ExecutableElement origin, List<MethodParameter> params, SafeWrapException[] exceptionWrappers) {
   }
 
   /**
@@ -144,14 +151,14 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
           }
 
           MethodParameter p = v.get(0);
-          if (!p.needsToInjectValueOfType()) {
+          if (!p.needsToInjectValueOfType() && !p.isTruffleInjectedParam()) {
             if (v.size() > 1 && allEqual(v.stream())) {
               execParams.add(p);
             } else {
               // Specialize on the given parameter
+              String ensoName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.name());
               execParams.add(
-                  new MethodParameter(
-                      execParams.size() + 1, p.name(), "Object", new ArrayList<>()));
+                  new MethodParameter(execParams.size() + 1, ensoName, "Object", new ArrayList<>()));
               diffParams.add(k);
             }
             fallbackExecParams.add(p);
@@ -186,9 +193,13 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
    * @return string representation of the `execute` method's definition
    */
   protected List<String> specialize(
-      String owner, String name, List<MethodParameter> params, Optional<Integer> specializedParam) {
+      String owner,
+      String name,
+      SpecializeMethodInfo methodInfo,
+      Optional<Integer> specializedParam,
+      Map<String, Integer> builtinTypesParameterCounts) {
     List<SpecializedMethodParameter> params1 =
-        params.stream()
+        methodInfo.params().stream()
             .map(p -> SpecializedMethodParameter.paramOfSpecializedMethod(p, specializedParam))
             .collect(Collectors.toList());
     String paramsDef = "";
@@ -199,7 +210,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       }
     }
     String thisParamTpe = isStatic || isConstructor ? "Object" : owner;
-    String suffix = specializedParam.map(idx -> params.get(idx).tpeSimpleName()).orElse("Execute");
+    String suffix = specializedParam.map(idx -> methodInfo.params().get(idx).tpeSimpleName()).orElse("Execute");
 
     String annotation = "@Specialization";
     String methodSig =
@@ -218,34 +229,51 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
       paramsApplied = StringUtils.join(params1.stream().map(x -> x.paramName()).toArray(), ", ");
     }
 
-    List<String> specializationDeclaration = new ArrayList<>();
-    specializationDeclaration.add(annotation);
-    specializationDeclaration.add(methodSig + " {");
-    specializationDeclaration.addAll(
+
+    List<String> methodBody = new ArrayList<>();
+
+    methodBody.addAll(
         params1.stream()
             .flatMap(p -> p.auxParamDef().stream())
             .map(d -> "  " + d)
             .collect(Collectors.toList()));
 
     if (isConstructor) {
-      specializationDeclaration.add("  return new " + owner + "(" + paramsApplied + ");");
+      methodBody.add("  return new " + owner + "(" + paramsApplied + ");");
     } else {
       String qual = isStatic ? owner : "_this";
       switch (returnTpe.kind()) {
         case VOID:
-          specializationDeclaration.add("  " + qual + "." + name + "(" + paramsApplied + ");");
-          specializationDeclaration.add(
+          methodBody.add("  " + qual + "." + name + "(" + paramsApplied + ");");
+          methodBody.add(
               "  return Context.get(this).getBuiltins().nothing().newInstance();");
           break;
         case ARRAY:
-          specializationDeclaration.add(
+          methodBody.add(
               "  return new Array((Object[]) " + qual + "." + name + "(" + paramsApplied + "));");
           break;
         default:
-          specializationDeclaration.add(
+          methodBody.add(
               "  return " + qual + "." + name + "(" + paramsApplied + ");");
       }
     }
+
+    List<String> specializationDeclaration = new ArrayList<>();
+    specializationDeclaration.add(annotation);
+    specializationDeclaration.add(methodSig + " {");
+    if (methodInfo.exceptionWrappers.length != 0) {
+      specializationDeclaration.add("  try {");
+      for (String line: methodBody) {
+        specializationDeclaration.add("  " + line);
+      }
+      for (int i = 0; i < methodInfo.exceptionWrappers.length; i++) {
+        specializationDeclaration.addAll(methodInfo.exceptionWrappers[i].toCatchClause(methodInfo.params, builtinTypesParameterCounts));
+      }
+      specializationDeclaration.add("  }");
+    } else {
+      specializationDeclaration.addAll(methodBody);
+    }
+
     specializationDeclaration.add("}");
     return specializationDeclaration;
   }

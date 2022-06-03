@@ -38,10 +38,11 @@ public record TypeWithKind(String baseType, TypeKind kind) {
      */
     private static List<String> validGuestTypes =
             List.of(
+                    "org.enso.interpreter.runtime.callable.atom.Atom",
                     "org.enso.interpreter.runtime.data.Array",
                     "org.enso.interpreter.runtime.data.Ref",
                     "org.enso.interpreter.runtime.data.ManagedResource",
-                    "org.enso.interpreter.runtime.data.Text",
+                    "org.enso.interpreter.runtime.data.text.Text",
                     "org.enso.interpreter.runtime.data.EnsoFile");
 
 }

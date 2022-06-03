@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
  */
 public record SafeWrapException(Attribute.Class from, Attribute.Class to, Boolean passException) {
 
+    private static final String PanicExceptionClassName = "PanicException";
+
     public SafeWrapException(Attribute.Class from, Attribute.Class to, Attribute.Constant propagate) {
         this(from, to, propagate != null ? (Boolean) propagate.getValue() : false);
     }
@@ -29,11 +31,19 @@ public record SafeWrapException(Attribute.Class from, Attribute.Class to, Boolea
         String from = fromAttributeToClassName(from(), true);
         String to = fromAttributeToClassName(to(), false);
         if (passException) {
-            return List.of(
-                    "  } catch (" + from + " e) {",
-                    "    Builtins builtins = Context.get(this).getBuiltins();",
-                    "    throw new PanicException(builtins.error().make" + to + "(e), this);"
-            );
+            if (to.equals(PanicExceptionClassName)) {
+                return List.of(
+                        "  } catch (" + from + " e) {",
+                        "    Builtins builtins = Context.get(this).getBuiltins();",
+                        "    throw new PanicException(e, this);"
+                );
+            } else {
+                return List.of(
+                        "  } catch (" + from + " e) {",
+                        "    Builtins builtins = Context.get(this).getBuiltins();",
+                        "    throw new PanicException(builtins.error().make" + to + "(e), this);"
+                );
+            }
         } else {
             int toParamCount = errorParametersCount(to(), builtinTypesParameterCounts);
             List<String> errorParameters =

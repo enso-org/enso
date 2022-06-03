@@ -115,6 +115,18 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
         return tpeElements[tpeElements.length - 1];
     }
 
+    private final static String TruffleDSLPkgAnnotation = "@com.oracle.truffle.api.dsl";
+
+    /**
+     * Check if the parameter contains a Truffle-DSL annotation.
+     * Parameters annotated with such annotations should not appear in the abstract `execute` method, but
+     * should be passed to the specialized method signatures.
+     * @return
+     */
+    public boolean isTruffleInjectedParam() {
+        return !annotations.stream().filter(a -> a.startsWith(TruffleDSLPkgAnnotation)).findAny().isEmpty();
+    }
+
 
     public boolean needsToInjectValueOfType() {
         return typesToInject.contains(tpe);

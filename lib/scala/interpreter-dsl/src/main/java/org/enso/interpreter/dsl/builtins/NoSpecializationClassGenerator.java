@@ -32,12 +32,11 @@ public final class NoSpecializationClassGenerator extends MethodNodeClassGenerat
   }
 
   @Override
-  protected MethodGenerator methodsGen(ProcessingEnvironment processingEnv) {
+  protected MethodGenerator methodsGen() {
     return new ExecuteMethodImplGenerator(
         origin,
         needsGuestValueConversion(origin),
-        varArgExpansion,
-        wrapExceptions(processingEnv, origin));
+        varArgExpansion);
   }
 
   @Override

@@ -2,6 +2,7 @@ package org.enso.interpreter.dsl.builtins;
 
 import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
@@ -18,13 +19,12 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   private final ExecutableElement method;
   private final int varargExpansion;
   private final boolean needsVarargExpansion;
-  private final SafeWrapException[] exceptionWrappers;
+  private SafeWrapException[] exceptionWrappers;
 
   public ExecuteMethodImplGenerator(
       ExecutableElement method,
       boolean convertToGuestValue,
-      int expandedVarargs,
-      SafeWrapException[] exceptionWrappers) {
+      int expandedVarargs) {
     this(
         method,
         method.getReturnType().toString(),
@@ -32,8 +32,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         method.getKind() == ElementKind.CONSTRUCTOR,
         convertToGuestValue,
         expandedVarargs,
-        method.isVarArgs(),
-        exceptionWrappers);
+        method.isVarArgs());
   }
 
   private ExecuteMethodImplGenerator(
@@ -43,13 +42,11 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
       boolean isConstructor,
       boolean convertToGuestValue,
       int expandedVarargs,
-      boolean isVarargs,
-      SafeWrapException[] exceptionWrappers) {
+      boolean isVarargs) {
     super(isStatic, isConstructor, convertToGuestValue, TypeWithKind.createFromTpe(returnTpe));
     this.method = method;
     this.varargExpansion = expandedVarargs;
     this.needsVarargExpansion = isVarargs && (varargExpansion > 0);
-    this.exceptionWrappers = exceptionWrappers;
   }
 
   @Override
@@ -142,8 +139,10 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     return result || params.stream().anyMatch(p -> p.needsToHostTranslation());
   }
 
-  public List<String> generate(
+  public List<String> generate(ProcessingEnvironment processingEnv,
       String name, String owner, Map<String, Integer> builtinTypesParameterCounts) {
+
+    SafeWrapException[] exceptionWrappers = wrapExceptions(processingEnv, method);
     boolean wrapsExceptions = exceptionWrappers.length != 0;
     List<? extends VariableElement> rawParams = method.getParameters();
     List<MethodParameter> params =

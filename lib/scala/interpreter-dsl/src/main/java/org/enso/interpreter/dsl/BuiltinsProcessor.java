@@ -2,31 +2,22 @@ package org.enso.interpreter.dsl;
 
 import org.enso.interpreter.dsl.builtins.*;
 
-import com.sun.tools.javac.code.Attribute;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.util.Pair;
-
 import com.google.common.base.CaseFormat;
-import org.apache.commons.lang3.StringUtils;
 import org.openide.util.lookup.ServiceProvider;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * The processor used to generate code from the methods of the runtime representations annotated
@@ -129,18 +120,25 @@ public class BuiltinsProcessor extends AbstractProcessor {
 
     if (owner.getKind() == ElementKind.CLASS) {
       Builtin ownerAnnotation = owner.getAnnotation(Builtin.class);
-      assert (ownerAnnotation != null);
       TypeElement ownerTpeElement = (TypeElement) owner;
-      String ownerName =
-          ownerAnnotation.name().isEmpty()
-              ? ownerTpeElement.getSimpleName().toString()
-              : ownerAnnotation.name();
-      PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
+      String ownerName;
+      String builtinPkg;
+      if (ownerAnnotation != null) {
+        ownerName =
+                ownerAnnotation.name().isEmpty()
+                        ? ownerTpeElement.getSimpleName().toString()
+                        : ownerAnnotation.name();
 
+        builtinPkg =
+                ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
+      } else {
+        ownerName = ownerTpeElement.getSimpleName().toString();
+        builtinPkg = BuiltinsPkg;
+      }
+
+      PackageElement pkgElement = (PackageElement) ownerTpeElement.getEnclosingElement();
       Builtin.Method annotation = element.getAnnotation(Builtin.Method.class);
       boolean isConstructor = method.getKind() == ElementKind.CONSTRUCTOR;
-      String builtinPkg =
-          ownerAnnotation.pkg().isEmpty() ? BuiltinsPkg : BuiltinsPkg + "." + ownerAnnotation.pkg();
 
       Map<String, Integer> parameterCounts = builtinTypesParametersCount(roundEnv);
 
