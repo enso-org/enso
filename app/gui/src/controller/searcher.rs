@@ -1675,12 +1675,10 @@ pub mod test {
     #[wasm_bindgen_test]
     fn loading_components() {
         // Prepare a sample component group to be returned by a mock Language Server client.
-        let exported_component_name = 
+        let exported_component_name =
             crate::test::mock::data::module_qualified_name().to_string() + ".testFunction1";
-        let exported_component = language_server::LibraryComponent {
-            name: exported_component_name,
-            shortcut: None,
-        };
+        let exported_component =
+            language_server::LibraryComponent { name: exported_component_name, shortcut: None };
         let sample_ls_component_group = language_server::LibraryComponentGroup {
             library: "local.Unnamed_10".to_string(),
             name:    "Test Group 1".to_string(),
