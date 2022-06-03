@@ -76,29 +76,28 @@ impl Group {
     /// Construct from [`execution_context::ComponentGroup`]. The group components are looked up in
     /// the suggestion database by their full qualified name and skipped if not found. Returns
     /// [`None`] if none of the components were found in the suggestion database.
-    /// Returns a [`Group`] with
-    /// [`Component`]s found in the suggestion database 
-    /// Only the [`Component`]s for which 
-    /// Looks up the qualified names of the
-    /// group components in the suggestion database to retrieve full [`Component`] data skipping . Components
-    /// without 
     pub fn from_execution_context_component_group(
         group: execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
-    ) -> Self {
-        let components = group.components.iter().filter_map(|qualified_name| {
+    ) -> Option<Self> {
+        let lookup_component_by_qualified_name = |qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
             Some(Component { id: Immutable(id), suggestion, match_info: default() })
-        });
-        let entries = RefCell::new(components.collect());
-        let group_data = Data {
-            name: group.name,
-            color: group.color,
-            component_id: None,
-            visible: Cell::new(true),
-            entries,
         };
-        Group { data: Rc::new(group_data) }
+        let components =
+            group.components.iter().filter_map(lookup_component_by_qualified_name).collect_vec();
+        if components.len() > 0 {
+            let group_data = Data {
+                name:         group.name,
+                color:        group.color,
+                component_id: None,
+                visible:      Cell::new(true),
+                entries:      RefCell::new(components),
+            };
+            Some(Group { data: Rc::new(group_data) })
+        } else {
+            None
+        }
     }
 
     /// Update the group sorting according to the current filtering pattern.

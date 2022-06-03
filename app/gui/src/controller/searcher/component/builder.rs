@@ -114,10 +114,10 @@ impl List {
     /// Extend the list of favorites with new groups.
     pub fn extend_favorites<G>(&mut self, groups: G)
     where G: IntoIterator<Item = execution_context::ComponentGroup> {
-        let suggestion_db = &self.suggestion_db;
+        let db = &self.suggestion_db;
         let new_favorites = groups
             .into_iter()
-            .map(|g| component::Group::from_execution_context_component_group(g, suggestion_db));
+            .filter_map(|g| component::Group::from_execution_context_component_group(g, db));
         self.favorites.extend(new_favorites);
     }
 
