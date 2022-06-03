@@ -284,9 +284,19 @@ impl SuggestionDatabase {
 
     /// Search the database for an entry at `fully_qualified_name`. The parameter is expected to be
     /// composed of segments separated by the [`ACCESS`] character.
-    pub fn lookup_by_fully_qualified_name(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
-        let id = self.qualified_name_to_id_map.borrow().get(fully_qualified_name.split(ACCESS));
-        id.and_then(|id| self.lookup(id).ok())
+    pub fn lookup_by_qualified_name_str(&self, fully_qualified_name: &str) -> Option<Rc<Entry>> {
+        let (_, entry) = self.lookup_by_qualified_name(fully_qualified_name.split(ACCESS))?;
+        Some(entry)
+    }
+
+    /// Search the database for an entry at `name` consisting fully qualified name segments, e.g.
+    /// [`model::QualifiedName`].
+    pub fn lookup_by_qualified_name<P, I>(&self, name: P) -> Option<(SuggestionId, Rc<Entry>)>
+    where
+        P: IntoIterator<Item = I>,
+        I: Into<entry::QualifiedNameSegment>, {
+        let id = self.qualified_name_to_id_map.borrow().get(name);
+        id.and_then(|id| Some((id, self.lookup(id).ok()?)))
     }
 
     /// Search the database for entries with given name and visible at given location in module.
@@ -349,10 +359,18 @@ impl SuggestionDatabase {
         indices.filter_map(move |i| self.examples.borrow().get(i).cloned())
     }
 
+    /// Get vector of all ids of available entries.
+    pub fn keys(&self) -> Vec<entry::Id> {
+        self.entries.borrow().keys().cloned().collect()
+    }
+
     /// Put the entry to the database. Using this function likely breaks the synchronization between
     /// Language Server and IDE, and should be used only in tests.
     #[cfg(test)]
     pub fn put_entry(&self, id: entry::Id, entry: Entry) {
+        self.qualified_name_to_id_map
+            .borrow_mut()
+            .set_and_warn_if_existed(&entry.qualified_name(), id);
         self.entries.borrow_mut().insert(id, Rc::new(entry));
     }
 }
@@ -749,7 +767,7 @@ mod test {
     /// Looks up an entry at `fully_qualified_name` in the `db` and verifies the name of the
     /// retrieved entry.
     fn lookup_and_verify_result_name(db: &SuggestionDatabase, fully_qualified_name: &str) {
-        let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+        let lookup = db.lookup_by_qualified_name_str(fully_qualified_name);
         assert!(lookup.is_some());
         let name = fully_qualified_name.rsplit(ACCESS).next().unwrap();
         assert_eq!(lookup.unwrap().name, name);
@@ -758,7 +776,7 @@ mod test {
     /// Looks up an entry at `fully_qualified_name` in the `db` and verifies that the lookup result
     /// is [`None`].
     fn lookup_and_verify_empty_result(db: &SuggestionDatabase, fully_qualified_name: &str) {
-        let lookup = db.lookup_by_fully_qualified_name(fully_qualified_name);
+        let lookup = db.lookup_by_qualified_name_str(fully_qualified_name);
         assert_eq!(lookup, None);
     }
 
@@ -842,12 +860,12 @@ mod test {
     #[test]
     fn lookup_by_fully_qualified_name_with_invalid_names() {
         let db = SuggestionDatabase::new_empty(Logger::new("SuggestionDatabase"));
-        let _ = db.lookup_by_fully_qualified_name("");
-        let _ = db.lookup_by_fully_qualified_name(".");
-        let _ = db.lookup_by_fully_qualified_name("..");
-        let _ = db.lookup_by_fully_qualified_name("Empty.Entry.");
-        let _ = db.lookup_by_fully_qualified_name("Empty..Entry");
-        let _ = db.lookup_by_fully_qualified_name(GIBBERISH_MODULE_NAME);
+        let _ = db.lookup_by_qualified_name_str("");
+        let _ = db.lookup_by_qualified_name_str(".");
+        let _ = db.lookup_by_qualified_name_str("..");
+        let _ = db.lookup_by_qualified_name_str("Empty.Entry.");
+        let _ = db.lookup_by_qualified_name_str("Empty..Entry");
+        let _ = db.lookup_by_qualified_name_str(GIBBERISH_MODULE_NAME);
     }
 
     // Initialize suggestion database with some invalid entries and check if it doesn't panics.

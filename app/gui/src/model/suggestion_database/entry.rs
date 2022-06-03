@@ -82,6 +82,12 @@ impl From<&QualifiedName> for String {
     }
 }
 
+impl From<module::QualifiedName> for QualifiedName {
+    fn from(name: module::QualifiedName) -> Self {
+        name.segments().collect()
+    }
+}
+
 impl Display for QualifiedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let text = String::from(self);
@@ -304,6 +310,15 @@ impl Entry {
             },
             Kind::Module => self.module.into_iter().collect(),
             _ => chain_iter_and_entry_name(&self.module, self).collect(),
+        }
+    }
+
+    /// Get the fully qualified name of the parent module of this entry. Returns [`None`] if
+    /// the entry represents a top-level module.
+    pub fn parent_module(&self) -> Option<module::QualifiedName> {
+        match self.kind {
+            Kind::Module => self.module.parent_module(),
+            _ => Some(self.module.clone()),
         }
     }
 }
