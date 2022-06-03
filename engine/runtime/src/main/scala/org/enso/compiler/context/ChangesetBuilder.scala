@@ -46,9 +46,23 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   def build(edits: Seq[TextEdit]): Changeset[A] = {
 
     def findSimpleChange(): (IR.Literal.Number, TextEdit) = {
-      if (edits.size != 1) return null
-      val edit = edits.head
-
+      val edit = if (edits.size != 1) {
+        if (edits.size != 2) {
+          return null
+        }
+        try {
+          val firstAffected = invalidated(Seq(edits.head))
+          if (!firstAffected.isEmpty) {
+            return null
+          }
+        } catch {
+          case e : Throwable => e.printStackTrace()
+        }
+        edits.tail.head
+      } else {
+        edits.head
+      }
+      
       if (edit.range.start.line != edit.range.end.line) return null
 
       val len = edit.range.end.character - edit.range.start.character
@@ -56,7 +70,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         return null
       }
 
-      val directlyAffected = invalidated(edits)
+      val directlyAffected = invalidated(Seq(edit))
       if (directlyAffected.size != 1) return null;
 
       val directlyAffectedId = directlyAffected.head.externalId
