@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument;
 import java.util.UUID;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
+import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
@@ -28,6 +29,7 @@ import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
   private TestContext context;
+  private NodeCountingTestInstrument nodeCountingInstrument;
 
   @Before
   public void initializeContext() {
@@ -35,6 +37,8 @@ public class IncrementalUpdatesTest {
     context = t.new TestContext("Test");
     var initResponse = context.receive().get();
     assertEquals(Response(new Runtime$Api$InitializedNotification()), initResponse);
+    var engine = context.executionContext().context().getEngine();
+    nodeCountingInstrument = engine.getInstruments().get(NodeCountingTestInstrument.INSTRUMENT_ID).lookup(NodeCountingTestInstrument.class);
   }
 
   @Test
@@ -67,6 +71,8 @@ public class IncrementalUpdatesTest {
     var contents = metadata.appendToCode(code);
     var mainFile = context.writeMain(contents);
 
+    nodeCountingInstrument.enable();
+
     // create context
     var request = Request(requestId, new Runtime$Api$CreateContextRequest(contextId));
     context.send(request);
@@ -80,7 +86,8 @@ public class IncrementalUpdatesTest {
     );
     assertTrue("No reply", context.receiveNone().isEmpty());
 
-    // push main
+    nodeCountingInstrument.assertNewNodes("No execution, no nodes yet", 0, 0);
+
     context.send(
             Request(
                     requestId,
@@ -89,7 +96,7 @@ public class IncrementalUpdatesTest {
                             new Runtime$Api$StackItem$ExplicitCall(
                                     new Runtime$Api$MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
                                     None(),
-                                    new Vector1<>(new String[0])
+                                    new Vector1<>(new String[] { "0" })
                             )
                     )
             )
@@ -102,6 +109,8 @@ public class IncrementalUpdatesTest {
             context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne("4"), context.consumeOut());
+
+    nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 20, 35);
 
     // push foo call
     context.send(
@@ -118,7 +127,7 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne("4"), context.consumeOut());
 
-    // Modify the foo method
+    nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
     context.send(
       Request(
         new Runtime$Api$EditFileNotification(
@@ -136,6 +145,7 @@ public class IncrementalUpdatesTest {
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne("5"), context.consumeOut());
+    nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
   }
 
   private static void assertSameElements(List<Runtime$Api$Response> actual, Runtime$Api$Response... seq) {
