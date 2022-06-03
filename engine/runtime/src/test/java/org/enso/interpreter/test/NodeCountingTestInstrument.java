@@ -76,10 +76,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
       if (all.put(node, node) == null) {
         counter.computeIfAbsent(node.getClass(), (__) -> new CopyOnWriteArrayList<>()).add(node);
       }
-      return new DummyEventNode();
+      return null;
     }
-  }
-
-  private static final class DummyEventNode extends ExecutionEventNode {
   }
 }
