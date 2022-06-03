@@ -212,6 +212,15 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 ));
 
 
+                // === Selected entry ===
+
+                is_column_selected <- column.selected_entry.map(|e| e.is_some());
+                selected_entry <- column.selected_entry.gate(&is_column_selected);
+                out.selected_entry <+ selected_entry.map2(&entry_count, move |entry, total| {
+                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
+                });
+
+
                 // === Selection position ===
 
                 entry_selected <- column.selected_entry.filter_map(|e| *e);
@@ -225,9 +234,6 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 
                 // === set_entries ===
 
-                out.selected_entry <+ column.selected_entry.map2(&entry_count, move |entry, total| {
-                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
-                });
                 entries <- input.set_entries.map(move |p| ModelProvider::<COLUMNS>::wrap(p, col_id));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
