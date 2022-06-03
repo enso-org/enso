@@ -155,6 +155,12 @@ impl List {
         self.module_groups.get(&component).map(|mg| &mg.submodules)
     }
 
+    /// Get the content of given module component. Returns [`None`] if given component is not a
+    /// module.
+    pub fn get_module_content(&self, component: Id) -> Option<&Group> {
+        self.module_groups.get(&component).map(|mg| &mg.content)
+    }
+
     /// Update matching info in all components according to the new filtering pattern.
     pub fn update_filtering(&self, pattern: impl AsRef<str>) {
         let pattern = pattern.as_ref();
@@ -267,5 +273,70 @@ pub(crate) mod tests {
 
         list.update_filtering("y");
         assert!(!list.top_modules()[0].visible.get());
+    }
+
+
+    // === Component List modules tree ===
+
+    #[test]
+    fn component_list_modules_tree() {
+        // Prepare sample data for use in the components list.
+        let logger = Logger::new("test::component_list_modules_tree");
+        let top_module1 = mock_module("test.Test.TopModule1");
+        let top_module2 = mock_module("test.Test.TopModule2");
+        let sub_module1 = mock_module("test.Test.TopModule1.SubModule1");
+        let sub_module2 = mock_module("test.Test.TopModule1.SubModule2");
+        let sub_sub_module = mock_module("test.Test.TopModule1.SubModule1.SubSubModule");
+        let top_fn1 = mock_function(&top_module1.module, "fn1");
+        let top_fn2 = mock_function(&top_module2.module, "fn2");
+        let sub_fn1 = mock_function(&sub_module1.module, "subfn1");
+        let sub_fn2 = mock_function(&sub_module1.module, "subfn2");
+        let sub_sub_fn1 = mock_function(&sub_sub_module.module, "subsubfn1");
+        let sub_sub_fn2 = mock_function(&sub_sub_module.module, "subsubfn2");
+        let all_entries = [
+            top_module1,
+            top_module2,
+            sub_module1,
+            sub_module2,
+            sub_sub_module,
+            top_fn1,
+            top_fn2,
+            sub_fn1,
+            sub_fn2,
+            sub_sub_fn1,
+            sub_sub_fn2,
+        ];
+
+        // Insert the sample data into the suggestion database and into the components list.
+        let suggestion_db = model::SuggestionDatabase::new_empty(logger);
+        for (id, entry) in all_entries.into_iter().enumerate() {
+            suggestion_db.put_entry(id, entry)
+        }
+        let mut builder = builder::List::new(Rc::new(suggestion_db));
+        builder.extend(0..11);
+        let list = builder.build();
+
+        // Verify that we can read all top-level modules from the component list.
+        let expected_top_modules_ids = vec![Some(0), Some(1)];
+        let top_modules_ids = list.top_modules().iter().map(|m| m.component_id).collect_vec();
+        assert_eq!(top_modules_ids, expected_top_modules_ids);
+
+        // Verify that we can read content and direct submodules of a second-level submodule
+        // ("test.Test.TopModule1.SubModule1").
+        let content = list.get_module_content(2).unwrap();
+        let expected_content_ids = vec![7, 8, 4];
+        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        assert_eq!(content_ids, expected_content_ids);
+        let direct_submodules = list.submodules_of(2).unwrap();
+        let expected_direct_submodules_ids = vec![Some(4)];
+        let direct_submodules_ids = direct_submodules.iter().map(|m| m.component_id).collect_vec();
+        assert_eq!(direct_submodules_ids, expected_direct_submodules_ids);
+
+        // Verify that we can read content of a third-level submodule
+        // ("test.Test.TopModule1.SubModule1.SubSubModule").
+        let content = list.get_module_content(4).unwrap();
+        let expected_content_ids = vec![9, 10];
+        let content_ids = content.entries.borrow().iter().map(|entry| *entry.id).collect_vec();
+        assert_eq!(content_ids, expected_content_ids);
     }
 }
