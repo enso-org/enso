@@ -520,7 +520,7 @@ spec prefix table_builder test_selection pending=Nothing =
                 col2 = ["beta", ["a", "b", "a", "b"]]
                 col3 = ["gamma", [1, 2, 3, 4]]
                 col4 = ["delta", ["a10", "a1", "a2", "a03"]]
-                col5 = ["eta", ["Beta", "alpha", "bądź", "Alpha"]]
+                col5 = ["eta", ["Beta", "alpha", "bądź", "Aleph"]]
                 col6 = ["xi", [1.0, 1.5, Nothing, 0.5]]
                 col7 = ["psi", [Nothing, "c01", "c10", "C2"]]
                 col8 = ["phi", ["śc", Nothing, 's\u0301b', "śa"]]
@@ -682,16 +682,37 @@ spec prefix table_builder test_selection pending=Nothing =
                         t1.at "alpha" . to_vector . should_equal [1, 0, 3, 2]
 
             Test.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
-                # delta
-                Nothing
+                t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
+                t1.at "delta" . to_vector . should_equal ["a1", "a2", "a03", "a10"]
+                t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
+                t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering sort_digits_as_numbers=False)
+                t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
+                t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
+
+            # TODO [RW] This test must actually be verified in practice.
             Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
-                # eta
-                Nothing
+                t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+                t1.at "eta" . to_vector . should_equal ["Aleph", "alpha", "Beta", "bądź"]
+
+                t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive (Locale.new "pl" "PL"))
+                t2.at "eta" . to_vector . should_equal ["Aleph", "alpha", "bądź", "Beta"]
+
+                t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"])
+                t3.at "eta" . to_vector . should_equal ["Aleph", "Beta", "alpha", "bądź"]
 
             Test.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
-                # psi
-                Nothing
+                t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
+                t1.at "psi" . to_vector . should_equal ["c01", "C2", "c10", Nothing]
+
+                t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
+                t2.at "psi" . to_vector . should_equal ["C2", "c01", "c10", Nothing]
+
+                t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
+                t3.at "psi" . to_vector . should_equal ["c01", "c10", "C2", Nothing]
+
+                t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"])
+                t4.at "psi" . to_vector . should_equal ["C2", "c01", "c10", Nothing]
 
             Test.specify "text ordering settings should not affect numeric columns" <|
                 ordering = Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive
