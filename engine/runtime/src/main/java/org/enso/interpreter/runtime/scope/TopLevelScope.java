@@ -76,7 +76,6 @@ public class TopLevelScope implements TruffleObject {
     return module;
   }
 
-
   /**
    * Returns the builtins module.
    *
