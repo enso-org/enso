@@ -10,9 +10,9 @@ import org.enso.interpreter.node.ExpressionNode;
 /** A representation of integer literals in Enso. */
 @NodeInfo(shortName = "IntegerLiteral")
 public final class IntegerLiteralNode extends ExpressionNode {
-  private static final Assumption CONSTANTS_ARE_CONSTANTS = Truffle.getRuntime().createAssumption("Constants were never updated");
-  @CompilerDirectives.CompilationFinal
-  private long value;
+  private static final Assumption CONSTANTS_ARE_CONSTANTS =
+      Truffle.getRuntime().createAssumption("Constants were never updated");
+  @CompilerDirectives.CompilationFinal private long value;
 
   private IntegerLiteralNode(long value) {
     this.value = value;
