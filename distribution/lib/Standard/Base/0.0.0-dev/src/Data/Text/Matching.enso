@@ -235,6 +235,13 @@ type Match_Matrix
         this.criteria.filter_with_index j-> _->
             this.matrix . at i . at j
 
+    ## PRIVATE
+       Returns the list of criteria indices that match the ith object.
+    criteria_indices_matching_object : Integer -> Vector
+    criteria_indices_matching_object i =
+        (0.up_to this.criteria.length).filter j->
+            this.matrix . at i . at j
+
 ## PRIVATE
    Generates a matrix specifying which criteria match which object.
 
