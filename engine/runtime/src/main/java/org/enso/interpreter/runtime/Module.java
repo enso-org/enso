@@ -79,9 +79,7 @@ public class Module implements TruffleObject {
   }
 
   private ModuleScope scope;
-  private TruffleFile sourceFile;
-  private Rope literalSource;
-  private Source cachedSource;
+  private Sources sources;
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
@@ -101,7 +99,7 @@ public class Module implements TruffleObject {
    * @param sourceFile the module's source file.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
-    this.sourceFile = sourceFile;
+    this.sources = Sources.NONE.newWith(sourceFile);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -119,7 +117,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
-    this.literalSource = Rope.apply(literalSource);
+    this.sources = Sources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -137,7 +135,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
-    this.literalSource = literalSource;
+    this.sources = Sources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -154,6 +152,7 @@ public class Module implements TruffleObject {
    *     belong to a package.
    */
   private Module(QualifiedName name, Package<TruffleFile> pkg) {
+    this.sources = Sources.NONE;
     this.name = name;
     this.scope = new ModuleScope(this);
     this.pkg = pkg;
@@ -179,14 +178,13 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.isInteractive = false;
-    this.literalSource = null;
-    this.cachedSource = null;
+    this.sources = Sources.NONE;
     this.compilationStage = CompilationStage.INITIAL;
   }
 
   /** @return the literal source of this module. */
   public Rope getLiteralSource() {
-    return literalSource;
+    return sources.literalSource();
   }
 
   /**
@@ -209,9 +207,8 @@ public class Module implements TruffleObject {
         return;
       }
     }
-    this.literalSource = source;
+    this.sources = this.sources.newWith(source);
     this.compilationStage = CompilationStage.INITIAL;
-    this.cachedSource = null;
     this.isInteractive = true;
   }
 
@@ -221,19 +218,14 @@ public class Module implements TruffleObject {
    * @param file the module source file.
    */
   public void setSourceFile(TruffleFile file) {
-    this.literalSource = null;
-    this.sourceFile = file;
+    this.sources = Sources.NONE.newWith(file);
     this.compilationStage = CompilationStage.INITIAL;
-    this.cachedSource = null;
     this.isInteractive = false;
   }
 
   /** @return the location of this module. */
   public String getPath() {
-    if (sourceFile != null) {
-      return sourceFile.getPath();
-    }
-    return null;
+    return sources.getPath();
   }
 
   /**
@@ -266,17 +258,13 @@ public class Module implements TruffleObject {
    * @throws IOException when the source comes from a file that can't be read.
    */
   public Source getSource() throws IOException {
-    if (cachedSource != null) {
-      return cachedSource;
+    final Source cached = sources.cachedSource();
+    if (cached != null) {
+      return cached;
     }
-    if (literalSource != null) {
-      cachedSource =
-          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-    } else if (sourceFile != null) {
-      cachedSource = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
-      literalSource = Rope.apply(cachedSource.getCharacters().toString());
-    }
-    return cachedSource;
+    Sources newSources = sources.ensureCachedSource(name);
+    sources = newSources;
+    return newSources.cachedSource();
   }
 
   private void compile(Context context) throws IOException {
@@ -357,7 +345,7 @@ public class Module implements TruffleObject {
 
   /** @return the source file of this module. */
   public TruffleFile getSourceFile() {
-    return sourceFile;
+    return sources.sourceFile();
   }
 
   /** @return {@code true} if the module is interactive, {@code false} otherwise */
@@ -441,8 +429,7 @@ public class Module implements TruffleObject {
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.cachedSource = null;
-      module.literalSource = null;
+      module.sources = module.sources.newWith((Rope)null);
       module.isInteractive = false;
       module.wasLoadedFromCache = false;
       try {
@@ -583,5 +570,40 @@ public class Module implements TruffleObject {
         MethodNames.Module.SET_SOURCE_FILE,
         MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
         MethodNames.Module.EVAL_EXPRESSION);
+  }
+
+  private record Sources(
+          TruffleFile sourceFile,
+          Rope literalSource,
+          Source cachedSource) {
+
+    static final Sources NONE = new Sources(null, null, null);
+
+    Sources newWith(TruffleFile f) {
+      return new Sources(f, literalSource(), cachedSource());
+    }
+
+    Sources newWith(Rope r) {
+      return new Sources(sourceFile(), r, null);
+    }
+
+    Sources ensureCachedSource(QualifiedName name) throws IOException {
+      if (cachedSource != null) {
+        return this;
+      }
+      if (literalSource != null) {
+        var src = Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
+        return new Sources(sourceFile, literalSource, src);
+      } else if (sourceFile != null) {
+        var src = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
+        var lit = Rope.apply(src.getCharacters().toString());
+        return new Sources(sourceFile, lit, src);
+      }
+      throw new IllegalStateException();
+    }
+
+    String getPath() {
+      return sourceFile() == null ? null : sourceFile().getPath();
+    }
   }
 }
