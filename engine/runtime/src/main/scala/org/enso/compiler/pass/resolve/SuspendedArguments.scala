@@ -239,17 +239,7 @@ case object SuspendedArguments extends IRPass {
     */
   def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
-      case IR.Application.Operator.Binary(
-            l,
-            IR.Name.Literal("->", _, _, _, _, _),
-            r,
-            _,
-            _,
-            _
-          ) =>
-        l.value :: toSegments(r.value)
-      case IR.Function.Lambda(args, body, _, _, _, _) =>
-        args.map(_.name) ::: toSegments(body)
+      case IR.Type.Function(args, ret, _, _, _) => args :+ ret
       case _ => List(signature)
     }
   }

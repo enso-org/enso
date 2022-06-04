@@ -158,7 +158,10 @@ class TypeSignaturesTest
         m.methodName.name == methodName
       case _ => false
     }.get
-    m.unsafeGetMetadata(TypeSignatures, "come on").signature
+    m.unsafeGetMetadata(
+      TypeSignatures,
+      s"expected a type signature on method $methodName"
+    ).signature
   }
 
   "Type Signatures" should {
@@ -229,6 +232,34 @@ class TypeSignaturesTest
       val module = code.preprocessModule
       getSignature(module, "baz") should typeAs(
         ("Unnamed.Test.Foo" | "my_pkg.My_Lib.Util.Util_2" | "my_pkg.My_Lib.Util.Util_Sum") ->: "Unnamed.Test.Foo"
+      )
+    }
+
+    "resolve bare return types in local functions" in {
+      val code =
+        """
+          |type Number
+          |    @Builtin_Type
+          |    type Number
+          |
+          |baz =
+          |    x : Number
+          |    x = 1334
+          |""".stripMargin
+
+      val module = code.preprocessModule
+      println(
+        module
+          .bindings(1)
+          .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+          .body
+          .asInstanceOf[IR.Function.Lambda]
+          .body
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .unsafeGetMetadata(TypeSignatures, "must have a signature")
+          .signature
+          .unsafeGetMetadata(TypeNames, "must have a resolution")
       )
     }
   }

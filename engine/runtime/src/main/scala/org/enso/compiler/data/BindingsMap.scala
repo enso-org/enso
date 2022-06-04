@@ -312,7 +312,15 @@ case class BindingsMap(
     includeTypes: Boolean
   ): List[ResolvedTypeName] = {
     if (includeTypes) {
-      allExportedSymbols.getOrElse(name.toLowerCase, List())
+      val allSymbols = allExportedSymbols.getOrElse(name.toLowerCase, List())
+      val onlyTypes = allSymbols.collect { case t: ResolvedType =>
+        t
+      }
+      if (onlyTypes.nonEmpty) {
+        onlyTypes
+      } else {
+        allSymbols
+      }
     } else {
       exportedSymbols.getOrElse(name.toLowerCase, List())
     }

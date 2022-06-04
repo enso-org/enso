@@ -899,9 +899,8 @@ class AstToIrTest extends CompilerTest with Inside {
           .asInstanceOf[IR.Application.Operator.Binary]
 
       ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
+        .asInstanceOf[IR.Type.Function]
+        .args(0) shouldBe an[IR.Name.Qualified]
     }
 
     "work inside type bodies" in {
@@ -952,21 +951,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .expression shouldBe an[IR.Application.Operator.Binary]
     }
 
-    "properly support nested ascriptions" in {
-      val ir =
-        """
-          |x : (a : Type) -> (b : Type -> Type) -> (c : Type)
-          |""".stripMargin.toIrExpression.get
-          .asInstanceOf[IR.Application.Operator.Binary]
-
-      ir.right.value shouldBe an[IR.Function.Lambda]
-      ir.right.value
-        .asInstanceOf[IR.Function.Lambda]
-        .arguments
-        .head
-        .ascribedType shouldBe defined
-    }
-
     // TODO [AA] Syntax error with `f a ->`
 
     "properly support dotted operators in ascriptions" in {
@@ -976,9 +960,8 @@ class AstToIrTest extends CompilerTest with Inside {
           .asInstanceOf[IR.Application.Operator.Binary]
 
       ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
+        .asInstanceOf[IR.Type.Function]
+        .args(0) shouldBe an[IR.Name.Qualified]
     }
 
     "properly support the `in` context ascription operator" in {
