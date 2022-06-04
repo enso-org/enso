@@ -9,16 +9,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.annotation.unused
-
-/** Resolves and desugars referent name occurences in non-pattern contexts.
-  *
-  * 1. Attaches resolution metadata to encountered constructors, modules,
-  *    and polygot symbols.
-  * 2. Desugars encountered method references into proper applications.
-  * 3. Resolves qualified calls to constructors, i.e. a call of the form
-  *    `KnownModule.consName a b c` is transformed into `KnownCons a b c`,
-  *    if `consName` refers to a constructor and `KnownModule` was successfully
-  *    resolved to a module.
+/** Resolves and desugars referent name occurences in type positions.
   */
 case object TypeNames extends IRPass {
 
