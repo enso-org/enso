@@ -9,6 +9,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.annotation.unused
+
 /** Resolves and desugars referent name occurences in type positions.
   */
 case object TypeNames extends IRPass {

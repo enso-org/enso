@@ -240,7 +240,7 @@ case object SuspendedArguments extends IRPass {
   def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
       case IR.Type.Function(args, ret, _, _, _) => args :+ ret
-      case _ => List(signature)
+      case _                                    => List(signature)
     }
   }
 
