@@ -36,7 +36,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     this.env.getInstrumenter().attachExecutionEventFactory(SourceSectionFilter.ANY, new CountingFactory());
   }
 
-  public int assertNewNodes(String msg, int min, int max) {
+  public Map<Class, List<Node>> assertNewNodes(String msg, int min, int max) {
     Map<Class, List<Node>> prev = counter;
     long value  = prev.values().stream().mapToInt(List::size).sum();
 
@@ -57,7 +57,7 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
       fail(dump.apply(msg + ". Maximal size should be " + max + ", but was: " + value + " in"));
     }
     counter = new ConcurrentHashMap<>();
-    return (int) value;
+    return prev;
   }
 
   private void dumpNode(String indent, Node n, StringBuilder sb) {

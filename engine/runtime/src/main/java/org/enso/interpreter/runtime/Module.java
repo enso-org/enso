@@ -117,7 +117,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
-    this.sources = Sources.NONE.newWith(Rope.apply(literalSource));
+    this.sources = Sources.NONE.newWith(Rope.apply(literalSource), false);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -135,7 +135,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
-    this.sources = Sources.NONE.newWith(literalSource);
+    this.sources = Sources.NONE.newWith(literalSource, false);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -204,10 +204,11 @@ public class Module implements TruffleObject {
   public void setLiteralSource(Rope source, IR$Literal$Number change, model.TextEdit edit) {
     if (this.scope != null && edit != null) {
       if (this.scope.simpleUpdate(edit)) {
+        this.sources = this.sources.newWith(source, true);
         return;
       }
     }
-    this.sources = this.sources.newWith(source);
+    this.sources = this.sources.newWith(source, false);
     this.compilationStage = CompilationStage.INITIAL;
     this.isInteractive = true;
   }
@@ -429,7 +430,7 @@ public class Module implements TruffleObject {
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.sources = module.sources.newWith((Rope)null);
+      module.sources = module.sources.newWith(null, false);
       module.isInteractive = false;
       module.wasLoadedFromCache = false;
       try {
@@ -574,36 +575,80 @@ public class Module implements TruffleObject {
 
   private record Sources(
           TruffleFile sourceFile,
-          Rope literalSource,
+          AdaptiveRope ropeHolder,
           Source cachedSource) {
 
-    static final Sources NONE = new Sources(null, null, null);
+    static final Sources NONE = new Sources(null, new AdaptiveRope(null), null);
 
     Sources newWith(TruffleFile f) {
-      return new Sources(f, literalSource(), cachedSource());
+      return new Sources(f, ropeHolder(), cachedSource());
     }
 
-    Sources newWith(Rope r) {
-      return new Sources(sourceFile(), r, null);
+    Sources newWith(Rope r, boolean keepCachedSource) {
+      if (keepCachedSource) {
+        if (r.characters().length() != literalSource().characters().length()) {
+          throw new IllegalStateException();
+        }
+        this.ropeHolder.update(r);
+        return this;
+      } else {
+        return new Sources(sourceFile(), new AdaptiveRope(r), null);
+      }
     }
 
     Sources ensureCachedSource(QualifiedName name) throws IOException {
       if (cachedSource != null) {
         return this;
       }
-      if (literalSource != null) {
-        var src = Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-        return new Sources(sourceFile, literalSource, src);
+      if (literalSource() != null) {
+        var src = Source.newBuilder(LanguageInfo.ID, ropeHolder, name.toString()).build();
+        return new Sources(sourceFile, ropeHolder, src);
       } else if (sourceFile != null) {
         var src = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
         var lit = Rope.apply(src.getCharacters().toString());
-        return new Sources(sourceFile, lit, src);
+        return new Sources(sourceFile, new AdaptiveRope(lit), src);
       }
       throw new IllegalStateException();
     }
 
     String getPath() {
       return sourceFile() == null ? null : sourceFile().getPath();
+    }
+
+    Rope literalSource() {
+      return ropeHolder.rope;
+    }
+
+    private static final class AdaptiveRope implements CharSequence {
+      Rope rope;
+
+      AdaptiveRope(Rope rope) {
+        this.rope = rope;
+      }
+
+      void update(Rope r) {
+        this.rope = r;
+      }
+
+      @Override
+      public int length() {
+        return rope.characters().length();
+      }
+
+      @Override
+      public char charAt(int index) {
+        return rope.characters().charAt(index);
+      }
+
+      @Override
+      public CharSequence subSequence(int start, int end) {
+        return rope.characters().subSequence(start, end);
+      }
+
+      @Override
+      public String toString() {
+        return rope.toString();
+      }
     }
   }
 }

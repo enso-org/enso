@@ -1,6 +1,9 @@
 package org.enso.interpreter.test.instrument;
 
+import com.oracle.truffle.api.nodes.Node;
+import java.util.Map;
 import java.util.UUID;
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
@@ -19,6 +22,7 @@ import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
@@ -127,7 +131,10 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne("4"), context.consumeOut());
 
-    nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
+    var allNodesAfterException = nodeCountingInstrument.assertNewNodes("There shall be more nodes after execution", 25, Integer.MAX_VALUE);
+    var intNode = findIntegerLiteralNode(allNodesAfterException);
+    assertEquals("Int node represents 4 in the source", "4", intNode.getSourceSection().getCharacters().toString());
+
     context.send(
       Request(
         new Runtime$Api$EditFileNotification(
@@ -146,6 +153,15 @@ public class IncrementalUpdatesTest {
     );
     assertEquals(List.newBuilder().addOne("5"), context.consumeOut());
     nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
+
+    assertEquals("Int node has been updated to 5 in the source", "5", intNode.getSourceSection().getCharacters().toString());
+  }
+
+  private IntegerLiteralNode findIntegerLiteralNode(Map<Class, java.util.List<Node>> nodes) {
+      var intNodes = nodes.get(IntegerLiteralNode.class);
+      assertNotNull("Found IntegerLiteralNode in " + nodes, intNodes);
+      assertEquals("Expecting one node: " + intNodes, 1, intNodes.size());
+      return (IntegerLiteralNode) intNodes.get(0);
   }
 
   private static void assertSameElements(List<Runtime$Api$Response> actual, Runtime$Api$Response... seq) {
