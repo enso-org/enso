@@ -117,6 +117,7 @@ pub mod header_background {
 
     ensogl::define_shape_system! {
         above = [background, list_view::background];
+        pointer_events = false;
         (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
@@ -339,7 +340,7 @@ impl component::Frp<Model> for Frp {
         // === Header ===
 
         frp::extend! { network
-            model.entries.disallow_selecting_entries_above <+ input.set_header_pos.map(|p| *p + 27.0 / 2.0);
+            model.entries.disallow_selecting_entries_above <+ input.set_header_pos.map(|p| *p + 7.0);
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
@@ -384,15 +385,9 @@ impl component::Frp<Model> for Frp {
             is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
             some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
-            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over);
-            //trace some_entry_selected;
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted).gate_not(&out.is_header_selected);
-            deselect_header <- some_entry_selected.gate(&out.is_header_selected);
-            //deselect_header <- any(&mouse_moved_beyond_header, &some_entry_selected).gate(&out.is_header_selected);
-            //trace select_header;
-            //trace deselect_header;
-            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
+            out.is_header_selected <+ bool(&some_entry_selected, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with3(
@@ -408,7 +403,7 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry.gate_not(&out.is_header_selected);
+            out.selected_entry <+ model.entries.selected_entry;
             out.selected_entry <+ out.is_header_selected.on_true().constant(None);
         }
 
