@@ -252,6 +252,7 @@
 [3465]: https://github.com/enso-org/enso/pull/3465
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
+[3505]: https://github.com/enso-org/enso/pull/3505
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
