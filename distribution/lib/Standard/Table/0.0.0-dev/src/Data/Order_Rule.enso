@@ -18,8 +18,8 @@ type Order_Rule
          non-`Nothing` value.
        - order: specifies whether the table should be sorted in an ascending or
          descending order. The default value of `Nothing` delegates the decision
-         to the sorting function. Can be set to `Sort_Order.Ascending` or
-         `Sort_Order.Descending` from the `Base` library, to specify the
+         to the sorting function. Can be set to `Sort_Direction.Ascending` or
+         `Sort_Direction.Descending` from the `Base` library, to specify the
          ordering.
        - missing_last: whether the missing values should be placed at the
          beginning or end of the sorted table. Note that this argument is

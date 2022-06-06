@@ -17,15 +17,18 @@ use enso_web as web;
 #[allow(dead_code)] // Used from JavaScript.
 pub async fn entry_point_profile() {
     web::forward_panic_hook_to_console();
-    ensogl_text_msdf_sys::initialized().await;
 
     // Run selected workflow.
     let need_workflow = "`profile` entry point requires --workflow argument. \
     Try --workflow=help to see a list of options.";
     let selected = enso_config::ARGS.test_workflow.as_ref().expect(need_workflow);
     reflect_match!(match selected as options {
-        "add_node" => profile_add_node().await,
+        "collapse_nodes" => profile_collapse_nodes().await,
+        "create_node" => profile_create_node().await,
+        "enter_collapsed_node" => profile_enter_collapsed_node().await,
         "new_project" => profile_new_project().await,
+        "open_project_orders" => profile_open_project_orders().await,
+        "open_visualization" => profile_open_visualization().await,
         _ => panic!("Unknown workflow: {selected}. Must be one of: {options:?}."),
     });
 
@@ -40,20 +43,43 @@ pub async fn entry_point_profile() {
 // === Workflow definitions ===
 // ============================
 
-#[profile(Objective)]
-async fn profile_add_node() {
-    let test = Fixture::setup_new_project().await;
-    let graph_editor = test.graph_editor();
-    let initial_nodes = graph_editor.nodes().all.len();
-    let expect_node_added = graph_editor.node_added.next_event();
-    graph_editor.add_node();
-    let _ = expect_node_added.expect();
-    let added_nodes = 1;
-    assert_eq!(graph_editor.nodes().all.len(), initial_nodes + added_nodes);
+async fn profile_create_node() {
+    let test = Fixture::create_project().await;
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.create_node("1"), _profiler);
 }
 
-#[profile(Objective)]
+async fn profile_collapse_nodes() {
+    let test = Fixture::create_project().await;
+    test.graph_editor().select_all_nodes();
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.collapse_selected_nodes(), _profiler);
+}
+
+async fn profile_enter_collapsed_node() {
+    let test = Fixture::create_project().await;
+    test.graph_editor().select_all_nodes();
+    let id = test.collapse_selected_nodes().await;
+    test.graph_editor().select_node(id);
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.enter_selected_node(), _profiler);
+}
+
 async fn profile_new_project() {
-    let test = Fixture::setup_new_project().await;
-    mem::forget(Box::new(test));
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    let _ = profiler::await_!(Fixture::create_project(), _profiler);
+}
+
+async fn profile_open_project_orders() {
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    let _ = profiler::await_!(Fixture::open_project_orders(), _profiler);
+}
+
+async fn profile_open_visualization() {
+    let test = Fixture::create_project().await;
+    let graph_editor = test.graph_editor();
+    let node = InitialNodes::obtain_from_graph_editor(&graph_editor).below.0;
+    graph_editor.select_node(node);
+    let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@highlight");
+    profiler::await_!(test.visualize_selected_nodes(), _profiler);
 }

@@ -113,7 +113,38 @@ class ComponentGroupsValidatorSpec extends AnyWordSpec with Matchers {
 
       validator.validate(testPackages) shouldEqual expected
     }
+
+    "preserve component groups order" in {
+      val validator = new ComponentGroupsValidator
+      val testPackages = Vector(
+        config(
+          "Foo",
+          "Bar",
+          ComponentGroups(List(newComponentGroup("Mod1", "one", "two")), List())
+        ),
+        config(
+          "Foo",
+          "Baz",
+          ComponentGroups(List(newComponentGroup("Mod2", "one", "two")), List())
+        ),
+        config(
+          "Foo",
+          "Abc",
+          ComponentGroups(
+            List(newComponentGroup("Abc1", "four", "five")),
+            List()
+          )
+        )
+      )
+      val expected = testPackages.map { config =>
+        libraryName(config) -> config.componentGroups
+      }
+
+      validator.validate(testPackages) shouldEqual expected
+    }
+
   }
+
 }
 
 object ComponentGroupsValidatorSpec {

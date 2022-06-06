@@ -45,7 +45,8 @@ final class ComponentGroupsValidator {
   ): Map[LibraryName, Either[ValidationError, ComponentGroups]] = {
     val init: Map[LibraryName, Either[ValidationError, ComponentGroups]] =
       componentGroups.map { case (k, v) => k -> Right(v) }
-    val groupsMap: mutable.Map[GroupReference, ComponentGroup] = mutable.Map()
+    val groupsMap: mutable.Map[GroupReference, ComponentGroup] =
+      mutable.HashMap()
 
     runValidation(init)(
       validateDuplicateComponentGroups(groupsMap),

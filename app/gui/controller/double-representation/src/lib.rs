@@ -61,6 +61,8 @@ pub mod prelude {
     pub use ast::prelude::*;
     pub use enso_logger::*;
     pub use enso_prelude::*;
+    pub use enso_profiler as profiler;
+    pub use enso_profiler::prelude::*;
 
     #[cfg(test)]
     pub use wasm_bindgen_test::wasm_bindgen_test;

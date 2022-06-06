@@ -101,7 +101,7 @@ impl AsRef<str> for CowString {
 // ================
 
 /// Immutable string implementation with a fast clone implementation.
-#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ImString {
     content: Rc<String>,

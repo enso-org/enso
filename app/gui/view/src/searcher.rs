@@ -122,6 +122,7 @@ impl Model {
         let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
         let list = app.new_view::<ListView<Entry>>();
+        list.focus();
         let documentation = documentation::View::new(scene);
         let doc_provider = default();
         scene.layers.node_searcher.add_exclusive(&list);

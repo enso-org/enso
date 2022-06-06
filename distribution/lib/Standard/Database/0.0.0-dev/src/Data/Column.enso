@@ -460,9 +460,9 @@ type Column
        > Example
          Sorting `column` in descending order, placing missing values at the
          top of the resulting column.
-             column.sort order=Sort_Order.Descending missing_last=False
-    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort order=Sort_Order.Ascending missing_last=True =
+             column.sort order=Sort_Direction.Descending missing_last=False
+    sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Direction.Ascending missing_last=True =
         this.to_table.sort by=this order=order missing_last=missing_last . at this.name
 
     ## UNSTABLE

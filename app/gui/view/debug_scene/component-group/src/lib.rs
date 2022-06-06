@@ -36,6 +36,14 @@ use list_view::entry::AnyModelProvider;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+
+
+
 // ===================
 // === Entry Point ===
 // ===================
@@ -185,6 +193,12 @@ fn create_component_group(
     component_group
 }
 
+fn create_wide_component_group(app: &Application) -> component_group::wide::View {
+    let component_group = app.new_view::<component_group::wide::View>();
+    component_group.set_width(450.0);
+    component_group.set_position_x(-200.0);
+    component_group
+}
 
 fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
@@ -231,7 +245,7 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(0.0, 100.0));
+    scroll_area.set_position_xy(Vector2(150.0, 100.0));
     scroll_area.resize(Vector2(170.0, 400.0));
     scroll_area.set_content_width(150.0);
     scroll_area.set_content_height(2000.0);
@@ -303,7 +317,7 @@ fn init(app: &Application) {
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
-    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    let default_color = COMPONENT_GROUP_COLOR;
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
@@ -320,6 +334,36 @@ fn init(app: &Application) {
     init.emit(());
 
 
+    // === Components groups set ===
+
+    let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
+        first_component_group.clone_ref().into(),
+        second_component_group.clone_ref().into(),
+        wide_component_group.clone_ref().into(),
+    ]);
+    let multiview = component_group::set::Wrapper::new();
+    for group in groups.iter() {
+        multiview.add(group.clone_ref());
+    }
+
+    frp::extend! { network
+        selected_entry <- multiview.selected_entry.on_change();
+        eval selected_entry([](e) if let Some(e) = e {  DEBUG!("Entry {e.1} from group {e.0} selected") });
+        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g}"));
+        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g}"));
+        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
+        eval header_selected([](g) DEBUG!("Header selected in group {g}"));
+        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g}"));
+
+        eval multiview.focused([groups]((g, f)) {
+            match &groups[usize::from(g)] {
+                component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
+                component_group::set::Group::Wide(group) => group.set_dimmed(!f),
+            }
+        });
+    }
+
+
     // === Forget ===
 
     std::mem::forget(red_slider);
@@ -328,6 +372,7 @@ fn init(app: &Application) {
     std::mem::forget(scroll_area);
     std::mem::forget(selection);
     std::mem::forget(network);
+    std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     //std::mem::forget(second_component_group);
     std::mem::forget(layers);

@@ -9,7 +9,7 @@ type Column_Mapping
        The `matcher` can be used to specify if the names should be matched
        exactly or should be treated as regular expressions. It also allows to
        specify if the matching should be case-sensitive.
-    type By_Name (names : Map Text Text) (matcher : Matcher = Text_Matcher.new)
+    type By_Name (names : Map Text Text) (matcher : Matcher = Text_Matcher)
 
     ## Selects columns by their index.
 
@@ -35,4 +35,4 @@ type Column_Mapping
 ## UNSTABLE
    A temporary workaround to allow the By_Name constructor to work with default arguments.
 By_Name.new : Map Text Text -> Matcher  -> By_Name
-By_Name.new names (matcher = Text_Matcher.new) = By_Name names matcher
+By_Name.new names (matcher = Text_Matcher) = By_Name names matcher
