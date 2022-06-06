@@ -92,6 +92,7 @@ pub mod selection {
     pub const CORNER_RADIUS_PX: f32 = 12.0;
 
     ensogl_core::define_shape_system! {
+        pointer_events = false;
         (style: Style, color: Vector4, corner_radius: f32) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
