@@ -43,7 +43,7 @@ futures = { version = "0.3.1" }
 itertools = { version = "0.10.0" }
 js-sys = { version = "0.3.28" }
 mockall = { version = "0.7.1", features = ["nightly"] }
-nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+nalgebra = { version = "0.27.1", features = ["serde-serialize"] }
 semver = { version = "1.0.0", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
