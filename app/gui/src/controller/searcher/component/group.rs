@@ -118,38 +118,6 @@ impl Group {
 
 
 
-// ========================
-// === AlphabeticalList ===
-// ========================
-
-/// An immutable [`Group`] list, keeping the groups in alphabetical order.
-#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
-pub struct AlphabeticalList {
-    groups: List,
-}
-
-
-// === AlphabeticalListBuilder ===
-
-/// The builder of [`AlphabeticalList`]. The groups will be sorted in [`Self::build`] method.
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
-pub struct AlphabeticalListBuilder {
-    pub groups: Vec<Group>,
-}
-
-impl AlphabeticalListBuilder {
-    /// Sort the groups and create an [`AlphabeticalList`].
-    pub fn build(mut self) -> AlphabeticalList {
-        // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference, and we don't want to copy strings here.
-        self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-        AlphabeticalList { groups: List::new(self.groups) }
-    }
-}
-
-
-
 // ============
 // === List ===
 // ============
@@ -177,5 +145,37 @@ impl Deref for List {
 impl AsRef<[Group]> for List {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
+    }
+}
+
+
+
+// ========================
+// === AlphabeticalList ===
+// ========================
+
+/// An immutable [`Group`] list, keeping the groups in alphabetical order.
+#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
+pub struct AlphabeticalList {
+    groups: List,
+}
+
+
+// === AlphabeticalListBuilder ===
+
+/// The builder of [`AlphabeticalList`]. The groups will be sorted in [`Self::build`] method.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
+pub struct AlphabeticalListBuilder {
+    pub groups: Vec<Group>,
+}
+
+impl AlphabeticalListBuilder {
+    /// Sort the groups and create an [`AlphabeticalList`].
+    pub fn build(mut self) -> AlphabeticalList {
+        // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
+        // cannot return reference, and we don't want to copy strings here.
+        self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        AlphabeticalList { groups: List::new(self.groups) }
     }
 }
