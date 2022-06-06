@@ -98,13 +98,10 @@ config_from_env =
 Suite.run : Any -> Suite_Config -> Any
 Suite.run ~specs config =
     builder = if config.should_output_junit then StringBuilder.new else Nothing
-
-    r = State.run Suite (Suite config Nil builder) <|
-        specs
-        State.get Suite
-
     here.wrap_junit_testsuites config builder <|
-        r
+        State.run Suite (Suite config Nil builder) <|
+            specs
+            State.get Suite
 
 
 ## Creates a new test group, describing properties of the object
@@ -240,7 +237,7 @@ Error.should_fail_with matcher frames_to_skip=0 =
     caught = this.catch x->x
     if caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
-        here.fail ("Unexpected error " + caught.to_text + " returned (at " + loc + ").")
+        here.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 
 ## Expect a function to fail with the provided panic.
 

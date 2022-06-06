@@ -58,10 +58,12 @@ spec =
 
         in_mem_table = Materialized_Table.new columns
         connection.upload_table name in_mem_table
+    materialize = .to_dataframe
 
     Common_Spec.spec prefix connection
     here.sqlite_specific_spec connection
-    Common_Table_Spec.spec prefix table_builder supports_case_sensitive_columns=False
+    common_selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=False
+    Common_Table_Spec.spec prefix table_builder test_selection=common_selection
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the
@@ -75,7 +77,6 @@ spec =
     agg_in_memory_table = (Enso_Project.data / "data.csv") . read
     agg_table = connection.upload_table (Name_Generator.random_name "Agg1") agg_in_memory_table
     empty_agg_table = connection.upload_table (Name_Generator.random_name "Agg_Empty") (agg_in_memory_table.take_start 0)
-    materialize = .to_dataframe
     Aggregate_Spec.aggregate_spec prefix agg_table empty_agg_table table_builder materialize is_database=True selection
 
     connection.close

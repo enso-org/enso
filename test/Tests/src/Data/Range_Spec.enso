@@ -62,6 +62,9 @@ spec = Test.group "Range" <|
         empty.map *2 . should_equal []
         elements = 0.up_to 10
         elements.map *2 . should_equal [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
+    Test.specify "should allow to filter its elements, returning a vector" <|
+        elements = 0.up_to 10
+        elements.filter (x -> x % 2 == 0) . should_equal [0, 2, 4, 6, 8]
     Test.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
@@ -126,6 +129,7 @@ spec = Test.group "Range" <|
             r.to_vector . should_equal []
             build_with_each r . should_equal []
             r.map x->x+1 . should_equal []
+            r.filter _->True . should_equal []
             r.fold 0 (+) .  should_equal 0
             r.any _->True . should_equal False
             r.all _->False . should_equal True
@@ -254,6 +258,7 @@ spec = Test.group "Range" <|
         r6.all (x-> x % 3 == 0) . should_equal True
         r6.find (x-> x*x == 9) . should_equal 3
         r6.find (x-> x*x == 25) . should_equal Nothing
+        r6.filter (_ < 4) . should_equal [0, 3]
         verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
 
     Test.specify "should behave correctly with negative step" <|

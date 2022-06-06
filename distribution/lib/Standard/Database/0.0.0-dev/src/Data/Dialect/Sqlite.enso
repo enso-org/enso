@@ -5,6 +5,7 @@ from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
+import Standard.Database.Data.Internal.IR
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
@@ -42,6 +43,20 @@ type Sqlite_Dialect
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> Sql_Type
     resolve_target_sql_type aggregate = here.resolve_target_sql_type aggregate
+
+    ## PRIVATE
+       Prepares an ordering descriptor.
+
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+    prepare_order_descriptor : Connection -> IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor _ internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
+        True ->
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+                if text_ordering.case_sensitive != True then Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+                    IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
+        False ->
+            IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
 
 ## PRIVATE
 make_internal_generator_dialect =

@@ -55,6 +55,16 @@ Duplicate_Column_Selectors.to_display_text : Text
 Duplicate_Column_Selectors.to_display_text =
     "The provided Column_Selector has duplicate entries: "+this.duplicate_selectors.short_display_text+"."
 
+## Indicates that one column has been matched by multiple selectors.
+
+   In case the selectors have differing metadata and the error does not prevent
+   the operation from continuing, the first selector on the list is used.
+type Column_Matched_By_Multiple_Selectors (column_name : Text) (selectors : [Any])
+
+Column_Matched_By_Multiple_Selectors.to_display_text : Text
+Column_Matched_By_Multiple_Selectors.to_display_text =
+    'The column "' + this.column_name + '" is matched by multiple selectors: ' + this.selectors.short_display_text + "."
+
 ## Indicates that the provided indices matched columns already matched by
    others, so they do not introduce any new columns to the input.
 
@@ -66,6 +76,15 @@ type Input_Indices_Already_Matched (indices : [Integer])
 Input_Indices_Already_Matched.to_display_text : Text
 Input_Indices_Already_Matched.to_display_text =
     "The indices "+this.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
+
+## Indicates that no input columns were selected for the operation, so the
+   operation will cause no effect.
+type No_Input_Columns_Selected
+
+No_Input_Columns_Selected.to_display_text : Text
+No_Input_Columns_Selected.to_display_text =
+    "No input columns have been selected for the operation."
+
 
 ## Indicates that an aggregation calculation could not be completed.
 type Invalid_Aggregation (column:Text) (rows:[Integer]) (message:Text)
