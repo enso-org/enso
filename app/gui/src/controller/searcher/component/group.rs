@@ -77,7 +77,7 @@ impl Group {
     /// the suggestion database by their full qualified name and skipped if not found. Returns
     /// [`None`] if none of the components were found in the suggestion database.
     pub fn from_execution_context_component_group(
-        group: execution_context::ComponentGroup,
+        group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
         let lookup_component_by_qualified_name = |qualified_name| {
@@ -89,7 +89,7 @@ impl Group {
         let any_components_found_in_db = !components_looked_up_in_db.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                name:         group.name,
+                name:         group.name.clone(),
                 color:        group.color,
                 component_id: None,
                 visible:      Cell::new(true),

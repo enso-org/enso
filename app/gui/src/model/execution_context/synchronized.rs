@@ -111,7 +111,7 @@ impl ExecutionContext {
     async fn load_component_groups(&self) -> FallibleResult {
         let ls_response = self.language_server.get_component_groups(&self.id).await?;
         *self.model.component_groups.borrow_mut() =
-            ls_response.component_groups.into_iter().map(|group| group.into()).collect();
+            Rc::new(ls_response.component_groups.into_iter().map(|group| group.into()).collect());
         Ok(())
     }
 
@@ -172,7 +172,7 @@ impl model::execution_context::API for ExecutionContext {
         self.model.active_visualizations()
     }
 
-    fn component_groups(&self) -> Vec<ComponentGroup> {
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
         self.model.component_groups()
     }
 

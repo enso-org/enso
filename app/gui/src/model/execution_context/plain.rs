@@ -61,7 +61,7 @@ pub struct ExecutionContext {
     /// Execution context is considered ready once it completes it first execution after creation.
     pub is_ready: crate::sync::Synchronized<bool>,
     /// Component groups defined in libraries imported into the execution context.
-    pub component_groups: RefCell<Vec<ComponentGroup>>,
+    pub component_groups: RefCell<Rc<Vec<ComponentGroup>>>,
 }
 
 impl ExecutionContext {
@@ -186,7 +186,7 @@ impl model::execution_context::API for ExecutionContext {
         self.visualizations.borrow().keys().copied().collect_vec()
     }
 
-    fn component_groups(&self) -> Vec<ComponentGroup> {
+    fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
         self.component_groups.borrow().clone()
     }
 
@@ -312,9 +312,9 @@ pub mod test {
             }
         }
 
-        fn component_groups(&self) -> RefCell<Vec<ComponentGroup>> {
+        fn component_groups(&self) -> RefCell<Rc<Vec<ComponentGroup>>> {
             let groups = self.component_groups.iter().map(|cg| cg.clone().into()).collect();
-            RefCell::new(groups)
+            RefCell::new(Rc::new(groups))
         }
 
         pub fn create(&self) -> ExecutionContext {

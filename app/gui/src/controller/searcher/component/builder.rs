@@ -112,8 +112,8 @@ impl List {
     }
 
     /// Extend [`component::List::favorites`] with new groups.
-    pub fn extend_favorites<G>(&mut self, groups: G)
-    where G: IntoIterator<Item = execution_context::ComponentGroup> {
+    pub fn extend_favorites<'a, G>(&mut self, groups: G)
+    where G: IntoIterator<Item = &'a execution_context::ComponentGroup> {
         let db = &self.suggestion_db;
         let groups_with_components_found_in_db = groups
             .into_iter()
@@ -303,7 +303,7 @@ mod tests {
         let logger = Logger::new("tests::building_component_list_with_favorites");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let mut builder = List::new(suggestion_db);
-        builder.extend_favorites([
+        builder.extend_favorites(&[
             execution_context::ComponentGroup {
                 name:       "Test Group 1".into(),
                 color:      color::Rgb::from_css_hex("#aabbcc"),

@@ -178,7 +178,7 @@ impl Handle {
 
     /// Get the component groups defined in libraries imported into the node. See also
     /// [`model::ExecutionContext::component_groups`].
-    pub fn component_groups(&self) -> Vec<ComponentGroup> {
+    pub fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
         self.execution_ctx.component_groups()
     }
 
