@@ -3583,7 +3583,7 @@ version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617e92fc2f2501c3e2bc6ce547cad841adba2bae5b921c7e52510beca6d084c"
 dependencies = [
- "base64 0.11.0",
+ "base64 0.13.0",
  "bytes 1.1.0",
  "http",
  "httpdate 1.0.2",
@@ -4661,6 +4661,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96bcbab4bfea7a59c2c0fe47211a1ac4e3e96bea6eb446d704f310bc5c732ae2"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "os_str_bytes"
 version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5690,6 +5699,7 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "ide-view-component-group",
+ "ordered-float 3.0.0",
 ]
 
 [[package]]

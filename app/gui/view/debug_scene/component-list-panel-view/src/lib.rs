@@ -93,12 +93,41 @@ pub fn main() {
         let scene = &world.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
+        navigator.disable_wheel_panning();
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
 
-        let mock_entries = MockEntries::new(60);
+        let mock_entries = MockEntries::new(20);
         let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
-        searcher_list_panel.set_favourites_section(model_provider.clone_ref());
+        searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
+
+        let local_scope_data = vec![
+            MockEntries::new(4),
+            MockEntries::new(6),
+            MockEntries::new(3),
+            MockEntries::new(4),
+            MockEntries::new(2),
+            MockEntries::new(5),
+        ];
+        let local_scope_data = local_scope_data
+            .into_iter()
+            .map(|mock_entries| AnyModelProvider::from(mock_entries.clone_ref()))
+            .collect_vec();
+        searcher_list_panel.set_favourites_section(local_scope_data);
+
+        let sub_module_data = vec![
+            MockEntries::new(4),
+            MockEntries::new(6),
+            MockEntries::new(8),
+            MockEntries::new(6),
+            MockEntries::new(4),
+            MockEntries::new(2),
+        ];
+        let sub_module_data = sub_module_data
+            .into_iter()
+            .map(|mock_entries| AnyModelProvider::from(mock_entries.clone_ref()))
+            .collect_vec();
+        searcher_list_panel.set_sub_modules_section(sub_module_data);
 
         world.add_child(&searcher_list_panel);
         world.keep_alive_forever();
