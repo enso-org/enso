@@ -135,10 +135,10 @@ public abstract class MethodNodeClassGenerator {
 
   private static final List<String> methodNecessaryImports =
       Arrays.asList(
-          "com.oracle.truffle.api.dsl.Cached",
-          "com.oracle.truffle.api.dsl.Specialization",
+
+          "com.oracle.truffle.api.dsl.*",
           "com.oracle.truffle.api.nodes.Node",
-          "org.enso.interpreter.dsl.BuiltinMethod",
+          "org.enso.interpreter.dsl.*",
           "org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode",
           "org.enso.interpreter.runtime.Context",
           "org.enso.interpreter.runtime.builtin.Builtins",

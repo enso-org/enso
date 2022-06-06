@@ -4,8 +4,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
@@ -80,4 +78,5 @@ public class WithWarnings implements TruffleObject {
   boolean hasSpecialDispatch() {
     return true;
   }
+
 }

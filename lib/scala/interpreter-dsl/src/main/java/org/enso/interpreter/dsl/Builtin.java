@@ -68,5 +68,7 @@ public @interface Builtin {
    * overloaded and non-overloaded methods. The processor infers the parameter on which the
    * specialization should occur and fails if it cannot make that choice in a deterministic way.
    */
-  @interface Specialize {}
+  @interface Specialize {
+    boolean fallback() default false;
+  }
 }

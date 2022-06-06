@@ -20,6 +20,7 @@ import org.enso.interpreter.dsl.TypeProcessor;
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.node.expression.builtin.*;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
@@ -74,6 +75,7 @@ public class Builtins {
   private final BuiltinAtomConstructor debug;
   private final BuiltinAtomConstructor projectDescription;
   private final BuiltinAtomConstructor file;
+  private final BuiltinAtomConstructor warning;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -112,6 +114,7 @@ public class Builtins {
     projectDescription = new BuiltinAtomConstructor(this, ProjectDescription.class);
     file = new BuiltinAtomConstructor(this, File.class);
     special = new Special(language);
+    warning = new BuiltinAtomConstructor(this, Warning.class);
   }
 
   /**
@@ -391,6 +394,11 @@ public class Builtins {
   public AtomConstructor any() {
     return any.constructor();
   }
+
+  public AtomConstructor warning() {
+    return warning.constructor();
+  }
+
 
   /**
    * Returns the {@code File} atom constructor.

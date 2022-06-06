@@ -2,6 +2,7 @@ package org.enso.interpreter.dsl.builtins;
 
 import com.google.common.base.CaseFormat;
 import org.apache.commons.lang3.StringUtils;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -20,6 +21,7 @@ import java.util.stream.Stream;
 /** A method generator for an abstract `execute` and at least a single specialization. */
 public final class SpecializedMethodsGenerator extends MethodGenerator {
   private List<ExecutableElement> elements;
+  private static final String WithWarningsClassName = "org.enso.interpreter.runtime.error.WithWarnings";
 
   public SpecializedMethodsGenerator(List<ExecutableElement> elements) {
     this(elements, elements.get(0));
@@ -168,9 +170,10 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
             } else {
               // Specialize on the given parameter
               String ensoName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.name());
+              List<String> ensoAnnotations = inferAuxEnsoAnnotations(v);
               execParams.add(
                   new MethodParameter(
-                      execParams.size() + 1, ensoName, "Object", new ArrayList<>()));
+                      execParams.size() + 1, ensoName, "Object", ensoAnnotations));
               diffParams.add(k);
             }
             fallbackExecParams.add(p);
@@ -193,6 +196,15 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
           "Implementation limitation: Builtins DSL infers specialization on a single parameter. Write Node specialization manually instead");
     }
     return new SpecializationMeta(execParams, Optional.of(diffParams.get(0)));
+  }
+
+  private List<String> inferAuxEnsoAnnotations(List<MethodParameter> params) {
+    List<String> annotations = new ArrayList<>();
+    Optional<MethodParameter> withWarnings = params.stream().filter(p -> p.tpe().equals(WithWarningsClassName)).findAny();
+    if (withWarnings.isPresent()) {
+      annotations.add("@" + AcceptsWarning.class.getName());
+    }
+    return annotations;
   }
 
   private record SpecializationMeta(
@@ -225,7 +237,8 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     String suffix =
         specializedParam.map(idx -> methodInfo.params().get(idx).tpeSimpleName()).orElse("Execute");
 
-    String annotation = "@Specialization";
+    Builtin.Specialize specializeAnnotation = methodInfo.origin.getAnnotation(Builtin.Specialize.class);
+    String targetAnnotation = specializeAnnotation.fallback() ? "@Fallback" : "@Specialization";
     String methodSig =
         targetReturnType(returnTpe)
             + " do"
@@ -269,7 +282,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     }
 
     List<String> specializationDeclaration = new ArrayList<>();
-    specializationDeclaration.add(annotation);
+    specializationDeclaration.add(targetAnnotation);
     specializationDeclaration.add(methodSig + " {");
     if (methodInfo.exceptionWrappers.length != 0) {
       specializationDeclaration.add("  try {");
