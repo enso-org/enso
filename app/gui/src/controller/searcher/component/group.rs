@@ -86,7 +86,7 @@ impl Group {
         };
         let components =
             group.components.iter().filter_map(lookup_component_by_qualified_name).collect_vec();
-        if components.len() > 0 {
+        if !components.is_empty() {
             let group_data = Data {
                 name:         group.name,
                 color:        group.color,
