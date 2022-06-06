@@ -16,6 +16,7 @@ use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
 use searcher_list_panel::ComponentBrowserPanel;
+use searcher_list_panel::LabeledAnyModelProvider;
 
 
 // ====================
@@ -102,16 +103,19 @@ pub fn main() {
         searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
 
         let local_scope_data = vec![
-            MockEntries::new(4),
-            MockEntries::new(6),
+            MockEntries::new(5),
             MockEntries::new(3),
+            MockEntries::new(2),
             MockEntries::new(4),
             MockEntries::new(2),
             MockEntries::new(5),
         ];
         let local_scope_data = local_scope_data
             .into_iter()
-            .map(|mock_entries| AnyModelProvider::from(mock_entries.clone_ref()))
+            .map(|mock_entries| LabeledAnyModelProvider {
+                content: AnyModelProvider::from(mock_entries.clone_ref()),
+                label:   "Header".into(),
+            })
             .collect_vec();
         searcher_list_panel.set_favourites_section(local_scope_data);
 
@@ -121,11 +125,14 @@ pub fn main() {
             MockEntries::new(8),
             MockEntries::new(6),
             MockEntries::new(4),
-            MockEntries::new(2),
+            MockEntries::new(4),
         ];
         let sub_module_data = sub_module_data
             .into_iter()
-            .map(|mock_entries| AnyModelProvider::from(mock_entries.clone_ref()))
+            .map(|mock_entries| LabeledAnyModelProvider {
+                content: AnyModelProvider::from(mock_entries.clone_ref()),
+                label:   "Header".into(),
+            })
             .collect_vec();
         searcher_list_panel.set_sub_modules_section(sub_module_data);
 

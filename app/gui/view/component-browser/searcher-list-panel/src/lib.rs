@@ -25,6 +25,7 @@ mod column_grid;
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -40,6 +41,7 @@ use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
 use ide_view_component_group::Layers;
+
 
 
 // ==============
@@ -397,13 +399,14 @@ impl ColumnSection {
 // === FRP ===
 // ===========
 
+
 type ColumnContent = list_view::entry::AnyModelProvider<component_group::Entry>;
 
 define_endpoints_2! {
     Input{
         set_local_scope_section(ColumnContent),
-        set_favourites_section(Vec<ColumnContent>),
-        set_sub_modules_section(Vec<ColumnContent>),
+        set_favourites_section(Vec<LabeledAnyModelProvider>),
+        set_sub_modules_section(Vec<LabeledAnyModelProvider>),
     }
     Output{}
 }

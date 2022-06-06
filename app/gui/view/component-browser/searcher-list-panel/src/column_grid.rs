@@ -1,7 +1,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-use crate::ColumnContent;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -10,10 +9,16 @@ use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_gui_component::component;
+use ensogl_list_view as list_view;
 use ide_view_component_group as component_group;
 use ide_view_component_group::Layers;
 use ordered_float::OrderedFloat;
 
+
+
+// ==========================
+// === Constants + Colors ===
+// ==========================
 
 const COLUMN_GAP: f32 = 2.0;
 
@@ -27,6 +32,23 @@ const BASE_COLORS: &[color::Rgba] = &[
 const fn get_base_color_for_index(ix: usize) -> color::Rgba {
     BASE_COLORS[ix % BASE_COLORS.len()]
 }
+
+
+
+// =============
+// === Model ===
+// =============
+
+/// Contains a `AnyModelProvider` with a label. Can be sued to populate a `component_group::View`.
+#[derive(Clone, Debug, Default)]
+pub struct LabeledAnyModelProvider {
+    /// Label of the data provided to be sued as a header of the list.
+    pub label:   String,
+    /// Content to be used to populate a list.
+    pub content: list_view::entry::AnyModelProvider<component_group::Entry>,
+}
+
+
 
 // =============
 // === Model ===
@@ -55,15 +77,16 @@ impl Model {
         }
     }
 
-    fn set_content(&self, content: &[ColumnContent]) -> Vector2 {
+    fn set_content(&self, content: &[LabeledAnyModelProvider]) -> Vector2 {
         let overall_width = crate::WIDTH_INNER - 2.0 * crate::PADDING_INNER;
         let column_width = (overall_width - 2.0 * COLUMN_GAP) / 3.0;
         let content = content
             .iter()
-            .map(|data| {
+            .map(|LabeledAnyModelProvider { content, label }| {
                 let view = self.app.new_view::<component_group::View>();
                 view.set_width(column_width);
-                view.set_entries(data);
+                view.set_entries(content);
+                view.set_header(label.as_str());
                 self.display_object.add_child(&view);
                 view
             })
@@ -88,7 +111,6 @@ impl Model {
                 let entry_height = entry.size.value().y;
                 entry.set_position_y(pos_y - entry_height / 2.0);
                 entry.set_position_x(pos_x);
-                entry.set_header("Header");
 
                 entry.set_color(get_base_color_for_index(entry_ix));
                 entry_ix += 1;
@@ -136,7 +158,7 @@ impl component::Model for Model {
 
 define_endpoints_2! {
     Input{
-        set_content(Vec<ColumnContent>), // TODO define proper API. This is for testing and illustrative purposes only.
+        set_content(Vec<LabeledAnyModelProvider>), // TODO define proper API. This is for testing and illustrative purposes only.
         set_width(f32)
     }
     Output{
