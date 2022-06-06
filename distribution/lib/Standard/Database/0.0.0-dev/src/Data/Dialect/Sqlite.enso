@@ -54,9 +54,9 @@ type Sqlite_Dialect
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 if text_ordering.case_sensitive != True then Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
-                    IR.Order_Descriptor internal_column.expression sort_direction IR.Nulls_Last collation=Nothing
+                    IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
         False ->
-            IR.Order_Descriptor internal_column.expression sort_direction IR.Nulls_Last collation=Nothing
+            IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
 
 ## PRIVATE
 make_internal_generator_dialect =

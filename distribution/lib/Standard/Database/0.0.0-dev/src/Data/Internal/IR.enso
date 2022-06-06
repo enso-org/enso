@@ -279,7 +279,7 @@ type Join_Kind
 
 
 ## PRIVATE
-type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nulls_Order) (collation : Nothing | Text)
+type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
 ## PRIVATE
 

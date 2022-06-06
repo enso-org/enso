@@ -242,6 +242,7 @@ generate_order dialect order_descriptor =
         Sort_Direction.Ascending -> Sql.code " ASC"
         Sort_Direction.Descending -> Sql.code " DESC"
     nulls_suffix = case order_descriptor.nulls_order of
+        Nothing -> Sql.empty
         IR.Nulls_First -> Sql.code " NULLS FIRST"
         IR.Nulls_Last -> Sql.code " NULLS LAST"
     collation = case order_descriptor.collation of

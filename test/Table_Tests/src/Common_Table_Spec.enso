@@ -676,22 +676,22 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should deal with nulls" <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "xi"])
-            t1.at "xi" . to_vector . should_equal [0.5, 1.0, 1.5, Nothing]
-            t1.at "alpha" . to_vector . should_equal [0, 3, 2, 1]
+            t1.at "xi" . to_vector . should_equal [Nothing, 0.5, 1.0, 1.5]
+            t1.at "alpha" . to_vector . should_equal [1, 0, 3, 2]
 
             t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"])
-            t2.at "psi" . to_vector . should_equal ["C2", "c01", "c10", Nothing]
-            t2.at "alpha" . to_vector . should_equal [0, 2, 1, 3]
+            t2.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
+            t2.at "alpha" . to_vector . should_equal [3, 0, 2, 1]
 
         Test.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "phi"])
             case test_selection.order_by_unicode_normalization_by_default of
                 True ->
-                    t1.at "phi" . to_vector . should_equal ["śa", 's\u0301b', "śc", Nothing]
-                    t1.at "alpha" . to_vector . should_equal [0, 1, 3, 2]
+                    t1.at "phi" . to_vector . should_equal [Nothing, "śa", 's\u0301b', "śc"]
+                    t1.at "alpha" . to_vector . should_equal [2, 0, 1, 3]
                 False ->
-                    t1.at "phi" . to_vector . should_equal ['s\u0301b', "śa", "śc", Nothing]
-                    t1.at "alpha" . to_vector . should_equal [1, 0, 3, 2]
+                    t1.at "phi" . to_vector . should_equal [Nothing, 's\u0301b', "śa", "śc"]
+                    t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
 
         Test.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
