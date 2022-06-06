@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
-use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
@@ -68,7 +67,6 @@ pub struct List {
     suggestion_db:  Rc<model::SuggestionDatabase>,
     all_components: Vec<Component>,
     module_groups:  HashMap<component::Id, ModuleGroups>,
-    favorites:      Vec<component::Group>,
 }
 
 impl List {
@@ -81,7 +79,6 @@ impl List {
             suggestion_db,
             all_components: default(),
             module_groups: default(),
-            favorites: default(),
         }
     }
 
@@ -111,16 +108,6 @@ impl List {
         }
     }
 
-    /// Extend [`component::List::favorites`] with new groups.
-    pub fn extend_favorites<'a, G>(&mut self, groups: G)
-    where G: IntoIterator<Item = &'a execution_context::ComponentGroup> {
-        let db = &self.suggestion_db;
-        let groups_with_components_found_in_db = groups
-            .into_iter()
-            .filter_map(|g| component::Group::from_execution_context_component_group(g, db));
-        self.favorites.extend(groups_with_components_found_in_db);
-    }
-
     fn lookup_module_group(&mut self, module: &module::QualifiedName) -> Option<&mut ModuleGroups> {
         let (module_id, db_entry) = self.suggestion_db.lookup_by_qualified_name(module)?;
 
@@ -143,7 +130,7 @@ impl List {
     }
 
     /// Build the list, sorting all group lists and groups' contents appropriately.
-    pub fn build(self) -> component::List {
+    pub fn build_with_favorites(self, favorites: component::group::List) -> component::List {
         for group in self.module_groups.values() {
             group.content.update_sorting("");
             if let Some(flattened) = &group.flattened_content {
@@ -162,7 +149,7 @@ impl List {
             module_groups:         Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            favorites:             component::group::List::new(self.favorites),
+            favorites,
             filtered:              default(),
         }
     }
@@ -179,8 +166,6 @@ mod tests {
     use super::*;
 
     use crate::controller::searcher::component::tests::mock_suggestion_db;
-
-    use ensogl::data::color;
 
 
     #[derive(Clone, Debug, Eq, PartialEq)]
@@ -209,7 +194,7 @@ mod tests {
         let second_part = 3..6;
         builder.extend(first_part);
         builder.extend(second_part);
-        let list = builder.build();
+        let list = builder.build_with_favorites(std::iter::empty().collect());
 
         let top_modules: Vec<ComparableGroupData> =
             list.top_modules.iter().map(Into::into).collect();
@@ -296,45 +281,5 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(module_subgroups, expected);
-    }
-
-    #[test]
-    fn building_component_list_with_favorites() {
-        let logger = Logger::new("tests::building_component_list_with_favorites");
-        let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        let mut builder = List::new(suggestion_db);
-        builder.extend_favorites(&[
-            execution_context::ComponentGroup {
-                name:       "Test Group 1".into(),
-                color:      color::Rgb::from_css_hex("#aabbcc"),
-                components: vec![
-                    "test.Test.TopModule1.fun2".into(),
-                    "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
-                    "test.Test.TopModule1.fun1".into(),
-                ],
-            },
-            execution_context::ComponentGroup {
-                name:       "Input".into(),
-                color:      None,
-                components: vec!["NAME.NOT.FOUND.IN.DB".into()],
-            },
-        ]);
-        let list = builder.build();
-        assert_eq!(list.favorites.len(), 1);
-        let favorites_group = &list.favorites[0];
-        assert_eq!(favorites_group.name, ImString::new("Test Group 1"));
-        let favorites_color = favorites_group.color.unwrap();
-        assert_eq!((favorites_color.red * 255.0) as u8, 0xaa);
-        assert_eq!((favorites_color.green * 255.0) as u8, 0xbb);
-        assert_eq!((favorites_color.blue * 255.0) as u8, 0xcc);
-        let favorites_ids_and_names = favorites_group
-            .entries
-            .borrow()
-            .iter()
-            .map(|e| (*e.id, e.suggestion.name.to_string()))
-            .collect_vec();
-        let expected_ids_and_names =
-            vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
-        assert_eq!(favorites_ids_and_names, expected_ids_and_names);
     }
 }

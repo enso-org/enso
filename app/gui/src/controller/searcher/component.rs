@@ -135,10 +135,10 @@ pub struct List {
 
 impl List {
     /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
-    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>) -> List {
+    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>, favorites: group::List) -> List {
         let mut builder = builder::List::new(suggestion_db.clone_ref());
         builder.extend(suggestion_db.keys());
-        builder.build()
+        builder.build_with_favorites(favorites)
     }
 
     /// Return the list of top modules, which should be displayed in Component Browser.
@@ -197,6 +197,7 @@ pub(crate) mod tests {
 
     use double_representation::module;
     use engine_protocol::language_server;
+    use std::iter;
 
 
     // === Helpers ===
@@ -277,7 +278,7 @@ pub(crate) mod tests {
         }
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..4);
-        let list = builder.build();
+        let list = builder.build_with_favorites(iter::empty().collect());
         let get_entries_ids =
             || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
         let count_matches_entries = || {
@@ -321,7 +322,7 @@ pub(crate) mod tests {
         let suggestion_db = mock_suggestion_db(logger);
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..11);
-        let list = builder.build();
+        let list = builder.build_with_favorites(iter::empty().collect());
 
         // Verify that we can read all top-level modules from the component list.
         let expected_top_modules_ids = vec![Some(0), Some(1)];

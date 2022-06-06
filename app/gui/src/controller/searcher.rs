@@ -488,7 +488,7 @@ pub struct Searcher {
     this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
     project: model::Project,
-    favorite_component_groups: Rc<Vec<component::Group>>,
+    favorite_component_groups: component::group::List,
 }
 
 impl Searcher {
@@ -962,8 +962,9 @@ impl Searcher {
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
+                    let favorites = this.favorite_component_groups.clone();
                     data.components =
-                        component::List::build_list_from_all_db_entries(&this.database);
+                        component::List::build_list_from_all_db_entries(&this.database, favorites);
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1031,8 +1032,7 @@ impl Searcher {
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
-        builder.extend_favorites(self.graph.component_groups().deref());
-        builder.build()
+        builder.build_with_favorites(self.favorite_component_groups.clone())
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
@@ -1169,12 +1169,11 @@ impl Searcher {
 fn lookup_component_groups_in_suggestion_db(
     groups: Rc<Vec<model::execution_context::ComponentGroup>>,
     db: &model::SuggestionDatabase,
-) -> Rc<Vec<component::Group>> {
-    let groups_after_lookup = groups
+) -> component::group::List {
+    groups
         .iter()
         .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
-        .collect_vec();
-    Rc::new(groups_after_lookup)
+        .collect()
 }
 
 
