@@ -14,7 +14,6 @@ use crate::View;
 
 use enso_frp as frp;
 use ensogl::data::OptVec;
-use ensogl::display::scene::Scene;
 
 
 
@@ -47,18 +46,10 @@ impl Group {
         }
     }
 
-    fn to_object_space(&self, scene: &Scene, pos: Vector2) -> Vector2 {
+    fn is_mouse_over(&self) -> &frp::Sampler<bool> {
         match self {
-            Group::OneColumn(group) => scene.screen_to_object_space(group, pos),
-            Group::Wide(group) => scene.screen_to_object_space(group, pos),
-        }
-    }
-
-    /// Test whether the `point` (object-space coordinates) is inside the component group shape.
-    fn is_inside(&self, pos: Vector2) -> bool {
-        match self {
-            Group::OneColumn(group) => group.model().is_inside(pos),
-            Group::Wide(group) => group.model().is_inside(pos),
+            Group::OneColumn(group) => &group.is_mouse_over,
+            Group::Wide(group) => &group.is_mouse_over,
         }
     }
 }
@@ -176,15 +167,13 @@ type Groups = Rc<RefCell<OptVec<(Group, PropagatedEvents), GroupId>>>;
 #[derive(Debug, Clone, CloneRef, Deref)]
 pub struct Wrapper {
     groups: Groups,
-    scene:  Scene,
     #[deref]
     events: PropagatedEvents,
 }
 
 impl Wrapper {
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
-        let scene = scene.clone_ref();
+    pub fn new() -> Self {
         let groups: Groups = default();
         let events = PropagatedEvents::new();
         let network = &events.network;
@@ -198,7 +187,7 @@ impl Wrapper {
             });
         }
 
-        Self { groups, scene, events }
+        Self { groups, events }
     }
 
     /// Start managing a new group. Returned [`GroupId`] is non-unique, it might be reused by new
@@ -218,13 +207,8 @@ impl Wrapper {
 
     fn setup_frp_propagation(&self, group: &Group, id: GroupId, events: PropagatedEvents) {
         let network = &self.events.network;
-        let scene = &self.scene;
-        let mouse = &scene.mouse.frp;
         frp::extend! { network
-            mouse_in <- map(&mouse.position,f!([scene,group](pos) {
-                let pos_obj_space = group.to_object_space(&scene, *pos);
-                group.is_inside(pos_obj_space)
-            }));
+            let mouse_in = group.is_mouse_over().clone_ref();
             events.mouse_in_group <+ mouse_in.on_change().on_true().map(move |_| id);
         }
         match group {

@@ -130,6 +130,7 @@ ensogl::define_endpoints_2! {
         set_no_items_label_text(String),
     }
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
@@ -158,6 +159,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
+            is_mouse_over <- init.constant(false);
 
             selected_column_and_entry <- any(...);
             update_selected_entry <- selected_column_and_entry.sample(&out.size);
@@ -193,12 +195,19 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         }
         init.emit(());
 
+        let mut is_mouse_over = is_mouse_over.clone_ref();
         for column in model.columns.iter() {
             let col_id = column.id.clone_ref();
             frp::extend! { network
                 // === Focus propagation ===
 
                 eval_ input.defocus(model.defocus_columns());
+
+                
+                // === Mouse hovering ===
+                
+                is_mouse_over_tmp <- is_mouse_over.or(&column.is_mouse_over);
+                is_mouse_over = is_mouse_over_tmp;
 
                 // === Accepting suggestions ===
 
@@ -239,6 +248,10 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
             }
+            frp::extend! { network
+                out.is_mouse_over <+ is_mouse_over;
+            }
+
             let params = entry::Params { colors: colors.clone_ref() };
             column.list_view.set_entry_params_and_recreate_entries(params);
         }

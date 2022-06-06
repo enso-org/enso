@@ -284,6 +284,7 @@ ensogl::define_endpoints_2! {
         set_header_pos(f32),
     }
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
@@ -380,13 +381,13 @@ impl component::Frp<Model> for Frp {
             model.entries.set_focus <+ input.set_focus;
 
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
-            is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            is_mouse_over_header <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
             is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
             some_entry_selected <- is_entry_selected.on_true();
-            mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
+            mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
 
-            select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted).gate_not(&out.is_header_selected);
+            select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
             out.is_header_selected <+ bool(&some_entry_selected, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
@@ -396,6 +397,13 @@ impl component::Frp<Model> for Frp {
                 &model.entries.selection_position_target,
                 f!((h_sel, size, esp) model.selection_position(*h_sel, *size, *esp))
             );
+        }
+
+        
+        // === Mouse hovering ===
+
+        frp::extend! { network
+            out.is_mouse_over <+ model.entries.is_mouse_over.or(&is_mouse_over_header);
         }
 
 

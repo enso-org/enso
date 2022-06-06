@@ -342,6 +342,7 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         chosen_entry(Option<entry::Id>),
         size(Vector2<f32>),
@@ -496,6 +497,7 @@ where E::Model: Default
 
             let overlay_events = &model.overlay.events;
             mouse_in <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
+            frp.source.is_mouse_over <+ mouse_in;
             mouse_moved       <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD );
             mouse_y_in_scroll <- mouse.position.map(f!([model,scene](pos) {
                 scene.screen_to_object_space(&model.scrolled_area,*pos).y
