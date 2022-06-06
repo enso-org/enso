@@ -247,11 +247,11 @@ fn init(app: &Application) {
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
-    let second_component_group = create_component_group(app, group_name, &layers);
+    //let second_component_group = create_component_group(app, group_name, &layers);
     let wide_component_group = create_wide_component_group(app);
 
     scroll_area.content().add_child(&first_component_group);
-    scroll_area.content().add_child(&second_component_group);
+    //scroll_area.content().add_child(&second_component_group);
     app.display.add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
@@ -267,7 +267,7 @@ fn init(app: &Application) {
     // === Regular Component Group ===
 
     ComponentGroupController::init(
-        &[first_component_group.clone_ref(), second_component_group.clone_ref()],
+        &[first_component_group.clone_ref()],
         &network,
         &scroll_area,
     );
@@ -275,7 +275,7 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    second_component_group.set_entries(model_provider.clone_ref());
+    //second_component_group.set_entries(model_provider.clone_ref());
     wide_component_group.set_entries(model_provider.clone_ref());
 
     // === Color sliders ===
@@ -307,7 +307,7 @@ fn init(app: &Application) {
         color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
-        second_component_group.set_color <+ color;
+        //second_component_group.set_color <+ color;
         wide_component_group.set_color <+ color;
     }
     init.emit(());
@@ -317,7 +317,7 @@ fn init(app: &Application) {
 
     let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
         first_component_group.clone_ref().into(),
-        second_component_group.clone_ref().into(),
+        //second_component_group.clone_ref().into(),
         wide_component_group.clone_ref().into(),
     ]);
     let scene = &app.display.default_scene;
@@ -353,7 +353,7 @@ fn init(app: &Application) {
     std::mem::forget(network);
     std::mem::forget(multiview);
     std::mem::forget(first_component_group);
-    std::mem::forget(second_component_group);
+    //std::mem::forget(second_component_group);
     std::mem::forget(wide_component_group);
     std::mem::forget(layers);
 }

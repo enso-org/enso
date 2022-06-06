@@ -339,6 +339,7 @@ impl component::Frp<Model> for Frp {
         // === Header ===
 
         frp::extend! { network
+            model.entries.disallow_selecting_entries_above <+ input.set_header_pos.map(|p| *p + 27.0 / 2.0);
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
@@ -380,11 +381,18 @@ impl component::Frp<Model> for Frp {
             let moved_out_above = model.entries.tried_to_move_out_above.clone_ref();
             is_mouse_over <- bool(&overlay_events.mouse_out, &overlay_events.mouse_over);
             mouse_moved <- mouse_position.on_change().constant(());
+            is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
+            some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over);
             mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over);
+            //trace some_entry_selected;
 
-            select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            out.is_header_selected <+ bool(&mouse_moved_beyond_header, &select_header).on_change();
+            select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted).gate_not(&out.is_header_selected);
+            deselect_header <- some_entry_selected.gate(&out.is_header_selected);
+            //deselect_header <- any(&mouse_moved_beyond_header, &some_entry_selected).gate(&out.is_header_selected);
+            //trace select_header;
+            //trace deselect_header;
+            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with3(
@@ -401,6 +409,7 @@ impl component::Frp<Model> for Frp {
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry.gate_not(&out.is_header_selected);
+            out.selected_entry <+ out.is_header_selected.on_true().constant(None);
         }
 
         init.emit(());
@@ -657,16 +666,16 @@ mod tests {
     use ensogl_list_view::entry::AnyModelProvider;
 
     macro_rules! expect_entry_selected {
-        ($cgv:ident, $id:expr$(, $argv:tt)?) => {
-            assert_eq!($cgv.selected_entry.value(), Some($id)$(, $argv)?);
-            assert!(!$cgv.is_header_selected.value()$(, $argv)?);
+        ($cgv:ident, $id:expr) => {
+            assert_eq!($cgv.selected_entry.value(), Some($id), "Selected entry is not Some({}).", $id);
+            assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }
 
     macro_rules! expect_header_selected {
-        ($cgv:ident$(, $argv:tt)?) => {
-            assert_eq!($cgv.selected_entry.value(), None$(, $argv)?);
-            assert!($cgv.is_header_selected.value()$(, $argv)?);
+        ($cgv:ident) => {
+            assert_eq!($cgv.selected_entry.value(), None, "Selected entry is not None.");
+            assert!($cgv.is_header_selected.value(), "Header is not selected.");
         };
     }
 

@@ -134,6 +134,7 @@ pub mod background {
 struct View {
     position_y: f32,
     size:       Vector2<f32>,
+    dis: f32,
 }
 
 /// An internal structure describing where selection would go after jump (i.e. after navigating with
@@ -216,12 +217,12 @@ impl<E: Entry> Model<E> {
         entries.update_entries_new_provider(provider, visible_entries, entry_width, style_prefix);
     }
 
-    fn visible_entries(View { position_y, size }: &View, entry_count: usize) -> Range<entry::Id> {
+    fn visible_entries(View { position_y, size, dis }: &View, entry_count: usize) -> Range<entry::Id> {
         if entry_count == 0 {
             0..0
         } else {
             let entry_at_y_saturating =
-                |y: f32| match entry::List::<E>::entry_at_y_position(y, entry_count) {
+                |y: f32| match entry::List::<E>::entry_at_y_position(y - dis, entry_count) {
                     entry::list::IdAtYPosition::AboveFirst => 0,
                     entry::list::IdAtYPosition::UnderLast => entry_count - 1,
                     entry::list::IdAtYPosition::Entry(id) => id,
@@ -233,11 +234,11 @@ impl<E: Entry> Model<E> {
     }
 
     /// Check if the `point` is inside component assuming that it have given `size`.
-    fn is_inside(&self, point: Vector2<f32>, size: Vector2<f32>) -> bool {
+    fn is_inside(&self, point: Vector2<f32>, size: Vector2<f32>, dis: f32) -> bool {
         let pos_obj_space =
             self.app.display.default_scene.screen_to_object_space(&self.background, point);
         let x_range = (-size.x / 2.0)..=(size.x / 2.0);
-        let y_range = (-size.y / 2.0)..=(size.y / 2.0);
+        let y_range = (-size.y / 2.0)..=(size.y / 2.0 - dis);
         x_range.contains(&pos_obj_space.x) && y_range.contains(&pos_obj_space.y)
     }
 
@@ -302,6 +303,10 @@ ensogl_core::define_endpoints! {
         /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
 
+        /// TODO: Better name? We "restrict" the size of the list view from the top. It works the
+        /// same way as `set_header_pos` in Component Group.
+        /// TODO: can we use `resize` instead?
+        disallow_selecting_entries_above(f32),
         resize(Vector2<f32>),
         scroll_jump(f32),
         set_entries(entry::AnyModelProvider<E>),
@@ -466,8 +471,8 @@ where E::Model: Default
 
             // === Mouse Position ===
 
-            mouse_in <- all_with(&mouse.position,&frp.size,f!((pos,size)
-                model.is_inside(*pos,*size)
+            mouse_in <- all_with3(&mouse.position,&frp.size,&frp.disallow_selecting_entries_above, f!((pos,size,dis)
+                model.is_inside(*pos,*size,*dis)
             ));
             mouse_moved       <- mouse.distance.map(|dist| *dist > MOUSE_MOVE_THRESHOLD );
             mouse_y_in_scroll <- mouse.position.map(f!([model,scene](pos) {
@@ -609,9 +614,9 @@ where E::Model: Default
 
             // === Update Entries ===
 
-            view_info <- all_with3(&view_y.value, &frp.size, &style.padding, |&y, &size, &padding| {
+            view_info <- all_with4(&view_y.value, &frp.size, &style.padding, &frp.disallow_selecting_entries_above, |&y, &size, &padding, &dis| {
                 let padding = Vector2(2.0 * padding, 2.0 * padding);
-                View { position_y: y, size: size - padding }
+                View { position_y: y, size: size - padding , dis}
             });
             default_style_prefix <- init.constant(DEFAULT_STYLE_PATH.to_string());
             style_prefix <- any(&default_style_prefix,&frp.set_style_prefix);
