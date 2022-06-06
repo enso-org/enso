@@ -477,17 +477,18 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
-    data:             Rc<RefCell<Data>>,
-    notifier:         notification::Publisher<Notification>,
-    graph:            controller::ExecutedGraph,
-    mode:             Immutable<Mode>,
-    database:         Rc<model::SuggestionDatabase>,
-    language_server:  Rc<language_server::Connection>,
-    ide:              controller::Ide,
-    this_arg:         Rc<Option<ThisNode>>,
+    logger: Logger,
+    data: Rc<RefCell<Data>>,
+    notifier: notification::Publisher<Notification>,
+    graph: controller::ExecutedGraph,
+    mode: Immutable<Mode>,
+    database: Rc<model::SuggestionDatabase>,
+    language_server: Rc<language_server::Connection>,
+    ide: controller::Ide,
+    this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
-    project:          model::Project,
+    project: model::Project,
+    favorite_component_groups: Rc<Vec<component::Group>>,
 }
 
 impl Searcher {
@@ -534,6 +535,8 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
+        let favorite_component_groups =
+            lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
         let ret = Self {
             logger,
             graph,
@@ -546,6 +549,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
+            favorite_component_groups,
         };
         ret.reload_list();
         Ok(ret)
@@ -1159,6 +1163,23 @@ impl Searcher {
     }
 }
 
+
+// === Searcher helpers ===
+
+fn lookup_component_groups_in_suggestion_db(
+    groups: Rc<Vec<model::execution_context::ComponentGroup>>,
+    db: &model::SuggestionDatabase,
+) -> Rc<Vec<component::Group>> {
+    let groups_after_lookup = groups
+        .iter()
+        .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
+        .collect_vec();
+    Rc::new(groups_after_lookup)
+}
+
+
+// === SimpleFunctionCall ===
+
 /// A simple function call is an AST where function is a single identifier with optional
 /// argument applied by `ACCESS` operator (dot).
 struct SimpleFunctionCall {
@@ -1340,6 +1361,8 @@ pub mod test {
             let module_name =
                 QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
                     .unwrap();
+            let favorite_component_groups =
+                lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1352,6 +1375,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
+                favorite_component_groups,
             };
             let entry1 = model::suggestion_database::Entry {
                 name:               "testFunction1".to_string(),
