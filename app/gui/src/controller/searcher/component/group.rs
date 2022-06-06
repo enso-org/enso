@@ -84,20 +84,19 @@ impl Group {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
             Some(Component { id: Immutable(id), suggestion, match_info: default() })
         };
-        let components =
+        let components_looked_up_in_db =
             group.components.iter().filter_map(lookup_component_by_qualified_name).collect_vec();
-        if !components.is_empty() {
+        let any_components_found_in_db = !components_looked_up_in_db.is_empty();
+        any_components_found_in_db.then(|| {
             let group_data = Data {
                 name:         group.name,
                 color:        group.color,
                 component_id: None,
                 visible:      Cell::new(true),
-                entries:      RefCell::new(components),
+                entries:      RefCell::new(components_looked_up_in_db),
             };
-            Some(Group { data: Rc::new(group_data) })
-        } else {
-            None
-        }
+            Group { data: Rc::new(group_data) }
+        })
     }
 
     /// Update the group sorting according to the current filtering pattern.
