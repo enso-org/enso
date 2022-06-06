@@ -131,7 +131,6 @@ pub struct AlphabeticalList {
 
 // === AlphabeticalListBuilder ===
 
-
 /// The builder of [`AlphabeticalList`]. The groups will be sorted in [`Self::build`] method.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default, AsRef, Deref, AsMut, DerefMut)]
