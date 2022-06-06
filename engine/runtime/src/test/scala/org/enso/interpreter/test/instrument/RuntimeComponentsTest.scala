@@ -6,6 +6,7 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
+  ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
   GroupName,
@@ -64,7 +65,14 @@ class RuntimeComponentsTest
     val pkg: Package[File] = {
       val componentGroups =
         ComponentGroups(
-          newGroups = List(),
+          newGroups = List(
+            ComponentGroup(
+              group   = GroupName("Awesome"),
+              color   = None,
+              icon    = None,
+              exports = Seq()
+            )
+          ),
           extendedGroups = List(
             ExtendedComponentGroup(
               group = GroupReference(
@@ -263,16 +271,6 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-//    val expectedComponents = Map(
-//      LibraryName("Enso_Test", "Test") ->
-//      context.pkg.config.componentGroups
-//        .getOrElse(fail("Unexpected config value.")),
-//      LibraryName("Standard", "Base") ->
-//      RuntimeComponentsTest.standardBaseComponents,
-//      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
-//    )
-//    components should contain theSameElementsAs expectedComponents
-
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
     context.pkg.config.componentGroups
       .getOrElse(fail("Unexpected config value."))
@@ -358,6 +356,12 @@ class RuntimeComponentsTest
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
     context.pkg.config.componentGroups
       .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Enso_Test", "Test"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(GroupName("Awesome"))
 
     components
       .get(LibraryName("Standard", "Base"))

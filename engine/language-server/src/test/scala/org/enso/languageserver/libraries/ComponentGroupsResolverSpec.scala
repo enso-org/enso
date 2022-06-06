@@ -32,12 +32,18 @@ class ComponentGroupsResolverSpec extends AnyWordSpec with Matchers {
           "Foo",
           "Quux",
           ComponentGroups(List(newComponentGroup("Mod2", "one")), List())
+        ),
+        config(
+          "Foo",
+          "Brrr",
+          ComponentGroups(List(newComponentGroup("Abc", "three")), List())
         )
       )
 
       resolver.run(testPackages) shouldEqual Vector(
         libraryComponentGroup("Foo", "Baz", "Mod1", "one", "two"),
-        libraryComponentGroup("Foo", "Quux", "Mod2", "one")
+        libraryComponentGroup("Foo", "Quux", "Mod2", "one"),
+        libraryComponentGroup("Foo", "Brrr", "Abc", "three")
       )
     }
 
