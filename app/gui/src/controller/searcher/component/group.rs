@@ -191,38 +191,30 @@ mod tests {
     use super::*;
 
     use crate::controller::searcher::component::tests::mock_suggestion_db;
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn lookup_component_groups_in_suggestion_database() {
         let logger = Logger::new("tests::lookup_component_groups_in_suggestion_database");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
-        /*
-        let favorites = [
-            execution_context::ComponentGroup {
-                name:       "Test Group 1".into(),
-                color:      color::Rgb::from_css_hex("#aabbcc"),
-                components: vec![
-                    "test.Test.TopModule1.fun2".into(),
-                    "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
-                    "test.Test.TopModule1.fun1".into(),
-                ],
-            },
-            execution_context::ComponentGroup {
-                name:       "Input".into(),
-                color:      None,
-                components: vec!["NAME.NOT.FOUND.IN.DB".into()],
-            },
-        ];
-        let mut builder = List::new(suggestion_db);
-        let list = builder.build_with_favorites(favorites);
-        assert_eq!(list.favorites.len(), 1);
-        let favorites_group = &list.favorites[0];
-        assert_eq!(favorites_group.name, ImString::new("Test Group 1"));
-        let favorites_color = favorites_group.color.unwrap();
-        assert_eq!((favorites_color.red * 255.0) as u8, 0xaa);
-        assert_eq!((favorites_color.green * 255.0) as u8, 0xbb);
-        assert_eq!((favorites_color.blue * 255.0) as u8, 0xcc);
-        let favorites_ids_and_names = favorites_group
+        let ec_group_with_mixed_components = execution_context::ComponentGroup {
+            name:       "Test Group 1".into(),
+            color:      color::Rgb::from_css_hex("#aabbcc"),
+            components: vec![
+                "test.Test.TopModule1.fun2".into(),
+                "test.Test.TopModule1.SubModule2.SubModule3.fun6".into(),
+                "test.Test.NonExistantModule.fun6".into(),
+                "test.Test.TopModule1.fun1".into(),
+                "test.Test.TopModule1.nonexistantfun".into(),
+            ],
+        };
+        let group = Group::from_execution_context_component_group(&ec_group_with_mixed_components, &suggestion_db).unwrap();
+        assert_eq!(group.name, ImString::new("Test Group 1"));
+        let color = group.color.unwrap();
+        assert_eq!((color.red * 255.0) as u8, 0xaa);
+        assert_eq!((color.green * 255.0) as u8, 0xbb);
+        assert_eq!((color.blue * 255.0) as u8, 0xcc);
+        let entry_ids_and_names = group
             .entries
             .borrow()
             .iter()
@@ -230,7 +222,13 @@ mod tests {
             .collect_vec();
         let expected_ids_and_names =
             vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
-        assert_eq!(favorites_ids_and_names, expected_ids_and_names);
-        */
+        assert_eq!(entry_ids_and_names, expected_ids_and_names);
+        let ec_group_with_nonexistent_component = execution_context::ComponentGroup {
+            name:       "Input".into(),
+            color:      None,
+            components: vec!["NAME.NOT.FOUND.IN.DB".into()],
+        };
+        let group = Group::from_execution_context_component_group(&ec_group_with_nonexistent_component, &suggestion_db);
+        assert_matches!(group, None);
     }
 }
