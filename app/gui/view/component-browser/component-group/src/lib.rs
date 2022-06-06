@@ -341,7 +341,6 @@ impl component::Frp<Model> for Frp {
         // === Header ===
 
         frp::extend! { network
-            model.entries.disallow_selecting_entries_above <+ input.set_header_pos.map(|p| *p + 7.0);
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
