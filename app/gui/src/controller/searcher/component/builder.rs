@@ -115,10 +115,10 @@ impl List {
     pub fn extend_favorites<G>(&mut self, groups: G)
     where G: IntoIterator<Item = execution_context::ComponentGroup> {
         let db = &self.suggestion_db;
-        let new_favorites = groups
+        let groups_with_components_found_in_db = groups
             .into_iter()
             .filter_map(|g| component::Group::from_execution_context_component_group(g, db));
-        self.favorites.extend(new_favorites);
+        self.favorites.extend(groups_with_components_found_in_db);
     }
 
     fn lookup_module_group(&mut self, module: &module::QualifiedName) -> Option<&mut ModuleGroups> {
