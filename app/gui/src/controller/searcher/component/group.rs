@@ -123,22 +123,9 @@ impl Group {
 // ========================
 
 /// An immutable [`Group`] list, keeping the groups in alphabetical order.
-#[derive(Clone, CloneRef, Debug, Default)]
+#[derive(Clone, CloneRef, Debug, Default, AsRef, Deref)]
 pub struct AlphabeticalList {
-    groups: Rc<Vec<Group>>,
-}
-
-impl Deref for AlphabeticalList {
-    type Target = [Group];
-    fn deref(&self) -> &Self::Target {
-        self.groups.as_slice()
-    }
-}
-
-impl AsRef<[Group]> for AlphabeticalList {
-    fn as_ref(&self) -> &[Group] {
-        self.groups.as_slice()
-    }
+    groups: List,
 }
 
 
@@ -158,7 +145,7 @@ impl AlphabeticalListBuilder {
         // The `sort_unstable_by_key` method is not suitable here, because the closure it takes
         // cannot return reference, and we don't want to copy strings here.
         self.groups.sort_unstable_by(|a, b| a.name.cmp(&b.name));
-        AlphabeticalList { groups: Rc::new(self.groups) }
+        AlphabeticalList { groups: List::new(self.groups) }
     }
 }
 
