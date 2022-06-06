@@ -208,7 +208,11 @@ mod tests {
                 "test.Test.TopModule1.nonexistantfun".into(),
             ],
         };
-        let group = Group::from_execution_context_component_group(&ec_group_with_mixed_components, &suggestion_db).unwrap();
+        let group = Group::from_execution_context_component_group(
+            &ec_group_with_mixed_components,
+            &suggestion_db,
+        );
+        let group = group.unwrap();
         assert_eq!(group.name, ImString::new("Test Group 1"));
         let color = group.color.unwrap();
         assert_eq!((color.red * 255.0) as u8, 0xaa);
@@ -228,7 +232,10 @@ mod tests {
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],
         };
-        let group = Group::from_execution_context_component_group(&ec_group_with_nonexistent_component, &suggestion_db);
+        let group = Group::from_execution_context_component_group(
+            &ec_group_with_nonexistent_component,
+            &suggestion_db,
+        );
         assert_matches!(group, None);
     }
 }

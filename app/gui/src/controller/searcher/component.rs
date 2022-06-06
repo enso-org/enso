@@ -135,7 +135,10 @@ pub struct List {
 
 impl List {
     /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
-    pub fn build_list_from_all_db_entries(suggestion_db: &Rc<model::SuggestionDatabase>, favorites: group::List) -> List {
+    pub fn build_list_from_all_db_entries(
+        suggestion_db: &Rc<model::SuggestionDatabase>,
+        favorites: group::List,
+    ) -> List {
         let mut builder = builder::List::new(suggestion_db.clone_ref());
         builder.extend(suggestion_db.keys());
         builder.build_with_favorites(favorites)

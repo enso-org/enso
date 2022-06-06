@@ -75,11 +75,7 @@ impl List {
     /// The given suggestion_db will be used to look up entries when extending (the [`Self::extend`]
     /// method takes ids as argument).
     pub fn new(suggestion_db: Rc<model::SuggestionDatabase>) -> Self {
-        Self {
-            suggestion_db,
-            all_components: default(),
-            module_groups: default(),
-        }
+        Self { suggestion_db, all_components: default(), module_groups: default() }
     }
 
     /// Extend the list with new entries.
@@ -143,14 +139,14 @@ impl List {
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         component::List {
-            all_components:        Rc::new(self.all_components),
-            top_modules:           top_mdl_bld.build(),
+            all_components: Rc::new(self.all_components),
+            top_modules: top_mdl_bld.build(),
             top_modules_flattened: top_mdl_flat_bld.build(),
-            module_groups:         Rc::new(
+            module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
             favorites,
-            filtered:              default(),
+            filtered: default(),
         }
     }
 }
