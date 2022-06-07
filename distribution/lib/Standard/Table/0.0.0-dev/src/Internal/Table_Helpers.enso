@@ -206,7 +206,8 @@ rename_columns internal_columns mapping on_problems =
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns direction text_ordering =
-    mapper = case text_ordering.case_sensitive of
+    case_sensitive = text_ordering.case_sensitive.if_nothing True
+    mapper = case case_sensitive of
         True -> _.name
         Case_Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale
