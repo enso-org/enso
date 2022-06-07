@@ -21,7 +21,8 @@ import java.util.stream.Stream;
 /** A method generator for an abstract `execute` and at least a single specialization. */
 public final class SpecializedMethodsGenerator extends MethodGenerator {
   private List<ExecutableElement> elements;
-  private static final String WithWarningsClassName = "org.enso.interpreter.runtime.error.WithWarnings";
+  private static final String WithWarningsClassName =
+      "org.enso.interpreter.runtime.error.WithWarnings";
 
   public SpecializedMethodsGenerator(List<ExecutableElement> elements) {
     this(elements, elements.get(0));
@@ -172,8 +173,7 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
               String ensoName = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.name());
               List<String> ensoAnnotations = inferAuxEnsoAnnotations(v);
               execParams.add(
-                  new MethodParameter(
-                      execParams.size() + 1, ensoName, "Object", ensoAnnotations));
+                  new MethodParameter(execParams.size() + 1, ensoName, "Object", ensoAnnotations));
               diffParams.add(k);
             }
             fallbackExecParams.add(p);
@@ -200,7 +200,8 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
 
   private List<String> inferAuxEnsoAnnotations(List<MethodParameter> params) {
     List<String> annotations = new ArrayList<>();
-    Optional<MethodParameter> withWarnings = params.stream().filter(p -> p.tpe().equals(WithWarningsClassName)).findAny();
+    Optional<MethodParameter> withWarnings =
+        params.stream().filter(p -> p.tpe().equals(WithWarningsClassName)).findAny();
     if (withWarnings.isPresent()) {
       annotations.add("@" + AcceptsWarning.class.getName());
     }
@@ -237,7 +238,8 @@ public final class SpecializedMethodsGenerator extends MethodGenerator {
     String suffix =
         specializedParam.map(idx -> methodInfo.params().get(idx).tpeSimpleName()).orElse("Execute");
 
-    Builtin.Specialize specializeAnnotation = methodInfo.origin.getAnnotation(Builtin.Specialize.class);
+    Builtin.Specialize specializeAnnotation =
+        methodInfo.origin.getAnnotation(Builtin.Specialize.class);
     String targetAnnotation = specializeAnnotation.fallback() ? "@Fallback" : "@Specialization";
     String methodSig =
         targetReturnType(returnTpe)

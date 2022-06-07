@@ -19,7 +19,6 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
   private final ExecutableElement method;
   private final int varargExpansion;
   private final boolean needsVarargExpansion;
-  private SafeWrapException[] exceptionWrappers;
 
   public ExecuteMethodImplGenerator(
       ExecutableElement method, boolean convertToGuestValue, int expandedVarargs) {

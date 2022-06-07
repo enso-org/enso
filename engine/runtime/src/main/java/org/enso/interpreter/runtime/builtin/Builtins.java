@@ -399,7 +399,6 @@ public class Builtins {
     return warning.constructor();
   }
 
-
   /**
    * Returns the {@code File} atom constructor.
    *

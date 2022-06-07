@@ -158,9 +158,8 @@ public class BuiltinsProcessor extends AbstractProcessor {
                       (isConstructor ? "new" : method.getSimpleName().toString()) + "_" + i;
                   String clazzName =
                       CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, methodName);
-                  String optConstrSuffix = isConstructor ? ownerName : "";
                   ClassName builtinMethodNode =
-                      new ClassName(builtinPkg, clazzName + optConstrSuffix + "Node");
+                      new ClassName(builtinPkg, clazzName + ownerName + "Node");
                   ClassName ownerClass =
                       new ClassName(
                           pkgElement.getQualifiedName().toString(),
@@ -197,12 +196,11 @@ public class BuiltinsProcessor extends AbstractProcessor {
                 : isConstructor ? "new" : method.getSimpleName().toString();
         Builtin.Specialize specialize = element.getAnnotation(Builtin.Specialize.class);
 
-        String optConstrSuffix = isConstructor ? ownerName : "";
         ClassName builtinMethodNode =
             new ClassName(
                 builtinPkg,
                 CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_CAMEL, builtinMethodNameClass)
-                    + optConstrSuffix
+                    + ownerName
                     + "Node");
         ClassName ownerClass =
             new ClassName(
@@ -284,9 +282,12 @@ public class BuiltinsProcessor extends AbstractProcessor {
   }
 
   /**
-   * Returns a map of builtin types and the number of their parameters. Takes into account the
-   * possibility of separate compilation by reading entries from metadate, if any. The map is used
-   * to automatically generate try/catch for the possible exceptions.
+   * Returns a map of builtin types and the number of their parameters. The information is used to
+   * generate try/catch clauses and propagate exceptions via dataflow errors, with appropriate
+   * constructor arguments.
+   *
+   * <p>The method takes into account the possibility of separate compilation by reading entries
+   * from metadate, if any.
    *
    * @param roundEnv current round environment
    * @return a map from a builtin type name to the number of its parameters

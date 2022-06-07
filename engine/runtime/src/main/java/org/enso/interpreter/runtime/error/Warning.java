@@ -53,7 +53,9 @@ public class Warning implements TruffleObject {
     return origin;
   }
 
-  @Builtin.Method(name = "create", description = "Creates a new instance of the primitive warning value.")
+  @Builtin.Method(
+      name = "create",
+      description = "Creates a new instance of the primitive warning value.")
   @Builtin.Specialize
   public static Warning create(Context ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.clockTick());
@@ -65,20 +67,26 @@ public class Warning implements TruffleObject {
     return new Array(Arrays.copyOf(reassignmentsArray, reassignmentsArray.length, Object[].class));
   }
 
-
-  @Builtin.Method(name = "attach_with_stacktrace", description = "Attaches the given warning to the value.")
+  @Builtin.Method(
+      name = "attach_with_stacktrace",
+      description = "Attaches the given warning to the value.")
   @Builtin.Specialize
-  public static WithWarnings attach(Context ctx, WithWarnings value, Object warning, Object origin) {
+  public static WithWarnings attach(
+      Context ctx, WithWarnings value, Object warning, Object origin) {
     return value.prepend(new Warning(warning, origin, ctx.clockTick()));
   }
 
-  @Builtin.Method(name = "attach_with_stacktrace", description = "Attaches the given warning to the value.")
+  @Builtin.Method(
+      name = "attach_with_stacktrace",
+      description = "Attaches the given warning to the value.")
   @Builtin.Specialize(fallback = true)
   public static WithWarnings attach(Context ctx, Object value, Object warning, Object origin) {
     return new WithWarnings(value, new Warning(warning, origin, ctx.clockTick()));
   }
 
-  @Builtin.Method(name = "get_all_array", description = "Gets all the warnings associated with the value.")
+  @Builtin.Method(
+      name = "get_all_array",
+      description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
   public static Array getAll(WithWarnings value) {
     Warning[] warnings = value.getWarningsArray();
@@ -88,19 +96,25 @@ public class Warning implements TruffleObject {
     return new Array(result);
   }
 
-  @Builtin.Method(name = "get_all_array", description = "Gets all the warnings associated with the value.")
+  @Builtin.Method(
+      name = "get_all_array",
+      description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize(fallback = true)
   public static Array getAll(Object value) {
     return new Array();
   }
 
-  @Builtin.Method(name = "set_array", description = "Gets all the warnings associated with the value.")
+  @Builtin.Method(
+      name = "set_array",
+      description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize
   public static Object set(WithWarnings value, Array warnings) {
     return setGeneric(value.getValue(), warnings);
   }
 
-  @Builtin.Method(name = "set_array", description = "Gets all the warnings associated with the value.")
+  @Builtin.Method(
+      name = "set_array",
+      description = "Gets all the warnings associated with the value.")
   @Builtin.Specialize(fallback = true)
   public static Object set(Object value, Array warnings) {
     return setGeneric(value, warnings);
@@ -181,23 +195,23 @@ public class Warning implements TruffleObject {
     }
 
     @Specialization(
-            guards = {
-                    "!getContext().isInlineCachingDisabled()",
-                    "cachedSymbol == symbol",
-                    "function != null"
-            },
-            limit = "CACHE_SIZE")
+        guards = {
+          "!getContext().isInlineCachingDisabled()",
+          "cachedSymbol == symbol",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
     static Function resolveCached(
-            Warning _this,
-            UnresolvedSymbol symbol,
-            @Cached("symbol") UnresolvedSymbol cachedSymbol,
-            @Cached("doResolve(cachedSymbol)") Function function) {
+        Warning _this,
+        UnresolvedSymbol symbol,
+        @Cached("symbol") UnresolvedSymbol cachedSymbol,
+        @Cached("doResolve(cachedSymbol)") Function function) {
       return function;
     }
 
     @Specialization(replaces = "resolveCached")
     static Function resolve(Warning _this, UnresolvedSymbol symbol)
-            throws MethodDispatchLibrary.NoSuchMethodException {
+        throws MethodDispatchLibrary.NoSuchMethodException {
       Function function = doResolve(symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
@@ -205,5 +219,4 @@ public class Warning implements TruffleObject {
       return function;
     }
   }
-
 }

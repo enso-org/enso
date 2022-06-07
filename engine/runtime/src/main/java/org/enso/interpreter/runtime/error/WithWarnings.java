@@ -78,5 +78,4 @@ public class WithWarnings implements TruffleObject {
   boolean hasSpecialDispatch() {
     return true;
   }
-
 }

@@ -71,8 +71,8 @@ public abstract class MethodNodeClassGenerator {
         out.println("public abstract class " + builtinNode.jvmFriendlyName() + " extends Node {");
         out.println();
 
-        out.println("  static " + builtinNode.name() + " build() {");
-        out.println("    return " + builtinNode.name() + "Gen.create();");
+        out.println("  static " + builtinNode.jvmFriendlyName() + " build() {");
+        out.println("    return " + builtinNode.jvmFriendlyName() + "Gen.create();");
         out.println("  }");
         out.println();
       } else {
@@ -135,7 +135,6 @@ public abstract class MethodNodeClassGenerator {
 
   private static final List<String> methodNecessaryImports =
       Arrays.asList(
-
           "com.oracle.truffle.api.dsl.*",
           "com.oracle.truffle.api.nodes.Node",
           "org.enso.interpreter.dsl.*",
