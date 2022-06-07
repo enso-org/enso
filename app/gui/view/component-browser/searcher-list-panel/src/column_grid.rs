@@ -105,22 +105,23 @@ impl Model {
             columns[column_index].push(entry);
             heights[column_index] += entry.size.value().y + COLUMN_GAP;
         }
+        let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap().into();
 
 
         let mut entry_ix = 0;
         for (ix, column) in columns.iter().enumerate() {
             let pos_x = (column_width + COLUMN_GAP) * (ix as f32 + 0.5);
-            let mut pos_y = 0.0;
+            let mut pos_y = -height;
             for entry in column {
                 let entry_height = entry.size.value().y;
-                entry.set_position_y(pos_y - entry_height / 2.0);
+                entry.set_position_y(pos_y + entry_height / 2.0);
                 entry.set_position_x(pos_x);
 
                 entry.set_color(get_base_color_for_index(entry_ix));
                 entry_ix += 1;
 
-                pos_y -= entry_height;
-                pos_y -= COLUMN_GAP;
+                pos_y += entry_height;
+                pos_y += COLUMN_GAP;
             }
         }
 
