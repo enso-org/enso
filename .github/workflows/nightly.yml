@@ -57,7 +57,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - - MwuDeluxe
+          - - mwu-deluxe
       fail-fast: false
     env:
       ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
@@ -66,7 +66,7 @@ jobs:
     name: Prepare release
     runs-on:
       - Linux
-      - MwuDeluxe
+      - mwu-deluxe
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
