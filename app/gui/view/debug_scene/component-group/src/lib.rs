@@ -338,8 +338,8 @@ fn init(app: &Application) {
 
     let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
         first_component_group.clone_ref().into(),
-        second_component_group.clone_ref().into(),
-        wide_component_group.clone_ref().into(),
+        //second_component_group.clone_ref().into(),
+        //wide_component_group.clone_ref().into(),
     ]);
     let multiview = component_group::set::Wrapper::new();
     for group in groups.iter() {

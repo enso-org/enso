@@ -123,10 +123,13 @@ pub struct View {
     logger:            Logger,
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
+    selected_icon:     Rc<RefCell<CurrentIcon>>,
     max_width_px:      frp::Source<f32>,
     icon_strong_color: frp::Sampler<color::Rgba>,
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
+    selected_label:    GlyphHighlightedLabel,
+    selection_layer: Layer,
 }
 
 impl list_view::Entry for View {
@@ -137,8 +140,13 @@ impl list_view::Entry for View {
         let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
+        let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
-        display_object.add_child(&label);
+        let selected_label = GlyphHighlightedLabel::new(app, style_prefix, &());
+        let selection_layer = app.display.default_scene.layers.selection.clone_ref();
+        selected_label.set_label_layer(&selection_layer);
+        //display_object.add_child(&label);
+        display_object.add_child(&selected_label);
 
         let network = frp::Network::new("component_group::Entry");
         let style = &label.inner.style_watch;
@@ -150,16 +158,29 @@ impl list_view::Entry for View {
             label_x_position <- icon_text_gap.map(|gap| icon::SIZE + gap);
             label_max_width <-
                 all_with(&max_width_px, &icon_text_gap, |width,gap| width - icon::SIZE- gap);
-            eval label_x_position ((x) label.set_position_x(*x));
-            eval label_max_width ((width) label.set_max_width(*width));
+            eval label_x_position ([label, selected_label](x) {
+                label.set_position_x(*x);
+                selected_label.set_position_x(*x);
+            });
+            eval label_max_width ([label, selected_label](width) {
+                label.set_max_width(*width);
+                selected_label.set_max_width(*width);
+            });
             label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
-            eval colors.icon_strong ([icon](color)
+            selected_label.inner.label.set_default_color <+ all(&colors.entry_text, &init)._0();
+            eval colors.icon_strong ([icon,selected_icon](color)
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());
                 }
+                if let Some(shape) = &selected_icon.borrow().shape {
+                    shape.strong_color.set(color.into());
+                }
             );
-            eval colors.icon_weak ([icon](color)
+            eval colors.icon_weak ([icon,selected_icon](color)
                 if let Some(shape) = &icon.borrow().shape {
+                    shape.weak_color.set(color.into());
+                }
+                if let Some(shape) = &selected_icon.borrow().shape {
                     shape.weak_color.set(color.into());
                 }
             );
@@ -172,15 +193,19 @@ impl list_view::Entry for View {
             network,
             display_object,
             icon,
+            selected_icon,
             max_width_px,
             icon_strong_color,
             icon_weak_color,
             label,
+            selected_label,
+            selection_layer,
         }
     }
 
     fn update(&self, model: &Self::Model) {
         self.label.update(&model.highlighted_text);
+        self.selected_label.update(&model.highlighted_text);
         let mut icon = self.icon.borrow_mut();
         if !icon.id.contains(&model.icon) {
             icon.id = Some(model.icon);
@@ -189,6 +214,17 @@ impl list_view::Entry for View {
             shape.weak_color.set(self.icon_weak_color.value().into());
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
+            icon.shape = Some(shape);
+        }
+        let mut icon = self.selected_icon.borrow_mut();
+        if !icon.id.contains(&model.icon) {
+            icon.id = Some(model.icon);
+            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
+            shape.strong_color.set(self.icon_strong_color.value().into());
+            shape.weak_color.set(self.icon_weak_color.value().into());
+            shape.set_position_x(icon::SIZE / 2.0);
+            self.display_object.add_child(&shape);
+            self.selection_layer.add_exclusive(&shape);
             icon.shape = Some(shape);
         }
     }

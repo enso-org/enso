@@ -192,7 +192,7 @@ pub mod header_overlay {
         above = [background];
         () {
             let bg_color = HOVER_COLOR;
-            Plane().fill(color::Rgba(1.0, 0.0, 0.0, 0.5)).into()
+            Plane().fill(bg_color).into()
         }
     }
 }
@@ -415,7 +415,6 @@ impl component::Frp<Model> for Frp {
 
         frp::extend! { network
             model.entries.set_entries <+ input.set_entries;
-            model.selected_entries.set_entries <+ input.set_entries;
             out.selected_entry <+ model.entries.selected_entry;
             eval model.entries.visible_entries([model](range) {
                 if model.entries.selected_entry.value().map_or(false, |e| e <= range.start) {
@@ -559,7 +558,6 @@ pub struct Model {
     header_overlay:             header_overlay::View,
     background:                 background::View,
     selected_background:        selected_background::View,
-    selected_entries:           list_view::ListView<Entry>,
     entries:                    list_view::ListView<Entry>,
 }
 
@@ -588,26 +586,19 @@ impl component::Model for Model {
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
-        let selected_entries = app.new_view::<list_view::ListView<Entry>>();
         entries.set_style_prefix(entry::STYLE_PATH);
         entries.set_background_color(HOVER_COLOR);
         entries.show_background_shadow(false);
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
-        selected_entries.set_style_prefix(entry::STYLE_PATH);
-        selected_entries.set_background_color(color::Rgba::transparent());
-        selected_entries.show_background_shadow(false);
-        selected_entries.set_background_corners_radius(0.0);
-        selected_entries.hide_selection();
         display_object.add_child(&background);
-        display_object.add_child(&selected_background);
+        //display_object.add_child(&selected_background);
         display_object.add_child(&header_background);
         display_object.add_child(&selected_header_background);
         display_object.add_child(&header);
         display_object.add_child(&selected_header);
         display_object.add_child(&header_overlay);
         display_object.add_child(&entries);
-        display_object.add_child(&selected_entries);
 
         Model {
             display_object,
@@ -620,7 +611,6 @@ impl component::Model for Model {
             header_background,
             selected_header_background,
             entries,
-            selected_entries,
         }
     }
 }
@@ -638,8 +628,6 @@ impl Model {
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // selected:
         layers.selected.background.add_exclusive(&self.selected_background);
-        layers.selected.background.add_exclusive(&self.selected_entries);
-        self.selected_entries.set_label_layer(&layers.selected.text);
         layers.selected.header.add_exclusive(&self.selected_header_background);
         self.selected_header.add_to_scene_layer(&layers.selected.header_text);
     }
@@ -712,8 +700,6 @@ impl Model {
 
         self.entries.resize(size - Vector2(0.0, header_height - entry_list_padding));
         self.entries.set_position_y(-header_height / 2.0 + entry_list_padding / 2.0);
-        self.selected_entries.resize(size - Vector2(0.0, header_height - entry_list_padding));
-        self.selected_entries.set_position_y(-header_height / 2.0 + entry_list_padding / 2.0);
     }
 
     fn update_header_width(&self, size: Vector2, header_geometry: HeaderGeometry) {
