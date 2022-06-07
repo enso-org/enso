@@ -398,7 +398,7 @@ impl component::Frp<Model> for Frp {
             );
         }
 
-        
+
         // === Mouse hovering ===
 
         frp::extend! { network
@@ -649,7 +649,12 @@ mod tests {
 
     macro_rules! expect_entry_selected {
         ($cgv:ident, $id:expr) => {
-            assert_eq!($cgv.selected_entry.value(), Some($id), "Selected entry is not Some({}).", $id);
+            assert_eq!(
+                $cgv.selected_entry.value(),
+                Some($id),
+                "Selected entry is not Some({}).",
+                $id
+            );
             assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }
