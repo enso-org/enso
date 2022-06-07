@@ -93,12 +93,6 @@ impl ExecutionContextsRegistry {
         update: ExecutionUpdate,
     ) -> FallibleResult {
         self.with_context(id, |ctx| {
-            if matches!(update, ExecutionUpdate::Completed) {
-                let ctx = ctx.clone_ref();
-                executor::global::spawn(async move {
-                    ctx.load_component_groups().await
-                });
-            }
             ctx.handle_notification(update)
         })
     }

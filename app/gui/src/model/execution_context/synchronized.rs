@@ -98,7 +98,7 @@ impl ExecutionContext {
     }
 
     /// Load the component groups defined in libraries imported into the execution context.
-    pub async fn load_component_groups(&self) {
+    async fn load_component_groups(&self) {
         match self.language_server.get_component_groups(&self.id).await {
             Ok(ls_response) => {
                 let groups = ls_response.component_groups.into_iter().map(|group| group.into()).collect();
@@ -137,12 +137,16 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(self: &Rc<Self>, notification: Notification) -> FallibleResult {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
                     DEBUG!("MCDBG Completed = true");
                     info!(self.logger, "Context {self.id} Became ready");
+                    let this = self.clone();
+                    executor::global::spawn(async move {
+                        this.load_component_groups().await;
+                    });
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
