@@ -2,11 +2,13 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.Storage;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
 
 public class MultiValueKey implements Comparable<MultiValueKey> {
   private final Storage[] storage;
+  private final int[] directions;
   private final int rowIndex;
   private final Comparator<Object> objectComparator;
   private final int hashCodeValue;
@@ -21,27 +23,33 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
       Storage[] storage, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     this.storage = storage;
     this.rowIndex = rowIndex;
+
+    if (directions == null) {
+      directions = new int[storage.length];
+      Arrays.fill(directions, 1);
+    }
+    this.directions = directions;
+
     this.objectComparator = objectComparator;
 
     boolean allNull = true;
     boolean floatValue = false;
 
     // Precompute HashCode - using Apache.Commons.Collections.Map.MultiKeyMap.hash algorithm
-    int h = 0;
+    int h = 1;
     for (int i = 0; i < storage.length; i++) {
+      h = 31 * h;
+
       Object value = this.get(i);
       if (value != null) {
         Object folded = foldObject(value);
         floatValue = floatValue || (folded instanceof Double);
-        h ^= folded.hashCode();
+        h += folded.hashCode();
         allNull = false;
       }
     }
-    h += ~(h << 9);
-    h ^= h >>> 14;
-    h += h << 4;
 
-    this.hashCodeValue = h ^ (h >>> 10);
+    this.hashCodeValue = h;
     this.allNull = allNull;
     this.floatValue = floatValue;
   }
@@ -114,7 +122,7 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     for (int i = 0; i < storage.length; i++) {
       int comparison = objectComparator.compare(get(i), that.get(i));
       if (comparison != 0) {
-        return comparison;
+        return comparison * directions[i];
       }
     }
 
