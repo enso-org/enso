@@ -92,7 +92,16 @@ impl ExecutionContextsRegistry {
         id: execution_context::Id,
         update: ExecutionUpdate,
     ) -> FallibleResult {
-        self.with_context(id, |ctx| ctx.handle_notification(update))
+        self.with_context(id, |ctx| {
+            let spawnme = matches!(update, ExecutionUpdate::Completed);
+            let res = ctx.handle_notification(update)?;
+            if spawnme {
+                executor::global::spawn(async move {
+                    let lrs = ctx.load_component_groups().await;
+                });
+            }
+            Ok(())
+        })
     }
 
     /// Registers a new ExecutionContext. It will be eligible for receiving future updates routed
