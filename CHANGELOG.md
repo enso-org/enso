@@ -133,6 +133,7 @@
   representing `Delimited` files without storing them on the filesystem.][3478]
 - [Added rank data, correlation and covariance statistics for `Vector`][3484]
 - [Implemented `Table.order_by` for the SQLite backend.][3502]
+- [Implemented `Table.order_by` for the PostgreSQL backend.][3514]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -208,6 +209,7 @@
 [3478]: https://github.com/enso-org/enso/pull/3478
 [3484]: https://github.com/enso-org/enso/pull/3484
 [3502]: https://github.com/enso-org/enso/pull/3502
+[3514]: https://github.com/enso-org/enso/pull/3514
 
 #### Enso Compiler
 
