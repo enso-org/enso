@@ -92,6 +92,23 @@ type Range
     map function =
         Vector.new this.length (i -> function (this.start + i*this.step))
 
+    ## Returns a vector of all elements of this range which satisfy a predicate.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
+       > Example
+         Selecting all elements that are greater than 3.
+
+             (0.up_to 7).filter (> 3)
+    filter : (Any -> Boolean) -> Vector Any
+    filter predicate =
+        builder = this.fold Vector.new_builder builder-> elem->
+            if predicate elem then builder.append elem else builder
+        builder.to_vector
+
     ## Applies a function for each element in the range.
 
        Arguments:

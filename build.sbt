@@ -232,7 +232,6 @@ bootstrap := {}
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `core-definition`,
     `interpreter-dsl`,
     `json-rpc-server-test`,
     `json-rpc-server`,
@@ -938,30 +937,6 @@ lazy val testkit = project
     )
   )
 
-lazy val `core-definition` = (project in file("lib/scala/core-definition"))
-  .configs(Benchmark)
-  .settings(
-    version := "0.1",
-    inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    Test / parallelExecution := false,
-    Test / logBuffered := false,
-    scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"                %% "shapeless"    % shapelessVersion,
-      "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
-      "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
-      "org.scalatest"              %% "scalatest"    % scalatestVersion  % Test,
-      "org.typelevel"              %% "cats-core"    % catsVersion,
-      "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
-    ),
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    )
-  )
-  .dependsOn(graph)
-  .dependsOn(syntax.jvm)
-
 lazy val searcher = project
   .in(file("lib/scala/searcher"))
   .configs(Test)
@@ -1222,15 +1197,12 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
     // Note [Unmanaged Classpath]
-    Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
-    Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
     Compile / compile := FixInstrumentsGeneration.patchedCompile
       .dependsOn(FixInstrumentsGeneration.preCompileTask)
-      .dependsOn(`core-definition` / Compile / packageBin)
       .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(

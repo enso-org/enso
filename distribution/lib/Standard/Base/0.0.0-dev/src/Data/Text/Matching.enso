@@ -205,48 +205,78 @@ match_criteria_callback matcher objects criteria problem_callback reorder=False 
     problem_callback unmatched_criteria
     result.first
 
+type Match_Matrix
+    ## PRIVATE
+       A helper type holding a matrix of matches.
+    type Match_Matrix matrix criteria objects
+
+    # Checks if the ith object is matched by any criterion.
+    is_object_matched_by_anything : Integer -> Boolean
+    is_object_matched_by_anything i =
+        this.matrix.at i . any x->x
+
+    # Checks if the ith criterion matches any objects.
+    does_criterion_match_anything : Integer -> Boolean
+    does_criterion_match_anything i =
+        this.matrix.map (col -> col.at i) . any x->x
+
+    ## PRIVATE
+       Extracts the list of criteria that did not have any matches.
+    unmatched_criteria =
+        checked_criteria = this.criteria.map_with_index j-> criterion->
+            has_matches = this.does_criterion_match_anything j
+            Pair has_matches criterion
+        checked_criteria.filter (p -> p.first.not) . map .second
+
+    ## PRIVATE
+       Returns the list of criteria that match the ith object.
+    criteria_matching_object : Integer -> Vector
+    criteria_matching_object i =
+        this.criteria.filter_with_index j-> _->
+            this.matrix . at i . at j
+
+    ## PRIVATE
+       Returns the list of criteria indices that match the ith object.
+    criteria_indices_matching_object : Integer -> Vector
+    criteria_indices_matching_object i =
+        (0.up_to this.criteria.length).filter j->
+            this.matrix . at i . at j
+
+## PRIVATE
+   Generates a matrix specifying which criteria match which object.
+
+   The returned `match_matrix` satisfies the following condition:
+   `match_matrix . at i . at j` is `True` if and only if `objects.at i` matches
+   `criteria.at j`.
+make_match_matrix matcher objects criteria object_name_mapper=(x->x) criterion_mapper=(x->x) =
+    matrix = objects.map obj->
+        criteria.map criterion->
+            matcher.match_single_criterion (object_name_mapper obj) (criterion_mapper criterion)
+    Match_Matrix matrix criteria objects
+
 ## PRIVATE
 internal_match_criteria_implementation matcher objects criteria reorder=False name_mapper=(x->x) = Panic.catch Wrapped_Dataflow_Error (handler = x-> x.payload.unwrap) <|
     ## TODO [RW] discuss: this line of code also shows an issue we had with ensuring input dataflow-errors are correctly propagated, later on we stopped doing that and testing for that as it was too cumbersome. Maybe it could be helped with an @Accepts_Error annotation similar to the one from the interpreter???
     [matcher, objects, criteria, reorder, name_mapper] . each v->
         Panic.rethrow (v.map_error Wrapped_Dataflow_Error)
 
-    # match_matrix . at i . at j specifies whether objects.at i matches criteria.at j
-    match_matrix = objects.map obj->
-        criteria.map criterion->
-            name = name_mapper obj
-            matcher.match_single_criterion name criterion
-
-    # Checks if the ith object is matched by any criterion.
-    is_object_matched_by_anything : Integer -> Boolean
-    is_object_matched_by_anything i =
-        match_matrix.at i . any x->x
-
-    # Checks if the ith criterion matches any columns.
-    does_criterion_match_anything : Integer -> Boolean
-    does_criterion_match_anything i =
-        match_matrix.map (col -> col.at i) . any x->x
+    match_matrix = here.make_match_matrix matcher objects criteria name_mapper
+    unmatched_criteria = match_matrix.unmatched_criteria
 
     # Selects object indices which satisfy the provided predicate.
     select_matching_indices : (Integer -> Boolean) -> Vector Text
     select_matching_indices matcher =
         0.up_to objects.length . to_vector . filter matcher
 
-    # Check consistency
-    checked_criteria = criteria.map_with_index j-> criterion->
-        has_matches = does_criterion_match_anything j
-        Pair has_matches criterion
-    unmatched_criteria = checked_criteria.filter (p -> p.first.not) . map .second
-
     selected_indices = case reorder of
         True ->
             nested_indices = 0.up_to criteria.length . map j->
                 is_object_matched_by_this_criterion i =
-                    match_matrix.at i . at j
+                    match_matrix.matrix.at i . at j
                 select_matching_indices is_object_matched_by_this_criterion
             nested_indices.flat_map x->x . distinct
         False ->
-            select_matching_indices is_object_matched_by_anything
+            select_matching_indices match_matrix.is_object_matched_by_anything
 
     result = selected_indices.map objects.at
     Pair result unmatched_criteria

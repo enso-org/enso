@@ -1065,10 +1065,10 @@ Text.repeat count=1 =
    > Examples
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".take First.new == "H"
+         "Hello World!".take First == "H"
          "Hello World!".take (First 5) == "Hello"
          "Hello World!".take (First 0) == ""
-         "Hello World!".take Last.new == "!"
+         "Hello World!".take Last == "!"
          "Hello World!".take (Last 6) == "World!"
          "Hello World!".take (Before " ") == "Hello"
          "Hello World!".take (Before_Last "o") == "Hello W"
@@ -1105,10 +1105,10 @@ Text.take range =
    > Examples
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".drop First.new == "ello World!"
+         "Hello World!".drop First == "ello World!"
          "Hello World!".drop (First 5) == " World!"
          "Hello World!".drop (First 0) == "Hello World!"
-         "Hello World!".drop Last.new == "Hello World"
+         "Hello World!".drop Last == "Hello World"
          "Hello World!".drop (Last 6) == "Hello "
          "Hello World!".drop (Before " ") == " World!"
          "Hello World!".drop (Before_Last "o") == "orld!"
