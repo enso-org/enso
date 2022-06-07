@@ -4,17 +4,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.function.BiFunction;
 
 public class ObjectComparator implements Comparator<Object> {
   private static ObjectComparator INSTANCE;
 
   /**
-   * A singleton instance of an ObjectComparator
+   * A singleton instance of an ObjectComparator.
    *
    * @param fallbackComparator this MUST be the default .compare_to function for Enso. Needs to be
    *     passed to allow calling back from Java.
-   * @return Comparator object
+   * @return Comparator object.
    */
   public static ObjectComparator getInstance(BiFunction<Object, Object, Long> fallbackComparator) {
     if (INSTANCE == null) {
@@ -25,6 +26,7 @@ public class ObjectComparator implements Comparator<Object> {
   }
 
   private final BiFunction<Object, Object, Integer> fallbackComparator;
+  private final Locale caseInsensitiveLocale;
 
   public ObjectComparator() {
     this(
@@ -35,6 +37,21 @@ public class ObjectComparator implements Comparator<Object> {
 
   public ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator) {
     this.fallbackComparator = fallbackComparator;
+    this.caseInsensitiveLocale = null;
+  }
+
+  private ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator, Locale caseInsensitiveLocale) {
+    this.fallbackComparator = fallbackComparator;
+    this.caseInsensitiveLocale = caseInsensitiveLocale;
+  }
+
+  /**
+   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
+   * @param locale to use for case folding.
+   * @return Comparator object.
+   */
+  public ObjectComparator withCaseInsensitivity(Locale locale) {
+    return new ObjectComparator(this.fallbackComparator, locale);
   }
 
   @Override
@@ -92,7 +109,11 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
-      return Text_Utils.compare_normalized(thisString, thatString);
+      if (caseInsensitiveLocale != null) {
+        return Text_Utils.compare_normalized_ignoring_case(thisString, thatString, caseInsensitiveLocale);
+      } else {
+        return Text_Utils.compare_normalized(thisString, thatString);
+      }
     }
 
     // DateTimes
