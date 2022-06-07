@@ -180,6 +180,10 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            panels_gap = 3.0, 3.0;
+            documentation {
+                width = 369.0, 369.0;
+            }
             searcher {
                 list_panel {
                     content_width = 400.0, 400.0;

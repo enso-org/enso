@@ -40,13 +40,15 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
 pub mod column_grid;
+
+pub use column_grid::LabeledAnyModelProvider;
+pub use component_group::set::GroupId;
+
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
-pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
@@ -68,9 +70,10 @@ use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
+use ide_view_component_group::set::Group;
+use ide_view_component_group::set::SectionId;
 use ide_view_component_group::Layers as GroupLayers;
 use searcher_theme::list_panel as list_panel_theme;
-
 
 
 // ==============
@@ -259,6 +262,7 @@ pub struct Model {
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
     layers:              Layers,
+    groups_wrapper:      component_group::set::Wrapper,
     navigator:           Rc<RefCell<Option<Navigator>>>,
 }
 
@@ -268,6 +272,7 @@ impl Model {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
         let navigator = default();
+        let groups_wrapper = component_group::set::Wrapper::new();
 
         let background = background::View::new(&logger);
         display_object.add_child(&background);
@@ -276,6 +281,17 @@ impl Model {
         let favourites_section = Self::init_column_section(&app);
         let local_scope_section = Self::init_wide_section(&app);
         let sub_modules_section = Self::init_column_section(&app);
+
+        favourites_section
+            .content
+            .set_group_wrapper(&(SectionId::Favorites, groups_wrapper.clone_ref()));
+        groups_wrapper.add(
+            GroupId::local_scope_group(),
+            Group::Wide(local_scope_section.content.clone_ref()),
+        );
+        sub_modules_section
+            .content
+            .set_group_wrapper(&(SectionId::SubModules, groups_wrapper.clone_ref()));
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
@@ -303,6 +319,7 @@ impl Model {
             sub_modules_section,
             layers,
             logger,
+            groups_wrapper,
             navigator,
         }
     }
@@ -599,13 +616,36 @@ impl<T: SectionContent + CloneRef> LabeledSection<T> {
 // === FRP ===
 // ===========
 
+/// An identifier of Component Entry in Component List.
+///
+/// The component is identified by its group id and its number on the component list.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub struct EntryId {
+    pub group:    GroupId,
+    pub entry_id: component_group::entry::Id,
+}
+
+impl EntryId {
+    fn from_wrapper_event(&(group, entry_id): &(GroupId, component_group::entry::Id)) -> Self {
+        Self { group, entry_id }
+    }
+}
+
 define_endpoints_2! {
     Input{
         set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
     }
-    Output{}
+    Output{
+        selected_entry(Option<EntryId>),
+        suggestion_accepted(EntryId),
+        expression_accepted(EntryId),
+        is_header_selected(GroupId, bool),
+        header_accepted(GroupId),
+        size(Vector2),
+    }
 }
 
 impl component::Frp<Model> for Frp {
@@ -618,6 +658,8 @@ impl component::Frp<Model> for Frp {
         let network = &frp_api.network;
         let layout_frp = Style::from_theme(network, style);
         let scene = &app.display.default_scene;
+        let output = &frp_api.output;
+        let groups = &model.groups_wrapper;
         frp::extend! { network
             model.favourites_section.content.set_content <+ frp_api.input.set_favourites_section;
             model.local_scope_section.content.set_entries <+ frp_api.input.set_local_scope_section;
@@ -641,6 +683,14 @@ impl component::Frp<Model> for Frp {
             on_hover_end <- is_hovered.on_false();
             eval_ on_hover ( model.on_hover() );
             eval_ on_hover_end ( model.on_hover_end() );
+
+            output.selected_entry <+ groups.selected_entry.map(|op| op.as_ref().map(EntryId::from_wrapper_event));
+            output.suggestion_accepted <+ groups.suggestion_accepted.map(EntryId::from_wrapper_event);
+            output.expression_accepted <+ groups.expression_accepted.map(EntryId::from_wrapper_event);
+            output.is_header_selected <+ groups.is_header_selected;
+            output.header_accepted <+ groups.header_accepted;
+
+            output.size <+ layout_update.map(|style| style.size_inner());
         }
         layout_frp.init.emit(())
     }

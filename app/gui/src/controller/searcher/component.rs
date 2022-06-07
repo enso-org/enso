@@ -29,6 +29,47 @@ pub type MatchInfo = controller::searcher::action::MatchInfo;
 
 
 
+// ==============
+// === Errors ===
+// ==============
+
+// === NoSuchGroup===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component group with the index {} in section {}.", index, section_name)]
+pub struct NoSuchGroup {
+    section_name: CowString,
+    index:        usize,
+}
+
+impl NoSuchGroup {
+    fn in_submodules_section(index: usize) -> Self {
+        let section_name = "Sub-modules".into();
+        Self { section_name, index }
+    }
+}
+
+
+// === NoSuchComponent ===
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Fail)]
+#[fail(display = "No component entry with the index {} in {}.", index, group_name)]
+pub struct NoSuchComponent {
+    group_name: CowString,
+    index:      usize,
+}
+
+impl NoSuchComponent {
+    fn in_submodules_section(group: &Group, index: usize) -> Self {
+        let group_name = iformat!("Submodule {group.name}").into();
+        Self { group_name, index }
+    }
+}
+
+
+
 // =============
 // === Order ===
 // =============
@@ -87,8 +128,8 @@ impl Component {
     }
 
     /// The label which should be displayed in the Component Browser.
-    pub fn label(&self) -> &str {
-        &self.suggestion.name
+    pub fn label(&self) -> String {
+        self.to_string()
     }
 
     /// Checks if component is filtered out.
@@ -109,7 +150,7 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         let label = self.label();
-        let matches = fuzzly::matches(label, pattern.as_ref());
+        let matches = fuzzly::matches(&label, pattern.as_ref());
         let subsequence = matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(label, pattern, metric)
@@ -118,6 +159,26 @@ impl Component {
             Some(subsequence) => MatchInfo::Matches { subsequence },
             None => MatchInfo::DoesNotMatch,
         };
+    }
+}
+
+impl Display for Component {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let self_type_not_here =
+            self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
+        if let Some(self_type) = self_type_not_here {
+            // let should_put_project_name = self_type.name
+            //     == ast::constants::PROJECTS_MAIN_MODULE
+            //     && self_type.module_segments.is_empty();
+            // let self_type_name = if should_put_project_name {
+            //     self_type.project_name.project.as_ref()
+            // } else {
+            //     &self_type.name
+            // };
+            write!(f, "{}.{}", self_type.name, self.suggestion.name)
+        } else {
+            write!(f, "{}", self.suggestion.name.clone())
+        }
     }
 }
 
@@ -317,7 +378,7 @@ pub(crate) mod tests {
             .entries
             .borrow()
             .iter()
-            .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+            .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
             .map(|c| *c.id)
             .collect_vec();
         assert_eq!(ids_of_matches, expected_ids);
@@ -343,6 +404,13 @@ pub(crate) mod tests {
         let list = builder.build();
 
         list.update_filtering("fu");
+        let match_infos = list.top_modules()[0]
+            .entries
+            .borrow()
+            .iter()
+            .map(|c| c.match_info.borrow().clone())
+            .collect_vec();
+        DEBUG!("{match_infos:?}");
         assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);

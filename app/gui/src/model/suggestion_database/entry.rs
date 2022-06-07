@@ -356,7 +356,10 @@ impl Entry {
                 name,
                 arguments,
                 return_type,
-                documentation_html,
+                documentation_html: Self::make_documentation_html(
+                    documentation,
+                    documentation_html,
+                ),
                 module: module.try_into()?,
                 self_type: None,
                 kind: Kind::Atom,
@@ -376,7 +379,10 @@ impl Entry {
                 name,
                 arguments,
                 return_type,
-                documentation_html,
+                documentation_html: Self::make_documentation_html(
+                    documentation,
+                    documentation_html,
+                ),
                 module: module.try_into()?,
                 self_type: Some(self_type.try_into()?),
                 kind: Kind::Method,
@@ -402,21 +408,42 @@ impl Entry {
                 kind: Kind::Local,
                 scope: Scope::InModule { range: scope.into() },
             },
-            Module { module, documentation_html, .. } => {
+            Module { module, documentation, documentation_html, .. } => {
                 let module_name: module::QualifiedName = module.clone().try_into()?;
                 Self {
-                    documentation_html,
-                    name: module_name.id().name().into(),
-                    arguments: default(),
-                    module: module_name,
-                    self_type: None,
-                    kind: Kind::Module,
-                    scope: Scope::Everywhere,
-                    return_type: module,
+                    documentation_html: Self::make_documentation_html(
+                        documentation,
+                        documentation_html,
+                    ),
+                    name:               module_name.id().name().into(),
+                    arguments:          default(),
+                    module:             module_name,
+                    self_type:          None,
+                    kind:               Kind::Module,
+                    scope:              Scope::Everywhere,
+                    return_type:        module,
                 }
             }
         };
         Ok(this)
+    }
+
+    //TODO[ao] add docs
+    fn make_documentation_html(docs: Option<String>, docs_html: Option<String>) -> Option<String> {
+        if docs_html.is_some() {
+            docs_html
+        } else {
+            docs.map(|docs| {
+                let parser = parser::DocParser::new();
+                match parser {
+                    Ok(p) => {
+                        let output = p.generate_html_doc_pure((*docs).to_string());
+                        output.unwrap_or(docs)
+                    }
+                    Err(_) => docs,
+                }
+            })
+        }
     }
 
     /// Apply modification to the entry.

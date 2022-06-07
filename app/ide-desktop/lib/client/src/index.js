@@ -241,6 +241,13 @@ optParser.options('preferred-engine-version', {
     default: BUNDLED_ENGINE_VERSION,
 })
 
+optParser.options('enable-component-browser', {
+    describe: 'Enable to have new Component Browser panel in place of old Node Searcher. A temporary feature flag, ' +
+        'until the Component Browser is unstable',
+    type: 'boolean',
+    default: BUNDLED_ENGINE_VERSION,
+})
+
 optParser.options('skip-min-version-check', {
     describe: 'Disables the check whether this IDE version is still supported',
     type: 'boolean',
@@ -549,6 +556,7 @@ function createWindow() {
         crash_report_host: args.crashReportHost,
         data_gathering: args.dataGathering,
         preferred_engine_version: args.preferredEngineVersion,
+        enable_component_browser: args.enableComponentBrowser,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }

@@ -5,6 +5,8 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::controller::searcher::component::NoSuchComponent;
+use crate::controller::searcher::component::NoSuchGroup;
 use crate::model::execution_context;
 use crate::model::suggestion_database;
 
@@ -20,15 +22,16 @@ use ensogl::data::color;
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Data {
-    pub name:         ImString,
-    pub color:        Option<color::Rgb>,
+    pub name:          ImString,
+    pub color:         Option<color::Rgb>,
     /// A component corresponding to this group, e.g. the module of whose content the group
     /// contains.
-    pub component_id: Option<component::Id>,
-    pub entries:      RefCell<Vec<Component>>,
+    pub component_id:  Option<component::Id>,
+    pub entries:       RefCell<Vec<Component>>,
     /// A flag indicating that the group should be displayed in the Component Browser. It may be
     /// hidden in some scenarios, e.g. when all items are filtered out.
-    pub visible:      Cell<bool>,
+    pub visible:       Cell<bool>,
+    pub matched_items: Cell<usize>,
 }
 
 impl Data {
@@ -39,6 +42,7 @@ impl Data {
             component_id,
             entries: default(),
             visible: default(),
+            matched_items: Cell::new(0),
         }
     }
 }
@@ -98,11 +102,12 @@ impl Group {
         let any_components_found_in_db = !looked_up_components.is_empty();
         any_components_found_in_db.then(|| {
             let group_data = Data {
-                name:         group.name.clone(),
-                color:        group.color,
-                component_id: None,
-                visible:      Cell::new(true),
-                entries:      RefCell::new(looked_up_components),
+                name:          group.name.clone(),
+                color:         group.color,
+                component_id:  None,
+                visible:       Cell::new(true),
+                matched_items: Cell::new(looked_up_components.len()),
+                entries:       RefCell::new(looked_up_components),
             };
             Group { data: Rc::new(group_data) }
         })
@@ -121,6 +126,21 @@ impl Group {
     pub fn update_visibility(&self) {
         let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
+    }
+
+    /// Get the number of entries.
+    pub fn len(&self) -> usize {
+        self.entries.borrow().len()
+    }
+
+    /// Check if the group is empty.
+    pub fn is_empty(&self) -> bool {
+        self.entries.borrow().is_empty()
+    }
+
+    /// Get cloned-ref entry under the index.
+    pub fn get_entry(&self, index: usize) -> Option<Component> {
+        self.entries.borrow().get(index).map(|e| e.clone_ref())
     }
 }
 
@@ -141,6 +161,20 @@ impl List {
     pub fn new(groups: Vec<Group>) -> Self {
         Self { groups: Rc::new(groups) }
     }
+
+    /// Get entry under given group and entry index.
+    pub fn entry_by_index(
+        &self,
+        group_index: usize,
+        entry_index: usize,
+    ) -> FallibleResult<Component> {
+        let error = || NoSuchGroup::in_submodules_section(group_index);
+        let group = self.groups.get(group_index).ok_or_else(error)?;
+        let error = || NoSuchComponent::in_submodules_section(group, entry_index);
+        let entries = group.entries.borrow();
+        let component = entries.get(entry_index).ok_or_else(error)?;
+        Ok(component.clone_ref())
+    }
 }
 
 impl FromIterator<Group> for List {
@@ -159,6 +193,12 @@ impl Deref for List {
 impl AsRef<[Group]> for List {
     fn as_ref(&self) -> &[Group] {
         self.groups.as_slice()
+    }
+}
+
+impl AsRef<List> for List {
+    fn as_ref(&self) -> &List {
+        self
     }
 }
 
