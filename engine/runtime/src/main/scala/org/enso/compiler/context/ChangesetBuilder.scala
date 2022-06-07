@@ -56,13 +56,13 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             return null
           }
         } catch {
-          case e : Throwable => e.printStackTrace()
+          case e: Throwable => e.printStackTrace()
         }
         edits.tail.head
       } else {
         edits.head
       }
-      
+
       if (edit.range.start.line != edit.range.end.line) return null
 
       val len = edit.range.end.character - edit.range.start.character
@@ -74,11 +74,11 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       if (directlyAffected.size != 1) return null;
 
       val directlyAffectedId = directlyAffected.head.externalId
-      val literals = ir.preorder.filter(_.getExternalId == directlyAffectedId)
+      val literals           = ir.preorder.filter(_.getExternalId == directlyAffectedId)
 
       (literals.head match {
-        case node : IR.Literal.Number => return (node, edit)
-        case _ => return null
+        case node: IR.Literal.Number => return (node, edit)
+        case _                       => return null
       })
     }
 
@@ -131,7 +131,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       }
 
     val nodeIds = invalidated(edits)
-    val direct = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
     val transitive =
       go(
         mutable.Queue().addAll(direct),
