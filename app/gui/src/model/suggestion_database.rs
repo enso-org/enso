@@ -55,6 +55,7 @@ impl QualifiedNameToIdMap {
     /// Sets the `id` at `path`. Emits a warning if an `id` was set at this `path` before the
     /// operation.
     pub fn set_and_warn_if_existed(&mut self, path: &entry::QualifiedName, id: entry::Id) {
+        // DEBUG!("MCDBG set " path " = " id;?);
         let value = Some(id);
         let old_value = self.replace_value_and_traverse_back_pruning_empty_subtrees(path, value);
         if old_value.is_some() {
@@ -181,6 +182,7 @@ impl SuggestionDatabase {
         let logger = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
         let mut qualified_name_to_id_map = QualifiedNameToIdMap::default();
+        DEBUG!("MCDBG from_ls_response will be setting ~" response.entries.len() " entries.");
         for ls_entry in response.entries {
             let id = ls_entry.id;
             match Entry::from_ls_entry(ls_entry.suggestion) {
@@ -193,6 +195,7 @@ impl SuggestionDatabase {
                 }
             }
         }
+        DEBUG!("MCDBG from_ls_response finished setting entries, currently ~" entries.len());
         //TODO[ao]: This is a temporary solution. Eventually, we should gather examples from the
         //          available modules documentation. (https://github.com/enso-org/ide/issues/1011)
         let examples = example::EXAMPLES.iter().cloned().map(Rc::new).collect_vec();
@@ -218,6 +221,7 @@ impl SuggestionDatabase {
 
     /// Apply the update event to the database.
     pub fn apply_update_event(&self, event: SuggestionDatabaseUpdatesEvent) {
+        let mut n_adds = 0;
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
             let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
@@ -225,6 +229,7 @@ impl SuggestionDatabase {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
+                        n_adds+=1;
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
@@ -263,6 +268,7 @@ impl SuggestionDatabase {
                 }
             };
         }
+        DEBUG!("MCDBG finished updating entries, currently ~" self.entries.borrow().len() ", added ~" n_adds);
         self.version.set(event.current_version);
         self.notifications.notify(Notification::Updated);
     }

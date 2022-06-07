@@ -97,7 +97,9 @@ impl ExecutionContextsRegistry {
             let res = ctx.handle_notification(update)?;
             if spawnme {
                 executor::global::spawn(async move {
+                    DEBUG!("MCDBG loading2 ...");
                     let lrs = ctx.load_component_groups().await;
+                    DEBUG!("MCDBG loading2 DONE: " lrs;? ", count=" ctx.component_groups().len());
                 });
             }
             Ok(())

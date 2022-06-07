@@ -141,6 +141,7 @@ impl ExecutionContext {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
+                    DEBUG!("MCDBG Completed = true");
                     info!(self.logger, "Context {self.id} Became ready");
                 },
             Notification::ExpressionUpdates(updates) => {
