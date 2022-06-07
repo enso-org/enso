@@ -47,8 +47,13 @@ public final class IntegerLiteralNode extends ExpressionNode {
     return this.value;
   }
 
-  public void updateConstant(String text) {
-    this.value = Long.valueOf(text);
-    CONSTANTS_ARE_CONSTANTS.invalidate();
+  public boolean updateConstant(String text) {
+    try {
+      this.value = Long.valueOf(text);
+      CONSTANTS_ARE_CONSTANTS.invalidate();
+      return true;
+    } catch (NumberFormatException ex) {
+      return false;
+    }
   }
 }

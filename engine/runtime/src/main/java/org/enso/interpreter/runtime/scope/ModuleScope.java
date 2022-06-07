@@ -339,8 +339,7 @@ public class ModuleScope implements TruffleObject {
           at.getEndLine() - 1 == edit.range().end().line() &&
           at.getEndColumn() == edit.range().end().character()
       ) {
-        found = true;
-        integerNode.updateConstant(edit.text());
+        found = integerNode.updateConstant(edit.text());
       }
     }
     for (Node n : NodeUtil.findNodeChildren(node)) {

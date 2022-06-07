@@ -11,6 +11,7 @@ import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextRequest;
 import org.enso.polyglot.runtime.Runtime$Api$CreateContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$EditFileNotification;
+import org.enso.polyglot.runtime.Runtime$Api$ExecutionFailed;
 import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.enso.polyglot.runtime.Runtime$Api$MethodPointer;
 import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
@@ -47,6 +48,17 @@ public class IncrementalUpdatesTest {
 
   @Test
   public void sendUpdatesWhenFunctionBodyIsChanged() {
+    sendUpdatesWhenFunctionBodyIsChanged("5", true);
+  }
+
+  @Test
+  public void sendNotANumberChange() {
+    sendUpdatesWhenFunctionBodyIsChanged("x", false);
+    var failed = context.receiveN(1, 10000);
+    assertTrue("Execution failed: " + failed, failed.head().payload() instanceof Runtime$Api$ExecutionFailed);
+  }
+
+  private void sendUpdatesWhenFunctionBodyIsChanged(String newText, boolean assertExecution) {
     var contextId = UUID.randomUUID();
     var requestId = UUID.randomUUID();
     var moduleName = "Enso_Test.Test.Main";
@@ -142,19 +154,21 @@ public class IncrementalUpdatesTest {
           makeSeq(
               new model.TextEdit(
               new model.Range(new model.Position(3, 8), new model.Position(3, 9)),
-              "5"
+              newText
             )
           )
         )
       )
     );
-    assertSameElements(context.receiveN(1, 10000),
-      context.executionComplete(contextId)
-    );
-    assertEquals(List.newBuilder().addOne("5"), context.consumeOut());
-    nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
+    if (assertExecution) {
+      assertSameElements(context.receiveN(1, 10000),
+        context.executionComplete(contextId)
+      );
+      assertEquals(List.newBuilder().addOne(newText), context.consumeOut());
+      nodeCountingInstrument.assertNewNodes("No new nodes created", 0, 0);
 
-    assertEquals("Int node has been updated to 5 in the source", "5", intNode.getSourceSection().getCharacters().toString());
+      assertEquals("Int node has been updated in the source", newText, intNode.getSourceSection().getCharacters().toString());
+    }
   }
 
   private IntegerLiteralNode findIntegerLiteralNode(Map<Class, java.util.List<Node>> nodes) {
@@ -168,7 +182,7 @@ public class IncrementalUpdatesTest {
     assertEquals("Same size: " + actual, seq.length, actual.size());
     for (int i = 0; i < seq.length; i++) {
       var real = actual.drop(i).head();
-      assertEquals("Check on #" + i, real, seq[i]);
+      assertEquals("Check on #" + i, seq[i], real);
     }
   }
 
