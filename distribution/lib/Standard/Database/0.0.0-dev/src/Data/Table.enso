@@ -22,6 +22,8 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 polyglot java import java.sql.JDBCType
 
@@ -114,7 +116,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (By_Name.new ["bar", "foo"])
+             table.select_columns (By_Name ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.
@@ -164,7 +166,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (By_Name.new ["bar", "foo"])
+             table.remove_columns (By_Name ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.
@@ -213,7 +215,7 @@ type Table
        > Example
          Move a column with a specified name to back.
 
-             table.reorder_columns (By_Name.new ["foo"]) position=After_Other_Columns
+             table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.
@@ -443,6 +445,51 @@ type Table
         if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
 
+    ## Sorts the rows of the table according to the specified columns and order.
+
+       Arguments:
+       - columns: The columns and order to sort the table.
+       - text_ordering: The ordering method to use on text values.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default. The following problems can occur:
+         - If a column in `columns` is not present in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If two name matchers match the same column, a
+           `Column_Matched_By_Multiple_Selectors`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If values do not implement an ordering, an
+           `Incomparable_Values_Error`.
+
+       > Example
+         Order the table by the column "alpha" in ascending order.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+
+       > Example
+         Order the table by the second column in ascending order. In case of any
+         ties, break them based on the 7th column from the end of the table in
+         descending order.
+
+             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+    order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
+        columns_for_ordering = Table_Helpers.prepare_order_by this.internal_columns columns on_problems
+        new_order_descriptors = columns_for_ordering.map selected_column->
+            internal_column = selected_column.column
+            associated_selector = selected_column.associated_selector
+            ## TODO [RW] this is only needed because `Vector.map` does not
+               propagate dataflow errors correctly. See:
+               https://www.pivotaltracker.com/story/show/181057718
+            Panic.throw_wrapped_if_error <|
+                this.connection.dialect.prepare_order_descriptor this.connection internal_column associated_selector.direction text_ordering
+        new_ctx = this.context.add_orders new_order_descriptors
+        this.updated_context new_ctx
+
     ## UNSTABLE
 
        Sorts the table according to the specified rules.
@@ -497,21 +544,18 @@ type Table
              table.sort by=[quality_ratio, 'Rating']
     sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
     sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
-        order_to_ir = case _ of
-            Sort_Direction.Ascending -> IR.Ascending
-            Sort_Direction.Descending -> IR.Descending
         missing_to_ir last = case last of
             True -> IR.Nulls_Last
             False -> IR.Nulls_First
         wrap_elem elem =
-            [this.resolve elem . expression, order_to_ir order, missing_to_ir missing_last]
+            IR.Order_Descriptor (this.resolve elem . expression) order (missing_to_ir missing_last) collation=Nothing
         to_ir elem = case elem of
             Text -> wrap_elem elem
             Column _ _ _ _ _ -> wrap_elem elem
             Order_Rule elem Nothing my_order my_nulls ->
                 chosen_order = my_order.if_nothing order
                 chosen_nulls = my_nulls.if_nothing missing_last
-                [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
+                IR.Order_Descriptor (this.resolve elem . expression) chosen_order (missing_to_ir chosen_nulls) collation=Nothing
             Order_Rule _ _ _ _ ->
                 Error.throw <| Unsupported_Database_Operation_Error "Custom comparators are not supported in Database"
         elems = Helpers.unify_vector_singleton by . map to_ir

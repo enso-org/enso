@@ -70,6 +70,18 @@ pub struct QualifiedName {
     pub segments: Vec<QualifiedNameSegment>,
 }
 
+impl From<&str> for QualifiedName {
+    fn from(name: &str) -> Self {
+        name.split(ast::opr::predefined::ACCESS).collect()
+    }
+}
+
+impl From<String> for QualifiedName {
+    fn from(name: String) -> Self {
+        name.as_str().into()
+    }
+}
+
 impl From<QualifiedName> for String {
     fn from(name: QualifiedName) -> Self {
         String::from(&name)
@@ -79,6 +91,12 @@ impl From<QualifiedName> for String {
 impl From<&QualifiedName> for String {
     fn from(name: &QualifiedName) -> Self {
         name.into_iter().map(|s| s.deref()).join(ast::opr::predefined::ACCESS)
+    }
+}
+
+impl From<module::QualifiedName> for QualifiedName {
+    fn from(name: module::QualifiedName) -> Self {
+        name.segments().collect()
     }
 }
 
@@ -304,6 +322,15 @@ impl Entry {
             },
             Kind::Module => self.module.into_iter().collect(),
             _ => chain_iter_and_entry_name(&self.module, self).collect(),
+        }
+    }
+
+    /// Get the fully qualified name of the parent module of this entry. Returns [`None`] if
+    /// the entry represents a top-level module.
+    pub fn parent_module(&self) -> Option<module::QualifiedName> {
+        match self.kind {
+            Kind::Module => self.module.parent_module(),
+            _ => Some(self.module.clone()),
         }
     }
 }

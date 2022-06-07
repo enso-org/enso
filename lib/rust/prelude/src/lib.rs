@@ -68,6 +68,7 @@ pub use tp::*;
 pub use vec::*;
 pub use wrapper::*;
 
+pub use assert_approx_eq::assert_approx_eq;
 pub use boolinator::Boolinator;
 pub use derivative::Derivative;
 pub use derive_more::*;

@@ -132,6 +132,7 @@
 - [Implemented a `Table.from Text` conversion allowing to parse strings
   representing `Delimited` files without storing them on the filesystem.][3478]
 - [Added rank data, correlation and covariance statistics for `Vector`][3484]
+- [Implemented `Table.order_by` for the SQLite backend.][3502]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -206,6 +207,7 @@
 [3486]: https://github.com/enso-org/enso/pull/3486
 [3478]: https://github.com/enso-org/enso/pull/3478
 [3484]: https://github.com/enso-org/enso/pull/3484
+[3502]: https://github.com/enso-org/enso/pull/3502
 
 #### Enso Compiler
 
@@ -252,6 +254,7 @@
 [3465]: https://github.com/enso-org/enso/pull/3465
 [3492]: https://github.com/enso-org/enso/pull/3492
 [3493]: https://github.com/enso-org/enso/pull/3493
+[3505]: https://github.com/enso-org/enso/pull/3505
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -274,7 +274,7 @@ type Table
        > Example
          Select columns by name.
 
-             table.select_columns (By_Name.new ["bar", "foo"])
+             table.select_columns (By_Name ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.
@@ -323,7 +323,7 @@ type Table
        > Example
          Remove columns with given names.
 
-             table.remove_columns (By_Name.new ["bar", "foo"])
+             table.remove_columns (By_Name ["bar", "foo"])
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.
@@ -372,7 +372,7 @@ type Table
        > Example
          Move a column with a specified name to back.
 
-             table.reorder_columns (By_Name.new ["foo"]) position=After_Other_Columns
+             table.reorder_columns (By_Name ["foo"]) position=After_Other_Columns
 
        ## TODO [RW] default arguments do not work on atoms, once this is fixed,
           the above should be replaced with just `By_Name`.

@@ -235,18 +235,22 @@ generate_from_part dialect from_spec = case from_spec of
 
    Arguments:
    - dialect: The SQL dialect for which the code is generated.
-   - order_description: A description of the ORDER clause.
-
-   # generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
-generate_order : Internal_Dialect -> Vector Any -> Sql.Builder
-generate_order dialect order_description =
-    order_suffix = case order_description.second of
-        IR.Ascending -> Sql.code " ASC"
-        IR.Descending -> Sql.code " DESC"
-    nulls_suffix = case order_description.at 2 of
+   - order_descriptor: A description of the ORDER clause.
+generate_order : Internal_Dialect -> Order_Descriptor -> Sql.Builder
+generate_order dialect order_descriptor =
+    order_suffix = case order_descriptor.direction of
+        Sort_Direction.Ascending -> Sql.code " ASC"
+        Sort_Direction.Descending -> Sql.code " DESC"
+    nulls_suffix = case order_descriptor.nulls_order of
+        Nothing -> Sql.empty
         IR.Nulls_First -> Sql.code " NULLS FIRST"
         IR.Nulls_Last -> Sql.code " NULLS LAST"
-    (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
+    collation = case order_descriptor.collation of
+        Nothing -> Sql.empty
+        collation_name -> Sql.code ' COLLATE "'+collation_name+'"'
+    base_expression = here.generate_expression dialect order_descriptor.expression
+    base_expression ++ collation ++ order_suffix ++ nulls_suffix
+
 
 ## PRIVATE
 
