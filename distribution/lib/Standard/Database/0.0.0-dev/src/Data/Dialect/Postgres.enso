@@ -6,6 +6,8 @@ from Standard.Database.Data.Sql import Sql_Type
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.Dialect.Helpers
 import Standard.Database.Data.Internal.Base_Generator
+import Standard.Database.Data.Internal.IR
+from Standard.Database.Error as Database_Errors import Unsupported_Database_Operation_Error
 
 ## PRIVATE
 
@@ -223,7 +225,7 @@ make_order_descriptor internal_column sort_direction text_ordering = case intern
     True ->
         ## In the future we can modify this error to suggest using a custom defined collation.
         if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
-            case case_sensitive of
+            case text_ordering.case_sensitive of
                 Nothing ->
                     IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
                 True ->
