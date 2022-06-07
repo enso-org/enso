@@ -452,7 +452,7 @@ impl component::Frp<Model> for Frp {
             );
         }
 
-        
+
         // === Mouse hovering ===
 
         frp::extend! { network
@@ -505,7 +505,16 @@ impl Layers {
         selected_parent_layer: &layer::Layer,
     ) -> Self {
         let normal = LayersInner::new(logger, normal_parent_layer);
-        let selected = LayersInner::new(logger, selected_parent_layer);
+        let camera = selected_parent_layer.camera();
+        let background = selected_parent_layer.clone_ref();
+        let text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+        let header_text = layer::Layer::new_with_cam(logger.clone_ref(), &camera);
+
+        background.add_sublayer(&text);
+        background.add_sublayer(&header);
+        header.add_sublayer(&header_text);
+        let selected = LayersInner { background, text, header, header_text };
 
         Self { normal, selected }
     }
@@ -592,7 +601,7 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         display_object.add_child(&background);
-        //display_object.add_child(&selected_background);
+        display_object.add_child(&selected_background);
         display_object.add_child(&header_background);
         display_object.add_child(&selected_header_background);
         display_object.add_child(&header);
@@ -721,8 +730,11 @@ impl Model {
         if is_header_selected {
             Vector2(0.0, size.y / 2.0 - list_view::entry::HEIGHT / 2.0 - header_pos)
         } else {
-            let sel_y = entries_selection_position.y.min(size.y / 2.0 - list_view::entry::HEIGHT - header_pos);
-            let selection_pos = self.entries.position().xy() + Vector2(entries_selection_position.x, sel_y);
+            let sel_y = entries_selection_position
+                .y
+                .min(size.y / 2.0 - list_view::entry::HEIGHT - header_pos);
+            let selection_pos =
+                self.entries.position().xy() + Vector2(entries_selection_position.x, sel_y);
             selection_pos
         }
     }
@@ -774,7 +786,12 @@ mod tests {
 
     macro_rules! expect_entry_selected {
         ($cgv:ident, $id:expr) => {
-            assert_eq!($cgv.selected_entry.value(), Some($id), "Selected entry is not Some({}).", $id);
+            assert_eq!(
+                $cgv.selected_entry.value(),
+                Some($id),
+                "Selected entry is not Some({}).",
+                $id
+            );
             assert!(!$cgv.is_header_selected.value(), "Header is selected.");
         };
     }

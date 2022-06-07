@@ -203,9 +203,9 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 
                 eval_ input.defocus(model.defocus_columns());
 
-                
+
                 // === Mouse hovering ===
-                
+
                 is_mouse_over_tmp <- is_mouse_over.or(&column.is_mouse_over);
                 is_mouse_over = is_mouse_over_tmp;
 

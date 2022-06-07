@@ -18,6 +18,7 @@ use ensogl_hardcoded_theme::application::component_browser::component_group::ent
 use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabel;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
+use ensogl_list_view::Entry;
 
 
 
@@ -80,6 +81,13 @@ pub struct Params {
     pub colors: Colors,
 }
 
+#[allow(missing_docs)]
+#[derive(Clone, CloneRef, Debug)]
+pub struct SelectedLayers {
+    pub selected_background_layer: Layer,
+    pub selected_text_layer:       Layer,
+}
+
 impl Default for Params {
     fn default() -> Self {
         let network = frp::Network::new("component_browser::entry::Params::default");
@@ -90,7 +98,6 @@ impl Default for Params {
             entry_text <- source::<color::Rgba>().sampler();
             background <- source::<color::Rgba>().sampler();
         }
-
         let colors = Colors { icon_strong, icon_weak, header_text, entry_text, background };
         Self { colors }
     }
@@ -129,7 +136,7 @@ pub struct View {
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
     selected_label:    GlyphHighlightedLabel,
-    selection_layer: Layer,
+    selected_layers:   SelectedLayers,
 }
 
 impl list_view::Entry for View {
@@ -143,10 +150,15 @@ impl list_view::Entry for View {
         let selected_icon: Rc<RefCell<CurrentIcon>> = default();
         let label = GlyphHighlightedLabel::new(app, style_prefix, &());
         let selected_label = GlyphHighlightedLabel::new(app, style_prefix, &());
-        let selection_layer = app.display.default_scene.layers.selection.clone_ref();
-        selected_label.set_label_layer(&selection_layer);
-        //display_object.add_child(&label);
+        display_object.add_child(&label);
         display_object.add_child(&selected_label);
+
+        let selected_layers = SelectedLayers {
+            selected_background_layer: app.display.default_scene.layers.selection.clone_ref(),
+            selected_text_layer:       app.display.default_scene.layers.selection_text.clone_ref(),
+        };
+
+        selected_label.set_label_layer(&selected_layers.selected_text_layer);
 
         let network = frp::Network::new("component_group::Entry");
         let style = &label.inner.style_watch;
@@ -199,7 +211,7 @@ impl list_view::Entry for View {
             icon_weak_color,
             label,
             selected_label,
-            selection_layer,
+            selected_layers,
         }
     }
 
@@ -224,7 +236,7 @@ impl list_view::Entry for View {
             shape.weak_color.set(self.icon_weak_color.value().into());
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
-            self.selection_layer.add_exclusive(&shape);
+            self.selected_layers.selected_text_layer.add_exclusive(&shape);
             icon.shape = Some(shape);
         }
     }
