@@ -1,11 +1,6 @@
 package org.enso.table.data.table;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -115,11 +110,10 @@ public class Table {
    * @return the result of masking this table with the provided column
    */
   public Table mask(Column maskCol) {
-    if (!(maskCol.getStorage() instanceof BoolStorage)) {
+    if (!(maskCol.getStorage() instanceof BoolStorage storage)) {
       throw new UnexpectedColumnTypeException("Boolean");
     }
 
-    BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
     localStorageMask.set(0, rowCount());
@@ -217,8 +211,8 @@ public class Table {
    * @param columns set of columns to use as an Index
    * @return a table indexed by the proper column
    */
-  public MultiValueIndex indexFromColumns(Column[] columns) {
-    return new MultiValueIndex(columns, this.rowCount());
+  public MultiValueIndex indexFromColumns(Column[] columns, Comparator<Object> objectComparator) {
+    return new MultiValueIndex(columns, this.rowCount(), objectComparator);
   }
 
   /**

@@ -23,7 +23,8 @@ public class CountDistinct extends Aggregator {
    * @param columns input columns
    * @param ignoreAllNull if true ignore then all values are null
    */
-  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull, Comparator<Object> objectComparator) {
+  public CountDistinct(
+      String name, Column[] columns, boolean ignoreAllNull, Comparator<Object> objectComparator) {
     super(name, Storage.Type.LONG);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;

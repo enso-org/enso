@@ -527,7 +527,7 @@ type Table
 
         on_problems.attach_problems_before validated.problems <|
             java_key_columns = validated.key_columns.map .java_column
-            index = this.java_table.indexFromColumns java_key_columns.to_array
+            index = this.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 

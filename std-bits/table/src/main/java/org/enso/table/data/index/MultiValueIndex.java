@@ -9,11 +9,7 @@ import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,7 +18,7 @@ public class MultiValueIndex {
   private final Map<MultiValueKey, List<Integer>> locs;
   private final AggregatedProblems problems;
 
-  public MultiValueIndex(Column[] keyColumns, int tableSize) {
+  public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
     this.keyColumnsLength = keyColumns.length;
     this.locs = new HashMap<>();
     this.problems = new AggregatedProblems();
@@ -31,7 +27,7 @@ public class MultiValueIndex {
       int size = keyColumns[0].getSize();
       Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        MultiValueKey key = new MultiValueKey(storage, i);
+        MultiValueKey key = new MultiValueKey(storage, i, objectComparator);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -41,7 +37,7 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      this.locs.put(new MultiValueKey(new Storage[0], 0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(new MultiValueKey(new Storage[0], 0, objectComparator), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 

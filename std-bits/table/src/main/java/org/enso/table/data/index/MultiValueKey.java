@@ -13,11 +13,12 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
   private final boolean allNull;
   private final boolean floatValue;
 
-  public MultiValueKey(Storage[] storage, int rowIndex) {
-    this(storage, rowIndex, null);
+  public MultiValueKey(Storage[] storage, int rowIndex, Comparator<Object> objectComparator) {
+    this(storage, rowIndex, null, objectComparator);
   }
 
-  public MultiValueKey(Storage[] storage, int rowIndex, Comparator<Object> objectComparator) {
+  public MultiValueKey(
+      Storage[] storage, int rowIndex, int[] directions, Comparator<Object> objectComparator) {
     this.storage = storage;
     this.rowIndex = rowIndex;
     this.objectComparator = objectComparator;
