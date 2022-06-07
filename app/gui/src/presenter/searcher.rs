@@ -12,8 +12,10 @@ use crate::presenter::graph::ViewNodeId;
 
 use enso_frp as frp;
 use ide_view as view;
+use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::project::SearcherParams;
+use ide_view::project::SearcherVariant;
 
 
 // ==============
@@ -86,6 +88,10 @@ impl Model {
         provider::create_providers_from_controller(&self.logger, &self.controller)
     }
 
+    fn create_submodules_providers(&self) -> Vec<LabeledAnyModelProvider> {
+        provider::submodules_from_controller(&self.controller)
+    }
+
     fn should_auto_select_first_action(&self) -> bool {
         let user_action = self.controller.current_user_action();
         let list_not_empty = matches!(self.controller.actions(), controller::searcher::Actions::Loaded {list} if list.matching_count() > 0);
@@ -120,7 +126,6 @@ impl Searcher {
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
-        let searcher = &model.view.searcher().frp;
 
         frp::extend! { network
             eval graph.node_expression_set ([model]((changed_node, expr)) {
@@ -130,14 +135,28 @@ impl Searcher {
             });
 
             action_list_changed <- source::<()>();
-            new_providers <- action_list_changed.map(f_!(model.create_providers()));
-            searcher.set_actions <+ new_providers;
-            select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
-            searcher.select_action <+ select_entry.constant(0);
+        }
 
-            used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
-            new_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
-            graph.set_node_expression <+ new_input;
+        match model.view.searcher() {
+            SearcherVariant::ComponentBrowser(browser) => {
+                let list_view = &browser.model().list;
+                frp::extend! { network
+                    list_view.set_sub_modules_section <+ action_list_changed.map(f_!(model.create_submodules_providers()));
+                }
+            }
+            SearcherVariant::OldNodeSearcher(searcher) => {
+                let searcher = &searcher.frp;
+
+                frp::extend! { network
+                    new_providers <- action_list_changed.map(f_!(model.create_providers()));
+                    searcher.set_actions <+ new_providers;
+                    select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
+                    searcher.select_action <+ select_entry.constant(0);
+                    used_as_suggestion <- searcher.used_as_suggestion.filter_map(|entry| *entry);
+                    new_input <- used_as_suggestion.filter_map(f!((e) model.entry_used_as_suggestion(*e)));
+                    graph.set_node_expression <+ new_input;
+                }
+            }
         }
 
         let weak_model = Rc::downgrade(&model);

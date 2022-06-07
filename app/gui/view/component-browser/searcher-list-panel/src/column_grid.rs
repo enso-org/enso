@@ -37,7 +37,7 @@ struct Entry {
 #[derive(Clone, Debug, Default)]
 pub struct LabeledAnyModelProvider {
     /// Label of the data provided to be used as a header of the list.
-    pub label:   String,
+    pub label:   ImString,
     /// Content to be used to populate a list.
     pub content: list_view::entry::AnyModelProvider<component_group::Entry>,
 }

@@ -1,10 +1,12 @@
 //! Code for type double representation processing.
 
 use crate::prelude::*;
+use std::cmp;
 
 use crate::identifier::ReferentName;
 use crate::module;
 use crate::project;
+use crate::tp;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -161,6 +163,17 @@ impl Display for QualifiedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let text = String::from(self);
         fmt::Display::fmt(&text, f)
+    }
+}
+
+
+// === Comparison ===
+
+impl PartialEq<module::QualifiedName> for tp::QualifiedName {
+    fn eq(&self, rhs: &module::QualifiedName) -> bool {
+        self.project_name == rhs.project_name
+            && self.module_segments == rhs.id.parent_segments()
+            && self.name == rhs.id.name().as_ref()
     }
 }
 

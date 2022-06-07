@@ -70,13 +70,25 @@ impl Group {
         // cannot return reference nor [`Ref`], and we don't want to copy anything here.
         if pattern.as_ref().is_empty() {
             entries.sort_by(|a, b| {
-                a.can_be_entered().cmp(&b.can_be_entered()).then_with(|| a.label().cmp(b.label()))
+                a.can_be_entered().cmp(&b.can_be_entered()).then_with(|| a.label().cmp(&b.label()))
             });
         } else {
             entries.sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
         }
         let visible = !entries.iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.borrow().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.borrow().is_empty()
+    }
+
+    pub fn get_entry(&self, index: usize) -> Option<Component> {
+        self.entries.borrow().get(index).map(|e| e.clone_ref())
     }
 }
 

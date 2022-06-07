@@ -5,8 +5,10 @@ use ensogl::display::shape::*;
 use ensogl::system::web::traits::*;
 
 use crate::code_editor;
+use crate::component_browser;
 use crate::debug_mode_popup;
 use crate::debug_mode_popup::DEBUG_MODE_SHORTCUT;
+use crate::documentation;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
@@ -21,6 +23,7 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
@@ -128,6 +131,89 @@ mod prompt_background {
 // === Model ===
 // =============
 
+pub struct SearcherFrp {
+    show:              frp::Any<()>,
+    hide:              frp::Any<()>,
+    editing_committed: frp::Stream<Option<searcher::entry::Id>>,
+    is_visible:        frp::Stream<bool>,
+    is_empty:          frp::Stream<bool>,
+    size:              frp::Stream<Vector2>,
+}
+
+#[derive(Clone, CloneRef, Debug)]
+pub enum SearcherVariant {
+    ComponentBrowser(component_browser::View),
+    OldNodeSearcher(searcher::View),
+}
+
+impl SearcherVariant {
+    fn new(app: &Application) -> Self {
+        if ARGS.enable_component_browser.unwrap_or(false) {
+            Self::ComponentBrowser(app.new_view::<component_browser::View>())
+        } else {
+            Self::OldNodeSearcher(app.new_view::<searcher::View>())
+        }
+    }
+
+    fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => {
+                frp::extend! {project_view_network
+                    is_empty <- source::<bool>();
+                    editing_commited <- source();
+                }
+                is_empty.emit(false);
+                SearcherFrp {
+                    show:              view.input.show.clone_ref(),
+                    hide:              view.input.hide.clone_ref(),
+                    editing_committed: editing_commited.into(),
+                    is_visible:        view.output.is_visible.clone_ref().into(),
+                    is_empty:          is_empty.into(),
+                    size:              view.output.size.clone_ref().into(),
+                }
+            }
+            SearcherVariant::OldNodeSearcher(view) => SearcherFrp {
+                show:              view.input.show.clone_ref(),
+                hide:              view.input.hide.clone_ref(),
+                editing_committed: view.output.editing_committed.clone_ref().into(),
+                is_visible:        view.output.is_visible.clone_ref().into(),
+                is_empty:          view.output.is_empty.clone_ref().into(),
+                size:              view.output.size.clone_ref().into(),
+            },
+        }
+    }
+
+    fn documentation(&self) -> &documentation::View {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => &view.model().documentation,
+            SearcherVariant::OldNodeSearcher(view) => &view.documentation(),
+        }
+    }
+
+    fn show(&self) {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => view.show(),
+            SearcherVariant::OldNodeSearcher(view) => view.show(),
+        }
+    }
+
+    fn hide(&self) {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => view.hide(),
+            SearcherVariant::OldNodeSearcher(view) => view.hide(),
+        }
+    }
+}
+
+impl display::Object for SearcherVariant {
+    fn display_object(&self) -> &display::object::Instance<Scene> {
+        match self {
+            SearcherVariant::ComponentBrowser(view) => view.display_object(),
+            SearcherVariant::OldNodeSearcher(view) => view.display_object(),
+        }
+    }
+}
+
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:                    Application,
@@ -136,7 +222,7 @@ struct Model {
     /// These buttons are present only in a cloud environment.
     window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
     graph_editor:           Rc<GraphEditor>,
-    searcher:               searcher::View,
+    searcher:               SearcherVariant,
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background:      prompt_background::View,
@@ -150,7 +236,7 @@ impl Model {
         let logger = Logger::new("project::View");
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new(&logger);
-        let searcher = app.new_view::<searcher::View>();
+        let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
@@ -375,11 +461,11 @@ impl View {
         let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
         let frp = Frp::new();
-        let searcher = &model.searcher.frp;
+        let network = &frp.network;
+        let searcher = &model.searcher.frp(network);
         let graph = &model.graph_editor.frp;
         let project_list = &model.open_dialog.project_list;
         let file_browser = &model.open_dialog.file_browser;
-        let network = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
         let prompt_visibility = Animation::new(network);
 
@@ -438,14 +524,20 @@ impl View {
                 });
             eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
 
+            trace searcher_left_top_position.value;
+            trace searcher.size;
+            trace searcher.is_visible;
             _eval <- all_with(&searcher_left_top_position.value,&searcher.size,f!([model](lt,size) {
+
                 let x = lt.x + size.x / 2.0;
                 let y = lt.y - size.y / 2.0;
+                DEBUG!("Setting searcher position {x} {y}, which size is {size}");
                 model.searcher.set_position_xy(Vector2(x,y));
             }));
 
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
+                DEBUG!("Searcher visibility change: {is_attached} - {is_visible}.");
                 if !is_attached && *is_visible {
                     model.display_object.add_child(&model.searcher);
                 } else if is_attached && !is_visible {
@@ -619,7 +711,8 @@ impl View {
 
             // === Disabling Navigation ===
 
-            disable_navigation           <- searcher.is_selected || frp.open_dialog_shown;
+            let documentation = model.searcher.documentation();
+            disable_navigation           <- documentation.frp.is_selected || frp.open_dialog_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
             // === Disabling Dropping ===
@@ -647,7 +740,7 @@ impl View {
     }
 
     /// Searcher View.
-    pub fn searcher(&self) -> &searcher::View {
+    pub fn searcher(&self) -> &SearcherVariant {
         &self.model.searcher
     }
 

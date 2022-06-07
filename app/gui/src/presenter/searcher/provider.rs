@@ -5,10 +5,13 @@ use crate::prelude::*;
 use crate::controller::searcher::action::MatchInfo;
 use crate::model::suggestion_database;
 
+use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
 use ide_view as view;
-
+use ide_view::component_browser::list_panel::LabeledAnyModelProvider;
+use ide_view_component_group as component_group_view;
+use ide_view_component_group::entry::View;
 
 
 // ============================
@@ -147,4 +150,71 @@ impl ide_view::searcher::DocumentationProvider for Action {
             Action::ProjectManagement(_) => None,
         }
     }
+}
+
+
+#[derive(Clone, CloneRef, Debug)]
+pub struct Component {
+    group: controller::searcher::component::Group,
+}
+
+impl Component {
+    pub fn new(group: controller::searcher::component::Group) -> Self {
+        Self { group }
+    }
+}
+
+impl list_view::entry::ModelProvider<component_group_view::Entry> for Component {
+    fn entry_count(&self) -> usize {
+        self.group.len()
+    }
+
+    fn get(&self, id: usize) -> Option<component_group_view::entry::Model> {
+        let component = self.group.get_entry(id)?;
+        let match_info = component.match_info.borrow();
+        let label = component.label().to_owned();
+        let highlighted = bytes_of_matched_letters(&*match_info, &label);
+        Some(component_group_view::entry::Model {
+            icon:             component_group_view::icon::Id::AddColumn,
+            highlighted_text: list_view::entry::GlyphHighlightedLabelModel { label, highlighted },
+        })
+    }
+}
+
+fn bytes_of_matched_letters(match_info: &MatchInfo, label: &str) -> Vec<text::Range<text::Bytes>> {
+    if let MatchInfo::Matches { subsequence } = match_info {
+        let mut char_iter = label.char_indices().enumerate();
+        subsequence
+            .indices
+            .iter()
+            .filter_map(|idx| loop {
+                if let Some(char) = char_iter.next() {
+                    let (char_idx, (byte_id, char)) = char;
+                    if char_idx == *idx {
+                        let start = enso_text::unit::Bytes(byte_id as i32);
+                        let end = enso_text::unit::Bytes((byte_id + char.len_utf8()) as i32);
+                        break Some(enso_text::Range::new(start, end));
+                    }
+                } else {
+                    break None;
+                }
+            })
+            .collect()
+    } else {
+        default()
+    }
+}
+
+pub fn submodules_from_controller(
+    controller: &controller::Searcher,
+) -> Vec<LabeledAnyModelProvider> {
+    let components = controller.components();
+    components
+        .top_modules()
+        .iter()
+        .map(|group| LabeledAnyModelProvider {
+            label:   group.name.clone_ref(),
+            content: Rc::new(Component::new(group.clone_ref())).into(),
+        })
+        .collect()
 }

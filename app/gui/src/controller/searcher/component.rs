@@ -3,6 +3,7 @@
 //! Component is a language entity displayed in the Component Browser.
 
 use crate::prelude::*;
+use std::fmt::Formatter;
 
 use crate::model::suggestion_database;
 
@@ -57,8 +58,8 @@ impl Component {
     }
 
     /// The label which should be displayed in the Component Browser.
-    pub fn label(&self) -> &str {
-        &self.suggestion.name
+    pub fn label(&self) -> String {
+        self.to_string()
     }
 
     /// Checks if component is filtered out.
@@ -79,7 +80,7 @@ impl Component {
     /// It should be called each time the filtering pattern changes.
     pub fn update_matching_info(&self, pattern: impl Str) {
         let label = self.label();
-        let matches = fuzzly::matches(label, pattern.as_ref());
+        let matches = fuzzly::matches(&label, pattern.as_ref());
         let subsequence = matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
             fuzzly::find_best_subsequence(label, pattern, metric)
@@ -88,6 +89,26 @@ impl Component {
             Some(subsequence) => MatchInfo::Matches { subsequence },
             None => MatchInfo::DoesNotMatch,
         };
+    }
+}
+
+impl Display for Component {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let self_type_not_here =
+            self.suggestion.self_type.as_ref().filter(|t| *t != &self.suggestion.module);
+        if let Some(self_type) = self_type_not_here {
+            // let should_put_project_name = self_type.name
+            //     == ast::constants::PROJECTS_MAIN_MODULE
+            //     && self_type.module_segments.is_empty();
+            // let self_type_name = if should_put_project_name {
+            //     self_type.project_name.project.as_ref()
+            // } else {
+            //     &self_type.name
+            // };
+            write!(f, "{}.{}", self_type.name, self.suggestion.name)
+        } else {
+            write!(f, "{}", self.suggestion.name.clone())
+        }
     }
 }
 

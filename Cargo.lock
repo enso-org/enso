@@ -1534,7 +1534,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text-msdf-sys",
  "ide-view-component-group",
- "searcher-list-panel",
+ "ide-view-component-list-panel",
  "wasm-bindgen",
 ]
 
@@ -1958,6 +1958,7 @@ dependencies = [
  "futures 0.3.21",
  "fuzzly",
  "ide-view",
+ "ide-view-component-group",
  "itertools 0.10.3",
  "js-sys",
  "json-rpc",
@@ -3686,9 +3687,11 @@ dependencies = [
  "enso-shapely",
  "ensogl",
  "ensogl-component",
+ "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf-sys",
+ "ide-view-component-browser",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -3705,6 +3708,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ide-view-component-browser"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ide-view-component-list-panel",
+]
+
+[[package]]
 name = "ide-view-component-group"
 version = "0.1.0"
 dependencies = [
@@ -3718,6 +3731,24 @@ dependencies = [
  "ensogl-shadow",
  "ensogl-text",
  "failure",
+]
+
+[[package]]
+name = "ide-view-component-list-panel"
+version = "0.1.0"
+dependencies = [
+ "approx 0.5.1",
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-list-view",
+ "ensogl-scroll-area",
+ "ensogl-selector",
+ "ensogl-shadow",
+ "ensogl-text",
+ "ide-view-component-group",
+ "ordered-float",
 ]
 
 [[package]]
@@ -5663,24 +5694,6 @@ checksum = "d53dcdb7c9f8158937a7981b48accfd39a43af418591a5d008c7b22b5e1b7ca4"
 dependencies = [
  "ring",
  "untrusted",
-]
-
-[[package]]
-name = "searcher-list-panel"
-version = "0.1.0"
-dependencies = [
- "approx 0.5.1",
- "enso-frp",
- "ensogl-core",
- "ensogl-gui-component",
- "ensogl-hardcoded-theme",
- "ensogl-list-view",
- "ensogl-scroll-area",
- "ensogl-selector",
- "ensogl-shadow",
- "ensogl-text",
- "ide-view-component-group",
- "ordered-float",
 ]
 
 [[package]]
