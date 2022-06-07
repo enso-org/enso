@@ -206,6 +206,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 
                 // === Mouse hovering ===
                 
+                // We connect `is_mouse_over` events from all columns into a single event stream
+                // using `or` combinator.
                 is_mouse_over_tmp <- is_mouse_over.or(&column.is_mouse_over);
                 is_mouse_over = is_mouse_over_tmp;
 
@@ -429,12 +431,6 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         } else {
             MINIMAL_HEIGHT
         }
-    }
-
-    /// Test whether the `point` (object-space coordinates) is inside the component group shape.
-    pub fn is_inside(&self, point: Vector2<f32>) -> bool {
-        let size = self.background.size.get();
-        crate::is_point_inside(point, size)
     }
 }
 
