@@ -27,8 +27,8 @@ type Auto
         extension = file.extension
 
         output = Ref.new Nothing
-        if ".txt".equals_ignore_case extension then output.put File_Format.Text
-        if ".log".equals_ignore_case extension then output.put File_Format.Text
+        if ".txt".equals_ignore_case extension then output.put File_Format.Plain_Text
+        if ".log".equals_ignore_case extension then output.put File_Format.Plain_Text
         if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited ',')
         if ".tsv".equals_ignore_case extension then output.put (File_Format.Delimited '\t')
         if ".xlsx".equals_ignore_case extension then output.put File_Format.Excel
@@ -55,8 +55,8 @@ type Bytes
         file.read_bytes
 
 ## Reads the file to a `Text` with specified encoding.
-type Text
-    type Text (encoding:Encoding=Encoding.utf_8)
+type Plain_Text
+    type Plain_Text (encoding:Encoding=Encoding.utf_8)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
