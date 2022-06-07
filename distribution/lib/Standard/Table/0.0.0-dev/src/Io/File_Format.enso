@@ -75,6 +75,9 @@ type Delimited
        - delimiter: The delimiter character to split the file into columns. An
          `Illegal_Argument_Error` error is returned if this is an empty string.
        - encoding: The encoding to use when reading the file.
+       - skip_rows: The number of rows to skip from the top of the file.
+       - row_limit: The maximum number of rows to read from the file. This count
+         does not include the header row (if applicable).
        - quote: The quote character denotes the start and end of a quoted value.
          No quote character is used if set to `Nothing`. Quoted items are not
          split on the delimiter and can also contain newlines. Within a quoted
@@ -93,20 +96,50 @@ type Delimited
          `Column_2` etc.). If set to `Infer`, the process tries to infer if
          headers are present on the first row. If the column names are not
          unique, numeric suffixes will be appended to disambiguate them.
-       - skip_rows: The number of rows to skip from the top of the file.
-       - row_limit: The maximum number of rows to read from the file. This count
-         does not include the header row (if applicable).
        - value_formatter: Formatter to parse text values into numbers, dates,
          times, etc. If `Nothing` values are left as Text.
        - keep_invalid_rows: Specifies whether rows that contain less or more
          columns than expected should be kept (setting the missing columns to
          `Nothing` or dropping the excess columns) or dropped.
-    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (quote_style:Quote_Style=Quote_Style.Necessary) (headers:True|False|Infer=Infer) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
+    type Delimited (delimiter:Text) (encoding:Encoding=Encoding.utf_8) (skip_rows:Integer=0) (row_limit:Integer|Nothing=Nothing) (quote:Text|Nothing='"') (quote_escape:Text|Nothing='"') (quote_style:Quote_Style=Quote_Style.Necessary) (headers:True|False|Infer=Infer) (value_formatter:Data_Formatter|Nothing=Data_Formatter) (keep_invalid_rows:Boolean=True)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read file on_problems =
         Delimited_Reader.read_file this file on_problems
+
+    ## PRIVATE
+     Clone the instance with some properties overridden.
+     Note: This function is internal until such time as Atom cloning with modification is built into Enso.
+    clone : Text->Text->(Boolean|Infer)->Data_Formatter->Boolean->Delimited
+    clone (quote=this.quote) (quote_escape=this.quote_escape) (quote_style=this.quote_style) (headers=this.headers) (value_formatter=this.value_formatter) (keep_invalid_rows=this.keep_invalid_rows) =
+        Delimited this.delimiter this.encoding this.skip_rows this.row_limit quote quote_escape quote_style headers value_formatter keep_invalid_rows
+
+    ## Create a clone of this with specified `quote` and `quote_escape`.
+    with_quotes : Text->Text->Quote_Style->Delimited
+    with_quotes quote quote_escape=quote quote_style=this.quote_style =
+        this.clone quote=quote quote_escape=quote_escape quote_style=quote_style
+
+    ## Create a clone of this with first row treated as header.
+    with_headers : Delimited
+    with_headers = this.clone headers=True
+
+    ## Create a clone of this where the first row is treated as data, not a
+       header.
+    without_headers : Delimited
+    without_headers = this.clone headers=False
+
+    ## Create a clone of this with value parsing.
+
+       A custom `Data_Formatter` can be provided to customize parser options.
+    with_parsing : Data_Formatter -> Delimited
+    with_parsing (value_formatter=Data_Formatter) =
+        this.clone value_formatter=value_formatter
+
+    ## Create a clone of this without value parsing.
+    without_parsing : Delimited
+    without_parsing =
+        this.clone value_formatter=Nothing
 
 ## A setting to infer the default behaviour of some option.
 type Infer
