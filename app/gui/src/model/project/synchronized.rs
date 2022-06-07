@@ -93,16 +93,13 @@ impl ExecutionContextsRegistry {
         update: ExecutionUpdate,
     ) -> FallibleResult {
         self.with_context(id, |ctx| {
-            let spawnme = matches!(update, ExecutionUpdate::Completed);
-            let res = ctx.handle_notification(update)?;
-            if spawnme {
+            if matches!(update, ExecutionUpdate::Completed) {
+                let ctx = ctx.clone_ref();
                 executor::global::spawn(async move {
-                    DEBUG!("MCDBG loading2 ...");
-                    let lrs = ctx.load_component_groups().await;
-                    DEBUG!("MCDBG loading2 DONE: " lrs;? ", count=" ctx.component_groups().len());
+                    ctx.load_component_groups().await
                 });
             }
-            Ok(())
+            ctx.handle_notification(update)
         })
     }
 

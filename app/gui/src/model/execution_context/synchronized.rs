@@ -78,16 +78,6 @@ impl ExecutionContext {
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
-            match this.load_component_groups().await {
-                Ok(_) => info!(this.logger, "Loaded component groups."),
-                Err(err) => {
-                    let msg = iformat!(
-                        "Failed to load component groups. No groups will appear in the Favorites \
-                        section of the Component Browser. Error: {err}"
-                    );
-                    error!(this.logger, "{msg}");
-                }
-            }
             Ok(this)
         }
     }
@@ -108,11 +98,21 @@ impl ExecutionContext {
     }
 
     /// Load the component groups defined in libraries imported into the execution context.
-    pub async fn load_component_groups(&self) -> FallibleResult {
-        let ls_response = self.language_server.get_component_groups(&self.id).await?;
-        *self.model.component_groups.borrow_mut() =
-            Rc::new(ls_response.component_groups.into_iter().map(|group| group.into()).collect());
-        Ok(())
+    pub async fn load_component_groups(&self) {
+        match self.language_server.get_component_groups(&self.id).await {
+            Ok(ls_response) => {
+                let groups = ls_response.component_groups.into_iter().map(|group| group.into()).collect();
+                *self.model.component_groups.borrow_mut() = Rc::new(groups);
+                info!(self.logger, "Loaded component groups.");
+            },
+            Err(err) => {
+                let msg = iformat!(
+                    "Failed to load component groups. No groups will appear in the Favorites \
+                    section of the Component Browser. Error: {err}"
+                );
+                error!(self.logger, "{msg}");
+            }
+        }
     }
 
     /// Detach visualization from current execution context.
