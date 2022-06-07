@@ -74,8 +74,9 @@ impl Group {
     }
 
     /// Construct from [`execution_context::ComponentGroup`]. The group components are looked up in
-    /// the suggestion database by their full qualified name and skipped if not found. Returns
-    /// [`None`] if none of the components were found in the suggestion database.
+    /// the suggestion database by their full qualified name and skipped if not found. Returns a
+    /// group containing the successfully looked up components, or [`None`] if none of the
+    /// components were found in the suggestion database.
     pub fn from_execution_context_component_group(
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
