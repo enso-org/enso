@@ -75,7 +75,10 @@ pub const SHAPE_MARGIN: f32 = 5.0;
 // === Helpers ===
 
 /// Calculate background shape size by subtracting [`SHADOW_PX`] and `SHAPE_MARGIN`.
-fn background_size(sprite_width: Var<Pixels>, sprite_height: Var<Pixels>) -> (Var<Pixels>, Var<Pixels>) {
+fn background_size(
+    sprite_width: Var<Pixels>,
+    sprite_height: Var<Pixels>,
+) -> (Var<Pixels>, Var<Pixels>) {
     let width = sprite_width - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
     let height = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_MARGIN.px() * 2.0;
     (width, height)
@@ -188,7 +191,7 @@ pub struct Model<E: Entry> {
     pub entries:    entry::List<E>,
     selection:      selection::View,
     background:     background::View,
-    overlay:     overlay::View,
+    overlay:        overlay::View,
     scrolled_area:  display::object::Instance,
     display_object: display::object::Instance,
 }

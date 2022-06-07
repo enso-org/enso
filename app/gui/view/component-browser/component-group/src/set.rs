@@ -171,6 +171,12 @@ pub struct Wrapper {
     events: PropagatedEvents,
 }
 
+impl Default for Wrapper {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wrapper {
     /// Constructor.
     pub fn new() -> Self {

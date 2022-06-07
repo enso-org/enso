@@ -438,9 +438,11 @@ impl component::Frp<Model> for Frp {
             is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
             some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
+            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over_header);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            out.is_header_selected <+ bool(&some_entry_selected, &select_header).on_change();
+            deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
+            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with4(
@@ -641,12 +643,6 @@ impl Model {
         self.selected_header.add_to_scene_layer(&layers.selected.header_text);
     }
 
-    /// Test whether the `point` (object-space coordinates) is inside the component group shape.
-    pub fn is_inside(&self, point: Vector2<f32>) -> bool {
-        let size = self.background.size.get();
-        is_point_inside(point, size)
-    }
-
     fn resize(
         &self,
         size: Vector2,
@@ -756,20 +752,6 @@ impl Model {
 /// To learn more about Component Groups, see the [Component Browser Design
 /// Document](https://github.com/enso-org/design/blob/e6cffec2dd6d16688164f04a4ef0d9dff998c3e7/epics/component-browser/design.md).
 pub type View = component::ComponentView<Model, Frp>;
-
-
-
-// ===============
-// === Helpers ===
-// ===============
-
-/// Test whether the point is inside the rectangle of `size`. The center of the rectangle is at
-/// coordinates (0, 0).
-fn is_point_inside(point: Vector2<f32>, size: Vector2) -> bool {
-    let x_range = (-size.x / 2.0)..=(size.x / 2.0);
-    let y_range = (-size.y / 2.0)..=(size.y / 2.0);
-    x_range.contains(&point.x) && y_range.contains(&point.y)
-}
 
 
 
