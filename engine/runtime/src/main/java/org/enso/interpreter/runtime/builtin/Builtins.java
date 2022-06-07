@@ -395,6 +395,11 @@ public class Builtins {
     return any.constructor();
   }
 
+  /**
+   * Returns the {@code Warning} atom constructor.
+   *
+   * @return the {@code Warning} atom constructor
+   */
   public AtomConstructor warning() {
     return warning.constructor();
   }

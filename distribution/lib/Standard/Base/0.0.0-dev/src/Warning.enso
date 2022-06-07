@@ -47,10 +47,18 @@ type Warning
             Stack_Trace_Element (Polyglot.get_executable_name r) loc
 
     ## PRIVATE
+
+       Builtin method for getting the list of locations where the warnings was reassigned.
+       Should use `Warning.reassignments` instead.
     get_reassignments : Any
     get_reassignments = @Builtin_Method "Warning.get_reassignments"
 
 ## PRIVATE
+
+   Creates a new instance of the primitive warning value.
+   Arguments:
+   - payload: value to which a Warning will be associated with.
+   - origin: stacktrace representing the location where the warning is being created at.
 create : Any -> Any -> Warning
 create payload origin = @Builtin_Method "Warning.create"
 
@@ -64,6 +72,8 @@ attach warning value =
 
 ## PRIVATE
 
+   Builtin utility function which attaches a new warning to the value
+   and, compared to `Warning.attach` requires an explicit stacktrace associated with it.
 attach_with_stacktrace : Any -> Any -> Vector.Vector Stack_Trace_Element -> Any
 attach_with_stacktrace value warning origin = @Builtin_Method "Warning.attach_with_stacktrace"
 
@@ -77,6 +87,7 @@ get_all value = Vector.Vector (here.get_all_array value)
 
 ## PRIVATE
 
+   Builtin function that gets all the warnings attached to the given value.
 get_all_array : Any -> Array Warning
 get_all_array value = @Builtin_Method "Warning.get_all_array"
 
@@ -88,19 +99,18 @@ get_all_array value = @Builtin_Method "Warning.get_all_array"
 
    Arguments:
    - value: the value to which warnings should be set to.
-   - warnings: warnings to set to the value.
+   - warnings: vector of warnings to set to the value.
 set : Any -> Vector.Vector Warning -> Any
 set value warnings = here.set_array value warnings.to_array
 
-## UNSTABLE
-   ADVANCED
+## PRIVATE
 
    Sets a new list of warnings for the given value. Any warnings already present
    in `value` will be lost.
 
    Arguments:
    - value: the value to which warnings should be set to.
-   - warnings: warnings to set to the value.
+   - warnings: array of warnings to set to the value.
 set_array : Any -> Array Warning -> Any
 set_array value warnings = @Builtin_Method "Warning.set_array"
 

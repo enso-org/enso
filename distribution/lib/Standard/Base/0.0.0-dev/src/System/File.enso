@@ -227,8 +227,26 @@ type File
     with_output_stream open_options action =
         Resource.bracket (this.new_output_stream open_options) (_.close) action
 
+    ## PRIVATE
+
+    ## Creates a new output stream for this file. Recommended to use
+       `File.with_output_stream` instead, which does resource management.
+
+       Arguments:
+       - options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    output_stream : Vector.Vector -> Output_Stream
     output_stream options = @Builtin_Method "File.output_stream"
 
+    ## PRIVATE
+
+    ## Creates a new input stream for this file. Recommended to use
+       `File.with_input_stream` instead, which does resource management.
+
+       Arguments:
+       - open_options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+    input_stream : Vector.Vector -> Input_Stream
     input_stream options = @Builtin_Method "File.input_stream"
 
     ## Creates a new input stream for this file and runs the specified action
@@ -553,6 +571,10 @@ type File
     delete =
         here.handle_java_exceptions this this.delete_builtin
 
+    ## PRIVATE
+
+       Builtin method that deletes the file.
+       Recommended to use `File.delete` instead which handles potential exceptions.
     delete_builtin : Nothing
     delete_builtin = @Builtin_Method "File.delete"
 
@@ -691,6 +713,9 @@ type File
     list_immediate_children : File -> Array File
     list_immediate_children directory = @Builtin_Method "File.list_immediate_children"
 
+    ## PRIVATE
+
+       Return the absolute path of this File
     to_text : Text
     to_text = this.absolute . path
 
