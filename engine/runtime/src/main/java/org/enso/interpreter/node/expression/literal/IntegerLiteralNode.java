@@ -1,18 +1,14 @@
 package org.enso.interpreter.node.expression.literal;
 
-import com.oracle.truffle.api.Assumption;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.tag.Patchable;
 
 /** A representation of integer literals in Enso. */
 @NodeInfo(shortName = "IntegerLiteral")
-public final class IntegerLiteralNode extends ExpressionNode {
-  private static final Assumption CONSTANTS_ARE_CONSTANTS =
-      Truffle.getRuntime().createAssumption("Constants were never updated");
-  @CompilerDirectives.CompilationFinal private long value;
+public final class IntegerLiteralNode extends ExpressionNode implements Patchable {
+  private final long value;
 
   private IntegerLiteralNode(long value) {
     this.value = value;
@@ -36,24 +32,20 @@ public final class IntegerLiteralNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    if (CONSTANTS_ARE_CONSTANTS.isValid()) {
-      return this.value;
-    }
-    return readValue();
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private Object readValue() {
     return this.value;
   }
 
-  public boolean updateConstant(String text) {
+  @Override
+  public Object parsePatch(String text) {
     try {
-      this.value = Long.valueOf(text);
-      CONSTANTS_ARE_CONSTANTS.invalidate();
-      return true;
+      return Long.valueOf(text);
     } catch (NumberFormatException ex) {
-      return false;
+      return null;
     }
+  }
+
+  @Override
+  public boolean hasTag(Class<? extends com.oracle.truffle.api.instrumentation.Tag> tag) {
+    return tag == Patchable.Tag.class || super.hasTag(tag);
   }
 }

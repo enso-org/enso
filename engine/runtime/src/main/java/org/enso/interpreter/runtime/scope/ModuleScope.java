@@ -1,20 +1,28 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.EventBinding;
+import com.oracle.truffle.api.instrumentation.EventContext;
+import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
+import com.oracle.truffle.api.instrumentation.Instrumenter;
+import com.oracle.truffle.api.instrumentation.SourceFilter;
+import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 
 import java.util.*;
 
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.NodeUtil;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
+import java.io.IOException;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
+import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.text.editing.model;
 
 /** A representation of Enso's per-file top-level scope. */
@@ -27,6 +35,7 @@ public class ModuleScope implements TruffleObject {
   private Map<AtomConstructor, Map<AtomConstructor, Function>> conversions = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
   private Set<ModuleScope> exports = new HashSet<>();
+  private PatchedModuleValues patchedValues;
 
   /**
    * Creates a new object of this class.
@@ -303,48 +312,18 @@ public class ModuleScope implements TruffleObject {
   }
 
   public boolean simpleUpdate(model.TextEdit edit) {
-    boolean f1 = updateFunctionsMap(edit, methods.values());
-    boolean f2 = updateFunctionsMap(edit, conversions.values());
-    return f1 || f2;
-  }
-
-  private boolean updateFunctionsMap(model.TextEdit edit, Collection<? extends Map<?, Function>> values) {
-    boolean found = false;
-    for (Map<?, Function> f : values) {
-      found |= updateFunctions(edit, f.values());
+    var collect = new HashMap<Node, Object>();
+    PatchedModuleValues.updateFunctionsMap(edit, methods.values(), collect);
+    PatchedModuleValues.updateFunctionsMap(edit, conversions.values(), collect);
+    if (collect.isEmpty()) {
+      return false;
     }
-    return found;
-  }
-
-  private boolean updateFunctions(model.TextEdit edit, Collection<Function> fns) {
-    boolean found = false;
-    for (Function f : fns) {
-      found |= updateFunction(edit, f);
+    if (patchedValues == null) {
+      var ctx = Context.get(collect.keySet().iterator().next());
+      var instr = ctx.getEnvironment().lookup(Instrumenter.class);
+      patchedValues = new PatchedModuleValues(instr, this);
     }
-    return found;
-  }
-
-  private boolean updateFunction(model.TextEdit edit, Function f) {
-    return updateNode(edit, f.getCallTarget().getRootNode());
-  }
-
-  private boolean updateNode(model.TextEdit edit, Node node) {
-    boolean found = false;
-    if (node instanceof IntegerLiteralNode integerNode) {
-      SourceSection at = node.getSourceSection();
-      if (
-          at != null &&
-          at.getStartLine() - 1 == edit.range().start().line() &&
-          at.getStartColumn() - 1 == edit.range().start().character() &&
-          at.getEndLine() - 1 == edit.range().end().line() &&
-          at.getEndColumn() == edit.range().end().character()
-      ) {
-        found = integerNode.updateConstant(edit.text());
-      }
-    }
-    for (Node n : NodeUtil.findNodeChildren(node)) {
-      found |= updateNode(edit, n);
-    }
-    return found;
+    patchedValues.register(collect);
+    return true;
   }
 }
