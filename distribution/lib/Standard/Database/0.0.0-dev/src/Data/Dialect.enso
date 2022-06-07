@@ -45,7 +45,7 @@ type Dialect
 
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
-    prepare_order_descriptor : Connection -> IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
+    prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor
     prepare_order_descriptor = Errors.unimplemented "This is an interface only."
 
 ## PRIVATE

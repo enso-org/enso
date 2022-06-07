@@ -465,6 +465,8 @@ type Table
          - If values do not implement an ordering, an
            `Incomparable_Values_Error`.
 
+       Missing (`Nothing`) values are sorted as less than any other object.
+
        > Example
          Order the table by the column "alpha" in ascending order.
 
@@ -486,7 +488,7 @@ type Table
                propagate dataflow errors correctly. See:
                https://www.pivotaltracker.com/story/show/181057718
             Panic.throw_wrapped_if_error <|
-                this.connection.dialect.prepare_order_descriptor this.connection internal_column associated_selector.direction text_ordering
+                this.connection.dialect.prepare_order_descriptor internal_column associated_selector.direction text_ordering
         new_ctx = this.context.add_orders new_order_descriptors
         this.updated_context new_ctx
 
