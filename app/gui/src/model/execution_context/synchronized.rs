@@ -383,10 +383,6 @@ pub mod test {
             };
             let stack_item = language_server::StackItem::ExplicitCall(root_frame);
             expect_call!(ls.push_to_execution_context(id,stack_item) => Ok(()));
-            let component_groups = language_server::response::GetComponentGroups {
-                component_groups: data.component_groups.clone(),
-            };
-            expect_call!(ls.get_component_groups(id) => Ok(component_groups));
         }
 
         /// Generates a mock update for a random expression id.
@@ -584,14 +580,19 @@ pub mod test {
         ];
 
         // Create a test fixture based on the sample data.
-        let mut mock_data = MockData::new();
-        mock_data.component_groups = sample_ls_component_groups;
-        let fixture = Fixture::new_customized_with_data(mock_data, |_, _| {});
+        let fixture = Fixture::new_customized(move |client, data| {
+            let component_groups = language_server::response::GetComponentGroups {
+                component_groups: sample_ls_component_groups,
+            };
+            let id = data.context_id;
+            expect_call!(client.get_component_groups(id) => Ok(component_groups));
+        });
         let Fixture { mut test, context, .. } = fixture;
 
         // Run a test and verify that the sample component groups were parsed correctly and have
         // expected contents.
         test.run_task(async move {
+            context.load_component_groups().await;
             let groups = context.model.component_groups.borrow();
             assert_eq!(groups.len(), 2);
 
