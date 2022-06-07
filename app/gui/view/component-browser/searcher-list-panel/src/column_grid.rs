@@ -43,10 +43,10 @@ const fn get_base_color_for_index(ix: usize) -> color::Rgba {
 // === Model ===
 // =============
 
-/// Contains a `AnyModelProvider` with a label. Can be sued to populate a `component_group::View`.
+/// Contains a `AnyModelProvider` with a label. Can be used to populate a `component_group::View`.
 #[derive(Clone, Debug, Default)]
 pub struct LabeledAnyModelProvider {
-    /// Label of the data provided to be sued as a header of the list.
+    /// Label of the data provided to be used as a header of the list.
     pub label:   String,
     /// Content to be used to populate a list.
     pub content: list_view::entry::AnyModelProvider<component_group::Entry>,
@@ -95,9 +95,10 @@ impl Model {
             })
             .collect_vec();
 
-        // Layout
         let mut columns = vec![vec![], vec![], vec![]];
-        let mut heights = [-COLUMN_GAP; 3]; // We need to subtract one COLUMN_GAP as we only need (n-1) gaps. TODO better explanation.
+        let mut heights = [-COLUMN_GAP; 3]; // We need to subtract one COLUMN_GAP as we only need
+                                            // (n-1) gaps, but through iteration below we add one
+                                            // gap per item.
 
         for (ix, entry) in content.iter().enumerate() {
             let column_index = ix % 3;
@@ -124,7 +125,7 @@ impl Model {
         }
 
         *self.content.borrow_mut() = content;
-        let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap().into(); // TODO Ordered float
+        let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap().into();
         let width = self.size.get().x;
         self.size.set(Vector2::new(width, height));
         self.size.get()

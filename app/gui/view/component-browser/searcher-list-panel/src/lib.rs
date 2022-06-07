@@ -124,7 +124,7 @@ enum SectionHeaderPlacement {
 }
 
 /// Indicates whether sections headers should be placed above or below a section.
-const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement::Top;
+const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement::Bottom;
 
 
 // === Shape Definition ===
@@ -166,7 +166,7 @@ mod hline {
             let height           = Var::<Pixels>::from("input_size.y");
 
             let rect = Rect((width,height));
-            let rect = rect.fill(color::Rgb::from_hex(SECTION_HEADING_COLOR_HEX).unwrap());
+            let rect = rect.fill(color::Rgb::from_css_hex(SECTION_HEADING_COLOR_HEX).unwrap());
             rect.into()
         }
     }
@@ -338,10 +338,10 @@ impl<T: CloneRef> LabeledSection<T> {
     fn init_label(self) -> Self {
         let label = &self.label;
         let section_header_color: color::Rgba =
-            color::Rgb::from_hex(SECTION_HEADING_COLOR_HEX).unwrap().into();
+            color::Rgb::from_css_hex(SECTION_HEADING_COLOR_HEX).unwrap().into();
         label.set_default_color(section_header_color);
         label.set_default_text_size(SECTION_HEADING_SIZE);
-        label.set_font(SECTION_HEADING_FONT.to_string()); // TODO double check the correct font is used.
+        label.set_font(SECTION_HEADING_FONT.to_string());
         label.set_position_y(-0.75 * SECTION_HEADING_SIZE.raw);
         label.set_position_x(3.0 + PADDING_INNER);
         self
