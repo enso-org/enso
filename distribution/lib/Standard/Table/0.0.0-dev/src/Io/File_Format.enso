@@ -6,6 +6,7 @@ from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Prob
 from Standard.Base.Data.Text.Encoding as Encoding_Module import Encoding
 import Standard.Base.Runtime.Ref
 import Standard.Table.Internal.Delimited_Reader
+from Standard.Table.Error as Table_Errors import Unsupported_File_Type
 
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
 import Standard.Table.Io.Excel as Excel_Module
@@ -24,7 +25,7 @@ type Auto
     materialise file =
         extension = file.extension
 
-        output = Ref.new File_Format.Bytes
+        output = Ref.new Nothing
         if ".txt".equals_ignore_case extension then output.put File_Format.Text
         if ".log".equals_ignore_case extension then output.put File_Format.Text
         if ".csv".equals_ignore_case extension then output.put (File_Format.Delimited ',')
@@ -34,7 +35,8 @@ type Auto
         if ".xls".equals_ignore_case extension then output.put File_Format.Excel
         if ".xlt".equals_ignore_case extension then output.put File_Format.Excel
 
-        output.get
+        output.get.if_nothing <|
+            Error.throw (Unsupported_File_Type file.name)
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
