@@ -635,7 +635,7 @@ spec =
             t_3 = Table.new [c_3_1, c_3_2, c_3_3]
             t_3.default_visualization.should_equal Visualization.Id.table
 
-    selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False
+    selection = Common_Table_Spec.Test_Selection supports_case_sensitive_columns=True order_by=False natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True
     Common_Table_Spec.spec "[In-Memory] " table_builder=Table.new test_selection=selection
 
     Test.group "Use First Row As Names" <|
