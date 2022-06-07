@@ -4,10 +4,61 @@ name: Nightly Release
   push: {}
   workflow_dispatch: {}
 jobs:
+  build-backend:
+    name: Build backend
+    runs-on:
+      - "${{ matrix.os }}"
+    steps:
+      - name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          update-conda: false
+          conda-channels: "anaconda, conda-forge"
+      - name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        if: "startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')"
+        with:
+          version: v0.10.2
+      - name: Setup the Artifact API environment
+        uses: actions/github-script@v6
+        with:
+          script: "core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\ncore.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\ncore.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])"
+      - name: Checking out the repository
+        uses: actions/checkout@v3
+        with:
+          clean: false
+      - run: "./run --help"
+        if: "runner.os == 'Windows'"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: pwsh
+      - run: "./run --help"
+        if: "runner.os != 'Windows'"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: bash
+      - run: "./run backend upload"
+        if: "runner.os == 'Windows'"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: pwsh
+      - run: "./run backend upload"
+        if: "runner.os != 'Windows'"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        shell: bash
+      - name: List files if failed
+        run: ls -R
+        if: failure()
+    outputs: {}
+    strategy:
+      matrix:
+        os:
+          - - mwu-deluxe
+      fail-fast: false
   build-wasm:
     name: Build WASM
-    needs:
-      - prepare-release
     runs-on:
       - "${{ matrix.os }}"
     steps:
@@ -59,9 +110,6 @@ jobs:
         os:
           - - mwu-deluxe
       fail-fast: false
-    env:
-      ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
-      ENSO_VERSION: "${{needs.prepare-release.outputs.ENSO_VERSION}}"
   prepare-release:
     name: Prepare release
     runs-on:

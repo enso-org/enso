@@ -1706,7 +1706,7 @@ dependencies = [
 [[package]]
 name = "enso-build"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/engine#5c274f0aa88783461a0c99911b90fe502a03c7c8"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/engine#82fe50599f9719e2daf09da8529c649f4f78cc49"
 dependencies = [
  "anyhow",
  "async-compression",
@@ -1777,6 +1777,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-build-cli"
+version = "0.1.0"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/engine#82fe50599f9719e2daf09da8529c649f4f78cc49"
+dependencies = [
+ "anyhow",
+ "byte-unit",
+ "clap 3.1.18",
+ "derivative",
+ "enso-build",
+ "futures 0.3.21",
+ "futures-util",
+ "humantime 2.1.0",
+ "ide-ci",
+ "octocrab",
+ "strum",
+ "tempfile",
+ "tokio 1.19.2",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "enso-build-utilities"
 version = "0.1.0"
 dependencies = [
@@ -1789,6 +1811,7 @@ name = "enso-build3"
 version = "0.1.0"
 dependencies = [
  "enso-build",
+ "enso-build-cli",
  "ide-ci",
 ]
 
@@ -3549,7 +3572,7 @@ dependencies = [
 [[package]]
 name = "ide-ci"
 version = "0.1.0"
-source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/engine#5c274f0aa88783461a0c99911b90fe502a03c7c8"
+source = "git+https://github.com/enso-org/ci-build?branch=wip/mwu/engine#82fe50599f9719e2daf09da8529c649f4f78cc49"
 dependencies = [
  "anyhow",
  "async-compression",
