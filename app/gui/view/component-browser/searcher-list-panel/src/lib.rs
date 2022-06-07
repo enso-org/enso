@@ -33,6 +33,7 @@ use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
@@ -83,28 +84,47 @@ const CORNER_RADIUS: f32 = 30.0 * DPI_SCALE;
 /// Thickness of the line that divides the Component List Panel from the Component Browser Panel
 /// Menu.
 const DIVIDER_HEIGHT: f32 = 1.0 * DPI_SCALE;
+/// Thickness of the line that divides the sections witin the Component List Panel.
 const SECTION_DIVIDER_HEIGHT: f32 = 4.0 * DPI_SCALE;
 
 /// Y-position of the Divider within the shape.
 const DIVIDER_Y_POS: f32 = (HEIGHT_INNER / 2.0) - MENU_HEIGHT;
-
+/// Extra space between scroll area and backgound shape edge.
 const PADDING_INNER: f32 = 6.0 * DPI_SCALE;
 
+/// Font size used for section headers.
 const SECTION_HEADING_SIZE: text::style::Size = text::style::Size::new(16.0);
-
+/// Font used for section headers.
 const SECTION_HEADING_FONT: &str = "Causten-Semibold";
+/// Color used for section headers.
 const SECTION_HEADING_COLOR_HEX: &str = "737373";
-const LABEL_OFFSET: f32 = 1.0 * SECTION_HEADING_SIZE.raw;
-const INFINITE: f32 = 999999.0;
+/// Distance between the section header and the section content.
+const SECTION_HEADER_OFFSET: f32 = SECTION_HEADING_SIZE.raw;
 
-// === Color Constants ===
 
 /// Color used for the Divider.
 const DIVIDER_COLOR: color::Rgb = color::Rgb::new(0.7804, 0.7804, 0.7804);
 /// Color used for the panel background.
 const BACKGROUND_COLOR: color::Rgba = color::Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
+
 const FAVOURITES_SECTION_BASE_COLOR: color::Rgba = color::Rgba::new(0.0, 0.42, 0.64, 1.0);
 const FAVOURITES_SECTION_HEADING_LABEL: &str = "Favorite Data Science Tools";
+const LOCAL_SCOPE_SECTION_HEADING_LABEL: &str = "Local Scope";
+const SUB_MODULES_SECTION_HEADING_LABEL: &str = "Sub Modules";
+
+const INFINITE: f32 = 999999.0;
+
+/// Enum to indicate whether sections headers should be placed above or below a section. Dead code
+/// is allowed as only one option is used at compile time.
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug)]
+enum SectionHeaderPlacement {
+    Top,
+    Bottom,
+}
+
+/// Indicates whether sections headers should be placed above or below a section.
+const SECTION_HEADER_PLACEMENT: SectionHeaderPlacement = SectionHeaderPlacement::Top;
 
 
 // === Shape Definition ===
@@ -131,7 +151,6 @@ mod background {
             let base_shape = &(left + right);
             let background = base_shape.fill(bg_color);
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
-            // TODO: double check shadow against FIGMA reference. This uses our themes default shadows.
 
             (shadow + background + divider).into()
         }
@@ -186,9 +205,11 @@ impl Model {
         display_object.add_child(&background);
         app.display.default_scene.layers.below_main.add_exclusive(&background);
 
-        let favourites_section = Self::init_favorite_section(&app);
-        let local_scope_section = Self::init_local_scope_section(&app);
-        let sub_modules_section = Self::init_sub_modules_section(&app);
+        let favourites_section = Self::init_column_section(&app, FAVOURITES_SECTION_HEADING_LABEL);
+        let local_scope_section = Self::init_wide_section(&app, LOCAL_SCOPE_SECTION_HEADING_LABEL);
+        local_scope_section.content.set_color(FAVOURITES_SECTION_BASE_COLOR);
+        let sub_modules_section =
+            Self::init_column_section(&app, SUB_MODULES_SECTION_HEADING_LABEL);
 
         let scroll_area = ScrollArea::new(&app);
         display_object.add_child(&scroll_area);
@@ -228,38 +249,28 @@ impl Model {
         }
     }
 
+    fn init_column_section(app: &Application, label: &str) -> ColumnSection {
+        let content = app.new_view::<column_grid::ColumnGrid>();
+        content.set_position_x(PADDING_INNER);
+        let section = LabeledSection::new(content, app);
+        section.label.set_content(label);
+        section
+    }
+
+    fn init_wide_section(app: &Application, label: &str) -> WideSection {
+        let content = app.new_view::<component_group::wide::View>();
+        content.set_no_items_label_text("No Entries.");
+        content.set_position_x(PADDING_INNER + CONTENT_WIDTH / 2.0);
+        content.set_width(WIDTH_INNER - 2.0 * PADDING_INNER);
+        let section = LabeledSection::new(content, app);
+        section.label.set_content(label);
+        section
+    }
+
     fn update_layers(&self) {
         self.favourites_section.set_layers(&self.layers, self.scroll_area.content_layer());
         self.local_scope_section.set_layers(&self.layers, self.scroll_area.content_layer());
         self.sub_modules_section.set_layers(&self.layers, self.scroll_area.content_layer());
-    }
-
-    fn init_favorite_section(app: &Application) -> ColumnSection {
-        let content = app.new_view::<column_grid::ColumnGrid>();
-        content.set_position_x(PADDING_INNER);
-        let section = LabeledSection::new(content, app);
-        section.label.set_content(FAVOURITES_SECTION_HEADING_LABEL);
-        section
-    }
-
-    fn init_local_scope_section(app: &Application) -> WideSection {
-        let content = app.new_view::<component_group::wide::View>();
-        content.set_no_items_label_text("No Entries.");
-        content.set_position_x(PADDING_INNER + CONTENT_WIDTH / 2.0);
-
-        content.set_width(WIDTH_INNER - 2.0 * PADDING_INNER);
-        content.set_color(FAVOURITES_SECTION_BASE_COLOR);
-        let section = LabeledSection::new(content, app);
-        section.label.set_content("Local Scope");
-        section
-    }
-
-    fn init_sub_modules_section(app: &Application) -> ColumnSection {
-        let content = app.new_view::<column_grid::ColumnGrid>();
-        content.set_position_x(PADDING_INNER);
-        let section = LabeledSection::new(content, app);
-        section.label.set_content("Sub Modules");
-        section
     }
 
     fn recompute_layout(&self) {
@@ -302,6 +313,8 @@ impl component::Model for Model {
 // === Labeled Section ===
 // =======================
 
+/// Struct that contains the components contained in a section of the Component Browser Panel. Also
+/// provides some utility functions for shape and layout handling.
 #[derive(Clone, Debug, CloneRef)]
 struct LabeledSection<T: CloneRef> {
     pub label:   text::Area,
@@ -334,9 +347,11 @@ impl<T: CloneRef> LabeledSection<T> {
         self
     }
 
-    fn label_height(&self) -> f32 {
+    /// Returns the size of the header, which consists of the header text and the padding between
+    /// text and content.
+    fn header_height(&self) -> f32 {
         let label_height = SECTION_HEADING_SIZE.raw;
-        label_height + LABEL_OFFSET
+        label_height + SECTION_HEADER_OFFSET
     }
 }
 
@@ -348,51 +363,81 @@ impl<T: ObjectOps + CloneRef> LabeledSection<T> {
     }
 }
 
-impl WideSection {
-    fn set_layers(&self, layers: &Layers, scroll_layer: &ensogl_core::display::scene::Layer) {
-        self.content.model().set_layers(layers);
-        scroll_layer.add_exclusive(&self.label);
-        self.label.add_to_scene_layer(scroll_layer);
-        scroll_layer.add_exclusive(&self.divider);
+/// Trait that provides functionality for layouting and layer setting for structs used in the
+/// `LabeledSection`.
+trait SectionContent {
+    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer);
+    fn height(&self) -> f32;
+    fn set_position_top_y(&self, position_y: f32);
+}
+
+impl SectionContent for component_group::wide::View {
+    fn set_layers(&self, layers: &Layers, _scroll_layer: &Layer) {
+        self.model().set_layers(layers);
     }
 
     fn height(&self) -> f32 {
-        let label_height = self.label_height();
-        let body_height = self.content.size.value().y;
-        let next_section_offset = 17.0; // TODO this should not be needed.
-        body_height + label_height + next_section_offset
+        self.size.value().y
     }
 
-    fn set_base_position_y(&self, position_y: f32) {
-        self.label.set_position_y(position_y - self.label.height.value() / 1.5);
-        self.divider.set_position_y(position_y);
-        self.content.set_position_y(
-            position_y - LABEL_OFFSET - self.label_height() - self.content.size.value().y / 2.0,
-        );
+    fn set_position_top_y(&self, position_y: f32) {
+        self.set_position_y(position_y - self.height() / 2.0);
     }
 }
 
-impl ColumnSection {
-    fn set_layers(&self, layers: &Layers, scroll_layer: &display::scene::Layer) {
-        self.content.model().set_layers(layers, scroll_layer);
-        scroll_layer.add_exclusive(&self.label);
-        self.label.add_to_scene_layer(scroll_layer);
-        scroll_layer.add_exclusive(&self.divider);
+impl SectionContent for column_grid::ColumnGrid {
+    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
+        self.model().set_layers(layers, scroll_layer);
     }
 
     fn height(&self) -> f32 {
-        let label_height = self.label_height();
-        let body_height = self.content.size.value().y;
-        let next_section_offset = 17.0; // TODO this should not be needed.
+        self.size.value().y
+    }
+
+    fn set_position_top_y(&self, position_y: f32) {
+        self.set_position_y(position_y);
+    }
+}
+
+impl<T: SectionContent + CloneRef> LabeledSection<T> {
+    fn set_layers(&self, layers: &Layers, scroll_layer: &Layer) {
+        self.content.set_layers(layers, scroll_layer);
+
+        scroll_layer.add_exclusive(&self.label);
+        self.label.add_to_scene_layer(scroll_layer);
+
+        scroll_layer.add_exclusive(&self.divider);
+    }
+
+    /// Full height of the section including header.
+    fn height(&self) -> f32 {
+        let label_height = self.header_height();
+        let body_height = self.content.height();
+        let next_section_offset = 17.0; // TODO[MM] this should not be needed.
         body_height + label_height + next_section_offset
     }
 
+    /// Set the top y position of the section.
     fn set_base_position_y(&self, position_y: f32) {
-        self.label.set_position_y(position_y - self.label.height.value() / 1.5);
-        self.divider.set_position_y(position_y);
-        self.content.set_position_y(position_y - LABEL_OFFSET - self.label_height());
+        match SECTION_HEADER_PLACEMENT {
+            SectionHeaderPlacement::Top => {
+                self.label.set_position_y(position_y - self.label.height.value() / 1.5);
+                self.divider.set_position_y(position_y);
+                self.content
+                    .set_position_top_y(position_y - SECTION_HEADER_OFFSET - self.header_height());
+            }
+            SectionHeaderPlacement::Bottom => {
+                self.label.set_position_y(
+                    position_y - self.content.height() - self.label.height.value() / 1.5,
+                );
+                self.divider
+                    .set_position_y(position_y - self.content.height() - DIVIDER_HEIGHT - 0.5);
+                self.content.set_position_top_y(position_y);
+            }
+        }
     }
 }
+
 
 
 // ===========
@@ -400,11 +445,9 @@ impl ColumnSection {
 // ===========
 
 
-type ColumnContent = list_view::entry::AnyModelProvider<component_group::Entry>;
-
 define_endpoints_2! {
     Input{
-        set_local_scope_section(ColumnContent),
+        set_local_scope_section(list_view::entry::AnyModelProvider<component_group::Entry>),
         set_favourites_section(Vec<LabeledAnyModelProvider>),
         set_sub_modules_section(Vec<LabeledAnyModelProvider>),
     }

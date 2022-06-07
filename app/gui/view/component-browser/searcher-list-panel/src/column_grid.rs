@@ -1,3 +1,7 @@
+//! Wrapper around multiple `component_group::View` that provides a layout where the
+//! `component_group::View` are stacked in three columns. Designed for use in the sections of a
+//! Component Browser Panel.
+
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
@@ -61,7 +65,6 @@ pub struct Model {
     content:        Rc<RefCell<Vec<component_group::View>>>,
     size:           Rc<Cell<Vector2>>,
 }
-
 
 impl Model {
     fn new(app: &Application) -> Self {
@@ -158,14 +161,12 @@ impl component::Model for Model {
 
 define_endpoints_2! {
     Input{
-        set_content(Vec<LabeledAnyModelProvider>), // TODO define proper API. This is for testing and illustrative purposes only.
-        set_width(f32)
+        set_content(Vec<LabeledAnyModelProvider>),
     }
     Output{
         size(Vector2)
     }
 }
-
 
 impl component::Frp<Model> for Frp {
     fn init(
@@ -182,7 +183,5 @@ impl component::Frp<Model> for Frp {
         }
     }
 }
-
-
 
 pub type ColumnGrid = component::ComponentView<Model, Frp>;

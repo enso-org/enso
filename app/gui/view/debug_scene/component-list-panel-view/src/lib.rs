@@ -19,6 +19,7 @@ use searcher_list_panel::ComponentBrowserPanel;
 use searcher_list_panel::LabeledAnyModelProvider;
 
 
+
 // ====================
 // === Mock Entries ===
 // ====================
@@ -76,6 +77,57 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 
 
 
+// ===============================
+// === IInitialisation Helpers ===
+// ===============================
+
+
+fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
+    let sub_module_data = vec![
+        MockEntries::new(4),
+        MockEntries::new(6),
+        MockEntries::new(8),
+        MockEntries::new(6),
+        MockEntries::new(4),
+        MockEntries::new(4),
+    ];
+    let sub_module_data = sub_module_data
+        .into_iter()
+        .map(|mock_entries| LabeledAnyModelProvider {
+            content: AnyModelProvider::from(mock_entries.clone_ref()),
+            label:   "Header".into(),
+        })
+        .collect_vec();
+    searcher_list_panel.set_sub_modules_section(sub_module_data);
+}
+
+fn init_favourites_section(searcher_list_panel: &ComponentBrowserPanel) {
+    let local_scope_data = vec![
+        MockEntries::new(6),
+        MockEntries::new(4),
+        MockEntries::new(3),
+        MockEntries::new(6),
+        MockEntries::new(3),
+        MockEntries::new(6),
+    ];
+    let local_scope_data = local_scope_data
+        .into_iter()
+        .map(|mock_entries| LabeledAnyModelProvider {
+            content: AnyModelProvider::from(mock_entries.clone_ref()),
+            label:   "Header".into(),
+        })
+        .collect_vec();
+    searcher_list_panel.set_favourites_section(local_scope_data);
+}
+
+fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
+    let mock_entries = MockEntries::new(20);
+    let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
+    searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
+}
+
+
+
 // ===================
 // === Entry Point ===
 // ===================
@@ -98,43 +150,9 @@ pub fn main() {
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
 
-        let mock_entries = MockEntries::new(20);
-        let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
-        searcher_list_panel.set_local_scope_section(model_provider.clone_ref());
-
-        let local_scope_data = vec![
-            MockEntries::new(5),
-            MockEntries::new(3),
-            MockEntries::new(2),
-            MockEntries::new(4),
-            MockEntries::new(2),
-            MockEntries::new(5),
-        ];
-        let local_scope_data = local_scope_data
-            .into_iter()
-            .map(|mock_entries| LabeledAnyModelProvider {
-                content: AnyModelProvider::from(mock_entries.clone_ref()),
-                label:   "Header".into(),
-            })
-            .collect_vec();
-        searcher_list_panel.set_favourites_section(local_scope_data);
-
-        let sub_module_data = vec![
-            MockEntries::new(4),
-            MockEntries::new(6),
-            MockEntries::new(8),
-            MockEntries::new(6),
-            MockEntries::new(4),
-            MockEntries::new(4),
-        ];
-        let sub_module_data = sub_module_data
-            .into_iter()
-            .map(|mock_entries| LabeledAnyModelProvider {
-                content: AnyModelProvider::from(mock_entries.clone_ref()),
-                label:   "Header".into(),
-            })
-            .collect_vec();
-        searcher_list_panel.set_sub_modules_section(sub_module_data);
+        init_local_cope_section(&searcher_list_panel);
+        init_favourites_section(&searcher_list_panel);
+        init_sub_modules_section(&searcher_list_panel);
 
         world.add_child(&searcher_list_panel);
         world.keep_alive_forever();
@@ -143,8 +161,6 @@ pub fn main() {
             .on
             .before_frame
             .add(move |_time| {
-                let _keep_alive = &mock_entries;
-                let _keep_alive = &model_provider;
                 let _keep_alive = &searcher_list_panel;
                 let _keep_alive = &navigator;
             })
