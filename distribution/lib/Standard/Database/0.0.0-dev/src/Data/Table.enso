@@ -465,6 +465,8 @@ type Table
          - If values do not implement an ordering, an
            `Incomparable_Values_Error`.
 
+       Missing (`Nothing`) values are sorted as less than any other object.
+
        > Example
          Order the table by the column "alpha" in ascending order.
 

@@ -57,7 +57,8 @@ type Postgresql_Dialect
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
+    text = [here.starts_with, here.contains, here.ends_with, here.agg_shortest, here.agg_longest]+here.concat_ops+cases
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -221,22 +222,25 @@ make_contains_expr expr substring =
 contains = Base_Generator.lift_binary_op "contains" here.make_contains_expr
 
 ## PRIVATE
-make_order_descriptor internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
-    True ->
-        ## In the future we can modify this error to suggest using a custom defined collation.
-        if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
-            case text_ordering.case_sensitive of
-                Nothing ->
-                    IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
-                True ->
-                    IR.Order_Descriptor internal_column.expression sort_direction collation="ucs_basic"
-                Case_Insensitive locale -> case Locale.default.java_locale.equals locale.java_locale of
-                    False ->
-                        # TODO do we want to at least check for existing standard ICU collations?
-                        Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+make_order_descriptor internal_column sort_direction text_ordering =
+    nulls = case sort_direction of
+        Sort_Direction.Ascending -> IR.Nulls_First
+        Sort_Direction.Descending -> IR.Nulls_Last
+    case internal_column.sql_type.is_likely_text of
+        True ->
+            ## In the future we can modify this error to suggest using a custom defined collation.
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+                case text_ordering.case_sensitive of
+                    Nothing ->
+                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
                     True ->
-                        upper = IR.Operation "upper" [internal_column.expression]
-                        folded_expression = IR.Operation "lower" [upper]
-                        IR.Order_Descriptor folded_expression sort_direction collation=Nothing
-    False ->
-        IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
+                        IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
+                    Case_Insensitive locale -> case Locale.default.java_locale.equals locale.java_locale of
+                        False ->
+                            Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                        True ->
+                            upper = IR.Operation "UPPER" [internal_column.expression]
+                            folded_expression = IR.Operation "LOWER" [upper]
+                            IR.Order_Descriptor folded_expression sort_direction nulls_order=nulls collation=Nothing
+        False ->
+            IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
