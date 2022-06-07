@@ -1,21 +1,25 @@
 package org.enso.table.data.index;
 
-import java.util.Arrays;
+import org.enso.table.data.column.storage.Storage;
+
 import java.util.Comparator;
+import java.util.Objects;
 
 public class MultiValueKey implements Comparable<MultiValueKey> {
-  private final Object[] values;
+  private final Storage[] storage;
+  private final int rowIndex;
   private final Comparator<Object> objectComparator;
   private final int hashCodeValue;
   private final boolean allNull;
   private final boolean floatValue;
 
-  public MultiValueKey(Object[] values) {
-    this(values, null);
+  public MultiValueKey(Storage[] storage, int rowIndex) {
+    this(storage, rowIndex, null);
   }
 
-  public MultiValueKey(Object[] values, Comparator<Object> objectComparator) {
-    this.values = values;
+  public MultiValueKey(Storage[] storage, int rowIndex, Comparator<Object> objectComparator) {
+    this.storage = storage;
+    this.rowIndex = rowIndex;
     this.objectComparator = objectComparator;
 
     boolean allNull = true;
@@ -23,7 +27,8 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
 
     // Precompute HashCode - using Apache.Commons.Collections.Map.MultiKeyMap.hash algorithm
     int h = 0;
-    for (Object value : this.values) {
+    for (int i = 0; i < storage.length; i++) {
+      Object value = this.get(i);
       if (value != null) {
         Object folded = foldObject(value);
         floatValue = floatValue || (folded instanceof Double);
@@ -40,6 +45,10 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
     this.floatValue = floatValue;
   }
 
+  public Object get(int column) {
+    return storage[column].getItemBoxed(rowIndex);
+  }
+
   @Override
   public int hashCode() {
     return this.hashCodeValue;
@@ -49,8 +58,18 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
+
     MultiValueKey that = (MultiValueKey) o;
-    return hashCodeValue == that.hashCodeValue && Arrays.equals(values, that.values);
+
+    if (storage.length != that.storage.length) return false;
+    if (hashCodeValue != that.hashCodeValue) return false;
+    for (int i = 0; i < storage.length; i++) {
+      if (!Objects.equals(get(i), that.get(i))) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   public boolean areAllNull() {
@@ -87,12 +106,12 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
       throw new NullPointerException();
     }
 
-    if (that.values.length != values.length) {
+    if (that.storage.length != storage.length) {
       throw new ClassCastException("Incomparable keys.");
     }
 
-    for (int i = 0; i < values.length; i++) {
-      int comparison = objectComparator.compare(values[i], that.values[i]);
+    for (int i = 0; i < storage.length; i++) {
+      int comparison = objectComparator.compare(get(i), that.get(i));
       if (comparison != 0) {
         return comparison;
       }

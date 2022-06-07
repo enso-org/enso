@@ -29,11 +29,9 @@ public class MultiValueIndex {
 
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
+      Storage[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
       for (int i = 0; i < size; i++) {
-        int finalI = i;
-        MultiValueKey key =
-            new MultiValueKey(
-                Arrays.stream(keyColumns).map(c -> c.getStorage().getItemBoxed(finalI)).toArray());
+        MultiValueKey key = new MultiValueKey(storage, i);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("GroupBy", i));
@@ -43,9 +41,7 @@ public class MultiValueIndex {
         ids.add(i);
       }
     } else {
-      this.locs.put(
-          new MultiValueKey(new Object[0]),
-          IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
+      this.locs.put(new MultiValueKey(new Storage[0], 0), IntStream.range(0, tableSize).boxed().collect(Collectors.toList()));
     }
   }
 
@@ -88,18 +84,13 @@ public class MultiValueIndex {
   }
 
   private static Builder getBuilderForType(int type, int size) {
-    switch (type) {
-      case Storage.Type.BOOL:
-        return new BoolBuilder();
-      case Storage.Type.DOUBLE:
-        return NumericBuilder.createDoubleBuilder(size);
-      case Storage.Type.LONG:
-        return NumericBuilder.createLongBuilder(size);
-      case Storage.Type.STRING:
-        return new StringBuilder(size);
-      case Storage.Type.OBJECT:
-        return new ObjectBuilder(size);
-    }
-    return new InferredBuilder(size);
+    return switch (type) {
+      case Storage.Type.BOOL -> new BoolBuilder();
+      case Storage.Type.DOUBLE -> NumericBuilder.createDoubleBuilder(size);
+      case Storage.Type.LONG -> NumericBuilder.createLongBuilder(size);
+      case Storage.Type.STRING -> new StringBuilder(size);
+      case Storage.Type.OBJECT -> new ObjectBuilder(size);
+      default -> new InferredBuilder(size);
+    };
   }
 }
