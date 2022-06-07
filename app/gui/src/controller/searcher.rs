@@ -500,7 +500,6 @@ impl Searcher {
         method: language_server::MethodPointer,
         mode: Mode,
     ) -> FallibleResult<Self> {
-        DEBUG!("MCDBG Searcher::new");
         let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
         Self::new_from_graph_controller(parent, ide, project, graph, mode)
     }
@@ -514,7 +513,6 @@ impl Searcher {
         graph: controller::ExecutedGraph,
         mode: Mode,
     ) -> FallibleResult<Self> {
-        DEBUG!("MCDBG Searcher::new_from_graph_controller");
         let project = project.clone_ref();
         let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
@@ -958,7 +956,6 @@ impl Searcher {
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
                     data.components = this.make_component_list(responses.iter());
-                    DEBUG!("MCDBG " data.components.favorites;?);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";

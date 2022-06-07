@@ -142,12 +142,10 @@ impl ExecutionContext {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
-                    DEBUG!("MCDBG Completed & will spawn");
                     info!(self.logger, "Context {self.id} Became ready");
                     let this = self.clone();
                     executor::global::spawn(async move {
                         this.load_component_groups().await;
-                        DEBUG!("MCDBG after load_component_groups");
                     });
                 },
             Notification::ExpressionUpdates(updates) => {
