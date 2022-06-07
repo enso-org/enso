@@ -5,9 +5,13 @@ import Standard.Base.Data.Ordering.Natural_Order
 import Standard.Test
 
 spec = Test.group "Natural Order" <|
+    case_insensitive_compare a b = Natural_Order.compare a b Case_Insensitive
+
     Test.specify "should behave as shown in examples" <|
         Natural_Order.compare "a2" "a100" . should_equal Ordering.Less
         ["a2", "a1", "a100", "a001", "a0001"].sort by=Natural_Order.compare . should_equal ["a0001", "a001", "a1", "a2", "a100"]
+        ["A2", "a1", "A100", "A001", "a0001"].sort by=Natural_Order.compare . should_equal ["A001", "A2", "A100", "a0001", "a1"]
+        ["A2", "a1", "A100", "A001", "a0001"].sort by=case_insensitive_compare . should_equal ["a0001", "A001", "a1", "A2", "A100"]
 
     Test.specify "should correctly compare values" <|
         Natural_Order.compare "a1" "a2" . should_equal Ordering.Less

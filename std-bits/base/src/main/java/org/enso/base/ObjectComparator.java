@@ -19,14 +19,15 @@ public class ObjectComparator implements Comparator<Object> {
    */
   public static ObjectComparator getInstance(BiFunction<Object, Object, Long> fallbackComparator) {
     if (INSTANCE == null) {
-      INSTANCE = new ObjectComparator((l, r) -> fallbackComparator.apply(l, r).intValue());
+      INSTANCE = new ObjectComparator(fallbackComparator);
     }
 
     return INSTANCE;
   }
 
-  private final BiFunction<Object, Object, Integer> fallbackComparator;
-  private final Locale caseInsensitiveLocale;
+  private final BiFunction<Object, Object, Long> fallbackComparator;
+  private final BiFunction<String, String, Long> textComparator;
+
 
   public ObjectComparator() {
     this(
@@ -35,14 +36,13 @@ public class ObjectComparator implements Comparator<Object> {
         });
   }
 
-  public ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator) {
-    this.fallbackComparator = fallbackComparator;
-    this.caseInsensitiveLocale = null;
+  public ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator) {
+    this(fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized(a, b)));
   }
 
-  private ObjectComparator(BiFunction<Object, Object, Integer> fallbackComparator, Locale caseInsensitiveLocale) {
+  private ObjectComparator(BiFunction<Object, Object, Long> fallbackComparator, BiFunction<String, String, Long> textComparator) {
     this.fallbackComparator = fallbackComparator;
-    this.caseInsensitiveLocale = caseInsensitiveLocale;
+    this.textComparator = textComparator;
   }
 
   /**
@@ -51,7 +51,16 @@ public class ObjectComparator implements Comparator<Object> {
    * @return Comparator object.
    */
   public ObjectComparator withCaseInsensitivity(Locale locale) {
-    return new ObjectComparator(this.fallbackComparator, locale);
+    return new ObjectComparator(this.fallbackComparator, (a, b) -> Long.valueOf(Text_Utils.compare_normalized_ignoring_case(a, b, locale)));
+  }
+
+  /**
+   * Create a copy of the ObjectComparator with case-insensitive text comparisons.
+   * @param textComparator custom comparator for Text.
+   * @return Comparator object.
+   */
+  public ObjectComparator withCustomTextComparator(BiFunction<String, String, Long> textComparator) {
+    return new ObjectComparator(this.fallbackComparator, textComparator);
   }
 
   @Override
@@ -109,11 +118,7 @@ public class ObjectComparator implements Comparator<Object> {
 
     // Text
     if (thisValue instanceof String thisString && thatValue instanceof String thatString) {
-      if (caseInsensitiveLocale != null) {
-        return Text_Utils.compare_normalized_ignoring_case(thisString, thatString, caseInsensitiveLocale);
-      } else {
-        return Text_Utils.compare_normalized(thisString, thatString);
-      }
+      return textComparator.apply(thisString, thatString).intValue();
     }
 
     // DateTimes
@@ -142,6 +147,6 @@ public class ObjectComparator implements Comparator<Object> {
     }
 
     // Fallback to Enso
-    return fallbackComparator.apply(thisValue, thatValue);
+    return fallbackComparator.apply(thisValue, thatValue).intValue();
   }
 }

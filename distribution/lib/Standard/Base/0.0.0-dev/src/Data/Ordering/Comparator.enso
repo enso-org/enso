@@ -1,4 +1,5 @@
-from Standard.Base import Any, Ordering, Nothing, Vector, Case_Insensitive
+from Standard.Base import all
+import Standard.Base.Data.Ordering.Natural_Order
 from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 
 polyglot java import org.enso.base.ObjectComparator
@@ -22,16 +23,20 @@ new custom_comparator=Nothing =
    Create a Java Comparator with the specified Text_Ordering
 
    Arguments:
-   - custom_comparator:
-     If `Nothing` will get a singleton instance for `.compare_to`.
-     Otherwise can support a custom fallback comparator.
+   - text_ordering:
+     Specifies how to compare Text values within the Comparator.
 for_text_ordering : Text_Ordering -> ObjectComparator
 for_text_ordering text_ordering =
-    comparator = case text_ordering.case_sensitive of
-        Case_Insensitive locale ->
-            here.new.withCaseInsensitivity locale.java_locale
-        _ ->
-            here.new
+    locale = case text_ordering.case_sensitive of
+        Case_Insensitive locale -> locale
+        _ -> Nothing
 
-    ## ToDo: sort_digits_as_numbers
-    comparator
+    case Pair text_ordering.sort_digits_as_numbers locale of
+        Pair True (Locale.Locale _) ->
+            txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
+            here.new.withCustomTextComparator txt_cmp
+        Pair True Nothing ->
+            txt_cmp a b = Natural_Order.compare a b . to_sign
+            here.new.withCustomTextComparator txt_cmp
+        Pair False (Locale.Locale _) -> here.new.withCaseInsensitivity locale.java_locale
+        Pair False Nothing -> here.new
