@@ -101,10 +101,11 @@ impl ExecutionContext {
     async fn load_component_groups(&self) {
         match self.language_server.get_component_groups(&self.id).await {
             Ok(ls_response) => {
-                let groups = ls_response.component_groups.into_iter().map(|group| group.into()).collect();
+                let groups =
+                    ls_response.component_groups.into_iter().map(|group| group.into()).collect();
                 *self.model.component_groups.borrow_mut() = Rc::new(groups);
                 info!(self.logger, "Loaded component groups.");
-            },
+            }
             Err(err) => {
                 let msg = iformat!(
                     "Failed to load component groups. No groups will appear in the Favorites \

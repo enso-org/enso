@@ -92,9 +92,7 @@ impl ExecutionContextsRegistry {
         id: execution_context::Id,
         update: ExecutionUpdate,
     ) -> FallibleResult {
-        self.with_context(id, |ctx| {
-            ctx.handle_notification(update)
-        })
+        self.with_context(id, |ctx| ctx.handle_notification(update))
     }
 
     /// Registers a new ExecutionContext. It will be eligible for receiving future updates routed

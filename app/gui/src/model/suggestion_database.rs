@@ -229,7 +229,7 @@ impl SuggestionDatabase {
                 entry::Update::Add { id, suggestion } => match suggestion.try_into() {
                     Ok(entry) => {
                         qn_to_id_map.set_and_warn_if_existed(&Entry::qualified_name(&entry), id);
-                        n_adds+=1;
+                        n_adds += 1;
                         entries.insert(id, Rc::new(entry));
                     }
                     Err(err) => {
