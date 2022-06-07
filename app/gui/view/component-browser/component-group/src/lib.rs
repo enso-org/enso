@@ -385,9 +385,11 @@ impl component::Frp<Model> for Frp {
             is_entry_selected <- model.entries.selected_entry.on_change().map(|e| e.is_some());
             some_entry_selected <- is_entry_selected.on_true();
             mouse_moved_over_header <- mouse_moved.gate(&is_mouse_over_header);
+            mouse_moved_beyond_header <- mouse_moved.gate_not(&is_mouse_over_header);
 
             select_header <- any(moved_out_above, mouse_moved_over_header, out.header_accepted);
-            out.is_header_selected <+ bool(&some_entry_selected, &select_header).on_change();
+            deselect_header <- any(&some_entry_selected, &mouse_moved_beyond_header);
+            out.is_header_selected <+ bool(&deselect_header, &select_header).on_change();
             model.entries.select_entry <+ select_header.constant(None);
 
             out.selection_position_target <+ all_with3(
