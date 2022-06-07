@@ -78,16 +78,6 @@ impl ExecutionContext {
             let this = Self { id, model, language_server, logger };
             this.push_root_frame().await?;
             info!(this.logger, "Pushed root frame.");
-            match this.load_component_groups().await {
-                Ok(_) => info!(this.logger, "Loaded component groups."),
-                Err(err) => {
-                    let msg = iformat!(
-                        "Failed to load component groups. No groups will appear in the Favorites \
-                        section of the Component Browser. Error: {err}"
-                    );
-                    error!(this.logger, "{msg}");
-                }
-            }
             Ok(this)
         }
     }
@@ -108,11 +98,21 @@ impl ExecutionContext {
     }
 
     /// Load the component groups defined in libraries imported into the execution context.
-    async fn load_component_groups(&self) -> FallibleResult {
-        let ls_response = self.language_server.get_component_groups(&self.id).await?;
-        *self.model.component_groups.borrow_mut() =
-            Rc::new(ls_response.component_groups.into_iter().map(|group| group.into()).collect());
-        Ok(())
+    async fn load_component_groups(&self) {
+        match self.language_server.get_component_groups(&self.id).await {
+            Ok(ls_response) => {
+                let groups = ls_response.component_groups.into_iter().map(|group| group.into()).collect();
+                *self.model.component_groups.borrow_mut() = Rc::new(groups);
+                info!(self.logger, "Loaded component groups.");
+            },
+            Err(err) => {
+                let msg = iformat!(
+                    "Failed to load component groups. No groups will appear in the Favorites \
+                    section of the Component Browser. Error: {err}"
+                );
+                error!(self.logger, "{msg}");
+            }
+        }
     }
 
     /// Detach visualization from current execution context.
@@ -137,11 +137,17 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_notification(&self, notification: Notification) -> FallibleResult {
+    pub fn handle_notification(self: &Rc<Self>, notification: Notification) -> FallibleResult {
         match notification {
             Notification::Completed =>
                 if !self.model.is_ready.replace(true) {
+                    DEBUG!("MCDBG Completed & will spawn");
                     info!(self.logger, "Context {self.id} Became ready");
+                    let this = self.clone();
+                    executor::global::spawn(async move {
+                        this.load_component_groups().await;
+                        DEBUG!("MCDBG after load_component_groups");
+                    });
                 },
             Notification::ExpressionUpdates(updates) => {
                 self.model.computed_value_info_registry.apply_updates(updates);
