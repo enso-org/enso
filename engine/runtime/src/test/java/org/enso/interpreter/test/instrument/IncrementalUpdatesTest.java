@@ -128,7 +128,7 @@ public class IncrementalUpdatesTest {
             )
     );
 
-    assertSameElements(context.receiveNIgnoreStdLib(4),
+    assertSameElements(context.receiveNIgnoreStdLib(4, 10),
             Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
             TestMessages.update(contextId, mainFoo, ConstantsGen.INTEGER, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
             TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
