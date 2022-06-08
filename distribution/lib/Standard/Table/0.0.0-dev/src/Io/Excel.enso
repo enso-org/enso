@@ -20,11 +20,11 @@ type Excel_Section
 
     ## Gets the data from a specific sheet. Column names are the Excel column
        names.
-    type Sheet (sheet:(Integer|Text)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
+    type Sheet (sheet:(Integer|Text)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
     ## Gets a specific range (taking either a defined name or external style
        address) from the workbook.
-    type Range (address:(Text|Excel_Range)) (skip_rows:(Integer|Nothing)=Nothing) (row_limit:(Integer|Nothing)=Nothing)
+    type Range (address:(Text|Excel_Range)) (skip_rows:Integer=0) (row_limit:(Integer|Nothing)=Nothing)
 
 type Excel_Range
     ## Specifies a range within an Excel Workbook.

@@ -58,7 +58,7 @@ type Sqlite_Dialect
                         IR.Order_Descriptor internal_column.expression sort_direction collation=Nothing
                     True ->
                         IR.Order_Descriptor internal_column.expression sort_direction collation="BINARY"
-                    Case_Insensitive locale -> case Locale.default.java_locale.equals locale.java_locale of
+                    Case_Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
