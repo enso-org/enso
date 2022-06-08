@@ -1339,12 +1339,16 @@ pub mod test {
             client_setup(&mut data, &mut client);
             let end_of_code = enso_text::Text::from(&data.graph.module.code).location_of_text_end();
             let code_range = enso_text::Location::default()..=end_of_code;
+            let scope = Scope::InModule { range: code_range };
             let graph = data.graph.controller();
             let node = &graph.graph().nodes().unwrap()[0];
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
             let logger = Logger::new("Searcher"); // new_empty
-            let database = Rc::new(SuggestionDatabase::new_empty(&logger));
+            let module_name =
+                QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
+                    .unwrap();
+            let database = suggestion_database_with_mock_entries(&logger, module_name, scope);
             let mut ide = controller::ide::MockAPI::new();
             let mut project = model::project::MockAPI::new();
             let project_qname = project_qualified_name();
@@ -1357,9 +1361,6 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let module_name =
-                QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME])
-                    .unwrap();
             let favorite_component_groups =
                 lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
             let searcher = Searcher {
@@ -1376,115 +1377,12 @@ pub mod test {
                 project: project.clone_ref(),
                 favorite_component_groups,
             };
-            let entry1 = model::suggestion_database::Entry {
-                name:               "testFunction1".to_string(),
-                kind:               Kind::Function,
-                module:             crate::test::mock::data::module_qualified_name(),
-                arguments:          vec![],
-                return_type:        "Number".to_string(),
-                documentation_html: default(),
-                self_type:          None,
-                scope:              Scope::InModule { range: code_range },
-            };
-            let entry2 = model::suggestion_database::Entry {
-                name: "TestVar1".to_string(),
-                kind: Kind::Local,
-                ..entry1.clone()
-            };
-            let entry3 = model::suggestion_database::Entry {
-                name: "testMethod1".to_string(),
-                kind: Kind::Method,
-                self_type: Some(module_name.into()),
-                scope: Scope::Everywhere,
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry4 = model::suggestion_database::Entry {
-                self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
-                module: "test.Test.Test".to_owned().try_into().unwrap(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Any".to_string(),
-                        name:          "this".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "String".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry3.clone()
-            };
-            let entry5 = model::suggestion_database::Entry {
-                kind:               Kind::Module,
-                module:             entry1.module.clone(),
-                name:               MODULE_NAME.to_owned(),
-                arguments:          default(),
-                return_type:        entry1.module.to_string(),
-                documentation_html: None,
-                self_type:          None,
-                scope:              Scope::Everywhere,
-            };
-            let entry9 = model::suggestion_database::Entry {
-                name: "testFunction2".to_string(),
-                arguments: vec![
-                    Argument {
-                        repr_type:     "Text".to_string(),
-                        name:          "text_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                    Argument {
-                        repr_type:     "Number".to_string(),
-                        name:          "num_arg".to_string(),
-                        has_default:   false,
-                        default_value: None,
-                        is_suspended:  false,
-                    },
-                ],
-                ..entry1.clone()
-            };
-            let entry10 = model::suggestion_database::Entry {
-                name: "testFunction3".to_string(),
-                module: "test.Test.Other".to_owned().try_into().unwrap(),
-                scope: Scope::Everywhere,
-                ..entry9.clone()
-            };
-
-            searcher.database.put_entry(1, entry1);
             let entry1 = searcher.database.lookup(1).unwrap();
-            searcher.database.put_entry(2, entry2);
             let entry2 = searcher.database.lookup(2).unwrap();
-            searcher.database.put_entry(3, entry3);
             let entry3 = searcher.database.lookup(3).unwrap();
-            searcher.database.put_entry(4, entry4);
             let entry4 = searcher.database.lookup(4).unwrap();
-            searcher.database.put_entry(5, entry5);
             let entry5 = searcher.database.lookup(5).unwrap();
-            searcher.database.put_entry(9, entry9);
             let entry9 = searcher.database.lookup(9).unwrap();
-            searcher.database.put_entry(10, entry10);
             let entry10 = searcher.database.lookup(10).unwrap();
             Fixture {
                 data,
@@ -1503,6 +1401,113 @@ pub mod test {
         fn new() -> Self {
             Self::new_custom(|_, _| {})
         }
+    }
+
+    fn suggestion_database_with_mock_entries(logger: &Logger, module_name: QualifiedName, scope: Scope) -> Rc<SuggestionDatabase> {
+        let database = Rc::new(SuggestionDatabase::new_empty(logger));
+        let entry1 = model::suggestion_database::Entry {
+            name:               "testFunction1".to_string(),
+            kind:               Kind::Function,
+            module:             crate::test::mock::data::module_qualified_name(),
+            arguments:          vec![],
+            return_type:        "Number".to_string(),
+            documentation_html: default(),
+            self_type:          None,
+            scope,
+        };
+        let entry2 = model::suggestion_database::Entry {
+            name: "TestVar1".to_string(),
+            kind: Kind::Local,
+            ..entry1.clone()
+        };
+        let entry3 = model::suggestion_database::Entry {
+            name: "testMethod1".to_string(),
+            kind: Kind::Method,
+            self_type: Some(module_name.into()),
+            scope: Scope::Everywhere,
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "this".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry4 = model::suggestion_database::Entry {
+            self_type: Some("test.Test.Test".to_owned().try_into().unwrap()),
+            module: "test.Test.Test".to_owned().try_into().unwrap(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Any".to_string(),
+                    name:          "this".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "String".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry3.clone()
+        };
+        let entry5 = model::suggestion_database::Entry {
+            kind:               Kind::Module,
+            module:             entry1.module.clone(),
+            name:               MODULE_NAME.to_owned(),
+            arguments:          default(),
+            return_type:        entry1.module.to_string(),
+            documentation_html: None,
+            self_type:          None,
+            scope:              Scope::Everywhere,
+        };
+        let entry9 = model::suggestion_database::Entry {
+            name: "testFunction2".to_string(),
+            arguments: vec![
+                Argument {
+                    repr_type:     "Text".to_string(),
+                    name:          "text_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+                Argument {
+                    repr_type:     "Number".to_string(),
+                    name:          "num_arg".to_string(),
+                    has_default:   false,
+                    default_value: None,
+                    is_suspended:  false,
+                },
+            ],
+            ..entry1.clone()
+        };
+        let entry10 = model::suggestion_database::Entry {
+            name: "testFunction3".to_string(),
+            module: "test.Test.Other".to_owned().try_into().unwrap(),
+            scope: Scope::Everywhere,
+            ..entry9.clone()
+        };
+        database.put_entry(1, entry1);
+        database.put_entry(2, entry2);
+        database.put_entry(3, entry3);
+        database.put_entry(4, entry4);
+        database.put_entry(5, entry5);
+        database.put_entry(9, entry9);
+        database.put_entry(10, entry10);
+        database
     }
 
 
