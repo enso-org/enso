@@ -134,6 +134,7 @@
 - [Added rank data, correlation and covariance statistics for `Vector`][3484]
 - [Implemented `Table.order_by` for the SQLite backend.][3502]
 - [Implemented `Table.order_by` for the PostgreSQL backend.][3514]
+- [Implemented `Table.order_by` for the in-memory table.][3515]
 - [Renamed `File_Format.Text` to `Plain_Text`, updated `File_Format.Delimited`
   API and added builders for customizing less common settings.][3516]
 
@@ -212,6 +213,7 @@
 [3484]: https://github.com/enso-org/enso/pull/3484
 [3502]: https://github.com/enso-org/enso/pull/3502
 [3514]: https://github.com/enso-org/enso/pull/3514
+[3515]: https://github.com/enso-org/enso/pull/3515
 [3516]: https://github.com/enso-org/enso/pull/3516
 
 #### Enso Compiler

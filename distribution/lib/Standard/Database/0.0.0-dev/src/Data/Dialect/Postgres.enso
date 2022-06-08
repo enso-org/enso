@@ -156,7 +156,7 @@ make_first_aggregator reverse ignore_null args =
         filter_clause = if ignore_null.not then Sql.code "" else
             Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
         modified_order_exprs =
-            order_exprs.map expr-> expr ++ Sql.code " ASC NULLS LAST"
+            order_exprs.map expr-> expr ++ Sql.code " ASC NULLS FIRST"
         order_clause =
             Sql.code " ORDER BY " ++ Sql.join "," modified_order_exprs
         index_expr = case reverse of

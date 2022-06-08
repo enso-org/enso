@@ -614,6 +614,22 @@ Text.compare_to that =
         if comparison_result < 0 then Ordering.Less else
             Ordering.Greater
 
+## Compare two texts to discover their ordering.
+
+   Arguments:
+   - that: The text to order `this` with respect to.
+
+   > Example
+     Checking how "a" orders in relation to "b".
+
+         "a".compare_to_ignore_case "b"
+Text.compare_to_ignore_case : Text -> Locale -> Ordering
+Text.compare_to_ignore_case that locale=Locale.default =
+    comparison_result = Text_Utils.compare_normalized_ignoring_case this that locale.java_locale
+    if comparison_result == 0 then Ordering.Equal else
+        if comparison_result < 0 then Ordering.Less else
+            Ordering.Greater
+
 ## ALIAS Check Emptiness
 
    Check if `this` is empty.

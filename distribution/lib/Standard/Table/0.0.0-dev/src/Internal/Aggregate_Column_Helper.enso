@@ -120,7 +120,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
+        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_selector_or_nothing selector = case selector of
@@ -175,7 +175,7 @@ java_aggregator name column =
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
             resolved = columns.map .java_column
-            CountDistinctAggregator.new name resolved.to_array ignore_nothing
+            CountDistinctAggregator.new name resolved.to_array ignore_nothing Comparator.new
         Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
         Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
         Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False

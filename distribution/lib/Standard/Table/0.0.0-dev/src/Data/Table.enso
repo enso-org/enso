@@ -19,10 +19,14 @@ from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_For
 from Standard.Base.Data.Text.Text_Ordering as Text_Ordering_Module import Text_Ordering
 from Standard.Base.Error.Problem_Behavior as Problem_Behavior_Module import Problem_Behavior, Report_Warning
 from Standard.Table.Error as Error_Module import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector
+
 import Standard.Table.Data.Column_Mapping
 import Standard.Table.Data.Position
+import Standard.Table.Data.Sort_Column_Selector
+import Standard.Table.Data.Sort_Column
 
 import Standard.Table.Data.Aggregate_Column
+import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -524,7 +528,7 @@ type Table
 
         on_problems.attach_problems_before validated.problems <|
             java_key_columns = validated.key_columns.map .java_column
-            index = this.java_table.indexFromColumns java_key_columns.to_array
+            index = this.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
@@ -534,6 +538,50 @@ type Table
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
                 Aggregate_Column_Helper.parse_aggregated_problems problems
+
+    ## Sorts the rows of the table according to the specified columns and order.
+
+       Arguments:
+       - columns: The columns and order to sort the table.
+       - text_ordering: The ordering method to use on text values.
+       - on_problems: Specifies how to handle if a problem occurs, raising as a
+         warning by default. The following problems can occur:
+         - If a column in `columns` is not present in the input table, a
+           `Missing_Input_Columns`.
+         - If duplicate columns, names or indices are provided, a
+           `Duplicate_Column_Selectors`.
+         - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If two distinct indices refer to the same column, an
+           `Input_Indices_Already_Matched`.
+         - If two name matchers match the same column, a
+           `Column_Matched_By_Multiple_Selectors`.
+         - If no valid columns are selected, a `No_Input_Columns_Selected`.
+         - If values do not implement an ordering, an
+           `Incomparable_Values_Error`.
+
+       > Example
+         Order the table by the column "alpha" in ascending order.
+
+             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+
+       > Example
+         Order the table by the second column in ascending order. In case of any
+         ties, break them based on the 7th column from the end of the table in
+         descending order.
+
+             table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+    order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
+    order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
+        columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns on_problems
+        selected_columns = columns_for_ordering.map c->c.column.java_column
+        ordering = columns_for_ordering.map c->
+            case c.associated_selector.direction of
+                Sort_Direction.Ascending -> 1
+                Sort_Direction.Descending -> -1
+        comparator = Comparator.for_text_ordering text_ordering
+        Table <|
+            this.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+
 
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
