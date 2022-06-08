@@ -1174,7 +1174,7 @@ fn lookup_component_groups_in_suggestion_db(
 ) -> component::group::List {
     groups
         .iter()
-        .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
+        .filter_map(|g| component::Group::new_with_entries_looked_up_in_database(g, db))
         .collect()
 }
 
