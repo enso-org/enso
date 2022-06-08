@@ -577,10 +577,7 @@ type Table
         columns_for_ordering = Table_Helpers.prepare_order_by this.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
             selected_columns = columns_for_ordering.map c->c.column.java_column
-            ordering = columns_for_ordering.map c->
-                case c.associated_selector.direction of
-                    Sort_Direction.Ascending -> 1
-                    Sort_Direction.Descending -> -1
+            ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
             java_table = this.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table java_table

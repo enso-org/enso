@@ -11,33 +11,39 @@ import java.util.List;
 /** Aggregate Column finding the first value in a group. */
 public class First extends Aggregator {
   private final Storage storage;
-  private final Storage[] ordering;
+  private final Storage[] orderByColumns;
+  private final int[] orderByDirections;
   private final Comparator<Object> objectComparator;
   private final boolean ignoreNothing;
 
   public First(String name, Column column, boolean ignoreNothing) {
-    this(name, column, ignoreNothing, null, null);
+    this(name, column, ignoreNothing, null, null, null);
   }
 
   public First(
       String name,
       Column column,
       boolean ignoreNothing,
-      Column[] ordering,
+      Column[] orderByColumns,
+      Long[] orderByDirections,
       Comparator<Object> objectComparator) {
     super(name, Storage.Type.OBJECT);
     this.storage = column.getStorage();
-    this.ordering =
-        ordering == null
+    this.orderByColumns =
+        orderByColumns == null
             ? new Storage[0]
-            : Arrays.stream(ordering).map(Column::getStorage).toArray(Storage[]::new);
+            : Arrays.stream(orderByColumns).map(Column::getStorage).toArray(Storage[]::new);
+    this.orderByDirections =
+        orderByDirections == null
+            ? new int[0]
+            : Arrays.stream(orderByDirections).mapToInt(Long::intValue).toArray();
     this.objectComparator = objectComparator;
     this.ignoreNothing = ignoreNothing;
   }
 
   @Override
   public Object aggregate(List<Integer> indexes) {
-    if (ordering.length == 0) {
+    if (orderByColumns.length == 0) {
       return firstByRowOrder(indexes);
     } else {
       return firstBySpecifiedOrder(indexes);
@@ -54,7 +60,8 @@ public class First extends Aggregator {
         continue;
       }
 
-      MultiValueKey newKey = new MultiValueKey(this.ordering, row, objectComparator);
+      MultiValueKey newKey =
+          new MultiValueKey(this.orderByColumns, row, this.orderByDirections, objectComparator);
       if (key == null || key.compareTo(newKey) > 0) {
         key = newKey;
         current = storage.getItemBoxed(row);
