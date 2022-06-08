@@ -97,7 +97,7 @@ public class EnsoFile implements TruffleObject {
     }
   }
 
-  @Builtin.Method(name = "list_immediate_children")
+  @Builtin.Method(name = "list_immediate_children_array")
   @Builtin.WrapException(from = IOException.class, to = PolyglotError.class, propagate = true)
   public EnsoFile[] list() throws IOException {
     return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);

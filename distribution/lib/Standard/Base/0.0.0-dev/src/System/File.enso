@@ -33,11 +33,10 @@ polyglot java import java.nio.file.Path
          example_new = File.new Examples.csv_path
 new : (Text | File) -> File
 new path =
-  file = case path of
+  case path of
     Text -> here.get_file path
     File -> path
     _    -> Error.throw (Illegal_Argument_Error "new file should be either a File or a Text")
-  file
 
 ## Open and reads all bytes in the file at the provided `path` into a byte vector.
 
@@ -683,7 +682,7 @@ type File
     list name_filter=Nothing recursive=False =
         all_files = case recursive of
             True -> here.list_descendants this
-            False -> Vector.Vector (this.list_immediate_children)
+            False -> this.list_immediate_children
         filtered = case name_filter of
             Nothing -> all_files
             _ ->
@@ -710,8 +709,14 @@ type File
     ## PRIVATE
 
        Utility function that lists immediate children of a directory.
-    list_immediate_children : File -> Array File
-    list_immediate_children directory = @Builtin_Method "File.list_immediate_children"
+    list_immediate_children : Vector.Vector File
+    list_immediate_children = Vector.Vector (this.list_immediate_children_array)
+
+    ## PRIVATE
+
+       Utility function that lists immediate children of a directory.
+    list_immediate_children_array : Array File
+    list_immediate_children_array = @Builtin_Method "File.list_immediate_children_array"
 
     ## PRIVATE
 
@@ -966,7 +971,7 @@ list_descendants file =
         builder.append file
         case file.is_directory of
             True ->
-                children = Vector.Vector (file.list_immediate_children)
+                children = file.list_immediate_children
                 children.each go
             False -> Nothing
     go file

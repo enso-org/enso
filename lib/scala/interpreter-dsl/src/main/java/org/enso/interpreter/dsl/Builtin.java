@@ -172,11 +172,12 @@ public @interface Builtin {
    *   }
    * </pre>
    *
-   * Given the information from {@link WrapException#from()} and {@link WrapException#to()}
-   * elements, the processor knows that the call to {@code get()} has to be wrapped in try/catch,
-   * catching and re-throwing values of a particular type, respectively. The processor will
-   * automatically infer what parameters need to be passed to the new exception using the
-   * information from the {@link WrapException#to()} class.
+   * Given the information from {@link WrapException#from()} element the processor knows that the
+   * call to {@code get()} has to catch {@code IndexOutOfBounds} exception. {@link
+   * WrapException#to()}, in turn, means that the exception should be re-wrapped into {@code
+   * InvalidArrayIndexError} error. The processor will look at the constructor parameters of the
+   * target exception and opportunistically match them against arguments provided as the arguments
+   * of the called method, if possible.
    *
    * <p>The generated class will therefore ensure that calls to methods are safe and wrapped in an
    * appropriate catch-clause:
@@ -195,8 +196,8 @@ public @interface Builtin {
    * }
    * </pre>
    *
-   * <p>Simple exception propagation is also possible by setting the {@link
-   * WrapException#propagate()} element to true:
+   * <p>Simple exception propagation, without passing method's arguments, is also possible by
+   * setting the {@link WrapException#propagate()} element to true:
    *
    * <pre>
    * class Foo {
