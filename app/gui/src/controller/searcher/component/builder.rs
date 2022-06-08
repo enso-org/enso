@@ -146,8 +146,8 @@ impl List {
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            favorites,
             filtered: default(),
+            favorites,
         }
     }
 }
