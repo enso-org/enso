@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.Map;
 import java.util.UUID;
+import org.enso.compiler.core.IR$Literal$Number;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.interpreter.test.Metadata;
@@ -33,6 +34,7 @@ import scala.collection.immutable.Seq;
 import scala.collection.immutable.Vector1;
 
 public class IncrementalUpdatesTest {
+  private static final String MODULE_NAME = "Enso_Test.Test.Main";
   private TestContext context;
   private NodeCountingTestInstrument nodeCountingInstrument;
 
@@ -49,6 +51,15 @@ public class IncrementalUpdatesTest {
   @Test
   public void sendUpdatesWhenFunctionBodyIsChanged() {
     sendUpdatesWhenFunctionBodyIsChanged("5", true);
+    var m = context.languageContext().findModule(MODULE_NAME).orElse(null);
+    assertNotNull("Module found", m);
+    var numbers = m.getIr().preorder().filter((v1) -> {
+      return v1 instanceof IR$Literal$Number;
+    });
+    assertEquals("One number found: " + numbers, 1, numbers.size());
+    if (numbers.head() instanceof IR$Literal$Number n) {
+      assertEquals("updated to 5", "5", n.value());
+    }
   }
 
   @Test
@@ -61,7 +72,6 @@ public class IncrementalUpdatesTest {
   private void sendUpdatesWhenFunctionBodyIsChanged(String newText, boolean assertExecution) {
     var contextId = UUID.randomUUID();
     var requestId = UUID.randomUUID();
-    var moduleName = "Enso_Test.Test.Main";
     var metadata = new Metadata();
 
     // foo definition
@@ -110,7 +120,7 @@ public class IncrementalUpdatesTest {
                     new Runtime$Api$PushContextRequest(
                             contextId,
                             new Runtime$Api$StackItem$ExplicitCall(
-                                    new Runtime$Api$MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+                                    new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                                     None(),
                                     new Vector1<>(new String[] { "0" })
                             )

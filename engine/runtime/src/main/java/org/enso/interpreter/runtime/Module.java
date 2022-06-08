@@ -36,6 +36,7 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.model;
+import scala.Function1;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
@@ -202,15 +203,26 @@ public class Module implements TruffleObject {
    * @param source the module source.
    */
   public void setLiteralSource(Rope source, IR$Literal$Number change, model.TextEdit edit) {
+    this.isInteractive = true;
     if (this.scope != null && edit != null) {
       if (this.scope.simpleUpdate(edit)) {
         this.sources = this.sources.newWith(source, true);
+        final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {
+          @Override
+          public IR.Expression apply(IR.Expression v1) {
+            if (v1 == change) {
+              return new IR$Literal$Number(change.base(), edit.text(), change.location(), change.passData(), change.diagnostics());
+            }
+            return v1.mapExpressions(this);
+          }
+        };
+        var copy = this.ir.mapExpressions(fn);
+        this.ir = copy;
         return;
       }
     }
     this.sources = this.sources.newWith(source, false);
     this.compilationStage = CompilationStage.INITIAL;
-    this.isInteractive = true;
   }
 
   /**
