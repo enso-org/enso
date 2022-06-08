@@ -47,6 +47,7 @@ use ensogl_list_view as list_view;
 use ensogl_list_view::entry::GlyphHighlightedLabelModel;
 use ide_view_component_group as component_group;
 use list_view::entry::AnyModelProvider;
+use searcher_list_panel::column_grid::ColumnGrid;
 use searcher_list_panel::ComponentBrowserPanel;
 use searcher_list_panel::LabeledAnyModelProvider;
 
@@ -117,7 +118,7 @@ fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
     let sub_module_data = vec![
         MockEntries::new(4),
         MockEntries::new(6),
-        MockEntries::new(8),
+        MockEntries::new(18),
         MockEntries::new(6),
         MockEntries::new(4),
         MockEntries::new(4),
@@ -176,12 +177,12 @@ pub fn main() {
         let scene = &world.default_scene;
         let camera = scene.camera().clone_ref();
         let navigator = Navigator::new(scene, &camera);
-        navigator.disable_wheel_panning();
 
         let searcher_list_panel = ComponentBrowserPanel::new(app);
+        searcher_list_panel.model().set_navigator(Some(navigator.clone()));
 
-        init_local_cope_section(&searcher_list_panel);
         init_favourites_section(&searcher_list_panel);
+        init_local_cope_section(&searcher_list_panel);
         init_sub_modules_section(&searcher_list_panel);
 
         world.add_child(&searcher_list_panel);

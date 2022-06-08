@@ -14,6 +14,7 @@ use ensogl_core::display;
 use ensogl_core::display::style;
 use ensogl_gui_component::component;
 use ensogl_list_view as list_view;
+use ensogl_scroll_area as scroll_area;
 use ide_view_component_group as component_group;
 use ide_view_component_group::Layers;
 use ordered_float::OrderedFloat;
@@ -23,6 +24,13 @@ use ordered_float::OrderedFloat;
 // =============
 // === Model ===
 // =============
+
+#[derive(Clone, Debug)]
+struct Entry {
+    content: component_group::View,
+    visible: bool,
+}
+
 
 /// Contains a [`AnyModelProvider`] with a label. Can be used to populate a
 /// [`component_group::View`].
@@ -45,7 +53,7 @@ pub struct LabeledAnyModelProvider {
 pub struct Model {
     app:            Application,
     display_object: display::object::Instance,
-    content:        Rc<RefCell<Vec<component_group::View>>>,
+    content:        Rc<RefCell<Vec<Entry>>>,
     size:           Rc<Cell<Vector2>>,
 }
 
@@ -69,7 +77,7 @@ impl Model {
                 view.set_entries(content);
                 view.set_header(label.as_str());
                 self.display_object.add_child(&view);
-                view
+                Entry { content: view, visible: false }
             })
             .collect_vec();
 
@@ -80,8 +88,8 @@ impl Model {
 
         for (ix, entry) in content.iter().enumerate() {
             let column_index = ix % NUMBER_OF_COLUMNS;
-            columns[column_index].push(entry);
-            heights[column_index] += entry.size.value().y + style.column_gap;
+            columns[column_index].push(&entry.content);
+            heights[column_index] += entry.content.size.value().y + style.column_gap;
         }
         let height: f32 = heights.into_iter().map(OrderedFloat).max().unwrap_or_default().into();
 
@@ -113,8 +121,30 @@ impl Model {
     /// Assign a set of layers to render the component group in. Must be called after constructing
     /// the [`View`].
     pub fn set_layers(&self, layers: &Layers, scroll_layer: &display::scene::Layer) {
-        self.content.borrow().iter().for_each(|entry| entry.model().set_layers(layers));
+        self.content.borrow().iter().for_each(|entry| entry.content.model().set_layers(layers));
         scroll_layer.add_exclusive(&self.display_object);
+    }
+
+    fn set_scroll_viewport(&self, viewport: scroll_area::Viewport) {
+        self.content.borrow_mut().iter_mut().for_each(|entry| {
+            let view = &entry.content;
+            let root_pos = self.display_object.position().xy();
+            let center_offset = Vector2::new(-view.size.value().x, view.size.value().y) / 2.0;
+            let element_pos = root_pos + view.position().xy() + center_offset;
+            let is_visible = viewport.intersects(element_pos, view.size.value());
+            entry.visible = is_visible;
+
+            if is_visible {
+                let element_top = element_pos.y;
+                let clamped = viewport.clamp(Vector2::new(0.0, element_top)).y;
+                let rel_pos = element_top - clamped;
+                view.set_header_pos(rel_pos);
+
+                self.add_child(view);
+            } else {
+                view.unset_parent();
+            }
+        })
     }
 }
 
@@ -160,6 +190,7 @@ impl Style {
 define_endpoints_2! {
     Input{
         set_content(Vec<LabeledAnyModelProvider>),
+        set_scroll_viewport(scroll_area::Viewport),
     }
     Output{
         size(Vector2)
@@ -221,6 +252,8 @@ impl component::Frp<Model> for Frp {
                 model.update_content_layout(content,layout))
             );
             frp_api.output.size <+ size_update;
+
+            eval frp_api.input.set_scroll_viewport((viewport) model.set_scroll_viewport(*viewport));
         }
         init.emit(());
     }
