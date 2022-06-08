@@ -1720,7 +1720,7 @@ pub mod test {
             icon:    None,
             exports: vec![exported_component],
         };
-
+        // Create a test fixture with mocked Engine responses.
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
@@ -1728,6 +1728,7 @@ pub mod test {
                 data.expect_completion(client, None, None, &[1, 99999, 9]);
                 data.graph.ctx.component_groups = vec![sample_ls_component_group];
             });
+        // Verify the contents of a components list loaded by the Searcher.
         searcher.reload_list();
         test.run_until_stalled();
         let components = searcher.components();
