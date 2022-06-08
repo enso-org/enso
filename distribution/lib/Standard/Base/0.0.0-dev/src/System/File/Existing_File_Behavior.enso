@@ -1,0 +1,55 @@
+from Standard.Base import all
+
+## Specifies the behavior of a write operation when the destination file
+   already exists.
+type Existing_File_Behavior
+    ## Replace the existing file in-place, with the new file.
+
+       Note: There is a risk of data loss if a failure occurs during the write
+       operation.
+    type Overwrite
+
+    ## Creates a backup of the existing file (by appending a `.bak` suffix to
+       the name) before replacing it with the new contents.
+
+       Note: This requires sufficient storage to have two copies of the file.
+             If an existing `.bak` file exists, it will be replaced.
+    type Backup
+
+    ## Appends data to the existing file.
+    type Append
+
+    ## If the file already exists, a `File_Already_Exists_Error` error is
+       raised.
+    type Error
+
+    ## PRIVATE
+       Runs the given action which is given a file output stream and should
+       write the required contents to it.
+
+       The handle is configured depending on the specified behavior, it may
+       point to a temporary file, for example. The stream may only be used while
+       the action is being executed and it should not be stored anywhere for
+       later.
+
+       The action may not be run at all in case the `Error` behavior is
+       selected.
+    write : File -> (Output_Stream -> Nothing) -> Nothing ! File_Not_Found | Io_Error | File_Already_Exists_Error
+    write file action =
+        case this of
+            Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
+            Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
+            Error -> file.with_output_stream [Option.Write, Option.Create_New] action
+            Backup ->
+                parent = file.parent
+                bak_file = parent / file.name+".bak"
+                go i =
+                    new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text
+                    new_file = parent / new_name
+                    handle_existing_file _ = go i+1
+                    Panic.catch File_Already_Exists_Error handler=handle_existing_file <|
+                        new_file.with_output_stream [Option.Write, Option.Create_New] action
+                        File.move file bak_file
+                        File.move new_file file
+                go 0
+

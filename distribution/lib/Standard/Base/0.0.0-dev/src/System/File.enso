@@ -13,8 +13,11 @@ polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
+polyglot java import java.nio.file.Files
+polyglot java import java.nio.file.CopyOption
 
 ## ALIAS New File
 
@@ -891,8 +894,9 @@ handle_java_exceptions file ~action =
    Converts a Java `IOException` into its Enso counterpart.
 wrap_io_exception file io_exception =
     if Java.is_instance io_exception NoSuchFileException then Error.throw (File_Not_Found file) else
-        if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
-            Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
+        if Java.is_instance io_exception FileAlreadyExistsException then Error.throw (File_Already_Exists_Error file) else
+            if Java.is_instance io_exception AccessDeniedException then Error.throw (Io_Error file "You do not have permission to access the file") else
+                Error.throw (Io_Error file "An IO error has occurred: "+io_exception.getMessage)
 
 ## PRIVATE
 
@@ -911,6 +915,9 @@ type File_Error
        - file: The file that doesn't exist.
     type File_Not_Found file
 
+    ## Indicates that a destination file already exists.
+    type File_Already_Exists_Error file
+
     ## A generic IO error.
 
        Arguments:
@@ -925,6 +932,7 @@ type File_Error
     to_display_text = case this of
         File_Not_Found  file -> "The file at " + file.path + " does not exist."
         Io_Error file msg -> msg.to_text + " (" + file.path + ")."
+        File_Already_Exists_Error file -> "The file at "+file.path+" already exists."
 
 
 ## PRIVATE
@@ -975,3 +983,10 @@ get_file path = @Builtin_Method "File.get_file"
    Gets the textual path to the user's system-defined home directory.
 user_home : Text
 user_home = @Builtin_Method "File.user_home"
+
+## Moves a file from source to the destination.
+
+   If the destination already exists, it is overwritten with the new contents.
+move : File -> File -> Nothing
+move source destination =
+    Files.move source.prim_file.toPath destination.prim_file.toPath CopyOption.REPLACE_EXISTING
