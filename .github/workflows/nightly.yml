@@ -57,7 +57,13 @@ jobs:
     strategy:
       matrix:
         os:
-          - - mwu-deluxe
+          - - self-hosted
+            - Windows
+            - engine
+          - - self-hosted
+            - Linux
+            - mwu-deluxe
+          - - macos-latest
       fail-fast: false
     env:
       ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
@@ -66,7 +72,7 @@ jobs:
     name: Build IDE
     needs:
       - build-backend
-      - build-wasm
+      - build-wasm-linux
       - prepare-release
     runs-on:
       - "${{ matrix.os }}"
@@ -117,17 +123,25 @@ jobs:
     strategy:
       matrix:
         os:
-          - - mwu-deluxe
+          - - self-hosted
+            - Windows
+            - engine
+          - - self-hosted
+            - Linux
+            - mwu-deluxe
+          - - macos-latest
       fail-fast: false
     env:
       ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.prepare-release.outputs.ENSO_VERSION}}"
-  build-wasm:
-    name: Build WASM
+  build-wasm-linux:
+    name: Build WASM (linux)
     needs:
       - prepare-release
     runs-on:
-      - "${{ matrix.os }}"
+      - self-hosted
+      - Linux
+      - mwu-deluxe
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
@@ -172,11 +186,6 @@ jobs:
         run: ls -R
         if: failure()
     outputs: {}
-    strategy:
-      matrix:
-        os:
-          - - mwu-deluxe
-      fail-fast: false
     env:
       ENSO_RELEASE_ID: "${{needs.prepare-release.outputs.ENSO_RELEASE_ID}}"
       ENSO_VERSION: "${{needs.prepare-release.outputs.ENSO_VERSION}}"
@@ -224,15 +233,17 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: "${{ steps.prepare.outputs.ENSO_RELEASE_ID }}"
       ENSO_VERSION: "${{ steps.prepare.outputs.ENSO_VERSION }}"
-  publish-release:
-    name: Publish release
+  publish-release-linux:
+    name: Publish release (linux)
     needs:
       - build-backend
       - build-ide
-      - build-wasm
+      - build-wasm-linux
       - prepare-release
     runs-on:
-      - "${{ matrix.os }}"
+      - self-hosted
+      - Linux
+      - mwu-deluxe
     steps:
       - name: Setup conda (GH runners only)
         uses: s-weigand/setup-conda@v1.0.5
@@ -277,11 +288,6 @@ jobs:
         run: ls -R
         if: failure()
     outputs: {}
-    strategy:
-      matrix:
-        os:
-          - - mwu-deluxe
-      fail-fast: false
     env:
       AWS_ACCESS_KEY_ID: "${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}"
       AWS_REGION: us-west-1
