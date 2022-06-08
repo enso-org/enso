@@ -350,11 +350,7 @@ public class Reader {
    * @throws IOException when the input stream cannot be read.
    */
   public static Table readSheetByName(
-      InputStream stream,
-      String sheetName,
-      int skip_rows,
-      Integer row_limit,
-      boolean xls_format)
+      InputStream stream, String sheetName, int skip_rows, Integer row_limit, boolean xls_format)
       throws IOException, IllegalArgumentException {
     Workbook workbook = getWorkbook(stream, xls_format);
 
@@ -364,11 +360,7 @@ public class Reader {
     }
 
     return readSheetToTable(
-        workbook,
-        sheetIndex,
-        null,
-        skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        workbook, sheetIndex, null, skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
   /**
@@ -394,11 +386,7 @@ public class Reader {
     }
 
     return readSheetToTable(
-        workbook,
-        index - 1,
-        null,
-        skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        workbook, index - 1, null, skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 
   /**
@@ -447,18 +435,13 @@ public class Reader {
     return xls_format ? new HSSFWorkbook(stream) : new XSSFWorkbook(stream);
   }
 
-  private static Table readRange(
-      Workbook workbook, Range range, int skip_rows, Integer row_limit) {
+  private static Table readRange(Workbook workbook, Range range, int skip_rows, Integer row_limit) {
     int sheetIndex = getSheetIndex(workbook, range.getSheetName());
     if (sheetIndex == -1) {
       throw new IllegalArgumentException("Unknown sheet '" + range.getSheetName() + "'.");
     }
 
     return readSheetToTable(
-        workbook,
-        sheetIndex,
-        range,
-        skip_rows,
-        row_limit == null ? Integer.MAX_VALUE : row_limit);
+        workbook, sheetIndex, range, skip_rows, row_limit == null ? Integer.MAX_VALUE : row_limit);
   }
 }
