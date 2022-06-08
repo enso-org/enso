@@ -39,17 +39,17 @@ make_expression aggregate =
         First c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`First` aggregation requires at least one `order_by` column.")
             True ->
-                order_exprs = order_by.columns.map c->c.column.expression
+                order_bys = order_by.columns.map c->[c.column, c.direction]
                 case ignore_nothing of
-                    False -> IR.Operation "FIRST" [c.expression]+order_exprs
-                    True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_exprs
+                    False -> IR.Operation "FIRST" [c.expression]+order_bys
+                    True -> IR.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
         Last c _ ignore_nothing order_by -> case is_non_empty_vector order_by of
             False -> Error.throw (Unsupported_Database_Operation_Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
-                order_exprs = order_by.columns.map c->c.column.expression
+                order_bys = order_by.columns.map c->[c.column, c.direction]
                 case ignore_nothing of
-                    False -> IR.Operation "LAST" [c.expression]+order_exprs
-                    True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_exprs
+                    False -> IR.Operation "LAST" [c.expression]+order_bys
+                    True -> IR.Operation "LAST_NOT_NULL" [c.expression]+order_bys
         Maximum c _ -> IR.Operation "MAX" [c.expression]
         Minimum c _ -> IR.Operation "MIN" [c.expression]
         Shortest c _ -> IR.Operation "SHORTEST" [c.expression]
