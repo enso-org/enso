@@ -194,10 +194,16 @@ mod tests {
     use crate::controller::searcher::component::tests::mock_suggestion_db;
     use std::assert_matches::assert_matches;
 
+    /// Test whether [`Group::from_execution_context_component_group`] correctly looks up
+    /// components in the suggestion database.
     #[test]
     fn lookup_component_groups_in_suggestion_database() {
         let logger = Logger::new("tests::lookup_component_groups_in_suggestion_database");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
+
+        // Prepare a mock group containing fully qualified component names in non-alphabetical
+        // order. Some of the names correspond to entries present in the suggestion database,
+        // some do not.
         let ec_group_with_mixed_components = execution_context::ComponentGroup {
             name:       "Test Group 1".into(),
             color:      color::Rgb::from_css_hex("#aabbcc"),
@@ -209,10 +215,14 @@ mod tests {
                 "test.Test.TopModule1.nonexistantfun".into(),
             ],
         };
+
+        // Construct a components group with entries looked up in the suggestion database.
         let group = Group::from_execution_context_component_group(
             &ec_group_with_mixed_components,
             &suggestion_db,
         );
+
+        // Verify the contents of the components group.
         let group = group.unwrap();
         assert_eq!(group.name, ImString::new("Test Group 1"));
         let color = group.color.unwrap();
@@ -228,13 +238,21 @@ mod tests {
         let expected_ids_and_names =
             vec![(6, "fun2".to_string()), (10, "fun6".to_string()), (5, "fun1".to_string())];
         assert_eq!(entry_ids_and_names, expected_ids_and_names);
-        let ec_group_with_nonexistent_component = execution_context::ComponentGroup {
+    }
+
+    // Test constructing a component group from an [`execution_context::ComponentGroup`] containing
+    // only names not found in the suggestion database.
+    #[test]
+    fn constructing_component_group_from_names_not_found_in_db() {
+        let logger = Logger::new("tests::lookup_component_groups_in_suggestion_database");
+        let suggestion_db = Rc::new(mock_suggestion_db(logger));
+        let ec_group_with_component_not_found_in_db = execution_context::ComponentGroup {
             name:       "Input".into(),
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],
         };
         let group = Group::from_execution_context_component_group(
-            &ec_group_with_nonexistent_component,
+            &ec_group_with_component_not_found_in_db,
             &suggestion_db,
         );
         assert_matches!(group, None);
