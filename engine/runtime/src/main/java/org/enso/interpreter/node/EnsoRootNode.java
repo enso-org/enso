@@ -4,7 +4,9 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.io.IOException;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -14,7 +16,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
 public abstract class EnsoRootNode extends RootNode {
   private final String name;
-  private final SourceSection sourceSection;
+  private final int sourceStartIndex;
+  private final int sourceLength;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
   private final FrameSlot stateFrameSlot;
@@ -38,7 +41,8 @@ public abstract class EnsoRootNode extends RootNode {
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
-    this.sourceSection = sourceSection;
+    this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
+    this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
     this.stateFrameSlot =
         localScope.frameDescriptor().findOrAddFrameSlot("<<monadic_state>>", FrameSlotKind.Object);
   }
@@ -88,7 +92,24 @@ public abstract class EnsoRootNode extends RootNode {
    */
   @Override
   public SourceSection getSourceSection() {
-    return sourceSection;
+    return findSourceSection(this, sourceStartIndex, sourceLength);
+  }
+
+  static final int NO_SOURCE = -1;
+  static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
+    if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
+      final ModuleScope scope = rootNode.getModuleScope();
+      int startDelta = scope.findPatchedDelta(sourceStartIndex, false);
+      int endDelta = scope.findPatchedDelta(sourceStartIndex + sourceLength, true);
+      try {
+        final Source src = scope.getModule().getSource();
+        final int start = sourceStartIndex + startDelta;
+        final int length = sourceLength + endDelta - startDelta;
+        return src.createSection(start, length);
+      } catch (IOException ex) {
+      }
+    }
+    return null;
   }
 
   /**

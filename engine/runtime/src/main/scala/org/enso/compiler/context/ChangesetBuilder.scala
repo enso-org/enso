@@ -65,11 +65,6 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
       if (edit.range.start.line != edit.range.end.line) return null
 
-      val len = edit.range.end.character - edit.range.start.character
-      if (len != edit.text.length()) {
-        return null
-      }
-
       val directlyAffected = invalidated(Seq(edit))
       if (directlyAffected.size != 1) return null;
 

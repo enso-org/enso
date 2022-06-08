@@ -1,28 +1,25 @@
 package org.enso.interpreter.runtime.scope;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.instrumentation.EventBinding;
-import com.oracle.truffle.api.instrumentation.EventContext;
-import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.instrumentation.Instrumenter;
-import com.oracle.truffle.api.instrumentation.SourceFilter;
-import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
-
-import java.util.*;
-
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.SourceSection;
-import java.io.IOException;
+import com.oracle.truffle.api.source.Source;
+
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RedefinedMethodException;
 import org.enso.interpreter.runtime.error.RedefinedConversionException;
-import org.enso.interpreter.runtime.tag.Patchable;
-import org.enso.polyglot.LanguageInfo;
 import org.enso.text.editing.model;
 
 /** A representation of Enso's per-file top-level scope. */
@@ -321,9 +318,24 @@ public class ModuleScope implements TruffleObject {
     if (patchedValues == null) {
       var ctx = Context.get(collect.keySet().iterator().next());
       var instr = ctx.getEnvironment().lookup(Instrumenter.class);
-      patchedValues = new PatchedModuleValues(instr, this);
+      patchedValues = new PatchedModuleValues(instr, module);
     }
-    patchedValues.register(collect);
+    patchedValues.registerValues(collect);
+    final Source src;
+    try {
+      src = module.getSource();
+    } catch (IOException ex) {
+      throw new IllegalStateException(ex);
+    }
+    int offset =
+        src.getLineStartOffset(edit.range().start().line() + 1) + edit.range().start().character();
+    int removed = edit.range().end().character() - edit.range().start().character();
+    int delta = edit.text().length() - removed;
+    patchedValues.registerDelta(offset, delta);
     return true;
+  }
+
+  public int findPatchedDelta(int offset, boolean inclusive) {
+    return patchedValues == null ? 0 : patchedValues.findDelta(offset, inclusive);
   }
 }

@@ -10,30 +10,25 @@ import com.oracle.truffle.api.instrumentation.SourceFilter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.TreeMap;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.text.editing.model;
 
 final class PatchedModuleValues implements ExecutionEventListener {
-
+  private final TreeMap<Integer,int[]> deltas = new TreeMap<>();
   private final Map<Node, Object> values = new HashMap<>();
   private final EventBinding<PatchedModuleValues> binding;
-  private final ModuleScope outer;
 
-  PatchedModuleValues(Instrumenter instr, final ModuleScope outer) {
-    this.outer = outer;
+  PatchedModuleValues(Instrumenter instr, Module module) {
     SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().languageIs(LanguageInfo.ID).sourceIs(t -> {
-      try {
-        return outer.getModule().getSource() == t;
-      } catch (IOException ex) {
-        return false;
-      }
+      return module.isModuleSource(t);
     }).build();
     SourceSectionFilter filter = SourceSectionFilter.newBuilder().sourceFilter(sourceAssociatedWithMyModule).tagIs(Patchable.Tag.class).build();
     this.binding = instr.attachExecutionEventListener(filter, this);
@@ -43,7 +38,7 @@ final class PatchedModuleValues implements ExecutionEventListener {
     binding.dispose();
   }
 
-  void register(Map<Node, Object> collect) {
+  void registerValues(Map<Node, Object> collect) {
     values.putAll(collect);
   }
 
@@ -112,5 +107,27 @@ final class PatchedModuleValues implements ExecutionEventListener {
   @CompilerDirectives.TruffleBoundary
   public Object findPatch(Node n) {
     return values.get(n);
+  }
+
+  void registerDelta(int offset, int delta) {
+    if (delta == 0) {
+      return;
+    }
+    Map.Entry<Integer, int[]> previous = deltas.floorEntry(offset);
+    if (previous == null) {
+      deltas.put(offset, new int[] { delta });
+    } else if (previous.getKey() == offset) {
+      previous.getValue()[0] += delta;
+    } else {
+      deltas.put(offset, new int[] { previous.getValue()[0] + delta });
+    }
+    for (int[] after : deltas.tailMap(offset, false).values()) {
+      after[0] += delta;
+    }
+  }
+
+  int findDelta(int offset, boolean inclusive) {
+    Map.Entry<Integer, int[]> previous = inclusive ? deltas.floorEntry(offset) : deltas.lowerEntry(offset);
+    return previous == null ? 0 : previous.getValue()[0];
   }
 }

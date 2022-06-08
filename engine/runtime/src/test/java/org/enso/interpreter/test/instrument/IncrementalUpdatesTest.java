@@ -63,6 +63,11 @@ public class IncrementalUpdatesTest {
   }
 
   @Test
+  public void sendUpdatesWhenWhenLineIsChanged() {
+    sendUpdatesWhenFunctionBodyIsChanged("1000", true);
+  }
+
+  @Test
   public void sendNotANumberChange() {
     sendUpdatesWhenFunctionBodyIsChanged("x", false);
     var failed = context.receiveN(1, 10000);

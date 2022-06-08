@@ -14,6 +14,10 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.core.IR;
@@ -81,6 +85,7 @@ public class Module implements TruffleObject {
 
   private ModuleScope scope;
   private Sources sources;
+  private Map<Source, Module> allSources = new WeakHashMap<>();
   private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
@@ -118,7 +123,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
-    this.sources = Sources.NONE.newWith(Rope.apply(literalSource), false);
+    this.sources = Sources.NONE.newWith(Rope.apply(literalSource));
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -136,7 +141,7 @@ public class Module implements TruffleObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
-    this.sources = Sources.NONE.newWith(literalSource, false);
+    this.sources = Sources.NONE.newWith(literalSource);
     this.pkg = pkg;
     this.name = name;
     this.cache = new ModuleCache(this);
@@ -206,7 +211,7 @@ public class Module implements TruffleObject {
     this.isInteractive = true;
     if (this.scope != null && edit != null) {
       if (this.scope.simpleUpdate(edit)) {
-        this.sources = this.sources.newWith(source, true);
+        this.sources = this.sources.newWith(source);
         final Function1<IR.Expression, IR.Expression> fn = new Function1<IR.Expression, IR.Expression>() {
           @Override
           public IR.Expression apply(IR.Expression v1) {
@@ -221,7 +226,7 @@ public class Module implements TruffleObject {
         return;
       }
     }
-    this.sources = this.sources.newWith(source, false);
+    this.sources = this.sources.newWith(source);
     this.compilationStage = CompilationStage.INITIAL;
   }
 
@@ -277,7 +282,18 @@ public class Module implements TruffleObject {
     }
     Sources newSources = sources.ensureCachedSource(name);
     sources = newSources;
+    allSources.put(newSources.cachedSource(), this);
     return newSources.cachedSource();
+  }
+
+  /**
+   * Check whether given source has ever been associated with this module.
+   *
+   * @param s source to check
+   * @return {@code true} if the source has been created for this module
+   */
+  public boolean isModuleSource(Source s) {
+    return allSources.containsKey(s);
   }
 
   private void compile(Context context) throws IOException {
@@ -442,7 +458,7 @@ public class Module implements TruffleObject {
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.sources = module.sources.newWith(null, false);
+      module.sources = module.sources.newWith((Rope) null);
       module.isInteractive = false;
       module.wasLoadedFromCache = false;
       try {
@@ -587,38 +603,40 @@ public class Module implements TruffleObject {
 
   private record Sources(
           TruffleFile sourceFile,
-          AdaptiveRope ropeHolder,
+          Rope ropeHolder,
           Source cachedSource) {
 
-    static final Sources NONE = new Sources(null, new AdaptiveRope(null), null);
+    static final Sources NONE = new Sources(null, null, null);
 
     Sources newWith(TruffleFile f) {
       return new Sources(f, ropeHolder(), cachedSource());
     }
 
-    Sources newWith(Rope r, boolean keepCachedSource) {
-      if (keepCachedSource) {
-        if (r.characters().length() != literalSource().characters().length()) {
-          throw new IllegalStateException();
-        }
-        this.ropeHolder.update(r);
-        return this;
-      } else {
-        return new Sources(sourceFile(), new AdaptiveRope(r), null);
-      }
+    Sources newWith(Rope r) {
+      return new Sources(sourceFile(), r, null);
     }
 
     Sources ensureCachedSource(QualifiedName name) throws IOException {
       if (cachedSource != null) {
         return this;
       }
+      URI uri;
+      try {
+        uri = new URI("enso://" + Integer.toHexString(System.identityHashCode(this)) + "/" + name);
+      } catch (URISyntaxException ex) {
+        throw new IllegalStateException(ex);
+      }
       if (literalSource() != null) {
-        var src = Source.newBuilder(LanguageInfo.ID, ropeHolder, name.toString()).build();
+        var src = Source.newBuilder(LanguageInfo.ID, ropeHolder.characters(), name.toString()).
+          uri(uri).
+          build();
         return new Sources(sourceFile, ropeHolder, src);
       } else if (sourceFile != null) {
-        var src = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
+        var src = Source.newBuilder(LanguageInfo.ID, sourceFile).
+          uri(uri).
+          build();
         var lit = Rope.apply(src.getCharacters().toString());
-        return new Sources(sourceFile, new AdaptiveRope(lit), src);
+        return new Sources(sourceFile, lit, src);
       }
       throw new IllegalStateException();
     }
@@ -628,39 +646,7 @@ public class Module implements TruffleObject {
     }
 
     Rope literalSource() {
-      return ropeHolder.rope;
-    }
-
-    private static final class AdaptiveRope implements CharSequence {
-      Rope rope;
-
-      AdaptiveRope(Rope rope) {
-        this.rope = rope;
-      }
-
-      void update(Rope r) {
-        this.rope = r;
-      }
-
-      @Override
-      public int length() {
-        return rope.characters().length();
-      }
-
-      @Override
-      public char charAt(int index) {
-        return rope.characters().charAt(index);
-      }
-
-      @Override
-      public CharSequence subSequence(int start, int end) {
-        return rope.characters().subSequence(start, end);
-      }
-
-      @Override
-      public String toString() {
-        return rope.toString();
-      }
+      return ropeHolder;
     }
   }
 }
