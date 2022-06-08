@@ -50,9 +50,12 @@ pub use column_grid::LabeledAnyModelProvider;
 use enso_frp as frp;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
+use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
+use ensogl_core::display::navigation::navigator::Navigator;
+use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_core::display::style;
@@ -60,6 +63,7 @@ use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::searcher as searcher_theme;
 use ensogl_list_view as list_view;
 use ensogl_scroll_area::ScrollArea;
+use ensogl_scroll_area::Viewport;
 use ensogl_shadow as shadow;
 use ensogl_text as text;
 use ide_view_component_group as component_group;
@@ -357,7 +361,8 @@ mod hline {
     ensogl_core::define_shape_system! {
         (style:Style) {
             let theme_path: style::Path = list_panel_theme::HERE.into();
-            let width = Var::<Pixels>::from("input_size.x");
+
+            let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let section_divider_color = style.get_color(theme_path.sub("section_divider_color"));
             let rect = Rect((width,height));
@@ -385,6 +390,7 @@ pub struct Model {
     local_scope_section: WideSection,
     sub_modules_section: ColumnSection,
     layers:              Layers,
+    navigator:           Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
@@ -417,6 +423,7 @@ impl Model {
         local_scope_section.set_layers(&layers);
         sub_modules_section.set_layers(&layers);
 
+        let navigator = default();
         Self {
             app,
             display_object,
@@ -427,6 +434,7 @@ impl Model {
             sub_modules_section,
             layers,
             logger,
+            navigator,
         }
     }
 
@@ -487,6 +495,43 @@ impl Model {
         let full_height = favourites_section_height + local_scope_height + sub_modules_height;
         self.scroll_area.set_content_height(full_height);
         self.scroll_area.jump_to_y(full_height);
+    }
+
+    fn update_scroll_viewport(&self) {
+        self.favourites_section.update_scroll_viewport(&self.scroll_area);
+        self.sub_modules_section.update_scroll_viewport(&self.scroll_area);
+        self.local_scope_section.update_scroll_viewport(&self.scroll_area);
+    }
+
+    /// Set the navigator so it can be disabled on hover.
+    pub fn set_navigator(&self, navigator: Option<Navigator>) {
+        *self.navigator.borrow_mut() = navigator
+    }
+
+    // Note that this is a workaround for lack of hierarchical mouse over events.
+    // We need to know if the mouse is over the panel, but cannot do it via a shape, as
+    // sub-components still need to receive all of the mouse events, too.
+    fn is_hovered(&self, pos: Vector2) -> bool {
+        let center = self.display_object.position().xy();
+        let size = self.background.size().get();
+        let viewport = BoundingBox::from_center_and_size(center, size);
+        viewport.contains(pos)
+    }
+
+    fn on_hover(&self) {
+        if let Some(navigator) = self.navigator.borrow().as_ref() {
+            navigator.disable()
+        } else {
+            WARNING!(
+                "Navigator was not initialised on ComponentBrowserPanel. \
+            Scroll events will not be handled correctly."
+            )
+        }
+    }
+    fn on_hover_end(&self) {
+        if let Some(navigator) = self.navigator.borrow().as_ref() {
+            navigator.enable()
+        }
     }
 }
 
@@ -561,12 +606,47 @@ impl<T: ObjectOps + CloneRef> LabeledSection<T> {
     }
 }
 
+impl WideSection {
+    fn update_scroll_viewport(&self, scroll_area: &ScrollArea) {
+        let viewport = scroll_area.viewport.value();
+        if self.content.within_viewport(&viewport) {
+            scroll_area.content().add_child(&self.content);
+        } else {
+            self.content.unset_parent();
+        }
+    }
+}
+
+impl ColumnSection {
+    fn update_scroll_viewport(&self, scroll_area: &ScrollArea) {
+        let viewport = scroll_area.viewport.value();
+        if self.content.within_viewport(&viewport) {
+            self.content.set_scroll_viewport(viewport);
+            scroll_area.content().add_child(&self.content);
+        } else {
+            self.content.unset_parent();
+        }
+    }
+}
+
 /// Trait that provides functionality for layouting and layer setting for structs used in the
 /// `LabeledSection`.
-trait SectionContent {
+trait SectionContent: display::Object {
     fn set_layers(&self, layers: &Layers);
-    fn height(&self) -> f32;
     fn set_position_top_y(&self, position_y: f32);
+    fn size(&self) -> Vector2;
+    fn width(&self) -> f32 {
+        self.size().x
+    }
+    fn height(&self) -> f32 {
+        self.size().y
+    }
+    fn center(&self) -> Vector2 {
+        self.position().xy()
+    }
+    fn within_viewport(&self, viewport: &Viewport) -> bool {
+        viewport.intersects(self.center(), self.size())
+    }
 }
 
 impl SectionContent for component_group::wide::View {
@@ -574,12 +654,16 @@ impl SectionContent for component_group::wide::View {
         self.model().set_layers(&layers.groups);
     }
 
-    fn height(&self) -> f32 {
-        self.size.value().y
-    }
-
     fn set_position_top_y(&self, position_y: f32) {
         self.set_position_y(position_y - self.height() / 2.0);
+    }
+
+    fn size(&self) -> Vector2 {
+        self.size.value()
+    }
+
+    fn center(&self) -> Vector2 {
+        self.position().xy() + Vector2::new(-self.size().x, self.size().y) / 2.0
     }
 }
 
@@ -588,12 +672,12 @@ impl SectionContent for column_grid::ColumnGrid {
         self.model().set_layers(layers);
     }
 
-    fn height(&self) -> f32 {
-        self.size.value().y
-    }
-
     fn set_position_top_y(&self, position_y: f32) {
         self.set_position_y(position_y);
+    }
+
+    fn size(&self) -> Vector2 {
+        self.size.value()
     }
 }
 
@@ -660,7 +744,7 @@ define_endpoints_2! {
 impl component::Frp<Model> for Frp {
     fn init(
         frp_api: &<Self as API>::Private,
-        _app: &Application,
+        app: &Application,
         model: &Model,
         style: &StyleWatchFrp,
     ) {
@@ -677,6 +761,15 @@ impl component::Frp<Model> for Frp {
             );
             recompute_layout <- all(&content_update,&layout_update);
             eval recompute_layout(((_,layout)) model.recompute_layout(layout) );
+
+            eval_ model.scroll_area.viewport( model.update_scroll_viewport() );
+
+            is_hovered <- app.cursor.frp.scene_position.map(f!((pos) model.is_hovered(pos.xy())) ).on_change();
+
+            on_hover <- is_hovered.on_true();
+            on_hover_end <- is_hovered.on_false();
+            eval_ on_hover ( model.on_hover() );
+            eval_ on_hover_end ( model.on_hover_end() );
         }
         init_layout.emit(())
     }
