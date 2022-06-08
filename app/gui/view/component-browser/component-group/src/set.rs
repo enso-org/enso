@@ -32,24 +32,31 @@ pub enum Group {
 }
 
 impl Group {
-    fn focus(&self) {
+    pub fn focus(&self) {
         match self {
             Group::OneColumn(group) => group.focus(),
             Group::Wide(group) => group.focus(),
         }
     }
 
-    fn defocus(&self) {
+    pub fn defocus(&self) {
         match self {
             Group::OneColumn(group) => group.defocus(),
             Group::Wide(group) => group.defocus(),
         }
     }
 
-    fn is_mouse_over(&self) -> &frp::Sampler<bool> {
+    pub fn is_mouse_over(&self) -> &frp::Sampler<bool> {
         match self {
             Group::OneColumn(group) => &group.is_mouse_over,
             Group::Wide(group) => &group.is_mouse_over,
+        }
+    }
+
+    pub fn position(&self) -> Vector3 {
+        match self {
+            Group::OneColumn(group) => group.position(),
+            Group::Wide(group) => group.position(),
         }
     }
 }

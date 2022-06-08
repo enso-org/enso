@@ -253,20 +253,18 @@ fn init(app: &Application) {
 
     let normal_parent_layer = &scroll_area.content_layer();
     let selected_parent_layer = &app.display.default_scene.layers.selection;
-    let layers = component_group::Layers::new(
-        &app.logger,
-        normal_parent_layer,
-        selected_parent_layer,
-    );
+    let layers =
+        component_group::Layers::new(&app.logger, normal_parent_layer, selected_parent_layer);
 
     let group_name = "Long group name with text overflowing the width";
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
-    //let second_component_group = create_component_group(app, group_name, &layers);
-    //second_component_group.set_dimmed(true);
+    let second_component_group = create_component_group(app, group_name, &layers);
+    let wide_component_group = create_wide_component_group(app);
 
     scroll_area.content().add_child(&first_component_group);
-    //scroll_area.content().add_child(&second_component_group);
+    scroll_area.content().add_child(&second_component_group);
+    app.display.add_child(&wide_component_group);
 
     // This is a workaround for a bug - without this transparent shape the content of the scroll
     // area is invisible.
@@ -279,26 +277,19 @@ fn init(app: &Application) {
     let selection = selection_box::View::new(&app.logger);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     app.display.default_scene.layers.selection_mask.add_exclusive(&selection);
-    first_component_group.add_child(&selection);
+    app.display.add_child(&selection);
 
-    let selection_animation = Animation::<Vector2>::new(&network);
-    frp::extend! { network
-        selection_animation.target <+ first_component_group.selection_position_target;
-        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+    ComponentGroupController::init(
+        &[first_component_group.clone_ref(), second_component_group.clone_ref()],
+        &network,
+        &scroll_area,
+    );
 
-        eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
-    }
-    selection_animation.target.emit(first_component_group.selection_position_target.value());
-    selection_animation.skip.emit(());
-
-    ComponentGroupController::init(&[first_component_group.clone_ref()], &network, &scroll_area);
-
-    let mock_entries = MockEntries::new(10);
+    let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    //second_component_group.set_entries(model_provider);
+    second_component_group.set_entries(model_provider.clone_ref());
+    wide_component_group.set_entries(model_provider);
 
     // === Color sliders ===
 
@@ -329,7 +320,8 @@ fn init(app: &Application) {
         color <- all_with3(red_slider_value, green_slider_value, blue_slider_value,
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
-        //second_component_group.set_color <+ color;
+        second_component_group.set_color <+ color;
+        wide_component_group.set_color <+ color;
     }
     init.emit(());
 
@@ -338,8 +330,8 @@ fn init(app: &Application) {
 
     let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
         first_component_group.clone_ref().into(),
-        //second_component_group.clone_ref().into(),
-        //wide_component_group.clone_ref().into(),
+        second_component_group.clone_ref().into(),
+        wide_component_group.clone_ref().into(),
     ]);
     let multiview = component_group::set::Wrapper::new();
     for group in groups.iter() {
@@ -363,6 +355,23 @@ fn init(app: &Application) {
         });
     }
 
+    let selection_animation = Animation::<Vector2>::new(&network);
+    frp::extend! { network
+        selection_position <- multiview.selection_position_target.map(f!([groups, scroll_area]((g,
+            p)) {
+            let group = &groups[usize::from(g)];
+            let group_pos = if let component_group::set::Group::OneColumn(group) = group {
+                scroll_area.position() + scroll_area.content().position() + group.position()
+            } else {
+                group.position()
+            };
+            group_pos.xy() + *p
+        }));
+        selection_animation.target <+ selection_position;
+        eval selection_animation.value ((pos) selection.set_position_xy(*pos));
+    }
+    selection_animation.target.emit(first_component_group.selection_position_target.value());
+    selection_animation.skip.emit(());
 
     // === Forget ===
 
@@ -374,6 +383,7 @@ fn init(app: &Application) {
     std::mem::forget(network);
     std::mem::forget(multiview);
     std::mem::forget(first_component_group);
-    //std::mem::forget(second_component_group);
+    std::mem::forget(second_component_group);
+    std::mem::forget(wide_component_group);
     std::mem::forget(layers);
 }
