@@ -120,7 +120,7 @@ resolve_aggregate table problem_builder aggregate_column =
 
     resolve_selector_to_vector : Column_Selector -> [Column] ! Internal_Missing_Column_Error
     resolve_selector_to_vector selector =
-        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=False problem_builder
+        resolved = Table_Helpers.select_columns_helper table_columns selector reorder=True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
     resolve_selector_or_nothing selector = case selector of
