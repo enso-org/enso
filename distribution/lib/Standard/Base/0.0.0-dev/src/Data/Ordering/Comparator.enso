@@ -27,10 +27,6 @@ new custom_comparator=Nothing =
      Specifies how to compare Text values within the Comparator.
 for_text_ordering : Text_Ordering -> ObjectComparator
 for_text_ordering text_ordering =
-    locale = case text_ordering.case_sensitive of
-        Case_Insensitive locale -> locale
-        _ -> Nothing
-
     case text_ordering.sort_digits_as_numbers of
         True ->
             txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
