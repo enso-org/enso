@@ -235,7 +235,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation=Nothing
                     True ->
                         IR.Order_Descriptor internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
-                    Case_Insensitive locale -> case Locale.default.java_locale.equals locale.java_locale of
+                    Case_Insensitive locale -> case locale == Locale.default of
                         False ->
                             Error.throw (Unsupported_Database_Operation_Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
