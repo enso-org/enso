@@ -1403,16 +1403,20 @@ pub mod test {
         }
     }
 
-    fn suggestion_database_with_mock_entries(logger: &Logger, module_name: QualifiedName, scope: Scope) -> Rc<SuggestionDatabase> {
+    fn suggestion_database_with_mock_entries(
+        logger: &Logger,
+        module_name: QualifiedName,
+        scope: Scope,
+    ) -> Rc<SuggestionDatabase> {
         let database = Rc::new(SuggestionDatabase::new_empty(logger));
         let entry1 = model::suggestion_database::Entry {
-            name:               "testFunction1".to_string(),
-            kind:               Kind::Function,
-            module:             crate::test::mock::data::module_qualified_name(),
-            arguments:          vec![],
-            return_type:        "Number".to_string(),
+            name: "testFunction1".to_string(),
+            kind: Kind::Function,
+            module: crate::test::mock::data::module_qualified_name(),
+            arguments: vec![],
+            return_type: "Number".to_string(),
             documentation_html: default(),
-            self_type:          None,
+            self_type: None,
             scope,
         };
         let entry2 = model::suggestion_database::Entry {
