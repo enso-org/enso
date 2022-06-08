@@ -33,4 +33,4 @@ for_text_ordering text_ordering =
             here.new.withCustomTextComparator txt_cmp
         False -> case text_ordering.case_sensitive of
             Case_Insensitive locale -> here.new.withCaseInsensitivity locale.java_locale
-            True -> here.new
+            _ -> here.new
