@@ -176,8 +176,7 @@ impl Handle {
         self.execution_ctx.modify_visualization(id, Some(code), Some(module)).await
     }
 
-    /// Get the component groups defined in libraries imported into the node. See also
-    /// [`model::ExecutionContext::component_groups`].
+    /// See [`model::ExecutionContext::component_groups`].
     pub fn component_groups(&self) -> Rc<Vec<ComponentGroup>> {
         self.execution_ctx.component_groups()
     }
