@@ -125,7 +125,8 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately.
+    /// Build the list, sorting all group lists and groups' contents appropriately. Set the
+    /// favorites in the list keeping their order as passed.
     pub fn build_with_favorites(self, favorites: component::group::List) -> component::List {
         for group in self.module_groups.values() {
             group.content.update_sorting("");
