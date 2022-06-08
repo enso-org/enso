@@ -127,14 +127,15 @@ pub struct List {
     top_modules:           group::AlphabeticalList,
     top_modules_flattened: group::AlphabeticalList,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
+    filtered:              Rc<Cell<bool>>,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// Component Browser.
     pub favorites:         group::List,
-    filtered:              Rc<Cell<bool>>,
 }
 
 impl List {
-    /// Create a list containing all entities available in the [`model::SuggestionDatabase`].
+    /// Create a list containing all entities available in the [`model::SuggestionDatabase`], and
+    /// set the [`List::favorites`] to the value passed in the argument.
     pub fn build_list_from_all_db_entries(
         suggestion_db: &Rc<model::SuggestionDatabase>,
         favorites: group::List,
