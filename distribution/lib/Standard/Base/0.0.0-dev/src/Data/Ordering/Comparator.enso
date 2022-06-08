@@ -31,12 +31,10 @@ for_text_ordering text_ordering =
         Case_Insensitive locale -> locale
         _ -> Nothing
 
-    case Pair text_ordering.sort_digits_as_numbers locale of
-        Pair True (Locale.Locale _) ->
+    case text_ordering.sort_digits_as_numbers of
+        True ->
             txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitive . to_sign
             here.new.withCustomTextComparator txt_cmp
-        Pair True Nothing ->
-            txt_cmp a b = Natural_Order.compare a b . to_sign
-            here.new.withCustomTextComparator txt_cmp
-        Pair False (Locale.Locale _) -> here.new.withCaseInsensitivity locale.java_locale
-        Pair False Nothing -> here.new
+        False -> case text_ordering.case_sensitive of
+            Case_Insensitive locale -> here.new.withCaseInsensitivity locale.java_locale
+            True -> here.new

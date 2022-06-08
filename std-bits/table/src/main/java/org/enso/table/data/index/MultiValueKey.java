@@ -66,14 +66,11 @@ public class MultiValueKey implements Comparable<MultiValueKey> {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-
-    MultiValueKey that = (MultiValueKey) o;
-
+    if (!(o instanceof MultiValueKey that)) return false;
     if (storage.length != that.storage.length) return false;
     if (hashCodeValue != that.hashCodeValue) return false;
     for (int i = 0; i < storage.length; i++) {
-      if (!Objects.equals(get(i), that.get(i))) {
+      if (objectComparator.compare(get(i), that.get(i)) != 0) {
         return false;
       }
     }
