@@ -290,6 +290,5 @@ jobs:
       ENSO_VERSION: "${{needs.prepare-release.outputs.ENSO_VERSION}}"
 env:
   ENSO_BUILD_KIND: nightly
-  ENSO_BUILD_REPO_PATH: enso
-  ENSO_BUILD_REPO_REMOTE: enso-org/ci-build
+  ENSO_BUILD_REPO_REMOTE: enso-org/enso-staging
   RUST_BACKTRACE: full
