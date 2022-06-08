@@ -168,12 +168,12 @@ make_first_aggregator reverse ignore_null args =
 
 agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
      order_clause =
-         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") ASC NULLS FIRST"
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") ASC NULLS LAST"
      Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
 
 agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
      order_clause =
-         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS FIRST"
+         Sql.code " ORDER BY char_length(" ++ arg ++ Sql.code ") DESC NULLS LAST"
      Sql.code "(array_agg(" ++ arg.paren ++ order_clause ++ Sql.code "))[1]"
 
 ## PRIVATE
