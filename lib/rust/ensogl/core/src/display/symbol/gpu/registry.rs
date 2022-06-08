@@ -35,6 +35,7 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 /// which the `zoom` value is `1.0`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
+    // Note: WeakSymbol in the Registry
     symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     symbol_dirty:       SymbolDirty,
@@ -46,6 +47,21 @@ pub struct SymbolRegistry {
     stats:              Stats,
     next_id:            Rc<Cell<u32>>,
 }
+
+// Note: WeakSymbol in the Registry
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// The `Symbol` references owned by the `SymbolRegistry` don't need to be fully-weak references,
+// but it's conceptually simpler than introducing a special-purpose type.
+//
+// A weak reference type differs from a strong reference in two properties:
+// 1. If there are no non-weak references to an object, the object will be dropped.
+// 2. A cycle in the reference graph will only prevent an object from being dropped if all
+//    references in the cycle are non-weak.
+//
+// In this case, property 1 is sufficient. The way `Symbol` is implemented (with multiple
+// shared-reference fields, i.e. the `CloneRef` pattern), it would be marginally simpler to
+// implement a semi-weak type that satisfies property 1, but not property 2; however, a
+// general-purpose weak reference is used here because it's a well-known abstraction.
 
 impl SymbolRegistry {
     /// Constructor.
