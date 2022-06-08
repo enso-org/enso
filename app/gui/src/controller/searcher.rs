@@ -477,18 +477,20 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger: Logger,
-    data: Rc<RefCell<Data>>,
-    notifier: notification::Publisher<Notification>,
-    graph: controller::ExecutedGraph,
-    mode: Immutable<Mode>,
-    database: Rc<model::SuggestionDatabase>,
-    language_server: Rc<language_server::Connection>,
-    ide: controller::Ide,
-    this_arg: Rc<Option<ThisNode>>,
+    logger:           Logger,
+    data:             Rc<RefCell<Data>>,
+    notifier:         notification::Publisher<Notification>,
+    graph:            controller::ExecutedGraph,
+    mode:             Immutable<Mode>,
+    database:         Rc<model::SuggestionDatabase>,
+    language_server:  Rc<language_server::Connection>,
+    ide:              controller::Ide,
+    this_arg:         Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
-    project: model::Project,
-    favorite_component_groups: component::group::List,
+    project:          model::Project,
+    /// A cached list of component groups that will be displayed in the Component Browser's
+    /// "Favorites Data Science Tools" section.
+    favorites:        component::group::List,
 }
 
 impl Searcher {
@@ -535,7 +537,7 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
-        let favorite_component_groups =
+        let favorites =
             lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
         let ret = Self {
             logger,
@@ -549,7 +551,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            favorite_component_groups,
+            favorites,
         };
         ret.reload_list();
         Ok(ret)
@@ -962,7 +964,7 @@ impl Searcher {
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    let favorites = this.favorite_component_groups.clone();
+                    let favorites = this.favorites.clone();
                     data.components =
                         component::List::build_list_from_all_db_entries(&this.database, favorites);
                 }
@@ -1032,7 +1034,7 @@ impl Searcher {
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
-        builder.build_with_favorites(self.favorite_component_groups.clone())
+        builder.build_with_favorites(self.favorites.clone())
     }
 
     fn possible_function_calls(&self) -> Vec<action::Suggestion> {
@@ -1361,7 +1363,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorite_component_groups =
+            let favorites =
                 lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
             let searcher = Searcher {
                 graph,
@@ -1375,7 +1377,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                favorite_component_groups,
+                favorites,
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
