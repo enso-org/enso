@@ -261,6 +261,8 @@ lazy val enso = (project in file("."))
     launcher,
     downloader,
     `runtime-instrument-id-execution`,
+    `runtime-instrument-repl-debugger`,
+    `runtime-instrument-runtime-server`,
     `runtime-instrument`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
@@ -1301,6 +1303,66 @@ lazy val `runtime-instrument-id-execution` = (project in file("engine/runtime-in
   )
   .dependsOn(runtime)
 
+lazy val `runtime-instrument-repl-debugger` = (project in file("engine/runtime-instrument-repl-debugger"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := ensoVersion,
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(CopyTruffleJAR.preCompileTask)
+      .value,
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+    ),
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked",
+    ),
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+  .dependsOn(runtime)
+
+lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-instrument-runtime-server"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := ensoVersion,
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(CopyTruffleJAR.preCompileTask)
+      .value,
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+    ),
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked",
+    ),
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+  .dependsOn(runtime)
+
 lazy val `runtime-instrument`  = (project in file("engine/runtime-instrument"))
   .configs(Benchmark)
   .settings(
@@ -1335,6 +1397,8 @@ lazy val `runtime-instrument`  = (project in file("engine/runtime-instrument"))
   )
   .dependsOn(runtime % "compile->compile;test->test")
   .dependsOn(`runtime-instrument-id-execution`)
+  .dependsOn(`runtime-instrument-repl-debugger`)
+  .dependsOn(`runtime-instrument-runtime-server`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
