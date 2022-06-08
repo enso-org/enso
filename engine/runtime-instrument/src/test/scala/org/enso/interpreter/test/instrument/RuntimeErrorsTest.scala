@@ -81,7 +81,7 @@ class RuntimeErrorsTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[org.enso.interpreter.runtime.Context]
-    languageContext.getLanguage.getIdExecutionInstrument
+    languageContext.getLanguage.getIdExecutionService
       .overrideTimer(new TestTimer)
 
     def writeMain(contents: String): File =

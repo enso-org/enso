@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.execution.LocationFilter;
+import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -45,6 +46,13 @@ public interface IdExecutionService {
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback);
+
+  /**
+   * Override the default nanosecond timer with the specified {@code timer}.
+   *
+   * @param timer the timer to override with
+   */
+  void overrideTimer(Timer timer);
 
   /** A class for notifications about functions being called in the course of execution. */
   public static class ExpressionCall {

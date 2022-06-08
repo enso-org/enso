@@ -81,7 +81,7 @@ class RuntimeVisualisationsTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
-    languageContext.getLanguage.getIdExecutionInstrument
+    languageContext.getLanguage.getIdExecutionService
       .overrideTimer(new TestTimer)
 
     def writeMain(contents: String): File =

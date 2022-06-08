@@ -54,6 +54,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    *
    * @param timer the timer to override with
    */
+  @Override
   public void overrideTimer(Timer timer) {
     this.timer = timer;
   }

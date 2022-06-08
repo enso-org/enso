@@ -260,6 +260,8 @@ lazy val enso = (project in file("."))
     searcher,
     launcher,
     downloader,
+    `runtime-instrument-id-execution`,
+    `runtime-instrument`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1163,7 +1165,7 @@ lazy val runtime = (project in file("engine/runtime"))
       sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
-    cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
+    //cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(
@@ -1197,12 +1199,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "com.novocode"        % "junit-interface"       % "0.11"            % Test exclude ("junit", "junit-dep")
     ),
     // Note [Unmanaged Classpath]
-    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    Compile / compile := FixInstrumentsGeneration.patchedCompile
-      .dependsOn(FixInstrumentsGeneration.preCompileTask)
       .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
@@ -1257,22 +1255,6 @@ lazy val runtime = (project in file("engine/runtime"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
-  .settings(
-    assembly / assemblyJarName := "runtime.jar",
-    assembly / test := {},
-    assembly / assemblyOutputPath := file("runtime.jar"),
-    assembly / assemblyMergeStrategy := {
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
-        MergeStrategy.discard
-      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
-        MergeStrategy.discard
-      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
-        MergeStrategy.discard
-      case PathList("META-INF", "services", xs @ _*) =>
-        MergeStrategy.concat
-      case _ => MergeStrategy.first
-    }
-  )
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
@@ -1288,6 +1270,71 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(`docs-generator`)
   .dependsOn(testkit % Test)
+
+lazy val `runtime-instrument-id-execution` = (project in file("engine/runtime-instrument-id-execution"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := ensoVersion,
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(CopyTruffleJAR.preCompileTask)
+      .value,
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+    ),
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked",
+    ),
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+  .dependsOn(runtime)
+
+lazy val `runtime-instrument`  = (project in file("engine/runtime-instrument"))
+  .configs(Benchmark)
+  .settings(
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    Test / javaOptions ++= Seq(
+      "-Dgraalvm.locatorDisabled=true",
+      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+    ),
+    Test / fork := true,
+    Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+      "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+    ),
+    libraryDependencies ++= Seq(
+      "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
+    ),
+    Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
+    assembly / assemblyJarName := "runtime.jar",
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("runtime.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case PathList("META-INF", "services", xs @ _*) =>
+        MergeStrategy.concat
+      case _ => MergeStrategy.first
+    }
+  )
+  .dependsOn(runtime % "compile->compile;test->test")
+  .dependsOn(`runtime-instrument-id-execution`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1347,7 +1394,7 @@ lazy val `engine-runner` = project
   )
   .settings(
     assembly := assembly
-      .dependsOn(runtime / assembly)
+      .dependsOn(`runtime-instrument` / assembly)
       .value
   )
   .dependsOn(`version-output`)
