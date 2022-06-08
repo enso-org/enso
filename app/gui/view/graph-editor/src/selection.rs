@@ -325,8 +325,9 @@ impl Controller {
             enable_area_selection  <- source();
 
             // ===  Graph Editor Internal API ===
-            eval editor.input.select_node   ((node_id) nodes.select(node_id));
-            eval editor.input.deselect_node ((node_id)  nodes.select(node_id));
+            eval editor.input.select_node       ((node_id) nodes.select(node_id));
+            eval editor.input.deselect_node     ((node_id) nodes.deselect(node_id));
+            eval_ editor.input.select_all_nodes (nodes.select_all());
             editor.output.node_selected   <+  editor.input.select_node;
             editor.output.node_deselected <+ editor.input.deselect_node;
 

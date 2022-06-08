@@ -32,12 +32,18 @@ class ComponentGroupsResolverSpec extends AnyWordSpec with Matchers {
           "Foo",
           "Quux",
           ComponentGroups(List(newComponentGroup("Mod2", "one")), List())
+        ),
+        config(
+          "Foo",
+          "Brrr",
+          ComponentGroups(List(newComponentGroup("Abc", "three")), List())
         )
       )
 
       resolver.run(testPackages) shouldEqual Vector(
         libraryComponentGroup("Foo", "Baz", "Mod1", "one", "two"),
-        libraryComponentGroup("Foo", "Quux", "Mod2", "one")
+        libraryComponentGroup("Foo", "Quux", "Mod2", "one"),
+        libraryComponentGroup("Foo", "Brrr", "Abc", "three")
       )
     }
 
@@ -301,14 +307,14 @@ object ComponentGroupsResolverSpec {
 
   /** Create a new library component group. */
   def libraryComponentGroup(
-    namespace: String,
-    name: String,
-    group: String,
+    libraryNamespace: String,
+    libraryName: String,
+    groupName: String,
     exports: String*
   ): LibraryComponentGroup =
     LibraryComponentGroup(
-      library = LibraryName(namespace, name),
-      group   = GroupName(group),
+      library = LibraryName(libraryNamespace, libraryName),
+      name    = GroupName(groupName),
       color   = None,
       icon    = None,
       exports = exports.map(LibraryComponent(_, None))

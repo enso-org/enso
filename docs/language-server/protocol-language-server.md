@@ -1530,7 +1530,7 @@ The component group provided by a library.
 ```typescript
 interface LibraryComponentGroup {
   /**
-   * Thf fully qualified module name. A string consisting of a namespace and
+   * The fully qualified library name. A string consisting of a namespace and
    * a library name separated by the dot <namespace>.<library name>,
    * i.e. `Standard.Base`.
    */
@@ -1538,9 +1538,9 @@ interface LibraryComponentGroup {
 
   /** The group name without the library name prefix.
    *  E.g. given the `Standard.Base.Group 1` group reference,
-   * the `group` field contains `Group 1`.
+   * the `name` field contains `Group 1`.
    */
-  group: string;
+  name: string;
 
   color?: string;
 

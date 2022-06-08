@@ -29,6 +29,7 @@
 #[warn(missing_docs)]
 pub mod component;
 
+pub mod automation;
 pub mod builtin;
 pub mod data;
 pub mod new_node_position;
@@ -478,6 +479,8 @@ ensogl::define_endpoints_2! {
         /// Set the node as deselected. Ignores selection mode.
         // WARNING: not implemented
         deselect_node                (NodeId),
+        /// Set all nodes as selected. Ignores selection mode.
+        select_all_nodes             (),
 
 
         // === Navigation ===
@@ -522,7 +525,7 @@ ensogl::define_endpoints_2! {
         edit_mode_off(),
         /// Stop node editing, whatever node is currently edited.
         stop_editing(),
-        /// Remove all nodes from the graph.
+        /// Collapse the selected nodes into a new node.
         collapse_selected_nodes(),
         /// Indicate whether this node had an error or not.
         set_node_error_status(NodeId,Option<node::error::Error>),
@@ -1157,6 +1160,13 @@ impl Nodes {
         }
     }
 
+    /// Mark all node as selected and send FRP events to nodes.
+    pub fn select_all(&self) {
+        for id in self.all.keys() {
+            self.select(id);
+        }
+    }
+
     /// Return all nodes marked as selected.
     pub fn all_selected(&self) -> Vec<NodeId> {
         self.selected.items()
@@ -1476,6 +1486,7 @@ impl GraphEditorModelWithNetwork {
         source_node.map(|node| NodeSource { node })
     }
 
+    #[profile(Debug)]
     fn new_node(&self, ctx: &NodeCreationContext) -> Node {
         let view = component::Node::new(&self.app, self.vis_registry.clone_ref());
         let node = Node::new(view);
@@ -2416,14 +2427,16 @@ impl application::View for GraphEditor {
             (Press, "!node_editing", "backspace", "remove_selected_nodes"),
             (Press, "!node_editing", "delete", "remove_selected_nodes"),
             (Press, "has_detached_edge", "escape", "drop_dragged_edge"),
-            (Press, "", "cmd g", "collapse_selected_nodes"), // === Visualization ===
+            (Press, "", "cmd g", "collapse_selected_nodes"),
+            // === Visualization ===
             (Press, "!node_editing", "space", "press_visualization_visibility"),
             (DoublePress, "!node_editing", "space", "double_press_visualization_visibility"),
             (Release, "!node_editing", "space", "release_visualization_visibility"),
             (Press, "", "cmd i", "reload_visualization_registry"),
             (Press, "is_fs_visualization_displayed", "space", "close_fullscreen_visualization"),
             (Press, "", "cmd", "enable_quick_visualization_preview"),
-            (Release, "", "cmd", "disable_quick_visualization_preview"), // === Selection ===
+            (Release, "", "cmd", "disable_quick_visualization_preview"),
+            // === Selection ===
             (Press, "", "shift", "enable_node_multi_select"),
             (Press, "", "shift left-mouse-button", "enable_node_multi_select"),
             (Release, "", "shift", "disable_node_multi_select"),
@@ -2433,7 +2446,8 @@ impl application::View for GraphEditor {
             (Press, "", "shift alt", "toggle_node_subtract_select"),
             (Release, "", "shift alt", "toggle_node_subtract_select"),
             (Press, "", "shift ctrl alt", "toggle_node_inverse_select"),
-            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"), // === Navigation ===
+            (Release, "", "shift ctrl alt", "toggle_node_inverse_select"),
+            // === Navigation ===
             (
                 Press,
                 "!is_fs_visualization_displayed",
@@ -2444,14 +2458,17 @@ impl application::View for GraphEditor {
             (DoublePress, "", "left-mouse-button", "start_node_creation_from_port"),
             (Press, "", "right-mouse-button", "start_node_creation_from_port"),
             (Press, "!node_editing", "enter", "enter_selected_node"),
-            (Press, "", "alt enter", "exit_node"), // === Node Editing ===
+            (Press, "", "alt enter", "exit_node"),
+            // === Node Editing ===
             (Press, "", "cmd", "edit_mode_on"),
             (Release, "", "cmd", "edit_mode_off"),
             (Press, "", "cmd enter", "edit_selected_node"),
             (Press, "", "cmd left-mouse-button", "edit_mode_on"),
             (Release, "", "cmd left-mouse-button", "edit_mode_off"),
-            (Release, "", "enter", "stop_editing"), // === Profiling Mode ===
-            (Press, "", "cmd p", "toggle_profiling_mode"), // === Debug ===
+            (Release, "", "enter", "stop_editing"),
+            // === Profiling Mode ===
+            (Press, "", "cmd p", "toggle_profiling_mode"),
+            // === Debug ===
             (Press, "debug_mode", "ctrl d", "debug_set_test_visualization_data_for_selected_node"),
             (Press, "debug_mode", "ctrl shift enter", "debug_push_breadcrumb"),
             (Press, "debug_mode", "ctrl shift up", "debug_pop_breadcrumb"),
@@ -2871,7 +2888,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval out.node_editing_started ([model] (id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.frp.set_edit_mode(true);
+                node.model().input.set_edit_mode(true);
             }
         });
         eval out.node_editing_finished ([model](id) {

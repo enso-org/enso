@@ -131,6 +131,12 @@ impl Id {
     pub fn segments(&self) -> &Vec<ReferentName> {
         &self.segments
     }
+
+    /// Get the id of the top module containing the module referred. Return self if id already
+    /// points to a top module.
+    pub fn top_module(&self) -> Self {
+        Id { segments: self.segments.first().cloned().into_iter().collect() }
+    }
 }
 
 
@@ -281,6 +287,25 @@ impl QualifiedName {
         if self.id.segments == [PROJECTS_MAIN_MODULE] {
             self.id.segments.pop();
         }
+    }
+
+    /// Check if the name refers to some library's top module.
+    pub fn is_top_module(&self) -> bool {
+        self.id.segments.len() == 1
+    }
+
+    /// Get the top module containing the module referred by this name. Return self if it is already
+    /// a top module.
+    pub fn top_module(&self) -> Self {
+        Self { project_name: self.project_name.clone(), id: self.id.top_module() }
+    }
+
+    /// Get the parent module of the module referred by this name. Returns [`None`] if it is a top
+    /// module.
+    pub fn parent_module(&self) -> Option<Self> {
+        let id = Id::try_new(self.id.parent_segments()).ok()?;
+        let project_name = self.project_name.clone();
+        Some(Self { project_name, id })
     }
 }
 

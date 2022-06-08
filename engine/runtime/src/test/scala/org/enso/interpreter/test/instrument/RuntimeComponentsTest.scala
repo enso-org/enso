@@ -6,6 +6,7 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{
+  ComponentGroup,
   ComponentGroups,
   ExtendedComponentGroup,
   GroupName,
@@ -64,7 +65,14 @@ class RuntimeComponentsTest
     val pkg: Package[File] = {
       val componentGroups =
         ComponentGroups(
-          newGroups = List(),
+          newGroups = List(
+            ComponentGroup(
+              group   = GroupName("Awesome"),
+              color   = None,
+              icon    = None,
+              exports = Seq()
+            )
+          ),
           extendedGroups = List(
             ExtendedComponentGroup(
               group = GroupReference(
@@ -99,7 +107,10 @@ class RuntimeComponentsTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+        .option(
+          RuntimeOptions.DISABLE_IR_CACHES,
+          InstrumentTestContext.DISABLE_IR_CACHE
+        )
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -148,15 +159,27 @@ class RuntimeComponentsTest
     }
 
     def receiveAllUntil(
-      msg: Api.Response,
+      msgs: Seq[Api.Response],
       timeout: Long
     ): List[Api.Response] = {
+      val toSee                          = collection.mutable.ArrayBuffer.from(msgs)
+      var lastSeen: Option[Api.Response] = None
       val receivedUntil = Iterator
         .continually(receive(timeout))
-        .takeWhile(received => received.isDefined && !received.contains(msg))
+        .takeWhile {
+          case Some(received) =>
+            val found = msgs.contains(received)
+            if (found) {
+              lastSeen = Some(received)
+              toSee.subtractOne(received)
+            }
+            !(found && toSee.isEmpty)
+          case None =>
+            false
+        }
         .flatten
         .toList
-      receivedUntil :+ msg
+      receivedUntil :++ lastSeen
     }
 
     def consumeOut: List[String] = {
@@ -167,6 +190,9 @@ class RuntimeComponentsTest
 
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
+
+    def analyzeJobFinished: Api.Response =
+      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
 
   }
 
@@ -216,13 +242,18 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        context.executionComplete(contextId),
-        timeout = 120
+        Seq(
+          context.executionComplete(contextId),
+          context.analyzeJobFinished,
+          context.analyzeJobFinished
+        ),
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      context.analyzeJobFinished
     )
 
     // check LibraryLoaded notifications
@@ -240,16 +271,6 @@ class RuntimeComponentsTest
 
     // check the registered component groups
     val components = context.languageContext.getPackageRepository.getComponents
-//    val expectedComponents = Map(
-//      LibraryName("Enso_Test", "Test") ->
-//      context.pkg.config.componentGroups
-//        .getOrElse(fail("Unexpected config value.")),
-//      LibraryName("Standard", "Base") ->
-//      RuntimeComponentsTest.standardBaseComponents,
-//      LibraryName("Standard", "Builtins") -> ComponentGroups.empty
-//    )
-//    components should contain theSameElementsAs expectedComponents
-
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
     context.pkg.config.componentGroups
       .getOrElse(fail("Unexpected config value."))
@@ -315,13 +336,18 @@ class RuntimeComponentsTest
     )
     val responses =
       context.receiveAllUntil(
-        context.executionComplete(contextId),
-        timeout = 120
+        Seq(
+          context.executionComplete(contextId),
+          context.analyzeJobFinished,
+          context.analyzeJobFinished
+        ),
+        timeout = 180
       )
     // sanity check
     responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.executionComplete(contextId)
+      context.executionComplete(contextId),
+      context.analyzeJobFinished
     )
 
     // check the registered component groups
@@ -330,6 +356,12 @@ class RuntimeComponentsTest
     components.get(LibraryName("Enso_Test", "Test")).value shouldEqual
     context.pkg.config.componentGroups
       .getOrElse(fail("Unexpected config value."))
+
+    components
+      .get(LibraryName("Enso_Test", "Test"))
+      .value
+      .newGroups
+      .map(_.group) should contain theSameElementsAs Seq(GroupName("Awesome"))
 
     components
       .get(LibraryName("Standard", "Base"))

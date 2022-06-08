@@ -243,11 +243,11 @@ spec =
             txt.drop (Last 2) . should_equal (kshi + facepalm)
 
         Test.specify "take should work as in the examples" <|
-            "Hello World!".take First.new . should_equal "H"
+            "Hello World!".take First . should_equal "H"
             "Hello World!".take (First 5) . should_equal "Hello"
             "Hello World!".take (First 100) . should_equal "Hello World!"
             "Hello World!".take (First 0) . should_equal ""
-            "Hello World!".take Last.new . should_equal "!"
+            "Hello World!".take Last . should_equal "!"
             "Hello World!".take (Last 6) . should_equal "World!"
             "Hello World!".take (Last 0) . should_equal ""
             "Hello World!".take (Last 100) . should_equal "Hello World!"
@@ -305,9 +305,9 @@ spec =
             'He\u{302}llo\u{308} Wo\u{308}rld!'.take (Range 12 12) . should_equal ''
 
         Test.specify "take should work on emojis" <|
-            '✨🚀🚧😍😃😎😙😉☺'.take First.new . should_equal '✨'
+            '✨🚀🚧😍😃😎😙😉☺'.take First . should_equal '✨'
             '✨🚀🚧😍😃😎😙😉☺'.take (First 2) . should_equal '✨🚀'
-            '✨🚀🚧😍😃😎😙😉☺'.take Last.new . should_equal '☺'
+            '✨🚀🚧😍😃😎😙😉☺'.take Last . should_equal '☺'
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 0) . should_equal ''
             '✨🚀🚧😍😃😎😙😉☺'.take (Last 3) . should_equal '😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Before '😍') . should_equal '✨🚀🚧'
@@ -321,8 +321,8 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.take (Range -3 -1) . should_equal '😙😉'
 
         Test.specify "take should correctly handle edge cases" <|
-            "".take First.new . should_equal ""
-            "".take Last.new . should_equal ""
+            "".take First . should_equal ""
+            "".take Last . should_equal ""
 
             "".take (After "a") . should_equal ""
             "".take (After_Last "a") . should_equal ""
@@ -345,11 +345,11 @@ spec =
             'ABC\u{301}'.take (Before_Last "") . should_equal 'ABC\u{301}'
 
         Test.specify "drop should work as in the examples" <|
-            "Hello World!".drop First.new . should_equal "ello World!"
+            "Hello World!".drop First . should_equal "ello World!"
             "Hello World!".drop (First 5) . should_equal " World!"
             "Hello World!".drop (First 100) . should_equal ""
             "Hello World!".drop (First 0) . should_equal "Hello World!"
-            "Hello World!".drop Last.new . should_equal "Hello World"
+            "Hello World!".drop Last . should_equal "Hello World"
             "Hello World!".drop (Last 6) . should_equal "Hello "
             "Hello World!".drop (Last 100) . should_equal ""
             "Hello World!".drop (Before " ") . should_equal " World!"
@@ -406,9 +406,9 @@ spec =
             'He\u{302}llo\u{308} Wo\u{308}rld!'.drop (Range 12 12) . should_equal 'He\u{302}llo\u{308} Wo\u{308}rld!'
 
         Test.specify "drop should work on emojis" <|
-            '✨🚀🚧😍😃😎😙😉☺'.drop First.new . should_equal '🚀🚧😍😃😎😙😉☺'
+            '✨🚀🚧😍😃😎😙😉☺'.drop First . should_equal '🚀🚧😍😃😎😙😉☺'
             '✨🚀🚧😍😃😎😙😉☺'.drop (First 2) . should_equal '🚧😍😃😎😙😉☺'
-            '✨🚀🚧😍😃😎😙😉☺'.drop Last.new . should_equal '✨🚀🚧😍😃😎😙😉'
+            '✨🚀🚧😍😃😎😙😉☺'.drop Last . should_equal '✨🚀🚧😍😃😎😙😉'
             '✨🚀🚧😍😃😎😙😉☺'.drop (Last 3) . should_equal '✨🚀🚧😍😃😎'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before '😍') . should_equal '😍😃😍😎😙😉☺'
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Before_Last '😍') . should_equal '😍😎😙😉☺'
@@ -421,8 +421,8 @@ spec =
             '✨🚀🚧😍😃😍😎😙😉☺'.drop (Range -3 -1) . should_equal '✨🚀🚧😍😃😍😎☺'
 
         Test.specify "drop should correctly handle edge cases" <|
-            "".drop First.new . should_equal ""
-            "".drop Last.new . should_equal ""
+            "".drop First . should_equal ""
+            "".drop Last . should_equal ""
 
             "".drop (After "a") . should_equal ""
             "".drop (After_Last "a") . should_equal ""

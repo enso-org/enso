@@ -47,7 +47,7 @@ smallvec = { version = "1.0.0" }
 typenum = { version = "1.11.2" }
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { version = "=0.2.78", features = ["nightly"] }
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -87,5 +87,4 @@ features = [
 ]
 
 [dev-dependencies]
-assert_approx_eq = { version = "1.1.0" }
 wasm-bindgen-test = { version = "0.3.8" }

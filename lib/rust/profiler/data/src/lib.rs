@@ -238,9 +238,14 @@ impl<M> Profile<M> {
         IntervalId(self.intervals.len() - 1)
     }
 
-    /// Iterate over only the metadata stored in the profile.
-    pub fn iter_metadata(&self) -> impl Iterator<Item = &Timestamped<M>> {
+    /// Iterate over all metadata in the profile.
+    pub fn metadata(&self) -> impl Iterator<Item = &Timestamped<M>> {
         self.intervals.iter().flat_map(|interval| interval.metadata.iter())
+    }
+
+    /// Iterate over the IDs of all measurements.
+    pub fn measurement_ids(&self) -> impl Iterator<Item = MeasurementId> {
+        (0..self.measurements.len()).map(MeasurementId)
     }
 }
 
@@ -260,11 +265,11 @@ pub struct Headers {
 // === IDs and indexing ===
 
 /// Identifies a measurement in a particular profile.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct MeasurementId(pub(crate) usize);
 
 /// Identifies an interval in a particular profile.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct IntervalId(pub(crate) usize);
 
 impl<M> std::ops::Index<MeasurementId> for Profile<M> {
@@ -315,6 +320,8 @@ impl Measurement {
 /// Distinguishes special profilers from normal profilers.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Class {
+    /// Profiler that is used to mark a region of interest in the profile.
+    Highlight,
     /// Profiler that is active during the execution of anything else, after early startup.
     OnFrame,
     /// Profiler that is run when a WebGL context is acquired or lost.
@@ -470,6 +477,7 @@ impl Label {
     /// Recognize profilers with special names.
     fn classify(&self) -> Class {
         match self.name.as_str() {
+            "@highlight" => Class::Highlight,
             "@on_frame" => Class::OnFrame,
             "@set_context" => Class::SetContext,
             // Data producer is probably newer than consumer. Forward compatibility isn't necessary.

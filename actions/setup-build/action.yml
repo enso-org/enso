@@ -43,7 +43,7 @@ runs:
           core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env["ACTIONS_RUNTIME_TOKEN"])
           core.exportVariable("ACTIONS_RUNTIME_URL", process.env["ACTIONS_RUNTIME_URL"])
           core.exportVariable("GITHUB_RETENTION_DAYS", process.env["GITHUB_RETENTION_DAYS"])
-    - run: ./run.sh --help
+    - run: ./run --help
       shell: bash
       if: runner.os != 'Windows'
     - run: .\run.cmd --help

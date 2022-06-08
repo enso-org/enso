@@ -51,6 +51,11 @@ impl TimeInfo {
         self.since_animation_loop_started = since_animation_loop_started;
         self
     }
+
+    /// Return the time this frame started, relative to the time origin.
+    pub fn frame_start(&self) -> Duration {
+        self.animation_loop_start + self.since_animation_loop_started
+    }
 }
 
 

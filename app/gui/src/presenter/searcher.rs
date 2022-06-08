@@ -71,7 +71,6 @@ impl Model {
         }
     }
 
-    #[profile(Task)]
     fn commit_editing(&self, entry_id: Option<view::searcher::entry::Id>) -> Option<AstNodeId> {
         let result = match entry_id {
             Some(id) => self.controller.execute_action_by_index(id),
@@ -109,7 +108,7 @@ pub struct Searcher {
 }
 
 impl Searcher {
-    /// Constructor. The returned structure works rigth away.
+    /// Constructor. The returned structure works right away.
     #[profile(Task)]
     pub fn new(
         parent: impl AnyLogger,

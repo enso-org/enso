@@ -7,5 +7,7 @@ use enso_build::prelude::*;
 
 
 fn main() -> Result {
-    enso_build::cli::main::main()
+    let build_config_yaml = include_str!("../../build-config.yaml");
+    let config = enso_build::config::load_yaml(build_config_yaml)?;
+    enso_build::cli::main::main(config)
 }

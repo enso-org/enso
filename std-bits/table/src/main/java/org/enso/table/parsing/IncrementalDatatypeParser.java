@@ -4,7 +4,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.parsing.problems.ProblemAggregatorImpl;
-import org.enso.table.read.WithProblems;
+import org.enso.table.problems.WithProblems;
 
 /**
  * A base type for a datatype parsing strategy which relies on a method parsing a single value.

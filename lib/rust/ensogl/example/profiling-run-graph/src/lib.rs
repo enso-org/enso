@@ -179,7 +179,7 @@ fn profile_to_graph(profile: &Profile<Metadata>, app: &Application) -> flame_gra
 // Create marks for metadata. This will skip `RenderStats` as they are added separately as blocks.
 fn make_marks_from_profile(profile: &Profile<Metadata>) -> Vec<profiler_flame_graph::Mark> {
     profile
-        .iter_metadata()
+        .metadata()
         .filter_map(|metadata: &enso_profiler_data::Timestamped<Metadata>| match metadata.data {
             Metadata::RenderStats(_) => None,
             Metadata::RpcEvent(_) if !SHOW_RPC_EVENT_MARKS => None,
@@ -197,7 +197,7 @@ fn make_rendering_performance_blocks(
     profile: &Profile<Metadata>,
 ) -> Vec<profiler_flame_graph::Block<Performance>> {
     let mut blocks = Vec::default();
-    let render_stats = profile.iter_metadata().filter_map(|metadata| match metadata.data {
+    let render_stats = profile.metadata().filter_map(|metadata| match metadata.data {
         Metadata::RenderStats(data) => Some(metadata.as_ref().map(|_| data)),
         _ => None,
     });
@@ -223,8 +223,17 @@ fn make_rendering_performance_blocks(
 // === Profiler Log Reading ===
 // ============================
 
-/// Read the log file data from a file, if one is specified.
-async fn get_data_raw() -> Option<String> {
+/// Read the data from a file specified on the command line.
+async fn get_data_file() -> Option<String> {
+    let files = enso_debug_api::load_profiles()?.await;
+    if files.len() > 1 {
+        ERROR!("Entry point profiling-run-graph doesn't support multiple profile file arguments.");
+    }
+    files.into_iter().next()
+}
+
+/// Read the `PROFILER_LOG_NAME` data from a file.
+async fn get_data_http() -> Option<String> {
     use wasm_bindgen::JsCast;
 
     let file_name = get_target_file_from_url();
@@ -246,7 +255,10 @@ async fn get_data_raw() -> Option<String> {
 }
 
 async fn get_log_data() -> Vec<Profile<Metadata>> {
-    let data = get_data_raw().await;
+    let data = match get_data_file().await {
+        Some(data) => Some(data),
+        None => get_data_http().await,
+    };
     let data = data.map(|data| {
         parse_multiprocess_profile(&data)
             .filter_map(|result| match result {
