@@ -244,7 +244,7 @@ mod tests {
     // only names not found in the suggestion database.
     #[test]
     fn constructing_component_group_from_names_not_found_in_db() {
-        let logger = Logger::new("tests::lookup_component_groups_in_suggestion_database");
+        let logger = Logger::new("tests::constructing_component_group_from_names_not_found_in_db");
         let suggestion_db = Rc::new(mock_suggestion_db(logger));
         let ec_group_with_component_not_found_in_db = execution_context::ComponentGroup {
             name:       "Input".into(),
