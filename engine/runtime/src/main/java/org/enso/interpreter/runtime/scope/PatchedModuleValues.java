@@ -13,6 +13,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -55,18 +56,36 @@ final class PatchedModuleValues implements ExecutionEventListener {
   }
 
   private static void updateNode(model.TextEdit edit, Node root, Map<Node, Object> nodeValues) {
-    root.accept(n -> {
-      if (n instanceof Patchable node) {
-        SourceSection at = n.getSourceSection();
-        if (at != null && at.getStartLine() - 1 == edit.range().start().line() && at.getStartColumn() - 1 == edit.range().start().character() && at.getEndLine() - 1 == edit.range().end().line() && at.getEndColumn() == edit.range().end().character()) {
-          java.lang.Object newValue = node.parsePatch(edit.text());
-          if (newValue != null) {
-            nodeValues.put(n, newValue);
+    LinkedList<Node> queue = new LinkedList<>();
+    queue.add(root);
+    while (!queue.isEmpty()) {
+      var n = queue.removeFirst();
+      SourceSection at = n.getSourceSection();
+      if (at != null) {
+        if (at.getEndLine() - 1 < edit.range().start().line()) {
+          continue;
+        }
+        if (at.getStartLine() - 1 > edit.range().end().line()) {
+          continue;
+        }
+        if (n instanceof Patchable node) {
+          if (
+            at.getStartLine() - 1 == edit.range().start().line() &&
+            at.getStartColumn() - 1 == edit.range().start().character() &&
+            at.getEndLine() - 1 == edit.range().end().line() &&
+            at.getEndColumn() == edit.range().end().character()
+          ) {
+            java.lang.Object newValue = node.parsePatch(edit.text());
+            if (newValue != null) {
+              nodeValues.put(n, newValue);
+            }
           }
         }
       }
-      return true;
-    });
+      for (var ch : n.getChildren()) {
+        queue.add(ch);
+      }
+    }
   }
 
   @Override
