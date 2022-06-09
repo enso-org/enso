@@ -193,8 +193,12 @@ fn create_component_group(
     component_group
 }
 
-fn create_wide_component_group(app: &Application) -> component_group::wide::View {
+fn create_wide_component_group(
+    app: &Application,
+    layers: &component_group::Layers,
+) -> component_group::wide::View {
     let component_group = app.new_view::<component_group::wide::View>();
+    component_group.model().set_layers(layers);
     component_group.set_width(450.0);
     component_group.set_position_x(-200.0);
     component_group
@@ -260,7 +264,7 @@ fn init(app: &Application) {
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
     let second_component_group = create_component_group(app, group_name, &layers);
-    let wide_component_group = create_wide_component_group(app);
+    let wide_component_group = create_wide_component_group(app, &layers);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);

@@ -22,6 +22,7 @@ use ensogl::application::shortcut::Shortcut;
 use ensogl::application::Application;
 use ensogl::data::color::Rgba;
 use ensogl::display;
+use ensogl::display::scene::layer::Layer;
 use ensogl_gui_component::component;
 use ensogl_label::Label;
 use ensogl_list_view as list_view;
@@ -256,7 +257,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 out.is_mouse_over <+ is_mouse_over;
             }
 
-            let params = entry::Params { colors: colors.clone_ref() };
+            let params = entry::Params { colors: colors.clone_ref(), layer: default() };
             column.list_view.set_entry_params_and_recreate_entries(params);
         }
     }
@@ -390,6 +391,17 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
 }
 
 impl<const COLUMNS: usize> Model<COLUMNS> {
+    /// TODO: docs
+    pub fn set_layers(&self, layers: &crate::Layers) {
+        layers.selected.background.add_exclusive(&self.selection_background);
+        let layer = &layers.selected.text;
+        for column in self.columns.iter() {
+            let mut params = column.list_view.entry_params();
+            params.layer = Rc::new(Some(layer.clone_ref()));
+            column.list_view.set_entry_params_and_recreate_entries(params);
+        }
+    }
+
     /// Set the text content of the "no items" label.
     fn set_no_items_label_text(&self, text: &str) {
         self.no_items_label.set_content(text);

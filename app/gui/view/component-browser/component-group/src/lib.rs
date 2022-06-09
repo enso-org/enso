@@ -43,6 +43,7 @@ use ensogl::data::color;
 use ensogl::data::text;
 use ensogl::display;
 use ensogl::display::camera::Camera2d;
+use ensogl::display::scene::layer::Layer;
 use ensogl::Animation;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_group as theme;
@@ -60,7 +61,6 @@ pub mod set;
 pub mod wide;
 
 pub use entry::View as Entry;
-
 
 
 /// A module containing common imports.
@@ -85,7 +85,8 @@ pub mod prelude {
 /// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
 const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
-pub const SELECTION_COLOR: color::Rbga = color::Rgba(0.8, 0.7, 0.6, 1.0);
+/// TODO: docs
+pub const SELECTION_COLOR: color::Rgba = color::Rgba::new(0.827, 0.831, 0.729, 1.0);
 
 
 
@@ -121,6 +122,7 @@ pub mod selection_background {
         }
     }
 }
+
 
 // === Header Background ===
 
@@ -375,7 +377,7 @@ impl component::Frp<Model> for Frp {
 
         // === Colors ===
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
-        let params = entry::Params { colors: colors.clone_ref() };
+        let params = entry::Params { colors: colors.clone_ref(), layer: default() };
         model.entries.set_entry_params_and_recreate_entries(params);
 
 
@@ -593,7 +595,7 @@ impl component::Model for Model {
         selection_background.color.set(SELECTION_COLOR.into());
         let header_background = header_background::View::new(&logger);
         let selected_header_background = selected_header_background::View::new(&logger);
-        selected_header_background.color.set(selected_color.into());
+        selected_header_background.color.set(SELECTION_COLOR.into());
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
@@ -638,6 +640,9 @@ impl Model {
         layers.normal.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // selected:
+        let mut params = self.entries.entry_params();
+        params.layer = Rc::new(Some(layers.selected.text.clone_ref()));
+        self.entries.set_entry_params_and_recreate_entries(params);
         layers.selected.background.add_exclusive(&self.selection_background);
         layers.selected.header.add_exclusive(&self.selected_header_background);
         self.selected_header.add_to_scene_layer(&layers.selected.header_text);

@@ -689,6 +689,11 @@ where E::Model: Default
         let style_prefix = self.frp.style_prefix.value();
         self.model.entries.set_entry_params_and_recreate_entries(params, style_prefix.into());
     }
+
+    /// TODO: docs
+    pub fn entry_params(&self) -> E::Params {
+        self.model.entries.entry_params()
+    }
 }
 
 impl<E: Entry> display::Object for ListView<E> {

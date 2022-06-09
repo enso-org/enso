@@ -79,13 +79,7 @@ impl From<&str> for Model {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
     pub colors: Colors,
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, CloneRef, Debug)]
-pub struct SelectedLayers {
-    pub selected_background_layer: Layer,
-    pub selected_text_layer:       Layer,
+    pub layer:  Rc<Option<Layer>>,
 }
 
 impl Default for Params {
@@ -99,7 +93,7 @@ impl Default for Params {
             background <- source::<color::Rgba>().sampler();
         }
         let colors = Colors { icon_strong, icon_weak, header_text, entry_text, background };
-        Self { colors }
+        Self { colors, layer: default() }
     }
 }
 
@@ -136,14 +130,18 @@ pub struct View {
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
     selected_label:    GlyphHighlightedLabel,
-    selected_layers:   SelectedLayers,
+    selected_layer:    Rc<Option<Layer>>,
 }
 
 impl list_view::Entry for View {
     type Model = Model;
     type Params = Params;
 
-    fn new(app: &Application, style_prefix: &style::Path, Params { colors }: &Params) -> Self {
+    fn new(
+        app: &Application,
+        style_prefix: &style::Path,
+        Params { colors, layer }: &Params,
+    ) -> Self {
         let logger = Logger::new("component_group::Entry");
         let display_object = display::object::Instance::new(&logger);
         let icon: Rc<RefCell<CurrentIcon>> = default();
@@ -153,12 +151,9 @@ impl list_view::Entry for View {
         display_object.add_child(&label);
         display_object.add_child(&selected_label);
 
-        let selected_layers = SelectedLayers {
-            selected_background_layer: app.display.default_scene.layers.selection.clone_ref(),
-            selected_text_layer:       app.display.default_scene.layers.selection_text.clone_ref(),
-        };
-
-        selected_label.set_label_layer(&selected_layers.selected_text_layer);
+        if let Some(layer) = &**layer {
+            selected_label.set_label_layer(&layer);
+        }
 
         let network = frp::Network::new("component_group::Entry");
         let style = &label.inner.style_watch;
@@ -211,7 +206,7 @@ impl list_view::Entry for View {
             icon_weak_color,
             label,
             selected_label,
-            selected_layers,
+            selected_layer: layer.clone_ref(),
         }
     }
 
@@ -236,7 +231,9 @@ impl list_view::Entry for View {
             shape.weak_color.set(self.icon_weak_color.value().into());
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
-            self.selected_layers.selected_text_layer.add_exclusive(&shape);
+            if let Some(layer) = &*self.selected_layer {
+                layer.add_exclusive(&shape);
+            }
             icon.shape = Some(shape);
         }
     }
