@@ -120,9 +120,6 @@ spec = Test.group "Examples" <|
         Examples.popularity_table
         Examples.transactions_table
 
-    Test.specify "should provide an aggregate table" <|
-        Examples.aggregate_table
-
     Test.specify "should provide an example of a regex match" <|
         match = Examples.match
         match.groups.length . should_equal 5

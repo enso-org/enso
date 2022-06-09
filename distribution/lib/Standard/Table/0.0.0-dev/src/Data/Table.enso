@@ -1306,7 +1306,6 @@ type Table
         Format.Xlsx sheet mode header max -> this.write_xlsx file sheet mode header max
         Format.Json -> this.write_json file
 
-
 ## UNSTABLE
 
    Used for converting arbitrary values into fields in CSV files.
@@ -1347,86 +1346,6 @@ Text.write_to_spreadsheet cell = cell.setCellValue this
    - cell: an instance of `org.apache.poi.ss.usermodel.Cell`, the value of
      which should be set by this method.
 Date.write_to_spreadsheet cell = cell.setCellValue this.internal_local_date
-
-
-
-## Represents a table with grouped rows.
-type Aggregate_Table
-
-    ## PRIVATE
-
-       A table type with grouped rows.
-
-       Arguments:
-       - java_table: The internal representation of the table.
-    type Aggregate_Table java_table
-
-    ## Returns a vector of aggregate columns in this table.
-
-       > Example
-         Get a vector of aggregate columns from this table.
-
-             import Standard.Examples
-
-             example_columns = Examples.aggregate_table.columns
-    columns : Vector.Vector
-    columns = Vector.Vector this.java_table.getColumns . map Column.Aggregate_Column
-
-    ## Returns a table containing columns resulting from calling `values` on
-       each column in `this`.
-
-       > Example
-         Get the values table from an aggregate table.
-
-             import Standard.Examples
-
-             example_values = Examples.aggregate_table.values
-    values : Table
-    values = this.columns . map (_.values name_suffix='') . reduce .join
-
-    ## Returns a column containing the number of elements in each group of the
-       aggregate table.
-
-       > Examples
-         Get the counts for an aggregate table.
-
-             import Standard.Examples
-
-             example_count = Examples.aggregate_table.count
-    count : Column
-    count = Column.Column this.java_table.count
-
-    ## ALIAS Get a Column
-
-       Returns an aggregate column with the given name, contained in this table.
-
-       Arguments:
-       - name: The name of the aggregate column to get.
-
-       > Example
-         Get the transaction ids column from the aggregate table.
-
-             import Standard.Examples
-
-             example_at = Examples.aggregate_table.at "transaction_id"
-    at : Text -> Column ! No_Such_Column_Error
-    at name = case this.java_table.getColumnByName name of
-        Nothing -> Error.throw (No_Such_Column_Error name)
-        c -> Column.Aggregate_Column c
-
-    ## Prints an ASCII-art table with this data to the standard output.
-
-       Arguments:
-       - show_rows: the number of initial rows that should be displayed.
-
-       > Example
-         Pretty-print and display an aggregate table in the console.
-
-             import Standard.Examples
-
-             example_print = Examples.aggregate_table.print
-    print : Integer -> Nothing
-    print show_rows=10 = this.values.print show_rows
 
 ## UNSTABLE
 
