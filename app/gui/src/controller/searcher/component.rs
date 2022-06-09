@@ -134,18 +134,6 @@ pub struct List {
 }
 
 impl List {
-    /// Create a list containing all entities available in the [`model::SuggestionDatabase`], and
-    /// set the [`List::favorites`] to the value passed in the argument.
-    pub fn build_list_from_all_db_entries(
-        suggestion_db: &Rc<model::SuggestionDatabase>,
-        favorites: group::List,
-    ) -> List {
-        let mut builder = builder::List::new(suggestion_db.clone_ref());
-        builder.extend(suggestion_db.keys());
-        builder.set_favorites(favorites);
-        builder.build()
-    }
-
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.

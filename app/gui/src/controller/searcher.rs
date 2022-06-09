@@ -491,7 +491,7 @@ pub struct Searcher {
     /// A cached list of component groups that will be displayed in the Component Browser's
     /// "Favorites Data Science Tools" section. The groups are defined by
     /// [`controller::ExecutedGraph::component_groups`].
-    favorites:        component::group::List,
+    favorites:        Rc<component::builder::List>,
 }
 
 impl Searcher {
@@ -539,7 +539,7 @@ impl Searcher {
             _ => None,
         });
         let favorites =
-            lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
+            component_list_builder_with_favorites(graph.component_groups(), database.clone_ref());
         let ret = Self {
             logger,
             graph,
@@ -552,7 +552,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            favorites,
+            favorites: Rc::new(favorites),
         };
         ret.reload_list();
         Ok(ret)
@@ -965,9 +965,9 @@ impl Searcher {
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    let favorites = this.favorites.clone();
-                    data.components =
-                        component::List::build_list_from_all_db_entries(&this.database, favorites);
+                    let mut list_builder: component::builder::List = this.favorites.deref().clone();
+                    list_builder.extend(this.database.keys());
+                    data.components = list_builder.build();
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1031,11 +1031,10 @@ impl Searcher {
         &self,
         completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
     ) -> component::List {
-        let mut builder = component::builder::List::new(self.database.clone_ref());
+        let mut builder: component::builder::List = self.favorites.deref().clone();
         for response in completion_responses {
             builder.extend(response.results.iter().cloned());
         }
-        builder.set_favorites(self.favorites.clone());
         builder.build()
     }
 
@@ -1170,14 +1169,17 @@ impl Searcher {
 
 // === Searcher helpers ===
 
-fn lookup_component_groups_in_suggestion_db(
+fn component_list_builder_with_favorites(
     groups: Rc<Vec<model::execution_context::ComponentGroup>>,
-    db: &model::SuggestionDatabase,
-) -> component::group::List {
-    groups
+    db: Rc<model::SuggestionDatabase>,
+) -> component::builder::List {
+    let favorites = groups
         .iter()
-        .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
-        .collect()
+        .filter_map(|g| component::Group::from_execution_context_component_group(g, &*db))
+        .collect();
+    let mut builder = component::builder::List::new(db);
+    builder.set_favorites(favorites);
+    builder
 }
 
 
@@ -1363,8 +1365,10 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorites =
-                lookup_component_groups_in_suggestion_db(graph.component_groups(), &database);
+            let favorites = component_list_builder_with_favorites(
+                graph.component_groups(),
+                database.clone_ref(),
+            );
             let searcher = Searcher {
                 graph,
                 logger,
@@ -1377,7 +1381,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                favorites,
+                favorites: Rc::new(favorites),
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
