@@ -422,19 +422,6 @@ impl component::Frp<Model> for Frp {
         }
 
 
-        // === Entries ===
-
-        frp::extend! { network
-            model.entries.set_entries <+ input.set_entries;
-            out.selected_entry <+ model.entries.selected_entry;
-            eval model.entries.visible_entries([model](range) {
-                if model.entries.selected_entry.value().map_or(false, |e| e <= range.start) {
-                    model.entries.select_entry(range.start + 1);
-                }
-            });
-        }
-
-
         // === Selection ===
 
         let overlay_events = &model.header_overlay.events;
