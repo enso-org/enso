@@ -93,8 +93,14 @@ spec =
             'a\u0321\u0302'=='a\u0302\u0321' . should_be_true
             'a\u0321\u0302'=='A\u0302\u0321' . should_be_false
 
+            accent_1+"a" . compare_to accent_2+"a" . should_equal Ordering.Equal
+            accent_1+"A" . compare_to accent_2+"a" . should_equal Ordering.Less
+            accent_1+"A" . compare_to_ignore_case accent_2+"a" . should_equal Ordering.Equal
             accent_1+"a" . compare_to accent_2+"b" . should_equal Ordering.Less
+            accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
             accent_2+"a" . compare_to accent_1+"b" . should_equal Ordering.Less
+            accent_1+"a" . compare_to accent_2+"B" . should_equal Ordering.Greater
+            accent_1+"a" . compare_to_ignore_case accent_2+"B" . should_equal Ordering.Less
             accent_1+"b" . compare_to accent_2+"a" . should_equal Ordering.Greater
             accent_2+"b" . compare_to accent_1+"a" . should_equal Ordering.Greater
 

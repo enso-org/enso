@@ -130,6 +130,7 @@ ensogl::define_endpoints_2! {
         set_no_items_label_text(String),
     }
     Output {
+        is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         suggestion_accepted(entry::Id),
         expression_accepted(entry::Id),
@@ -158,6 +159,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
             out.entry_count <+ entry_count;
+            is_mouse_over <- init.constant(false);
 
             selected_column_and_entry <- any(...);
             update_selected_entry <- selected_column_and_entry.sample(&out.size);
@@ -193,9 +195,22 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         }
         init.emit(());
 
+        let mut is_mouse_over = is_mouse_over.clone_ref();
         for column in model.columns.iter() {
             let col_id = column.id.clone_ref();
             frp::extend! { network
+                // === Focus propagation ===
+
+                eval_ input.defocus(model.defocus_columns());
+
+
+                // === Mouse hovering ===
+
+                // We connect `is_mouse_over` events from all columns into a single event stream
+                // using `or` combinator.
+                new_is_mouse_over <- is_mouse_over.or(&column.is_mouse_over);
+                is_mouse_over = new_is_mouse_over;
+
                 // === Accepting suggestions ===
 
                 accepted_entry <- column.selected_entry.sample(&input.accept_suggestion).filter_map(|e| *e);
@@ -208,26 +223,37 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 ));
 
 
+                // === Selected entry ===
+
+                is_column_selected <- column.selected_entry.map(|e| e.is_some());
+                selected_entry <- column.selected_entry.gate(&is_column_selected);
+                out.selected_entry <+ selected_entry.map2(&entry_count, move |entry, total| {
+                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
+                });
+
+
                 // === Selection position ===
 
                 entry_selected <- column.selected_entry.filter_map(|e| *e);
                 selected_column_and_entry <+ entry_selected.map(f!([column](e) (col_id, column.reverse_index(*e))));
                 on_column_selected <- column.selected_entry.map(|e| e.is_some()).on_true();
                 eval_ on_column_selected(model.on_column_selected(col_id));
+                eval_ on_column_selected(column.focus());
                 selection_pos <- column.selection_position_target.sample(&on_column_selected);
                 out.selection_position_target <+ selection_pos.map(f!((pos) column.selection_position(*pos)));
 
 
                 // === set_entries ===
 
-                out.selected_entry <+ column.selected_entry.map2(&entry_count, move |entry, total| {
-                    entry.map(|e| local_idx_to_global::<COLUMNS>(col_id, e, *total))
-                });
                 entries <- input.set_entries.map(move |p| ModelProvider::<COLUMNS>::wrap(p, col_id));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
                 _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
             }
+            frp::extend! { network
+                out.is_mouse_over <+ is_mouse_over;
+            }
+
             let params = entry::Params { colors: colors.clone_ref() };
             column.list_view.set_entry_params_and_recreate_entries(params);
         }
@@ -379,12 +405,20 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         columns_to_the_right.find(|col| col.len() > 0)
     }
 
+    /// Send `defocus()` event to each column.
+    fn defocus_columns(&self) {
+        for column in self.columns.iter() {
+            column.defocus();
+        }
+    }
+
     /// Deselect entries in all columns except the one with provided `column_index`. We ensure that
     /// at all times only a single entry across all columns is selected.
     fn on_column_selected(&self, column_id: ColumnId) {
         let other_columns = self.columns.iter().enumerate().filter(|(i, _)| *i != *column_id);
         for (_, column) in other_columns {
             column.deselect_entries();
+            column.defocus();
         }
     }
 

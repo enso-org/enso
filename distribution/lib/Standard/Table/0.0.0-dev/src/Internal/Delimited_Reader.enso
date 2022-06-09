@@ -94,10 +94,6 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         True -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Infer -> DelimitedReader.HeaderBehavior.INFER
         False -> DelimitedReader.HeaderBehavior.GENERATE_HEADERS
-    skip_rows = case format.skip_rows of
-        Nothing -> 0
-        Integer -> format.skip_rows
-        _ -> Error.throw (Illegal_Argument_Error "`skip_rows` should be Integer or Nothing.")
     row_limit = case format.row_limit of
         Nothing -> -1
         Integer -> format.row_limit
@@ -127,7 +123,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         cell_type_guesser = if format.headers != Infer then Nothing else
             formatter = format.value_formatter.if_nothing Data_Formatter
             TypeInferringParser.new formatter.get_specific_type_parsers.to_array IdentityParser.new
-        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
+        reader = DelimitedReader.new java_reader format.delimiter format.quote format.quote_escape java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows warnings_as_errors
         result_with_problems = reader.read
         parsing_problems = Vector.Vector (result_with_problems.problems) . map here.translate_reader_problem
         on_problems.attach_problems_after (Table.Table result_with_problems.value) parsing_problems

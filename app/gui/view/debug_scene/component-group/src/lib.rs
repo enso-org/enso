@@ -35,6 +35,14 @@ use list_view::entry::AnyModelProvider;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const COMPONENT_GROUP_COLOR: color::Rgba = color::Rgba::new(0.527, 0.554, 0.18, 1.0);
+
+
+
 // ===================
 // === Entry Point ===
 // ===================
@@ -184,6 +192,12 @@ fn create_component_group(
     component_group
 }
 
+fn create_wide_component_group(app: &Application) -> component_group::wide::View {
+    let component_group = app.new_view::<component_group::wide::View>();
+    component_group.set_width(450.0);
+    component_group.set_position_x(-200.0);
+    component_group
+}
 
 fn color_component_slider(app: &Application, caption: &str) -> selector::NumberPicker {
     let slider = app.new_view::<selector::NumberPicker>();
@@ -220,7 +234,7 @@ fn init(app: &Application) {
 
     let network = frp::Network::new("Component Group Debug Scene");
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_position_xy(Vector2(0.0, 100.0));
+    scroll_area.set_position_xy(Vector2(150.0, 100.0));
     scroll_area.resize(Vector2(170.0, 400.0));
     scroll_area.set_content_width(150.0);
     scroll_area.set_content_height(2000.0);
@@ -234,10 +248,11 @@ fn init(app: &Application) {
     let first_component_group = create_component_group(app, group_name, &layers);
     let group_name = "Second component group";
     let second_component_group = create_component_group(app, group_name, &layers);
-    second_component_group.set_dimmed(true);
+    let wide_component_group = create_wide_component_group(app);
 
     scroll_area.content().add_child(&first_component_group);
     scroll_area.content().add_child(&second_component_group);
+    app.display.add_child(&wide_component_group);
 
     // FIXME(#182193824): This is a workaround for a bug. See the docs of the
     // [`transparent_circle`].
@@ -251,12 +266,6 @@ fn init(app: &Application) {
 
     // === Regular Component Group ===
 
-    frp::extend! { network
-        eval first_component_group.suggestion_accepted ([](id) DEBUG!("Accepted Suggestion {id}"));
-        eval first_component_group.expression_accepted ([](id) DEBUG!("Accepted Expression {id}"));
-        eval_ first_component_group.header_accepted ([] DEBUG!("Accepted Header"));
-    }
-
     ComponentGroupController::init(
         &[first_component_group.clone_ref(), second_component_group.clone_ref()],
         &network,
@@ -266,7 +275,8 @@ fn init(app: &Application) {
     let mock_entries = MockEntries::new(15);
     let model_provider = AnyModelProvider::from(mock_entries.clone_ref());
     first_component_group.set_entries(model_provider.clone_ref());
-    second_component_group.set_entries(model_provider);
+    second_component_group.set_entries(model_provider.clone_ref());
+    wide_component_group.set_entries(model_provider.clone_ref());
 
     // === Color sliders ===
 
@@ -285,7 +295,7 @@ fn init(app: &Application) {
     blue_slider.set_track_color(color::Rgba::new(0.6, 0.6, 1.0, 1.0));
     let blue_slider_frp = &blue_slider.frp;
 
-    let default_color = color::Rgba(0.527, 0.554, 0.18, 1.0);
+    let default_color = COMPONENT_GROUP_COLOR;
     frp::extend! { network
         init <- source_();
         red_slider_frp.set_value <+ init.constant(default_color.red);
@@ -298,8 +308,39 @@ fn init(app: &Application) {
             |r,g,b| color::Rgba(*r, *g, *b, 1.0));
         first_component_group.set_color <+ color;
         second_component_group.set_color <+ color;
+        wide_component_group.set_color <+ color;
     }
     init.emit(());
+
+
+    // === Components groups set ===
+
+    let groups: Rc<Vec<component_group::set::Group>> = Rc::new(vec![
+        first_component_group.clone_ref().into(),
+        second_component_group.clone_ref().into(),
+        wide_component_group.clone_ref().into(),
+    ]);
+    let multiview = component_group::set::Wrapper::new();
+    for group in groups.iter() {
+        multiview.add(group.clone_ref());
+    }
+
+    frp::extend! { network
+        selected_entry <- multiview.selected_entry.on_change();
+        eval selected_entry([](e) if let Some(e) = e {  DEBUG!("Entry {e.1} from group {e.0} selected") });
+        eval multiview.suggestion_accepted([]((g, s)) DEBUG!("Suggestion {s} accepted in group {g}"));
+        eval multiview.expression_accepted([]((g, s)) DEBUG!("Expression {s} accepted in group {g}"));
+        header_selected <- multiview.is_header_selected.filter_map(|(g, h)| if *h { Some(*g) } else { None });
+        eval header_selected([](g) DEBUG!("Header selected in group {g}"));
+        eval multiview.header_accepted([](g) DEBUG!("Header accepted in group {g}"));
+
+        eval multiview.focused([groups]((g, f)) {
+            match &groups[usize::from(g)] {
+                component_group::set::Group::OneColumn(group) => group.set_dimmed(!f),
+                component_group::set::Group::Wide(group) => group.set_dimmed(!f),
+            }
+        });
+    }
 
 
     // === Forget ===
@@ -309,7 +350,9 @@ fn init(app: &Application) {
     std::mem::forget(blue_slider);
     std::mem::forget(scroll_area);
     std::mem::forget(network);
+    std::mem::forget(multiview);
     std::mem::forget(first_component_group);
     std::mem::forget(second_component_group);
+    std::mem::forget(wide_component_group);
     std::mem::forget(layers);
 }
