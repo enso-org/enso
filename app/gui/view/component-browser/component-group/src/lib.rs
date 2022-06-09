@@ -85,9 +85,6 @@ pub mod prelude {
 /// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
 const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
-/// TODO: docs
-pub const SELECTION_COLOR: color::Rgba = color::Rgba::new(0.827, 0.831, 0.729, 1.0);
-
 
 
 // ==========================
@@ -155,32 +152,35 @@ pub mod header_background {
     }
 }
 
-pub mod selected_header_background {
+pub mod selection_header_background {
     use super::*;
 
     ensogl::define_shape_system! {
-        above = [background, list_view::background];
         pointer_events = false;
-        (style:Style, color:Vector4, height: f32, shadow_height_multiplier: f32) {
+        (color:Vector4, height: f32) {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            let bg = Rect((width.clone(), height.clone())).fill(color);
-            // We use wider and shorter rect for the shadow because of the visual artifacts that
-            // will appear otherwise:
-            // 1. Rounded corners of the shadow are visible if the rect is too narrow. By widening
-            //    it we keep the shadow sharp and flat for the whole width of the header.
-            // 2. Visual glitching similar to z-fighting occurs on the border of the elements
-            //    when the shadow rect has the exact same size as the background. We shrink the
-            //    height by 1 pixel to avoid it.
-            let shadow_rect = Rect((width * 2.0, height - 1.0.px()));
-            let mut shadow_parameters = shadow::parameters_from_style_path(style, theme::header::shadow);
-            shadow_parameters.size = shadow_parameters.size * shadow_height_multiplier;
-            let shadow = shadow::from_shape_with_parameters(shadow_rect.into(), shadow_parameters);
-            (shadow + bg).into()
+            Rect((width.clone(), height.clone())).fill(color).into()
         }
     }
 }
+
+pub mod selection_box {
+    use super::*;
+    ensogl::define_shape_system! {
+        pointer_events = false;
+        (style:Style) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height = list_view::entry::HEIGHT.px();
+            let corners_radius = style.get_number(theme::selection::corners_radius);
+            let padding = style.get_number(theme::selection::padding);
+            let shape = Rect((width - padding.px(), height)).corners_radius(corners_radius.px());
+            shape.into()
+        }
+    }
+}
+
 
 
 // === Header Overlay ===
@@ -260,6 +260,7 @@ pub struct Colors {
     pub header_text: frp::Sampler<color::Rgba>,
     pub entry_text:  frp::Sampler<color::Rgba>,
     pub background:  frp::Sampler<color::Rgba>,
+    pub selection:   frp::Sampler<color::Rgba>,
 }
 
 impl Colors {
@@ -277,6 +278,7 @@ impl Colors {
         let app_bg = style.get_color(ensogl_hardcoded_theme::application::background);
         let header_intensity = style.get_number(theme::header::text::color_intensity);
         let bg_intensity = style.get_number(theme::background_color_intensity);
+        let selection_intensity = style.get_number(theme::selection_color_intensity);
         let dimmed_intensity = style.get_number(theme::dimmed_color_intensity);
         let icon_weak_intensity = style.get_number(theme::entry_list::icon::weak_color_intensity);
         let entry_text_ = style.get_color(theme::entry_list::text::color);
@@ -292,13 +294,14 @@ impl Colors {
             app_bg_and_main <- all(&app_bg, &main);
             header_text <- app_bg_and_main.all_with(&header_intensity, mix).sampler();
             bg <- app_bg_and_main.all_with(&bg_intensity, mix).sampler();
+            selection <- app_bg_and_main.all_with(&selection_intensity, mix).sampler();
             app_bg_and_entry_text <- all(&app_bg, &entry_text_);
             entry_text <- app_bg_and_entry_text.all_with(&intensity.value, mix).sampler();
             icon_weak <- app_bg_and_main.all_with(&icon_weak_intensity, mix).sampler();
             icon_strong <- main.sampler();
         }
         init.emit(());
-        Self { icon_weak, icon_strong, header_text, entry_text, background: bg }
+        Self { icon_weak, icon_strong, header_text, entry_text, background: bg, selection }
     }
 }
 
@@ -398,6 +401,8 @@ impl component::Frp<Model> for Frp {
             model.header.set_default_color <+ colors.header_text;
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
+            eval colors.selection((c) model.selection_background.color.set(c.into()));
+            eval colors.selection((c) model.selection_header_background.color.set(c.into()));
         }
 
 
@@ -563,16 +568,16 @@ impl LayersInner {
 /// The Model of the [`View`] component.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
-    display_object:             display::object::Instance,
-    header:                     text::Area,
-    selected_header:            text::Area,
-    header_background:          header_background::View,
-    selected_header_background: selected_header_background::View,
-    header_text:                Rc<RefCell<String>>,
-    header_overlay:             header_overlay::View,
-    background:                 background::View,
-    selection_background:       selection_background::View,
-    entries:                    list_view::ListView<Entry>,
+    display_object: display::object::Instance,
+    header: text::Area,
+    selected_header: text::Area,
+    header_background: header_background::View,
+    selection_header_background: selection_header_background::View,
+    header_text: Rc<RefCell<String>>,
+    header_overlay: header_overlay::View,
+    background: background::View,
+    selection_background: selection_background::View,
+    entries: list_view::ListView<Entry>,
 }
 
 impl display::Object for Model {
@@ -592,10 +597,8 @@ impl component::Model for Model {
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
         let selection_background = selection_background::View::new(&logger);
-        selection_background.color.set(SELECTION_COLOR.into());
         let header_background = header_background::View::new(&logger);
-        let selected_header_background = selected_header_background::View::new(&logger);
-        selected_header_background.color.set(SELECTION_COLOR.into());
+        let selection_header_background = selection_header_background::View::new(&logger);
         let header = text::Area::new(app);
         let selected_header = text::Area::new(app);
         let entries = app.new_view::<list_view::ListView<Entry>>();
@@ -607,7 +610,7 @@ impl component::Model for Model {
         display_object.add_child(&background);
         display_object.add_child(&selection_background);
         display_object.add_child(&header_background);
-        display_object.add_child(&selected_header_background);
+        display_object.add_child(&selection_header_background);
         display_object.add_child(&header);
         display_object.add_child(&selected_header);
         display_object.add_child(&header_overlay);
@@ -622,7 +625,7 @@ impl component::Model for Model {
             background,
             selection_background,
             header_background,
-            selected_header_background,
+            selection_header_background,
             entries,
         }
     }
@@ -644,7 +647,7 @@ impl Model {
         params.layer = Rc::new(Some(layers.selected.text.clone_ref()));
         self.entries.set_entry_params_and_recreate_entries(params);
         layers.selected.background.add_exclusive(&self.selection_background);
-        layers.selected.header.add_exclusive(&self.selected_header_background);
+        layers.selected.header.add_exclusive(&self.selection_header_background);
         self.selected_header.add_to_scene_layer(&layers.selected.header_text);
     }
 
@@ -683,7 +686,7 @@ impl Model {
         // === Header Background ===
 
         self.header_background.height.set(header_height);
-        self.selected_header_background.height.set(header_height);
+        self.selection_header_background.height.set(header_height);
         let shadow_size = header_geometry.shadow_size;
         let distance_to_bottom = (-size.y / 2.0 - header_bottom_y).abs();
         // We need to render both the header background and the shadow below it, so we add
@@ -696,8 +699,8 @@ impl Model {
         let header_background_height = header_height + shadow_size * 2.0;
         self.header_background.size.set(Vector2(size.x, header_background_height));
         self.header_background.set_position_y(header_center_y);
-        self.selected_header_background.size.set(Vector2(size.x, header_background_height));
-        self.selected_header_background.set_position_y(header_center_y);
+        self.selection_header_background.size.set(Vector2(size.x, header_background_height));
+        self.selection_header_background.set_position_y(header_center_y);
 
 
         // === Header Overlay ===

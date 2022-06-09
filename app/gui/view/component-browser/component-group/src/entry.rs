@@ -91,8 +91,10 @@ impl Default for Params {
             header_text <- source::<color::Rgba>().sampler();
             entry_text <- source::<color::Rgba>().sampler();
             background <- source::<color::Rgba>().sampler();
+            selection <- source::<color::Rgba>().sampler();
         }
-        let colors = Colors { icon_strong, icon_weak, header_text, entry_text, background };
+        let colors =
+            Colors { icon_strong, icon_weak, header_text, entry_text, background, selection };
         Self { colors, layer: default() }
     }
 }

@@ -231,17 +231,6 @@ mod transparent_circle {
     }
 }
 
-mod selection_box {
-    use super::*;
-    ensogl_core::define_shape_system! {
-        pointer_events = false;
-        (style:Style) {
-            Rect((150.0.px(), list_view::entry::HEIGHT.px())).corners_radius(5.0.px()).fill(color::Rgba::red()).into()
-        }
-    }
-}
-
-
 fn init(app: &Application) {
     theme::builtin::dark::register(&app);
     theme::builtin::light::register(&app);
@@ -278,7 +267,7 @@ fn init(app: &Application) {
     scroll_area.content().add_child(&transparent_circle);
     std::mem::forget(transparent_circle);
 
-    let selection = selection_box::View::new(&app.logger);
+    let selection = component_group::selection_box::View::new(&app.logger);
     selection.size.set(Vector2(150.0, list_view::entry::HEIGHT));
     app.display.default_scene.layers.selection_mask.add_exclusive(&selection);
     app.display.add_child(&selection);

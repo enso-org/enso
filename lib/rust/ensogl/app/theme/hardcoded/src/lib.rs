@@ -203,7 +203,12 @@ define_themes! { [light:0, dark:1]
                         offset_y = shadow::offset_y , shadow::offset_y;
                     }
                 }
+                selection {
+                    corners_radius = 10.0, 10.0;
+                    padding = 10.0, 10.0;
+                }
                 background_color_intensity = 0.2, 0.2;
+                selection_color_intensity = 0.4, 0.4;
                 dimmed_color_intensity = 0.5, 0.5;
                 entry_list {
                     text {

@@ -175,6 +175,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             });
 
             eval colors.background((c) model.background.color.set(c.into()));
+            eval colors.selection((c) model.selection_background.color.set(c.into()));
 
             eval input.set_no_items_label_text((text) model.set_no_items_label_text(text));
 
@@ -372,7 +373,6 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let background = background::View::new(&logger);
         display_object.add_child(&background);
         let selection_background = selection_background::View::new(&logger);
-        selection_background.color.set(crate::SELECTION_COLOR.into());
         display_object.add_child(&selection_background);
         app.display.default_scene.layers.selection.add_exclusive(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
