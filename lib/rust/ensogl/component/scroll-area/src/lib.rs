@@ -40,7 +40,7 @@ ensogl_core::define_endpoints! {
         /// Set the width and height in px.
         resize             (Vector2),
         /// Set the corners radius (in pixels) of all corners of the visible area.
-        set_corner_radius_all  (f32),
+        set_corner_radius (f32),
         /// Set the corners radius (in pixels) of the top right corners of the visible area.
         set_corner_radius_top_right  (f32),
         /// Set the corners radius (in pixels) of the top left corners of the visible area.
@@ -80,11 +80,14 @@ ensogl_core::define_endpoints! {
 mod mask {
     use super::*;
     ensogl_core::define_shape_system! {
-        (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32, corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
+        (style:Style, corner_radius_top_right: f32, corner_radius_top_left: f32,
+            corner_radius_bottom_right: f32, corner_radius_bottom_left: f32) {
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = "input_size.y".into();
             let color = color::Rgba::white();
-            let rect = shape::Rect((width,height)).corners_radiuses(corner_radius_top_left,corner_radius_top_right,corner_radius_bottom_left,corner_radius_bottom_right);
+            let rect = shape::Rect((width,height)).corners_radiuses(
+                corner_radius_top_left,corner_radius_top_right,corner_radius_bottom_left,
+                corner_radius_bottom_right);
             rect.fill(color).into()
         }
     }
@@ -191,10 +194,10 @@ impl ScrollArea {
 
             // === Shape ===
 
-            frp.set_corner_radius_top_right <+ frp.set_corner_radius_all;
-            frp.set_corner_radius_bottom_right <+ frp.set_corner_radius_all;
-            frp.set_corner_radius_top_left <+ frp.set_corner_radius_all;
-            frp.set_corner_radius_bottom_left <+ frp.set_corner_radius_all;
+            frp.set_corner_radius_top_right <+ frp.set_corner_radius;
+            frp.set_corner_radius_bottom_right <+ frp.set_corner_radius;
+            frp.set_corner_radius_top_left <+ frp.set_corner_radius;
+            frp.set_corner_radius_bottom_left <+ frp.set_corner_radius;
             eval frp.set_corner_radius_top_right((radius) {
                 model.mask.corner_radius_top_right.set(*radius);
             });

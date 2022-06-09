@@ -420,14 +420,11 @@ impl component::Frp<Model> for Frp {
 /// fields of this struct represents the rendering order of layers, with `background` being the
 /// bottom-most and `header_text` being the top-most.
 #[derive(Debug, Clone, CloneRef)]
+#[allow(missing_docs)]
 pub struct Layers {
-    /// Background layer. Placed below text and headers.
     pub background:  layer::Layer,
-    /// Text layer. Placed above background, but below headers.
     pub text:        layer::Layer,
-    /// Header layer. Placed above background.
     pub header:      layer::Layer,
-    /// Header text layer. Placed above background and header layer.
     pub header_text: layer::Layer,
 }
 

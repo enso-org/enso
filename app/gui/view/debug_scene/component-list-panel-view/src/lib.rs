@@ -78,9 +78,8 @@ impl list_view::entry::ModelProvider<component_group::Entry> for MockEntries {
 
 
 // ===============================
-// === IInitialisation Helpers ===
+// === Initialisation Helpers ===
 // ===============================
-
 
 fn init_sub_modules_section(searcher_list_panel: &ComponentBrowserPanel) {
     let sub_module_data = vec![
@@ -138,7 +137,6 @@ fn init_local_cope_section(searcher_list_panel: &ComponentBrowserPanel) {
 pub fn main() {
     ensogl_text_msdf_sys::run_once_initialized(|| {
         let app = &Application::new("root");
-
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);
 

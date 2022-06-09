@@ -180,6 +180,19 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         component_browser {
+            searcher {
+                list_panel {
+                    section {
+                        column_grid {
+                            column_gap = 2.0, 2.0;
+                            entry_color_0 = Rgba(0.527, 0.554, 0.18, 1.0),Rgba(0.527, 0.554, 0.18, 1.0);
+                            entry_color_1 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
+                            entry_color_2 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
+                            entry_color_3 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
+                        }
+                    }
+                }
+            }
             component_group {
                 header {
                     text {
