@@ -29,7 +29,6 @@ import org.graalvm.polyglot.io.MessageTransport;
     services = RuntimeServerInstrument.class)
 public class RuntimeServerInstrument extends TruffleInstrument {
   private Env env;
-
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
 
