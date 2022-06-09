@@ -151,18 +151,18 @@ first_last_aggregators =
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
-        order_bys = args.tail
+        order_bys = args.tail.map c->
+            IO.println <| c
+            case c.second of
+                Sort_Direction.Ascending ->
+                    c.first ++ Sql.code " ASC NULLS FIRST"
+                Sort_Direction.Descending ->
+                    c.first ++ Sql.code " DESC NULLS LAST"
 
         filter_clause = if ignore_null.not then Sql.code "" else
             Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
-        order_exprs =
-            order_bys.map order_by->
-                direction = case order_by.second of
-                    Sort_Direction.Ascending -> " ASC NULLS FIRST"
-                    Sort_Direction.Descending -> " DESC NULLS LAST"
-                order_by.first.expression ++ Sql.code direction
         order_clause =
-            Sql.code " ORDER BY " ++ Sql.join "," order_exprs
+            Sql.code " ORDER BY " ++ Sql.join "," order_bys
         index_expr = case reverse of
             True -> if ignore_null.not then Sql.code "COUNT(*)" else
                 Sql.code "COUNT(" ++ result_expr ++ Sql.code ")"
