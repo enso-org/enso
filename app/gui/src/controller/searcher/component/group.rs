@@ -77,7 +77,7 @@ impl Group {
     /// database by their full qualified name. Returns a group containing only the successfully
     /// looked up components, or [`None`] if none of the components were found in the suggestion
     /// database.
-    pub fn new_with_entries_looked_up_in_database(
+    pub fn from_execution_context_component_group(
         group: &execution_context::ComponentGroup,
         suggestion_db: &model::SuggestionDatabase,
     ) -> Option<Self> {
@@ -194,7 +194,7 @@ mod tests {
     use crate::controller::searcher::component::tests::mock_suggestion_db;
     use std::assert_matches::assert_matches;
 
-    /// Test whether [`Group::new_with_entries_looked_up_in_database`] correctly looks up
+    /// Test whether [`Group::from_execution_context_component_group`] correctly looks up
     /// components in the suggestion database.
     #[test]
     fn lookup_component_groups_in_suggestion_database() {
@@ -217,7 +217,7 @@ mod tests {
         };
 
         // Construct a components group with entries looked up in the suggestion database.
-        let group = Group::new_with_entries_looked_up_in_database(
+        let group = Group::from_execution_context_component_group(
             &ec_group_with_mixed_components,
             &suggestion_db,
         );
@@ -251,7 +251,7 @@ mod tests {
             color:      None,
             components: vec!["NAME.NOT.FOUND.IN.DB".into()],
         };
-        let group = Group::new_with_entries_looked_up_in_database(
+        let group = Group::from_execution_context_component_group(
             &ec_group_with_component_not_found_in_db,
             &suggestion_db,
         );
