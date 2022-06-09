@@ -122,6 +122,13 @@ spec prefix table_builder test_selection pending=Nothing =
             problems = [Duplicate_Column_Selectors ["foo"]]
             Problems.test_problem_handling action problems tester
 
+        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            action = table.select_columns selector on_problems=_
+            tester = expect_column_names ["foo"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = By_Name ["foo", "hmm", weird_name]
@@ -233,6 +240,13 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
             selector = By_Name ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
+            action = table.remove_columns selector on_problems=_
+            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            problems = [Duplicate_Column_Selectors ["foo"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+            selector = By_Name.new ["FOO", "foo"] (Text_Matcher case_sensitive=Case_Insensitive)
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             problems = [Duplicate_Column_Selectors ["foo"]]
@@ -723,16 +737,16 @@ spec prefix table_builder test_selection pending=Nothing =
 
         Test.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive)
-            t1.at "psi" . to_vector . should_equal ["c01", "C2", "c10", Nothing]
+            t1.at "psi" . to_vector . should_equal [Nothing, "c01", "C2", "c10"]
 
             t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering sort_digits_as_numbers=True)
-            t2.at "psi" . to_vector . should_equal ["C2", "c01", "c10", Nothing]
+            t2.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
             t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering case_sensitive=Case_Insensitive)
-            t3.at "psi" . to_vector . should_equal ["c01", "c10", "C2", Nothing]
+            t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
 
             t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"])
-            t4.at "psi" . to_vector . should_equal ["C2", "c01", "c10", Nothing]
+            t4.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
 
         Test.specify "text ordering settings should not affect numeric columns" <|
             ordering = Text_Ordering sort_digits_as_numbers=True case_sensitive=Case_Insensitive
