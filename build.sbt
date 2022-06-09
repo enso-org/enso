@@ -1159,6 +1159,36 @@ lazy val frgaalJavaCompilerSetting = Seq(
   Compile / javacOptions ++= Seq("-source", frgaalSourceLevel)
 )
 
+lazy val `runtime-language-epb` = (project in file("engine/runtime-language-epb"))
+  .configs(Benchmark)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := ensoVersion,
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(
+      Defaults.compilersSetting
+    ), // Compile benchmarks with javac, due to jmh issues
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+    ),
+    // Note [Unmanaged Classpath]
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(CopyTruffleJAR.preCompileTask)
+      .value,
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath,
+      "-Xlint:unchecked",
+    ),
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1257,6 +1287,7 @@ lazy val runtime = (project in file("engine/runtime"))
     }.evaluated,
     Benchmark / parallelExecution := false
   )
+  .dependsOn(`runtime-language-epb`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(`library-manager`)
