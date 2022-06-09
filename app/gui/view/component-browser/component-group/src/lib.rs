@@ -85,6 +85,8 @@ pub mod prelude {
 /// will not cover any neighboring elements of the scene. (see [`Model::resize`] method)
 const HEADER_SHADOW_PEAK: f32 = list_view::entry::HEIGHT / 2.0;
 
+pub const SELECTION_COLOR: color::Rbga = color::Rgba(0.8, 0.7, 0.6, 1.0);
+
 
 
 // ==========================
@@ -108,13 +110,12 @@ pub mod background {
     }
 }
 
-pub mod selected_background {
+pub mod selection_background {
     use super::*;
 
     ensogl::define_shape_system! {
-        below = [list_view::background];
         pointer_events = false;
-        (style:Style, color:Vector4) {
+        (color:Vector4) {
             let color = Var::<color::Rgba>::from(color);
             Plane().fill(color).into()
         }
@@ -568,7 +569,7 @@ pub struct Model {
     header_text:                Rc<RefCell<String>>,
     header_overlay:             header_overlay::View,
     background:                 background::View,
-    selected_background:        selected_background::View,
+    selection_background:       selection_background::View,
     entries:                    list_view::ListView<Entry>,
 }
 
@@ -588,9 +589,8 @@ impl component::Model for Model {
         let display_object = display::object::Instance::new(&logger);
         let header_overlay = header_overlay::View::new(&logger);
         let background = background::View::new(&logger);
-        let selected_background = selected_background::View::new(&logger);
-        let selected_color = color::Rgba(0.8, 0.7, 0.6, 1.0);
-        selected_background.color.set(selected_color.into());
+        let selection_background = selection_background::View::new(&logger);
+        selection_background.color.set(SELECTION_COLOR.into());
         let header_background = header_background::View::new(&logger);
         let selected_header_background = selected_header_background::View::new(&logger);
         selected_header_background.color.set(selected_color.into());
@@ -603,7 +603,7 @@ impl component::Model for Model {
         entries.set_background_corners_radius(0.0);
         entries.hide_selection();
         display_object.add_child(&background);
-        display_object.add_child(&selected_background);
+        display_object.add_child(&selection_background);
         display_object.add_child(&header_background);
         display_object.add_child(&selected_header_background);
         display_object.add_child(&header);
@@ -618,7 +618,7 @@ impl component::Model for Model {
             selected_header,
             header_text,
             background,
-            selected_background,
+            selection_background,
             header_background,
             selected_header_background,
             entries,
@@ -638,7 +638,7 @@ impl Model {
         layers.normal.header.add_exclusive(&self.header_background);
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // selected:
-        layers.selected.background.add_exclusive(&self.selected_background);
+        layers.selected.background.add_exclusive(&self.selection_background);
         layers.selected.header.add_exclusive(&self.selected_header_background);
         self.selected_header.add_to_scene_layer(&layers.selected.header_text);
     }
@@ -653,7 +653,7 @@ impl Model {
         // === Background ===
 
         self.background.size.set(size);
-        self.selected_background.size.set(size);
+        self.selection_background.size.set(size);
 
 
         // === Header Text ===

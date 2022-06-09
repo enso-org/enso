@@ -14,6 +14,7 @@
 use crate::prelude::*;
 
 use crate::entry;
+use crate::selection_background;
 use crate::Colors;
 
 use enso_frp as frp;
@@ -70,20 +71,6 @@ pub mod background {
     }
 }
 
-
-/// The background of the Wide Component Group.
-pub mod selected_background {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        below = [list_view::background];
-        pointer_events = false;
-        (style:Style, color:Vector4) {
-            let color = Var::<Rgba>::from(color);
-            Plane().fill(color).into()
-        }
-    }
-}
 
 
 // =====================
@@ -197,7 +184,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
             size <- all_with(&background_width, &background_height,
                              |width, height| Vector2(*width, *height));
             eval size((size) model.background.size.set(*size));
-            eval size((size) model.selected_background.size.set(*size));
+            eval size((size) model.selection_background.size.set(*size));
             out.size <+ size;
 
             // === "No items" label ===
@@ -361,11 +348,11 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
 /// The Model of the [`View`] component. Consists of `COLUMNS` columns.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model<const COLUMNS: usize> {
-    display_object:      display::object::Instance,
-    background:          background::View,
-    selected_background: selected_background::View,
-    columns:             Rc<Vec<Column<COLUMNS>>>,
-    no_items_label:      Label,
+    display_object:       display::object::Instance,
+    background:           background::View,
+    selection_background: selection_background::View,
+    columns:              Rc<Vec<Column<COLUMNS>>>,
+    no_items_label:       Label,
 }
 
 impl<const COLUMNS: usize> display::Object for Model<COLUMNS> {
@@ -383,11 +370,10 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         let display_object = display::object::Instance::new(&logger);
         let background = background::View::new(&logger);
         display_object.add_child(&background);
-        let selected_background = selected_background::View::new(&logger);
-        let selected_color = Rgba(0.8, 0.7, 0.6, 1.0);
-        selected_background.color.set(selected_color.into());
-        display_object.add_child(&selected_background);
-        app.display.default_scene.layers.selection.add_exclusive(&selected_background);
+        let selection_background = selection_background::View::new(&logger);
+        selection_background.color.set(crate::SELECTION_COLOR.into());
+        display_object.add_child(&selection_background);
+        app.display.default_scene.layers.selection.add_exclusive(&selection_background);
         let columns: Vec<_> = (0..COLUMNS).map(|i| Column::new(app, ColumnId::new(i))).collect();
         let columns = Rc::new(columns);
         for column in columns.iter() {
@@ -399,7 +385,7 @@ impl<const COLUMNS: usize> component::Model for Model<COLUMNS> {
         }
         let no_items_label = Label::new(app);
 
-        Model { no_items_label, display_object, background, selected_background, columns }
+        Model { no_items_label, display_object, background, selection_background, columns }
     }
 }
 
