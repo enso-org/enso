@@ -110,6 +110,7 @@ impl List {
         }
     }
 
+    /// Set the favorites in the list.
     pub fn set_favorites(&mut self, favorites: component::group::List) {
         self.favorites = favorites;
         for group in &*self.favorites {
@@ -142,8 +143,8 @@ impl List {
         }
     }
 
-    /// Build the list, sorting all group lists and groups' contents appropriately. Set the
-    /// favorites in the list keeping their order as passed.
+    /// Build the list, sorting all group lists and groups' contents appropriately. (Does not sort
+    /// the [`component::List::favorites`].)
     pub fn build(self) -> component::List {
         for group in self.module_groups.values() {
             group.content.update_sorting("");
