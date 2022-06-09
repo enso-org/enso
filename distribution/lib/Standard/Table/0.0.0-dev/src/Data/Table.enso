@@ -748,20 +748,6 @@ type Table
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
-    ## Alias Select Columns
-
-       Selects a subset of columns from this table by name.
-
-       > Example
-         Get the item name and price columns from the shop inventory.
-
-             import Standard.Examples
-
-             example_select =
-                 Examples.inventory_table.select ["item_name", "price"]
-    select : Vector -> Table
-    select columns = Table (this.java_table.selectColumns columns.to_array)
-
     ## ALIAS Join Table
 
        Efficiently joins two tables based on either the index or the specified
