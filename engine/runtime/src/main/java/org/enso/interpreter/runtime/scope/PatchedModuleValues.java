@@ -27,9 +27,10 @@ final class PatchedModuleValues implements ExecutionEventListener {
   private final EventBinding<PatchedModuleValues> binding;
 
   PatchedModuleValues(Instrumenter instr, Module module) {
-    SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().languageIs(LanguageInfo.ID).sourceIs(t -> {
-      return module.isModuleSource(t);
-    }).build();
+    SourceFilter sourceAssociatedWithMyModule = SourceFilter.newBuilder().
+      languageIs(LanguageInfo.ID).
+      sourceIs(module::isModuleSource).
+      build();
     SourceSectionFilter filter = SourceSectionFilter.newBuilder().sourceFilter(sourceAssociatedWithMyModule).tagIs(Patchable.Tag.class).build();
     this.binding = instr.attachExecutionEventListener(filter, this);
   }
