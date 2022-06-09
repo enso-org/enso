@@ -660,27 +660,6 @@ type Table
 
             Table new_table_name this.connection new_columns new_ctx
 
-    ## UNSTABLE
-
-       Returns an aggregate table resulting from grouping the elements by the
-       value of the specified column.
-
-       Arguments:
-       - by: The column names on which to group. If this is not set, the index
-         will be used for grouping instead.
-    group : Vector Text | Text | Nothing -> Aggregate_Table
-    group by=Nothing = Panic.recover Any <|
-        cols = case by of
-            Nothing ->
-                if this.context.meta_index.is_empty then Panic.throw <| Illegal_State_Error "Trying to group by an empty index." else
-                    this.context.meta_index
-            _ ->
-
-                Helpers.unify_vector_singleton by . map (this.resolve >> .as_internal)
-        exprs = cols.map .expression
-        new_ctx = this.context.set_groups exprs . set_index cols
-        Aggregate_Table this.name this.connection this.internal_columns new_ctx
-
     ## Prototype Group By function
     aggregate : [Aggregate_Column] -> Problem_Behavior -> Table
     aggregate columns (on_problems=Report_Warning) =

@@ -861,33 +861,6 @@ type Table
         cols = this.columns
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
-    ## ALIAS Group a Table
-
-       Returns an aggregate table resulting from grouping the elements by the
-       value of the specified column.
-
-       Arguments:
-       - by: The column in the table to perform grouping by. If this argument
-         is not set, the index is used for grouping instead.
-
-       > Example
-         Compute the number of transactions that each item has participated in,
-         as well as the number of each item sold across those transactions.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_group =
-                 transactions = Examples.transactions_table
-                 item_names = Examples.inventory_table.at "item_name"
-                 aggregated = transactions.group by="item_id"
-                 num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
-                 num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
-                 Table.join [item_names, num_transactions, num_sold]
-    group : Text | Nothing -> Aggregate_Table
-    group by=Nothing =
-        Aggregate_Table (this.java_table.group by)
-
     ## ALIAS Sort Table
        UNSTABLE
 
