@@ -13,7 +13,6 @@ import Standard.Table.Internal.Parse_Values_Helper
 import Standard.Table.Internal.Delimited_Reader
 import Standard.Table.Internal.Problem_Builder
 
-from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 from Standard.Table.Data.Column_Selector as Column_Selector_Module import Column_Selector, By_Index
 from Standard.Table.Data.Column_Type_Selection as Column_Type_Selection_Module import Column_Type_Selection, Auto
 from Standard.Table.Data.Data_Formatter as Data_Formatter_Module import Data_Formatter
@@ -31,7 +30,6 @@ import Standard.Base.Data.Ordering.Comparator
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 polyglot java import org.enso.table.format.xlsx.Writer as Spreadsheet_Writer
 polyglot java import java.io.StringReader
@@ -571,6 +569,44 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 1, Sort_Column.Index -7 Sort_Direction.Descending])
+       > Example
+         Sorting the shop inventory based on the per-item price in ascending
+         order.
+
+             import Standard.Examples
+
+             example_sort = Examples.inventory_table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price"])
+
+       > Example
+         Sort the shop inventory based on the per-item price in descending order
+
+             import Standard.Examples
+
+             example_sort =
+                table = Examples.inventory_table
+                table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "price" Sort_Direction.Descending])
+
+       > Example
+         Sort the shop inventory based on the total stock, using the number sold
+         to break ties in descending order.
+
+             import Standard.Examples
+
+             example_sort =
+                 table = Examples.inventory_table
+                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock" Sort_Direction.Descending, Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+
+       > Example
+         Sort the shop inventory in ascending order by the total stock, using
+         the number of items sold in descending order to break ties.
+
+             import Standard.Examples
+             import Standard.Table
+
+             example_sort =
+                 table = Examples.inventory_table
+                 table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
+
     order_by : Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table
     order_by (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (this.columns.at 0 . name))])) text_ordering=Text_Ordering on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
@@ -860,156 +896,6 @@ type Table
     info =
         cols = this.columns
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
-
-    ## ALIAS Sort Table
-       UNSTABLE
-
-       Sorts the table according to the specified rules.
-
-       Arguments:
-       - by: Specifies the columns used for reordering the table. This argument
-         may be one of:
-         - a text: The text is treated as a column name.
-         - a column: Any column, that may or may not belong to this table.
-           Sorting by a column will result in reordering the rows of this
-           table in a way that would result in sorting the given column.
-         - an order rule: Specifies both the sorting column and additional
-           settings, that will take precedence over the global parameters of
-           this sort operation. The `column` field of the rule may be a text
-           or a column, with the semantics described above.
-         - a vector of any of the above: This will result in a hierarchical
-           sorting, such that the first rule is applied first, the second is
-           used for breaking ties, etc.
-       - order: Specifies the default sort order for this operation. All the
-         rules specified in the `by` argument will default to this setting,
-         unless specified in the rule.
-       - missing_last: Specifies the default placement of missing values when
-         compared to non-missing ones. This setting may be overriden by the
-         particular rules of the `by` argument.  Note thet this argument is
-         independent from `order`, i.e. missing values will always be sorted
-         according to this rule, ignoring the ascending / descending setting.
-
-       > Example
-         Sorting the shop inventory based on the per-item price in ascending
-         order.
-
-             import Standard.Examples
-
-             example_sort = Examples.inventory_table.sort by="price"
-
-       > Example
-         Sort the shop inventory based on the per-item price in descending order
-         and placing missing values at the top of the table.
-
-             import Standard.Examples
-
-             example_sort =
-                table = Examples.inventory_table
-                table.sort by="price" order=Sort_Direction.Descending missing_last=false
-
-       > Example
-         Sort the shop inventory based on the total stock, using the number sold
-         to break ties in descending order.
-
-             import Standard.Examples
-
-             example_sort =
-                 table = Examples.inventory_table
-                 table.sort by=["total_stock", "sold_stock"] order=Sort_Direction.Descending
-
-       > Example
-         Sort the shop inventory in ascending order by the total stock, using
-         the number of items sold in descending order to break ties.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table
-                 sold_stock_rule = Table.Order_Rule "sold_stock" order=Sort_Direction.Descending
-                 table.sort by=["total_stock", sold_stock_rule]
-
-       > Example
-         Sorting the inventory in descending order based on the percentage of
-         the total stock sold, using the popularity of the product to break
-         ties.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table.join Examples.popularity_table
-                 percentage_sold = table.at "sold_stock" / table.at "total_stock"
-                 table.sort by=[percentage_sold, "popularity"] order=Sort_Direction.Descending
-
-       > Example
-         Sort the inventory by the price using a custom comparator function.
-
-             import Standard.Examples
-             import Standard.Table
-
-             example_sort =
-                 table = Examples.inventory_table
-                 comparator a b = a.compare_to b*2
-                 price_rule = Table.Order_Rule "price" comparator=comparator
-                 table.sort by=price_rule
-    sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> Table
-    sort by order=Sort_Direction.Ascending missing_last=True = Panic.recover Any <|
-        rules = this.build_java_order_rules by order missing_last
-        fallback_cmp = here.comparator_to_java .compare_to
-        mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp
-        new_table = this.java_table.applyMask mask
-        Table new_table
-
-    ## PRIVATE
-
-       Transforms order rules from Enso into Java.
-
-       Arguments:
-       - rules: The rule(s) to convert.
-       - order: The sorting order.
-       - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rules : (Text | Column.Column. | Order_Rule | Vector (Text | Column.Column | Order_Rule)) -> Sort_Direction -> Boolean -> Vector
-    build_java_order_rules rules order missing_last = case rules of
-        Text -> [this.build_java_order_rule rules order missing_last]
-        Column.Column _ -> [this.build_java_order_rule rules order missing_last]
-        Order_Rule _ _ _ _ -> [this.build_java_order_rule rules order missing_last]
-        Vector.Vector _ -> rules.map (this.build_java_order_rule _ order missing_last)
-
-    ## PRIVATE
-
-       Builds a java order rule.
-
-       Arguments:
-       - rule: The rule to convert.
-       - order: The sort order.
-       - missing_last: Whether or not missing values should be ordered last.
-    build_java_order_rule : (Text | Column.Column | Order_Rule) -> Sort_Direction -> Boolean -> OrderRule
-    build_java_order_rule rule order missing_last =
-        order_bool = case order of
-            Sort_Direction.Ascending -> True
-            Sort_Direction.Descending -> False
-        case rule of
-            Text ->
-                column = Panic.rethrow (this.at rule)
-                OrderBuilder.OrderRule.new column.java_column Nothing order_bool missing_last
-            Column.Column c ->
-                OrderBuilder.OrderRule.new c Nothing order_bool missing_last
-            Order_Rule col_ref cmp rule_order rule_nulls_last ->
-                c = case col_ref of
-                    Text -> this.at col_ref . java_column
-                    Column.Column c -> c
-                o = case rule_order of
-                    Nothing -> order_bool
-                    Sort_Direction.Ascending -> True
-                    Sort_Direction.Descending -> False
-                nulls = case rule_nulls_last of
-                    Nothing -> missing_last
-                    _ -> rule_nulls_last
-                java_cmp = case cmp of
-                    Nothing -> Nothing
-                    c -> here.comparator_to_java c
-                OrderBuilder.OrderRule.new c java_cmp o nulls
 
     ## UNSTABLE
 
