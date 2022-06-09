@@ -1197,7 +1197,6 @@ lazy val runtime = (project in file("engine/runtime"))
       sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
-    //cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(
