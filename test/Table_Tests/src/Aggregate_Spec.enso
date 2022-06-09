@@ -751,7 +751,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 1 . name . should_equal "First TextWithNothing"
             materialized.columns.at 1 . at idx . should_equal "13dir782ah"
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
-            materialized.columns.at 2 . at idx . should_equal -54.48 epsilon=0.000001
+            materialized.columns.at 2 . at idx . should_equal 54.48 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
             grouped = table.aggregate [Group_By "Flag", First "TextWithNothing", Last "Value", Group_By "Index"]

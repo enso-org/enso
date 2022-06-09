@@ -65,7 +65,7 @@ make_internal_generator_dialect =
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
     my_mappings = text + counts + stats + here.first_last_aggregators
-    Base_Generator.base_dialect . extend_with my_mappings Postgresql_Dialect.prepare_order_descriptor
+    Base_Generator.base_dialect . extend_with my_mappings
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.
@@ -151,12 +151,7 @@ first_last_aggregators =
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
-        order_bys = args.tail.map c->
-            case c.second of
-                Sort_Direction.Ascending ->
-                    c.first ++ Sql.code " ASC NULLS FIRST"
-                Sort_Direction.Descending ->
-                    c.first ++ Sql.code " DESC NULLS LAST"
+        order_bys = args.tail
 
         filter_clause = if ignore_null.not then Sql.code "" else
             Sql.code " FILTER (WHERE " ++ result_expr.paren ++ Sql.code " IS NOT NULL)"
