@@ -33,7 +33,7 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
     if (getArity() - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, getArity() - 1);
     try {
       return interopLibrary.invokeMember(
-          getForeignFunction(), "apply", arguments[0], new PrimArray(positionalArgs));
+          getForeignFunction(), "apply", arguments[0], new ReadOnlyArray(positionalArgs));
     } catch (UnsupportedMessageException
         | UnknownIdentifierException
         | ArityException
