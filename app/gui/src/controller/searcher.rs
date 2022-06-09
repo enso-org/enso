@@ -8,6 +8,7 @@ use crate::controller::graph::NewNodeInfo;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
+use crate::model::suggestion_database;
 use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
@@ -958,16 +959,15 @@ impl Searcher {
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
-                    data.components = this.make_component_list(responses.iter());
+                    let completions = responses.iter().map(|r| r.results.iter().cloned()).flatten();
+                    data.components = this.make_component_list(completions);
                 }
                 Err(err) => {
                     let msg = "Request for completions to the Language Server returned error";
                     error!(this.logger, "{msg}: {err}");
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Error(Rc::new(err.into()));
-                    let mut list_builder: component::builder::List = this.favorites.deref().clone();
-                    list_builder.extend(this.database.keys());
-                    data.components = list_builder.build();
+                    data.components = this.make_component_list(this.database.keys());
                 }
             }
             this.notifier.publish(Notification::NewActionList).await;
@@ -1029,12 +1029,10 @@ impl Searcher {
     #[profile(Debug)]
     fn make_component_list<'a>(
         &self,
-        completion_responses: impl IntoIterator<Item = &'a language_server::response::Completion>,
+        entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
         let mut builder: component::builder::List = self.favorites.deref().clone();
-        for response in completion_responses {
-            builder.extend(response.results.iter().cloned());
-        }
+        builder.extend(entry_ids);
         builder.build()
     }
 
