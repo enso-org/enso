@@ -147,9 +147,9 @@ impl List {
     /// the [`component::List::favorites`].)
     pub fn build(self) -> component::List {
         for group in self.module_groups.values() {
-            group.content.update_sorting("");
+            group.content.update_sorting_and_visibility("");
             if let Some(flattened) = &group.flattened_content {
-                flattened.update_sorting("");
+                flattened.update_sorting_and_visibility("");
             }
         }
         let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);

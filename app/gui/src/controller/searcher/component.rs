@@ -176,7 +176,10 @@ impl List {
             component.update_matching_info(pattern)
         }
         for group in self.all_groups() {
-            group.update_sorting(pattern);
+            group.update_sorting_and_visibility(pattern);
+        }
+        for group in self.favorites.iter() {
+            group.update_visibility();
         }
         self.filtered.set(!pattern.is_empty());
     }
@@ -184,7 +187,7 @@ impl List {
     fn all_groups(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
         let flattened = self.top_modules_flattened.iter();
-        normal.chain(flattened).chain(self.favorites.iter())
+        normal.chain(flattened)
     }
 }
 
@@ -279,6 +282,18 @@ pub(crate) mod tests {
 
     // === Filtering Component List ===
 
+    fn assert_ids_of_matches_entries(group: &Group, expected_ids: &[Id]) {
+        let ids_of_matches = group
+            .entries
+            .borrow()
+            .iter()
+            .filter(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
+            .map(|c| *c.id)
+            .collect_vec();
+        assert_eq!(ids_of_matches, expected_ids);
+        assert_eq!(group.visible.get(), !expected_ids.is_empty());
+    }
+
     #[test]
     fn filtering_component_list() {
         let logger = Logger::new("test::update_list_after_filtering_pattern_change");
@@ -296,37 +311,25 @@ pub(crate) mod tests {
         builder.extend(0..4);
         builder.set_favorites(favorites);
         let list = builder.build();
-        let get_entries_ids =
-            || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
-        let count_matches_entries = || {
-            list.top_modules()[0]
-                .entries
-                .borrow()
-                .iter()
-                .take_while(|c| matches!(*c.match_info.borrow(), MatchInfo::Matches { .. }))
-                .count()
-        };
 
         list.update_filtering("fu");
-        let expected_ids = vec![2, 3, 1];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 2);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
 
         list.update_filtering("x");
-        let expected_ids = vec![3, 2, 1];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 1);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[3]);
 
         list.update_filtering("Sub");
-        let expected_ids = vec![1, 3, 2];
-        assert_eq!(get_entries_ids(), expected_ids);
-        assert_eq!(count_matches_entries(), 1);
-        assert!(list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[1]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[]);
 
         list.update_filtering("y");
-        assert!(!list.top_modules()[0].visible.get());
+        assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
+        assert_ids_of_matches_entries(&list.favorites[0], &[]);
+
+        list.update_filtering("");
+        assert_ids_of_matches_entries(&list.favorites[0], &[3, 2]);
     }
 
 

@@ -100,19 +100,31 @@ impl Group {
         })
     }
 
-    /// Update the group sorting according to the current filtering pattern.
-    pub fn update_sorting(&self, pattern: impl AsRef<str>) {
-        let mut entries = self.entries.borrow_mut();
-        // The `sort_by_key` method is not suitable here, because the closure it takes
-        // cannot return reference nor [`Ref`], and we don't want to copy anything here.
-        if pattern.as_ref().is_empty() {
-            entries.sort_by(|a, b| {
-                a.can_be_entered().cmp(&b.can_be_entered()).then_with(|| a.label().cmp(b.label()))
-            });
-        } else {
-            entries.sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+    /// Update the group sorting according to the current filtering pattern and call
+    /// [`update_visibility`].
+    pub fn update_sorting_and_visibility(&self, pattern: impl AsRef<str>) {
+        {
+            let mut entries = self.entries.borrow_mut();
+            // The `sort_by_key` method is not suitable here, because the closure it takes
+            // cannot return reference nor [`Ref`], and we don't want to copy anything here.
+            if pattern.as_ref().is_empty() {
+                entries.sort_by(|a, b| {
+                    a.can_be_entered()
+                        .cmp(&b.can_be_entered())
+                        .then_with(|| a.label().cmp(b.label()))
+                });
+            } else {
+                entries
+                    .sort_by(|a, b| a.match_info.borrow().cmp(&*b.match_info.borrow()).reverse());
+            }
         }
-        let visible = !entries.iter().all(|c| c.is_filtered_out());
+        self.update_visibility();
+    }
+
+    /// Sets the [`visible`] flag to [`true`] if at least one of the group's entries is not
+    /// filtered out. Sets the flag to [`false`] otherwise.
+    pub fn update_visibility(&self) {
+        let visible = !self.entries.borrow().iter().all(|c| c.is_filtered_out());
         self.visible.set(visible);
     }
 }
