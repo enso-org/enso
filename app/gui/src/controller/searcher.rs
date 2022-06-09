@@ -1671,13 +1671,14 @@ pub mod test {
         assert_eq!(notification, Some(Notification::NewActionList));
     }
 
-    #[wasm_bindgen_test]
+    // #[wasm_bindgen_test]
+    #[test]
     fn loading_components() {
         let Fixture { mut test, searcher, entry1, entry9, .. } =
             Fixture::new_custom(|data, client| {
                 // Entry with id 99999 does not exist, so only two actions from suggestions db
                 // should be displayed in searcher.
-                data.expect_completion(client, None, None, &[1, 99999, 9]);
+                data.expect_completion(client, None, None, &[1, 2, 99999, 9]);
             });
         searcher.reload_list();
         test.run_until_stalled();
