@@ -48,7 +48,7 @@ spec =
             f = Enso_Project.data / "short.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "Cup".write f
+            "Cup".write f on_existing_file=Existing_File_Behavior.Overwrite
             f.with_input_stream stream->
                 stream.read_byte.should_equal 67
                 stream.read_byte.should_equal 117
@@ -137,10 +137,10 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal Nothing
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            'line 2!'.write f on_existing_file=Existing_File_Behavior.Overwrite
+            'line 2!'.write f on_existing_file=Existing_File_Behavior.Overwrite . should_equal Nothing
             f.read_text.should_equal 'line 2!'
             f.delete
             f.exists.should_be_false
@@ -149,7 +149,7 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Error
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Error . should_equal Nothing
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
             "line 2!".write f on_existing_file=Existing_File_Behavior.Error . should_fail_with File_Already_Exists_Error
@@ -161,8 +161,9 @@ spec =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f
-            f.exists.should_be_true
+            "line 1!".write f . should_equal Nothing
+            if f.exists.not then
+                Test.fail "The file should have been created."
             f.read_text.should_equal "line 1!"
 
             bak = transient / "work.txt.bak"
@@ -178,10 +179,11 @@ spec =
                 "new content".write n on_existing_file=Existing_File_Behavior.Overwrite
             n3.delete_if_exists
 
-            "line 2!".write f
+            "line 2!".write f . should_equal Nothing
             f.read_text.should_equal 'line 2!'
             bak.read_text.should_equal 'line 1!'
-            n3.exists.should_be_false
+            if n3.exists then
+                Test.fail "The temporary file should have been cleaned up."
             written_news.each n->
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
@@ -205,6 +207,23 @@ spec =
                 Test.fail "If the operation failed, we shouldn't have even created the backup."
             if new_file.exists then
                 Test.fail "The temporary file should have been cleaned up."
+
+            f.delete
+            result2 = Panic.recover Illegal_State_Error <|
+                Existing_File_Behavior.Backup.write f output_stream->
+                    output_stream.write_bytes "foo".utf_8
+                    Panic.throw (Illegal_State_Error "baz")
+                    output_stream.write_bytes "bar".utf_8
+            result2.should_fail_with Illegal_State_Error
+            result2.catch.message . should_equal "baz"
+            if f.exists.not then
+                Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."
+            f.read_text . should_equal "foo"
+            if bak_file.exists then
+                Test.fail "If the operation failed, we shouldn't have even created the backup."
+            if new_file.exists then
+                Test.fail "The temporary file should have been cleaned up."
+            f.delete
 
     Test.group "folder operations" <|
         resolve files =
