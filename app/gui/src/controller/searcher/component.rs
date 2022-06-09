@@ -265,6 +265,17 @@ pub(crate) mod tests {
         suggestion_db
     }
 
+    fn mock_favorites(db: &model::SuggestionDatabase, component_ids: &[Id]) -> group::List {
+        let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
+        let ec_group = crate::model::execution_context::ComponentGroup {
+            name:       "Test Group 1".into(),
+            color:      None,
+            components: db_entries.into_iter().map(|e| e.qualified_name().into()).collect(),
+        };
+        let group = Group::from_execution_context_component_group(&ec_group, db).unwrap();
+        group::List::new(vec![group])
+    }
+
 
     // === Filtering Component List ===
 
@@ -275,13 +286,15 @@ pub(crate) mod tests {
         let sub_module = mock_module("test.Test.TopModule.SubModule");
         let fun1 = mock_function(&top_module.module, "fun1");
         let funx2 = mock_function(&sub_module.module, "funx1");
-        let all_entries = [top_module, sub_module, fun1, funx2];
+        let all_entries = [&top_module, &sub_module, &fun1, &funx2];
         let suggestion_db = model::SuggestionDatabase::new_empty(logger);
         for (id, entry) in all_entries.into_iter().enumerate() {
-            suggestion_db.put_entry(id, entry)
+            suggestion_db.put_entry(id, entry.clone())
         }
+        let favorites = mock_favorites(&suggestion_db, &[3, 2]);
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..4);
+        builder.set_favorites(favorites);
         let list = builder.build();
         let get_entries_ids =
             || list.top_modules()[0].entries.borrow().iter().map(|c| *c.id).collect_vec();
