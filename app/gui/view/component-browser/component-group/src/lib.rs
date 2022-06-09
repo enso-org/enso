@@ -390,8 +390,10 @@ impl component::Frp<Model> for Frp {
             init <- source_();
             header_text_font <- all(&header_text_font, &init)._0();
             model.header.set_font <+ header_text_font;
+            model.selected_header.set_font <+ header_text_font;
             header_text_size <- all(&header_text_size, &init)._0();
             model.header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
+            model.selected_header.set_default_text_size <+ header_text_size.map(|v| text::Size(*v));
             _set_header <- input.set_header.map2(&size_and_header_geometry, f!(
                 (text, (size, hdr_geom, _)) {
                     model.header_text.replace(text.clone());
@@ -399,6 +401,7 @@ impl component::Frp<Model> for Frp {
                 })
             );
             model.header.set_default_color <+ colors.header_text;
+            model.selected_header.set_default_color <+ colors.header_text;
             eval colors.background((c) model.background.color.set(c.into()));
             eval colors.background((c) model.header_background.color.set(c.into()));
             eval colors.selection((c) model.selection_background.color.set(c.into()));
