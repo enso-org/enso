@@ -478,21 +478,20 @@ impl Data {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
-    data:             Rc<RefCell<Data>>,
-    notifier:         notification::Publisher<Notification>,
-    graph:            controller::ExecutedGraph,
-    mode:             Immutable<Mode>,
-    database:         Rc<model::SuggestionDatabase>,
-    language_server:  Rc<language_server::Connection>,
-    ide:              controller::Ide,
-    this_arg:         Rc<Option<ThisNode>>,
+    logger: Logger,
+    data: Rc<RefCell<Data>>,
+    notifier: notification::Publisher<Notification>,
+    graph: controller::ExecutedGraph,
+    mode: Immutable<Mode>,
+    database: Rc<model::SuggestionDatabase>,
+    language_server: Rc<language_server::Connection>,
+    ide: controller::Ide,
+    this_arg: Rc<Option<ThisNode>>,
     position_in_code: Immutable<Location>,
-    project:          model::Project,
-    /// A cached list of component groups that will be displayed in the Component Browser's
-    /// "Favorites Data Science Tools" section. The groups are defined by
+    project: model::Project,
+    /// A component list builder with favorites already set to
     /// [`controller::ExecutedGraph::component_groups`].
-    favorites:        Rc<component::builder::List>,
+    list_builder_with_favorites: Rc<component::builder::List>,
 }
 
 impl Searcher {
@@ -539,7 +538,7 @@ impl Searcher {
             Mode::NewNode { source_node: Some(node), .. } => ThisNode::new(node, &graph.graph()),
             _ => None,
         });
-        let favorites =
+        let list_builder_with_favorites =
             component_list_builder_with_favorites(graph.component_groups(), database.clone_ref());
         let ret = Self {
             logger,
@@ -553,7 +552,7 @@ impl Searcher {
             language_server: project.json_rpc(),
             position_in_code: Immutable(position),
             project,
-            favorites: Rc::new(favorites),
+            list_builder_with_favorites: Rc::new(list_builder_with_favorites),
         };
         ret.reload_list();
         Ok(ret)
@@ -1031,7 +1030,7 @@ impl Searcher {
         &self,
         entry_ids: impl IntoIterator<Item = suggestion_database::entry::Id>,
     ) -> component::List {
-        let mut builder: component::builder::List = self.favorites.deref().clone();
+        let mut builder = self.list_builder_with_favorites.deref().clone();
         builder.extend(entry_ids);
         builder.build()
     }
@@ -1359,7 +1358,7 @@ pub mod test {
             ide.expect_current_project().returning_st(move || Some(current_project.clone_ref()));
             ide.expect_manage_projects()
                 .returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let favorites = component_list_builder_with_favorites(
+            let list_builder_with_favorites = component_list_builder_with_favorites(
                 graph.component_groups(),
                 database.clone_ref(),
             );
@@ -1375,7 +1374,7 @@ pub mod test {
                 this_arg: Rc::new(this),
                 position_in_code: Immutable(end_of_code),
                 project: project.clone_ref(),
-                favorites: Rc::new(favorites),
+                list_builder_with_favorites: Rc::new(list_builder_with_favorites),
             };
             let entry1 = searcher.database.lookup(1).unwrap();
             let entry2 = searcher.database.lookup(2).unwrap();
