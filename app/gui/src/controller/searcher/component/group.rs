@@ -83,7 +83,7 @@ impl Group {
     ) -> Option<Self> {
         let lookup_component_by_qualified_name = |qualified_name| {
             let (id, suggestion) = suggestion_db.lookup_by_qualified_name(qualified_name)?;
-            Some(Component { id: Immutable(id), suggestion, match_info: default() })
+            Some(Component::new(id, suggestion))
         };
         let components_looked_up_in_db =
             group.components.iter().filter_map(lookup_component_by_qualified_name).collect_vec();
