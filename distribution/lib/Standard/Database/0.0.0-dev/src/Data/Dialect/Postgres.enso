@@ -65,7 +65,7 @@ make_internal_generator_dialect =
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "stddev_samp"]
     stats = [here.agg_median, here.agg_mode, here.agg_percentile, stddev_pop, stddev_samp]
     my_mappings = text + counts + stats + here.first_last_aggregators
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect . extend_with my_mappings Postgresql_Dialect.prepare_order_descriptor
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.

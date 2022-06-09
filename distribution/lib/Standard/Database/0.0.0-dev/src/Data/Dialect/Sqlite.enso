@@ -72,7 +72,7 @@ make_internal_generator_dialect =
     counts = [here.agg_count_is_null, here.agg_count_empty, here.agg_count_not_empty, ["COUNT_DISTINCT", here.agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", here.agg_count_distinct_include_null]]
     stats = [here.agg_stddev_pop, here.agg_stddev_samp]
     my_mappings = text + counts + stats
-    Base_Generator.base_dialect . extend_with my_mappings
+    Base_Generator.base_dialect . extend_with my_mappings Sqlite_Dialect.prepare_order_descriptor
 
 ## PRIVATE
    The provided aggregate is assumed to contain only already resolved columns.

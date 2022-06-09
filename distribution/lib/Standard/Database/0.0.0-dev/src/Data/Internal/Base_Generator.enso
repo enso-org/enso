@@ -22,21 +22,23 @@ type Internal_Dialect
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
+       - prepare_order_descriptor: A function to prepare ordering descriptors.
 
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
        #                       (identifier_wrapper : Text -> Sql.Builder)
-    type Internal_Dialect operation_map wrap_identifier
+       #                       (prepare_order_descriptor : IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor)
+    type Internal_Dialect operation_map wrap_identifier prepare_order_descriptor
 
     ## PRIVATE
 
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
 
-       # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
-    extend_with : Vector Any -> Internal_Dialect
-    extend_with mappings =
+       # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> (IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor) -> Internal_Dialect
+    extend_with : Vector Any -> (IR.Internal_Column -> Sort_Direction -> Text_Ordering -> IR.Order_Descriptor) -> Internal_Dialect
+    extend_with mappings prepare_order_descriptor =
         new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect new_map this.wrap_identifier
+        Internal_Dialect new_map this.wrap_identifier prepare_order_descriptor
 
 ## PRIVATE
 
@@ -172,7 +174,7 @@ base_dialect =
     counts = [fun "COUNT", ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", here.make_function "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls + counts)
-    Internal_Dialect base_map here.wrap_in_quotes
+    Internal_Dialect base_map here.wrap_in_quotes here.prepare_order_descriptor
 
 ## PRIVATE
 
