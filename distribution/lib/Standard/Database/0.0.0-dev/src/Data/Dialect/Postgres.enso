@@ -152,7 +152,6 @@ make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State_Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_bys = args.tail.map c->
-            IO.println <| c
             case c.second of
                 Sort_Direction.Ascending ->
                     c.first ++ Sql.code " ASC NULLS FIRST"
