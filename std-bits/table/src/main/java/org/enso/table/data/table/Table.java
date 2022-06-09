@@ -10,7 +10,6 @@ import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.table.aggregate.AggregateTable;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -466,11 +465,6 @@ public class Table {
               suffixIfNecessary(lnames, original.getName(), rsuffix), index, original.getStorage());
     }
     return new Table(newColumns, index);
-  }
-
-  public AggregateTable group(String by) {
-    Table t = by == null ? this : indexFromColumn(by);
-    return new AggregateTable(t);
   }
 
   /** @return a copy of the Column containing a slice of the original data */
