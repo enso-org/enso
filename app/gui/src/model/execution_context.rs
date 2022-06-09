@@ -339,7 +339,9 @@ pub trait API: Debug {
     /// Returns IDs of all active visualizations.
     fn active_visualizations(&self) -> Vec<VisualizationId>;
 
-    /// Get the component groups defined in libraries imported into the execution context.
+    /// Get the component groups defined in libraries imported into the execution context, or an
+    /// empty vector if component groups are not yet loaded. Component groups are loaded after the
+    /// execution context becomes ready and a response from the Engine is received.
     fn component_groups(&self) -> Rc<Vec<ComponentGroup>>;
 
     /// Get the registry of computed values.
