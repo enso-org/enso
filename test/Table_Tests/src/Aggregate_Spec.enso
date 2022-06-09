@@ -154,7 +154,7 @@ aggregate_spec prefix table empty_table table_builder materialize is_database te
             materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
         Test.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last) <|
-            grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = table.aggregate [First "TextWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), Last "ValueWithNothing" (order_by = Sort_Column_Selector.By_Name [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.columns.length . should_equal 2
