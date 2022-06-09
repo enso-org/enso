@@ -489,7 +489,8 @@ pub struct Searcher {
     position_in_code: Immutable<Location>,
     project:          model::Project,
     /// A cached list of component groups that will be displayed in the Component Browser's
-    /// "Favorites Data Science Tools" section.
+    /// "Favorites Data Science Tools" section. The groups are defined by
+    /// [`controller::ExecutedGraph::component_groups`].
     favorites:        component::group::List,
 }
 
