@@ -102,25 +102,3 @@ type Text_Sub_Range
                     predicate (Text_Utils.substring text start end) . not
                 if indices.first == -1 then (Range 0 indices.second) else
                     Range 0 indices.first
-
-## UNSTABLE
-   A temporary workaround to allow the `First` constructor to work with default
-   arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-First.new : Integer -> First
-First.new (count = 1) = First count
-
-## UNSTABLE
-   A temporary workaround to allow the `Last` constructor to work with default
-   arguments.
-
-   It is needed, because there are issues with relying on default arguments of
-   Atom constructors, as described in the following issue:
-   https://github.com/enso-org/enso/issues/1600
-   Once that issue is fixed, it can be removed.
-Last.new : Integer -> Last
-Last.new (count = 1) = Last count

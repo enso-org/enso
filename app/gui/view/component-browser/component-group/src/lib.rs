@@ -16,7 +16,7 @@
 //! we gradually reduce the size of the shadow so that it will never be rendered outside the
 //! component group boundaries. See `Header Backgound` section in the [`Model::resize`] method.
 
-#![recursion_limit = "1024"]
+#![recursion_limit = "512"]
 // === Features ===
 #![feature(option_result_contains)]
 // === Standard Linter Configuration ===

@@ -124,9 +124,8 @@ public class Text_Utils {
    * @return the result of comparison
    */
   public static boolean equals_ignore_case(String str1, Object str2, Locale locale) {
-    if (str2 instanceof String) {
-      Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
-      return compare_normalized(fold.apply(str1), fold.apply((String) str2)) == 0;
+    if (str2 instanceof String string2) {
+      return compare_normalized_ignoring_case(str1, string2, locale) == 0;
     } else {
       return false;
     }
@@ -163,6 +162,21 @@ public class Text_Utils {
    */
   public static int compare_normalized(String a, String b) {
     return Normalizer.compare(a, b, Normalizer.FOLD_CASE_DEFAULT);
+  }
+
+  /**
+   * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
+   * normalization.
+   *
+   * @param a the left operand
+   * @param b the right operand
+   * @param locale the locale to use for case folding
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
+   */
+  public static int compare_normalized_ignoring_case(String a, String b, Locale locale) {
+    Fold fold = CaseFoldedString.caseFoldAlgorithmForLocale(locale);
+    return Normalizer.compare(fold.apply(a), fold.apply(b), Normalizer.FOLD_CASE_DEFAULT);
   }
 
   /**

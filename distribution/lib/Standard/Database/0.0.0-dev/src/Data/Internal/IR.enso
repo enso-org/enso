@@ -17,8 +17,7 @@ type Expression
          originates from, it corresponds to the `alias` field in `from_spec`.
        - name: the name of the column directly in the table or its alias in a
          sub-query.
-    # type Column (origin : Text) (name : Text)
-    type Column origin name
+    type Column (origin : Text) (name : Text)
 
     ## PRIVATE
 
@@ -30,8 +29,7 @@ type Expression
          It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    # type Constant (sql_type : Sql.Sql_Type) (value : Any)
-    type Constant sql_type value
+    type Constant (sql_type : Sql.Sql_Type) (value : Any)
 
     ## PRIVATE
 
@@ -44,8 +42,7 @@ type Expression
          dialect.
        - expression: a list of expressions which are arguments to the operation;
          different operations support different amounts of arguments.
-    # type Operation (kind : Text) (expressions : Vector Expression)
-    type Operation kind expressions
+    type Operation (kind : Text) (expressions : Vector Expression)
 
 type Internal_Column
     ## PRIVATE
@@ -94,11 +91,7 @@ type Context
        - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
-    # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
-    #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
-    #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
-    #              (limit : Nothing | Integer)
-    type Context from_spec where_filters orders groups meta_index limit
+    type Context (from_spec : From_Spec) (where_filters : Vector Expression) (orders : Vector Order_Descriptor) (groups : Vector Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
 
     ## PRIVATE
 
@@ -126,10 +119,26 @@ type Context
 
        Arguments:
        - new_orders: The new ordering clauses to set in the query.
-    # set_orders : Vector [Expression, Order_Direction] -> Context
-    set_orders : Vector Any -> Context
+    set_orders : Vector Order_Descriptor -> Context
     set_orders new_orders =
         Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with added `orders`.
+
+       The orderings are modified in such a way that the newly added ordering
+       takes precedence, but if any orderings were already present they are also
+       taken into account to break ties within the new ordering.
+
+       In practice this means, that the old orderings are preserved, but the new
+       ones are added to the beginning of the list so that they take precedence.
+
+       Arguments:
+       - new_orders: The new ordering clauses to add to the query.
+    add_orders : Vector Order_Descriptor -> Context
+    add_orders new_orders =
+        Context this.from_spec this.where_filters new_orders+this.orders this.groups this.meta_index this.limit
 
     ## PRIVATE
 
@@ -197,8 +206,7 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    # type From_Table (table_name : Text) (alias : Text)
-    type From_Table table_name alias
+    type From_Table (table_name : Text) (alias : Text)
 
     ## PRIVATE
 
@@ -211,9 +219,7 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    # type Join (kind : Join_Kind) (left_spec : From_Spec)
-    #           (right_spec : From_Spec) (on : Vector Expression)
-    type Join kind left_spec right_spec on
+    type Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector Expression)
 
     ## PRIVATE
 
@@ -226,9 +232,7 @@ type From_Spec
        - context: the context for the sub-query.
        - alias: the name upon which the results of this sub-query can be
          referred to in other parts of the query.
-    # type Sub_Query (columns : Vector [Text, Expression])
-    #               (context : Context) (alias : Text)
-    type Sub_Query columns context alias
+    type Sub_Query (columns : Vector (Pair Text Expression)) (context : Context) (alias : Text)
 
 ## PRIVATE
 
@@ -273,20 +277,9 @@ type Join_Kind
        in the query can be used to filter the results.
     type Join_Cross
 
+
 ## PRIVATE
-
-   Specifies the direction of the ordering.
-type Order_Direction
-
-    ## PRIVATE
-
-       Orders elements in ascending order.
-    type Ascending
-
-    ## PRIVATE
-
-       Orders elements in descending order.
-    type Descending
+type Order_Descriptor (expression : Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
 ## PRIVATE
 
@@ -317,8 +310,7 @@ type Query
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute.
        - context: The query context, see `Context` for more detail.
-    # type Select (expressions : [Text, Expression]) (context : Context)
-    type Select columns context
+    type Select (expressions : Vector (Pair Text Expression)) (context : Context)
 
     ## PRIVATE
 

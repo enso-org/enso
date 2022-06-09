@@ -54,10 +54,7 @@ public class First extends Aggregator {
         continue;
       }
 
-      MultiValueKey newKey =
-          new MultiValueKey(
-              Arrays.stream(this.ordering).map(o -> o.getItemBoxed(row)).toArray(),
-              objectComparator);
+      MultiValueKey newKey = new MultiValueKey(this.ordering, row, objectComparator);
       if (key == null || key.compareTo(newKey) > 0) {
         key = newKey;
         current = storage.getItemBoxed(row);
