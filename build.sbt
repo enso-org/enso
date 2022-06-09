@@ -1159,34 +1159,35 @@ lazy val frgaalJavaCompilerSetting = Seq(
   Compile / javacOptions ++= Seq("-source", frgaalSourceLevel)
 )
 
+
+lazy val instrumentationSettings = frgaalJavaCompilerSetting ++ Seq(
+  version := ensoVersion,
+  commands += WithDebugCommand.withDebug,
+  Compile/logManager :=
+    sbt.internal.util.CustomLogManager.excludeMsg("Could not determine source for class ", Level.Warn),
+  Compile / javacOptions --= Seq("-source", frgaalSourceLevel),
+  libraryDependencies ++= Seq(
+    "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+    "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+  ),
+  // Note [Unmanaged Classpath]
+  Compile / compile / compileInputs := (Compile / compile / compileInputs)
+    .dependsOn(CopyTruffleJAR.preCompileTask)
+    .value,
+  (Compile / javacOptions) ++= Seq(
+    "-s",
+    (Compile / sourceManaged).value.getAbsolutePath,
+    "-Xlint:unchecked",
+  ),
+  (Compile / compile) := (Compile / compile)
+    .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+    .value
+)
+
 lazy val `runtime-language-epb` = (project in file("engine/runtime-language-epb"))
-  .configs(Benchmark)
   .settings(
-    frgaalJavaCompilerSetting,
-    version := ensoVersion,
-    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
-    libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
-    ),
-    // Note [Unmanaged Classpath]
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked",
-    ),
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
+    instrumentationSettings
   )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -1304,92 +1305,23 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(testkit % Test)
 
 lazy val `runtime-instrument-id-execution` = (project in file("engine/runtime-instrument-id-execution"))
-  .configs(Benchmark)
   .settings(
-    frgaalJavaCompilerSetting,
-    version := ensoVersion,
-    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
-    ),
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked",
-    ),
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
+    instrumentationSettings
   )
   .dependsOn(runtime)
 
 lazy val `runtime-instrument-repl-debugger` = (project in file("engine/runtime-instrument-repl-debugger"))
-  .configs(Benchmark)
   .settings(
-    frgaalJavaCompilerSetting,
-    version := ensoVersion,
-    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
-    ),
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked",
-    ),
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
+    instrumentationSettings
   )
   .dependsOn(runtime)
 
 lazy val `runtime-instrument-runtime-server` = (project in file("engine/runtime-instrument-runtime-server"))
-  .configs(Benchmark)
   .settings(
-    frgaalJavaCompilerSetting,
-    version := ensoVersion,
-    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
-    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
-    Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(CopyTruffleJAR.preCompileTask)
-      .value,
-    libraryDependencies ++= Seq(
-      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
-    ),
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath,
-      "-Xlint:unchecked",
-    ),
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
+    instrumentationSettings
   )
   .dependsOn(runtime)
 
@@ -1398,6 +1330,7 @@ lazy val `runtime-instrument`  = (project in file("engine/runtime-instrument"))
   .settings(
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / javacOptions --= Seq("-source", frgaalSourceLevel),
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
