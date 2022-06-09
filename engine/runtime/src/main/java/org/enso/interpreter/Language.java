@@ -29,6 +29,8 @@ import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.options.OptionDescriptors;
 
+import java.util.Optional;
+
 /**
  * The root of the Enso implementation.
  *
@@ -59,7 +61,7 @@ import org.graalvm.options.OptionDescriptors;
   IdentifiedTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
-  private IdExecutionService idExecutionInstrument;
+  private Optional<IdExecutionService> idExecutionInstrument = Optional.empty();
   private static final LanguageReference<Language> REFERENCE =
       LanguageReference.create(Language.class);
 
@@ -110,10 +112,14 @@ public final class Language extends TruffleLanguage<Context> {
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionService.INSTRUMENT_ID);
-    idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionService.class);
+    if (idValueListenerInstrument != null) {
+      idExecutionInstrument =
+          Optional.of(env.lookup(idValueListenerInstrument, IdExecutionService.class));
+    }
     env.registerService(
         new ExecutionService(
             context, idExecutionInstrument, notificationHandler, connectedLockManager));
+
     return context;
   }
 
@@ -179,7 +185,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /** @return a reference to the execution instrument */
-  public IdExecutionService getIdExecutionService() {
+  public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }
 }
