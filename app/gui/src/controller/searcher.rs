@@ -958,7 +958,7 @@ impl Searcher {
                     let list = this.make_action_list(responses.iter());
                     let mut data = this.data.borrow_mut();
                     data.actions = Actions::Loaded { list: Rc::new(list) };
-                    let completions = responses.iter().map(|r| r.results.iter().cloned()).flatten();
+                    let completions = responses.iter().flat_map(|r| r.results.iter().cloned());
                     data.components = this.make_component_list(completions);
                 }
                 Err(err) => {
