@@ -11,7 +11,8 @@ use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::scene::Layer;
+use ensogl::display::scene::layer::Layer;
+use ensogl::display::scene::layer::WeakLayer;
 use ensogl::display::style;
 use ensogl::display::Scene;
 use ensogl_hardcoded_theme::application::component_browser::component_group::entry_list as theme;
@@ -79,7 +80,7 @@ impl From<&str> for Model {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Params {
     pub colors: Colors,
-    pub layer:  Rc<Option<Layer>>,
+    pub layer:  Rc<Option<WeakLayer>>,
 }
 
 impl Default for Params {
@@ -126,13 +127,13 @@ pub struct View {
     logger:            Logger,
     display_object:    display::object::Instance,
     icon:              Rc<RefCell<CurrentIcon>>,
-    selected_icon:     Rc<RefCell<CurrentIcon>>,
     max_width_px:      frp::Source<f32>,
     icon_strong_color: frp::Sampler<color::Rgba>,
     icon_weak_color:   frp::Sampler<color::Rgba>,
     label:             GlyphHighlightedLabel,
     selected_label:    GlyphHighlightedLabel,
-    selected_layer:    Rc<Option<Layer>>,
+    selected_layer:    Rc<Option<WeakLayer>>,
+    label_layer:       Rc<RefCell<WeakLayer>>,
 }
 
 impl list_view::Entry for View {
@@ -153,8 +154,8 @@ impl list_view::Entry for View {
         display_object.add_child(&label);
         display_object.add_child(&selected_label);
 
-        if let Some(layer) = &**layer {
-            selected_label.set_label_layer(&layer);
+        if let Some(selected_layer) = &**layer {
+            selected_layer.upgrade().map(|l| selected_label.set_label_layer(&l));
         }
 
         let network = frp::Network::new("component_group::Entry");
@@ -181,15 +182,9 @@ impl list_view::Entry for View {
                 if let Some(shape) = &icon.borrow().shape {
                     shape.strong_color.set(color.into());
                 }
-                if let Some(shape) = &selected_icon.borrow().shape {
-                    shape.strong_color.set(color.into());
-                }
             );
             eval colors.icon_weak ([icon,selected_icon](color)
                 if let Some(shape) = &icon.borrow().shape {
-                    shape.weak_color.set(color.into());
-                }
-                if let Some(shape) = &selected_icon.borrow().shape {
                     shape.weak_color.set(color.into());
                 }
             );
@@ -197,18 +192,20 @@ impl list_view::Entry for View {
         init.emit(());
         let icon_strong_color = colors.icon_strong.clone_ref();
         let icon_weak_color = colors.icon_weak.clone_ref();
+        let selected_layer = layer.clone_ref();
+        let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.main.downgrade()));
         Self {
             logger,
             network,
             display_object,
             icon,
-            selected_icon,
             max_width_px,
             icon_strong_color,
             icon_weak_color,
             label,
             selected_label,
-            selected_layer: layer.clone_ref(),
+            selected_layer,
+            label_layer,
         }
     }
 
@@ -223,18 +220,17 @@ impl list_view::Entry for View {
             shape.weak_color.set(self.icon_weak_color.value().into());
             shape.set_position_x(icon::SIZE / 2.0);
             self.display_object.add_child(&shape);
-            icon.shape = Some(shape);
-        }
-        let mut icon = self.selected_icon.borrow_mut();
-        if !icon.id.contains(&model.icon) {
-            icon.id = Some(model.icon);
-            let shape = model.icon.create_shape(&self.logger, Vector2(icon::SIZE, icon::SIZE));
-            shape.strong_color.set(self.icon_strong_color.value().into());
-            shape.weak_color.set(self.icon_weak_color.value().into());
-            shape.set_position_x(icon::SIZE / 2.0);
-            self.display_object.add_child(&shape);
-            if let Some(layer) = &*self.selected_layer {
-                layer.add_exclusive(&shape);
+            if let Some(label_layer) = self.label_layer.borrow().upgrade() {
+                label_layer.add_exclusive(&shape);
+            } else {
+                error!(self.logger, "Label layer of the component group entry was dropped.");
+            }
+            if let Some(selected_layer) = &*self.selected_layer {
+                if let Some(selected_layer) = selected_layer.upgrade() {
+                    selected_layer.add(&shape);
+                } else {
+                    error!(self.logger, "Selected layer of the component group entry was dropped.");
+                }
             }
             icon.shape = Some(shape);
         }
@@ -245,6 +241,7 @@ impl list_view::Entry for View {
     }
 
     fn set_label_layer(&self, label_layer: &Layer) {
+        self.label_layer.replace(label_layer.downgrade());
         self.label.set_label_layer(label_layer)
     }
 }

@@ -401,7 +401,7 @@ impl<const COLUMNS: usize> Model<COLUMNS> {
         let layer = &layers.selected.text;
         for column in self.columns.iter() {
             let mut params = column.list_view.entry_params();
-            params.layer = Rc::new(Some(layer.clone_ref()));
+            params.layer = Rc::new(Some(layer.downgrade()));
             column.list_view.set_entry_params_and_recreate_entries(params);
         }
     }

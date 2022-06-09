@@ -634,7 +634,7 @@ impl Model {
         self.header.add_to_scene_layer(&layers.normal.header_text);
         // selected:
         let mut params = self.entries.entry_params();
-        params.layer = Rc::new(Some(layers.selected.text.clone_ref()));
+        params.layer = Rc::new(Some(layers.selected.text.downgrade()));
         self.entries.set_entry_params_and_recreate_entries(params);
         layers.selected.background.add_exclusive(&self.selection_background);
         layers.selected.header.add_exclusive(&self.selection_header_background);
