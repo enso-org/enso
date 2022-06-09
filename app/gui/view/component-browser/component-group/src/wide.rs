@@ -15,6 +15,7 @@ use crate::prelude::*;
 
 use crate::entry;
 use crate::selection_background;
+use crate::theme;
 use crate::Colors;
 
 use enso_frp as frp;
@@ -157,6 +158,7 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
         let input = &api.input;
         let out = &api.output;
         let colors = Colors::from_main_color(network, style, &input.set_color, &input.set_dimmed);
+        let padding = style.get_number(theme::entry_list::padding);
         frp::extend! { network
             init <- source_();
             entry_count <- input.set_entries.map(|p| p.entry_count());
@@ -183,8 +185,8 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
 
             background_height <- any(...);
             let background_width = input.set_width.clone_ref();
-            size <- all_with(&background_width, &background_height,
-                             |width, height| Vector2(*width, *height));
+            size <- all_with3(&background_width, &background_height, &padding,
+                             |width, height, padding| Vector2(*width, *height + *padding));
             eval size((size) model.background.size.set(*size));
             eval size((size) model.selection_background.size.set(*size));
             out.size <+ size;
@@ -252,7 +254,9 @@ impl<const COLUMNS: usize> component::Frp<Model<COLUMNS>> for Frp {
                 entries <- input.set_entries.map(move |p| ModelProvider::<COLUMNS>::wrap(p, col_id));
                 background_height <+ entries.map(f_!(model.background_height()));
                 eval entries((e) column.set_entries(e));
-                _eval <- all_with(&entries, &out.size, f!((_, size) column.resize_and_place(*size)));
+                _eval <- all_with3(&entries, &out.size, &padding,
+                    f!((_, size, padding) column.resize_and_place(*size, *padding))
+                );
             }
             frp::extend! { network
                 out.is_mouse_over <+ is_mouse_over;
@@ -319,17 +323,17 @@ impl<const COLUMNS: usize> Column<COLUMNS> {
     }
 
     /// Resize the column and update its position.
-    fn resize_and_place(&self, size: Vector2) {
+    fn resize_and_place(&self, size: Vector2, padding: f32) {
         let width = size.x / COLUMNS as f32;
         let bg_height = size.y;
         let height = self.len() as f32 * ENTRY_HEIGHT;
-        self.list_view.resize(Vector2(width, height));
+        self.list_view.resize(Vector2(width, height + padding));
 
         let left_border = -(COLUMNS as f32 * width / 2.0) + width / 2.0;
         let pos_x = left_border + width * *self.id as f32;
-        let half_height = height / 2.0;
+        let half_height = bg_height / 2.0;
         let background_bottom = -bg_height / 2.0;
-        let pos_y = background_bottom + half_height;
+        let pos_y = background_bottom + half_height + padding / 2.0;
         self.list_view.set_position_x(pos_x);
         self.list_view.set_position_y(pos_y);
     }
