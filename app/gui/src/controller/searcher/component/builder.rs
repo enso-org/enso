@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::searcher::component;
 use crate::controller::searcher::component::Component;
+use crate::model::execution_context;
 use crate::model::suggestion_database;
 
 use double_representation::module;
@@ -111,8 +112,15 @@ impl List {
     }
 
     /// Set the favorites in the list.
-    pub fn set_favorites(&mut self, favorites: component::group::List) {
-        self.favorites = favorites;
+    pub fn set_favorites<'a>(
+        &mut self,
+        component_groups: impl IntoIterator<Item = &'a execution_context::ComponentGroup>,
+    ) {
+        let db = &*self.suggestion_db;
+        self.favorites = component_groups
+            .into_iter()
+            .filter_map(|g| component::Group::from_execution_context_component_group(g, db))
+            .collect();
         for group in &*self.favorites {
             let group_entries = group.entries.borrow();
             self.all_components.reserve(group_entries.len());

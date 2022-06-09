@@ -256,15 +256,17 @@ pub(crate) mod tests {
         suggestion_db
     }
 
-    fn mock_favorites(db: &model::SuggestionDatabase, component_ids: &[Id]) -> group::List {
+    fn mock_favorites(
+        db: &model::SuggestionDatabase,
+        component_ids: &[Id],
+    ) -> Vec<crate::model::execution_context::ComponentGroup> {
         let db_entries = component_ids.iter().map(|id| db.lookup(*id).unwrap());
-        let ec_group = crate::model::execution_context::ComponentGroup {
+        let group = crate::model::execution_context::ComponentGroup {
             name:       "Test Group 1".into(),
             color:      None,
             components: db_entries.into_iter().map(|e| e.qualified_name().into()).collect(),
         };
-        let group = Group::from_execution_context_component_group(&ec_group, db).unwrap();
-        group::List::new(vec![group])
+        vec![group]
     }
 
 
@@ -297,7 +299,7 @@ pub(crate) mod tests {
         let favorites = mock_favorites(&suggestion_db, &[3, 2]);
         let mut builder = builder::List::new(Rc::new(suggestion_db));
         builder.extend(0..4);
-        builder.set_favorites(favorites);
+        builder.set_favorites(&favorites);
         let list = builder.build();
 
         list.update_filtering("fu");

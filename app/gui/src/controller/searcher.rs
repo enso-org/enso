@@ -1171,12 +1171,8 @@ fn component_list_builder_with_favorites(
     groups: Rc<Vec<model::execution_context::ComponentGroup>>,
     db: Rc<model::SuggestionDatabase>,
 ) -> component::builder::List {
-    let favorites = groups
-        .iter()
-        .filter_map(|g| component::Group::from_execution_context_component_group(g, &*db))
-        .collect();
     let mut builder = component::builder::List::new(db);
-    builder.set_favorites(favorites);
+    builder.set_favorites(groups.iter());
     builder
 }
 
