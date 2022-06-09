@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.System.File.Option
-from Standard.Base.System.File import File_Already_Exists_Error
+from Standard.Base.System.File import File_Already_Exists_Error, Io_Error, File_Not_Found
 
 ## Specifies the behavior of a write operation when the destination file
    already exists.
@@ -43,7 +43,7 @@ type Existing_File_Behavior
             Overwrite -> file.with_output_stream [Option.Write, Option.Create, Option.Truncate_Existing] action
             Append -> file.with_output_stream [Option.Write, Option.Create, Option.Append] action
             Error -> file.with_output_stream [Option.Write, Option.Create_New] action
-            Backup ->
+            Backup -> Panic.recover [Io_Error, File_Not_Found] <|
                 parent = file.parent
                 bak_file = parent / file.name+".bak"
                 go i =
@@ -51,7 +51,7 @@ type Existing_File_Behavior
                     new_file = parent / new_name
                     handle_existing_file _ = go i+1
                     Panic.catch File_Already_Exists_Error handler=handle_existing_file <|
-                        new_file.with_output_stream [Option.Write, Option.Create_New] action
+                        Panic.rethrow <| new_file.with_output_stream [Option.Write, Option.Create_New] action
                         file.move_to bak_file
                         new_file.move_to file
                 go 0

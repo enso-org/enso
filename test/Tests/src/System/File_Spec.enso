@@ -182,7 +182,7 @@ spec =
             "line 2!".write f
             f.read_text.should_equal 'line 2!'
             bak.read_text.should_equal 'line 1!'
-            n3.exists.should_be_true
+            n3.exists.should_be_false
             written_news.each n->
                 n.read_text . should_equal "new content"
             [f, bak, n0, n1, n2, n4].each .delete
