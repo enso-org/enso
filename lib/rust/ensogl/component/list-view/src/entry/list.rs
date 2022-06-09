@@ -222,7 +222,7 @@ impl<E: Entry> ListData<E, E::Params> {
         self.recreate_entries_with_style_prefix(style_prefix);
     }
 
-    /// TODO: docs
+    /// Get previously set entry params.
     pub fn entry_params(&self) -> E::Params {
         self.entry_params.borrow().clone_ref()
     }

@@ -186,9 +186,9 @@ impl Default for JumpTarget {
 
 /// The Model of Select Component.
 #[derive(Clone, CloneRef, Debug)]
-pub struct Model<E: Entry> {
+struct Model<E: Entry> {
     app:            Application,
-    pub entries:    entry::List<E>,
+    entries:        entry::List<E>,
     selection:      selection::View,
     background:     background::View,
     overlay:        overlay::View,
@@ -328,10 +328,6 @@ ensogl_core::define_endpoints! {
         /// mouse and keyboard will work. Used in cases where the ListView user want to manage the
         /// selection widget (e.g. when the selection is shared between many lists).
         hide_selection(),
-        /// TODO: Better name? We "restrict" the size of the list view from the top. It works the
-        /// same way as `set_header_pos` in Component Group.
-        /// TODO: can we use `resize` instead?
-        disallow_selecting_entries_above(f32),
 
         resize(Vector2<f32>),
         scroll_jump(f32),
@@ -345,7 +341,6 @@ ensogl_core::define_endpoints! {
     }
 
     Output {
-        visible_entries(Range<entry::Id>),
         is_mouse_over(bool),
         selected_entry(Option<entry::Id>),
         chosen_entry(Option<entry::Id>),
@@ -443,7 +438,7 @@ impl StyleFrp {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct ListView<E: Entry> {
-    pub model: Model<E>,
+    model:     Model<E>,
     pub frp:   Frp<E>,
     style_frp: StyleFrp,
 }
@@ -659,8 +654,6 @@ where E::Model: Default
             _new_entries <- frp.set_entries.map2(&view_and_style, f!((entries, (view, _, _, style))
                 model.set_entries(entries.clone_ref(), view, style.into())
             ));
-            frp.source.visible_entries <+ all_with(&view_info, &frp.set_entries, f!([](view, provider) Model::<E>::visible_entries(view, provider.entry_count())));
-            //trace frp.source.visible_entries;
 
             frp.source.selection_position_target <+ all_with4(
                 &selection_y.target,
@@ -690,7 +683,7 @@ where E::Model: Default
         self.model.entries.set_entry_params_and_recreate_entries(params, style_prefix.into());
     }
 
-    /// TODO: docs
+    /// Get previously set entry params.
     pub fn entry_params(&self) -> E::Params {
         self.model.entries.entry_params()
     }
