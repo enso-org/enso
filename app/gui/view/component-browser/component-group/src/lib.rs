@@ -201,7 +201,7 @@ pub mod selection_header_background {
             let color = Var::<color::Rgba>::from(color);
             let width: Var<Pixels> = "input_size.x".into();
             let height: Var<Pixels> = height.into();
-            Rect((width.clone(), height.clone())).fill(color).into()
+            Rect((width, height)).fill(color).into()
         }
     }
 }
@@ -746,8 +746,7 @@ impl Model {
             let max_selection_pos_y = size.y / 2.0 - list_view::entry::HEIGHT - header_pos;
             let selection_pos_y = entries_selection_position.y.min(max_selection_pos_y);
             let selection_pos = Vector2(entries_selection_position.x, selection_pos_y);
-            let selection_pos = self.entries.position().xy() + selection_pos;
-            selection_pos
+            self.entries.position().xy() + selection_pos
         }
     }
 }

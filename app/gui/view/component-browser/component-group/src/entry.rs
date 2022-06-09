@@ -154,7 +154,9 @@ impl Entry for View {
         display_object.add_child(&selected_label);
 
         if let Some(selected_layer) = &**layer {
-            selected_layer.upgrade().map(|l| selected_label.set_label_layer(&l));
+            if let Some(layer) = selected_layer.upgrade() {
+                selected_label.set_label_layer(&layer);
+            }
         }
 
         let network = frp::Network::new("component_group::Entry");
